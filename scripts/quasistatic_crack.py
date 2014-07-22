@@ -140,7 +140,8 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                     a.positions[g==0] = b.positions[g==0]
                     a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
                     parprint('Optimizing positions...')
-                    ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
+                    opt = ase.optimize.FIRE(a, logfile=None)
+                    opt.run(fmax=params.fmax)
                     parprint('...done. Converged within {0} steps.' \
                              .format(opt.get_number_of_steps()))
             
@@ -164,7 +165,8 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                     a.positions[g==0] = b.positions[g==0]
                     a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
                     parprint('Optimizing positions...')
-                    ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
+                    opt = ase.optimize.FIRE(a, logfile=None)
+                    opt.run(fmax=params.fmax)
                     parprint('...done. Converged within {0} steps.' \
                              .format(opt.get_number_of_steps()))
         
