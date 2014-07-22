@@ -29,7 +29,6 @@ def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
                     fixx=0.5, fixz=1.0, vac=5.0):
     nx, ny, nz  = n
     third_dir   = np.cross(crack_surface, crack_front)
-    print third_dir
     a = Diamond(el,
             latticeconstant  = a0,
             size             = [ nx,ny,nz ], 
