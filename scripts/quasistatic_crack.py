@@ -153,7 +153,7 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                                                             mask=mask)
             else:
                 # Optimize z position of crack tip
-                x = tip_x0+tip_dx
+                tip_x = tip_x0+tip_dx
                 old_z = tip_z+1.0
                 while abs(tip_z-old_z) > 1e-6:
                     b = cryst.copy()
