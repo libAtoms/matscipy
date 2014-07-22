@@ -51,7 +51,8 @@ parprint('Griffith k1 = %f' % k1g)
 r0 = params.r0.copy()
 cryst = params.cryst.copy()
 a = cryst.copy()
-a.positions += crack.displacements(cryst.positions, r0, params.k1[0]*k1g)
+old_k1 = params.k1[0]
+a.positions += crack.displacements(cryst.positions, r0, old_k1*k1g)
 
 oldr = a[0].position.copy()
 a.center(vacuum=params.vacuum)
@@ -118,7 +119,6 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
         a.set_calculator(params.calc)
     else:
         ase.io.write('init_%2.2i.cfg' % i, a)
-        ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
 
         mask = g!=0
 
@@ -136,7 +136,7 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                     a.set_constraint(None)
                     a.positions[g==0] = b.positions[g==0]
                     a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
-                    ase.optimize.FIRE(a, logfile=None).run(fmax=FMAX)
+                    ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
             
                     old_x = tip_x
                     old_z = tip_z
@@ -175,6 +175,16 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
             r0 = np.array([tip_x, 0.0, tip_z])
 
             parprint('Setting crack tip position to %f %f' % (tip_x, tip_z))
+
+            # Scale strain field and optimize crack
+            a.set_constraint(None)
+            a.set_positions(crack.scale_displacements(a.positions,
+                                                      cryst.positions,
+                                                      old_k1, k1))
+            a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
+            ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
+
+            old_k1 = k1
 
         # Output the mask array, so we know which atoms were used in fitting.
         a.set_array('atoms_used_for_fitting_crack_tip', mask)
