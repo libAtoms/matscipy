@@ -47,4 +47,4 @@ ase.io.write('cryst.cfg', cryst)
 
 # Compute crack tip position
 r0 = np.sum(cryst.get_positions()[crack_tip,:], axis=0)/len(crack_tip)
-
+tip_x0, tip_y0, tip_z0 = r0

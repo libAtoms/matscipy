@@ -48,29 +48,32 @@ k1g = crack.k1g(params.surface_energy)
 parprint('Griffith k1 = %f' % k1g)
 
 # Crack tip position.
-if hasattr(params, 'r0'):
-    r0 = params.r0.copy()
+if hasattr(params, 'tip_x0'):
+    tip_x0 = params.tip_x0
 else:
-    r0 = params.cryst.cell.diagonal()/2
+    tip_x0 = params.cryst.cell.diagonal()[0]/2
+if hasattr(params, 'tip_z0'):
+    tip_z0 = params.tip_z0
+else:
+    tip_z0 = params.cryst.cell.diagonal()[2]/2
 
 cryst = params.cryst.copy()
 a = cryst.copy()
 old_k1 = params.k1[0]
-a.positions += crack.displacements(cryst.positions, r0, old_k1*k1g)
+a.positions += crack.displacements(cryst.positions,
+                                   np.array([tip_x0, 0.0, tip_z0]),
+                                   old_k1*k1g)
 
 oldr = a[0].position.copy()
 a.center(vacuum=params.vacuum, axis=(0, 2))
-r0 += a[0].position - oldr
+tip_x0 += a[0].position[0] - oldr[0]
+tip_z0 += a[0].position[2] - oldr[2]
 cryst.set_cell(a.cell)
 cryst.translate(a[0].position - oldr)
 
 cell = a.cell
 
-tip_x0, tip_y0, tip_z0 = r0
 info = [(0.0, tip_x0, tip_z0, tip_x0, tip_z0, 0.0)]
-
-b = a.copy()
-b += ase.Atom('H', ( tip_x0, tip_y0, tip_z0 ))
 
 parprint('Cell size = %f %f %f' % tuple(a.cell.diagonal()))
 
@@ -188,10 +191,16 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
             parprint('Setting crack tip position to %f %f' % (tip_x, tip_z))
 
             # Scale strain field and optimize crack
+            b = cryst.copy()
+            r0 = np.array([tip_x, 0.0, tip_z])
+            b.positions += crack.displacements(cryst.positions, r0,
+                                                       k1*k1g)
+
             a.set_constraint(None)
             a.set_positions(crack.scale_displacements(a.positions,
                                                       cryst.positions,
                                                       old_k1, k1))
+            a.positions[g==0] = b.positions[g==0]
             a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
             parprint('Optimizing positions...')
             opt = ase.optimize.FIRE(a, logfile=None)
@@ -207,7 +216,7 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
 
         # The target crack tip is marked by a Hydrogen atom.
         b = a.copy()
-        b += ase.Atom('H', ( tip_x, tip_y0, tip_z ))
+        b += ase.Atom('H', ( tip_x, b.cell.diagonal()[1]/2, tip_z ))
 
         x0crack, z0crack = crack.crack_tip_position(a.positions,
                                                     cryst.positions,
@@ -216,7 +225,7 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
         parprint('Measured crack tip at %f %f' % (x0crack, z0crack))
 
         # The fitted crack tip is marked by a Helium atom.
-        b += ase.Atom('He', ( x0crack, tip_y0, z0crack ))
+        b += ase.Atom('He', ( x0crack, b.cell.diagonal()[1]/2, z0crack ))
         ase.io.write('step_with_crack_tip_%2.2i.cfg' % i, b)
 
         info += [ ( k1, tip_x, tip_z, x0crack, z0crack,
