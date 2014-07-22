@@ -13,7 +13,7 @@ setup(name='matscipy',
       maintainer='James Kermode & Lars Pastewka',
       maintainer_email='james.kermode@gmail.com',
       license='LGPLv2.1+',
-      package_dir={'': 'matscipy'},
-      packages=[''],
+      package_dir={'matscipy': 'matscipy'},
+      packages=['matscipy'],
       scripts=scripts
       )
