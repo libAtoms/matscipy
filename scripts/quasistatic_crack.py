@@ -48,8 +48,11 @@ k1g = crack.k1g(params.surface_energy)
 parprint('Griffith k1 = %f' % k1g)
 
 # Crack tip position.
-r0 = params.r0.copy()
-print r0
+if hasattr(params, 'r0'):
+    r0 = params.r0.copy()
+else:
+    r0 = params.cryst.cell.diagonal()/2
+
 cryst = params.cryst.copy()
 a = cryst.copy()
 old_k1 = params.k1[0]
