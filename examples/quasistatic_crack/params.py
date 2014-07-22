@@ -34,7 +34,7 @@ vacuum          = 6.0
 # Simulation control
 nsteps          = 31
 # Increase stress intensity factor
-k1              = np.linspace(1.0, 1.5, nsteps)
+k1              = np.linspace(0.8, 1.5, nsteps)
 # Don't move crack tip
 tip_dx          = np.zeros_like(k1)
 tip_dz          = np.zeros_like(k1)
