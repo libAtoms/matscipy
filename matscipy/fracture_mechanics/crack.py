@@ -142,8 +142,6 @@ class RectilinearAnisotropicCrack:
         sqrt_2_r = ( self.h1 * ( self.h4 * h2 - self.h5 * h3 ) ).real/k
         r2 = sqrt_2_r**2/2
 
-        print r1, r2, theta
-
         return ( (r1+r2)/2, theta )
 
 
