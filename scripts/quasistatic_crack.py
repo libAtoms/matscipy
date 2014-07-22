@@ -49,13 +49,14 @@ parprint('Griffith k1 = %f' % k1g)
 
 # Crack tip position.
 r0 = params.r0.copy()
+print r0
 cryst = params.cryst.copy()
 a = cryst.copy()
 old_k1 = params.k1[0]
 a.positions += crack.displacements(cryst.positions, r0, old_k1*k1g)
 
 oldr = a[0].position.copy()
-a.center(vacuum=params.vacuum)
+a.center(vacuum=params.vacuum, axis=(0, 2))
 r0 += a[0].position - oldr
 cryst.set_cell(a.cell)
 cryst.translate(a[0].position - oldr)
@@ -67,7 +68,6 @@ info = [(0.0, tip_x0, tip_z0, tip_x0, tip_z0, 0.0)]
 
 b = a.copy()
 b += ase.Atom('H', ( tip_x0, tip_y0, tip_z0 ))
-ase.io.write('step_with_crack_tip_00.cfg', b)
 
 parprint('Cell size = %f %f %f' % tuple(a.cell.diagonal()))
 
@@ -136,7 +136,10 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                     a.set_constraint(None)
                     a.positions[g==0] = b.positions[g==0]
                     a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
+                    parprint('Optimizing positions...')
                     ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
+                    parprint('...done. Converged within {0} steps.' \
+                             .format(opt.get_number_of_steps()))
             
                     old_x = tip_x
                     old_z = tip_z
@@ -157,7 +160,10 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                     a.set_constraint(None)
                     a.positions[g==0] = b.positions[g==0]
                     a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
+                    parprint('Optimizing positions...')
                     ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
+                    parprint('...done. Converged within {0} steps.' \
+                             .format(opt.get_number_of_steps()))
         
                     #x, y, z = a.positions.T
                     #abs_dr = np.sqrt((x-tip_x)**2+(z-tip_z)**2)
@@ -182,7 +188,11 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                                                       cryst.positions,
                                                       old_k1, k1))
             a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
-            ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
+            parprint('Optimizing positions...')
+            opt = ase.optimize.FIRE(a, logfile=None)
+            opt.run(fmax=params.fmax)
+            parprint('...done. Converged within {0} steps.' \
+                     .format(opt.get_number_of_steps()))
 
             old_k1 = k1
 
@@ -202,7 +212,7 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
 
         # The fitted crack tip is marked by a Helium atom.
         b += ase.Atom('He', ( x0crack, tip_y0, z0crack ))
-        ase.io.write('step_with_crack_tip_%2.2i.cfg' % (i+1), b)
+        ase.io.write('step_with_crack_tip_%2.2i.cfg' % i, b)
 
         info += [ ( k1, tip_x, tip_z, x0crack, z0crack,
                     a.get_potential_energy() ) ]
