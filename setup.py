@@ -5,7 +5,7 @@ from distutils.core import setup
 version = (os.popen('git config --get remote.origin.url').read() + ',' +
            os.popen('git describe --always --tags --dirty').read())
 
-scripts = ['scripts/qcount']
+scripts = []
 
 setup(name='matscipy',
       version=version,
