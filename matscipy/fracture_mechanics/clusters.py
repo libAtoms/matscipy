@@ -27,7 +27,7 @@ from ase.lattice.cubic import Diamond
 def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
                     crack_front=[1,-1,0],
                     skin_x=0.5, skin_z=1.0,
-                    central_x=2.0, central_z=2.0,
+                    central_x=-1.0, central_z=-1.0,
                     vac=5.0):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
@@ -40,18 +40,28 @@ def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
     a.translate([sx/(8*nx), sy/(4*ny), sz/(4*nz)])
     a.set_scaled_positions(a.get_scaled_positions())
 
-    lx = skin_x*sx/nx
-    lz = skin_z*sz/nz
+    skin_x = skin_x*sx/nx
+    skin_z = skin_z*sz/nz
     r = a.get_positions()
     g = np.where(
         np.logical_or(
             np.logical_or(
                 np.logical_or(
-                    r[:, 0] < lx, r[:, 0] > sx-lx),
-                r[:, 2] < lz),
-            r[:, 2] > sz-lz),
+                    r[:, 0] < skin_x, r[:, 0] > sx-skin_x),
+                r[:, 2] < skin_z),
+            r[:, 2] > sz-skin_z),
         np.zeros(len(a), dtype=int),
         np.ones(len(a), dtype=int))
+
+    g = np.where(
+        np.logical_or(
+            np.logical_or(
+                np.logical_or(
+                    r[:, 0] < sx/2-central_x, r[:, 0] > sx/2+central_x),
+                r[:, 2] < sz/2-central_z),
+            r[:, 2] > sz/2+central_z),
+        g,
+        2*np.ones(len(a), dtype=int))
     a.set_array('groups', g)
 
     a.set_cell([sx+2*vac, sy, sz+2*vac])
