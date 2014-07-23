@@ -26,22 +26,24 @@ from ase.lattice.cubic import Diamond
 
 def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
                     crack_front=[1,-1,0],
-                    skin_x=0.5, skin_z=1.0, vac=5.0):
-    nx, ny, nz  = n
-    third_dir   = np.cross(crack_surface, crack_front)
+                    skin_x=0.5, skin_z=1.0,
+                    central_x=2.0, central_z=2.0,
+                    vac=5.0):
+    nx, ny, nz = n
+    third_dir = np.cross(crack_surface, crack_front)
     a = Diamond(el,
-            latticeconstant  = a0,
-            size             = [ nx,ny,nz ], 
-            directions       = [ third_dir, crack_surface, crack_front ]
+            latticeconstant = a0,
+            size = [nx, ny, nz], 
+            directions = [third_dir, crack_surface, crack_front]
             )
     sx, sy, sz = a.get_cell().diagonal()
-    a.translate([ sx/(8*nx), sy/(4*ny), sz/(4*nz) ])
+    a.translate([sx/(8*nx), sy/(4*ny), sz/(4*nz)])
     a.set_scaled_positions(a.get_scaled_positions())
 
-    lx  = skin_x*sx/nx
-    lz  = skin_z*sz/nz
-    r   = a.get_positions()
-    g   = np.where(
+    lx = skin_x*sx/nx
+    lz = skin_z*sz/nz
+    r = a.get_positions()
+    g = np.where(
         np.logical_or(
             np.logical_or(
                 np.logical_or(
@@ -53,7 +55,7 @@ def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
     a.set_array('groups', g)
 
     a.set_cell([sx+2*vac, sy, sz+2*vac])
-    a.translate([ vac, 0.0, vac ])
+    a.translate([vac, 0.0, vac])
     a.set_pbc([False, True, False])
 
     return a
