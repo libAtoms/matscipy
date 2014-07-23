@@ -111,7 +111,7 @@ for i, bond_length in enumerate(params.bond_lengths):
 
         ase.io.write('init_%2.2i.cfg' % i, a)
 
-        mask = g!=0
+        mask = g==1
 
         # Optimize x and z position of crack tip
         if hasattr(params, 'optimize_tip_position') and \
@@ -177,10 +177,8 @@ for i, bond_length in enumerate(params.bond_lengths):
         info += [ ( bond_length, force, a.get_potential_energy(), tip_x, tip_z,
                     x0crack, z0crack ) ]
 
-print info
-
 # Output some aggregate data.
 bond_length, force, epot, tip_x, tip_y, x0crack, z0crack = np.transpose(info)
 epotint = -scipy.integrate.cumtrapz(force, bond_length, initial=0.0)
 np.savetxt('crack.out', np.transpose([bond_length, force, epot, epotint,
-                                      top_x, tip_y, x0crack, z0crack]))
+                                      tip_x, tip_y, x0crack, z0crack]))
