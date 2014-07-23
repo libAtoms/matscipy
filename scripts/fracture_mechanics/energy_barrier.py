@@ -82,10 +82,6 @@ if os.path.exists('step_00.cfg'):
     assert np.all(a.get_cell() - cell < 1e-6)
 
 g = a.get_array('groups')
-x = a.positions[:,0]-tip_x
-z = a.positions[:,2]-tip_z
-g = np.where(x**2 + z**2 < params.cutoff**2,
-             2*np.ones_like(g), g)
 
 # Simulation control
 bond1, bond2 = params.bond
