@@ -26,7 +26,7 @@ from ase.lattice.cubic import Diamond
 
 def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
                     crack_front=[1,-1,0],
-                    fixx=0.5, fixz=1.0, vac=5.0):
+                    skin_x=0.5, skin_z=1.0, vac=5.0):
     nx, ny, nz  = n
     third_dir   = np.cross(crack_surface, crack_front)
     a = Diamond(el,
@@ -38,8 +38,8 @@ def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
     a.translate([ sx/(8*nx), sy/(4*ny), sz/(4*nz) ])
     a.set_scaled_positions(a.get_scaled_positions())
 
-    lx  = fixx*sx/nx
-    lz  = fixz*sz/nz
+    lx  = skin_x*sx/nx
+    lz  = skin_z*sz/nz
     r   = a.get_positions()
     g   = np.where(
         np.logical_or(
@@ -61,7 +61,7 @@ def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
 ###
 
 def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
-                    fixx=1.0, fixz=1.0, vac=5.0):
+                    skin_x=1.0, skin_z=1.0, vac=5.0):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
     directions = [ third_dir, crack_front, crack_surface ]
@@ -74,8 +74,8 @@ def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
     a.translate([ sx/(4*nx), sy/(8*ny), sz/(4*nz) ])
     a.set_scaled_positions(a.get_scaled_positions())
 
-    lx  = fixx*sx/nx
-    lz  = fixz*sz/nz
+    lx  = skin_x*sx/nx
+    lz  = skin_z*sz/nz
     r   = a.get_positions()
     g   = np.where(
         np.logical_or(
