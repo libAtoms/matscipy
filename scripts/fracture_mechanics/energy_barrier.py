@@ -24,6 +24,7 @@ import os
 import sys
 
 import numpy as np
+import scipy.integrate
 
 import ase
 import ase.io
@@ -81,14 +82,18 @@ if os.path.exists('step_00.cfg'):
     assert np.all(a.get_cell() - cell < 1e-6)
 
 g = a.get_array('groups')
-
-ase.io.write('crack_initial.cfg', a)
+x = a.positions[:,0]-tip_x
+z = a.positions[:,2]-tip_z
+g = np.where(x**2 + z**2 < params.cutoff**2,
+             2*np.ones_like(g), g)
 
 # Simulation control
 bond1, bond2 = params.bond
 
 # Assign calculator.
 a.set_calculator(params.calc)
+
+ase.io.write('crack_initial.cfg', a)
 
 info = []
 
@@ -175,4 +180,7 @@ for i, bond_length in enumerate(params.bond_lengths):
 print info
 
 # Output some aggregate data.
-np.savetxt('crack.out', info)
+bond_length, force, epot, tip_x, tip_y, x0crack, z0crack = np.transpose(info)
+epotint = -scipy.integrate.cumtrapz(force, bond_length, initial=0.0)
+np.savetxt('crack.out', np.transpose([bond_length, force, epot, epotint,
+                                      top_x, tip_y, x0crack, z0crack]))
