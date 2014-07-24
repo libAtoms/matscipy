@@ -61,6 +61,8 @@ for fn in fns:
 
 indices = np.argsort(bond_lengths)
 
+tip_x = []
+tip_z = []
 epot_cluster = []
 bond_lengths = []
 bond_forces = []
@@ -69,6 +71,12 @@ work = []
 last_a = None
 for fn in np.array(fns)[indices]:
     a = ase.io.read(fn)
+
+    [[ _tip_x, _tip_y, _tip_z ]] = \
+        a.positions[a.numbers == atomic_numbers[ACTUAL_CRACK_TIP], :]
+    tip_x += [ _tip_x ]
+    tip_z += [ _tip_z ]
+
     del a[np.logical_or(a.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
                         a.numbers == atomic_numbers[FITTED_CRACK_TIP])]
 
@@ -106,8 +114,10 @@ work = np.cumsum(work)
 
 # Integrate true potential energy.
 epot = -cumtrapz(bond_forces, bond_lengths, initial=0.0)
-np.savetxt('crack_eval.out', np.transpose([bond_lengths,
-                                           bond_forces,
-                                           epot,
-                                           epot_cluster,
-                                           work]))
+np.savetxt('crack_eval.out', np.transpose([bond_lengths, # 1
+                                           bond_forces,  # 2
+                                           epot,         # 3
+                                           epot_cluster, # 4
+                                           work,         # 5
+                                           tip_x,        # 6
+                                           tip_z]))      # 7
