@@ -4,7 +4,8 @@
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright (2014) James Kermode, King's College London
+#                  Lars Pastewka, Karlsruhe Institute of Technology
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,11 +25,11 @@ import os
 import sys
 
 import numpy as np
-import scipy.integrate
 
 import ase
-import ase.io
 import ase.constraints
+import ase.data
+import ase.io
 import ase.optimize
 from ase.parallel import parprint
 
@@ -38,6 +39,12 @@ import matscipy.fracture_mechanics.crack as crack
 
 sys.path += [ "." ]
 import params
+
+###
+
+# Atom types used for outputting the crack tip position.
+ACTUAL_CRACK_TIP = 'Au'
+FITTED_CRACK_TIP = 'Ag'
 
 ###
 
@@ -59,11 +66,13 @@ if hasattr(params, 'tip_z'):
 else:
     tip_z = cryst.cell.diagonal()[2]/2
 
+# Apply initial strain field.
 a = cryst.copy()
 a.positions += crack.displacements(cryst.positions,
                                    np.array([tip_x, 0.0, tip_z]),
                                    params.k1*k1g)
 
+# Center notched configuration in simulation cell and ensure enough vacuum.
 oldr = a[0].position.copy()
 a.center(vacuum=params.vacuum, axis=(0, 2))
 tip_x += a[0].position[0] - oldr[0]
@@ -71,25 +80,14 @@ tip_z += a[0].position[2] - oldr[2]
 cryst.set_cell(a.cell)
 cryst.translate(a[0].position - oldr)
 
-cell = a.cell
-
-parprint('Cell size = %f %f %f' % tuple(a.cell.diagonal()))
-
-if os.path.exists('step_00.cfg'):
-    a = ase.io.read('step_00.cfg')
-    a.set_pbc([False, True, False])
-
-    assert np.all(a.get_cell() - cell < 1e-6)
-
+# Groups mark the fixed region and the region use for fitting the crack tip.
 g = a.get_array('groups')
 
-# Simulation control
+# Which bond to break.
 bond1, bond2 = params.bond
 
 # Assign calculator.
 a.set_calculator(params.calc)
-
-ase.io.write('crack_initial.cfg', a)
 
 info = []
 
@@ -99,17 +97,18 @@ for i, bond_length in enumerate(params.bond_lengths):
     if os.path.exists('step_%2.2i.cfg' % i):
         parprint('step_%2.2i.cfg found, skipping' % i)
         a = ase.io.read('step_%2.2i.cfg' % i)
+        del a[np.logical_or(a.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
+                            a.numbers == atomic_numbers[FITTED_CRACK_TIP])]
         a.set_calculator(params.calc)
     else:
         a.set_constraint(None)
         a.set_distance(bond1, bond2, bond_length)
         bond_length_constraint = ase.constraints.FixBondLength(bond1, bond2)
 
-        ase.io.write('init_%2.2i.cfg' % i, a)
-
+        # Atoms to be used for fitting the crack tip position.
         mask = g==1
 
-        # Optimize x and z position of crack tip
+        # Optimize x and z position of crack tip.
         if hasattr(params, 'optimize_tip_position') and \
                params.optimize_tip_position:
             old_x = tip_x+1.0
@@ -137,6 +136,7 @@ for i, bond_length in enumerate(params.bond_lengths):
                                                         cryst.positions,
                                                         r0, params.k1*k1g,
                                                         mask=mask)
+                parprint('New crack tip at {0} {1}'.format(tip_x, tip_z))
         else:
             a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                               bond_length_constraint])
@@ -146,35 +146,33 @@ for i, bond_length in enumerate(params.bond_lengths):
             parprint('...done. Converged within {0} steps.' \
                      .format(opt.get_number_of_steps()))
 
-        # Output the mask array, so we know which atoms were used in fitting.
-        a.set_array('atoms_used_for_fitting_crack_tip', mask)
-        ase.io.write('step_%2.2i.cfg' % i, a)
+        # Store forces.
+        a.set_constraint(None)
+        a.set_array('forces', a.get_forces())
 
-        # The target crack tip is marked by a Hydrogen atom.
+        # The target crack tip is marked by a gold atom.
         b = a.copy()
-        b += ase.Atom('H', (tip_x, b.cell.diagonal()[1]/2, tip_z))
+        b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, b.cell.diagonal()[1]/2, tip_z))
 
         r0 = np.array([tip_x, 0.0, tip_z])
-        x0crack, z0crack = crack.crack_tip_position(a.positions,
-                                                    cryst.positions,
-                                                    r0, params.k1*k1g,
-                                                    mask=mask)
+        fit_x, fit_z = crack.crack_tip_position(a.positions,
+                                                cryst.positions,
+                                                r0, params.k1*k1g,
+                                                mask=mask)
 
-        parprint('Measured crack tip at %f %f' % (x0crack, z0crack))
+        parprint('Measured crack tip at %f %f' % (fit_x, fit_z))
 
-        # The fitted crack tip is marked by a Helium atom.
-        b += ase.Atom('He', (x0crack, b.cell.diagonal()[1]/2, z0crack))
-        ase.io.write('step_with_crack_tip_%2.2i.cfg' % i, b)
+        # The fitted crack tip is marked by a silver atom.
+        b += ase.Atom(FITTED_CRACK_TIP, (fit_x, b.cell.diagonal()[1]/2, fit_z))
+        ase.io.write('step_%2.2i.cfg' % i, b)
 
         bond_dir = a[bond1].position - a[bond2].position
         bond_dir /= np.linalg.norm(bond_dir)
         force = np.dot(bond_length_constraint.get_constraint_force(), bond_dir)
 
-        info += [ ( bond_length, force, a.get_potential_energy(), tip_x, tip_z,
-                    x0crack, z0crack ) ]
+        # This should go into the Atom's info dict, but need extended XYZ to
+        # write to file.
+        info += [ ( bond_length, force, a.get_potential_energy() ) ]
 
-# Output some aggregate data.
-bond_length, force, epot, tip_x, tip_y, x0crack, z0crack = np.transpose(info)
-epotint = -scipy.integrate.cumtrapz(force, bond_length, initial=0.0)
-np.savetxt('crack.out', np.transpose([bond_length, force, epot, epotint,
-                                      tip_x, tip_y, x0crack, z0crack]))
+# Output info data to seperate file.
+np.savetxt('crack.out', info)
