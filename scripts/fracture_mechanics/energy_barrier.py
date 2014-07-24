@@ -28,9 +28,9 @@ import numpy as np
 
 import ase
 import ase.constraints
-import ase.data
 import ase.io
 import ase.optimize
+from ase.data import atomic_numbers
 from ase.parallel import parprint
 
 import matscipy.fracture_mechanics.crack as crack
