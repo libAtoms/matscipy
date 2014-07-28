@@ -23,13 +23,52 @@ from numpy.linalg import inv
 
 ###
 
+# The indices of the full stiffness matrix of (orthorhombic) interest
+Voigt_notation = [(0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)]
+
+###
+
+def full_3x3x3x3_to_Voigt_6x6(C):
+    """
+    Convert from the full 3x3x3x3 representation of the stiffness matrix
+    to the representation in Voigt notation. Checks symmetry in that process.
+    """
+
+    C = np.asarray(C)
+    Voigt = np.zeros((6,6))
+    for i in range(6):
+        for j in range(6):
+            k, l = Voigt_notation[i]
+            m, n = Voigt_notation[j]
+            Voigt[i,j] = C[k,l,m,n]
+            # Check symmetries
+            assert abs(Voigt[i,j]-C[m,n,k,l]) < 1e-12, \
+                'Voigt[i,j] = {0}, C[m,n,k,l] = {1}'.format(Voigt[i,j],
+                                                            C[m,n,k,l])
+            assert abs(Voigt[i,j]-C[l,k,m,n]) < 1e-12, \
+                'Voigt[i,j] = {0}, C[l,k,m,n] = {1}'.format(Voigt[i,j],
+                                                            C[l,k,m,n])
+            assert abs(Voigt[i,j]-C[k,l,n,m]) < 1e-12, \
+                'Voigt[i,j] = {0}, C[k,l,n,m] = {1}'.format(Voigt[i,j],
+                                                            C[k,l,n,m])
+    return Voigt
+
+def Voigt_6x6_to_orthorhombic(C):
+    """
+    Convert the Voigt 6x6 representation into the orthorhombic elastic constants
+    C11, C12 and C44.
+    """
+
+    C11 = np.array([C[0,0], C[1,1], C[2,2]])
+    C12 = np.array([C[1,2], C[0,2], C[0,1]])
+    C44 = np.array([C[3,3], C[4,4], C[5,5]])
+
+    return C11, C12, C44
+
+###
+
 class CubicElasticModuli:
     tol = 1e-6
-
-    # The indices of the full stiffness matrix of (orthorhombic) interest
-    t = [(0, 0, 0, 0), (1, 1, 1, 1), (2, 2, 2, 2),  # C11
-         (1, 1, 2, 2), (0, 0, 2, 2), (0, 0, 1, 1),  # C12
-         (1, 2, 1, 2), (0, 2, 0, 2), (0, 1, 0, 1)]  # C44
 
     def __init__(self, C11, C12, C44):
         """
@@ -60,22 +99,21 @@ class CubicElasticModuli:
             raise RuntimeError('Matrix *A* does not describe a rotation.')
 
         C = [ ]
-        for i, j, k, m in self.t:
-            h = 0.0
-            if i == j and k == m:
-                h += self.la
-            if i == k and j == m:
-                h += self.mu
-            if i == m and j == k:
-                h += self.mu
-            h += self.al*np.sum(A[i,:]*A[j,:]*A[k,:]*A[m,:])
-            C += [ h ]
+        for i, j in Voigt_notation:
+            for k, l in Voigt_notation:
+                h = 0.0
+                if i == j and k == l:
+                    h += self.la
+                if i == k and j == l:
+                    h += self.mu
+                if i == l and j == k:
+                    h += self.mu
+                h += self.al*np.sum(A[i,:]*A[j,:]*A[k,:]*A[l,:])
+                C += [ h ]
 
-        self.C11_rot = np.array(C[0:3])
-        self.C12_rot = np.array(C[3:6])
-        self.C44_rot = np.array(C[6:9])
-
-        return self.C11_rot, self.C12_rot, self.C44_rot
+        self.C = np.asarray(C)
+        self.C.shape = (6, 6)
+        return self.C
 
 
     def _rotate_explicit(self, A):
@@ -112,37 +150,8 @@ class CubicElasticModuli:
         # Rotate
         C = np.einsum('ia,jb,kc,ld,abcd->ijkl', A, A, A, A, C)
 
-        C9 = [ ]
-        for i, j, k, m in self.t:
-            C9 += [ C[i,j,k,m] ]
-
-        self.C11_rot = np.array(C9[0:3])
-        self.C12_rot = np.array(C9[3:6])
-        self.C44_rot = np.array(C9[6:9])
-
-        return self.C11_rot, self.C12_rot, self.C44_rot
-
-
-    def stiffness_matrix(self):
-        """
-        Return the elastic constants
-        """
-
-        t = [(0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)]
-
-        C6 = np.zeros((6, 6), dtype=float)
-
-        for a in range(6):
-            for b in range(6):
-                i, j = t[a]
-                k, l = t[b]
-
-                C6[a, b] = self.C[i, j, k, l]
-
-        if np.sometrue(np.abs(C6 - np.transpose(C6)) > self.tol):
-            raise RuntimeError('C6 not symmetric.')
-
-        return C6
+        self.C = full_3x3x3x3_to_Voigt_6x6(C)
+        return self.C
 
 
     def stiffness(self):
@@ -150,7 +159,7 @@ class CubicElasticModuli:
         Return the elastic constants
         """
 
-        return self.C11_rot, self.C12_rot, self.C44_rot
+        return self.C
 
 
     def compliance(self):
@@ -158,7 +167,7 @@ class CubicElasticModuli:
         Return the compliance coefficients
         """
 
-        raise NotImplementedError
+        raise inv(self.C)
 
 ###
     
