@@ -26,7 +26,7 @@ from numpy.linalg import inv
 class CubicElasticModuli:
     tol = 1e-6
 
-    # The indices of the full stiffness matrix of (cubic) interest
+    # The indices of the full stiffness matrix of (orthorhombic) interest
     t = [(0, 0, 0, 0), (1, 1, 1, 1), (2, 2, 2, 2),  # C11
          (1, 1, 2, 2), (0, 0, 2, 2), (0, 0, 1, 1),  # C12
          (1, 2, 1, 2), (0, 2, 0, 2), (0, 1, 0, 1)]  # C44
