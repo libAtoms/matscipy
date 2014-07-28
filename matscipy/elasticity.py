@@ -83,7 +83,6 @@ class CubicElasticModuli:
                             h += self.mu
                         for o in range(3):
                             h += self.al * A[i, o] * A[j, o] * A[k, o] * A[m, o]
-                            #h += self.al * A[o, i] * A[o, j] * A[o, k] * A[o, m]
                         C[i, j, k, m] = h
 
         self.C = C
@@ -224,14 +223,14 @@ def measure_orthorhombic_elastic_moduli(a, delta=0.001, optimizer=None,
     s0 = a.get_stress()
 
     # C11
-    C11  = [ ]
+    C11 = [ ]
     for i in range(3):
         a.set_cell(cell, scale_atoms=True)
         a.set_positions(r0)
         
-        T = np.zeros( (3,3) )
-        T[i, i] = delta
-        a.set_cell( np.dot(np.eye(3)+T, cell), scale_atoms=True )
+        D = np.eye(3)
+        D[i, i] = 1.0+delta
+        a.set_cell(np.dot(D, cell), scale_atoms=True)
         if optimizer is not None:
             optimizer(a, logfile=logfile).run(**kwargs)
         s = a.get_stress()
@@ -241,8 +240,7 @@ def measure_orthorhombic_elastic_moduli(a, delta=0.001, optimizer=None,
     volfac = 1.0/((1-delta**2)**(1./3))
 
     # C'
-    Cp   = [ ] 
-    C12  = [ ]
+    Cp = [ ] 
     for i in range(3):
         a.set_cell(cell, scale_atoms=True)
         a.set_positions(r0)
@@ -260,7 +258,7 @@ def measure_orthorhombic_elastic_moduli(a, delta=0.001, optimizer=None,
         Cp += [ ((s[j]-s0[j])-(s[k]-s0[k]))/(4*delta) ]
 
     # C44
-    C44  = [ ]
+    C44 = [ ]
     for i in range(3):
         a.set_cell(cell, scale_atoms=True)
         a.set_positions(r0)
@@ -277,7 +275,7 @@ def measure_orthorhombic_elastic_moduli(a, delta=0.001, optimizer=None,
 
         C44 += [ (s[3+i]-s0[3+i])/(2*delta) ]
 
-    a.set_cell( cell, scale_atoms=True )
+    a.set_cell(cell, scale_atoms=True)
     a.set_positions(r0)
 
     C11 = np.array(C11)
