@@ -256,3 +256,51 @@ def measure_orthorhombic_elastic_moduli(a, delta=0.001, optimizer=None,
     C12 = np.array([C11[1]+C11[2], C11[0]+C11[2], C11[0]+C11[1]])/2-2*Cp
 
     return C11, C12, C44
+
+###
+
+def measure_triclinic_elastic_moduli(a, delta=0.001, optimizer=None, 
+                                     logfile=None, **kwargs):
+    """
+    Measure elastic constant for an orthorhombic unit cell
+
+    Parameters:
+    -----------
+    a           ase.Atoms object
+    optimizer   Optimizer to use for atomic position. Does not optimize atomic
+                position if set to None.
+    delta         Strain increment for analytical derivatives of stresses.
+    """
+
+    if optimizer is not None:
+        optimizer(a, logfile=logfile).run(**kwargs)
+
+    r0 = a.positions.copy()
+
+    cell = a.cell
+    s0 = a.get_stress()
+
+    C = np.zeros((6,6), dtype=float)
+
+    for i in range(6):
+        a.set_cell(cell, scale_atoms=True)
+        a.set_positions(r0)
+        
+        D = np.eye(3)
+        k, l = Voigt_notation[i]
+        if k == l:
+            D[k, l] += delta
+        else:
+            D[k, l] += 0.5*delta
+            D[l, k] += 0.5*delta
+        a.set_cell(np.dot(D, cell), scale_atoms=True)
+        if optimizer is not None:
+            optimizer(a, logfile=logfile).run(**kwargs)
+        s = a.get_stress()
+            
+        C[i, :] = (s-s0)/delta
+
+    a.set_cell(cell, scale_atoms=True)
+    a.set_positions(r0)
+
+    return C
