@@ -43,11 +43,9 @@ FITTED_CRACK_TIP = 'Ag'
 
 ###
 
-bond1, bond2 = params.bond
+prefix = sys.argv[1]
+fns = sorted(glob.glob('%s_*.xyz' % prefix))
 
-bond_lengths = []
-
-fns = sorted(glob.glob('step_*.xyz'))
 tip_x = []
 tip_z = []
 epot_cluster = []
@@ -64,6 +62,8 @@ for fn in fns:
     tip_z += [ _tip_z ]
 
     # Bond length.
+    bond1 = a.info['bond1']
+    bond2 = a.info['bond2']
     dr = a[bond1].position - a[bond2].position
     bond_lengths += [ np.linalg.norm(dr) ]
 
@@ -90,16 +90,16 @@ for fn in fns:
 
     last_a = a
 
-# Sort according to bond length.
 epot_cluster = np.array(epot_cluster)-epot_cluster[0]
 work = np.cumsum(work)
 
 # Integrate true potential energy.
 epot = -cumtrapz(bond_forces, bond_lengths, initial=0.0)
-np.savetxt('crack_eval.out', np.transpose([bond_lengths, # 1
-                                           bond_forces,  # 2
-                                           epot,         # 3
-                                           epot_cluster, # 4
-                                           work,         # 5
-                                           tip_x,        # 6
-                                           tip_z]))      # 7
+np.savetxt('%s_eval.out' % prefix,
+          np.transpose([bond_lengths, # 1
+                        bond_forces,  # 2
+                        epot,         # 3
+                        epot_cluster, # 4
+                        work,         # 5
+                        tip_x,        # 6
+                        tip_z]))      # 7
