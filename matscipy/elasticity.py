@@ -23,19 +23,6 @@ from numpy.linalg import inv
 
 ###
 
-def stiffness_matrix_to_elastic_constants(C):
-    t11 = [(0, 0, 0, 0), (1, 1, 1, 1), (2, 2, 2, 2)]
-    t12 = [(1, 1, 2, 2), (0, 0, 2, 2), (0, 0, 1, 1)]
-    t44 = [(1, 2, 1, 2), (0, 2, 0, 2), (0, 1, 0, 1)]
-
-    C11 = np.array([ C[x] for x in t11 ])
-    C12 = np.array([ C[x] for x in t12 ])
-    C44 = np.array([ C[x] for x in t44 ])
-
-    return C11, C12, C44
-
-###
-
 class CubicElasticModuli:
     tol = 1e-6
 
