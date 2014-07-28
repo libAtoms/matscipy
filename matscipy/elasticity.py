@@ -36,10 +36,7 @@ class CubicElasticModuli:
         Initialize a cubic system with elastic constants C11, C12, C44
         """
 
-        self.C11 = C11
-        self.C12 = C12
-        self.C44 = C44
-
+        # la, mu, al are the three invariant elastic constants
         self.la = C12
         self.mu = C44
         self.al = C11 - self.la - 2*self.mu
