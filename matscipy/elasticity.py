@@ -39,6 +39,11 @@ def stiffness_matrix_to_elastic_constants(C):
 class CubicElasticModuli:
     tol = 1e-6
 
+    # The indices of the full stiffness matrix of (cubic) interest
+    t = [(0, 0, 0, 0), (1, 1, 1, 1), (2, 2, 2, 2),  # C11
+         (1, 1, 2, 2), (0, 0, 2, 2), (0, 0, 1, 1),  # C12
+         (1, 2, 1, 2), (0, 2, 0, 2), (0, 1, 0, 1)]  # C44
+
     def __init__(self, C11, C12, C44):
         """
         Initialize a cubic system with elastic constants C11, C12, C44
@@ -63,31 +68,30 @@ class CubicElasticModuli:
         Compute the rotated stiffness matrix
         """
 
+        A = np.asarray(A)
+
         # Is this a rotation matrix?
         if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
                               np.eye(3, dtype=float)) > self.tol):
             raise RuntimeError('Matrix *A* does not describe a rotation.')
 
-        C = np.zeros((3, 3, 3, 3), dtype=float)
+        C = [ ]
+        for i, j, k, m in self.t:
+            h = 0.0
+            if i == j and k == m:
+                h += self.la
+            if i == k and j == m:
+                h += self.mu
+            if i == m and j == k:
+                h += self.mu
+            h += self.al*np.sum(A[i,:]*A[j,:]*A[k,:]*A[m,:])
+            C += [ h ]
 
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for m in range(3):
-                        h = 0.0
-                        if i == j and k == m:
-                            h += self.la
-                        if i == k and j == m:
-                            h += self.mu
-                        if i == m and j == k:
-                            h += self.mu
-                        for o in range(3):
-                            h += self.al * A[i, o] * A[j, o] * A[k, o] * A[m, o]
-                        C[i, j, k, m] = h
+        self.C11_rot = np.array(C[0:3])
+        self.C12_rot = np.array(C[3:6])
+        self.C44_rot = np.array(C[6:9])
 
-        self.C = C
-
-        return C
+        return self.C11_rot, self.C12_rot, self.C44_rot
 
 
     def _rotate_explicit(self, A):
@@ -95,6 +99,8 @@ class CubicElasticModuli:
         Compute the rotated stiffness matrix by applying the rotation to the
         full stiffness matrix. This function is for debugging purposes only.
         """
+
+        A = np.asarray(A)
 
         # Is this a rotation matrix?
         if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
@@ -120,42 +126,17 @@ class CubicElasticModuli:
                         C[i, j, k, m] = h
 
         # Rotate
-        self.C = np.einsum('ia,jb,kc,ld,abcd->ijkl', A, A, A, A, C)
+        C = np.einsum('ia,jb,kc,ld,abcd->ijkl', A, A, A, A, C)
 
-        return self.C
+        C9 = [ ]
+        for i, j, k, m in self.t:
+            C9 += [ C[i,j,k,m] ]
 
+        self.C11_rot = np.array(C9[0:3])
+        self.C12_rot = np.array(C9[3:6])
+        self.C44_rot = np.array(C9[6:9])
 
-    def _rotate_explicit2(self, A):
-        """
-        Compute the rotated stiffness matrix by applying the rotation to the
-        full stiffness matrix. This function is for debugging purposes only.
-        """
-
-        # Is this a rotation matrix?
-        if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
-                              np.eye(3, dtype=float) ) > self.tol):
-            raise RuntimeError('Matrix *A* does not describe a rotation.')
-
-        C = np.zeros((3, 3, 3, 3), dtype=float)
-
-        # Construct unrotated stiffness matrix
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for m in range(3):
-                        if i == j and j == k and k == m:
-                            C[i,j,k,m] = self.C11
-                        elif i == j and j != k and k == m:
-                            C[i,j,k,m] = self.C12
-                        elif i != j and i == k and j == m:
-                            C[i,j,k,m] = self.C44
-                        elif i != j and i == m and j == k:
-                            C[i,j,k,m] = self.C44
-
-        # Rotate
-        self.C = np.einsum('ia,jb,kc,ld,abcd->ijkl', A, A, A, A, C)
-
-        return self.C
+        return self.C11_rot, self.C12_rot, self.C44_rot
 
 
     def stiffness_matrix(self):
@@ -185,7 +166,7 @@ class CubicElasticModuli:
         Return the elastic constants
         """
 
-        return stiffness_matrix_to_elastic_constants(self.C)
+        return self.C11_rot, self.C12_rot, self.C44_rot
 
 
     def compliance(self):
@@ -193,11 +174,7 @@ class CubicElasticModuli:
         Return the compliance coefficients
         """
 
-        C6 = self.compliance()
-
-        S6 = inv(C6)
-
-        return S6
+        raise NotImplementedError
 
 ###
     
@@ -248,8 +225,8 @@ def measure_orthorhombic_elastic_moduli(a, delta=0.001, optimizer=None,
         D = volfac*np.eye(3)
         j = (i+1)%3
         k = (i+2)%3
-        D[j,j] *= 1+delta
-        D[k,k] *= 1-delta
+        D[j, j] *= 1+delta
+        D[k, k] *= 1-delta
         a.set_cell(np.dot(D, cell), scale_atoms=True)
         if optimizer is not None:
             optimizer(a, logfile=logfile).run(**kwargs)
