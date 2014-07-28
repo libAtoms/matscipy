@@ -167,7 +167,7 @@ class CubicElasticModuli:
         Return the compliance coefficients
         """
 
-        raise inv(self.C)
+        return inv(self.C)
 
 ###
     
