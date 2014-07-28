@@ -23,6 +23,19 @@ from numpy.linalg import inv
 
 ###
 
+def stiffness_matrix_to_elastic_constants(C):
+    t11 = [(0, 0, 0, 0), (1, 1, 1, 1), (2, 2, 2, 2)]
+    t12 = [(1, 1, 2, 2), (0, 0, 2, 2), (0, 0, 1, 1)]
+    t44 = [(1, 2, 1, 2), (0, 2, 0, 2), (0, 1, 0, 1)]
+
+    C11 = np.array([ C[x] for x in t11 ])
+    C12 = np.array([ C[x] for x in t12 ])
+    C44 = np.array([ C[x] for x in t44 ])
+
+    return C11, C12, C44
+
+###
+
 class CubicElasticModuli:
     tol = 1e-6
 
@@ -31,25 +44,29 @@ class CubicElasticModuli:
         Initialize a cubic system with elastic constants C11, C12, C44
         """
 
+        self.C11 = C11
+        self.C12 = C12
+        self.C44 = C44
+
         self.la = C12
         self.mu = C44
         self.al = C11 - self.la - 2*self.mu
 
         A = np.eye(3, dtype=float)
 
-        # Compute initial compliance matrix
+        # Compute initial stiffness matrix
         self.rotate(A)
 
 
     def rotate(self, A):
         """
-        Compute the rotated compliance matrix
+        Compute the rotated stiffness matrix
         """
 
         # Is this a rotation matrix?
         if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
-                              np.eye(3, dtype=float)) > self.tol ):
-            raise RuntimeError('A does not describe a rotation.')
+                              np.eye(3, dtype=float)) > self.tol):
+            raise RuntimeError('Matrix *A* does not describe a rotation.')
 
         C = np.zeros((3, 3, 3, 3), dtype=float)
 
@@ -74,18 +91,20 @@ class CubicElasticModuli:
         return C
 
 
-    def rotate2(self, A):
+    def _rotate_explicit(self, A):
         """
-        Compute the rotated compliance matrix
+        Compute the rotated stiffness matrix by applying the rotation to the
+        full stiffness matrix. This function is for debugging purposes only.
         """
 
         # Is this a rotation matrix?
-        if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(array(A))) - 
+        if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
                               np.eye(3, dtype=float) ) > self.tol):
-            raise RuntimeError('A does not describe a rotation.')
+            raise RuntimeError('Matrix *A* does not describe a rotation.')
 
         C = np.zeros((3, 3, 3, 3), dtype=float)
 
+        # Construct unrotated stiffness matrix
         for i in range(3):
             for j in range(3):
                 for k in range(3):
@@ -101,29 +120,48 @@ class CubicElasticModuli:
                             h += self.al
                         C[i, j, k, m] = h
 
-        D = zeros( ( 3, 3, 3, 3 ), dtype=float )
+        # Rotate
+        self.C = np.einsum('ia,jb,kc,ld,abcd->ijkl', A, A, A, A, C)
 
+        return self.C
+
+
+    def _rotate_explicit2(self, A):
+        """
+        Compute the rotated stiffness matrix by applying the rotation to the
+        full stiffness matrix. This function is for debugging purposes only.
+        """
+
+        # Is this a rotation matrix?
+        if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
+                              np.eye(3, dtype=float) ) > self.tol):
+            raise RuntimeError('Matrix *A* does not describe a rotation.')
+
+        C = np.zeros((3, 3, 3, 3), dtype=float)
+
+        # Construct unrotated stiffness matrix
         for i in range(3):
             for j in range(3):
                 for k in range(3):
-                    for l in range(3):
-                        h = 0.0
-                        for a in range(3):
-                            for b in range(3):
-                                for c in range(3):
-                                    for d in range(3):
-                                        h += A[i, a]*A[j, b]*C[a, b, c, d]* \
-                                             A[k, c]*A[l, d]
-                        D[i, j, k, l] = h
+                    for m in range(3):
+                        if i == j and j == k and k == m:
+                            C[i,j,k,m] = self.C11
+                        elif i == j and j != k and k == m:
+                            C[i,j,k,m] = self.C12
+                        elif i != j and i == k and j == m:
+                            C[i,j,k,m] = self.C44
+                        elif i != j and i == m and j == k:
+                            C[i,j,k,m] = self.C44
 
-        self.C = D
+        # Rotate
+        self.C = np.einsum('ia,jb,kc,ld,abcd->ijkl', A, A, A, A, C)
 
-        return D
+        return self.C
 
 
-    def compliance(self):
+    def stiffness_matrix(self):
         """
-        Return the elastic constants - checks whether this is still cubic
+        Return the elastic constants
         """
 
         t = [(0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)]
@@ -143,38 +181,17 @@ class CubicElasticModuli:
         return C6
 
 
-    def compliances_old(self):
-        """
-        Return the elastic constants - checks whether this is still cubic
-        """        
-        C11 = ( self.C[0, 0, 0, 0], self.C[1, 1, 1, 1], self.C[2, 2, 2, 2] )
-        C12 = ( self.C[0, 0, 1, 1], self.C[0, 0, 2, 2], self.C[1, 1, 2, 2] )
-        C44 = ( self.C[1, 2, 1, 2], self.C[0, 2, 0, 2], self.C[0, 1, 0, 1] )
-
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for m in range(3):
-                        if i == j == k == m:
-                            if abs(self.C[i, j, k, m] - C11[i]) > self.tol:
-                                raise RuntimeError('C[%i,%i,%i,%i] != C11[%i] (%f != %f)' % (i, j, k, m, i, self.C[i, j, k, m], C11[i]))
-                        elif i == j and k == m:
-                            if abs(self.C[i, j, k, m] - C12[i+k-1]) > self.tol:
-                                raise RuntimeError('C[%i,%i,%i,%i] != C12[%i] (%f != %f)' % (i, j, k, m, i-k-1, self.C[i, j, k, m], C12[i+k-1]))
-                        elif (i == k and j == m) or (i == m and j == k):
-                            if abs(self.C[i, j, k, m] - C44[3-i-j]) > self.tol:
-                                raise RuntimeError('C[%i,%i,%i,%i] != C44[%i] (%f != %f)' % (i, j, k, m, i+j-1, self.C[i, j, k, m], C44[i+j-1]))
-                        else:
-                            if abs(self.C[i, j, k, m] - 0.0) > self.tol:
-                                raise RuntimError('C[%i,%i,%i,%i] = %f != 0' % (i, j, k, m, self.C[i, j, k, m]))
-
-        return (C11, C12, C44)
-
-
-
     def stiffness(self):
         """
-        Return the elastic constants - checks whether this is still cubic
+        Return the elastic constants
+        """
+
+        return stiffness_matrix_to_elastic_constants(self.C)
+
+
+    def compliance(self):
+        """
+        Return the compliance coefficients
         """
 
         C6 = self.compliance()
@@ -182,3 +199,92 @@ class CubicElasticModuli:
         S6 = inv(C6)
 
         return S6
+
+###
+    
+def measure_orthorhombic_elastic_moduli(a, delta=0.001, optimizer=None, 
+                                        logfile=None, **kwargs):
+    """
+    Measure elastic constant for an orthorhombic unit cell
+
+    Parameters:
+    -----------
+    a           ase.Atoms object
+    optimizer   Optimizer to use for atomic position. Does not optimize atomic
+                position if set to None.
+    delta         Strain increment for analytical derivatives of stresses.
+    """
+
+    if optimizer is not None:
+        optimizer(a, logfile=logfile).run(**kwargs)
+
+    r0 = a.positions.copy()
+
+    cell = a.cell
+    s0 = a.get_stress()
+
+    # C11
+    C11  = [ ]
+    for i in range(3):
+        a.set_cell(cell, scale_atoms=True)
+        a.set_positions(r0)
+        
+        T = np.zeros( (3,3) )
+        T[i, i] = delta
+        a.set_cell( np.dot(np.eye(3)+T, cell), scale_atoms=True )
+        if optimizer is not None:
+            optimizer(a, logfile=logfile).run(**kwargs)
+        s = a.get_stress()
+            
+        C11 += [ (s[i]-s0[i])/delta ]
+
+    volfac = 1.0/((1-delta**2)**(1./3))
+
+    # C'
+    Cp   = [ ] 
+    C12  = [ ]
+    for i in range(3):
+        a.set_cell(cell, scale_atoms=True)
+        a.set_positions(r0)
+        
+        D = volfac*np.eye(3)
+        j = (i+1)%3
+        k = (i+2)%3
+        D[j,j] *= 1+delta
+        D[k,k] *= 1-delta
+        a.set_cell(np.dot(D, cell), scale_atoms=True)
+        if optimizer is not None:
+            optimizer(a, logfile=logfile).run(**kwargs)
+        s = a.get_stress()
+
+        Cp += [ ((s[j]-s0[j])-(s[k]-s0[k]))/(4*delta) ]
+
+    # C44
+    C44  = [ ]
+    for i in range(3):
+        a.set_cell(cell, scale_atoms=True)
+        a.set_positions(r0)
+
+        D = volfac*np.eye(3)
+        j = (i+1)%3
+        k = (i+2)%3
+        D[j, k] = volfac*delta
+        D[k, j] = volfac*delta
+        a.set_cell(np.dot(D, cell), scale_atoms=True)
+        if optimizer is not None:
+            optimizer(a, logfile=logfile).run(**kwargs)
+        s = a.get_stress()
+
+        C44 += [ (s[3+i]-s0[3+i])/(2*delta) ]
+
+    a.set_cell( cell, scale_atoms=True )
+    a.set_positions(r0)
+
+    C11 = np.array(C11)
+    Cp = np.array(Cp)
+    C44 = np.array(C44)
+
+    # Compute C12 from C11 and C'
+    C12 = np.array([C11[1]+C11[2], C11[0]+C11[2], C11[0]+C11[1]])/2-2*Cp
+
+    return C11, C12, C44
