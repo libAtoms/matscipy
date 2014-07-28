@@ -196,16 +196,16 @@ class CubicCrystalCrack:
 
         self.crack = RectilinearAnisotropicCrack()
 
-        C6 = self.E.stiffness()
+        S6 = self.E.compliance()
 
         if mode == self.PLANE_STRESS:
-            self.crack.set_plane_stress(C6[0, 0], C6[1, 1], C6[0, 1],
-                                        C6[0, 5], C6[1, 5], C6[5, 5])
+            self.crack.set_plane_stress(S6[0, 0], S6[1, 1], S6[0, 1],
+                                        S6[0, 5], S6[1, 5], S6[5, 5])
         elif mode == self.PLANE_STRAIN:
-            self.crack.set_plane_strain(C6[0, 0], C6[1, 1], C6[2, 2],
-                                        C6[0, 1], C6[0, 2], C6[1, 2],
-                                        C6[0, 5], C6[1, 5], C6[2, 5],
-                                        C6[5, 5])
+            self.crack.set_plane_strain(S6[0, 0], S6[1, 1], S6[2, 2],
+                                        S6[0, 1], S6[0, 2], S6[1, 2],
+                                        S6[0, 5], S6[1, 5], S6[2, 5],
+                                        S6[5, 5])
 
 
     def k1g(self, surface_energy):
