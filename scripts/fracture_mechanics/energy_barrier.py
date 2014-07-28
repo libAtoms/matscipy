@@ -74,7 +74,8 @@ a.positions += crack.displacements(cryst.positions,
 
 # Center notched configuration in simulation cell and ensure enough vacuum.
 oldr = a[0].position.copy()
-a.center(vacuum=params.vacuum, axis=(0, 2))
+a.center(vacuum=params.vacuum, axis=0)
+a.center(vacuum=params.vacuum, axis=2)
 tip_x += a[0].position[0] - oldr[0]
 tip_z += a[0].position[2] - oldr[2]
 cryst.set_cell(a.cell)
@@ -94,9 +95,10 @@ info = []
 # Run crack calculation.
 for i, bond_length in enumerate(params.bond_lengths):
     parprint('=== bond_length = {0} ==='.format(bond_length))
-    if os.path.exists('step_%2.2i.cfg' % i):
-        parprint('step_%2.2i.cfg found, skipping' % i)
-        a = ase.io.read('step_%2.2i.cfg' % i)
+    xyz_file = 'step_%4d.xyz' % int(bond_length*1000)
+    if os.path.exists(xyz_file):
+        parprint('%s found, skipping' % xyz_file)
+        a = ase.io.read(xyz_file)
         del a[np.logical_or(a.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
                             a.numbers == atomic_numbers[FITTED_CRACK_TIP])]
         a.set_calculator(params.calc)
@@ -153,6 +155,7 @@ for i, bond_length in enumerate(params.bond_lengths):
         # The target crack tip is marked by a gold atom.
         b = a.copy()
         b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, b.cell.diagonal()[1]/2, tip_z))
+        b.info['actual_crack_tip'] = (tip_x, b.cell.diagonal()[1]/2, tip_z)
 
         r0 = np.array([tip_x, 0.0, tip_z])
         fit_x, fit_z = crack.crack_tip_position(a.positions,
@@ -164,15 +167,18 @@ for i, bond_length in enumerate(params.bond_lengths):
 
         # The fitted crack tip is marked by a silver atom.
         b += ase.Atom(FITTED_CRACK_TIP, (fit_x, b.cell.diagonal()[1]/2, fit_z))
-        ase.io.write('step_%2.2i.cfg' % i, b)
+        b.info['fitted_crack_tip'] =  (fit_x, b.cell.diagonal()[1]/2, fit_z)
 
         bond_dir = a[bond1].position - a[bond2].position
         bond_dir /= np.linalg.norm(bond_dir)
         force = np.dot(bond_length_constraint.get_constraint_force(), bond_dir)
 
-        # This should go into the Atom's info dict, but need extended XYZ to
-        # write to file.
         info += [ ( bond_length, force, a.get_potential_energy() ) ]
+        b.info['bond_length'] = bond_length
+        b.info['force'] = force
+        b.info['energy'] = a.get_potential_energy()
+        b.info['cell_origin'] = [0, 0, 0]
+        ase.io.write(xyz_file, b, format='extxyz')
 
 # Output info data to seperate file.
 np.savetxt('crack.out', info)

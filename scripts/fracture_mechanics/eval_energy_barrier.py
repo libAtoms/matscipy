@@ -47,20 +47,7 @@ bond1, bond2 = params.bond
 
 bond_lengths = []
 
-fns = glob.glob('step_*.cfg')
-for fn in fns:
-    a = ase.io.read(fn)
-    del a[np.logical_or(a.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
-                        a.numbers == atomic_numbers[FITTED_CRACK_TIP])]
-
-    # Bond length.
-    dr = a[bond1].position - a[bond2].position
-    bond_lengths += [ np.linalg.norm(dr) ]
-
-###
-
-indices = np.argsort(bond_lengths)
-
+fns = sorted(glob.glob('step_*.xyz'))
 tip_x = []
 tip_z = []
 epot_cluster = []
@@ -69,16 +56,12 @@ bond_forces = []
 work = []
 
 last_a = None
-for fn in np.array(fns)[indices]:
+for fn in fns:
     a = ase.io.read(fn)
 
-    [[ _tip_x, _tip_y, _tip_z ]] = \
-        a.positions[a.numbers == atomic_numbers[ACTUAL_CRACK_TIP], :]
+    _tip_x, _tip_y, _tip_z = a.info['actual_crack_tip']
     tip_x += [ _tip_x ]
     tip_z += [ _tip_z ]
-
-    del a[np.logical_or(a.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
-                        a.numbers == atomic_numbers[FITTED_CRACK_TIP])]
 
     # Bond length.
     dr = a[bond1].position - a[bond2].position
@@ -87,12 +70,11 @@ for fn in np.array(fns)[indices]:
     # Groups
     g = a.get_array('groups')
 
-    # Get potential energy.
-    a.set_calculator(params.calc)
+    # Get stored potential energy.
     epot_cluster += [ a.get_potential_energy() ]
 
-    # Forces on bond.
-    forces = a.get_array('forces')
+    # Stored Forces on bond.
+    forces = a.get_forces()
     df = forces[bond1, :] - forces[bond2, :]
     bond_forces += [ 0.5 * np.dot(df, dr)/np.sqrt(np.dot(dr, dr)) ]
 
