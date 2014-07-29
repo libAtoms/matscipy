@@ -28,12 +28,46 @@ Voigt_notation = [(0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)]
 
 ###
 
-def Voigt_6_to_full_3x3(s):
-    sxx, syy, szz, syz, sxz, sxy = s
-    return np.array([[sxx,sxy,sxz],
-                     [sxy,syy,syz],
-                     [sxz,syz,szz]])
+def Voigt_6_to_full_3x3_strain(strain_vector):
+    """
+    Form a 3x3 strain matrix from a 6 component vector in Voigt notation
+    """
+    e1, e2, e3, e4, e5, e6 = strain_vector
+    return np.array([[1.0+e1, 0.5*e6, 0.5*e5],
+                     [0.5*e6, 1.0+e2, 0.5*e4],
+                     [0.5*e5, 0.5*e4, 1.0+e3]])
 
+def Voigt_6_to_full_3x3_stress(stress_vector):
+    """
+    Form a 3x3 stress matrix from a 6 component vector in Voigt notation
+    """
+    s1, s2, s3, s4, s5, s6 = stress_vector
+    return np.array([[s1, s6, s5],
+                     [s6, s2, s4],
+                     [s5, s4, s3]])
+
+def full_3x3_to_Voigt_6_strain(strain_matrix):
+    """
+    Form a 6 component strain vector in Voigt notation from a 3x3 matrix
+    """
+
+    return np.array([strain_matrix[0,0] - 1.0,
+                     strain_matrix[1,1] - 1.0,
+                     strain_matrix[2,2] - 1.0,
+                     2.0*strain_matrix[1,2],
+                     2.0*strain_matrix[0,2],
+                     2.0*strain_matrix[0,1]])
+
+def full_3x3_to_Voigt_6_strain(stress_matrix):
+    """
+    Form a 6 component stress vector in Voigt notation from a 3x3 matrix
+    """
+    return np.array([stress_matrix[0,0],
+                     stress_matrix[1,1],
+                     stress_matrix[2,2],
+                     stress_matrix[1,2],
+                     stress_matrix[0,2],
+                     stress_matrix[0,1]])
 
 def full_3x3x3x3_to_Voigt_6x6(C):
     """
@@ -327,7 +361,7 @@ def measure_triclinic_elastic_moduli(a, delta=0.001, optimizer=None,
             a.set_cell(np.dot(D, cell.T).T, scale_atoms=True)
             if optimizer is not None:
                 optimizer(a, logfile=logfile).run(**kwargs)
-            sp = Voigt_6_to_full_3x3(a.get_stress()*a.get_volume())
+            sp = Voigt_6_to_full_3x3_stress(a.get_stress()*a.get_volume())
 
             D = np.eye(3)
             D[i, j] -= 0.5*delta
@@ -335,7 +369,7 @@ def measure_triclinic_elastic_moduli(a, delta=0.001, optimizer=None,
             a.set_cell(np.dot(D, cell.T).T, scale_atoms=True)
             if optimizer is not None:
                 optimizer(a, logfile=logfile).run(**kwargs)
-            sm = Voigt_6_to_full_3x3(a.get_stress()*a.get_volume())
+            sm = Voigt_6_to_full_3x3_stress(a.get_stress()*a.get_volume())
 
             C[:,:,i,j] = (sp-sm)/(2*delta*volume)
 
@@ -404,79 +438,81 @@ Cij_symmetry = {
                                  [11, 15, 18, 20,  21, 6 ]]),
    }
 
+def _dec(pattern):
+    return [(i-1, j-1) for (i,j) in pattern]
 
 strain_patterns = {
 
    'cubic': [
       # strain pattern e1+e4, yields C11, C21, C31 and C44, then C12 is average of C21 and C31
-      [ np.array([1,0,0,1,0,0]), [(1,1), (2,1), (3,1), (4,4)]]
+      [ np.array([1,0,0,1,0,0]), _dec([(1,1), (2,1), (3,1), (4,4)])]
    ],
 
    'trigonal_high': [
       # strain pattern e3 yield C13, C23 and C33
-      [ np.array([0,0,1,0,0,0]), [(1,3), (2,3), (3,3)]],
+      [ np.array([0,0,1,0,0,0]), _dec([(1,3), (2,3), (3,3)])],
 
       # strain pattern e1+e4 yields C11 C21 C31 and C44
-      [ np.array([1,0,0,1,0,0]), [(1,1), (2,1), (3,1), (4,4)]],
+      [ np.array([1,0,0,1,0,0]), _dec([(1,1), (2,1), (3,1), (4,4)])],
 
       # strain pattern e1 yields C11 C21 C31 C41 C51
-      [ np.array([1,0,0,0,0,0]), [(1,1), (2,1), (3,1), (4,1), (5,1)]],
+      [ np.array([1,0,0,0,0,0]), _dec([(1,1), (2,1), (3,1), (4,1), (5,1)])],
 
       # strain pattern e3+e4
-      [ np.array([0,0,1,1,0,0]), [(3,3), (4,4)]]
+      [ np.array([0,0,1,1,0,0]), _dec([(3,3), (4,4)])]
 
    ],
 
    'trigonal_low': [
      # strain pattern e1, yields C11, C21, C31, C41, C51
-     [ np.array([1,0,0,0,0,0]), [(1,1), (2,1), (3,1), (4,1), (5,1)]],
+     [ np.array([1,0,0,0,0,0]), _dec([(1,1), (2,1), (3,1), (4,1), (5,1)])],
 
      # strain pattern e3 + e4, yields C33, C44
-     [ np.array([0,0,1,1,0,0]), [(3,3), (4,4)] ],
+     [ np.array([0,0,1,1,0,0]), _dec([(3,3), (4,4)]) ],
 
-     [ np.array([0,0,0,0,0,1]), [(6,6)] ]
+     [ np.array([0,0,0,0,0,1]), _dec([(6,6)]) ]
    ],
 
    'tetragonal': [
      # strain pattern e1+e4
-     [ np.array([1,0,0,1,0,0]), [(1,1), (2,1), (3,1), (6,1), (4,4)] ],
+     [ np.array([1,0,0,1,0,0]), _dec([(1,1), (2,1), (3,1), (6,1), (4,4)]) ],
 
      # strain pattern e3+e6
-     [ np.array([0,0,1,0,0,1]), [(3,3), (6,6)] ]
+     [ np.array([0,0,1,0,0,1]), _dec([(3,3), (6,6)]) ]
    ],
 
    'orthorhombic': [
       # strain pattern e1+e4
-      [ np.array([1,0,0,1,0,0]), [(1,1), (2,1), (3,1), (4,4)] ],
+      [ np.array([1,0,0,1,0,0]), _dec([(1,1), (2,1), (3,1), (4,4)]) ],
 
       # strain pattern e2+e5
-      [ np.array([0,1,0,0,1,0]), [(1,2), (2,2), (3,2), (5,5)] ],
+      [ np.array([0,1,0,0,1,0]), _dec([(1,2), (2,2), (3,2), (5,5)]) ],
 
       # strain pattern e3+e6
-      [ np.array([0,0,1,0,0,1]), [(1,3), (2,3), (3,3), (6,6)] ]
+      [ np.array([0,0,1,0,0,1]), _dec([(1,3), (2,3), (3,3), (6,6)]) ]
    ],
 
    'monoclinic': [
       # strain pattern e1+e4
-      [ np.array([1,0,0,1,0,0]), [(1,1), (2,1), (3,1), (4,4), (5,1), (6,4)] ],
+      [ np.array([1,0,0,1,0,0]), _dec([(1,1), (2,1), (3,1), (4,4), (5,1), (6,4)]) ],
 
       # strain pattern e3+e6
-      [ np.array([0,0,1,0,0,1]), [(1,3), (2,3), (3,3), (5,3), (4,6), (6,6)] ],
+      [ np.array([0,0,1,0,0,1]), _dec([(1,3), (2,3), (3,3), (5,3), (4,6), (6,6)]) ],
 
       # strain pattern e2
-      [ np.array([0,1,0,0,0,0]), [(1,2), (2,2), (3,2), (5,2)] ],
+      [ np.array([0,1,0,0,0,0]), _dec([(1,2), (2,2), (3,2), (5,2)]) ],
 
       # strain pattern e5
-      [ np.array([0,0,0,0,1,0]), [(1,5), (2,5), (3,5), (5,5)] ]
+      [ np.array([0,0,0,0,1,0]), _dec([(1,5), (2,5), (3,5), (5,5)]) ]
    ],
 
    'triclinic': [
-      [ np.array([1,0,0,0,0,0]), [(1,1), (2,1), (3,1), (4,1), (5,1), (6,1)]],
-      [ np.array([0,1,0,0,0,0]), [(1,2), (2,2), (3,2), (4,2), (5,2), (6,2)]],
-      [ np.array([0,0,1,0,0,0]), [(1,3), (2,3), (3,3), (4,3), (5,3), (6,3)]],
-      [ np.array([0,0,0,1,0,0]), [(1,4), (2,4), (3,4), (4,4), (5,4), (6,4)]],
-      [ np.array([0,0,0,0,1,0]), [(1,5), (2,5), (3,5), (4,5), (5,5), (6,5)]],
-      [ np.array([0,0,0,0,0,1]), [(1,6), (2,6), (3,6), (4,6), (5,6), (6,6)]],
+      [ np.array([1,0,0,0,0,0]), _dec([(1,1), (2,1), (3,1), (4,1), (5,1), (6,1)])],
+      [ np.array([0,1,0,0,0,0]), _dec([(1,2), (2,2), (3,2), (4,2), (5,2), (6,2)])],
+      [ np.array([0,0,1,0,0,0]), _dec([(1,3), (2,3), (3,3), (4,3), (5,3), (6,3)])],
+      [ np.array([0,0,0,1,0,0]), _dec([(1,4), (2,4), (3,4), (4,4), (5,4), (6,4)])],
+      [ np.array([0,0,0,0,1,0]), _dec([(1,5), (2,5), (3,5), (4,5), (5,5), (6,5)]],
+      [ np.array([0,0,0,0,0,1]), _dec([(1,6), (2,6), (3,6), (4,6), (5,6), (6,6)])],
    ]
 
    }
