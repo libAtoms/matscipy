@@ -108,35 +108,36 @@ def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
 
 
 def diamond_111_110(el, a0, n, crack_surface=[1,1,1], crack_front=[1,-1,0],
-                    skin_x=1.0, skin_z=1.0, vac=5.0):
+                    skin_x=1.0, skin_y=1.0, vac=5.0):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
-    directions = [ third_dir, crack_front, crack_surface ]
+    directions = [ third_dir, crack_surface, crack_front ]
     if np.linalg.det(directions) < 0:
         third_dir = -third_dir
-    directions = [ third_dir, crack_front, crack_surface ]
+    directions = [ third_dir, crack_surface, crack_front ]
     a = Diamond(el, latticeconstant = a0, size = [ nx,ny,nz ], 
                 directions = directions)
     sx, sy, sz = a.get_cell().diagonal()
-    a.translate([ sx/(4*nx), sy/(8*ny), sz/(4*nz) ])
+    a.translate([a0/100,a0/100 + a0/2,a0/100])
     a.set_scaled_positions(a.get_scaled_positions())
+    a.center()
 
     lx  = skin_x*sx/nx
-    lz  = skin_z*sz/nz
+    ly  = skin_y*sy/ny
     r   = a.get_positions()
     g   = np.where(
         np.logical_or(
             np.logical_or(
                 np.logical_or(
                     r[:, 0] < lx, r[:, 0] > sx-lx),
-                r[:, 2] < lz),
-            r[:, 2] > sz-lz),
+                r[:, 1] < ly),
+            r[:, 1] > sy-ly),
         np.zeros(len(a), dtype=int),
         np.ones(len(a), dtype=int))
     a.set_array('groups', g)
 
-    a.set_cell([sx+2*vac, sy, sz+2*vac])
-    a.translate([ vac, 0.0, vac ])
-    a.set_pbc([False, True, False])
+    a.set_cell([sx+2*vac, sy+2*vac, sz])
+    a.translate([ vac, vac, 0.0 ])
+    a.set_pbc([False, False, True])
 
     return a
