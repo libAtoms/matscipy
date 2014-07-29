@@ -279,7 +279,7 @@ class CubicCrystalCrack:
         """
         Return actual displacement field minus ideal displacement field.
         """
-        u1x = x - ref_y
+        u1x = x - ref_x
         u1y = y - ref_y
         u2x, u2y = self.displacements(ref_x, ref_y, x0, y0, k)
         return u1x - u2x, u1y - u2y
