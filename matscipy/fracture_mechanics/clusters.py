@@ -82,8 +82,9 @@ def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
     a = Diamond(el, latticeconstant = a0, size = [ nx,ny,nz ], 
                 directions = directions)
     sx, sy, sz = a.get_cell().diagonal()
-    a.translate([ sx/(4*nx), sy/(8*ny), sz/(4*nz) ])
+    a.translate([a0/100,a0/100,a0/100])
     a.set_scaled_positions(a.get_scaled_positions())
+    a.center()
 
     lx  = skin_x*sx/nx
     ly  = skin_y*sy/ny
