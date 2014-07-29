@@ -51,33 +51,39 @@ def full_3x3x3x3_to_Voigt_6x6(C):
             m, n = Voigt_notation[j]
             Voigt[i,j] = C[k,l,m,n]
 
-            print '---'
-            print k,l,m,n, C[k,l,m,n]
-            print m,n,k,l, C[m,n,k,l]
-            print l,k,m,n, C[l,k,m,n]
-            print k,l,n,m, C[k,l,n,m]
-            print m,n,l,k, C[m,n,l,k]
-            print n,m,k,l, C[n,m,k,l]
-            print l,k,n,m, C[l,k,n,m]
-            print n,m,l,k, C[n,m,l,k]
-            print '---'
+            #print '---'
+            #print k,l,m,n, C[k,l,m,n]
+            #print m,n,k,l, C[m,n,k,l]
+            #print l,k,m,n, C[l,k,m,n]
+            #print k,l,n,m, C[k,l,n,m]
+            #print m,n,l,k, C[m,n,l,k]
+            #print n,m,k,l, C[n,m,k,l]
+            #print l,k,n,m, C[l,k,n,m]
+            #print n,m,l,k, C[n,m,l,k]
+            #print '---'
 
             # Check symmetries
-            #assert abs(Voigt[i,j]-C[m,n,k,l]) < tol, \
-            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-            #    .format(i, j, Voigt[i,j], m, n, k, l, C[m,n,k,l])
-            #assert abs(Voigt[i,j]-C[l,k,m,n]) < tol, \
-            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-            #    .format(i, j, Voigt[i,j], k, l, m, n, C[l,k,m,n])
-            #assert abs(Voigt[i,j]-C[k,l,n,m]) < tol, \
-            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-            #    .format(i, j, Voigt[i,j], k, l, n, m, C[k,l,n,m])
-            #assert abs(Voigt[i,j]-C[m,n,l,k]) < tol, \
-            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-            #    .format(i, j, Voigt[i,j], m, n, l, k, C[m,n,l,k])
-            #assert abs(Voigt[i,j]-C[n,m,k,l]) < tol, \
-            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-            #    .format(i, j, Voigt[i,j], n, m, k, l, C[n,m,k,l])
+            assert abs(Voigt[i,j]-C[m,n,k,l]) < tol, \
+                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                .format(i, j, Voigt[i,j], m, n, k, l, C[m,n,k,l])
+            assert abs(Voigt[i,j]-C[l,k,m,n]) < tol, \
+                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                .format(i, j, Voigt[i,j], k, l, m, n, C[l,k,m,n])
+            assert abs(Voigt[i,j]-C[k,l,n,m]) < tol, \
+                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                .format(i, j, Voigt[i,j], k, l, n, m, C[k,l,n,m])
+            assert abs(Voigt[i,j]-C[m,n,l,k]) < tol, \
+                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                .format(i, j, Voigt[i,j], m, n, l, k, C[m,n,l,k])
+            assert abs(Voigt[i,j]-C[n,m,k,l]) < tol, \
+                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                .format(i, j, Voigt[i,j], n, m, k, l, C[n,m,k,l])
+            assert abs(Voigt[i,j]-C[l,k,n,m]) < tol, \
+                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                .format(i, j, Voigt[i,j], l, k, n, m, C[l,k,n,m])
+            assert abs(Voigt[i,j]-C[n,m,l,k]) < tol, \
+                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                .format(i, j, Voigt[i,j], n, m, l, k, C[n,m,l,k])
 
     return Voigt
 
@@ -318,8 +324,7 @@ def measure_triclinic_elastic_moduli(a, delta=0.001, optimizer=None,
             D = np.eye(3)
             D[i, j] += 0.5*delta
             D[j, i] += 0.5*delta
-            #D[i, j] += delta
-            a.set_cell(np.dot(D, cell), scale_atoms=True)
+            a.set_cell(np.dot(D, cell.T).T, scale_atoms=True)
             if optimizer is not None:
                 optimizer(a, logfile=logfile).run(**kwargs)
             sp = Voigt_6_to_full_3x3(a.get_stress()*a.get_volume())
@@ -327,8 +332,7 @@ def measure_triclinic_elastic_moduli(a, delta=0.001, optimizer=None,
             D = np.eye(3)
             D[i, j] -= 0.5*delta
             D[j, i] -= 0.5*delta
-            #D[i, j] -= delta
-            a.set_cell(np.dot(D, cell), scale_atoms=True)
+            a.set_cell(np.dot(D, cell.T).T, scale_atoms=True)
             if optimizer is not None:
                 optimizer(a, logfile=logfile).run(**kwargs)
             sm = Voigt_6_to_full_3x3(a.get_stress()*a.get_volume())
