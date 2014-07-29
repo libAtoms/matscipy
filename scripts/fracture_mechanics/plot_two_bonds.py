@@ -24,7 +24,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import ase.units
+import ase.io
+
 from scipy.signal import argrelextrema
+from scipy.interpolate import splrep, splev
+
+J_per_m2 = ase.units.J/ase.units.m**2
 
 bond_lengths1, bond1_forces1, epot1, epot_cluster1, work1, tip_x1, tip_z1 = \
   np.loadtxt('bond_1_eval.out', unpack=True)
@@ -80,4 +86,30 @@ plt.xlabel(r'Crack position / $\mathrm{\AA}$')
 plt.ylabel(r'Potential energy / eV')
 plt.legend(loc='upper right')
 #plt.ylim(-0.05, 0.30)
+plt.draw()
+
+
+plt.figure(2)
+#plt.clf()
+
+bond_length, gamma = np.loadtxt('../cohesive-stress/gamma_bond_length.out', unpack=True)
+
+s = bond_length - bond_length[0]
+s1 = bond_lengths1 - bond_length[0]
+
+surface = ase.io.read('../cohesive-stress/surface.xyz')
+area = surface.cell[0,0]*surface.cell[2,2]
+gamma_sp = splrep(bond_length, gamma)
+E_surf = splev(bond_lengths1, gamma_sp)*area
+
+plt.plot(s1, (epot1 - E0_1), '-', label='total energy')
+plt.plot(s, E_surf, '-', label=r'surface energy')
+plt.plot(s1, (epot1 - E0_1 - E_surf), '--', label='elastic energy')
+#plt.xlim(2.35, 4.5)
+
+plt.axhline(0, color='k')
+
+plt.xlabel(r'Bond extension $s$ / $\mathrm{\AA}$')
+plt.ylabel(r'Energy / eV/cell')
+plt.legend(loc='upper right')
 plt.draw()
