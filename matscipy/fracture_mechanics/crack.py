@@ -406,3 +406,94 @@ class CubicCrystalCrack:
         """
         return ref_x + new_k/old_k*(x-ref_x), ref_y + new_k/old_k*(y-ref_y)
 
+
+
+
+def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
+                                           nu=0.5, stress_state='plane strain'):
+    """
+    Compute Irwin singular crack tip stress field
+
+    Parameters
+    ----------
+    K : float
+       Mode I stress intensity factor. Units should match units of `r`.
+    r : array_like
+       Radial distances from crack tip. Can be a multidimensional
+       array to evaluate stress field on a grid.
+    t : array_like
+       Angles from horzontal line y=0 ahead of crack tip,
+       measured anticlockwise. Should have same shape as `r`.
+    xy_only : bool
+       If True (default) only xx, yy, xy and yx components will be set.
+    nu : float
+       Poisson ratio. Used only when ``xy_only=False``, to determine zz stresses
+    stress_state : str
+       One of"plane stress" or "plane strain". Used if xyz_only=False to
+       determine zz stresses.
+       
+    Returns
+    -------
+    sigma : array with shape ``r.shape + (3,3)``
+    """
+
+    if r.shape != t.shape:
+        raise ValueError('shapes of radial and angular arrays "r" and "t" must match')
+    
+    if stress_state not in ['plane strain', 'plane stress']:
+        raise ValueError('stress_state should be either "plane strain" or "plane stress".')
+
+    sigma = np.zeros(r.shape + (3, 3))
+    radial = K*1./np.sqrt(2*pi*r)
+
+    sigma[...,0,0] = radial*np.cos(t/2.0)*(1.0 - np.sin(t/2.0)*np.sin(3.0*t/2.0)) # xx
+    sigma[...,1,1] = radial*np.cos(t/2.0)*(1.0 + np.sin(t/2.0)*np.sin(3.0*t/2.0)) # yy
+    sigma[...,0,1] = radial*np.sin(t/2.0)*np.cos(t/2.0)*np.cos(3.0*t/2.0)         # xy
+    sigma[...,1,0] = sigma[...,0,1]                                               # yx=xy
+
+    if not xy_only and stress_state == 'plane strain':
+        sigma[...,2,2] = nu*(sigma[...,0,0] + sigma[...,1,1])              # zz
+
+    return sigma
+
+
+class IsotropicStressField(object):
+    """
+    Calculator to return Irwin near-tip stress field at atomic sites
+    """
+    def __init__(self, K=None, x0=None, y0=None, sxx0=0.0, syy0=0., sxy0=0., nu=0.5,
+                 stress_state='plane strain'):
+        self.K = K
+        self.x0 = x0
+        self.y0 = y0
+        self.sxx0 = sxx0
+        self.syy0 = syy0
+        self.sxy0 = sxy0
+        self.nu = nu
+        self.stress_state = stress_state
+
+    def get_stresses(self, atoms):
+        K = self.K
+        if K is None:
+            K = get_stress_intensity_factor(atoms)
+
+        x0, y0 = self.x0, self.y0
+        if x0 is None:
+            x0 = atoms.info['CrackPos'][0]
+        if y0 is None:
+            y0 = atoms.info['CrackPos'][1]
+            
+        x = atoms.positions[:, 0]
+        y = atoms.positions[:, 1]
+        r = np.sqrt((x - x0)**2 + (y - y0)**2)
+        t = np.arctan2(y - y0, x - x0)
+        
+        sigma = irwin_modeI_crack_tip_stress_field(K, r, t, self.nu,
+                                                   self.stress_state)
+        sigma[:,0,0] += self.sxx0
+        sigma[:,1,1] += self.syy0
+        sigma[:,0,1] += self.sxy0
+        sigma[:,1,0] += self.sxy0
+
+        return sigma
+    
