@@ -30,7 +30,7 @@ from ase.lattice.cubic import Diamond, FaceCenteredCubic
 from ase.optimize import FIRE
 from ase.units import GPa
 
-from atomistica import Kumagai, LJCut, TabulatedAlloyEAM
+from atomistica import Kumagai, TabulatedAlloyEAM
 
 from matscipy.elasticity import CubicElasticModuli
 from matscipy.elasticity import measure_orthorhombic_elastic_moduli
@@ -54,9 +54,9 @@ class TestCubicElasticModuli(unittest.TestCase):
             ( lambda a0,x : FaceCenteredCubic('Au', size=[1,1,1],
                                               latticeconstant=a0, directions=x),
               TabulatedAlloyEAM(fn='Au-Grochola-JCP05.eam.alloy') ),
-#            ( lambda a0,x : Diamond('Si', size=[1,1,1], latticeconstant=a0,
-#                                    directions=x),
-#              Kumagai() )
+            ( lambda a0,x : Diamond('Si', size=[1,1,1], latticeconstant=a0,
+                                    directions=x),
+              Kumagai() )
             ]:
 
             a = make_atoms(None, [[1,0,0], [0,1,0], [0,0,1]])
@@ -77,65 +77,27 @@ class TestCubicElasticModuli(unittest.TestCase):
 
             C_m = measure_triclinic_elastic_moduli(a, delta=self.delta,
                                                    fmax=self.fmax)/GPa
-            #self.assertTrue(np.all(np.abs(el.stiffness()-C_m) < 0.01))
+            self.assertTrue(np.all(np.abs(el.stiffness()-C_m) < 0.01))
 
             for directions in [ [[1,0,0], [0,1,0], [0,0,1]],
                                 [[0,1,0], [0,0,1], [1,0,0]],
                                 [[1,1,0], [0,0,1], [1,-1,0]],
                                 [[1,1,1], [-1,-1,2], [1,-1,0]] ]:
                 a, b, c = directions
-                print 'Directions: ', a, b, c
 
                 directions = np.array([ np.array(x)/np.linalg.norm(x) 
                                         for x in directions ])
                 a = make_atoms(latticeconstant, directions)
                 a.set_calculator(calc)
 
-                C11_m, C12_m, C44_m = \
-                    measure_orthorhombic_elastic_moduli(a, delta=self.delta,
-#                                                        optimizer=FIRE,
-                                                        fmax=self.fmax)
-                C11_m /= GPa
-                C12_m /= GPa
-                C44_m /= GPa
-
                 C = el.rotate(directions)
                 C_check = el._rotate_explicit(directions)
-                #self.assertTrue(np.all(np.abs(C-C_check) < 1e-6))
+                self.assertTrue(np.all(np.abs(C-C_check) < 1e-6))
 
                 C_m = measure_triclinic_elastic_moduli(a, delta=self.delta,
                                                        fmax=self.fmax)/GPa
 
-                np.set_printoptions(linewidth=120,
-                                    formatter=dict(float=lambda x: '{:>7.2f}'.format(x)))
-                print C
-                print C_m
-                print C-C_m
-                
-                C11_rot, C12_rot, C44_rot = Voigt_6x6_to_orthorhombic(C)
-
-                dC11 = C11_m-C11_rot
-                dC12 = C12_m-C12_rot
-                dC44 = C44_m-C44_rot
-
-                if np.any(np.abs(dC11) > 1.0):
-                    print '--- C11 ---'
-                    print 'measured:   ', C11_m
-                    print 'rotated:    ', C11_rot
-                    print 'difference: ', dC11
-                if np.any(np.abs(dC12) > 1.0):
-                    print '--- C12 ---'
-                    print 'measured:   ', C12_m
-                    print 'rotated:    ', C12_rot
-                    print 'difference: ', dC12
-                if np.any(np.abs(dC44) > 1.0):
-                    print '--- C44 ---'
-                    print 'measured:   ', C44_m
-                    print 'rotated:    ', C44_rot
-                    print 'difference: ', dC44
-
-                #self.assertTrue(np.all(np.abs(dC11) < 1e-2))
-                #self.assertTrue(np.all(np.abs(dC12) < 1e-2))
+                self.assertTrue(np.all(np.abs(C-C_m) < 1e-2))
 
 ###
 
