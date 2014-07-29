@@ -28,11 +28,20 @@ Voigt_notation = [(0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)]
 
 ###
 
+def Voigt_6_to_full_3x3(s):
+    sxx, syy, szz, syz, sxz, sxy = s
+    return np.array([[sxx,sxy,sxz],
+                     [sxy,syy,syz],
+                     [sxz,syz,szz]])
+
+
 def full_3x3x3x3_to_Voigt_6x6(C):
     """
     Convert from the full 3x3x3x3 representation of the stiffness matrix
     to the representation in Voigt notation. Checks symmetry in that process.
     """
+
+    tol = 1e-3
 
     C = np.asarray(C)
     Voigt = np.zeros((6,6))
@@ -41,17 +50,37 @@ def full_3x3x3x3_to_Voigt_6x6(C):
             k, l = Voigt_notation[i]
             m, n = Voigt_notation[j]
             Voigt[i,j] = C[k,l,m,n]
+
+            print '---'
+            print k,l,m,n, C[k,l,m,n]
+            print m,n,k,l, C[m,n,k,l]
+            print l,k,m,n, C[l,k,m,n]
+            print k,l,n,m, C[k,l,n,m]
+            print m,n,l,k, C[m,n,l,k]
+            print n,m,k,l, C[n,m,k,l]
+            print l,k,n,m, C[l,k,n,m]
+            print n,m,l,k, C[n,m,l,k]
+            print '---'
+
             # Check symmetries
-            assert abs(Voigt[i,j]-C[m,n,k,l]) < 1e-12, \
-                'Voigt[i,j] = {0}, C[m,n,k,l] = {1}'.format(Voigt[i,j],
-                                                            C[m,n,k,l])
-            assert abs(Voigt[i,j]-C[l,k,m,n]) < 1e-12, \
-                'Voigt[i,j] = {0}, C[l,k,m,n] = {1}'.format(Voigt[i,j],
-                                                            C[l,k,m,n])
-            assert abs(Voigt[i,j]-C[k,l,n,m]) < 1e-12, \
-                'Voigt[i,j] = {0}, C[k,l,n,m] = {1}'.format(Voigt[i,j],
-                                                            C[k,l,n,m])
+            #assert abs(Voigt[i,j]-C[m,n,k,l]) < tol, \
+            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+            #    .format(i, j, Voigt[i,j], m, n, k, l, C[m,n,k,l])
+            #assert abs(Voigt[i,j]-C[l,k,m,n]) < tol, \
+            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+            #    .format(i, j, Voigt[i,j], k, l, m, n, C[l,k,m,n])
+            #assert abs(Voigt[i,j]-C[k,l,n,m]) < tol, \
+            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+            #    .format(i, j, Voigt[i,j], k, l, n, m, C[k,l,n,m])
+            #assert abs(Voigt[i,j]-C[m,n,l,k]) < tol, \
+            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+            #    .format(i, j, Voigt[i,j], m, n, l, k, C[m,n,l,k])
+            #assert abs(Voigt[i,j]-C[n,m,k,l]) < tol, \
+            #    'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+            #    .format(i, j, Voigt[i,j], n, m, k, l, C[n,m,k,l])
+
     return Voigt
+
 
 def Voigt_6x6_to_orthorhombic(C):
     """
@@ -277,30 +306,36 @@ def measure_triclinic_elastic_moduli(a, delta=0.001, optimizer=None,
 
     r0 = a.positions.copy()
 
-    cell = a.cell
-    s0 = a.get_stress()
+    cell = a.cell.copy()
+    volume = a.get_volume()
 
-    C = np.zeros((6,6), dtype=float)
-
-    for i in range(6):
-        a.set_cell(cell, scale_atoms=True)
-        a.set_positions(r0)
+    C = np.zeros((3,3,3,3), dtype=float)
+    for i in range(3):
+        for j in range(3):
+            a.set_cell(cell, scale_atoms=True)
+            a.set_positions(r0)
         
-        D = np.eye(3)
-        k, l = Voigt_notation[i]
-        if k == l:
-            D[k, l] += delta
-        else:
-            D[k, l] += 0.5*delta
-            D[l, k] += 0.5*delta
-        a.set_cell(np.dot(D, cell), scale_atoms=True)
-        if optimizer is not None:
-            optimizer(a, logfile=logfile).run(**kwargs)
-        s = a.get_stress()
-            
-        C[i, :] = (s-s0)/delta
+            D = np.eye(3)
+            D[i, j] += 0.5*delta
+            D[j, i] += 0.5*delta
+            #D[i, j] += delta
+            a.set_cell(np.dot(D, cell), scale_atoms=True)
+            if optimizer is not None:
+                optimizer(a, logfile=logfile).run(**kwargs)
+            sp = Voigt_6_to_full_3x3(a.get_stress()*a.get_volume())
+
+            D = np.eye(3)
+            D[i, j] -= 0.5*delta
+            D[j, i] -= 0.5*delta
+            #D[i, j] -= delta
+            a.set_cell(np.dot(D, cell), scale_atoms=True)
+            if optimizer is not None:
+                optimizer(a, logfile=logfile).run(**kwargs)
+            sm = Voigt_6_to_full_3x3(a.get_stress()*a.get_volume())
+
+            C[:,:,i,j] = (sp-sm)/(2*delta*volume)
 
     a.set_cell(cell, scale_atoms=True)
     a.set_positions(r0)
 
-    return C
+    return full_3x3x3x3_to_Voigt_6x6(C)
