@@ -161,8 +161,8 @@ for i, bond_length in enumerate(params.bond_lengths):
 
         # The target crack tip is marked by a gold atom.
         b = a.copy()
-        b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, b.cell.diagonal()[1]/2, tip_y))
-        b.info['actual_crack_tip'] = (tip_x, b.cell.diagonal()[1]/2, tip_y)
+        b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, tip_y, b.cell.diagonal()[2]/2))
+        b.info['actual_crack_tip'] = (tip_x, tip_y, b.cell.diagonal()[2]/2)
 
         fit_x, fit_y = crack.crack_tip_position(a.positions[:,0],
                                                 a.positions[:,1],
@@ -174,8 +174,8 @@ for i, bond_length in enumerate(params.bond_lengths):
         parprint('Measured crack tip at %f %f' % (fit_x, fit_y))
 
         # The fitted crack tip is marked by a silver atom.
-        b += ase.Atom(FITTED_CRACK_TIP, (fit_x, fit_y, b.cell.diagonal()[1]/2))
-        b.info['fitted_crack_tip'] =  (fit_x, fit_y, b.cell.diagonal()[1]/2)
+        b += ase.Atom(FITTED_CRACK_TIP, (fit_x, fit_y, b.cell.diagonal()[2]/2))
+        b.info['fitted_crack_tip'] =  (fit_x, fit_y, b.cell.diagonal()[2]/2)
 
         bond_dir = a[bond1].position - a[bond2].position
         bond_dir /= np.linalg.norm(bond_dir)
