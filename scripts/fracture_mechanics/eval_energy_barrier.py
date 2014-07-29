@@ -96,10 +96,11 @@ work = np.cumsum(work)
 # Integrate true potential energy.
 epot = -cumtrapz(bond_forces, bond_lengths, initial=0.0)
 np.savetxt('%s_eval.out' % prefix,
-          np.transpose([bond_lengths, # 1
-                        bond_forces,  # 2
-                        epot,         # 3
-                        epot_cluster, # 4
-                        work,         # 5
-                        tip_x,        # 6
-                        tip_z]))      # 7
+           np.transpose([bond_lengths, # 1
+                         bond_forces,  # 2
+                         epot,         # 3
+                         epot_cluster, # 4
+                         work,         # 5
+                         tip_x,        # 6
+                         tip_z]),      # 7
+           header='1:bond_lengths 2:bond_forces 3:epot 4:epot_cluster 5:work 6:tip_x 7:tip_z')
