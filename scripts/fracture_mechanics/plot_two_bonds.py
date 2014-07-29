@@ -1,3 +1,26 @@
+#!/usr/bin/env python
+
+# ======================================================================
+# matscipy - Python materials science tools
+# https://github.com/libAtoms/matscipy
+#
+# Copyright (2014) James Kermode, King's College London
+#                  Lars Pastewka, Karlsruhe Institute of Technology
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ======================================================================
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -55,6 +78,6 @@ plt.plot(tip_x2[maxima2] - tip_x2[minima2][0] + tip_x1[minima1][0],
 
 plt.xlabel(r'Crack position / $\mathrm{\AA}$')
 plt.ylabel(r'Potential energy / eV')
-plt.legend(loc='upper left')
-plt.ylim(-0.05, 0.30)
+plt.legend(loc='upper right')
+#plt.ylim(-0.05, 0.30)
 plt.draw()
