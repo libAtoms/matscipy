@@ -210,7 +210,17 @@ class CubicCrystalCrack:
 
     def k1g(self, surface_energy):
         """
-        K1G, Griffith critical stress intensity in mode I fracture
+        Compute Griffith critical stress intensity in mode I fracture.
+
+        Parameters
+        ----------
+        surface_energy : float
+            Surface energy of the respective crystal surface.
+
+        Returns
+        -------
+        k1g : float
+            Stress intensity factor.
         """
         return self.crack.k1g(surface_energy)
 
@@ -221,89 +231,176 @@ class CubicCrystalCrack:
 
     def displacements_from_cylinder_coordinates(self, r, theta, k):
         """
-        Displacement field in mode I fracture
+        Displacement field in mode I fracture from cylindrical coordinates.
         """
         return self.crack.displacements(r, theta, k)
 
 
     def displacements_from_cartesian_coordinates(self, dx, dz, k):
         """
-        Displacement field in mode I fracture
+        Displacement field in mode I fracture from cartesian coordinates.
         """
         abs_dr = np.sqrt(dx*dx+dz*dz)
         theta = np.arctan2(dz, dx)
         return self.displacements_from_cylinder_coordinates(abs_dr, theta, k)
 
 
-    def displacements(self, ref_pos, r0, k):
+    def displacements(self, ref_x, ref_y, x0, y0, k):
         """
-        Returns the displacement field for a list of positions
+        Displacement field for a list of cartesian positions.
+
+        Parameters
+        ----------
+        ref_x : array_like
+            x-positions of the reference crystal.
+        ref_y : array_like
+            y-positions of the reference crystal.
+        x0 : float
+            x-coordinate of the crack tip.
+        y0 : float
+            y-coordinate of the crack tip.
+        k : float
+            Stress intensity factor.
+        
+        Returns
+        -------
+        ux : array_like
+            x-displacements.
+        uy : array_like
+            y-displacements.
         """
-        dx, dy, dz = (ref_pos - r0.reshape(-1,3)).T
-        ux, uy = self.displacements_from_cartesian_coordinates(dx, dz, k)
-        return np.transpose([ux, np.zeros_like(ux), uy])
+        dx = ref_x - x0
+        dy = ref_y - y0
+        ux, uy = self.displacements_from_cartesian_coordinates(dx, dy, k)
+        return ux, uy
 
 
-    def displacement_residuals(self, pos, ref_pos, r0, k):
+    def displacement_residuals(self, x, y, ref_x, ref_y, x0, y0, k):
         """
         Return actual displacement field minus ideal displacement field.
         """
-        u1 = pos - ref_pos
-        u2 = self.displacements(ref_pos, r0, k)
-        return u1 - u2
+        u1x = x - ref_y
+        u1y = y - ref_y
+        u2x, u2y = self.displacements(ref_x, ref_y, x0, y0, k)
+        return u1x - u2x, u1y - u2y
 
 
-    def _residual(self, r0, pos, ref_pos, k, mask):
-        x0, z0 = r0
-        r0 = np.array([x0, 0.0, z0])
-        du = self.displacement_residuals(pos, ref_pos, r0, k)
-        return (du[mask]*du[mask]).sum(axis=1)
+    def _residual(self, r0, x, y, ref_x, ref_y, k, mask):
+        x0, y0 = r0
+        dux, duy = self.displacement_residuals(x, y, ref_x, ref_y, x0, y0, k)
+        return dux[mask]*dux[mask]+duy[mask]*duy[mask]
 
 
-    def crack_tip_position(self, pos, ref_pos, r0, k, mask=None):
+    def crack_tip_position(self, x, y, ref_x, ref_y, x0, y0, k, mask=None):
         """
         Return an estimate of the real crack tip position assuming the stress
-        intensity factor is k. mask marks the atoms to use for this calculation.
-        r0 is the initial guess for the crack tip position.
+        intensity factor is k.
+
+        Parameters
+        ----------
+        x : array_like
+            x-positions of the atomic system containing the crack.
+        y : array_like
+            y-positions of the atomic system containing the crack.
+        ref_x : array_like
+            x-positions of the reference crystal.
+        ref_y : array_like
+            y-positions of the reference crystal.
+        x0 : float
+            Initial guess for the x-coordinate of the crack tip.
+        y0 : float
+            Initial guess for the y-coordinate of the crack tip.
+        k : float
+            Stress intensity factor.
+        mask : array_like, optional
+            Marks the atoms to use for this calculation.
+
+        Returns
+        -------
+        x0 : float
+            x-coordinate of the crack tip.
+        y0 : float
+            y-coordinate of the crack tip.
         """
         if mask is None:
             mask = np.ones(len(a), dtype=bool)
-        x0, y0, z0 = r0
-        r0 = np.array([x0, z0])
-        ( x0, z0 ), ier = leastsq(self._residual, r0,
-                                  args=(pos, ref_pos, k, mask))
+        ( x0, y0 ), ier = leastsq(self._residual, ( x0, y0 ),
+                                  args=(x, y, ref_x, ref_y, k, mask))
         if ier not in [ 1, 2, 3, 4 ]:
             raise RuntimeError('Could not find crack tip')
-        return x0, z0
+        return x0, y0
 
 
-    def _residual_z(self, z0, x0, pos, ref_pos, k, mask):
-        r0 = np.array([x0, 0.0, z0])
-        du = self.displacement_residuals(pos, ref_pos, r0, k)
-        return (du[mask]*du[mask]).sum(axis=1)
+    def _residual_z(self, y0, x0, x, y, ref_x, ref_y, k, mask):
+        dux, duy = self.displacement_residuals(x, y, ref_x, ref_y, x0, y0, k)
+        return dux[mask]*dux[mask]+duy[mask]*duy[mask]
 
 
-    def crack_tip_position_z(self, pos, ref_pos, r0, k, mask=None):
+    def crack_tip_position_y(self, x, y, ref_x, ref_y, x0, y0, k, mask=None):
         """
-        Return an estimate of the real crack tip position assuming the stress
-        intensity factor is k. mask marks the atoms to use for this calculation.
-        r0 is the initial guess for the crack tip position.
+        Return an estimate of the y-coordinate of the real crack tip position 
+        assuming the stress intensity factor is k.
+
+        Parameters
+        ----------
+        x : array_like
+            x-positions of the atomic system containing the crack.
+        y : array_like
+            y-positions of the atomic system containing the crack.
+        ref_x : array_like
+            x-positions of the reference crystal.
+        ref_y : array_like
+            y-positions of the reference crystal.
+        x0 : float
+            Initial guess for the x-coordinate of the crack tip.
+        y0 : float
+            Initial guess for the y-coordinate of the crack tip.
+        k : float
+            Stress intensity factor.
+        mask : array_like, optional
+            Marks the atoms to use for this calculation.
+
+        Returns
+        -------
+        y0 : float
+            y-coordinate of the crack tip
         """
         if mask is None:
             mask = np.ones(len(a), dtype=bool)
-        x0, y0, z0 = r0
-        ( z0, ), ier = leastsq(self._residual_z, z0,
-                          args=(x0, pos, ref_pos, k, mask))
+        ( y0, ), ier = leastsq(self._residual_z, y0,
+                          args=(x0, x, y, ref_x, ref_y, k, mask))
         if ier not in [ 1, 2, 3, 4 ]:
             raise RuntimeError('Could not find crack tip')
-        return z0
+        return y0
 
 
-    def scale_displacements(self, pos, ref_pos, old_k, new_k):
+    def scale_displacements(self, x, y, ref_x, ref_y, old_k, new_k):
         """
         Rescale atomic positions from stress intensity factor old_k to the new
         stress intensity factor new_k. This is useful for extrapolation of 
         relaxed positions.
+
+        Parameters
+        ----------
+        x : array_like
+            x-positions of the atomic system containing the crack.
+        y : array_like
+            y-positions of the atomic system containing the crack.
+        ref_x : array_like
+            x-positions of the reference crystal.
+        ref_y : array_like
+            y-positions of the reference crystal.
+        old_k : float
+            Current stress intensity factor.
+        new_k : float
+            Stress intensity factor for the output positions.
+
+        Returns
+        -------
+        x : array_like
+            New x-positions of the atomic system containing the crack.
+        y : array_like
+            New y-positions of the atomic system containing the crack.
         """
-        return ref_pos + new_k/old_k*(pos-ref_pos)
+        return ref_x + new_k/old_k*(x-ref_x), ref_y + new_k/old_k*(y-ref_y)
 
