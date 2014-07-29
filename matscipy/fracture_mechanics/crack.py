@@ -182,15 +182,17 @@ class CubicCrystalCrack:
         # y (crack_surface) - free surface that forms due to the crack
         # z (crack_front) - direction of the crack front
         third_dir = np.cross(crack_surface, crack_front)
-
-        self.third_dir = np.array(third_dir) / np.sqrt(np.dot(third_dir,
-                                                              third_dir))
-        self.crack_surface = np.array(crack_surface) / \
+        third_dir = np.array(third_dir) / np.sqrt(np.dot(third_dir,
+                                                         third_dir))
+        crack_surface = np.array(crack_surface) / \
             np.sqrt(np.dot(crack_surface, crack_surface))
-        self.crack_front = np.array(crack_front) / \
+        crack_front = np.array(crack_front) / \
             np.sqrt(np.dot(crack_front, crack_front))
 
-        A = np.array([self.third_dir, self.crack_surface, self.crack_front])
+        A = np.array([third_dir, crack_surface, crack_front])
+        if np.linalg.det(A) < 0:
+            third_dir = -third_dir
+        A = np.array([third_dir, crack_surface, crack_front])
 
         self.E.rotate(A)
 
