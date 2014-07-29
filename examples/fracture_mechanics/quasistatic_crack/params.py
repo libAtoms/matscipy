@@ -24,7 +24,7 @@ C44             = 77.    # GPa
 surface_energy  = 1.08  * 10    # GPa*A = 0.1 J/m^2
 
 # Crack system
-n               = [ 4, 1, 6 ]
+n               = [ 4, 6, 1 ]
 crack_surface   = [ 1,-1, 0 ]
 crack_front     = [ 1, 1, 0 ]
 crack_tip       = [ 41, 56 ]

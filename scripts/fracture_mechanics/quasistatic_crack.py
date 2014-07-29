@@ -52,28 +52,29 @@ if hasattr(params, 'tip_x0'):
     tip_x0 = params.tip_x0
 else:
     tip_x0 = params.cryst.cell.diagonal()[0]/2
-if hasattr(params, 'tip_z0'):
-    tip_z0 = params.tip_z0
+if hasattr(params, 'tip_y0'):
+    tip_y0 = params.tip_y0
 else:
-    tip_z0 = params.cryst.cell.diagonal()[2]/2
+    tip_y0 = params.cryst.cell.diagonal()[2]/2
 
 cryst = params.cryst.copy()
 a = cryst.copy()
 old_k1 = params.k1[0]
-a.positions += crack.displacements(cryst.positions,
-                                   np.array([tip_x0, 0.0, tip_z0]),
-                                   old_k1*k1g)
+ux, uy = crack.displacements(cryst.positions[:,0], cryst.positions[:,1],
+                             tip_x0, tip_y0, old_k1*k1g)
+a.positions[:,0] += ux
+a.positions[:,1] += uy
 
 oldr = a[0].position.copy()
-a.center(vacuum=params.vacuum, axis=(0, 2))
+a.center(vacuum=params.vacuum, axis=(0, 1))
 tip_x0 += a[0].position[0] - oldr[0]
-tip_z0 += a[0].position[2] - oldr[2]
+tip_y0 += a[0].position[2] - oldr[2]
 cryst.set_cell(a.cell)
 cryst.translate(a[0].position - oldr)
 
 cell = a.cell
 
-info = [(0.0, tip_x0, tip_z0, tip_x0, tip_z0, 0.0)]
+info = [(0.0, tip_x0, tip_y0, tip_x0, tip_y0, 0.0)]
 
 parprint('Cell size = %f %f %f' % tuple(a.cell.diagonal()))
 
@@ -114,7 +115,7 @@ else:
 
 # Run crack calculation.
 tip_x = tip_x0
-tip_z = tip_z0
+tip_y = tip_y0
 for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                                                tip_dz_list)):
     parprint('=== k1 = {0}*k1g, tip_dx = {1}, tip_dz = {2} ===' \
@@ -132,12 +133,13 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
             if tip_dx is None:
                 # Optimize x and z position of crack tip
                 old_x = tip_x+1.0
-                old_z = tip_z+1.0
-                while abs(tip_x-old_x) > 1e-6 and abs(tip_z-old_z) > 1e-6:
+                old_y = tip_y+1.0
+                while abs(tip_x-old_x) > 1e-6 and abs(tip_y-old_y) > 1e-6:
                     b = cryst.copy()
-                    r0 = np.array([tip_x, 0.0, tip_z])
-                    b.positions += crack.displacements(cryst.positions, r0,
-                                                       k*k1g)
+                    ux, uy = crack.displacements(cryst.positions[:,0], cryst.positions[:,1],
+                                                 tip_x, tip_y, k*k1g)
+                    b.positions[:,0] += ux
+                    b.positions[:,1] += uy
 
                     a.set_constraint(None)
                     a.positions[g==0] = b.positions[g==0]
@@ -149,20 +151,23 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                              .format(opt.get_number_of_steps()))
             
                     old_x = tip_x
-                    old_z = tip_z
-                    tip_x, tip_z = crack.crack_tip_position(a.positions,
-                                                            cryst.positions,
-                                                            r0, k*k1g,
+                    old_y = tip_y
+                    tip_x, tip_y = crack.crack_tip_position(a.positions[:,0],
+                                                            a.positions[:,1],
+                                                            cryst.positions[:,0],
+                                                            cryst.positions[:,1],
+                                                            tip_x, tip_y, k*k1g,
                                                             mask=mask)
             else:
                 # Optimize z position of crack tip
                 tip_x = tip_x0+tip_dx
-                old_z = tip_z+1.0
-                while abs(tip_z-old_z) > 1e-6:
+                old_y = tip_y+1.0
+                while abs(tip_y-old_y) > 1e-6:
                     b = cryst.copy()
-                    r0 = np.array([tip_x, 0.0, tip_z])
-                    b.positions += crack.displacements(cryst.positions, r0,
-                                                       k1*k1g)
+                    ux, uy = crack.displacements(cryst.positions[:,0], cryst.positions[:,1],
+                                                 tip_x, tip_y, k1*k1g)
+                    b.positions[:,0] += ux
+                    b.positions[:,1] += uy
 
                     a.set_constraint(None)
                     a.positions[g==0] = b.positions[g==0]
@@ -173,33 +178,36 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
                     parprint('...done. Converged within {0} steps.' \
                              .format(opt.get_number_of_steps()))
         
-                    #x, y, z = a.positions.T
-                    #abs_dr = np.sqrt((x-tip_x)**2+(z-tip_z)**2)
-                    old_z = tip_z
-                    #mask = np.logical_and(g!=0, abs_dr>15.0)
-                    tip_z = crack.crack_tip_position_z(a.positions,
-                                                       cryst.positions, r0,
-                                                       k1*k1g, mask=mask)
+                    old_y = tip_y
+                    tip_y = crack.crack_tip_position_z(a.positions[:,0],
+                                                       a.positions[:,1],
+                                                       cryst.positions[:,0],
+                                                       cryst.positions[:,1],
+                                                       tip_x, tip_y, k1*k1g,
+                                                       mask=mask)
 
-            parprint('Optimized crack tip position to %f %f' % (tip_x, tip_z))
+            parprint('Optimized crack tip position to %f %f' % (tip_x, tip_y))
         else:
             tip_x = tip_x0+tip_dx
-            tip_z = tip_z0+tip_dz
+            tip_y = tip_y0+tip_dz
 
-            r0 = np.array([tip_x, 0.0, tip_z])
-
-            parprint('Setting crack tip position to %f %f' % (tip_x, tip_z))
+            parprint('Setting crack tip position to %f %f' % (tip_x, tip_y))
 
             # Scale strain field and optimize crack
             b = cryst.copy()
-            r0 = np.array([tip_x, 0.0, tip_z])
-            b.positions += crack.displacements(cryst.positions, r0,
-                                                       k1*k1g)
+            ux, uy = crack.displacements(cryst.positions[:,0], cryst.positions[:,1],
+                                         tip_x, tip_y, k1*k1g)
+            b.positions[:,0] += ux
+            b.positions[:,1] += uy
 
             a.set_constraint(None)
-            a.set_positions(crack.scale_displacements(a.positions,
-                                                      cryst.positions,
-                                                      old_k1, k1))
+
+            x, y = crack.scale_displacements(a.positions[:,0], a.positions[:,1],
+                                             cryst.positions[:,0], cryst.positions[:,1],
+                                             old_k1, k1)
+            a.positions[:,0] = x
+            a.positions[:,1] = y
+
             a.positions[g==0] = b.positions[g==0]
             a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
             parprint('Optimizing positions...')
@@ -216,11 +224,11 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
 
         # The target crack tip is marked by a Hydrogen atom.
         b = a.copy()
-        b += ase.Atom('H', ( tip_x, b.cell.diagonal()[1]/2, tip_z ))
+        b += ase.Atom('H', ( tip_x, b.cell.diagonal()[1]/2, tip_y ))
 
-        x0crack, z0crack = crack.crack_tip_position(a.positions,
-                                                    cryst.positions,
-                                                    r0, k1*k1g, mask=mask)
+        x0crack, z0crack = crack.crack_tip_position(a.positions[:,0], a.positions[:,1],
+                                                    cryst.positions[:,0], cryst.positions[:,1],
+                                                    tip_x, tip_y, k1*k1g, mask=mask)
 
         parprint('Measured crack tip at %f %f' % (x0crack, z0crack))
 
@@ -228,7 +236,7 @@ for i, ( k1, tip_dx, tip_dz ) in enumerate(zip(k1_list, tip_dx_list,
         b += ase.Atom('He', ( x0crack, b.cell.diagonal()[1]/2, z0crack ))
         ase.io.write('step_with_crack_tip_%2.2i.cfg' % i, b)
 
-        info += [ ( k1, tip_x, tip_z, x0crack, z0crack,
+        info += [ ( k1, tip_x, tip_y, x0crack, z0crack,
                     a.get_potential_energy() ) ]
 
 # Output some aggregate data.
