@@ -47,7 +47,7 @@ prefix = sys.argv[1]
 fns = sorted(glob.glob('%s_*.xyz' % prefix))
 
 tip_x = []
-tip_z = []
+tip_y = []
 epot_cluster = []
 bond_lengths = []
 bond_forces = []
@@ -57,9 +57,9 @@ last_a = None
 for fn in fns:
     a = ase.io.read(fn)
 
-    _tip_x, _tip_y, _tip_z = a.info['actual_crack_tip']
+    _tip_x, _tip_y, _tip_y = a.info['actual_crack_tip']
     tip_x += [ _tip_x ]
-    tip_z += [ _tip_z ]
+    tip_y += [ _tip_y ]
 
     # Bond length.
     bond1 = a.info['bond1']
@@ -102,5 +102,5 @@ np.savetxt('%s_eval.out' % prefix,
                          epot_cluster, # 4
                          work,         # 5
                          tip_x,        # 6
-                         tip_z]),      # 7
-           header='1:bond_lengths 2:bond_forces 3:epot 4:epot_cluster 5:work 6:tip_x 7:tip_z')
+                         tip_y]),      # 7
+           header='1:bond_lengths 2:bond_forces 3:epot 4:epot_cluster 5:work 6:tip_x 7:tip_y')
