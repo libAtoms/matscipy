@@ -70,13 +70,12 @@ def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
 
     return a
 
-###
 
 def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
                     skin_x=1.0, skin_y=1.0, vac=5.0):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
-    directions = [ third_dir, crack_front, crack_surface ]
+    directions = [ third_dir, crack_surface, crack_front ]
     if np.linalg.det(directions) < 0:
         third_dir = -third_dir
     directions = [ third_dir, crack_surface, crack_front ]
@@ -87,7 +86,7 @@ def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
     a.set_scaled_positions(a.get_scaled_positions())
 
     lx  = skin_x*sx/nx
-    ly  = skin_y*sy/nz
+    ly  = skin_y*sy/ny
     r   = a.get_positions()
     g   = np.where(
         np.logical_or(
@@ -105,6 +104,7 @@ def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
     a.set_pbc([False, False, True])
 
     return a
+
 
 def diamond_111_110(el, a0, n, crack_surface=[1,1,1], crack_front=[1,-1,0],
                     skin_x=1.0, skin_z=1.0, vac=5.0):
