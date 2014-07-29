@@ -24,14 +24,14 @@ C44             = 77.    # GPa
 surface_energy  = 1.08  * 10    # GPa*A = 0.1 J/m^2
 
 # Crack system
-n               = [ 16, 1, 24 ]
+n               = [ 16, 24, 1 ]
 crack_surface   = [ 1,-1, 0 ]
 crack_front     = [ 1, 1, 0 ]
 
 vacuum          = 6.0
 
 # Simulation control
-bond            = ( 737, 800 )
+bond            = ( 735, 800 )
 k1              = 1.10
 bond_lengths    = np.linspace(2.5, 5.0, 101)
 

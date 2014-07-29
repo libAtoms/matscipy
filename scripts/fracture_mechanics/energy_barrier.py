@@ -61,23 +61,24 @@ if hasattr(params, 'tip_x'):
     tip_x = params.tip_x
 else:
     tip_x = cryst.cell.diagonal()[0]/2
-if hasattr(params, 'tip_z'):
-    tip_z = params.tip_z
+if hasattr(params, 'tip_y'):
+    tip_y = params.tip_y
 else:
-    tip_z = cryst.cell.diagonal()[2]/2
+    tip_y = cryst.cell.diagonal()[1]/2
 
 # Apply initial strain field.
 a = cryst.copy()
-a.positions += crack.displacements(cryst.positions,
-                                   np.array([tip_x, 0.0, tip_z]),
-                                   params.k1*k1g)
+ux, uy = crack.displacements(cryst.positions[:,0], cryst.positions[:,1],
+                             tip_x, tip_y, params.k1*k1g)
+a.positions[:,0] += ux
+a.positions[:,1] += uy
 
 # Center notched configuration in simulation cell and ensure enough vacuum.
 oldr = a[0].position.copy()
 a.center(vacuum=params.vacuum, axis=0)
-a.center(vacuum=params.vacuum, axis=2)
+a.center(vacuum=params.vacuum, axis=1)
 tip_x += a[0].position[0] - oldr[0]
-tip_z += a[0].position[2] - oldr[2]
+tip_y += a[0].position[1] - oldr[1]
 cryst.set_cell(a.cell)
 cryst.translate(a[0].position - oldr)
 
@@ -114,12 +115,16 @@ for i, bond_length in enumerate(params.bond_lengths):
         if hasattr(params, 'optimize_tip_position') and \
                params.optimize_tip_position:
             old_x = tip_x+1.0
-            old_z = tip_z+1.0
-            while abs(tip_x-old_x) > 1e-6 and abs(tip_z-old_z) > 1e-6:
+            old_y = tip_y+1.0
+            while abs(tip_x-old_x) > 1e-6 and abs(tip_y-old_y) > 1e-6:
                 b = cryst.copy()
-                r0 = np.array([tip_x, 0.0, tip_z])
-                b.positions += crack.displacements(cryst.positions, r0,
-                                                   params.k1*k1g)
+                r0 = np.array([tip_x, 0.0, tip_y])
+                ux, uy = crack.displacements(cryst.positions[:,0],
+                                             cryst.positions[:,1],
+                                             tip_x, tip_y,
+                                             params.k1*k1g)
+                b.positions[:,0] += ux
+                b.positions[:,1] += uy
 
                 a.set_constraint(None)
                 a.positions[g==0] = b.positions[g==0]
@@ -132,13 +137,15 @@ for i, bond_length in enumerate(params.bond_lengths):
                          .format(opt.get_number_of_steps()))
             
                 old_x = tip_x
-                old_z = tip_z
-                r0 = np.array([tip_x, 0.0, tip_z])
-                tip_x, tip_z = crack.crack_tip_position(a.positions,
-                                                        cryst.positions,
-                                                        r0, params.k1*k1g,
+                old_y = tip_y
+                tip_x, tip_y = crack.crack_tip_position(a.positions[:,0],
+                                                        a.positions[:,1],
+                                                        cryst.positions[:,0],
+                                                        cryst.positions[:,1],
+                                                        tip_x, tip_y,
+                                                        params.k1*k1g,
                                                         mask=mask)
-                parprint('New crack tip at {0} {1}'.format(tip_x, tip_z))
+                parprint('New crack tip at {0} {1}'.format(tip_x, tip_y))
         else:
             a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                               bond_length_constraint])
@@ -154,20 +161,21 @@ for i, bond_length in enumerate(params.bond_lengths):
 
         # The target crack tip is marked by a gold atom.
         b = a.copy()
-        b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, b.cell.diagonal()[1]/2, tip_z))
-        b.info['actual_crack_tip'] = (tip_x, b.cell.diagonal()[1]/2, tip_z)
+        b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, b.cell.diagonal()[1]/2, tip_y))
+        b.info['actual_crack_tip'] = (tip_x, b.cell.diagonal()[1]/2, tip_y)
 
-        r0 = np.array([tip_x, 0.0, tip_z])
-        fit_x, fit_z = crack.crack_tip_position(a.positions,
-                                                cryst.positions,
-                                                r0, params.k1*k1g,
+        fit_x, fit_y = crack.crack_tip_position(a.positions[:,0],
+                                                a.positions[:,1],
+                                                cryst.positions[:,0],
+                                                cryst.positions[:,1],
+                                                tip_x, tip_y, params.k1*k1g,
                                                 mask=mask)
 
-        parprint('Measured crack tip at %f %f' % (fit_x, fit_z))
+        parprint('Measured crack tip at %f %f' % (fit_x, fit_y))
 
         # The fitted crack tip is marked by a silver atom.
-        b += ase.Atom(FITTED_CRACK_TIP, (fit_x, b.cell.diagonal()[1]/2, fit_z))
-        b.info['fitted_crack_tip'] =  (fit_x, b.cell.diagonal()[1]/2, fit_z)
+        b += ase.Atom(FITTED_CRACK_TIP, (fit_x, fit_y, b.cell.diagonal()[1]/2))
+        b.info['fitted_crack_tip'] =  (fit_x, fit_y, b.cell.diagonal()[1]/2)
 
         bond_dir = a[bond1].position - a[bond2].position
         bond_dir /= np.linalg.norm(bond_dir)
