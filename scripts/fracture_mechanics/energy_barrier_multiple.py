@@ -81,10 +81,12 @@ tip_x += a[0].position[0] - oldr[0]
 tip_y += a[0].position[1] - oldr[1]
 cryst.set_cell(a.cell)
 cryst.translate(a[0].position - oldr)
+ase.io.write('notch.xyz', a, format='extxyz')
+
+parprint('Initial tip position {0} {1}'.format(tip_x, tip_y))
 
 # Groups mark the fixed region and the region use for fitting the crack tip.
 g = a.get_array('groups')
-
 
 # Assign calculator.
 a.set_calculator(params.calc)
@@ -157,8 +159,8 @@ for j, (bond1, bond2) in enumerate(params.bonds):
 
             # The target crack tip is marked by a gold atom.
             b = a.copy()
-            b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, b.cell.diagonal()[1]/2, tip_y))
-            b.info['actual_crack_tip'] = (tip_x, b.cell.diagonal()[1]/2, tip_y)
+            b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, tip_y, b.cell.diagonal()[2]/2))
+            b.info['actual_crack_tip'] = (tip_x, tip_y, b.cell.diagonal()[2]/2)
 
             fit_x, fit_y = crack.crack_tip_position(a.positions[:,0],
                                                     a.positions[:,1],
@@ -170,8 +172,8 @@ for j, (bond1, bond2) in enumerate(params.bonds):
             parprint('Measured crack tip at %f %f' % (fit_x, fit_y))
 
             # The fitted crack tip is marked by a silver atom.
-            b += ase.Atom(FITTED_CRACK_TIP, (fit_x, b.cell.diagonal()[1]/2, fit_y))
-            b.info['fitted_crack_tip'] = (fit_x, b.cell.diagonal()[1]/2, fit_y)
+            b += ase.Atom(FITTED_CRACK_TIP, (fit_x, fit_y, b.cell.diagonal()[2]/2))
+            b.info['fitted_crack_tip'] = (fit_x, fit_y, b.cell.diagonal()[2]/2)
 
             bond_dir = a[bond1].position - a[bond2].position
             bond_dir /= np.linalg.norm(bond_dir)
