@@ -27,6 +27,7 @@ except:
     print 'Warning: no scipy'
 
 from matscipy.elasticity import CubicElasticModuli
+from matscipy.surface import MillerDirection, MillerPlane
 
 ###
 
@@ -496,4 +497,522 @@ class IsotropicStressField(object):
         sigma[:,1,0] += self.sxy0
 
         return sigma
+    
+
+def strain_to_G(strain, E, nu, orig_height):
+    """
+    Convert from strain to energy release rate G for thin strip geometry
+
+    Parameters
+    ----------
+    strain : float
+       Dimensionless ratio ``(current_height - orig_height)/orig_height``
+    E : float
+       Young's modulus relevant for a pull in y direction sigma_yy/eps_yy
+    nu : float
+       Poission ratio -eps_yy/eps_xx
+    orig_height : float
+       Unstrained height of slab
+
+    Returns
+    -------
+    G : float
+       Energy release rate in units consistent with input
+       (i.e. in eV/A**2 if eV/A/fs units used)
+    """
+    return 0.5 * E / (1.0 - nu * nu) * strain * strain * orig_height
+
+
+def G_to_strain(G, E, nu, orig_height):
+    """
+    Convert from energy release rate G to strain for thin strip geometry
+
+    Parameters
+    ----------
+    G : float
+       Energy release rate in units consistent with `E` and `orig_height`
+    E : float
+       Young's modulus relevant for a pull in y direction sigma_yy/eps_yy
+    nu : float
+       Poission ratio -eps_yy/eps_xx
+    orig_height : float
+       Unstrained height of slab
+
+    Returns
+    -------
+    strain : float
+       Dimensionless ratio ``(current_height - orig_height)/orig_height``
+    """
+    return sqrt(2.0 * G * (1.0 - nu * nu) / (E * orig_height))
+
+
+def get_strain(atoms):
+    """
+    Return the current strain on thin strip configuration `atoms`
+
+    Requires unstrained height of slab to be stored as ``OrigHeight``
+    key in ``atoms.info`` dictionary.
+
+    Also updates value stored in ``atoms.info``.
+    """
+    
+    orig_height = atoms.info['OrigHeight']
+    current_height = atoms.positions[:, 1].max() - atoms.positions[:, 1].min()
+    strain = current_height / orig_height - 1.0
+    atoms.info['strain'] = strain
+    return strain
+
+
+def get_energy_release_rate(atoms):
+    """
+    Return the current energy release rate G for `atoms
+
+    Also updates value stored in ``atoms.info`` dictionary.
+    """
+    
+    current_strain = get_strain(atoms)
+    orig_height = atoms.info['OrigHeight']
+    E = atoms.info['YoungsModulus']
+    nu = atoms.info['PoissonRatio_yx']
+    G = strain_to_G(current_strain, E, nu, orig_height)
+    atoms.info['G'] = G
+    return G
+
+
+def get_stress_intensity_factor(atoms):
+    """
+    Return stress intensity factor K_I
+
+    Also updates value stored in ``atoms.info`` dictionary.
+    """
+
+    G = get_energy_release_rate(atoms)
+    
+    E = atoms.info['YoungsModulus']
+    nu = atoms.info['PoissonRatio_yx']
+
+    Ep = E/(1-nu**2)
+    K = sqrt(G/Ep)
+    atoms.info['K'] = K
+    return K
+
+
+def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_params=None,
+                           sigma=None, avg_sigma=None, avg_decay=0.005, calc=None, verbose=False):
+    """
+    Perform a least squares fit of near-tip stress field to Irwin solution
+
+    Stresses on the atoms are fit to the Irwin K-field singular crack tip
+    solution, allowingthe crack position, stress intensity factor and
+    far-field stress components to vary during the fit.
+
+    Parameters
+    ----------
+    atoms : :class:`~.Atoms` object
+       Crack system. For the initial fit, the following keys are used
+       from the :attr:`~Atoms.info` dictionary:
+
+          - ``YoungsModulus``
+          - ``PossionRatio_yx``
+          - ``G`` --- current energy release rate
+          - ``strain`` --- current applied strain
+          - ``CrackPos`` --- initial guess for crack tip position
+
+       The initial guesses for the stress intensity factor ``K`` are
+       far-field stress ``sigma0`` are computed from
+       ``YoungsModulus``, ``PoissonRatio_yx``, ``G`` and ``strain``,
+       assuming plane strain in thin strip boundary conditions.
+
+       On exit, new ``K``, ``sigma0`` and ``CrackPos`` entries are set
+       in the :attr:`~Atoms.info` dictionary. These values are then
+       used as starting guesses for subsequent fits.
+
+    r_range : sequence of two floats, optional
+       If present, restrict the stress fit to an annular region
+       ``r_range[0] <= r < r_range[1]``, centred on the previous crack
+       position (from the ``CrackPos`` entry in ``atoms.info``). If
+       r_range is ``None``, fit is carried out for all atoms.
+
+    initial_params : dict
+       Names and initial values of parameters. Missing initial values
+       are guessed from Atoms object.
+
+    fix_params : dict
+       Names and values of parameters to fix during the fit,
+       e.g. ``{y0: 0.0}`` to constrain the fit to the line y=0
+
+    sigma : None or array with shape (len(atoms), 3, 3)
+       Explicitly provide the per-atom stresses. Avoids calling Atoms'
+       calculators :meth:`~.get_stresses` method.
+
+    avg_sigma : None or array with shape (len(atoms), 3, 3)
+       If present, use this array to accumulate the time-averaged
+       stress field. Useful when processing a trajectory.
+
+    avg_decay : real
+       Factor by which average stress is attenuated at each step.
+       Should be set to ``dt/tau`` where ``dt`` is MD time-step
+       and ``tau`` is a characteristic averaging time.
+
+    calc : Calculator object, optional
+       If present, override the calculator used to compute stresses
+       on the atoms. Default is ``atoms.get_calculator``.
+
+       To use the atom resolved stress tensor pass an instance of the 
+       :class:`~quippy.elasticity.AtomResolvedStressField` class.
+
+    verbose : bool, optional
+       If set to True, print additional information about the fit.
+
+    Returns
+    -------
+    params : dict with keys ``[K, x0, y0, sxx0, syy0, sxy0]``
+       Fitted parameters, in a form suitable for passin
+       :class:`IrwinStressField` constructor. These are the stress intensity
+       factor `K`, the centre of the stress field ``(x0, y0)``, and the
+       far field contribution to the stress ``(sxx0, syy0, sxy0)``.
+    """
+
+    params = {}
+    if initial_params is not None:
+       params.update(initial_params)
+
+    if 'K' not in params:
+       # Guess for stress intensity factor K
+       if 'K' in atoms.info:
+           params['K'] = atoms.info['K']
+       else:
+           try:
+               params['K'] = get_stress_intensity_factor(atoms)
+           except KeyError:
+               params['K'] = 1.0*MPA_SQRT_M
+
+    if 'sxx0' not in params or 'syy0' not in params or 'sxy0' not in params:
+       # Guess for far-field stress
+       if 'sigma0' in atoms.info:
+          params['sxx0'], params['syy0'], params['sxy0'] = atoms.info['sigma0']
+       else:
+          try:
+              E = atoms.info['YoungsModulus']
+              nu = atoms.info['PoissonRatio_yx']
+              Ep = E/(1-nu**2)
+              params['syy0'] = Ep*atoms.info['strain']
+              params['sxx0'] = nu*params['syy0']
+              params['sxy0'] = 0.0
+          except KeyError:
+              params['syy0'] = 0.0
+              params['sxx0'] = 0.0
+              params['sxy0'] = 0.0
+
+    if 'x0' not in params or 'y0' not in params:
+       # Guess for crack position
+       try:
+           params['x0'], params['y0'], _ = atoms.info['CrackPos']
+       except KeyError:
+           params['x0'] = (atoms.positions[:, 0].min() +
+                           (atoms.positions[:, 0].max() - atoms.positions[:, 0].min())/3.0)
+           params['y0'] = 0.0
+
+    # Override any fixed parameters
+    if fix_params is None:
+       fix_params = {}
+    params.update(fix_params)
+
+    x = atoms.positions[:, 0]
+    y = atoms.positions[:, 1]
+    r = np.sqrt((x - params['x0'])**2 + (y - params['y0'])**2)
+
+    # Get local stresses
+    if sigma is None:
+       if calc is None:
+           calc = atoms.get_calculator()
+       sigma = calc.get_stresses(atoms)
+
+    # Update avg_sigma in place
+    if avg_sigma is not None:
+       avg_sigma[...] = np.exp(-avg_decay)*avg_sigma + (1.0 - np.exp(-avg_decay))*sigma
+       sigma = avg_sigma.copy()
+
+    # Zero components out of the xy plane
+    sigma[:,2,2] = 0.0
+    sigma[:,0,2] = 0.0
+    sigma[:,2,0] = 0.0
+    sigma[:,1,2] = 0.0
+    sigma[:,2.1] = 0.0
+
+    mask = Ellipsis # all atoms
+    if r_range is not None:
+        rmin, rmax = r_range
+        mask = (r > rmin) & (r < rmax)
+
+    if verbose:
+       print 'Fitting on %r atoms' % sigma[mask,1,1].shape
+    
+    def objective_function(params, x, y, sigma, var_params):
+        params = dict(zip(var_params, params))
+        if fix_params is not None:
+            params.update(fix_params)
+        irwin_sigma = IrwinStressField(**params).get_stresses(atoms)
+        delta_sigma = sigma[mask,:,:] - irwin_sigma[mask,:,:]
+        return delta_sigma.reshape(delta_sigma.size)
+
+    # names and values of parameters which can vary in this fit
+    var_params = sorted([key for key in params.keys() if key not in fix_params.keys() ])
+    initial_params = [params[key] for key in var_params]
+
+    from scipy.optimize import leastsq
+    fitted_params, cov, infodict, mesg, success = leastsq(objective_function,
+                                                         initial_params,
+                                                         args=(x, y, sigma, var_params),
+                                                         full_output=True)
+
+    params = dict(zip(var_params, fitted_params))
+    params.update(fix_params)
+
+    # estimate variance in parameter estimates
+    if cov is None:
+       # singular covariance matrix
+       err = dict(zip(var_params, [0.]*len(fitted_params)))
+    else:
+       s_sq = (objective_function(fitted_params, x, y, sigma, var_params)**2).sum()/(sigma.size-len(fitted_params))
+       cov = cov * s_sq
+       err = dict(zip(var_params, np.sqrt(np.diag(cov))))
+    
+    if verbose:
+       print 'K = %.3f MPa sqrt(m)' % (params['K']/MPA_SQRT_M)
+       print 'sigma^0_{xx,yy,xy} = (%.1f, %.1f, %.1f) GPa' % (params['sxx0']*GPA,
+                                                              params['syy0']*GPA,
+                                                              params['sxy0']*GPA)
+       print 'Crack position (x0, y0) = (%.1f, %.1f) A' % (params['x0'], params['y0'])
+
+    atoms.info['K'] = params['K']
+    atoms.info['sigma0'] = (params['sxx0'], params['syy0'], params['sxy0'])
+    atoms.info['CrackPos'] = np.array((params['x0'], params['y0'], atoms.cell[2,2]/2.0))
+
+    return params, err
+
+
+
+def find_crack_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=None,
+                                sigma=None, avg_sigma=None, avg_decay=0.005, calc=None):
+    """
+    Find the position of the crack tip by fitting to the Irwin `K`-field solution
+
+    Fit is carried out using :func:`fit_crack_stress_field`, and parameters
+    have the same meaning as there.
+
+    See also
+    --------
+    fit_crack_stress_field
+    """
+
+    params, err = fit_crack_stress_field(atoms, r_range, initial_params, fix_params, sigma,
+                                         avg_sigma, avg_decay, calc)
+
+    return np.array((params['x0'], params['y0'], atoms.cell[2,2]/2.0))
+    
+
+def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None,
+                       sigma=None, avg_sigma=None, avg_decay=0.005, calc=None):
+    """
+    Fit and plot atomistic and continuum stress fields
+
+    Firstly a fit to the Irwin `K`-field solution is carried out using
+    :func:`fit_crack_stress_field`, and parameters have the same
+    meaning as for that function. Then plots of the
+    :math:`\sigma_{xx}`, :math:`\sigma_{yy}`, :math:`\sigma_{xy}`
+    fields are produced for atomistic and continuum cases, and for the
+    residual error after fitting.
+    """
+
+    from pylab import griddata, meshgrid, subplot, cla, contourf, colorbar, draw, title, clf, gca
+
+    params, err = fit_crack_stress_field(atoms, r_range, initial_params, fix_params, sigma,
+                                         avg_sigma, avg_decay, calc)
+
+    K, x0, y0, sxx0, syy0, sxy0 = (params['K'], params['x0'], params['y0'],
+                                   params['sxx0'], params['syy0'], params['sxy0'])
+   
+    x = atoms.positions[:, 0]
+    y = atoms.positions[:, 1]
+
+    X = np.linspace((x-x0).min(), (x-x0).max(), 500)
+    Y = np.linspace((y-y0).min(), (y-y0).max(), 500)
+
+    t = np.arctan2(y-y0, x-x0)
+    r = np.sqrt((x-x0)**2 + (y-y0)**2)
+
+    if r_range is not None:
+       rmin, rmax = r_range
+       mask = (r > rmin) & (r < rmax)
+    else:
+       mask = Ellipsis
+
+    atom_sigma = sigma
+    if atom_sigma is None:
+       atom_sigma = atoms.get_stresses()
+
+    grid_sigma = np.dstack([griddata(x[mask]-x0, y[mask]-y0, atom_sigma[mask,0,0], X, Y),
+                            griddata(x[mask]-x0, y[mask]-y0, atom_sigma[mask,1,1], X, Y),
+                            griddata(x[mask]-x0, y[mask]-y0, atom_sigma[mask,0,1], X, Y)])
+
+    X, Y = meshgrid(X, Y)
+    R = np.sqrt(X**2+Y**2)
+    T = np.arctan2(Y, X)
+
+    grid_sigma[((R < rmin) | (R > rmax)),:] = np.nan # mask outside fitting region
+
+    irwin_sigma = irwin_modeI_crack_tip_stress_field(K, R, T, x0, y0)
+    irwin_sigma[...,0,0] += sxx0
+    irwin_sigma[...,1,1] += syy0
+    irwin_sigma[...,0,1] += sxy0
+    irwin_sigma[...,1,0] += sxy0
+    irwin_sigma = ma.masked_array(irwin_sigma, mask=grid_sigma.mask)
+
+    irwin_sigma[((R < rmin) | (R > rmax)),:,:] = np.nan # mask outside fitting region
+
+    contours = [np.linspace(0, 20, 10),
+                np.linspace(0, 20, 10),
+                np.linspace(-10,10, 10)]
+
+    dcontours = [np.linspace(0, 5, 10),
+                np.linspace(0, 5, 10),
+                np.linspace(-5, 5, 10)]
+
+    clf()
+    for i, (ii, jj), label in zip(range(3),
+                                  [(0,0), (1,1), (0,1)],
+                                  ['\sigma_{xx}', r'\sigma_{yy}', r'\sigma_{xy}']):
+        subplot(3,3,i+1)
+        gca().set_aspect('equal')
+        contourf(X, Y, grid_sigma[...,i]*GPA, contours[i])
+        colorbar()
+        title(r'$%s^\mathrm{atom}$' % label)
+        draw()
+
+        subplot(3,3,i+4)
+        gca().set_aspect('equal')
+        contourf(X, Y, irwin_sigma[...,ii,jj]*GPA, contours[i])
+        colorbar()
+        title(r'$%s^\mathrm{Irwin}$' % label)
+        draw()
+
+        subplot(3,3,i+7)
+        gca().set_aspect('equal')
+        contourf(X, Y, abs(grid_sigma[...,i] -
+                           irwin_sigma[...,ii,jj])*GPA, dcontours[i])
+        colorbar()
+        title(r'$|%s^\mathrm{atom} - %s^\mathrm{Irwin}|$' % (label, label))
+        draw()
+
+
+
+def thin_strip_displacement_y(x, y, strain, a, b):
+    """
+    Return vertical displacement ramp used to apply initial strain to slab
+
+    Strain is increased from 0 to strain over distance :math:`a <= x <= b`.
+    Region :math:`x < a` is rigidly shifted up/down by ``strain*height/2``.
+
+    Here is an example of how to use this function on an artificial
+    2D square atomic lattice. The positions are plotted before (left)
+    and after (right) applying the displacement, and the horizontal and
+    vertical lines show the `strain` (red), `a` (green) and `b` (blue)
+    parameters. ::
+
+       import matplotlib.pyplot as plt
+       import numpy as np
+
+       w = 1; h = 1; strain = 0.1; a = -0.5; b =  0.0
+       x = np.linspace(-w, w, 20)
+       y = np.linspace(-h, h, 20)
+       X, Y = np.meshgrid(x, y)
+       u_y = thin_strip_displacement_y(X, Y, strain, a, b)
+
+       for i, disp in enumerate([0, u_y]):
+           plt.subplot(1,2,i+1)
+           plt.scatter(X, Y + disp, c='k', s=5)
+           for y in [-h, h]:
+               plt.axhline(y, color='r', linewidth=2, linestyle='dashed')
+               plt.axhline(y*(1+strain), color='r', linewidth=2)
+           for x, c in zip([a, b], ['g', 'b']):
+               plt.axvline(x, color=c, linewidth=2)
+
+    .. image:: thin-strip-displacement-y.png
+       :width: 600
+       :align: center
+
+    Parameters
+    ----------
+    x : array
+    y : array
+       Atomic positions in unstrained slab, centered on origin x=0,y=0
+    strain : float
+       Far field strain to apply
+    a : float
+       x coordinate for beginning of strain ramp
+    b : float
+       x coordinate for end of strain ramp
+    """
+
+    u_y = np.zeros_like(y)
+    height = y.max() - y.min()     # measure height of slab
+    shift = strain * height / 2.0  # far behind crack, shift = strain*height/2
+
+    u_y[x < a] = np.sign(y[x < a]) * shift  # region shift for x < a
+    u_y[x > b] = strain * y[x > b]          # constant strain for x > b
+    
+    middle = (x >= a) & (x <= b)            # interpolate for a <= x <= b
+    f = (x[middle] - a) / (b - a)
+    u_y[middle] = (f * strain * y[middle] +
+                   (1 - f) * shift * np.sign(y[middle]))
+    
+    return u_y
+
+
+def print_crack_system(crack_direction, cleavage_plane, crack_front):
+    """
+    Pretty printing of crack crystallographic coordinate system 
+
+    Specified by Miller indices for crack_direction (x),
+    cleavage_plane (y) and crack_front (z), each of which should be
+    a sequence of three floats
+    """
+    crack_direction = MillerDirection(crack_direction)
+    cleavage_plane = MillerPlane(cleavage_plane)
+    crack_front = MillerDirection(crack_front)
+
+    print('Crack system              %s%s' % (cleavage_plane, crack_front))
+    print('Crack direction (x-axis)  %s' % crack_direction)
+    print('Cleavage plane  (y-axis)  %s' % cleavage_plane)
+    print('Crack front     (z-axis)  %s\n' % crack_front)
+
+
+
+class ConstantStrainRate(object):
+    """
+    Constraint which increments epsilon_yy at a constant strain rate
+
+    Rescaling is applied only to atoms where `mask` is True (default is all atoms)
+    """
+
+    def __init__(self, orig_height, delta_strain, mask=None):
+        self.orig_height = orig_height
+        self.delta_strain = delta_strain
+        if mask is None:
+            mask = Ellipsis
+        self.mask = mask
+
+    def adjust_forces(self, positions, forces):
+        pass
+
+    def adjust_positions(self, oldpos, newpos):
+        current_height = newpos[:, 1].max() - newpos[:, 1].min()
+        current_strain = current_height / self.orig_height - 1.0
+        new_strain = current_strain + self.delta_strain
+        alpha = (1.0 + new_strain) / (1.0 + current_strain)
+        newpos[self.mask, 1] = newpos[self.mask, 1]*alpha
+
+
+
     
