@@ -31,6 +31,12 @@ from matscipy.surface import MillerDirection, MillerPlane
 
 ###
 
+# Constants
+PLANE_STRAIN = 'plane strain'
+PLANE_STRESS = 'plane stress'
+
+###
+
 class RectilinearAnisotropicCrack:
     """
     Near field solution for a crack in a rectilinear anisotropic elastic medium.
@@ -166,9 +172,6 @@ class CubicCrystalCrack:
     Crack in a cubic crystal.
     """
 
-    PLANE_STRESS = 0
-    PLANE_STRAIN = 1
-
     def __init__(self, C11, C12, C44, crack_surface, crack_front,
                  mode = PLANE_STRAIN):
         """
@@ -201,10 +204,10 @@ class CubicCrystalCrack:
 
         S6 = self.E.compliance()
 
-        if mode == self.PLANE_STRESS:
+        if mode == PLANE_STRESS:
             self.crack.set_plane_stress(S6[0, 0], S6[1, 1], S6[0, 1],
                                         S6[0, 5], S6[1, 5], S6[5, 5])
-        elif mode == self.PLANE_STRAIN:
+        elif mode == PLANE_STRAIN:
             self.crack.set_plane_strain(S6[0, 0], S6[1, 1], S6[2, 2],
                                         S6[0, 1], S6[0, 2], S6[1, 2],
                                         S6[0, 5], S6[1, 5], S6[2, 5],
@@ -411,9 +414,9 @@ class CubicCrystalCrack:
 
 
 def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
-                                           nu=0.5, stress_state='plane strain'):
+                                           nu=0.5, stress_state=PLANE_STRAIN):
     """
-    Compute Irwin singular crack tip stress field
+    Compute Irwin singular crack tip stress field for mode I fracture.
 
     Parameters
     ----------
@@ -439,10 +442,12 @@ def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
     """
 
     if r.shape != t.shape:
-        raise ValueError('shapes of radial and angular arrays "r" and "t" must match')
+        raise ValueError('Shapes of radial and angular arrays "r" and "t" '
+                         'must match.')
     
-    if stress_state not in ['plane strain', 'plane stress']:
-        raise ValueError('stress_state should be either "plane strain" or "plane stress".')
+    if stress_state not in [PLANE_STRAIN, PLANE_STRESS]:
+        raise ValueError('"stress_state" should be either "{0}" or "{1}".'
+            .format(PLANE_STRAIN, PLANE_STRESS))
 
     sigma = np.zeros(r.shape + (3, 3))
     radial = K*1./np.sqrt(2*pi*r)
@@ -452,10 +457,60 @@ def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
     sigma[...,0,1] = radial*np.sin(t/2.0)*np.cos(t/2.0)*np.cos(3.0*t/2.0)         # xy
     sigma[...,1,0] = sigma[...,0,1]                                               # yx=xy
 
-    if not xy_only and stress_state == 'plane strain':
+    if not xy_only and stress_state == PLANE_STRAIN:
         sigma[...,2,2] = nu*(sigma[...,0,0] + sigma[...,1,1])              # zz
 
     return sigma
+    
+    
+def isotropic_modeI_crack_tip_displacement_field(K, G, nu, r, t,
+                                                 stress_state=PLANE_STRAIN):
+    """
+    Compute Irwin singular crack tip displacement field for mode I fracture.
+
+    Parameters
+    ----------
+    K : float
+        Mode I stress intensity factor. Units should match units of `G` and `r`.
+    G : float
+        Shear modulus. Units should match units of `K` and `r`.
+    nu : float
+        Poisson ratio.
+    r : array_like
+        Radial distances from crack tip. Can be a multidimensional
+        array to evaluate stress field on a grid.
+    t : array_like
+        Angles from horizontal line y=0 ahead of crack tip,
+        measured anticlockwise. Should have same shape as `r`.
+    stress_state : str
+        One of"plane stress" or "plane strain". Used if xyz_only=False to
+        determine zz stresses.
+       
+    Returns
+    -------
+    u : array
+    v : array
+        Displacements.
+    """
+
+    if r.shape != t.shape:
+        raise ValueError('Shapes of radial and angular arrays "r" and "t" '
+                         'must match.')
+    
+    if stress_state == PLANE_STRAIN:
+        kappa = 3-4*nu
+    elif stress_state == PLANE_STRESS:
+        kappa = (3.-nu)/(1.+nu)
+    else:
+        raise ValueError('"stress_state" should be either "{0}" or "{1}".'
+            .format(PLANE_STRAIN, PLANE_STRESS))
+
+    radial = K*np.sqrt(r/2.)/(2.*G)
+    
+    u = radial*np.cos(t/2)*(kappa-1+2*np.sin(t/2)**2)
+    v = radial*np.sin(t/2)*(kappa+1-2*np.cos(t/2)**2)
+
+    return u, v
 
 
 class IsotropicStressField(object):
