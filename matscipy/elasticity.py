@@ -2,7 +2,8 @@
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright (2014) James Kermode, King's College London
+#                  Lars Pastewka, Karlsruhe Institute of Technology
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -239,106 +240,27 @@ class CubicElasticModuli:
         return inv(self.C)
 
 ###
-    
-def measure_orthorhombic_elastic_moduli(a, delta=0.001, optimizer=None, 
-                                        logfile=None, **kwargs):
-    """
-    Measure elastic constant for an orthorhombic unit cell
-
-    Parameters:
-    -----------
-    a           ase.Atoms object
-    optimizer   Optimizer to use for atomic position. Does not optimize atomic
-                position if set to None.
-    delta         Strain increment for analytical derivatives of stresses.
-    """
-
-    if optimizer is not None:
-        optimizer(a, logfile=logfile).run(**kwargs)
-
-    r0 = a.positions.copy()
-
-    cell = a.cell
-    s0 = a.get_stress()
-
-    # C11
-    C11 = [ ]
-    for i in range(3):
-        a.set_cell(cell, scale_atoms=True)
-        a.set_positions(r0)
-        
-        D = np.eye(3)
-        D[i, i] = 1.0+delta
-        a.set_cell(np.dot(D, cell), scale_atoms=True)
-        if optimizer is not None:
-            optimizer(a, logfile=logfile).run(**kwargs)
-        s = a.get_stress()
-            
-        C11 += [ (s[i]-s0[i])/delta ]
-
-    volfac = 1.0/((1-delta**2)**(1./3))
-
-    # C'
-    Cp = [ ] 
-    for i in range(3):
-        a.set_cell(cell, scale_atoms=True)
-        a.set_positions(r0)
-        
-        D = volfac*np.eye(3)
-        j = (i+1)%3
-        k = (i+2)%3
-        D[j, j] *= 1+delta
-        D[k, k] *= 1-delta
-        a.set_cell(np.dot(D, cell), scale_atoms=True)
-        if optimizer is not None:
-            optimizer(a, logfile=logfile).run(**kwargs)
-        s = a.get_stress()
-
-        Cp += [ ((s[j]-s0[j])-(s[k]-s0[k]))/(4*delta) ]
-
-    # C44
-    C44 = [ ]
-    for i in range(3):
-        a.set_cell(cell, scale_atoms=True)
-        a.set_positions(r0)
-
-        D = volfac*np.eye(3)
-        j = (i+1)%3
-        k = (i+2)%3
-        D[j, k] = volfac*delta
-        D[k, j] = volfac*delta
-        a.set_cell(np.dot(D, cell), scale_atoms=True)
-        if optimizer is not None:
-            optimizer(a, logfile=logfile).run(**kwargs)
-        s = a.get_stress()
-
-        C44 += [ (s[3+i]-s0[3+i])/(2*delta) ]
-
-    a.set_cell(cell, scale_atoms=True)
-    a.set_positions(r0)
-
-    C11 = np.array(C11)
-    Cp = np.array(Cp)
-    C44 = np.array(C44)
-
-    # Compute C12 from C11 and C'
-    C12 = np.array([C11[1]+C11[2], C11[0]+C11[2], C11[0]+C11[1]])/2-2*Cp
-
-    return C11, C12, C44
-
-###
 
 def measure_triclinic_elastic_moduli(a, delta=0.001, optimizer=None, 
                                      logfile=None, **kwargs):
     """
-    Measure elastic constant for an orthorhombic unit cell
+    Brute-force measurement of elastic constants for a triclinic (general)
+    unit cell.
 
-    Parameters:
-    -----------
-    a           ase.Atoms object
-    optimizer   Optimizer to use for atomic position. Does not optimize atomic
-                position if set to None.
-    delta         Strain increment for analytical derivatives of stresses.
+    Parameters
+    ----------
+    a : ase.Atoms
+        Atomic configuration.
+    optimizer : ase.optimizer.*
+        Optimizer to use for atomic position. Does not optimize atomic
+        position if set to None.
+    delta : float
+        Strain increment for analytical derivatives of stresses.
+
+    Returns
+    -------
+    C : array_like
+        6x6 matrix of the elastic constants in Voigt notation.
     """
 
     if optimizer is not None:
