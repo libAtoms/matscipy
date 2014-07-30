@@ -123,17 +123,33 @@ def full_3x3x3x3_to_Voigt_6x6(C):
     return Voigt
 
 
-def Voigt_6x6_to_orthorhombic(C):
+def Voigt_6x6_to_cubic(C):
     """
-    Convert the Voigt 6x6 representation into the orthorhombic elastic constants
+    Convert the Voigt 6x6 representation into the cubic elastic constants
     C11, C12 and C44.
     """
 
-    C11 = np.array([C[0,0], C[1,1], C[2,2]])
-    C12 = np.array([C[1,2], C[0,2], C[0,1]])
-    C44 = np.array([C[3,3], C[4,4], C[5,5]])
+    tol = 1e-6
 
-    return C11, C12, C44
+    C_check = np.zeros_like(C)
+    C_check[np.diag_indices_from(C_check)] = C[np.diag_indices_from(C)]
+    C_check[0:3,0:3] = C[0:3,0:3]
+    if np.any(np.abs(C-C_check) > tol):
+        raise ValueError('"C" does not have cubic symmetry.')
+
+    C11s = np.array([C[0,0], C[1,1], C[2,2]])
+    C12s = np.array([C[1,2], C[0,2], C[0,1]])
+    C44s = np.array([C[3,3], C[4,4], C[5,5]])
+
+    C11 = np.mean(C11s)
+    C12 = np.mean(C12s)
+    C44 = np.mean(C44s)
+
+    if np.any(np.abs(C11-C11s) > tol) or np.any(np.abs(C12-C12s) > tol) or \
+            np.any(np.abs(C44-C44s) > tol):
+        raise ValueError('"C" does not have cubic symmetry.')
+
+    return np.array([C11, C12, C44])
 
 ###
 
