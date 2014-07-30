@@ -173,7 +173,7 @@ class CubicCrystalCrack:
     """
 
     def __init__(self, C11, C12, C44, crack_surface, crack_front,
-                 mode = PLANE_STRAIN):
+                 stress_state = PLANE_STRAIN):
         """
         Initialize a crack in a cubic crystal with elastic constants C11, C12
         and C44. The crack surface is given by crack_surface, the cracks runs
@@ -204,10 +204,10 @@ class CubicCrystalCrack:
 
         S6 = self.E.compliance()
 
-        if mode == PLANE_STRESS:
+        if stress_state == PLANE_STRESS:
             self.crack.set_plane_stress(S6[0, 0], S6[1, 1], S6[0, 1],
                                         S6[0, 5], S6[1, 5], S6[5, 5])
-        elif mode == PLANE_STRAIN:
+        elif stress_state == PLANE_STRAIN:
             self.crack.set_plane_strain(S6[0, 0], S6[1, 1], S6[2, 2],
                                         S6[0, 1], S6[0, 2], S6[1, 2],
                                         S6[0, 5], S6[1, 5], S6[2, 5],
