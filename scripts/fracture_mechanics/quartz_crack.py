@@ -2,47 +2,13 @@ import os
 
 import numpy as np
 
+from ase.atoms import Atoms
 from ase.io import read, write
-from ase import Atoms
 from ase.calculators.neighborlist import NeighborList
 
 import matscipy.fracture_mechanics.crack as crack
 
-from quippy.structures import rotation_matrix
-from quippy.surface import orthorhombic_slab, alpha_quartz, quartz_params
-
-def hydrolyse(atoms):
-    n = NeighborList([1.0]*len(atoms),
-                     self_interaction=False,
-                     bothways=True)
-    n.update(atoms)
-    
-    m1 = Atoms('H', [[0, 0, 0]])
-    m2 = Atoms('OH', [[0, 0, 0], [0.8, 0.6, 0.0]])
-
-    for i in range(len(atoms)):
-        indices, offsets = n.get_neighbors(i)
-        nn = len(indices)
-
-        if atoms.numbers[i] == 14 and nn == 3:
-            print 'Saturating atom', i, 'with -OH'
-            p = atoms.positions[i]
-            oh = m2.copy()
-            oh.positions[1,1] *= np.sign(p[1])
-            oh.positions[:,1] += 1.5*np.sign(p[1])
-            oh.translate(p)            
-            atoms += oh
-
-        if atoms.numbers[i] == 8 and nn == 1:
-            print 'Saturating atom', i, 'with -H'
-            p = atoms.positions[i]
-            h = m1.copy()
-            h.positions[:,1] += 1.1*np.sign(p[1])
-            h.translate(p)
-            atoms += h
-
-
-initial_height = 25.0
+slab_height = 25.0
 final_height = 20.0
 vacuum = 10.0
 
@@ -50,10 +16,30 @@ crack_surface = [1, 0, 1]
 crack_direction = [0,1,0]
 
 if not os.path.exists('slab.xyz'):
-    aq = alpha_quartz(**quartz_params['CASTEP_GGA'])
+    from quippy.structures import rotation_matrix
+    from quippy.surface import orthorhombic_slab, alpha_quartz, quartz_params
+    
+    #aq = alpha_quartz(**quartz_params['CASTEP_GGA'])
+    aq = Atoms(symbols='Si3O6',
+            pbc=[ True,  True,  True],
+            cell=np.array(
+        [[ 2.51418  , -4.3546875,  0.       ],
+         [ 2.51418  ,  4.3546875,  0.       ],
+         [ 0.       ,  0.       ,  5.51193  ]]),
+            positions=np.array(
+      [[ 1.21002455, -2.095824  ,  3.67462   ],
+       [ 1.21002455,  2.095824  ,  1.83731   ],
+       [-2.4200491 ,  0.        , -0.        ],
+       [ 1.66715276, -0.73977431,  4.42391176],
+       [-0.19291303,  1.8136838 ,  8.09853176],
+       [-1.47423973, -1.07390948,  6.26122176],
+       [ 1.66715276,  0.73977431, -4.42391176],
+       [-1.47423973,  1.07390948, -0.74929176],
+       [-0.19291303, -1.8136838 , -2.58660176]])),
+
     slab = orthorhombic_slab(aq,
                              rot=rotation_matrix(aq, crack_surface, crack_direction),
-                             periodicity=[0.0, height, 0.0],
+                             periodicity=[0.0, slab_height, 0.0],
                              vacuum=[0.0, vacuum, 0.0], verbose=True)
     write('slab.xyz', slab)
 
@@ -83,41 +69,50 @@ for i in range(len(b)):
     if not mask[i]:
         continue
     indices, offsets = nl.get_neighbors(i)
-    if b.numbers[i] == 8 and len(indices) == 1:
-        mask[i] = True
-        
+    if b.numbers[i] == 8 and mask[indices].sum() == 0:
+        mask[i] = False
+    if b.numbers[i] == 14:
+        # complete tetrahedra
+        for (j, o) in zip(indices, offsets):        
+            if b.numbers[j] == 8:
+                mask[j] = True
+
+for i in range(len(b)):
+    if not mask[i]:
+        continue    
+    indices, offsets = nl.get_neighbors(i)    
     for (j, o) in zip(indices, offsets):
-        if b.numbers[i] == 14 and b.numbers[j] == 8 and not mask[j]:
-            mask[j] = True
         if mask[j]:
             continue
-        # i is IN, j is OUT, we need to terminate cut bond ij
-        r_ij = (b.positions[j] + np.dot(o, b.cell) - b.positions[i])
-        u_ij = r_ij/np.sqrt((r_ij**2).sum())
 
+        # i is IN, j is OUT, we need to terminate cut bond ij
         z1 = b.numbers[i]
         z2 = b.numbers[j]
-        if z1 == 8:
-            t = Atoms('H',  [[0, 0, 0]])
-        elif z1 == 14:
-            t = Atoms('OH', [[0, 0, 0], u_ij*eqm_bond_lengths[(1, 8)]])
-
-        z3 = t.numbers[0]
-        d = r_ij/(eqm_bond_lengths[min(z1,z2), max(z1,z2)]*
-                  eqm_bond_lengths[min(z1,z3), max(z1,z3)])
+        print 'terminating %d-%d bond (%d, %d)' % (z1, z2, i, j)
+        if z1 != 8:
+            raise ValueError('all IN term atoms must be O')        
         
+        r_ij = (b.positions[j] + np.dot(o, b.cell) - b.positions[i])
+        
+        t = Atoms('H')
+        d = r_ij/(eqm_bond_lengths[min(z1,z2), max(z1,z2)]*
+                  eqm_bond_lengths[min(z1, 1), max(z1, 1)])
         t.translate(b.positions[i] + d)
         term += t
-        
+
 cryst = b[mask] + term
-width = cryst.positions[:,0].max() - cryst.positions[:,0].min()
-height = cryst.positions[:,1].max() - cryst.positions[:,1].min()
-cell = np.zeros((3,3))
-cell[0,0] = width + vacuum
-cell[1,1] = height + vacuum
-cell[2,2] = cryst.cell[2,2]
-cryst.set_cell(cell)
-#cryst.set_scaled_positions(cryst.get_scaled_positions())
+
+n = NeighborList([1.0]*len(cryst),
+                 self_interaction=False,
+                 bothways=True)
+n.update(cryst)
+
+cryst.set_scaled_positions(cryst.get_scaled_positions())
+cryst.positions[:,0] += cryst.cell[0,0]/2. - cryst.positions[:,0].mean()
+cryst.positions[:,1] += cryst.cell[1,1]/2. - cryst.positions[:,1].mean()
+cryst.set_scaled_positions(cryst.get_scaled_positions())
+cryst.center(vacuum, axis=0)
+cryst.center(vacuum, axis=1)
 
 from ase.units import GPa, J, m
 
@@ -129,7 +124,7 @@ crack = crack.CubicCrystalCrack(C11, C12, C44,
                                 crack_surface,
                                 crack_direction)
 
-surface_energy = 0.161/(J/m**2)*10
+surface_energy = 0.161*(J/m**2)*10
 
 k1g = crack.k1g(surface_energy)
 print 'k1g', k1g
@@ -141,21 +136,22 @@ tip_y = cryst.cell.diagonal()[1]/2
 k1 = 1.0
 
 # Apply initial strain field.
-a = cryst.copy()
+c = cryst.copy()
 ux, uy = crack.displacements(cryst.positions[:,0],
                              cryst.positions[:,1],
                              tip_x, tip_y, k1*k1g)
-a.positions[:,0] += ux
-a.positions[:,1] += uy
+c.positions[:,0] += ux
+c.positions[:,1] += uy
 
 # Center notched configuration in simulation cell and ensure enough vacuum.
 oldr = a[0].position.copy()
-a.center(vacuum=vacuum, axis=0)
-a.center(vacuum=vacuum, axis=1)
-tip_x += a[0].position[0] - oldr[0]
-tip_y += a[0].position[1] - oldr[1]
+c.center(vacuum=vacuum, axis=0)
+c.center(vacuum=vacuum, axis=1)
+tip_x += c[0].position[0] - oldr[0]
+tip_y += c[0].position[1] - oldr[1]
 
-#cryst.set_cell(a.cell)
-#cryst.translate(a[0].position - oldr)
+cryst.set_cell(c.cell)
+cryst.translate(c[0].position - oldr)
 
-
+write('cryst.xyz', cryst)
+write('crack.xyz', c)
