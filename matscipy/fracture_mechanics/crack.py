@@ -490,7 +490,7 @@ def isotropic_modeI_crack_tip_displacement_field(K, G, nu, r, t,
     -------
     u : array
     v : array
-        Displacements.
+        Displacements. Same shape as `r` and `t`.
     """
 
     if r.shape != t.shape:
