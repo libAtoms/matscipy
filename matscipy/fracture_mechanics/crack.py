@@ -107,8 +107,8 @@ class RectilinearAnisotropicCrack:
 
         h1 = k * np.sqrt(2*r)
 
-        h2 = ( np.cos(theta) + self.mu2*np.sin(theta) )**0.5
-        h3 = ( np.cos(theta) + self.mu1*np.sin(theta) )**0.5
+        h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
+        h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
 
         u = h1 * ( self.h1 * ( self.h2 * h2 - self.h3 * h3 ) ).real
         v = h1 * ( self.h1 * ( self.h4 * h2 - self.h5 * h3 ) ).real
