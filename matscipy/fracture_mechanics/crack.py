@@ -658,7 +658,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
     Perform a least squares fit of near-tip stress field to Irwin solution
 
     Stresses on the atoms are fit to the Irwin K-field singular crack tip
-    solution, allowingthe crack position, stress intensity factor and
+    solution, allowing the crack position, stress intensity factor and
     far-field stress components to vary during the fit.
 
     Parameters
@@ -673,7 +673,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
           - ``strain`` --- current applied strain
           - ``CrackPos`` --- initial guess for crack tip position
 
-       The initial guesses for the stress intensity factor ``K`` are
+       The initial guesses for the stress intensity factor ``K`` and
        far-field stress ``sigma0`` are computed from
        ``YoungsModulus``, ``PoissonRatio_yx``, ``G`` and ``strain``,
        assuming plane strain in thin strip boundary conditions.
@@ -793,7 +793,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
     sigma[:,0,2] = 0.0
     sigma[:,2,0] = 0.0
     sigma[:,1,2] = 0.0
-    sigma[:,2.1] = 0.0
+    sigma[:,2,1] = 0.0
 
     mask = Ellipsis # all atoms
     if r_range is not None:
