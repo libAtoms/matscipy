@@ -20,7 +20,7 @@
 
 import numpy as np
 
-from ase.lattice.cubic import Diamond
+from ase.lattice.cubic import Diamond, FaceCenteredCubic, SimpleCubic
 
 ###
 
@@ -71,8 +71,8 @@ def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
     return a
 
 
-def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
-                    skin_x=1.0, skin_y=1.0, vac=5.0):
+def diamond(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
+            skin_x=1.0, skin_y=1.0, vac=5.0):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
     directions = [ third_dir, crack_surface, crack_front ]
@@ -105,6 +105,8 @@ def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
     a.set_pbc([False, False, True])
 
     return a
+
+diamond_110_001 = diamond
 
 
 def diamond_111_110(el, a0, n, crack_surface=[1,1,1], crack_front=[1,-1,0],
@@ -141,3 +143,54 @@ def diamond_111_110(el, a0, n, crack_surface=[1,1,1], crack_front=[1,-1,0],
     a.set_pbc([False, False, True])
 
     return a
+
+
+def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
+            skin_x=1.0, skin_y=1.0, vac=5.0, lattice=None):
+    nx, ny, nz = n
+    third_dir = np.cross(crack_surface, crack_front)
+    directions = [ third_dir, crack_surface, crack_front ]
+    if np.linalg.det(directions) < 0:
+        third_dir = -third_dir
+    directions = [ third_dir, crack_surface, crack_front ]
+    a = lattice(el, latticeconstant = a0, size = [ nx,ny,nz ], 
+                         directions = directions)
+    sx, sy, sz = a.get_cell().diagonal()
+
+    ax = sx/nx
+    ay = sy/ny
+    az = sz/nz
+
+    a.translate([ax/100,ay/100,az/100])
+    a.set_scaled_positions(a.get_scaled_positions())
+    a.center()
+
+    lx = skin_x*ax
+    ly = skin_y*ay
+    r = a.get_positions()
+    g = np.where(
+        np.logical_or(
+            np.logical_or(
+                np.logical_or(
+                    r[:, 0] < lx, r[:, 0] > sx-lx),
+                r[:, 1] < ly),
+            r[:, 1] > sy-ly),
+        np.zeros(len(a), dtype=int),
+        np.ones(len(a), dtype=int))
+    a.set_array('groups', g)
+
+    a.set_cell([sx+2*vac, sy+2*vac, sz])
+    a.translate([vac, vac, 0.0])
+    a.set_pbc([False, False, True])
+
+    return a
+
+
+def fcc(*args, **kwargs):
+    kwargs['lattice'] = FaceCenteredCubic
+    return cluster(*args, **kwargs)
+
+
+def sc(*args, **kwargs):
+    kwargs['lattice'] = SimpleCubic
+    return cluster(*args, **kwargs)
