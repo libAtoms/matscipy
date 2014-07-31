@@ -32,7 +32,7 @@ from ase.units import GPa
 
 from atomistica import Kumagai, TabulatedAlloyEAM
 
-from matscipy.elasticity import CubicElasticModuli
+from matscipy.elasticity import CubicElasticModuli, Voigt_6x6_to_cubic
 from matscipy.elasticity import measure_triclinic_elastic_moduli
 
 ###
@@ -66,9 +66,7 @@ class TestCubicElasticModuli(unittest.TestCase):
             C6 = measure_triclinic_elastic_moduli(a, delta=self.delta,
 #                                                  optimizer=FIRE,
                                                   fmax=self.fmax)
-            C11 = np.mean(C6.diagonal()[0:3])/GPa
-            C12 = np.mean([C6[0,1],C6[1,2],C6[0,2]])/GPa
-            C44 = np.mean(C6.diagonal()[3:6])/GPa
+            C11, C12, C44 = Voigt_6x6_to_cubic(C6)/GPa
 
             el = CubicElasticModuli(C11, C12, C44)
 
