@@ -9,7 +9,7 @@ from ase.calculators.neighborlist import NeighborList
 import matscipy.fracture_mechanics.crack as crack
 
 slab_height = 25.0
-final_height = 20.0
+final_height = 18.0
 vacuum = 10.0
 
 crack_surface = [1, 0, 1]
@@ -20,13 +20,15 @@ if not os.path.exists('slab.xyz'):
     from quippy.surface import orthorhombic_slab, alpha_quartz, quartz_params
     
     #aq = alpha_quartz(**quartz_params['CASTEP_GGA'])
+    # alpha-quartz unit cell with DFT (GGA, USPP) lattice constants:
+    #  a=5.02836, c=5.51193, u=0.48128, x=0.41649, y=0.24661, z=0.13594
     aq = Atoms(symbols='Si3O6',
-            pbc=[ True,  True,  True],
-            cell=np.array(
+               pbc=True,
+               cell=np.array(
         [[ 2.51418  , -4.3546875,  0.       ],
          [ 2.51418  ,  4.3546875,  0.       ],
          [ 0.       ,  0.       ,  5.51193  ]]),
-            positions=np.array(
+               positions=np.array(
       [[ 1.21002455, -2.095824  ,  3.67462   ],
        [ 1.21002455,  2.095824  ,  1.83731   ],
        [-2.4200491 ,  0.        , -0.        ],
