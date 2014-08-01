@@ -71,7 +71,7 @@ def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
     return a
 
 
-def diamond(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
+def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
             skin_x=1.0, skin_y=1.0, vac=5.0):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
@@ -105,8 +105,6 @@ def diamond(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
     a.set_pbc([False, False, True])
 
     return a
-
-diamond_110_001 = diamond
 
 
 def diamond_111_110(el, a0, n, crack_surface=[1,1,1], crack_front=[1,-1,0],
@@ -184,6 +182,11 @@ def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
     a.set_pbc([False, False, True])
 
     return a
+
+
+def diamond(*args, **kwargs):
+    kwargs['lattice'] = Diamond
+    return cluster(*args, **kwargs)
 
 
 def fcc(*args, **kwargs):
