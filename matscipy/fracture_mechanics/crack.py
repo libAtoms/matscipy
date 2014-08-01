@@ -159,7 +159,7 @@ class RectilinearAnisotropicCrack:
 
         return math.sqrt(-4*surface_energy / \
                          (self.a22*
-                          ((self.mu1+self.mu2)/(self.mu1*self.mu2)).imag))/math.pi
+                          ((self.mu1+self.mu2)/(self.mu1*self.mu2)).imag))
 
 
     def k1gsqG(self):
