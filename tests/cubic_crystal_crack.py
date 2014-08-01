@@ -78,8 +78,8 @@ class TestCubicCrystalCrack(unittest.TestCase):
         ref_u, ref_v = isotropic_modeI_crack_tip_displacement_field(k, C44, nu,
                                                                     r, theta)
 
-        self.assertTrue(np.all(np.abs(u-ref_u) < 1e-8))
-        self.assertTrue(np.all(np.abs(v-ref_v) < 1e-8))
+        self.assertTrue(np.all(np.abs(u-ref_u) < 1e-6))
+        self.assertTrue(np.all(np.abs(v-ref_v) < 1e-6))
 
 
     def test_anisotropic_near_field_solution(self):
