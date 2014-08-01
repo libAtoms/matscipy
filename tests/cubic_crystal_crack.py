@@ -59,7 +59,7 @@ class TestCubicCrystalCrack(unittest.TestCase):
         theta = np.linspace(0.0, math.pi, 101)
         r = 1.0*np.ones_like(theta)
         
-        k = 1.0
+        k = crack.crack.k1g(1.0)
 
         u, v = crack.crack.displacements(r, theta, k)
         ref_u, ref_v = isotropic_modeI_crack_tip_displacement_field(k, C44, nu,

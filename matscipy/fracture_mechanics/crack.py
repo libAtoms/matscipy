@@ -111,7 +111,7 @@ class RectilinearAnisotropicCrack:
         Displacement field in mode I fracture.
         """
 
-        h1 = k * np.sqrt(2*r)
+        h1 = k * np.sqrt(2.0*r/math.pi)
 
         h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
         h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
@@ -139,7 +139,7 @@ class RectilinearAnisotropicCrack:
         # u/v = (self.h2*h2 - self.h3*h3)/(self.h4*h2-self.h5*h3)
         theta = brentq(self._f, -pi, pi, args=(u/v))
 
-        h1 = k * sqrt(2*r)
+        h1 = k * sqrt(2.0*r/math.pi)
 
         h2 = ( cos(theta) + self.mu2*sin(theta) )**0.5
         h3 = ( cos(theta) + self.mu1*sin(theta) )**0.5
@@ -158,8 +158,8 @@ class RectilinearAnisotropicCrack:
         """
 
         return math.sqrt(-4*surface_energy / \
-                         (math.pi*self.a22* \
-                          ((self.mu1+self.mu2)/(self.mu1*self.mu2)).imag))
+                         (self.a22*
+                          ((self.mu1+self.mu2)/(self.mu1*self.mu2)).imag))/math.pi
 
 
     def k1gsqG(self):
@@ -179,7 +179,6 @@ class CubicCrystalCrack:
         and C44. The crack surface is given by crack_surface, the cracks runs
         in the plane given by crack_front.
         """
-
         self.E = CubicElasticModuli(C11, C12, C44)
 
         # x (third_dir) - direction in which the crack is running
@@ -450,7 +449,7 @@ def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
             .format(PLANE_STRAIN, PLANE_STRESS))
 
     sigma = np.zeros(r.shape + (3, 3))
-    radial = K*1./np.sqrt(2*pi*r)
+    radial = K/np.sqrt(2*math.pi*r)
 
     sigma[...,0,0] = radial*np.cos(t/2.0)*(1.0 - np.sin(t/2.0)*np.sin(3.0*t/2.0)) # xx
     sigma[...,1,1] = radial*np.cos(t/2.0)*(1.0 + np.sin(t/2.0)*np.sin(3.0*t/2.0)) # yy
@@ -505,7 +504,7 @@ def isotropic_modeI_crack_tip_displacement_field(K, G, nu, r, t,
         raise ValueError('"stress_state" should be either "{0}" or "{1}".'
             .format(PLANE_STRAIN, PLANE_STRESS))
 
-    radial = K*np.sqrt(r/2.)/(2.*G)
+    radial = K*np.sqrt(r/(2.*math.pi))/(2.*G)
     
     u = radial*np.cos(t/2)*(kappa-1+2*np.sin(t/2)**2)
     v = radial*np.sin(t/2)*(kappa+1-2*np.cos(t/2)**2)
@@ -647,7 +646,7 @@ def get_stress_intensity_factor(atoms):
     nu = atoms.info['PoissonRatio_yx']
 
     Ep = E/(1-nu**2)
-    K = sqrt(G/Ep)
+    K = sqrt(G*Ep)
     atoms.info['K'] = K
     return K
 
