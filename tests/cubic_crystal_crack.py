@@ -77,7 +77,7 @@ class TestCubicCrystalCrack(unittest.TestCase):
         u, v = crack.crack.displacements(r, theta, k)
         ref_u, ref_v = isotropic_modeI_crack_tip_displacement_field(k, C44, nu,
                                                                     r, theta)
-                                                                    
+
         self.assertTrue(np.all(np.abs(u-ref_u) < 1e-8))
         self.assertTrue(np.all(np.abs(v-ref_v) < 1e-8))
 
@@ -90,69 +90,54 @@ class TestCubicCrystalCrack(unittest.TestCase):
 
         if not atomistica:
             print 'Atomistica not available. Skipping test.'
-        
-        #calc = atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=True)
-        #a = FaceCenteredCubic('He', size=[1,1,1],
-        #                      latticeconstant=math.sqrt(2.0))
 
-        # This neighbor shell is at sqrt(3)=1.732
-        calc = atomistica.DoubleHarmonic(k1=1.0, r1=1.0, k2=1.0,
-                                         r2=math.sqrt(2), cutoff=1.6)
-        a = SimpleCubic('He', size=[1,1,1], latticeconstant=1.0)
-        a.set_calculator(calc)
+        for nx in [ 4, 8, 16, 32, 64 ]:
+            for calc, a, C11, C12, C44, surface_energy, bulk_coordination in [
+                ( atomistica.DoubleHarmonic(k1=1.0, r1=1.0, k2=1.0,
+                                            r2=math.sqrt(2), cutoff=1.6),
+                  clusters.sc('He', 1.0, [nx,nx,1], [1,0,0], [0,1,0]),
+                  3, 1, 1, 0.4, 6 ),
+                ( atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=True),
+                  clusters.fcc('He', math.sqrt(2.0), [nx,nx,1], [1,0,0],
+                               [0,1,0]),
+                  math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.4, 12)
+                ]:
+                crack = CubicCrystalCrack(C11, C12, C44, [1,0,0], [0,1,0])
 
-        e1 = a.get_potential_energy()
+                a.center(vacuum=20.0, axis=0)
+                a.center(vacuum=20.0, axis=1)
+                a.set_calculator(calc)
 
-        C11, C12, C44 = Voigt_6x6_to_cubic(
-            measure_triclinic_elastic_moduli(a, delta=self.delta))
+                sx, sy, sz = a.cell.diagonal()
+                tip_x = sx/2
+                tip_y = sy/2
 
-        print C11, C12, C44
+                k1g = crack.k1g(surface_energy)
+                r0 = a.positions.copy()
 
-        sx, sy, sz = a.cell.diagonal()
-        a.set_cell([sx, sy, 2*sz])
-        e2 = a.get_potential_energy()
+                u, v = crack.displacements(a.positions[:,0], a.positions[:,1],
+                                           tip_x, tip_y, k1g)
+                a.positions[:,0] += u
+                a.positions[:,1] += v
 
-        #surface_energy = (e2-e1)/(2*sx*sy)
-        surface_energy = 0.1
+                g = a.get_array('groups')
+                a.set_constraint(FixAtoms(mask=g==0))
 
-        crack = CubicCrystalCrack(C11, C12, C44, [1,0,0], [0,1,0])
+                ase.io.write('initial_{}.xyz'.format(nx), a, format='extxyz')
 
-        for nx in [ 4, 8, 16, 32, 64, 128 ]:
-            #a = clusters.fcc('He', math.sqrt(2.0), [nx,nx,1], [1,0,0], [0,1,0])
-            a = clusters.sc('He', 1.0, [nx,nx,1], [1,0,0], [0,1,0])
-            a.center(vacuum=20.0, axis=0)
-            a.center(vacuum=20.0, axis=1)
-            a.set_calculator(calc)
+                x1, y1, z1 = a.positions.copy().T
+                FIRE(a, logfile=None).run(fmax=1e-3)
+                x2, y2, z2 = a.positions.T
 
-            sx, sy, sz = a.cell.diagonal()
-            tip_x = sx/2
-            tip_y = sy/2
+                # Get coordination numbers and find properly coordinated atoms
+                coord = calc.nl.get_coordination_numbers(calc.particles, 1.1)
+                mask=coord == bulk_coordination
 
-            k1g = crack.k1g(surface_energy)
-            r0 = a.positions.copy()
+                residual = np.sqrt(((x2-x1)/u)**2 + ((y2-y1)/v)**2)
+                print np.max(residual[mask])
 
-            u, v = crack.displacements(a.positions[:,0], a.positions[:,1],
-                                       tip_x, tip_y, k1g)
-            a.positions[:,0] += u
-            a.positions[:,1] += v
-
-            g = a.get_array('groups')
-            a.set_constraint(FixAtoms(mask=g==0))
-
-            ase.io.write('initial_{}.xyz'.format(nx), a, format='extxyz')
-
-            e1 = a.get_potential_energy()
-            r1 = a.positions.copy()
-            FIRE(a, logfile=None).run(fmax=1e-3)
-            e2 = a.get_potential_energy()
-            r2 = a.positions
-
-            print 'nx = ', nx
-            print 'de = ', e1-e2
-            print 'dr = ', np.max(np.abs(r1-r2))
-
-            a.set_array('residual', np.sqrt(((r2-r1)**2).sum(axis=1)))
-            ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz')
+                a.set_array('residual', residual)
+                ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz')
 
 ###
 
