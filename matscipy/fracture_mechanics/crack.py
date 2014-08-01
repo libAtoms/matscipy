@@ -505,9 +505,13 @@ def isotropic_modeI_crack_tip_displacement_field(K, G, nu, r, t,
             .format(PLANE_STRAIN, PLANE_STRESS))
 
     radial = K*np.sqrt(r/(2.*math.pi))/(2.*G)
-    
     u = radial*np.cos(t/2)*(kappa-1+2*np.sin(t/2)**2)
     v = radial*np.sin(t/2)*(kappa+1-2*np.cos(t/2)**2)
+
+    # Form in Lawn book is equivalent:
+    #radial = K/(4*G)*np.sqrt(r/(2.*math.pi))
+    #u = radial*((2*kappa - 1)*np.cos(t/2) - np.cos(3*t/2))
+    #v = radial*((2*kappa + 1)*np.sin(t/2) - np.sin(3*t/2))
 
     return u, v
 
