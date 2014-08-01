@@ -144,7 +144,7 @@ def diamond_111_110(el, a0, n, crack_surface=[1,1,1], crack_front=[1,-1,0],
 
 
 def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
-            skin_x=1.0, skin_y=1.0, vac=5.0, lattice=None):
+            skin_x=1.0, skin_y=1.0, vac=5.0, lattice=None, shift=None):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
     directions = [ third_dir, crack_surface, crack_front ]
@@ -160,6 +160,8 @@ def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
     az = sz/nz
 
     a.translate([ax/100,ay/100,az/100])
+    if shift is not None:
+        a.translate(shift)
     a.set_scaled_positions(a.get_scaled_positions())
     a.center()
 
