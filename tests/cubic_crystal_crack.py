@@ -91,16 +91,16 @@ class TestCubicCrystalCrack(unittest.TestCase):
         if not atomistica:
             print 'Atomistica not available. Skipping test.'
 
-        for nx in [ 4, 8, 16, 32, 64 ]:
+        for nx in [ 8, 16, 32, 64 ]:
             for calc, a, C11, C12, C44, surface_energy, bulk_coordination in [
                 ( atomistica.DoubleHarmonic(k1=1.0, r1=1.0, k2=1.0,
                                             r2=math.sqrt(2), cutoff=1.6),
                   clusters.sc('He', 1.0, [nx,nx,1], [1,0,0], [0,1,0]),
-                  3, 1, 1, 0.4, 6 ),
+                  3, 1, 1, 0.05, 6 ),
                 ( atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=True),
                   clusters.fcc('He', math.sqrt(2.0), [nx,nx,1], [1,0,0],
                                [0,1,0]),
-                  math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.4, 12)
+                  math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.05, 12)
                 ]:
                 crack = CubicCrystalCrack(C11, C12, C44, [1,0,0], [0,1,0])
 
@@ -123,7 +123,7 @@ class TestCubicCrystalCrack(unittest.TestCase):
                 g = a.get_array('groups')
                 a.set_constraint(FixAtoms(mask=g==0))
 
-                ase.io.write('initial_{}.xyz'.format(nx), a, format='extxyz')
+                #ase.io.write('initial_{}.xyz'.format(nx), a, format='extxyz')
 
                 x1, y1, z1 = a.positions.copy().T
                 FIRE(a, logfile=None).run(fmax=1e-3)
@@ -134,10 +134,11 @@ class TestCubicCrystalCrack(unittest.TestCase):
                 mask=coord == bulk_coordination
 
                 residual = np.sqrt(((x2-x1)/u)**2 + ((y2-y1)/v)**2)
-                print np.max(residual[mask])
+                
+                #a.set_array('residual', residual)
+                #ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz')
 
-                a.set_array('residual', residual)
-                ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz')
+                self.assertTrue(np.max(residual[mask]) < 0.21)
 
 ###
 
