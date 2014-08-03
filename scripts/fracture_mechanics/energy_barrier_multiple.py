@@ -91,7 +91,10 @@ g = a.get_array('groups')
 # Assign calculator.
 a.set_calculator(params.calc)
 
-for j, (bond1, bond2) in enumerate(params.bonds):
+for j in range(params.n_bonds):
+
+    bond1, bond2 = crack.find_tip_coordination(a)
+    print 'Breaking tip bond {0}--{1}'.format(bond1, bond)
 
     # Run crack calculation.
     for i, bond_length in enumerate(params.bond_lengths):

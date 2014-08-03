@@ -19,12 +19,15 @@
 # ======================================================================
 
 import math
+import warnings
 
 import numpy as np
 try:
     from scipy.optimize import brentq, leastsq
-except:
-    print 'Warning: no scipy'
+except ImportError:
+    warnings.warn('Warning: no scipy')
+
+from ase.calculators.neighborlist import NeighborList    
 
 from matscipy.elasticity import CubicElasticModuli
 from matscipy.surface import MillerDirection, MillerPlane
@@ -850,8 +853,35 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
     return params, err
 
 
+def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
+    """
+    Find position of tip in crack cluster from coordination
+    """
+    nl = NeighborList([bondlength/2.0]*len(a),
+                      self_interaction=False,
+                      bothways=True)
+    nl.update(a)
+    nn = np.array([len(nl.get_neighbors(i)[0]) for i in range(len(a))])
+    a.set_array('n_neighb', nn)
+    g = a.get_array('groups')
 
-def find_crack_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=None,
+    y = a.positions[:, 1]
+    above = (nn < bulk_nn) & (g == 1) & (y > a.cell[1,1]/2.0)
+    below = (nn < bulk_nn) & (g == 1) & (y < a.cell[1,1]/2.0)
+
+    a.set_array('above', above)
+    a.set_array('below', below)
+
+    bond1 = above.nonzero()[0][a.positions[above, 0].argmax()]
+    bond2 = below.nonzero()[0][a.positions[below, 0].argmax()]
+
+    a.info['bond1'] = bond1
+    a.info['bond2'] = bond2
+
+    return (bond1, bond2)
+    
+
+def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=None,
                                 sigma=None, avg_sigma=None, avg_decay=0.005, calc=None):
     """
     Find the position of the crack tip by fitting to the Irwin `K`-field solution
