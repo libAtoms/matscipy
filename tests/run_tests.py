@@ -25,6 +25,7 @@ import unittest
 
 from cubic_crystal_crack import *
 from cubic_elastic_moduli import *
+from fit_elastic_constants import *
 
 ###
 

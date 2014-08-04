@@ -49,11 +49,11 @@ FITTED_CRACK_TIP = 'Ag'
 ###
 
 cryst = params.cryst.copy()
-crack = crack.CubicCrystalCrack(params.C11, params.C12, params.C44,
-                                params.crack_surface, params.crack_front)
+crk = crack.CubicCrystalCrack(params.C11, params.C12, params.C44,
+                              params.crack_surface, params.crack_front)
 
 # Get Griffith's k1.
-k1g = crack.k1g(params.surface_energy)
+k1g = crk.k1g(params.surface_energy)
 parprint('Griffith k1 = %f' % k1g)
 
 # Crack tip position.
@@ -68,7 +68,7 @@ else:
 
 # Apply initial strain field.
 a = cryst.copy()
-ux, uy = crack.displacements(cryst.positions[:,0], cryst.positions[:,1],
+ux, uy = crk.displacements(cryst.positions[:,0], cryst.positions[:,1],
                              tip_x, tip_y, params.k1*k1g)
 a.positions[:,0] += ux
 a.positions[:,1] += uy
@@ -91,7 +91,10 @@ g = a.get_array('groups')
 # Assign calculator.
 a.set_calculator(params.calc)
 
-for j, (bond1, bond2) in enumerate(params.bonds):
+for j in range(params.n_bonds):
+
+    bond1, bond2 = crack.find_tip_coordination(a)
+    print 'Breaking tip bond {0}--{1}'.format(bond1, bond2)
 
     # Run crack calculation.
     for i, bond_length in enumerate(params.bond_lengths):
@@ -118,7 +121,7 @@ for j, (bond1, bond2) in enumerate(params.bonds):
                 old_y = tip_y+1.0
                 while abs(tip_x-old_x) > 1e-6 and abs(tip_y-old_y) > 1e-6:
                     b = cryst.copy()
-                    ux, uy = crack.displacements(cryst.positions[:,0],
+                    ux, uy = crk.displacements(cryst.positions[:,0],
                                                  cryst.positions[:,1],
                                                  tip_x, tip_y, params.k1*k1g)
                     b.positions[:,0] += ux
@@ -137,7 +140,7 @@ for j, (bond1, bond2) in enumerate(params.bonds):
                     old_x = tip_x
                     old_y = tip_y
                     tip_x, tip_y = \
-                        crack.crack_tip_position(a.positions[:,0],
+                        crk.crack_tip_position(a.positions[:,0],
                                                  a.positions[:,1],
                                                  cryst.positions[:,0],
                                                  cryst.positions[:,1],
@@ -162,12 +165,12 @@ for j, (bond1, bond2) in enumerate(params.bonds):
             b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, tip_y, b.cell.diagonal()[2]/2))
             b.info['actual_crack_tip'] = (tip_x, tip_y, b.cell.diagonal()[2]/2)
 
-            fit_x, fit_y = crack.crack_tip_position(a.positions[:,0],
-                                                    a.positions[:,1],
-                                                    cryst.positions[:,0],
-                                                    cryst.positions[:,1],
-                                                    tip_x, tip_y, params.k1*k1g,
-                                                    mask=mask)
+            fit_x, fit_y = crk.crack_tip_position(a.positions[:,0],
+                                                  a.positions[:,1],
+                                                  cryst.positions[:,0],
+                                                  cryst.positions[:,1],
+                                                  tip_x, tip_y, params.k1*k1g,
+                                                  mask=mask)
 
             parprint('Measured crack tip at %f %f' % (fit_x, fit_y))
 

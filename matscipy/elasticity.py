@@ -23,6 +23,14 @@ import warnings
 
 import numpy as np
 from numpy.linalg import inv
+#try:
+#    import scipy.stats as scipy_stats
+#except:
+
+scipy_stats = None
+
+import ase.units as units
+from ase.atoms import Atoms
 
 ###
 
@@ -53,7 +61,6 @@ def full_3x3_to_Voigt_6_strain(strain_matrix):
     """
     Form a 6 component strain vector in Voigt notation from a 3x3 matrix
     """
-
     return np.array([strain_matrix[0,0] - 1.0,
                      strain_matrix[1,1] - 1.0,
                      strain_matrix[2,2] - 1.0,
@@ -61,7 +68,7 @@ def full_3x3_to_Voigt_6_strain(strain_matrix):
                      2.0*strain_matrix[0,2],
                      2.0*strain_matrix[0,1]])
 
-def full_3x3_to_Voigt_6_strain(stress_matrix):
+def full_3x3_to_Voigt_6_stress(stress_matrix):
     """
     Form a 6 component stress vector in Voigt notation from a 3x3 matrix
     """
@@ -432,6 +439,8 @@ Cij_symmetry = {
    }
 
 def _dec(pattern):
+    # Decrease C_ij indices patterns by one.
+    # Used to make strain_patterns definitions below more readable.
     return [(i-1, j-1) for (i,j) in pattern]
 
 strain_patterns = {
@@ -517,32 +526,47 @@ strain_patterns['hexagonal'] = strain_patterns['trigonal_high']
 strain_patterns['tetragonal_high'] = strain_patterns['tetragonal_low'] = strain_patterns['tetragonal']
 strain_patterns[None] = strain_patterns['triclinic']
 
+
 def generate_strained_configs(at0, symmetry='triclinic', N_steps=5, delta=1e-2):
-    """Generate a sequence of strained configurations"""
+    """
+    Generate a sequence of strained configurations
+
+    Parameters
+    ----------
+    a : ase.Atoms
+        Bulk crystal configuration - both unit cell and atomic positions
+        should be relaxed before calling this routine.
+    symmetry : string
+        Symmetry to use to determine which strain patterns are necessary.
+        Default is 'triclininc', i.e. no symmetry.
+    N_steps : int
+        Number of atomic configurations to generate for each strain pattern.
+        Default is 5. Absolute strain values range from -delta*N_steps/2
+        to +delta*N_steps/2.
+    delta : float
+        Strain increment for analytical derivatives of stresses. Default 1e-2
+
+    Returns
+    -------
+    Generator which yields a sequence of ase.Atoms instances corresponding
+    to the minima set of strained conifugurations required to evaluate the
+    full 6x6 C_ij matrix under the assumed symmetry.
+    """
 
     if not symmetry in strain_patterns:
         raise ValueError('Unknown symmetry %s. Valid options are %s' % (symmetry, strain_patterns.keys()))
 
     for pindex, (pattern, fit_pairs) in enumerate(strain_patterns[symmetry]):
         for step in range(N_steps):
-            strain = np.where(pattern == 1, delta*(step-(N_steps+1)/2.0), 0.0)
-            print pindex, step, strain
+            strain = np.where(pattern == 1, delta*(step+1-(N_steps+1)/2.0), 0.0)
             at = at0.copy()
+            if at0.get_calculator() is not None:
+                at.set_calculator(at0.get_calculator())
             T = Voigt_6_to_full_3x3_strain(strain)
             at.set_cell(np.dot(T, at.cell.T).T, scale_atoms=False)
             at.positions[:] = np.dot(T, at.positions.T).T
             at.info['strain'] = T
             yield at
-
-
-def generate_stressed_configs(configs, opt=None):
-    """Given a sequence of configs, calculate stress on each one"""
-    for at in configs:
-        at2 = at.copy()
-        if opt is not None:
-            opt.run(at2)
-        at2.info['stress'] = at2.get_stress()
-        yield at2
 
 
 # Elastic constant calculation.
@@ -575,39 +599,99 @@ def generate_stressed_configs(configs, opt=None):
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-def fit_elastic_constants(configs, symmetry=None, N_steps=5, verbose=True, graphics=True):
+def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimizer=None,
+                          verbose=True, graphics=True, logfile=None, **kwargs):
     """
-    Given a sequence of strained configs fit elastic constants C_ij
+    Compute elastic constants by linear regression of stress vs. strain
 
-    'strain' and 'stress' tensors for each config are looked up in Atoms.info dictionary.
+    Parameters
+    ----------
+    a : ase.Atoms or list of ase.Atoms
+        Either a single atomic configuration or a list of strained
+        configurations. If a single configuration is given, it is
+        passed :func:`generate_strained_configs` along with `symmetry`, `N_steps`,
+        and `delta` to generate the set of strained configurations.
+    symmetry : string
+        Symmetry to use to determine which strain patterns are necessary.
+        Default is 'triclininc', i.e. no symmetry.
+    N_steps : int
+        Number of atomic configurations to generate for each strain pattern.
+        Default is 5. Absolute strain values range from -delta*N_steps/2
+        to +delta*N_steps/2.    
+    delta : float
+        Strain increment for analytical derivatives of stresses.
+        Default is 1e-2.
+    optimizer : ase.optimizer.*
+        Optimizer to use for atomic positions (internal degrees of freedom)
+        for each applied strain. Initial config `a` is not optimised, and should
+        already have relaxed cell and atomic positions. Does not optimize atomic
+        positions if set to None.
+    verbose : bool
+        If True, print additional infomation about the quality of fit
+        and summarise results of C_ij and estimated errors. Default True.
+    graphics : bool
+        If True, use :mod:`matplotlib.pyplot` to plot the stress vs. strain
+        curve for each C_ij component fitted. Default True. 
+    logfile : bool
+        Log file to write optimizer output to. Default None (i.e. suppress
+        output).
+    **kwargs : dict
+        Additional arguments to pass to `optimizer.run()` method e.g. `fmax`.
 
-    Code adapted from elastics.py script, available from
+    Returns
+    -------
+    C : array_like
+        6x6 matrix of the elastic constants in Voigt notation.
+    C_err : array_like
+        If scipy.stats module is available then error estimates for each C_ij
+        component are obtained from the accuracy of the linear regression.
+        Otherwise an array of np.zeros((6,6)) is returned.
+    
+    Notes
+    -----
+
+    Code originally adapted from elastics.py script, available from
     http://github.com/djw/elastic-constants
     """
+
+    if isinstance(a, Atoms):
+        # we've been passed a single Atoms object: use it to generate
+        # set of strained configurations according to symmetry
+        strained_configs = generate_strained_configs(a, symmetry, N_steps, delta)
+    else:
+        # assume we've been passed a list of strained configs
+        strained_configs = a
 
     if graphics:
         import matplotlib.pyplot as plt
 
     def do_fit(index1, index2, stress, strain, patt):
         if verbose:
-            print 'Fitting C_%d%d' % (index1, index2)
+            print 'Fitting C_%d%d' % (index1+1, index2+1)
             print 'Strain %r' % strain[:,index2]
-            print 'Stress %r' % stress[:,index1]
+            print 'Stress %r GPa' % (stress[:,index1]/units.GPa)
 
-        cijFitted,intercept,r,tt,stderr = stats.linregress(strain[:,index2],stress[:,index1])
+        if scipy_stats is not None:
+            cijFitted, intercept,r,tt,stderr = scipy_stats.linregress(strain[:,index2],stress[:,index1])
+        else:
+            cijFitted, intercept = np.polyfit(strain[:,index2],stress[:,index1], 1)
+            r, tt, stderr = 0.0, None, 0.0
 
         if verbose:
             # print info about the fit
-            print     'Cij (gradient)          :    ',cijFitted
-            print     'Error in Cij            :    ', stderr
-            if abs(r) > 0.9:
-                print 'Correlation coefficient :    ',r
+            print     'Cij (gradient) / GPa    :    ',cijFitted/units.GPa
+            if scipy_stats is not None:
+                print     'Error in Cij / GPa      :    ', stderr/units.GPa
+                if abs(r) > 0.9:
+                    print 'Correlation coefficient :    ',r
+                else:
+                    print 'Correlation coefficient :    ',r, '     <----- WARNING'
             else:
-                print 'Correlation coefficient :    ',r, '     <----- WARNING'
+                print 'scipy.stats not available, no error estimation performed'
 
         if graphics:
             # position this plot in a 6x6 grid
-            sp = plt.subplot(6,6,6*(index1-1)+index2)
+            sp = plt.subplot(6,6,6*index1+(index2+1))
             sp.set_axis_on()
 
             # change the labels on the axes
@@ -617,12 +701,15 @@ def fit_elastic_constants(configs, symmetry=None, N_steps=5, verbose=True, graph
             plt.setp(ylabels,fontsize=7)
 
             # colour the plot depending on the strain pattern
-            colourDict = {1: '#BAD0EF', 2:'#FFCECE', 3:'#BDF4CB', 4:'#EEF093',5:'#FFA4FF',6:'#75ECFD'}
+            colourDict = {0: '#BAD0EF', 1:'#FFCECE', 2:'#BDF4CB', 3:'#EEF093',4:'#FFA4FF',5:'#75ECFD'}
             sp.set_axis_bgcolor(colourDict[patt])
 
             # plot the data
-            plt.plot([strain[1,index2],strain[-1,index2]],[cijFitted*strain[1,index2]+intercept,cijFitted*strain[-1,index2]+intercept])
-            plt.plot(list(strain[:,index2]),list(stress[:,index1]),'ro')
+            plt.plot([strain[0,index2],strain[-1,index2]],
+                     [(cijFitted*strain[0,index2]+intercept)/units.GPa,
+                      (cijFitted*strain[-1,index2]+intercept)/units.GPa])
+            plt.plot(strain[:,index2],stress[:,index1]/units.GPa,'ro')
+            plt.xticks(strain[:,index2])
 
         return cijFitted, stderr
 
@@ -652,7 +739,7 @@ def fit_elastic_constants(configs, symmetry=None, N_steps=5, verbose=True, graph
 
 
     N_pattern = len(strain_patterns[symmetry])
-    configs = iter(configs)
+    configs = iter(strained_configs)
 
     strain = np.zeros((N_pattern, N_steps, 6))
     stress = np.zeros((N_pattern, N_steps, 6))
@@ -670,30 +757,38 @@ def fit_elastic_constants(configs, symmetry=None, N_steps=5, verbose=True, graph
                 plt.text(0.4,0.4, "n/a")
 
     # Fill in strain and stress arrays from config Atoms list
-    for pindex, (pattern, fit_pairs) in fenumerate(strain_patterns[symmetry]):
-        for step in frange(N_steps):
+    for pattern_index, (pattern, fit_pairs) in enumerate(strain_patterns[symmetry]):
+        for step in range(N_steps):
             at = configs.next()
-            strain[pindex, step, :] = strain_vector(at.params['strain'])
-            stress[pindex, step, :] = stress_vector(at.params['stress'])
+            if optimizer is not None:
+                optimizer(at, logfile=logfile).run(**kwargs)
+            strain[pattern_index, step, :] = full_3x3_to_Voigt_6_strain(at.info['strain'])
+            stress[pattern_index, step, :] = at.get_stress()
 
     # Do the linear regression
-    for pindex, (pattern, fit_pairs) in fenumerate(strain_patterns[symmetry]):
+    for pattern_index, (pattern, fit_pairs) in enumerate(strain_patterns[symmetry]):
         for (index1, index2) in fit_pairs:
-            fitted, err = do_fit(index1, index2, stress[pindex,:,:], strain[pindex,:,:], pindex)
+            fitted, err = do_fit(index1, index2,
+                                 stress[pattern_index,:,:],
+                                 strain[pattern_index,:,:],
+                                 pattern_index)
 
             index = abs(Cij_map_sym[(index1, index2)])
 
             if not index in Cijs:
                 if verbose:
-                    print 'Setting C%d%d (%d) to %f +/- %f' % (index1, index2, index, fitted, err)
+                    print('Setting C%d%d (%d) to %f +/- %f' %
+                          (index1+1, index2+1, index, fitted, err))
                 Cijs[index] = [fitted]
                 Cij_err[index] = [err]
             else:
                 if verbose:
-                    print 'Updating C%d%d (%d) with value %f +/- %f' % (index1, index2, index, fitted, err)
+                    print('Updating C%d%d (%d) with value %f +/- %f' %
+                          (index1+1, index2+1, index, fitted, err))
                 Cijs[index].append(fitted)
                 Cij_err[index].append(err)
-            if verbose: print '\n'
+            if verbose:
+                print('\n')
 
 
     C = np.zeros((6,6))
@@ -711,52 +806,42 @@ def fit_elastic_constants(configs, symmetry=None, N_steps=5, verbose=True, graph
 
     if symmetry.startswith('trigonal'):
         # Special case for trigonal lattice: C66 = (C11 - C12)/2
-        Cijs[Cij_map[(6,6)]] = 0.5*(Cijs[Cij_map[(1,1)]]-Cijs[Cij_map[(1,2)]])
-        Cij_err[Cij_map[(6,6)]] = np.sqrt(Cij_err[Cij_map[(1,1)]]**2 + Cij_err[Cij_map[(1,2)]]**2)
+        Cijs[Cij_map[(5,5)]] = 0.5*(Cijs[Cij_map[(0,0)]]-Cijs[Cij_map[(0,1)]])
+        Cij_err[Cij_map[(5,5)]] = np.sqrt(Cij_err[Cij_map[(0,0)]]**2 + Cij_err[Cij_map[(0,1)]]**2)
 
     # Generate the 6x6 matrix of elastic constants
     # - negative values signify a symmetry relation
-    for i in frange(6):
-        for j in frange(6):
+    for i in range(6):
+        for j in range(6):
             index = Cij_symmetry[symmetry][i,j]
             if index > 0:
                 C[i,j] = Cijs[index]
                 C_err[i,j] = Cij_err[index]
-                C_labels[i,j] = ' C%d%d' % Cij_rev_map[index]
+                ii, jj = Cij_rev_map[index]
+                C_labels[i,j] = ' C%d%d' % (ii+1,jj+1)
                 C_err[i,j] = Cij_err[index]
             elif index < 0:
                 C[i,j] = -Cijs[-index]
                 C_err[i,j] = Cij_err[-index]
-                C_labels[i,j] = '-C%d%d' % Cij_rev_map[-index]
+                ii, jj = Cij_rev_map[-index]
+                C_labels[i,j] = '-C%d%d' % (ii+1, jj+1)
 
     if verbose:
         print np.array2string(C_labels).replace("'","")
         print '\n = \n'
-        print np.array2string(C, suppress_small=True, precision=2)
+        print np.array2string(C/units.GPa,
+                              suppress_small=True,
+                              precision=2)
         print
 
         # Summarise the independent components of C_ij matrix
         printed = {}
-        for i in frange(6):
-            for j in frange(6):
+        for i in range(6):
+            for j in range(6):
                 index = Cij_symmetry[symmetry][i,j]
                 if index <= 0 or index in printed: continue
-                print 'C_%d%d = %-4.2f +/- %-4.2f GPa' % (i, j, C[i,j], C_err[i,j])
+                print('C_%d%d = %-4.2f +/- %-4.2f GPa' %
+                      (i+1, j+1, C[i,j]/units.GPa, C_err[i,j]/units.GPa))
                 printed[index] = 1
 
     return C, C_err
-
-
-def elastic_constants(at, sym='cubic', opt=None, verbose=True, graphics=True):
-    """
-    Compute elastic constants matrix C_ij using crystal symmetry
-
-    Returns the 6x6 matrix :math:`C_{ij}` of configuration `at`
-    with attached calculator assumming symmetry `sym` (default "cubic").
-    """
-
-    strained_configs = generate_strained_configs(at, sym)
-    stressed_configs = generate_stressed_configs(strained_configs, opt=opt)
-    C, C_err = fit_elastic_constants(stressed_configs, sym, verbose=verbose, graphics=graphics)
-
-    return C
