@@ -32,13 +32,14 @@ from ase.units import GPa
 
 from atomistica import Kumagai, TabulatedAlloyEAM
 
+import matscipytest
 from matscipy.elasticity import CubicElasticModuli, Voigt_6x6_to_cubic
 from matscipy.elasticity import measure_triclinic_elastic_constants
 from matscipy.elasticity import rotate_cubic_elastic_constants
 
 ###
 
-class TestCubicElasticModuli(unittest.TestCase):
+class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
 
     fmax = 1e-6
     delta = 1e-6
@@ -72,7 +73,7 @@ class TestCubicElasticModuli(unittest.TestCase):
 
             C_m = measure_triclinic_elastic_constants(a, delta=self.delta,
                                                       fmax=self.fmax)/GPa
-            self.assertTrue(np.all(np.abs(el.stiffness()-C_m) < 0.01))
+            self.assertArrayAlmostEqual(el.stiffness(), C_m, tol=0.01)
 
             for directions in [ [[1,0,0], [0,1,0], [0,0,1]],
                                 [[0,1,0], [0,0,1], [1,0,0]],
@@ -87,12 +88,12 @@ class TestCubicElasticModuli(unittest.TestCase):
 
                 C = el.rotate(directions)
                 C_check = el._rotate_explicit(directions)
-                self.assertTrue(np.all(np.abs(C-C_check) < 1e-6))
+                self.assertArrayAlmostEqual(C, C_check, tol=1e-6)
 
                 C_m = measure_triclinic_elastic_constants(a, delta=self.delta,
                                                           fmax=self.fmax)/GPa
 
-                self.assertTrue(np.all(np.abs(C-C_m) < 1e-2))
+                self.assertArrayAlmostEqual(C, C_m, tol=1e-2)
 
 ###
 
