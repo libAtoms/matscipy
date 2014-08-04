@@ -24,8 +24,9 @@
 import unittest
 
 from cubic_crystal_crack import *
-from cubic_elastic_moduli import *
 from fit_elastic_constants import *
+from full_to_Voigt import *
+from rotation_of_elastic_constants import *
 
 ###
 
