@@ -206,7 +206,7 @@ def cubic_to_Voigt_6x6(C11, C12, C44):
 
 ###
 
-def rotate_cubic_elastic_constants(C11, C12, C44, A):
+def rotate_cubic_elastic_constants(C11, C12, C44, A, tol=1e-6):
     """
     Return rotated elastic moduli for a cubic crystal given the elastic 
     constant in standard C11, C12, C44 notation.
@@ -228,13 +228,13 @@ def rotate_cubic_elastic_constants(C11, C12, C44, A):
 
     # Is this a rotation matrix?
     if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
-                          np.eye(3, dtype=float)) > self.tol):
+                          np.eye(3, dtype=float)) > tol):
         raise RuntimeError('Matrix *A* does not describe a rotation.')
 
     # Invariant elastic constants
     la = C12
     mu = C44
-    al = C11 - self.la - 2*self.mu
+    al = C11 - la - 2*mu
 
     # Construct rotated C in Voigt notation
     C = [ ]
@@ -242,21 +242,21 @@ def rotate_cubic_elastic_constants(C11, C12, C44, A):
         for k, l in Voigt_notation:
             h = 0.0
             if i == j and k == l:
-                h += self.la
+                h += la
             if i == k and j == l:
-                h += self.mu
+                h += mu
             if i == l and j == k:
-                h += self.mu
-            h += self.al*np.sum(A[i,:]*A[j,:]*A[k,:]*A[l,:])
+                h += mu
+            h += al*np.sum(A[i,:]*A[j,:]*A[k,:]*A[l,:])
             C += [ h ]
 
-    C = np.asarray(C)
+    C = np.array(C)
     C.shape = (6, 6)
-    return self.C
+    return C
 
 ###
 
-def rotate_elastic_constants(C, A):
+def rotate_elastic_constants(C, A, tol=1e-6):
     """
     Return rotated elastic moduli for a general crystal given the elastic 
     constant in Voigt notation.
@@ -278,7 +278,7 @@ def rotate_elastic_constants(C, A):
 
     # Is this a rotation matrix?
     if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
-                          np.eye(3, dtype=float)) > self.tol):
+                          np.eye(3, dtype=float)) > tol):
         raise RuntimeError('Matrix *A* does not describe a rotation.')
 
     # Rotate
