@@ -206,7 +206,7 @@ def cubic_to_Voigt_6x6(C11, C12, C44):
 
 ###
 
-def rotate_cubic_elastic_moduli(C11, C12, C44, A):
+def rotate_cubic_elastic_constants(C11, C12, C44, A):
     """
     Return rotated elastic moduli for a cubic crystal given the elastic 
     constant in standard C11, C12, C44 notation.
@@ -256,7 +256,7 @@ def rotate_cubic_elastic_moduli(C11, C12, C44, A):
 
 ###
 
-def rotate_elastic_moduli(C, A):
+def rotate_elastic_constants(C, A):
     """
     Return rotated elastic moduli for a general crystal given the elastic 
     constant in Voigt notation.
@@ -297,7 +297,7 @@ class CubicElasticModuli:
         """
 
         warnings.warn('CubicElasticModuli is deprecated. Use '
-                      'rotate_elastic_moduli function instead.')
+                      'rotate_elastic_constants function instead.')
 
         # la, mu, al are the three invariant elastic constants
         self.la = C12
@@ -395,8 +395,8 @@ class CubicElasticModuli:
 
 ###
 
-def measure_triclinic_elastic_moduli(a, delta=0.001, optimizer=None, 
-                                     logfile=None, **kwargs):
+def measure_triclinic_elastic_constants(a, delta=0.001, optimizer=None, 
+                                        logfile=None, **kwargs):
     """
     Brute-force measurement of elastic constants for a triclinic (general)
     unit cell.

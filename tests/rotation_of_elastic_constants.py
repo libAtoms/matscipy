@@ -33,7 +33,8 @@ from ase.units import GPa
 from atomistica import Kumagai, TabulatedAlloyEAM
 
 from matscipy.elasticity import CubicElasticModuli, Voigt_6x6_to_cubic
-from matscipy.elasticity import measure_triclinic_elastic_moduli
+from matscipy.elasticity import measure_triclinic_elastic_constants
+from matscipy.elasticity import rotate_cubic_elastic_constants
 
 ###
 
@@ -63,15 +64,14 @@ class TestCubicElasticModuli(unittest.TestCase):
                 .run(fmax=self.fmax)
             latticeconstant = np.mean(a.cell.diagonal())
 
-            C6 = measure_triclinic_elastic_moduli(a, delta=self.delta,
-#                                                  optimizer=FIRE,
-                                                  fmax=self.fmax)
+            C6 = measure_triclinic_elastic_constants(a, delta=self.delta,
+                                                     fmax=self.fmax)
             C11, C12, C44 = Voigt_6x6_to_cubic(C6)/GPa
 
             el = CubicElasticModuli(C11, C12, C44)
 
-            C_m = measure_triclinic_elastic_moduli(a, delta=self.delta,
-                                                   fmax=self.fmax)/GPa
+            C_m = measure_triclinic_elastic_constants(a, delta=self.delta,
+                                                      fmax=self.fmax)/GPa
             self.assertTrue(np.all(np.abs(el.stiffness()-C_m) < 0.01))
 
             for directions in [ [[1,0,0], [0,1,0], [0,0,1]],
@@ -89,8 +89,8 @@ class TestCubicElasticModuli(unittest.TestCase):
                 C_check = el._rotate_explicit(directions)
                 self.assertTrue(np.all(np.abs(C-C_check) < 1e-6))
 
-                C_m = measure_triclinic_elastic_moduli(a, delta=self.delta,
-                                                       fmax=self.fmax)/GPa
+                C_m = measure_triclinic_elastic_constants(a, delta=self.delta,
+                                                          fmax=self.fmax)/GPa
 
                 self.assertTrue(np.all(np.abs(C-C_m) < 1e-2))
 
