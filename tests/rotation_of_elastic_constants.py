@@ -33,9 +33,11 @@ from ase.units import GPa
 from atomistica import Kumagai, TabulatedAlloyEAM
 
 import matscipytest
-from matscipy.elasticity import CubicElasticModuli, Voigt_6x6_to_cubic
-from matscipy.elasticity import measure_triclinic_elastic_constants
-from matscipy.elasticity import rotate_cubic_elastic_constants
+from matscipy.elasticity import (CubicElasticModuli, Voigt_6x6_to_cubic,
+                                 cubic_to_Voigt_6x6,
+                                 measure_triclinic_elastic_constants,
+                                 rotate_cubic_elastic_constants,
+                                 rotate_elastic_constants)
 
 ###
 
@@ -88,7 +90,14 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
 
                 C = el.rotate(directions)
                 C_check = el._rotate_explicit(directions)
+                C_check2 = rotate_cubic_elastic_constants(C11, C12, C44,
+                                                          directions)
+                C_check3 = \
+                    rotate_elastic_constants(cubic_to_Voigt_6x6(C11, C12, C44),
+                                             directions)
                 self.assertArrayAlmostEqual(C, C_check, tol=1e-6)
+                self.assertArrayAlmostEqual(C, C_check2, tol=1e-6)
+                self.assertArrayAlmostEqual(C, C_check3, tol=1e-6)
 
                 C_m = measure_triclinic_elastic_constants(a, delta=self.delta,
                                                           fmax=self.fmax)/GPa
