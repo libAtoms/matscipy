@@ -19,6 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+import warnings
+
 import numpy as np
 from numpy.linalg import inv
 
@@ -153,6 +155,56 @@ def Voigt_6x6_to_cubic(C):
 
 ###
 
+def rotate_cubic_elastic_moduli(C11, C12, C44, A):
+    """
+    Return rotated elastic moduli for a cubic crystal given the elastic 
+    constant in standard C11, C12, C44 notation.
+
+    Parameters
+    ----------
+    C11, C12, C44 : float
+        Cubic elastic moduli.
+    A : array_like
+        3x3 rotation matrix.
+
+    Returns
+    -------
+    C : array
+        6x6 matrix of rotated elastic constants (Voigt notation).
+    """
+
+    A = np.asarray(A)
+
+    # Is this a rotation matrix?
+    if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
+                          np.eye(3, dtype=float)) > self.tol):
+        raise RuntimeError('Matrix *A* does not describe a rotation.')
+
+    # Invariant elastic constants
+    la = C12
+    mu = C44
+    al = C11 - self.la - 2*self.mu
+
+    # Construct rotated C in Voigt notation
+    C = [ ]
+    for i, j in Voigt_notation:
+        for k, l in Voigt_notation:
+            h = 0.0
+            if i == j and k == l:
+                h += self.la
+            if i == k and j == l:
+                h += self.mu
+            if i == l and j == k:
+                h += self.mu
+            h += self.al*np.sum(A[i,:]*A[j,:]*A[k,:]*A[l,:])
+            C += [ h ]
+
+    C = np.asarray(C)
+    C.shape = (6, 6)
+    return self.C
+
+###
+
 class CubicElasticModuli:
     tol = 1e-6
 
@@ -160,6 +212,9 @@ class CubicElasticModuli:
         """
         Initialize a cubic system with elastic constants C11, C12, C44
         """
+
+        warnings.warn('CubicElasticModuli is deprecated. Use '
+                      'rotate_elastic_moduli function instead.')
 
         # la, mu, al are the three invariant elastic constants
         self.la = C12
