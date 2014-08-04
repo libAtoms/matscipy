@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+import itertools
 import warnings
 
 import numpy as np
@@ -37,6 +38,11 @@ from ase.atoms import Atoms
 # The indices of the full stiffness matrix of (orthorhombic) interest
 Voigt_notation = [(0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)]
 
+def full_3x3_to_Voigt_6_index(i, j):
+    if i == j:
+        return i
+    return 6-i-j
+
 ###
 
 def Voigt_6_to_full_3x3_strain(strain_vector):
@@ -48,6 +54,7 @@ def Voigt_6_to_full_3x3_strain(strain_vector):
                      [0.5*e6, 1.0+e2, 0.5*e4],
                      [0.5*e5, 0.5*e4, 1.0+e3]])
 
+
 def Voigt_6_to_full_3x3_stress(stress_vector):
     """
     Form a 3x3 stress matrix from a 6 component vector in Voigt notation
@@ -56,6 +63,7 @@ def Voigt_6_to_full_3x3_stress(stress_vector):
     return np.array([[s1, s6, s5],
                      [s6, s2, s4],
                      [s5, s4, s3]])
+
 
 def full_3x3_to_Voigt_6_strain(strain_matrix):
     """
@@ -68,6 +76,7 @@ def full_3x3_to_Voigt_6_strain(strain_matrix):
                      2.0*strain_matrix[0,2],
                      2.0*strain_matrix[0,1]])
 
+
 def full_3x3_to_Voigt_6_stress(stress_matrix):
     """
     Form a 6 component stress vector in Voigt notation from a 3x3 matrix
@@ -78,6 +87,32 @@ def full_3x3_to_Voigt_6_stress(stress_matrix):
                      stress_matrix[1,2],
                      stress_matrix[0,2],
                      stress_matrix[0,1]])
+
+
+def Voigt_6x6_to_full_3x3x3x3(C):
+    """
+    Convert from the Voigt representation of the stiffness matrix to the full
+    3x3x3x3 representation.
+
+    Parameters
+    ----------
+    C : array_like
+        6x6 stiffness matrix (Voigt notation).
+    
+    Returns
+    -------
+    C : array_like
+        3x3x3x3 stiffness matrix.
+    """
+    
+    C = np.asarray(C)
+    C_out = np.zeros((3,3,3,3), dtype=float)
+    for i, j, k, l in itertools.product(range(3), range(3), range(3), range(3)):
+        Voigt_i = full_3x3_to_Voigt_6_index(i, j)
+        Voigt_j = full_3x3_to_Voigt_6_index(k, l)
+        C_out[i, j, k, l] = C[Voigt_i, Voigt_j]
+    return C_out
+
 
 def full_3x3x3x3_to_Voigt_6x6(C):
     """
@@ -160,6 +195,15 @@ def Voigt_6x6_to_cubic(C):
 
     return np.array([C11, C12, C44])
 
+
+def cubic_to_Voigt_6x6(C11, C12, C44):
+    return np.array([[C11,C12,C12,  0,  0,  0],
+                     [C12,C11,C12,  0,  0,  0],
+                     [C12,C12,C11,  0,  0,  0],
+                     [  0,  0,  0,C44,  0,  0],
+                     [  0,  0,  0,  0,C44,  0],
+                     [  0,  0,  0,  0,  0,C44]])
+
 ###
 
 def rotate_cubic_elastic_moduli(C11, C12, C44, A):
@@ -209,6 +253,38 @@ def rotate_cubic_elastic_moduli(C11, C12, C44, A):
     C = np.asarray(C)
     C.shape = (6, 6)
     return self.C
+
+###
+
+def rotate_elastic_moduli(C, A):
+    """
+    Return rotated elastic moduli for a general crystal given the elastic 
+    constant in Voigt notation.
+
+    Parameters
+    ----------
+    C : array_like
+        6x6 matrix of elastic constants (Voigt notation).
+    A : array_like
+        3x3 rotation matrix.
+
+    Returns
+    -------
+    C : array
+        6x6 matrix of rotated elastic constants (Voigt notation).
+    """
+
+    A = np.asarray(A)
+
+    # Is this a rotation matrix?
+    if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
+                          np.eye(3, dtype=float)) > self.tol):
+        raise RuntimeError('Matrix *A* does not describe a rotation.')
+
+    # Rotate
+    return full_3x3x3x3_to_Voigt_6x6(np.einsum('ia,jb,kc,ld,abcd->ijkl',
+                                               A, A, A, A,
+                                               Voigt_6x6_to_full_3x3x3x3(C)))
 
 ###
 
