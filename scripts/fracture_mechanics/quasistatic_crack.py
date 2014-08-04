@@ -4,7 +4,8 @@
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright (2014) James Kermode, King's College London
+#                  Lars Pastewka, Karlsruhe Institute of Technology
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
