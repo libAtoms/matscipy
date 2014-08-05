@@ -57,7 +57,7 @@ last_a = None
 for fn in fns:
     a = ase.io.read(fn)
 
-    _tip_x, _tip_y, _tip_z = a.info['actual_crack_tip']
+    _tip_x, _tip_y, _tip_z = a.info['fitted_crack_tip']
     tip_x += [ _tip_x ]
     tip_y += [ _tip_y ]
 

@@ -859,6 +859,7 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     Find position of tip in crack cluster from coordination
     """
     nl = NeighborList([bondlength/2.0]*len(a),
+                      skin=0.0,
                       self_interaction=False,
                       bothways=True)
     nl.update(a)
