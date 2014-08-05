@@ -67,9 +67,10 @@ else:
     tip_y = cryst.cell.diagonal()[1]/2
 
 # Apply initial strain field.
+ase.io.write('cluster.xyz', cryst, format='extxyz')
 a = cryst.copy()
 ux, uy = crk.displacements(cryst.positions[:,0], cryst.positions[:,1],
-                             tip_x, tip_y, params.k1*k1g)
+                           tip_x, tip_y, params.k1*k1g)
 a.positions[:,0] += ux
 a.positions[:,1] += uy
 
