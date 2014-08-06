@@ -141,13 +141,12 @@ class RectilinearAnisotropicCrack:
         f = k / np.sqrt(2.0*math.pi*r)
 
         h1 = (self.mu1*self.mu2)/self.h1
-
         h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
         h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
 
         sig_x  = f*(h1*(self.mu2/h2 - self.mu1/h3)).real
         sig_y  = f*(self.h1*(self.mu1/h2 - self.mu2/h3)).real
-        sig_xy = f*(h1*(1/h1 - 1/h2)).real 
+        sig_xy = f*(h1*(1/h2 - 1/h3)).real
 
         return sig_x, sig_y, sig_xy
 
