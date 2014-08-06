@@ -28,6 +28,7 @@ try:
 except ImportError:
     warnings.warn('Warning: no scipy')
 
+import ase.units as units
 from ase.calculators.neighborlist import NeighborList    
 
 from matscipy.elasticity import CubicElasticModuli
@@ -38,6 +39,8 @@ from matscipy.surface import MillerDirection, MillerPlane
 # Constants
 PLANE_STRAIN = 'plane strain'
 PLANE_STRESS = 'plane stress'
+
+MPa_sqrt_m = 1e6*units.Pascal*np.sqrt(units.m)
 
 ###
 
@@ -551,8 +554,8 @@ class IsotropicStressField(object):
         r = np.sqrt((x - x0)**2 + (y - y0)**2)
         t = np.arctan2(y - y0, x - x0)
         
-        sigma = irwin_modeI_crack_tip_stress_field(K, r, t, self.nu,
-                                                   self.stress_state)
+        sigma = isotropic_modeI_crack_tip_stress_field(K, r, t, self.nu,
+                                                       self.stress_state)
         sigma[:,0,0] += self.sxx0
         sigma[:,1,1] += self.syy0
         sigma[:,0,1] += self.sxy0
@@ -605,7 +608,7 @@ def G_to_strain(G, E, nu, orig_height):
     strain : float
        Dimensionless ratio ``(current_height - orig_height)/orig_height``
     """
-    return sqrt(2.0 * G * (1.0 - nu * nu) / (E * orig_height))
+    return np.sqrt(2.0 * G * (1.0 - nu * nu) / (E * orig_height))
 
 
 def get_strain(atoms):
@@ -627,9 +630,13 @@ def get_strain(atoms):
 
 def get_energy_release_rate(atoms):
     """
-    Return the current energy release rate G for `atoms
+    Return the current energy release rate G for `atoms`
 
-    Also updates value stored in ``atoms.info`` dictionary.
+    Result is computed assuming thin strip geometry, and using
+    stored Young's modulus and Poission ratio and original slab height
+    from `atoms.info` dictionary.
+
+    Also updates `G` value stored in ``atoms.info`` dictionary.
     """
     
     current_strain = get_strain(atoms)
@@ -641,9 +648,13 @@ def get_energy_release_rate(atoms):
     return G
 
 
-def get_stress_intensity_factor(atoms):
+def get_stress_intensity_factor(atoms, stress_state=PLANE_STRAIN):
     """
-    Return stress intensity factor K_I
+    Compute stress intensity factor K_I
+
+    Calls :func:`get_energy_release_rate` to compute `G`, then
+    uses stored `YoungsModulus` and `PoissionRatio_yz` values from
+    `atoms.info` dictionary to compute K_I.
 
     Also updates value stored in ``atoms.info`` dictionary.
     """
@@ -653,8 +664,15 @@ def get_stress_intensity_factor(atoms):
     E = atoms.info['YoungsModulus']
     nu = atoms.info['PoissonRatio_yx']
 
-    Ep = E/(1-nu**2)
-    K = sqrt(G*Ep)
+    if stress_state == PLANE_STRAIN:
+        Ep = E/(1-nu**2)
+    elif stress_state == PLANE_STRESS:
+        Ep = E
+    else:
+        raise ValueError('"stress_state" should be either "{0}" or "{1}".'
+            .format(PLANE_STRAIN, PLANE_STRESS))
+                         
+    K = np.sqrt(G*Ep)
     atoms.info['K'] = K
     return K
 
@@ -662,7 +680,7 @@ def get_stress_intensity_factor(atoms):
 def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_params=None,
                            sigma=None, avg_sigma=None, avg_decay=0.005, calc=None, verbose=False):
     """
-    Perform a least squares fit of near-tip stress field to Irwin solution
+    Perform a least squares fit of near-tip stress field to isotropic solution
 
     Stresses on the atoms are fit to the Irwin K-field singular crack tip
     solution, allowing the crack position, stress intensity factor and
@@ -729,8 +747,8 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
     Returns
     -------
     params : dict with keys ``[K, x0, y0, sxx0, syy0, sxy0]``
-       Fitted parameters, in a form suitable for passin
-       :class:`IrwinStressField` constructor. These are the stress intensity
+       Fitted parameters, in a form suitable for passing to
+       :class:`IsotropicStressField` constructor. These are the stress intensity
        factor `K`, the centre of the stress field ``(x0, y0)``, and the
        far field contribution to the stress ``(sxx0, syy0, sxy0)``.
     """
@@ -747,7 +765,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
            try:
                params['K'] = get_stress_intensity_factor(atoms)
            except KeyError:
-               params['K'] = 1.0*MPA_SQRT_M
+               params['K'] = 1.0*MPa_sqrt_m
 
     if 'sxx0' not in params or 'syy0' not in params or 'sxy0' not in params:
        # Guess for far-field stress
@@ -814,8 +832,8 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
         params = dict(zip(var_params, params))
         if fix_params is not None:
             params.update(fix_params)
-        irwin_sigma = IrwinStressField(**params).get_stresses(atoms)
-        delta_sigma = sigma[mask,:,:] - irwin_sigma[mask,:,:]
+        isotropic_sigma = IsotropicStressField(**params).get_stresses(atoms)
+        delta_sigma = sigma[mask,:,:] - isotropic_sigma[mask,:,:]
         return delta_sigma.reshape(delta_sigma.size)
 
     # names and values of parameters which can vary in this fit
@@ -886,7 +904,7 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
 def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=None,
                                 sigma=None, avg_sigma=None, avg_decay=0.005, calc=None):
     """
-    Find the position of the crack tip by fitting to the Irwin `K`-field solution
+    Find the position of crack tip by fitting to the isotropic `K`-field stress
 
     Fit is carried out using :func:`fit_crack_stress_field`, and parameters
     have the same meaning as there.
@@ -952,14 +970,14 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
 
     grid_sigma[((R < rmin) | (R > rmax)),:] = np.nan # mask outside fitting region
 
-    irwin_sigma = irwin_modeI_crack_tip_stress_field(K, R, T, x0, y0)
-    irwin_sigma[...,0,0] += sxx0
-    irwin_sigma[...,1,1] += syy0
-    irwin_sigma[...,0,1] += sxy0
-    irwin_sigma[...,1,0] += sxy0
-    irwin_sigma = ma.masked_array(irwin_sigma, mask=grid_sigma.mask)
+    isotropic_sigma = isotropic_modeI_crack_tip_stress_field(K, R, T, x0, y0)
+    isotropic_sigma[...,0,0] += sxx0
+    isotropic_sigma[...,1,1] += syy0
+    isotropic_sigma[...,0,1] += sxy0
+    isotropic_sigma[...,1,0] += sxy0
+    isotropic_sigma = ma.masked_array(isotropic_sigma, mask=grid_sigma.mask)
 
-    irwin_sigma[((R < rmin) | (R > rmax)),:,:] = np.nan # mask outside fitting region
+    isotropic_sigma[((R < rmin) | (R > rmax)),:,:] = np.nan # mask outside fitting region
 
     contours = [np.linspace(0, 20, 10),
                 np.linspace(0, 20, 10),
@@ -982,17 +1000,17 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
 
         subplot(3,3,i+4)
         gca().set_aspect('equal')
-        contourf(X, Y, irwin_sigma[...,ii,jj]*GPA, contours[i])
+        contourf(X, Y, isotropic_sigma[...,ii,jj]*GPA, contours[i])
         colorbar()
-        title(r'$%s^\mathrm{Irwin}$' % label)
+        title(r'$%s^\mathrm{Isotropic}$' % label)
         draw()
 
         subplot(3,3,i+7)
         gca().set_aspect('equal')
         contourf(X, Y, abs(grid_sigma[...,i] -
-                           irwin_sigma[...,ii,jj])*GPA, dcontours[i])
+                           isotropic_sigma[...,ii,jj])*GPA, dcontours[i])
         colorbar()
-        title(r'$|%s^\mathrm{atom} - %s^\mathrm{Irwin}|$' % (label, label))
+        title(r'$|%s^\mathrm{atom} - %s^\mathrm{isotropic}|$' % (label, label))
         draw()
 
 
@@ -1060,14 +1078,17 @@ def thin_strip_displacement_y(x, y, strain, a, b):
     return u_y
 
 
-def print_crack_system(crack_direction, cleavage_plane, crack_front):
+def print_crack_system(directions):
     """
     Pretty printing of crack crystallographic coordinate system 
 
-    Specified by Miller indices for crack_direction (x),
+    Specified by list of Miller indices for crack_direction (x),
     cleavage_plane (y) and crack_front (z), each of which should be
     a sequence of three floats
     """
+
+    crack_direction, cleavage_plane, crack_front = directions
+    
     crack_direction = MillerDirection(crack_direction)
     cleavage_plane = MillerPlane(cleavage_plane)
     crack_front = MillerDirection(crack_front)
@@ -1102,6 +1123,11 @@ class ConstantStrainRate(object):
         new_strain = current_strain + self.delta_strain
         alpha = (1.0 + new_strain) / (1.0 + current_strain)
         newpos[self.mask, 1] = newpos[self.mask, 1]*alpha
+
+    def copy(self):
+        return ConstantStrainRate(self.orig_height,
+                                  self.delta_strain,
+                                  self.mask)
 
 
 
