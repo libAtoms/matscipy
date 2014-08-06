@@ -983,3 +983,4 @@ def poisson_ratio(C, l, m):
          lhat[1]*lhat[1]*lhat[2]*lhat[2] + 
          lhat[0]*lhat[0]*lhat[2]*lhat[2])))
     return v
+

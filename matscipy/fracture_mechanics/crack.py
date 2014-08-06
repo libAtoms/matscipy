@@ -84,7 +84,7 @@ class RectilinearAnisotropicCrack:
 
     def _init_crack(self):
         """
-        Initialize dependend parameters.
+        Initialize dependent parameters.
         """
         p = np.poly1d( [ self.a11, -2*self.a16, 2*self.a12+self.a66,
                          -2*self.a26, self.a22 ] )
@@ -115,7 +115,9 @@ class RectilinearAnisotropicCrack:
 
     def displacements(self, r, theta, k):
         """
-        Displacement field in mode I fracture.
+        Displacement field in mode I fracture
+
+        Returns (u, v) each with shape of r and theta
         """
 
         h1 = k * np.sqrt(2.0*r/math.pi)
@@ -127,6 +129,27 @@ class RectilinearAnisotropicCrack:
         v = h1 * ( self.h1 * ( self.h4 * h2 - self.h5 * h3 ) ).real
 
         return u, v
+
+
+    def stresses(self, r, theta, k):
+        """
+        Stress field in mode I fracture
+
+        Returns (sig_x, sig_y, sig_xy), each with shape of r and theta.
+        """
+
+        f = k / np.sqrt(2.0*math.pi*r)
+
+        h1 = (self.mu1*self.mu2)/self.h1
+
+        h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
+        h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
+
+        sig_x  = f*(h1*(self.mu2/h2 - self.mu1/h3)).real
+        sig_y  = f*(self.h1*(self.mu1/h2 - self.mu2/h3)).real
+        sig_xy = f*(h1*(1/h1 - 1/h2)).real 
+
+        return sig_x, sig_y, sig_xy
 
 
     def _f(self, theta, v):
@@ -248,12 +271,12 @@ class CubicCrystalCrack:
         return self.crack.displacements(r, theta, k)
 
 
-    def displacements_from_cartesian_coordinates(self, dx, dz, k):
+    def displacements_from_cartesian_coordinates(self, dx, dy, k):
         """
         Displacement field in mode I fracture from cartesian coordinates.
         """
-        abs_dr = np.sqrt(dx*dx+dz*dz)
-        theta = np.arctan2(dz, dx)
+        abs_dr = np.sqrt(dx*dx+dy*dy)
+        theta = np.arctan2(dy, dx)
         return self.displacements_from_cylinder_coordinates(abs_dr, theta, k)
 
 
@@ -416,6 +439,55 @@ class CubicCrystalCrack:
         """
         return ref_x + new_k/old_k*(x-ref_x), ref_y + new_k/old_k*(y-ref_y)
 
+
+    def stresses_from_cylinder_coordinates(self, r, theta, k):
+        """
+        Stress field in mode I fracture from cylindrical coordinates
+        """
+        return self.crack.stresses(r, theta, k)
+
+
+    def stresses_from_cartesian_coordinates(self, dx, dy, k):
+        """
+        Stress field in mode I fracture from cartesian coordinates
+        """
+        abs_dr = np.sqrt(dx*dx+dy*dy)
+        theta = np.arctan2(dy, dx)
+        return self.stresses_from_cylinder_coordinates(abs_dr, theta, k)
+
+
+    def stresses(self, ref_x, ref_y, x0, y0, k):
+        """
+        Stress field for a list of cartesian positions
+
+        Parameters
+        ----------
+        ref_x : array_like
+            x-positions of the reference crystal.
+        ref_y : array_like
+            y-positions of the reference crystal.
+        x0 : float
+            x-coordinate of the crack tip.
+        y0 : float
+            y-coordinate of the crack tip.
+        k : float
+            Stress intensity factor.
+
+        Returns
+        -------
+        sig_x : array_like
+            xx-component of the stress tensor
+
+        sig_y : array_like
+            yy-component of the stress tensor
+
+        sig_xy : array_like
+            xy-component of the stress tensor
+        """
+        dx = ref_x - x0
+        dy = ref_y - y0
+        sig_x, sig_y, sig_xy = self.stresses_from_cartesian_coordinates(dx, dy, k)
+        return sig_x, sig_y, sig_xy
 
 
 
