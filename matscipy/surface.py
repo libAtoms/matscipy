@@ -23,6 +23,12 @@ import itertools
 
 import numpy as np
 
+def gcd(a, b):
+    """Calculate the greatest common divisor of a and b"""
+    while b:
+        a, b = b, a%b
+    return a
+
 class MillerIndex(np.ndarray):
     """
     Representation of a three of four index Miller direction or plane
@@ -53,7 +59,8 @@ class MillerIndex(np.ndarray):
         if isinstance(v, basestring):
             v = MillerIndex.parse(v)
         if len(v) == 3 or len(v) == 4:
-            self = quippy_array.__new__(cls, v)
+            self = np.ndarray.__new__(cls, len(v))
+            self[:] = v
         else:
             raise ValueError('%s input v should be of length 3 or 4' % cls.__name__)
         self.type = type
