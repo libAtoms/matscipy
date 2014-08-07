@@ -243,7 +243,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
             py_absdist = PyArray_ZEROS(1, dims, NPY_DOUBLE, 0);
             absdist = PyArray_DATA((PyArrayObject *) py_absdist);
             break;
-        case 's':
+        case 'S':
             py_shift = PyArray_ZEROS(2, dims, NPY_INT, 0);
             shift = PyArray_DATA((PyArrayObject *) py_shift);
         default:
@@ -427,7 +427,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
         case 'd':
             PyTuple_SetItem(py_ret, i, py_absdist);
             break;
-        case 's':
+        case 'S':
             PyTuple_SetItem(py_ret, i, py_shift);
             break;
         default:
