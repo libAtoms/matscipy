@@ -64,6 +64,16 @@ def neighbour_list(quantities, a, cutoff):
 
     Parameters
     ----------
+    quantities : str
+        Quantities to compute by the neighbor list algorithm. Each character
+        in this string defines a quantity. They are returned in a tuple of 
+        the same order. Possible quantities are
+            'i' : first atom index
+            'j' : second atom index
+            'd' : absolute distance
+            'D' : distance vector
+            'S' : shift vector (number of cell boundaries crossed by the bond
+                  between atom i and j)
     a : ase.Atoms
         Atomic configuration.
     cutoff : float
@@ -71,8 +81,8 @@ def neighbour_list(quantities, a, cutoff):
 
     Returns
     -------
-    i, j : array_like
-        Neighbour pairs as indices to the atoms.
+    i, j, ... : array
+        Tuple with arrays for each quantity specified above.
     """
 
     return _matscipy.neighbour_list(quantities, a.cell,
