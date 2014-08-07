@@ -32,6 +32,12 @@
 #include "matscipymodule.h"
 
 /*
+ * Basics
+ */
+
+#define max(x, y)  ( x > y ? x : y )
+
+/*
  * Some basic linear algebra
  */
 
@@ -167,9 +173,13 @@ py_neighbour_list(PyObject *self, PyObject *args)
     len3 = volume/len3;
 
     /* Number of cells for cell subdivision */
-    int n1 = (int) floor(len1/cutoff);
-    int n2 = (int) floor(len2/cutoff);
-    int n3 = (int) floor(len3/cutoff);
+    int n1 = max((int) floor(len1/cutoff), 1);
+    int n2 = max((int) floor(len2/cutoff), 1);
+    int n3 = max((int) floor(len3/cutoff), 1);
+
+    assert(n1 > 0);
+    assert(n2 > 0);
+    assert(n3 > 0);
 
     /* Find out over how many neighbor cells we need to loop (if the box is
        small */
@@ -246,6 +256,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
         case 'S':
             py_shift = PyArray_ZEROS(2, dims, NPY_INT, 0);
             shift = PyArray_DATA((PyArrayObject *) py_shift);
+            break;
         default:
             PyErr_SetString(PyExc_ValueError,
                             "Unsupported quantity specified.");
@@ -383,9 +394,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                 if (py_absdist) 
                                     absdist[nneigh] = sqrt(abs_dr_sq);
                                 if (py_shift) {
-                                    shift[3*nneigh+0] = (ci1 + x - cj1)/n1;
-                                    shift[3*nneigh+1] = (ci2 + y - cj2)/n2;
-                                    shift[3*nneigh+2] = (ci3 + z - cj3)/n3;
+                                    shift[3*nneigh+0] = (cj1 - ci1 - x)/n1;
+                                    shift[3*nneigh+1] = (cj2 - ci2 - y)/n2;
+                                    shift[3*nneigh+2] = (cj3 - ci3 - z)/n3;
                                 }
 
                                 nneigh++;
