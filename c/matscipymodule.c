@@ -94,7 +94,8 @@ position_to_cell_index(double *inv_cell, double *ri, int n1, int n2, int n3,
  * Helper functions
  */
 
-void *resize_array(PyObject *py_arr, npy_intp newsize)
+void *
+resize_array(PyObject *py_arr, npy_intp newsize)
 {
     if (!py_arr) {
         PyErr_SetString(PyExc_RuntimeError,
@@ -120,6 +121,17 @@ void *resize_array(PyObject *py_arr, npy_intp newsize)
     return PyArray_DATA((PyArrayObject *) py_arr);
 }
 
+bool
+check_bound(int c, int n)
+{
+    if (c < 0 || c >= n) {
+        PyErr_SetString(PyExc_RuntimeError, "Atom out of (non-periodic) "
+                        "simulation bounds.");
+        return false;
+    }
+    return true;
+}
+
 /*
  * Neighbour list construction
  */
@@ -127,11 +139,11 @@ void *resize_array(PyObject *py_arr, npy_intp newsize)
 PyObject *
 py_neighbour_list(PyObject *self, PyObject *args)
 {
-    PyObject *py_cell, *py_inv_cell, *py_r, *py_quantities;
+    PyObject *py_cell, *py_inv_cell, *py_pbc, *py_r, *py_quantities;
     double cutoff;
 
-    if (!PyArg_ParseTuple(args, "O!OOOd", &PyString_Type, &py_quantities,
-                          &py_cell, &py_inv_cell, &py_r, &cutoff))
+    if (!PyArg_ParseTuple(args, "O!OOOOd", &PyString_Type, &py_quantities,
+                          &py_cell, &py_inv_cell, &py_pbc, &py_r, &cutoff))
         return NULL;
 
     /* Make sure our arrays are contiguous */
@@ -141,6 +153,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
     py_inv_cell = PyArray_FROMANY(py_inv_cell, NPY_DOUBLE, 2, 2,
                                   NPY_ARRAY_C_CONTIGUOUS);
     if (!py_inv_cell) return NULL;
+    py_pbc = PyArray_FROMANY(py_pbc, NPY_BOOL, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
+    if (!py_pbc) return NULL;
     py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_r) return NULL;
 
@@ -151,6 +165,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     npy_double *cell = PyArray_DATA((PyArrayObject *) py_cell);
     npy_double *cell1 = &cell[0], *cell2 = &cell[3], *cell3 = &cell[6];
     npy_double *inv_cell = PyArray_DATA((PyArrayObject *) py_inv_cell);
+    npy_bool *pbc = PyArray_DATA((PyArrayObject *) py_pbc);
     npy_double *r = PyArray_DATA((PyArrayObject *) py_r);
 
     /* Compute vectors to opposite face */
@@ -200,9 +215,15 @@ py_neighbour_list(PyObject *self, PyObject *args)
         position_to_cell_index(inv_cell, &r[3*i], n1, n2, n3, &c1, &c2, &c3);
 
         /* Periodic boundary conditions */
-        c1 = wrap(c1, n1);
-        c2 = wrap(c2, n2);
-        c3 = wrap(c3, n3);
+        if (pbc[0])  c1 = wrap(c1, n1);
+        if (pbc[1])  c2 = wrap(c2, n2);
+        if (pbc[2])  c3 = wrap(c3, n3);
+        if (!check_bound(c1, n1))
+            return NULL;
+        if (!check_bound(c2, n2))
+            return NULL;
+        if (!check_bound(c3, n3))
+            return NULL;
 
         /* Continuous cell index */
         int ci = c1+n1*(c2+n2*c3);
@@ -290,25 +311,35 @@ py_neighbour_list(PyObject *self, PyObject *args)
         dri[2] = ri[2] - ci1*bin1[2] - ci2*bin2[2] - ci3*bin3[2];
 
         /* Apply periodic boundary conditions */
-        ci1 = wrap(ci1, n1);
-        ci2 = wrap(ci2, n2);
-        ci3 = wrap(ci3, n3);
+        if (pbc[0])  ci1 = wrap(ci1, n1);
+        if (pbc[1])  ci2 = wrap(ci2, n2);
+        if (pbc[2])  ci3 = wrap(ci3, n3);
 
         /* Loop over neighbouring bins */
         int x, y, z;
         for (z = -nz; z <= nz; z++) {
-            int cj3 = wrap(ci3 + z, n3);
+            int cj3 = ci3 + z;
+            if (pbc[2])  cj3 = wrap(cj3, n3);
+
+            /* Skip to next z value if cell is out of simulation bounds */
+            if (cj3 < 0 || cj3 >= n3)  continue;
+
             int ncj3 = n2*cj3;
 
             double off3[3];
             off3[0] = z*bin3[0];
             off3[1] = z*bin3[1];
             off3[2] = z*bin3[2];
-
+            
             for (y = -ny; y <= ny; y++) {
-                int cj2 = wrap(ci2 + y, n2);
-                int ncj2 = n1*(cj2 + ncj3);
+                int cj2 = ci2 + y;
+                if (pbc[1])  cj2 = wrap(cj2, n2);
 
+                /* Skip to next y value if cell is out of simulation bounds */
+                if (cj2 < 0 || cj2 >= n2)  continue;
+
+                int ncj2 = n1*(cj2 + ncj3);
+                
                 double off2[3];
                 off2[0] = off3[0] + y*bin2[0];
                 off2[1] = off3[1] + y*bin2[1];
@@ -316,7 +347,13 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
                 for (x = -nx; x <= nx; x++) {
                     /* Bin index of neighbouring bin */
-                    int cj1 = wrap(ci1 + x, n1);
+                    int cj1 = ci1 + x;
+                    if (pbc[0])  cj1 = wrap(cj1, n1);
+
+                    /* Skip to next x value if cell is out of simulation bounds
+                     */                    
+                    if (cj1 < 0 || cj1 >= n1)  continue;
+
                     int ncj = cj1 + ncj2;
 
                     assert(ncj == cj1+n1*(cj2+n2*cj3));
@@ -337,8 +374,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
                             position_to_cell_index(inv_cell, rj, n1, n2, n3,
                                                    &cj1, &cj2, &cj3);
 
-                            /* drj is position relative to lower left corner
-                               of the bin */
+                            /* drj is position relative to lower
+                               left corner of the bin */
                             double drj[3];
                             drj[0] = rj[0] - cj1*bin1[0] - cj2*bin2[0] -
                                 cj3*bin3[0];
@@ -352,7 +389,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
                             dr[0] = dri[0] - drj[0] - off[0];
                             dr[1] = dri[1] - drj[1] - off[1];
                             dr[2] = dri[2] - drj[2] - off[2];
-                            double abs_dr_sq = dr[0]*dr[0] + dr[1]*dr[1] + 
+                            double abs_dr_sq = dr[0]*dr[0] + dr[1]*dr[1] +
                                 dr[2]*dr[2];
 
                             if (abs_dr_sq < cutoff_sq) {
@@ -381,7 +418,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                                                neighsize)))
                                         goto fail;
                                 }
-
+                                            
                                 if (py_first)
                                     first[nneigh] = i;
                                 if (py_secnd)
@@ -398,7 +435,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                     shift[3*nneigh+1] = (cj2 - ci2 - y)/n2;
                                     shift[3*nneigh+2] = (cj3 - ci3 - z)/n3;
                                 }
-
+                                
                                 nneigh++;
                             }
                         }
