@@ -32,7 +32,7 @@ from ase.optimize import FIRE
 from ase.lattice.cubic import FaceCenteredCubic, SimpleCubic
 
 import matscipy.fracture_mechanics.clusters as clusters
-from matscipy.elasticity import measure_triclinic_elastic_moduli
+from matscipy.elasticity import measure_triclinic_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_cubic
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack
 from matscipy.fracture_mechanics.crack import \
