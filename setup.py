@@ -1,6 +1,6 @@
 import os
 import glob
-from distutils.core import setup
+from numpy.distutils.core import setup, Extension
 
 version = (os.popen('git config --get remote.origin.url').read() + ',' +
            os.popen('git describe --always --tags --dirty').read())
@@ -15,5 +15,11 @@ setup(name='matscipy',
       license='LGPLv2.1+',
       package_dir={'matscipy': 'matscipy'},
       packages=['matscipy'],
-      scripts=scripts
+      scripts=scripts,
+      ext_modules=[
+        Extension(
+            '_matscipy',
+            [ 'c/matscipymodule.c' ],
+            )
+        ]
       )
