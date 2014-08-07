@@ -104,7 +104,7 @@ void *resize_array(PyObject *py_arr, npy_intp newsize)
 
     PyArray_Dims newshape;
     newshape.ptr = dims;
-    newshape.len = 1;
+    newshape.len = ndim;
         
     PyObject *retval;
     retval = PyArray_Resize((PyArrayObject *) py_arr, &newshape, 1, NPY_CORDER);
@@ -228,23 +228,23 @@ py_neighbour_list(PyObject *self, PyObject *args)
     while (quantities[i] != '\0') {
         switch (quantities[i]) {
         case 'i':
-            py_first = PyArray_ZEROS(1, dims, NPY_INT, 1);
+            py_first = PyArray_ZEROS(1, dims, NPY_INT, 0);
             first = PyArray_DATA((PyArrayObject *) py_first);
             break;
         case 'j':
-            py_secnd = PyArray_ZEROS(1, dims, NPY_INT, 1);
+            py_secnd = PyArray_ZEROS(1, dims, NPY_INT, 0);
             secnd = PyArray_DATA((PyArrayObject *) py_secnd);
             break;
         case 'r':
-            py_distvec = PyArray_ZEROS(2, dims, NPY_DOUBLE, 1);
+            py_distvec = PyArray_ZEROS(2, dims, NPY_DOUBLE, 0);
             distvec = PyArray_DATA((PyArrayObject *) py_distvec);
             break;
         case 'd':
-            py_absdist = PyArray_ZEROS(1, dims, NPY_DOUBLE, 1);
+            py_absdist = PyArray_ZEROS(1, dims, NPY_DOUBLE, 0);
             absdist = PyArray_DATA((PyArrayObject *) py_absdist);
             break;
         case 's':
-            py_shift = PyArray_ZEROS(2, dims, NPY_INT, 1);
+            py_shift = PyArray_ZEROS(2, dims, NPY_INT, 0);
             shift = PyArray_DATA((PyArrayObject *) py_shift);
         default:
             PyErr_SetString(PyExc_ValueError,
