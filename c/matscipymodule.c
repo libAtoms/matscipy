@@ -235,7 +235,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
             py_secnd = PyArray_ZEROS(1, dims, NPY_INT, 0);
             secnd = PyArray_DATA((PyArrayObject *) py_secnd);
             break;
-        case 'r':
+        case 'D':
             py_distvec = PyArray_ZEROS(2, dims, NPY_DOUBLE, 0);
             distvec = PyArray_DATA((PyArrayObject *) py_distvec);
             break;
@@ -286,8 +286,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
         /* Loop over neighbouring bins */
         int x, y, z;
         for (z = -nz; z <= nz; z++) {
-            int cj1 = wrap(ci3 + z, n3);
-            int ncj3 = n2*cj1;
+            int cj3 = wrap(ci3 + z, n3);
+            int ncj3 = n2*cj3;
 
             double off3[3];
             off3[0] = z*bin3[0];
@@ -305,8 +305,10 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
                 for (x = -nx; x <= nx; x++) {
                     /* Bin index of neighbouring bin */
-                    int cj1 = wrap(ci1 + z, n1);
+                    int cj1 = wrap(ci1 + x, n1);
                     int ncj = cj1 + ncj2;
+
+                    assert(ncj == cj1+n1*(cj2+n2*cj3));
 
                     /* Offset of the neighboring bins */
                     double off[3];
@@ -419,7 +421,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
         case 'j':
             PyTuple_SetItem(py_ret, i, py_secnd);
             break;
-        case 'r':
+        case 'D':
             PyTuple_SetItem(py_ret, i, py_distvec);
             break;
         case 'd':

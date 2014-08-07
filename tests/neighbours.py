@@ -27,8 +27,6 @@ import numpy as np
 
 import ase.io as io
 
-import atomistica.native as native
-
 import matscipytest
 from matscipy.neighbours import mic, neighbour_list
 
@@ -38,12 +36,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_neighbour_list(self):
         a = io.read('aC.traj')
-        j, dr, i, abs_dr = neighbour_list("jrid", a, 1.85)
-
-        p = native.from_atoms(a)
-        nl = native.Neighbors(100)
-        nl.request_interaction_range(1.85)
-        i2, j2, abs_dr2 = nl.get_neighbors(p)
+        j, dr, i, abs_dr = neighbour_list("jDid", a, 1.85)
 
         self.assertTrue((np.bincount(i) == np.bincount(j)).all())
 
@@ -52,9 +45,6 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
         abs_dr_from_dr = np.sqrt(np.sum(dr*dr, axis=1))
         abs_dr_direct = np.sqrt(np.sum(dr_direct*dr_direct, axis=1))
-
-        print dr
-        print dr_direct
 
         self.assertTrue(np.all(np.abs(abs_dr-abs_dr_from_dr) < 1e-12))
         self.assertTrue(np.all(np.abs(abs_dr-abs_dr_direct) < 1e-12))
