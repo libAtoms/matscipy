@@ -64,7 +64,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
         a.set_pbc(False)
         i = neighbour_list("i", a, 1.1)
-        assert i == []
+        assert len(i) == 0
 
         a.set_pbc([True, False, False])
         i = neighbour_list("i", a, 1.1)
@@ -73,6 +73,18 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         a.set_pbc([True, False, True])
         i = neighbour_list("i", a, 1.1)
         assert np.bincount(i)[0] == 4
+
+    def test_out_of_cell(self):
+        a = ase.Atoms('CC', positions=[[0.5, 0.5, 0.5],
+                                       [1.1, 0.5, 0.5]],
+                      cell=[1, 1, 1], pbc=False)
+        raised = False
+        try:
+            i, j = neighbour_list("ii", a, 1.1)
+        except RuntimeError, e:
+            raised = True
+        self.assertTrue(raised)
+
 
 ###
 
