@@ -23,7 +23,7 @@ import itertools
 import warnings
 
 import numpy as np
-from numpy.linalg import inv
+from numpy.linalg import inv, norm
 #try:
 #    import scipy.stats as scipy_stats
 #except:
@@ -921,3 +921,66 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
                 printed[index] = 1
 
     return C, C_err
+
+
+def youngs_modulus(C, l):
+    """
+    Calculate approximate Youngs modulus E_l from 6x6 elastic constants matrix C_ij
+
+    This is the modulus for loading in the l direction. For the exact answer, taking
+    into account elastic anisotropuy, rotate the C_ij matrix to the correct frame,
+    compute the compliance matrix::
+
+       C = ...  # 6x6 C_ij matrix in crystal frame
+       A = ...  # rotation matrix
+       Cr = rotate_elastic_constants(C, A)
+       S = np.inv(Cr)
+       E_x = 1/S[0, 0]  # Young's modulus for a pull in x direction
+       E_y = 1/S[1, 1]  # Young's modulus for a pull in y direction
+       E_z = 1/S[0, 0]  # Young's modulus for a pull in z direction
+
+    Notes
+    -----
+
+    Formula is from W. Brantley, Calculated elastic constants for stress problems associated 
+    with semiconductor devices. J. Appl. Phys., 44, 534 (1973).
+    """  
+
+    S = inv(C)        # Compliance matrix
+    lhat = l/norm(l)  # Normalise directions
+
+    # Youngs modulus in direction l, ratio of stress sigma_l 
+    # to strain response epsilon_l
+    E = 1.0/(S[0,0] - 2.0*(S[0,0]-S[0,1]-0.5*S[3,3])*(lhat[0]*lhat[0]*lhat[1]*lhat[1] +
+         lhat[1]*lhat[1]*lhat[2]*lhat[2] +
+         lhat[0]*lhat[0]*lhat[2]*lhat[2]))
+    return E
+
+
+def poisson_ratio(C, l, m):
+    """
+    Calculate approximate Poisson ratio \nu_{lm} from 6x6 elastic constant matrix C_{ij}
+
+    This is the response in `m` direction to pulling in `l` direction. Result is dimensionless.
+
+    Notes
+    -----
+
+    Formula is from W. Brantley, Calculated elastic constants for stress problems associated 
+    with semiconductor devices. J. Appl. Phys., 44, 534 (1973).
+    """
+    
+    S = inv(C)        # Compliance matrix
+    lhat = l/norm(l)  # Normalise directions
+    mhat = m/norm(m)
+
+    # Poisson ratio v_lm: response in m direction to strain in 
+    # l direction, v_lm = - epsilon_m/epsilon_l
+    v = -((S[0,1] + (S[0,0]-S[0,1]-0.5*S[3,3])*(lhat[0]*lhat[0]*mhat[0]*mhat[0] +
+         lhat[1]*lhat[1]*mhat[1]*mhat[1] +
+         lhat[2]*lhat[2]*mhat[2]*mhat[2])) / 
+         (S[0,0] - 2.0*(S[0,0]-S[0,1]-0.5*S[3,3])*(lhat[0]*lhat[0]*lhat[1]*lhat[1] + 
+         lhat[1]*lhat[1]*lhat[2]*lhat[2] + 
+         lhat[0]*lhat[0]*lhat[2]*lhat[2])))
+    return v
+

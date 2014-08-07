@@ -89,7 +89,15 @@ g = a.get_array('groups')
 if hasattr(params, 'bond'):
     bond1, bond2 = params.bond
 else:
-    bond1, bond2 = crack.find_tip_coordination(a)
+    bond1, bond2 = crack.find_tip_coordination(a, bondlength=2.7)
+
+print('Opening bond {0}--{1}, initial bond length {2}'.
+      format(bond1, bond2, a.get_distance(bond1, bond2, mic=True)))
+
+# centre vertically on the opening bond
+a.translate([0., a.cell[1,1]/2.0 - 
+                (a.positions[bond1, 1] + 
+                 a.positions[bond2, 1])/2.0, 0.])
 
 ase.io.write('notch.xyz', a, format='extxyz')
 
