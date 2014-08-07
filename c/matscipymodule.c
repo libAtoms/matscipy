@@ -485,6 +485,11 @@ py_neighbour_list(PyObject *self, PyObject *args)
         }
         i++;
     }
+    if (strlen(quantities) == 1) {
+        PyObject *py_tuple = py_ret;
+        py_ret = PyTuple_GET_ITEM(py_tuple, 0);
+        Py_DECREF(py_tuple);
+    }
     return py_ret;
 
     fail:
