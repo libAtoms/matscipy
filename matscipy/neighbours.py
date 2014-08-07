@@ -86,6 +86,6 @@ def neighbour_list(quantities, a, cutoff):
     """
 
     return _matscipy.neighbour_list(quantities, a.cell,
-                                    np.linalg.inv(a.cell.T).T, a.positions,
-                                    cutoff)
+                                    np.linalg.inv(a.cell.T).T, a.pbc,
+                                    a.positions, cutoff)
 
