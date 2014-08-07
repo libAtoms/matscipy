@@ -25,6 +25,7 @@ import unittest
 
 import numpy as np
 
+import ase
 import ase.io as io
 
 import matscipytest
@@ -50,6 +51,16 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertTrue(np.all(np.abs(abs_dr-abs_dr_direct) < 1e-12))
 
         self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
+
+    def test_small_cell(self):
+        a = ase.Atoms('C', positions=[[0.5, 0.5, 0.5]], cell=[1, 1, 1],
+                      pbc=True)
+        i, j, dr, shift = neighbour_list("ijDS", a, 1.1)
+        assert np.bincount(i)[0] == 6
+        assert (dr == shift).all()
+
+        i, j = neighbour_list("ij", a, 1.5)
+        assert np.bincount(i)[0] == 18
 
 ###
 
