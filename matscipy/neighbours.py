@@ -58,7 +58,7 @@ def mic(dr, cell, pbc=None):
     return dr - np.dot(dri, cell)
 
 
-def neighbour_list(a, cutoff):
+def neighbour_list(a, cutoff, **kwargs):
     """
     Compute a neighbour list for an atomic configuration.
 
@@ -75,6 +75,6 @@ def neighbour_list(a, cutoff):
         Neighbour pairs as indices to the atoms.
     """
 
-    return _matscipy.neighbour_list(a.cell, np.linalg.inv(a.cell), a.positions,
-                                    cutoff)
+    return _matscipy.neighbour_list(a.cell, np.linalg.inv(a.cell.T).T,
+                                    a.positions, cutoff, **kwargs)
 

@@ -26,6 +26,7 @@
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
 #include <numpy/arrayobject.h>
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "matscipymodule.h"
@@ -87,40 +88,42 @@ position_to_cell_index(double *inv_cell, double *ri, int n1, int n2, int n3,
  * Helper functions
  */
 
-int
+void *resize_array(PyObject *py_arr, npy_intp newsize)
+{
+    PyArray_Dims newshape;
+    newshape.ptr = &newsize;
+    newshape.len = 1;
+        
+    PyObject *retval;
+    retval = PyArray_Resize((PyArrayObject *) py_arr, &newshape, 1, NPY_CORDER);
+    if (!retval)  return NULL;
+    Py_DECREF(retval);
+
+    return PyArray_DATA((PyArrayObject *) py_arr);
+}
+
+bool
 ensure_neighbor_list_size(int minsize, npy_intp *neighsize, PyObject *py_first,
                           npy_int **first, PyObject *py_secnd,
-                          npy_int **secnd)
+                          npy_int **secnd, PyObject *py_distance,
+                          npy_double **distance)
 {
     if (minsize > *neighsize) {
         /* Resize first and secnd arrays */
         *neighsize *= 2;
-                                
-        PyArray_Dims newshape;
-        newshape.ptr = neighsize;
-        newshape.len = 1;
-        
-        PyObject *retval;
-        retval = PyArray_Resize((PyArrayObject *)
-                                py_first,
-                                &newshape, 1,
-                                NPY_CORDER);
-        if (!retval)  return 1;
-        Py_DECREF(retval);
-        *first = PyArray_DATA((PyArrayObject *)
-                              py_first);
-        
-        retval = PyArray_Resize((PyArrayObject *)
-                                py_secnd,
-                                &newshape, 1,
-                                NPY_CORDER);
-        if (!retval)  return 1;
-        Py_DECREF(retval);
-        *secnd = PyArray_DATA((PyArrayObject *)
-                              py_secnd);
+
+        *first = resize_array(py_first, *neighsize);
+        if (!*first)  return true;
+        *secnd = resize_array(py_secnd, *neighsize);
+        if (!*secnd)  return true;
+        if (py_distance) {
+            *distance = resize_array(py_distance, *neighsize);
+            if (!*distance)  return true;
+        }
     }
 
-    return 0;
+    /* Returns true on error */
+    return false;
 }
 
 /*
@@ -128,13 +131,17 @@ ensure_neighbor_list_size(int minsize, npy_intp *neighsize, PyObject *py_first,
  */
 
 PyObject *
-py_neighbour_list(PyObject *self, PyObject *args)
+py_neighbour_list(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     PyObject *py_cell, *py_inv_cell, *py_r;
+    PyObject *py_distance = NULL;
     double cutoff;
 
-    if (!PyArg_ParseTuple(args, "OOOd", &py_cell, &py_inv_cell, &py_r,
-                          &cutoff))
+    static char *kwlist[] = { "cell", "inv_cell", "r", "cutoff", "distance",
+                              NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOd|O!", kwlist,
+                                     &py_cell, &py_inv_cell, &py_r, &cutoff,
+                                     &PyBool_Type, &py_distance))
         return NULL;
 
     /* Make sure our arrays are contiguous */
@@ -170,10 +177,21 @@ py_neighbour_list(PyObject *self, PyObject *args)
         norm3[i] *= volume/(len3*len3);
     }
 
+    /* Compute distance of cell faces */
+    len1 = volume/len1;
+    len2 = volume/len2;
+    len3 = volume/len3;
+
     /* Number of cells for cell subdivision */
-    int n1 = (int)(normsq(norm1)/cutoff)+1;
-    int n2 = (int)(normsq(norm2)/cutoff)+1;
-    int n3 = (int)(normsq(norm3)/cutoff)+1;
+    int n1 = (int) floor(len1/cutoff);
+    int n2 = (int) floor(len2/cutoff);
+    int n3 = (int) floor(len3/cutoff);
+
+    /* Find out over how many neighbor cells we need to loop (if the box is
+       small */
+    int nx = (int) ceil(cutoff*n1/len1);
+    int ny = (int) ceil(cutoff*n2/len2);
+    int nz = (int) ceil(cutoff*n3/len3);
 
     /* Sort particles into bins */
     int *seed, *last, *next;
@@ -219,6 +237,16 @@ py_neighbour_list(PyObject *self, PyObject *args)
     npy_int *first = PyArray_DATA((PyArrayObject *) py_first);
     npy_int *secnd = PyArray_DATA((PyArrayObject *) py_secnd);
 
+    /* Numpy arrays for optional list */
+    npy_double *distance = NULL;
+    if (py_distance && PyObject_IsTrue(py_distance)) {
+        py_distance = PyArray_ZEROS(1, &neighsize, NPY_DOUBLE, 1);
+        distance = PyArray_DATA((PyArrayObject *) py_distance);
+    }
+    else {
+        py_distance = NULL;
+    }
+
     /* We need the square of the cutoff */
     double cutoff_sq = cutoff*cutoff;
 
@@ -228,7 +256,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
         bin1[i] = cell1[i]/n1;
         bin2[i] = cell2[i]/n2;
         bin3[i] = cell3[i]/n3;
-    }
+    }  
 
     /* Loop over atoms */
     for (i = 0; i < nat; i++) {
@@ -250,7 +278,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
         /* Loop over neighbouring bins */
         int x, y, z;
-        for (z = -1; z <= 1; z++) {
+        for (z = -nz; z <= nz; z++) {
             int ncj3 = n2*wrap(ci3 + z, n3);
 
             double off3[3];
@@ -258,7 +286,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
             off3[1] = z*bin3[1];
             off3[2] = z*bin3[2];
 
-            for (y = -1; y <= 1; y++) {
+            for (y = -ny; y <= ny; y++) {
                 int ncj2 = n1*(wrap(ci2 + y, n2) + ncj3);
 
                 double off2[3];
@@ -266,28 +294,28 @@ py_neighbour_list(PyObject *self, PyObject *args)
                 off2[1] = off3[1] + y*bin2[1];
                 off2[2] = off3[2] + y*bin2[2];
 
-                for (x = -1; x <= 1; x++) {
+                for (x = -nx; x <= nx; x++) {
                     /* Bin index of neighbouring bin */
                     int ncj = wrap(ci1 + x, n1) + ncj2;
 
                     /* Offset of the neighboring bins */
                     double off[3];
-                    off[0] = off2[0] + z*bin3[0];
-                    off[1] = off2[1] + z*bin3[1];
-                    off[2] = off2[2] + z*bin3[2];
+                    off[0] = off2[0] + x*bin1[0];
+                    off[1] = off2[1] + x*bin1[1];
+                    off[2] = off2[2] + x*bin1[2];
 
                     /* Loop over all atoms in neighbouring bin */
                     int j = seed[ncj];
                     while (j >= 0) {
                         if (i != j || x != 0 || y != 0 || z != 0) {
-                            /* drj is position relative to lower left corner
-                               of the bin */
                             double *rj = &r[3*j];
 
                             int cj1, cj2, cj3;
                             position_to_cell_index(inv_cell, rj, n1, n2, n3,
                                                    &cj1, &cj2, &cj3);
 
+                            /* drj is position relative to lower left corner
+                               of the bin */
                             double drj[3];
                             drj[0] = rj[0] - cj1*bin1[0] - cj2*bin2[0] -
                                 cj3*bin3[0];
@@ -306,24 +334,31 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
                             if (abs_dr_sq < cutoff_sq) {
 
-                                ensure_neighbor_list_size(nneigh+1, &neighsize,
-                                                          py_first, &first,
-                                                          py_secnd, &secnd);
+                                if (ensure_neighbor_list_size(nneigh+1,
+                                                              &neighsize,
+                                                              py_first, &first,
+                                                              py_secnd, &secnd,
+                                                              py_distance,
+                                                              &distance))
+                                    return NULL;
 
                                 first[nneigh] = i;
                                 secnd[nneigh] = j;
+                                if (py_distance) {
+                                    distance[nneigh] = sqrt(abs_dr_sq);
+                                }
 
                                 nneigh++;
                             }
                         }
-
+                        
                         j = next[j];
                     }
                 }
             }
         }
     }
-
+    
     /* Release cell subdivision information */
     free(seed);
     free(next);
@@ -342,7 +377,12 @@ py_neighbour_list(PyObject *self, PyObject *args)
     Py_DECREF(retval);
 
     /* Build return tuple */
-    return Py_BuildValue("OO", py_first, py_secnd);
+    if (py_distance) {
+        return Py_BuildValue("OOO", py_first, py_secnd, py_distance);
+    }
+    else {
+        return Py_BuildValue("OO", py_first, py_secnd);
+    }
 }
 
 /*
@@ -350,7 +390,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
  */
 
 static PyMethodDef module_methods[] = {
-    { "neighbour_list", py_neighbour_list, METH_VARARGS,
+    { "neighbour_list", (PyCFunction) py_neighbour_list, METH_KEYWORDS,
       "Compute a neighbour list for an atomic configuration." },
     { NULL, NULL, 0, NULL }  /* Sentinel */
 };
