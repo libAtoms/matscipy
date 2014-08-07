@@ -62,6 +62,18 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         i, j = neighbour_list("ij", a, 1.5)
         assert np.bincount(i)[0] == 18
 
+        a.set_pbc(False)
+        i = neighbour_list("i", a, 1.1)
+        assert i == []
+
+        a.set_pbc([True, False, False])
+        i = neighbour_list("i", a, 1.1)
+        assert np.bincount(i)[0] == 2
+
+        a.set_pbc([True, False, True])
+        i = neighbour_list("i", a, 1.1)
+        assert np.bincount(i)[0] == 4
+
 ###
 
 if __name__ == '__main__':
