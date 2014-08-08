@@ -42,7 +42,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertTrue((np.bincount(i) == np.bincount(j)).all())
 
         r = a.get_positions()
-        dr_direct = mic(r[i]-r[j], a.cell)
+        dr_direct = mic(r[j]-r[i], a.cell)
 
         abs_dr_from_dr = np.sqrt(np.sum(dr*dr, axis=1))
         abs_dr_direct = np.sqrt(np.sum(dr_direct*dr_direct, axis=1))

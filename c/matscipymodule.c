@@ -386,9 +386,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
                             /* Compute distance between atoms */
                             double dr[3];
-                            dr[0] = dri[0] - drj[0] - off[0];
-                            dr[1] = dri[1] - drj[1] - off[1];
-                            dr[2] = dri[2] - drj[2] - off[2];
+                            dr[0] = drj[0] - dri[0] + off[0];
+                            dr[1] = drj[1] - dri[1] + off[1];
+                            dr[2] = drj[2] - dri[2] + off[2];
                             double abs_dr_sq = dr[0]*dr[0] + dr[1]*dr[1] +
                                 dr[2]*dr[2];
 
@@ -431,9 +431,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                 if (py_absdist) 
                                     absdist[nneigh] = sqrt(abs_dr_sq);
                                 if (py_shift) {
-                                    shift[3*nneigh+0] = (cj1 - ci1 - x)/n1;
-                                    shift[3*nneigh+1] = (cj2 - ci2 - y)/n2;
-                                    shift[3*nneigh+2] = (cj3 - ci3 - z)/n3;
+                                    shift[3*nneigh+0] = (ci1 - cj1 + x)/n1;
+                                    shift[3*nneigh+1] = (ci2 - cj2 + y)/n2;
+                                    shift[3*nneigh+2] = (ci3 - cj3 + z)/n3;
                                 }
                                 
                                 nneigh++;
