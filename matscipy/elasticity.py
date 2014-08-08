@@ -49,20 +49,20 @@ def Voigt_6_to_full_3x3_strain(strain_vector):
     """
     Form a 3x3 strain matrix from a 6 component vector in Voigt notation
     """
-    e1, e2, e3, e4, e5, e6 = strain_vector
-    return np.array([[1.0+e1, 0.5*e6, 0.5*e5],
-                     [0.5*e6, 1.0+e2, 0.5*e4],
-                     [0.5*e5, 0.5*e4, 1.0+e3]])
+    e1, e2, e3, e4, e5, e6 = np.transpose(strain_vector)
+    return np.transpose([[1.0+e1, 0.5*e6, 0.5*e5],
+                         [0.5*e6, 1.0+e2, 0.5*e4],
+                         [0.5*e5, 0.5*e4, 1.0+e3]])
 
 
 def Voigt_6_to_full_3x3_stress(stress_vector):
     """
     Form a 3x3 stress matrix from a 6 component vector in Voigt notation
     """
-    s1, s2, s3, s4, s5, s6 = stress_vector
-    return np.array([[s1, s6, s5],
-                     [s6, s2, s4],
-                     [s5, s4, s3]])
+    s1, s2, s3, s4, s5, s6 = np.transpose(stress_vector)
+    return np.transpose([[s1, s6, s5],
+                         [s6, s2, s4],
+                         [s5, s4, s3]])
 
 
 def full_3x3_to_Voigt_6_strain(strain_matrix):
