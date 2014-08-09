@@ -22,7 +22,6 @@
    ====================================================================== */
 
 #include <Python.h>
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
 #include <numpy/arrayobject.h>
 
@@ -148,14 +147,14 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
     /* Make sure our arrays are contiguous */
     py_cell = PyArray_FROMANY(py_cell, NPY_DOUBLE, 2, 2,
-                              NPY_ARRAY_C_CONTIGUOUS);
+                              NPY_C_CONTIGUOUS);
     if (!py_cell) return NULL;
     py_inv_cell = PyArray_FROMANY(py_inv_cell, NPY_DOUBLE, 2, 2,
-                                  NPY_ARRAY_C_CONTIGUOUS);
+                                  NPY_C_CONTIGUOUS);
     if (!py_inv_cell) return NULL;
-    py_pbc = PyArray_FROMANY(py_pbc, NPY_BOOL, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
+    py_pbc = PyArray_FROMANY(py_pbc, NPY_BOOL, 1, 1, NPY_C_CONTIGUOUS);
     if (!py_pbc) return NULL;
-    py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
+    py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_C_CONTIGUOUS);
     if (!py_r) return NULL;
 
     /* FIXME! Check array shapes. */
