@@ -14,7 +14,7 @@ setup(name='matscipy',
       maintainer_email='james.kermode@gmail.com',
       license='LGPLv2.1+',
       package_dir={'matscipy': 'matscipy'},
-      packages=['matscipy', 'matscipy.fracture_mechanics'],
+      packages=['matscipy', 'matscipy.fracture_mechanics', 'matscipy.contact_mechanics'],
       scripts=scripts,
       ext_modules=[
         Extension(
