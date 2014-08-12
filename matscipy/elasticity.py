@@ -204,6 +204,32 @@ def cubic_to_Voigt_6x6(C11, C12, C44):
                      [  0,  0,  0,  0,C44,  0],
                      [  0,  0,  0,  0,  0,C44]])
 
+def invariants(s):
+    """
+    Receives a list of stress tensors and returns the three tensor invariants.
+    """
+    s = np.asarray(s)
+    if s.shape == (6,):
+        s = s.reshape(1,-1)
+    elif s.shape == (3,3):
+        s = s.reshape(1,-1,-1)
+    if len(s.shape) == 3:
+        s = np.transpose([s[:,0,0],s[:,1,1],s[:,2,2],
+                          (s[:,0,1]+s[:,1,0])/2,
+                          (s[:,1,2]+s[:,2,1])/2,
+                          (s[:,2,0]+s[:,0,2])/2])
+    I1 = s[:,0]+s[:,1]+s[:,2]
+    I2 = s[:,0]*s[:,1]+s[:,1]*s[:,2]+s[:,2]*s[:,0]-s[:,3]**2-s[:,4]**2- \
+        s[:,5]**2
+    I3 = s[:,0]*s[:,1]*s[:,2]+2*s[:,3]*s[:,4]*s[:,5]-s[:,3]**2*s[:,2]- \
+        s[:,4]**2*s[:,0]-s[:,5]**2*s[:,1]
+
+    J2 = I1**2/3-I2
+    J3 = 2*I1**3/27-I1*I2/3+I3
+
+    # Return hydrostatic pressure, octahedral shear stress and J3
+    return -I1/3, np.sqrt(2*J2/3), J3
+
 ###
 
 def rotate_cubic_elastic_constants(C11, C12, C44, A, tol=1e-6):
