@@ -129,8 +129,8 @@ def get_D_square_min(atoms_now, atoms_old, i_now, j_now, delta_plus_epsilon=None
     # Spread epsilon out for each neighbor index
     delta_plus_epsilon_n = delta_plus_epsilon[i_now]
 
-    # Compute D^2_min
-    d_sq_n = np.sum(
+    # Compute D^2_min (residual of the least squares fit)
+    residual_n = np.sum(
         (
         dr_now-
         np.sum(delta_plus_epsilon_n.reshape(-1,3,3)*dr_old.reshape(-1,1,3),
@@ -139,9 +139,9 @@ def get_D_square_min(atoms_now, atoms_old, i_now, j_now, delta_plus_epsilon=None
         axis=1)
 
     # For each atom, sum over all neighbors
-    d_sq = np.bincount(i_now, weights=d_sq_n)
+    residual = np.bincount(i_now, weights=residual_n)
 
-    return delta_plus_epsilon, d_sq
+    return delta_plus_epsilon, residual
 
 
 def atomic_strain(atoms_now, atoms_old, cutoff=None, i_now=None, j_now=None):
@@ -164,8 +164,8 @@ def atomic_strain(atoms_now, atoms_old, cutoff=None, i_now=None, j_now=None):
     Returns:
     --------
     delta_plus_epsilon : array
-        3x3 strain gradient tensor for each atom.
-    d_sq : array
+        3x3 deformation gradient tensor for each atom.
+    residual : array
         D^2_min norm for each atom
     """
 
@@ -181,7 +181,7 @@ def atomic_strain(atoms_now, atoms_old, cutoff=None, i_now=None, j_now=None):
                          'list cutoff, not both.')
 
     # Get strain gradient tensor and D square values
-    delta_plus_epsilon, d_sq = get_D_square_min(atoms_now, atoms_old, i_now,
-                                                j_now)
+    delta_plus_epsilon, residual = get_D_square_min(atoms_now, atoms_old, i_now,
+                                                    j_now)
 
-    return delta_plus_epsilon, d_sq
+    return delta_plus_epsilon, residual
