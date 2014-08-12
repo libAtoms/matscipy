@@ -71,22 +71,57 @@ def surface_stress(r, a, nu):
         Azimuthal stress.
     """
 
-    mask = r < a
-    r_i = r[mask]
-    r_o = r[np.logical_not(mask)]
+    mask0 = np.abs(r) < 1e-6
+    maski = np.logical_and(r < a, np.logical_not(mask0))
+    masko = np.logical_and(np.logical_not(maski), np.logical_not(mask0))
+    r_0 = r[mask0]
+    r_i = r[maski]
+    r_o = r[masko]
+    
+    # Initialize
+    pz = np.zeros_like(r)
+    pr = np.zeros_like(r)
+    ptheta = np.zeros_like(r)
+    
+    # Solution at r=0
+    if mask0.sum() > 0:
+        pz[mask0] = np.ones_like(r_0)
+        pr[mask0] = np.ones_like(r_0)
+        ptheta[mask0] = np.ones_like(r_0)
 
     # Solution inside the contact radius
-    r_a_sq = (r_i/a)**2
-    pz = np.sqrt(1-r_a_sq)
-    pr = (1.-2.*nu)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))-np.sqrt(1.-r_a_sq)
-    ptheta = -(1.-2.*nu)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))-2*nu*np.sqrt(1.-r_a_sq)
+    if maski.sum() > 0:
+        r_a_sq = (r_i/a)**2
+        pz[maski] = np.sqrt(1-r_a_sq)
+        pr[maski] = (1.-2.*nu)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))-np.sqrt(1.-r_a_sq)
+        ptheta[maski] = -(1.-2.*nu)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))-2*nu*np.sqrt(1.-r_a_sq)
     
     # Solution outside of the contact radius
-    r_a_sq = (r_o/a)**2
-    po = (1.-2.*nu)/(3.*r_a_sq)
-
-    pz = np.append(pz, np.zeros_like(r_o))
-    pr = np.append(pr, po)
-    ptheta = np.append(ptheta, -po)
-
+    if mask0.sum() > 0:
+        r_a_sq = (r_o/a)**2
+        po = (1.-2.*nu)/(3.*r_a_sq)
+        pr[masko] = po
+        ptheta[masko] = -po
+    
     return pz, pr, ptheta
+    
+    
+def surface_displacements(r, a):
+    maski = r < a
+    masko = np.logical_not(maski)
+    r_i = r[maski]
+    r_o = r[masko]
+    
+    # Initialize
+    uz = np.zeros_like(r)
+    
+    # Solution inside the contact circle
+    if maski.sum() > 0:
+        uz[maski] = -math.pi*(2*a**2-r_i**2)/(4*a)
+
+    # Solution outside the contact circle
+    if masko.sum() > 0:
+        uz[masko] = (-(2*a**2-r_o**2)*np.arcsin(a/r_o) - 
+            a*r_o*np.sqrt(1-(a/r_o)**2))/(2*a)
+
+    return uz
