@@ -71,10 +71,18 @@ normsq(double *a)
  */
 
 int
-wrap(int i, int n)
+bin_wrap(int i, int n)
 {
     while (i < 0)  i += n;
     while (i >= n)  i -= n;
+    return i;
+}
+
+int
+bin_trunc(int i, int n)
+{
+    if (i < 0)  i = 0;
+    else if (i >= n)  i = n-1;
     return i;
 }
 
@@ -213,19 +221,18 @@ py_neighbour_list(PyObject *self, PyObject *args)
         int c1, c2, c3;
         position_to_cell_index(inv_cell, &r[3*i], n1, n2, n3, &c1, &c2, &c3);
 
-        /* Periodic boundary conditions */
-        if (pbc[0])  c1 = wrap(c1, n1);
-        if (pbc[1])  c2 = wrap(c2, n2);
-        if (pbc[2])  c3 = wrap(c3, n3);
-        if (!check_bound(c1, n1))
-            return NULL;
-        if (!check_bound(c2, n2))
-            return NULL;
-        if (!check_bound(c3, n3))
-            return NULL;
+        /* Periodic/non-periodic boundary conditions */
+        if (pbc[0])  c1 = bin_wrap(c1, n1);  else  c1 = bin_trunc(c1, n1);
+        if (pbc[1])  c2 = bin_wrap(c2, n2);  else  c2 = bin_trunc(c2, n2);
+        if (pbc[2])  c3 = bin_wrap(c3, n3);  else  c3 = bin_trunc(c3, n3);
 
         /* Continuous cell index */
         int ci = c1+n1*(c2+n2*c3);
+
+        assert(c1 >= 0 && c1 < n1);
+        assert(c2 >= 0 && c2 < n2);
+        assert(c3 >= 0 && c3 < n3);
+        assert(ci >= 0 && ci < ncells);
 
         /* Put atom into appropriate bin */
         if (seed[ci] < 0) {
@@ -310,20 +317,20 @@ py_neighbour_list(PyObject *self, PyObject *args)
         dri[2] = ri[2] - ci1*bin1[2] - ci2*bin2[2] - ci3*bin3[2];
 
         /* Apply periodic boundary conditions */
-        if (pbc[0])  ci1 = wrap(ci1, n1);
-        if (pbc[1])  ci2 = wrap(ci2, n2);
-        if (pbc[2])  ci3 = wrap(ci3, n3);
+        if (pbc[0])  ci1 = bin_wrap(ci1, n1); 
+        if (pbc[1])  ci2 = bin_wrap(ci2, n2); 
+        if (pbc[2])  ci3 = bin_wrap(ci3, n3); 
 
         /* Loop over neighbouring bins */
         int x, y, z;
         for (z = -nz; z <= nz; z++) {
             int cj3 = ci3 + z;
-            if (pbc[2])  cj3 = wrap(cj3, n3);
+            if (pbc[2])  cj3 = bin_wrap(cj3, n3);
 
             /* Skip to next z value if cell is out of simulation bounds */
             if (cj3 < 0 || cj3 >= n3)  continue;
 
-            int ncj3 = n2*cj3;
+            int ncj3 = n2*bin_trunc(cj3, n3);
 
             double off3[3];
             off3[0] = z*bin3[0];
@@ -332,12 +339,12 @@ py_neighbour_list(PyObject *self, PyObject *args)
             
             for (y = -ny; y <= ny; y++) {
                 int cj2 = ci2 + y;
-                if (pbc[1])  cj2 = wrap(cj2, n2);
+                if (pbc[1])  cj2 = bin_wrap(cj2, n2);
 
                 /* Skip to next y value if cell is out of simulation bounds */
                 if (cj2 < 0 || cj2 >= n2)  continue;
 
-                int ncj2 = n1*(cj2 + ncj3);
+                int ncj2 = n1*(bin_trunc(cj2, n2) + ncj3);
                 
                 double off2[3];
                 off2[0] = off3[0] + y*bin2[0];
@@ -347,15 +354,17 @@ py_neighbour_list(PyObject *self, PyObject *args)
                 for (x = -nx; x <= nx; x++) {
                     /* Bin index of neighbouring bin */
                     int cj1 = ci1 + x;
-                    if (pbc[0])  cj1 = wrap(cj1, n1);
+                    if (pbc[0])  cj1 = bin_wrap(cj1, n1);
 
                     /* Skip to next x value if cell is out of simulation bounds
                      */                    
                     if (cj1 < 0 || cj1 >= n1)  continue;
 
-                    int ncj = cj1 + ncj2;
+                    int ncj = bin_trunc(cj1, n1) + ncj2;
 
-                    assert(ncj == cj1+n1*(cj2+n2*cj3));
+                    assert(ncj == bin_trunc(cj1, n1)+
+                           n1*(bin_trunc(cj2, n2)+
+                           n2*bin_trunc(cj3, n3)));
 
                     /* Offset of the neighboring bins */
                     double off[3];
