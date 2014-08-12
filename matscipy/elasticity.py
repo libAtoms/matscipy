@@ -69,24 +69,26 @@ def full_3x3_to_Voigt_6_strain(strain_matrix):
     """
     Form a 6 component strain vector in Voigt notation from a 3x3 matrix
     """
-    return np.array([strain_matrix[0,0] - 1.0,
-                     strain_matrix[1,1] - 1.0,
-                     strain_matrix[2,2] - 1.0,
-                     2.0*strain_matrix[1,2],
-                     2.0*strain_matrix[0,2],
-                     2.0*strain_matrix[0,1]])
+    strain_matrix = np.asarray(strain_matrix)
+    return np.transpose([strain_matrix[...,0,0] - 1.0,
+                         strain_matrix[...,1,1] - 1.0,
+                         strain_matrix[...,2,2] - 1.0,
+                         strain_matrix[...,1,2]+strain_matrix[...,2,1],
+                         strain_matrix[...,0,2]+strain_matrix[...,2,0],
+                         strain_matrix[...,0,1]+strain_matrix[...,1,0]])
 
 
 def full_3x3_to_Voigt_6_stress(stress_matrix):
     """
     Form a 6 component stress vector in Voigt notation from a 3x3 matrix
     """
-    return np.array([stress_matrix[0,0],
-                     stress_matrix[1,1],
-                     stress_matrix[2,2],
-                     stress_matrix[1,2],
-                     stress_matrix[0,2],
-                     stress_matrix[0,1]])
+    stress_matrix = np.asarray(stress_matrix)
+    return np.transpose([stress_matrix[...,0,0],
+                         stress_matrix[...,1,1],
+                         stress_matrix[...,2,2],
+                         stress_matrix[...,1,2],
+                         stress_matrix[...,0,2],
+                         stress_matrix[...,0,1]])
 
 
 def Voigt_6x6_to_full_3x3x3x3(C):
@@ -214,10 +216,7 @@ def invariants(s):
     elif s.shape == (3,3):
         s = s.reshape(1,-1,-1)
     if len(s.shape) == 3:
-        s = np.transpose([s[:,0,0],s[:,1,1],s[:,2,2],
-                          (s[:,0,1]+s[:,1,0])/2,
-                          (s[:,1,2]+s[:,2,1])/2,
-                          (s[:,2,0]+s[:,0,2])/2])
+        s = full_3x3_to_Voigt_6_strain(s)
     I1 = s[:,0]+s[:,1]+s[:,2]
     I2 = s[:,0]*s[:,1]+s[:,1]*s[:,2]+s[:,2]*s[:,0]-s[:,3]**2-s[:,4]**2- \
         s[:,5]**2
