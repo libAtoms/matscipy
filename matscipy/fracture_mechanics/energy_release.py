@@ -23,7 +23,8 @@ import numpy as np
 
 ###
 
-def J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y, r1, r2):
+def J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y, r1, r2,
+               mask=None):
     """
     Compute the energy release rate from the J-integral. Converts contour
     integral into a domain integral.
@@ -47,12 +48,17 @@ def J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y, r1, r2):
     r1, r2 : float
         Volume integration is carried out in region at a distance between r1
         and r2 from the crack tip.
+    mask : array_like
+        Include only a subset of all atoms into J-integral computation.
 
     Returns
     -------
     J : float
         Value of the J-integral.
     """
+
+    if mask is None:
+        mask = np.ones(len(a), dtype=bool)
 
     # Cell size
     sx, sy, sz = a.cell.diagonal()
@@ -75,11 +81,11 @@ def J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y, r1, r2):
             np.zeros_like(z)])
 
     # Potential energy
-    epot = ((epot-e0)*gradq[:,0]).sum()
+    epot = ((epot[mask]-e0)*gradq[mask,0]).sum()
 
     # Strain energy
-    estrain = np.einsum('aij,ai,aj->', virial, deformation_gradient[:,0,:],
-                        gradq)
+    estrain = np.einsum('aij,ai,aj->', virial[mask,:,:],
+                        deformation_gradient[mask,0,:], gradq[mask,:])
 
     # Compute J-integral
     return (epot-estrain)/sz
