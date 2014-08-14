@@ -144,7 +144,7 @@ def get_D_square_min(atoms_now, atoms_old, i_now, j_now, delta_plus_epsilon=None
     return delta_plus_epsilon, residual
 
 
-def atomic_strain(atoms_now, atoms_old, cutoff=None, i_now=None, j_now=None):
+def atomic_strain(atoms_now, atoms_old, cutoff=None, neighbours=None):
     """
     Calculate deformation gradient tensor and D^2_min measure for non-affine
     displacements.
@@ -158,7 +158,7 @@ def atomic_strain(atoms_now, atoms_old, cutoff=None, i_now=None, j_now=None):
         Reference atomic configuration
     cutoff : float
         Neighbor list cutoff.
-    i_now, j_now : float
+    neighbours : ( array_like, array_like )
         Neighbor list. Automatically computed if not provided.
 
     Returns:
@@ -169,7 +169,7 @@ def atomic_strain(atoms_now, atoms_old, cutoff=None, i_now=None, j_now=None):
         D^2_min norm for each atom
     """
 
-    if i_now is None or j_now is None:
+    if neighbours is None:
         if cutoff is None:
             raise ValueError('Please provide either neighbor list or neighbor '
                              'list cutoff.')
@@ -179,6 +179,8 @@ def atomic_strain(atoms_now, atoms_old, cutoff=None, i_now=None, j_now=None):
     elif cutoff is not None:
         raise ValueError('Please provide either neighbor list or neighbor '
                          'list cutoff, not both.')
+    else:
+        i_now, j_now = neighbours
 
     # Get strain gradient tensor and D square values
     delta_plus_epsilon, residual = get_D_square_min(atoms_now, atoms_old, i_now,
