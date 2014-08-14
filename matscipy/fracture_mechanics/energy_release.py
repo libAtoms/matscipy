@@ -85,7 +85,7 @@ def J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y, r1, r2,
 
     # Strain energy
     estrain = np.einsum('aij,ai,aj->', virial[mask,:,:],
-                        deformation_gradient[mask,0,:], gradq[mask,:])
+                        deformation_gradient[mask,:,0], gradq[mask,:])
 
     # Compute J-integral
     return (epot-estrain)/sz
