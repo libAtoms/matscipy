@@ -74,19 +74,20 @@ def array_inverse(A):
     n_eq = A.shape[1]
     n_rhs = A.shape[2]
     pivots = np.zeros(n_eq, np.intc)
-    identity  = np.eye(n_eq)
+    identity = np.eye(n_eq)
     def lapack_inverse(a):
         b = np.copy(identity)
         pivots = np.zeros(n_eq, np.intc)
-        results = np.linalg.lapack_lite.dgesv(n_eq, n_rhs, a, n_eq, pivots, b, n_eq, 0)
+        results = np.linalg.lapack_lite.dgesv(n_eq, n_rhs, a, n_eq, pivots, b,
+                                              n_eq, 0)
         if results['info'] > 0:
-            raise np.linalg.LinAlgError('Singular matrix {0}'.format(a))
+            raise np.linalg.LinAlgError('Singular matrix')
         return b
 
     return np.array([lapack_inverse(a) for a in A])
 
 
-def get_delta_plus_epsilon(nat, i_now, dr_now, dr_old):
+def get_delta_plus_epsilon_dgesv(nat, i_now, dr_now, dr_old):
     """
     Calculate delta_ij+epsilon_ij, i.e. the deformation gradient matrix
     """
@@ -99,6 +100,19 @@ def get_delta_plus_epsilon(nat, i_now, dr_now, dr_old):
     epsilon = np.sum(XIJ.reshape(-1,3,1,3)*YIJ_invert.reshape(-1,1,3,3), axis=3)
 
     return epsilon
+
+
+def get_delta_plus_epsilon(nat, i_now, dr_now, dr_old):
+    """
+    Calculate delta_ij+epsilon_ij, i.e. the deformation gradient matrix
+    """
+    epsilon = []
+    for i in range(nat):
+        mask = i_now==i
+        x, residuals, rank, s = np.linalg.lstsq(dr_old[mask], dr_now[mask])
+        epsilon += [ x.T ]
+
+    return np.array(epsilon)
 
 
 def get_D_square_min(atoms_now, atoms_old, i_now, j_now, delta_plus_epsilon=None):
