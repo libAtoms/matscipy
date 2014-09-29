@@ -1,19 +1,13 @@
-import sys
 import numpy as np
 
-from scipy.interpolate import interp1d
-
-import ase.io
-from ase.io.netcdftrajectory import NetCDFTrajectory
 from ase.atoms import Atoms
-from ase.md import VelocityVerlet
-from ase.constraints import FixAtoms
 from ase.calculators.calculator import Calculator
+from ase.constraints import FixAtoms
 from ase.lattice.spacegroup.cell import cellpar_to_cell
-from ase.optimize.fire import FIRE
 
 from matscipy.neighbours import neighbour_list
-from matscipy.fracture_mechanics.crack import thin_strip_displacement_y, get_strain
+from matscipy.fracture_mechanics.crack import (ConstantStrainRate,
+                                               get_strain)
 
 def triangular_lattice_slab(a, n, m):
     # primitive unit cell
@@ -211,7 +205,7 @@ def set_initial_velocities(c):
     return (upper, lower, v0)
 
 
-def set_constraints(c, delta_strain=None):
+def set_constraints(c, a, delta_strain=None):
     # fix atoms in the top and bottom rows
     top = c.positions[:, 1].max()
     bottom = c.positions[:, 1].min()
@@ -251,7 +245,7 @@ def set_constraints(c, delta_strain=None):
     
 
 
-def extend_strip(atoms, M=10):
+def extend_strip(atoms, a, N, M, vacuum):
     x = atoms.positions[:, 0]
     left = x.min()
     width = x.max() - x.min()
@@ -259,7 +253,7 @@ def extend_strip(atoms, M=10):
     tip_x = atoms.info['tip_x']
     if tip_x < left + 0.6*width:
         # only need to extend strip when crack gets near end
-        return
+        return False
 
     print 'tip_x (%.2f) > left + 0.75*width (%.2f)' % (tip_x, left + 0.75*width)
     
@@ -284,165 +278,6 @@ def extend_strip(atoms, M=10):
     print 'Discarding %d atoms' % len(discard)
     del atoms[discard]
 
+    return True
+
     
-if __name__ == '__main__':
-    N = 20
-    rc = 1.2
-    k = 1.0
-    a = 1.0
-    vacuum = 30.0
-    delta = 1.4
-    dt = 0.025
-    beta = 0.01
-    strain_rate = -1e-6
-        
-    calc = IdealBrittleSolid(rc=rc, k=k, a=a, beta=beta)
-
-    x_dimer = np.linspace(a-(rc-a),a+1.1*(rc-a),51)
-    dimers = [Atoms('Si2', [(0, 0, 0), (x, 0, 0)], cell=[10., 10., 10.], pbc=True) for x in x_dimer]
-    calc.set_reference_crystal(dimers[0])
-    e_dimer = []
-    f_dimer = []
-    f_num = []
-    for d in dimers:
-        d.set_calculator(calc)
-        e_dimer.append(d.get_potential_energy())
-        f_dimer.append(d.get_forces())
-        f_num.append(calc.calculate_numerical_forces(d))
-    e_dimer = np.array(e_dimer)
-    f_dimer = np.array(f_dimer)
-    f_num = np.array(f_num)
-    assert abs(f_dimer - f_num).max() < 0.1
-    
-    crystal = triangular_lattice_slab(a, 3*N, N)
-    calc.set_reference_crystal(crystal)
-    crystal.set_calculator(calc)
-
-    e0 = crystal.get_potential_energy()
-    l = crystal.cell[0,0]
-    h = crystal.cell[1,1]
-    print 'l=', l, 'h=', h
-
-    # compute surface (Griffith) energy
-    b = crystal.copy()
-    b.set_calculator(calc)
-    shift = calc.parameters['rc']*2
-    y = crystal.positions[:, 1]    
-    b.positions[y > h/2, 1] += shift
-    b.cell[1, 1] += shift
-    e1 = b.get_potential_energy()
-    E_G = (e1 - e0)/l
-    print 'Griffith energy', E_G
-
-    # compute Griffith strain
-    eps = 0.0   # initial strain is zero
-    eps_max = 2/np.sqrt(3)*(rc-a)*np.sqrt(N-1)/h # Griffith strain assuming harmonic energy
-    deps = eps_max/100. # strain increment
-    e_over_l = 0.0     # initial energy per unit length is zero
-    energy = []
-    strain = []
-    while e_over_l < E_G:
-        c = crystal.copy()
-        c.set_calculator(calc)
-        c.positions[:, 1] *= (1.0 + eps)
-        c.cell[1,1] *= (1.0 + eps)
-        e_over_l = c.get_potential_energy()/l
-        energy.append(e_over_l)
-        strain.append(eps)
-        eps += deps
-        
-    energy = np.array(energy)
-    eps_of_e = interp1d(energy, strain, kind='linear')
-    eps_G = eps_of_e(E_G)
-
-    print 'Griffith strain', eps_G
-
-    c = crystal.copy()
-    c.info['E_G'] = E_G
-    c.info['eps_G'] = eps_G    
-
-    # open up the cell along x and y by introducing some vaccum
-    orig_cell_width = c.cell[0, 0]
-    orig_cell_height = c.cell[1, 1]
-    c.center(vacuum, axis=0)
-    c.center(vacuum, axis=1)
-
-    # centre the slab on the origin
-    c.positions[:, 0] -= c.positions[:, 0].mean()
-    c.positions[:, 1] -= c.positions[:, 1].mean()
-
-    c.info['cell_origin'] = [-c.cell[0,0]/2, -c.cell[1,1]/2, 0.0]
-    ase.io.write('crack_1.xyz', c, format='extxyz')
-
-    width = (c.positions[:, 0].max() -
-             c.positions[:, 0].min())
-    height = (c.positions[:, 1].max() -
-              c.positions[:, 1].min())
-
-    c.info['OrigHeight'] = height
-
-    print(('Made slab with %d atoms, original width and height: %.1f x %.1f A^2' %
-           (len(c), width, height)))
-
-    top = c.positions[:, 1].max()
-    bottom = c.positions[:, 1].min()
-    left = c.positions[:, 0].min()
-    right = c.positions[:, 0].max()
-
-    crack_seed_length = 0.3*width
-    strain_ramp_length = 5.0*a
-    delta_strain = strain_rate*dt
-
-    # fix top and bottom rows, and setup Stokes damping mask
-    # initial use constant strain
-    set_constraints(c, delta_strain=None)
-
-    # apply initial displacment field
-    c.positions[:, 1] += thin_strip_displacement_y(
-                                     c.positions[:, 0],
-                                     c.positions[:, 1],
-                                     delta*eps_G,
-                                     left + crack_seed_length,
-                                     left + crack_seed_length +
-                                            strain_ramp_length)
-
-    print('Applied initial load: delta=%.2f strain=%.4f' %
-          (delta, delta*eps_G))
-
-    ase.io.write('crack_2.xyz', c, format='extxyz')
-
-    c.set_calculator(calc)
-
-    # relax initial structure
-    #opt = FIRE(c)
-    #opt.run(fmax=1e-3)
-
-    ase.io.write('crack_3.xyz', c, format='extxyz')
-
-    dyn = VelocityVerlet(c, dt, logfile=None)
-    set_initial_velocities(dyn.atoms)    
-
-    crack_pos = []
-    traj = NetCDFTrajectory('traj.nc', 'w', c)
-    dyn.attach(traj.write, 10, dyn.atoms, arrays=['stokes', 'momenta'])
-    dyn.attach(find_crack_tip, 10, dyn.atoms,
-               dt=dt*10, store=True, results=crack_pos)
-
-    # run for 2000 time steps to reach steady state at initial load
-    for i in range(20):
-        dyn.run(100)
-        extend_strip(dyn.atoms, M=20)
-        set_constraints(dyn.atoms, delta_strain)
-
-    # start decreasing strain
-    set_constraints(c, delta_strain=delta_strain)
-
-    for i in range(1000):
-        dyn.run(100)
-        extend_strip(dyn.atoms, M=20)
-        set_constraints(dyn.atoms, delta_strain)        
-    
-    traj.close()
-
-    time = 10.0*dyn.dt*np.arange(dyn.get_number_of_steps()/10)
-    np.savetxt('crackpos.dat', np.c_[time, crack_pos])

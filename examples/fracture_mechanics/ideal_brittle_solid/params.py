@@ -1,0 +1,10 @@
+N = 20
+M = 20 # number of extra cols to add when we extend
+rc = 1.2
+k = 1.0
+a = 1.0
+vacuum = 30.0
+delta = 1.4
+dt = 0.025
+beta = 0.01
+strain_rate = -1e-6
