@@ -9,6 +9,8 @@ from ase.units import GPa, J, m
 slab_height = 25.0
 final_height = 18.0
 vacuum = 10.0
+tetra = True
+terminate = False
 
 crack_surface = [1, 0, 1]
 crack_front = [0,1,0]
