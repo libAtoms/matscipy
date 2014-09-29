@@ -169,7 +169,7 @@ for i, bond_length in enumerate(params.bond_lengths):
             a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                               bond_length_constraint])
             parprint('Optimizing positions...')
-            opt = ase.optimize.FIRE(a, logfile=None)
+            opt = ase.optimize.FIRE(a, logfile=sys.stdout)
             opt.run(fmax=params.fmax)
             parprint('...done. Converged within {0} steps.' \
                      .format(opt.get_number_of_steps()))

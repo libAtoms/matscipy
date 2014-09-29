@@ -7,17 +7,17 @@ from ase.io import read, write
 from ase.calculators.neighborlist import NeighborList
 from ase.units import GPa, J, m
 
-nx = 6
-slab_height = 25.0
-final_height = 18.0
+nx = 8
+slab_height = 35.0
+final_height = 27.0
 vacuum = 10.0
 tetra = True
 terminate = False
 skin = 4.0
 k1 = 1.0
-bond1, bond2 = 144, 155
+bond = (190, 202)
 bond_lengths = np.linspace(1.6, 2.5, 11)
-fmax = 0.05
+fmax = 0.1
 
 crack_surface = [1, 0, 1]
 crack_front = [0,1,0]
@@ -129,6 +129,13 @@ if terminate:
 
 cryst = b[mask] + term
 
+# calculator
+from quippy import Potential
+calc = Potential('IP TS', param_filename='ts_params.xml')
+
+cryst.set_calculator(calc)
+cryst.get_potential_energy() # obtain reference dipole moments
+
 cryst.set_scaled_positions(cryst.get_scaled_positions())
 cryst.positions[:,0] += cryst.cell[0,0]/2. - cryst.positions[:,0].mean()
 cryst.positions[:,1] += cryst.cell[1,1]/2. - cryst.positions[:,1].mean()
@@ -154,6 +161,9 @@ g = np.where(
     np.ones(len(cryst), dtype=int))
 cryst.set_array('groups', g)
 
-# calculator
-from quippy import Potential
-calc = Potential('IP TS', param_filename='ts_params.xml')
+# zero dipole moments on outer boundaries
+#cryst.set_array('fixdip', np.logical_not(g))
+#cryst.set_array('dipoles', calc.atoms.arrays['dipoles'])
+#cryst.arrays['dipoles'][g==0, :] = 0.0
+
+write('cryst.xyz', cryst, format='extxyz')
