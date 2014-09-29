@@ -18,7 +18,7 @@ import params
 
 a = params.atoms.copy()
 
-b = a * [6, 1, 1]
+b = a * [params.nx, 1, 1]
 b.center()
 b.positions[:,0] += 0.5
 b.set_scaled_positions(b.get_scaled_positions())
@@ -74,17 +74,32 @@ if params.terminate:
 
 cryst = b[mask] + term
 
-n = NeighborList([1.0]*len(cryst),
-                 self_interaction=False,
-                 bothways=True)
-n.update(cryst)
-
 cryst.set_scaled_positions(cryst.get_scaled_positions())
 cryst.positions[:,0] += cryst.cell[0,0]/2. - cryst.positions[:,0].mean()
 cryst.positions[:,1] += cryst.cell[1,1]/2. - cryst.positions[:,1].mean()
+
 cryst.set_scaled_positions(cryst.get_scaled_positions())
 cryst.center(params.vacuum, axis=0)
 cryst.center(params.vacuum, axis=1)
+
+# fix atoms near outer boundaries
+r = cryst.get_positions()
+minx = r[:, 0].min() + params.skin
+maxx = r[:, 0].max() - params.skin
+miny = r[:, 1].min() + params.skin
+maxy = r[:, 1].max() - params.skin
+g = np.where(
+    np.logical_or(
+        np.logical_or(
+            np.logical_or(
+                r[:, 0] < minx, r[:, 0] > maxx),
+            r[:, 1] < miny),
+        r[:, 1] > maxy),
+    np.zeros(len(cryst), dtype=int),
+    np.ones(len(cryst), dtype=int))
+cryst.set_array('groups', g)
+
+print 'Fixed %d atoms' % (g==0).sum()
 
 print 'Elastic constants / GPa'
 print (params.C/GPa).round(2)
@@ -121,7 +136,6 @@ tip_y += c[0].position[1] - oldr[1]
 cryst.set_cell(c.cell)
 cryst.translate(c[0].position - oldr)
 
-write('cryst.xyz', cryst)
-write('crack.xyz', c)
+write('cryst.xyz', cryst, format='extxyz')
+write('crack.xyz', c, format='extxyz')
 
-water = Atoms('H2O')

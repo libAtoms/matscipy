@@ -6,11 +6,13 @@ from ase.atoms import Atoms
 from ase.io import read, write
 from ase.units import GPa, J, m
 
+nx = 6
 slab_height = 25.0
 final_height = 18.0
 vacuum = 10.0
 tetra = True
 terminate = False
+skin = 4.0
 
 crack_surface = [1, 0, 1]
 crack_front = [0,1,0]
@@ -66,3 +68,4 @@ C[5,5] = 47.5*GPa
 
 surface_energy = 0.161*(J/m**2)*10
 
+bond1, bond2 = 144, 155
