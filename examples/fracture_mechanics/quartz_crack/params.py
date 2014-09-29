@@ -4,6 +4,7 @@ import numpy as np
 
 from ase.atoms import Atoms
 from ase.io import read, write
+from ase.calculators.neighborlist import NeighborList
 from ase.units import GPa, J, m
 
 nx = 6
@@ -13,6 +14,10 @@ vacuum = 10.0
 tetra = True
 terminate = False
 skin = 4.0
+k1 = 1.0
+bond1, bond2 = 144, 155
+bond_lengths = np.linspace(1.6, 2.5, 11)
+fmax = 0.05
 
 crack_surface = [1, 0, 1]
 crack_front = [0,1,0]
@@ -65,7 +70,90 @@ C[4,4] = 49.1*GPa
 C[5,5] = 47.5*GPa
     
 # Surface energy computed with DFT (PBE-GGA)
-
 surface_energy = 0.161*(J/m**2)*10
 
-bond1, bond2 = 144, 155
+a = atoms.copy()
+b = a * [nx, 1, 1]
+b.center()
+b.positions[:,0] += 0.5
+b.set_scaled_positions(b.get_scaled_positions())
+
+mask = ((b.positions[:,0] > 0.) &
+        (b.positions[:,0] < 2*a.cell[0,0]) &
+        (b.positions[:,1] < (a.cell[1,1]/2.0 + final_height/2.0)) &
+        (b.positions[:,1] > (a.cell[1,1]/2.0 - final_height/2.0)))
+
+nl = NeighborList([1.0]*len(b),
+                 self_interaction=False,
+                 bothways=True)
+nl.update(b)
+
+term = Atoms()
+
+if tetra:
+    for i in range(len(b)):
+        if not mask[i]:
+            continue
+        indices, offsets = nl.get_neighbors(i)
+        if b.numbers[i] == 8 and mask[indices].sum() == 0:
+            mask[i] = False
+        if b.numbers[i] == 14:
+            # complete tetrahedra
+            for (j, o) in zip(indices, offsets):        
+                if b.numbers[j] == 8:
+                    mask[j] = True
+
+if terminate:
+    for i in range(len(b)):
+        if not mask[i]:
+            continue    
+        indices, offsets = nl.get_neighbors(i)    
+        for (j, o) in zip(indices, offsets):
+            if mask[j]:
+                continue
+
+            # i is IN, j is OUT, we need to terminate cut bond ij
+            z1 = b.numbers[i]
+            z2 = b.numbers[j]
+            print 'terminating %d-%d bond (%d, %d)' % (z1, z2, i, j)
+            if z1 != 8:
+                raise ValueError('all IN term atoms must be O')        
+
+            r_ij = (b.positions[j] + np.dot(o, b.cell) - b.positions[i])
+
+            t = Atoms('H')
+            d = r_ij/(eqm_bond_lengths[min(z1,z2), max(z1,z2)]*
+                      eqm_bond_lengths[min(z1, 1), max(z1, 1)])
+            t.translate(b.positions[i] + d)
+            term += t
+
+cryst = b[mask] + term
+
+cryst.set_scaled_positions(cryst.get_scaled_positions())
+cryst.positions[:,0] += cryst.cell[0,0]/2. - cryst.positions[:,0].mean()
+cryst.positions[:,1] += cryst.cell[1,1]/2. - cryst.positions[:,1].mean()
+
+cryst.set_scaled_positions(cryst.get_scaled_positions())
+cryst.center(vacuum, axis=0)
+cryst.center(vacuum, axis=1)
+
+# fix atoms near outer boundaries
+r = cryst.get_positions()
+minx = r[:, 0].min() + skin
+maxx = r[:, 0].max() - skin
+miny = r[:, 1].min() + skin
+maxy = r[:, 1].max() - skin
+g = np.where(
+    np.logical_or(
+        np.logical_or(
+            np.logical_or(
+                r[:, 0] < minx, r[:, 0] > maxx),
+            r[:, 1] < miny),
+        r[:, 1] > maxy),
+    np.zeros(len(cryst), dtype=int),
+    np.ones(len(cryst), dtype=int))
+cryst.set_array('groups', g)
+
+# calculator
+from quippy import Potential
+calc = Potential('IP TS', param_filename='ts_params.xml')

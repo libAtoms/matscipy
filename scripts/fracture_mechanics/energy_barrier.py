@@ -49,9 +49,15 @@ FITTED_CRACK_TIP = 'Ag'
 ###
 
 cryst = params.cryst.copy()
-crk = crack.CubicCrystalCrack(params.C11, params.C12, params.C44,
-                              params.crack_surface, params.crack_front)
-
+if hasattr(params, 'C'):
+    crk = crack.CubicCrystalCrack(None, None, None,
+                                  params.crack_surface,
+                                  params.crack_front,
+                                  C=params.C)
+else:    
+    crk = crack.CubicCrystalCrack(params.C11, params.C12, params.C44,
+                                  params.crack_surface, params.crack_front)
+    
 # Get Griffith's k1.
 k1g = crk.k1g(params.surface_energy)
 parprint('Griffith k1 = %f' % k1g)
