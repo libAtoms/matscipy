@@ -23,6 +23,7 @@ import math
 import warnings
 
 import numpy as np
+from numpy.linalg import inv
 try:
     from scipy.optimize import brentq, leastsq
 except ImportError:
@@ -31,7 +32,8 @@ except ImportError:
 import ase.units as units
 from ase.calculators.neighborlist import NeighborList    
 
-from matscipy.elasticity import CubicElasticModuli
+from matscipy.elasticity import (rotate_elastic_constants,
+                                 rotate_cubic_elastic_constants)
 from matscipy.surface import MillerDirection, MillerPlane
 
 ###
@@ -202,13 +204,13 @@ class CubicCrystalCrack:
     """
 
     def __init__(self, C11, C12, C44, crack_surface, crack_front,
-                 stress_state = PLANE_STRAIN):
+                 stress_state=PLANE_STRAIN, C=None):
         """
         Initialize a crack in a cubic crystal with elastic constants C11, C12
-        and C44. The crack surface is given by crack_surface, the cracks runs
+        and C44 (or optionally a full 6x6 elastic constant matrix C).
+        The crack surface is given by crack_surface, the cracks runs
         in the plane given by crack_front.
         """
-        self.E = CubicElasticModuli(C11, C12, C44)
 
         # x (third_dir) - direction in which the crack is running
         # y (crack_surface) - free surface that forms due to the crack
@@ -226,11 +228,13 @@ class CubicCrystalCrack:
             third_dir = -third_dir
         A = np.array([third_dir, crack_surface, crack_front])
 
-        self.E.rotate(A)
+        if C is not None:
+            C6 = rotate_elastic_constants(C, A)
+        else:
+            C6 = rotate_cubic_elastic_constants(C11, C12, C44, A)
 
         self.crack = RectilinearAnisotropicCrack()
-
-        S6 = self.E.compliance()
+        S6 = inv(C6)
 
         if stress_state == PLANE_STRESS:
             self.crack.set_plane_stress(S6[0, 0], S6[1, 1], S6[0, 1],
