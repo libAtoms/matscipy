@@ -49,7 +49,7 @@ class MatSciPyTestCase(unittest.TestCase):
             self.fail('Dictionaries differ: d1.keys() (%r) != d2.keys() (%r)'  % (d1.keys(), d2.keys()))
         for key in d1:
             v1, v2 = d1[key], d2[key]
-            if isinstance(v1, FortranArray):
+            if isinstance(v1, np.ndarray):
                 try:
                     self.assertArrayAlmostEqual(v1, v2)
                 except AssertionError:
