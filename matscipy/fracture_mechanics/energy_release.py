@@ -19,6 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from math import pi
+
 import numpy as np
 
 ###
@@ -71,17 +73,40 @@ def J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y, r1, r2,
 
     # Derivative of the domain function q
     nonzero = np.logical_and(r > r1, r < r2)
-    gradq = np.transpose([
-            np.where(nonzero,
-                     x/((r2-r1)*r),
-                     np.zeros_like(x)),
-            np.where(nonzero,
-                     y/((r2-r1)*r),
-                     np.zeros_like(y)),
-            np.zeros_like(z)])
+    # q = (r-r1)/(r2-r1)
+    if 0:
+        gradq = np.transpose([
+                np.where(nonzero,
+                         x/((r2-r1)*r),
+                         np.zeros_like(x)),
+                np.where(nonzero,
+                         y/((r2-r1)*r),
+                         np.zeros_like(y)),
+                np.zeros_like(z)])
+    elif 1:
+    # q = (1-cos(pi*(r-r1)/(r2-r1)))/2
+        gradq = np.transpose([
+                np.where(nonzero,
+                         x/r * pi/(2*(r2-r1)) * np.sin(pi*(r-r1)/(r2-r1)),
+                         np.zeros_like(x)),
+                np.where(nonzero,
+                         y/r * pi/(2*(r2-r1)) * np.sin(pi*(r-r1)/(r2-r1)),
+                         np.zeros_like(y)),
+                np.zeros_like(z)])
+    else:
+    # q = (2*pi*(r-r1) - (r2-r1)*sin(2*pi*(r-r1)/(r2-r1))) / (2*pi*(r2-r1))
+    # dq/dq = (1 - cos(2*pi*(r-r1)/(r2-r1))) / (r2-r1)
+        gradq = np.transpose([
+                np.where(nonzero,
+                         x/r * (1. - np.cos(2*pi*(r-r1)/(r2-r1))) / (r2-r1),
+                         np.zeros_like(x)),
+                np.where(nonzero,
+                         y/r * (1. - np.cos(2*pi*(r-r1)/(r2-r1))) / (r2-r1),
+                         np.zeros_like(y)),
+                np.zeros_like(z)])
 
     # Potential energy
-    epot = ((epot[mask]-e0)*gradq[mask,0]).sum()
+    epot = ((epot[mask]-e0[mask])*gradq[mask,0]).sum()
 
     # Strain energy
     estrain = np.einsum('aij,ai,aj->', virial[mask,:,:],
