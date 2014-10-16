@@ -40,8 +40,6 @@ from matscipy.elasticity import invariants, full_3x3_to_Voigt_6_strain, \
     rotate_cubic_elastic_constants
 from matscipy.fracture_mechanics.energy_release import J_integral
 
-#from atomistica.analysis import voropp
-
 ###
 
 sys.path += [ "." ]
@@ -59,35 +57,27 @@ FITTED_CRACK_TIP = 'Ag'
 
 ###
 
-# Elastic constants
-C6 = cubic_to_Voigt_6x6(params.C11, params.C12, params.C44) * units.GPa
-
-crack_surface = params.crack_surface
-crack_front = params.crack_front
-
-third_dir = np.cross(crack_surface, crack_front)
-third_dir = np.array(third_dir) / np.sqrt(np.dot(third_dir,
-                                                 third_dir))
-crack_surface = np.array(crack_surface) / \
-    np.sqrt(np.dot(crack_surface, crack_surface))
-crack_front = np.array(crack_front) / \
-    np.sqrt(np.dot(crack_front, crack_front))
-
-A = np.array([third_dir, crack_surface, crack_front])
-if np.linalg.det(A) < 0:
-    third_dir = -third_dir
-A = np.array([third_dir, crack_surface, crack_front])
-
-C6 = rotate_cubic_elastic_constants(params.C11, params.C12, params.C44, A) * units.GPa
-
-###
-
-a = params.unitcell.copy()
+# Get cohesive energy
+a = params.cryst.info['unitcell'].copy()
 a.set_calculator(params.calc)
 e0 = a.get_potential_energy()/len(a)
-vol0 = a.get_volume()/len(a)
-print 'cohesive energy = {}'.format(e0)
-print 'volume per atom = {}'.format(vol0)
+print 'cohesive energy = {} eV/atom'.format(e0)
+
+# Get surface energy and stress
+a *= (1,3,1)
+a.set_pbc([True, False, True])
+ase.optimize.FIRE(a, logfile=None).run(fmax=params.fmax)
+coord = np.bincount(neighbour_list("i", a, 2.85))
+esurf0 = (a.get_potential_energy() - e0*len(a))
+sx, sy, sz = a.cell.diagonal()
+print 'surface energy = {} J/m^2'.format(esurf0/(2*sx*sz)/J_m2)
+esurf0 = a.get_potential_energies()
+esurf1 = esurf0[1]
+esurf0 = esurf0[0]
+print 'cohesive energy (surface atoms) = {}, {} eV/atom'.format(esurf0, esurf1)
+vsurf0 = a.get_stresses()
+vsurf1 = Voigt_6_to_full_3x3_stress(vsurf0[1])
+vsurf0 = Voigt_6_to_full_3x3_stress(vsurf0[0])
 
 # Reference configuration for strain calculation
 a = ase.io.read(sys.argv[1])
@@ -124,30 +114,34 @@ virial = a.get_stresses() # Note: get_stresses returns the virial in Atomistica!
 strain = full_3x3_to_Voigt_6_strain(deformation_gradient)
 vol_strain, dev_strain, J3_strain = invariants(strain)
 
-virial_from_atomic_strains = strain.dot(C6)*vol0
-#vols = voropp(a)
-#virial_from_atomic_strains_and_voronoi_volumes = strain.dot(C6)*vols.reshape(-1,1)
-
-#a.set_array('voronoi_volumes', vols)
 a.set_array('strain', strain)
 a.set_array('vol_strain', vol_strain)
 a.set_array('dev_strain', dev_strain)
 a.set_array('virial', virial)
-a.set_array('virial_from_atomic_strains', virial_from_atomic_strains)
-a.set_array('coordination', np.bincount(i))
-#a.set_array('virial_from_atomic_strains_and_voronoi_volumes', virial_from_atomic_strains_and_voronoi_volumes)
-ase.io.write('eval_J_integral.xyz', a, format='extxyz')
 
 virial = Voigt_6_to_full_3x3_stress(virial)
 
 # Coordination count
 coord = np.bincount(i)
-mask = coord==4
-#mask = np.ones_like(mask)
+coord_coord = np.bincount(i, weights=coord[j])
+mask = coord!=4
+mask = np.ones_like(mask)
+
+eref = e0*np.ones(len(a))
+eref[coord_coord==15] = esurf1
+eref[coord!=4] = esurf0
+
+#virial[coord_coord==15] -= vsurf1
+#virial[coord!=4] -= vsurf0
+
+a.set_array('coordination', coord)
+a.set_array('coord_coord', coord_coord)
+a.set_array('eref', eref)
+ase.io.write('eval_J_integral.xyz', a, format='extxyz')
 
 # Evaluate J-integral
 epot = a.get_potential_energies()
 for r1, r2 in zip(params.eval_r1, params.eval_r2):
-    G = J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y,
+    G = J_integral(a, deformation_gradient, virial, epot, eref, tip_x, tip_y,
                    r1, r2, mask)
     print '[From {0} A to {1} A]: J = {2} J/m^2'.format(r1, r2, G/J_m2)
