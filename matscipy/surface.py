@@ -160,7 +160,7 @@ class MillerIndex(np.ndarray):
 
     def normalised(self):
         a = self.as3()
-        return a.copy().view(FortranArray)/a.norm()
+        return a.copy()/a.norm()
 
     hat = normalised
 
