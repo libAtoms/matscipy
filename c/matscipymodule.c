@@ -210,7 +210,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     int nz = (int) ceil(cutoff*n3/len3);
 
     /* Sort particles into bins */
-    int *seed, *last, *next;
+    int *seed = NULL, *last, *next = NULL;
     int ncells = n1*n2*n3;
     seed = (int *) malloc(ncells*sizeof(int));
     last = (int *) malloc(ncells*sizeof(int));
@@ -458,6 +458,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
     /* Release cell subdivision information */
     free(seed);
     free(next);
+    seed = NULL;
+    next = NULL;
 
     /* Resize arrays to actual size of neighbour list */
     if (py_first && !resize_array(py_first, nneigh))  goto fail;
@@ -503,6 +505,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
     fail:
     /* Cleanup. Sorry for the goto. */
+    if (seed)  free(seed);
+    if (next)  free(next);
     if (py_first)  Py_DECREF(py_first);
     if (py_secnd)  Py_DECREF(py_secnd);
     if (py_distvec)  Py_DECREF(py_distvec);
