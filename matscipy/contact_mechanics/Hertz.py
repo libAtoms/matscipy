@@ -147,3 +147,52 @@ def surface_displacements(r, a):
             a*r_o*np.sqrt(1-(a/r_o)**2))/(2*a)
 
     return uz
+
+
+def subsurface_stress(r, z, nu=0.5):
+    """
+    Return components of the stress tensor in the bulk of the Hertz solid.
+    This is the solution given by: M.T. Huber, Ann. Phys. 319, 153 (1904)
+
+    Note that the stress tensor at any point in the solid has the form below.
+    Zero off-diagonal components are zero by rotational symmetry. stt is the
+    circumferential component, srr the radial component and szz the normal
+    component of the stress tensor.
+
+            / stt  0   0  \ 
+        s = |  0  srr srz |
+            \  0  srz szz /
+
+    Parameters
+    ----------
+    r : array_like
+        Radial position (in units of the contact radius a).
+    z : array_like
+        Depth (in units of the contact radius a).
+    nu : float
+        Poisson number.
+
+    Returns
+    -------
+    stt : float
+        Circumferential component of the stress tensor (in units of p0).
+    srr : float
+        Radial component of the stress tensor (in units of p0).
+    szz : float
+        Normal component of the stress tensor (in units of p0).
+    srz : float
+        Shear component of the stress tensor (in units of p0).
+    """
+
+    p = r**2+z**2-1
+    u = p/2 + np.sqrt(p**2/4+z**2)
+    sqrtu = np.sqrt(u)
+
+    stt = (1.-2.*nu)/3. * 1./(r**2*(1.+u)) * (1.-z**3) + \
+        z*(2.*nu + (1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*arctan(1./sqrtu) - 2.)
+    szz = z**3/(u+z**2)
+    srr = -( (1.-2.*nu)/3. * 1./(r**2*(1+u)) * (1.-z**3) + z**3/(u+z**2) + \
+         z*((1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*arctan(1./sqrtu) - 2.) )
+    srz = r*z**2/(u+z**2) * sqrtu/np.sqrt(1.+u)
+
+    return stt, srr, szz, srz
