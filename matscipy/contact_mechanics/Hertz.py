@@ -39,6 +39,13 @@ def radius_and_pressure(N, R, Es):
     Es : float
         Contact modulus: Es = E/(1-nu**2) with Young's modulus E and Poisson
         number nu.
+
+    Return
+    ------
+    a : float
+        Contact radius.
+    p0 : float
+        Maximum pressure inside the contacting area (right under the apex).
     """
 
     a = R*(3./4*( N/(Es*R**2) ))**(1./3)
@@ -47,7 +54,7 @@ def radius_and_pressure(N, R, Es):
     return a, p0
 
 
-def surface_stress(r, a, nu):
+def surface_stress(r, nu):
     """
     Given distance from the center of the sphere, contact radius and Poisson
     number contact, compute the stress at the surface.
@@ -55,24 +62,23 @@ def surface_stress(r, a, nu):
     Parameters
     ----------
     r : array_like
-        Array of distance (from the center of the sphere).
-    a : float
-        Contact radius.
+        Array of distance (from the center of the sphere in units of contact
+        radius a).
     nu : float
         Poisson number.
 
     Returns
     -------
     pz : array
-        Contact pressure.
+        Contact pressure (in units of maximum pressure p0).
     sr : array
-        Radial stress.
+        Radial stress (in units of maximum pressure p0).
     stheta : array
-        Azimuthal stress.
+        Azimuthal stress (in units of maximum pressure p0).
     """
 
     mask0 = np.abs(r) < 1e-6
-    maski = np.logical_and(r < a, np.logical_not(mask0))
+    maski = np.logical_and(r < 1.0, np.logical_not(mask0))
     masko = np.logical_and(np.logical_not(maski), np.logical_not(mask0))
     r_0 = r[mask0]
     r_i = r[maski]
@@ -91,14 +97,14 @@ def surface_stress(r, a, nu):
 
     # Solution inside the contact radius
     if maski.sum() > 0:
-        r_a_sq = (r_i/a)**2
+        r_a_sq = r_i**2
         pz[maski] = np.sqrt(1-r_a_sq)
         pr[maski] = (1.-2.*nu)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))-np.sqrt(1.-r_a_sq)
         ptheta[maski] = -(1.-2.*nu)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))-2*nu*np.sqrt(1.-r_a_sq)
     
     # Solution outside of the contact radius
     if mask0.sum() > 0:
-        r_a_sq = (r_o/a)**2
+        r_a_sq = r_o**2
         po = (1.-2.*nu)/(3.*r_a_sq)
         pr[masko] = po
         ptheta[masko] = -po
@@ -107,6 +113,22 @@ def surface_stress(r, a, nu):
     
     
 def surface_displacements(r, a):
+    """
+    Return the displacements at the surface.
+
+    Parameters
+    ----------
+    r : array_like
+        Radial position.
+    a : float
+        Contact radius.
+
+    Returns
+    -------
+    uz : array
+        Normal displacements at the surface of the contact.
+    """
+
     maski = r < a
     masko = np.logical_not(maski)
     r_i = r[maski]
