@@ -101,12 +101,15 @@ def gf_subsurface_stress_nonperiodic(x, y, z, nu=0.5):
 
     sxx = ( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 
             3*z*x**2/rho**5 )/(2*pi)
+    sxx = np.where(r_sq > 0.0, sxx, np.zeros_like(sxx))
     syy = ( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 
             3*z*y**2/rho**5 )/(2*pi)
+    syy = np.where(r_sq > 0.0, syy, np.zeros_like(syy))
     szz = -3*z**3/(2*pi*rho**5)
 
     sxy = ( (1-2*nu)/r_sq * ((1 - z/rho) * x*y/r_sq - x*y*z/rho**3) -
             3*x*y*z/rho**5 )/(2*pi)
+    sxy = np.where(r_sq > 0.0, sxy, np.zeros_like(sxy))
     sxz = -3*x*z**2/(2*pi*rho**5)
     syz = -3*y*z**2/(2*pi*rho**5)
 
