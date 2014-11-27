@@ -198,7 +198,7 @@ def subsurface_stress(r, z, nu=0.5):
     assert np.all(np.abs(r**2 + z**2 - 1) < 1e-6)
 
     stt = (1.-2.*nu)/3. * 1./(r**2*(1.+u)) * (1.-z**3) + \
-        z*(2.*nu + (1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*np.arctan(1./sqrtu) - 2.)
+        z*(2.*nu + (1.-nu)*u/(1.+u) - (1.+nu)*sqrtu*np.arctan(1./sqrtu))
     szz = z**3/(u+z**2)
     srr = -( (1.-2.*nu)/3. * 1./(r**2*(1+u)) * (1.-z**3) + z**3/(u+z**2) + \
          z*((1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*np.arctan(1./sqrtu) - 2.) )
