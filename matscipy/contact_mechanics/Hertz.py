@@ -190,11 +190,18 @@ def subsurface_stress(r, z, nu=0.5):
     u = p/2 + np.sqrt(p**2/4+z**2)
     sqrtu = np.sqrt(u)
 
+    # Variable substitution - makes expression below simpler
+    z /= sqrtu
+    r /= np.sqrt(1+u)
+
+    # r**2 + z**2 should be unity after variable substitution
+    assert np.all(np.abs(r**2 + z**2 - 1) < 1e-6)
+
     stt = (1.-2.*nu)/3. * 1./(r**2*(1.+u)) * (1.-z**3) + \
-        z*(2.*nu + (1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*arctan(1./sqrtu) - 2.)
+        z*(2.*nu + (1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*np.arctan(1./sqrtu) - 2.)
     szz = z**3/(u+z**2)
     srr = -( (1.-2.*nu)/3. * 1./(r**2*(1+u)) * (1.-z**3) + z**3/(u+z**2) + \
-         z*((1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*arctan(1./sqrtu) - 2.) )
+         z*((1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*np.arctan(1./sqrtu) - 2.) )
     srz = r*z**2/(u+z**2) * sqrtu/np.sqrt(1.+u)
 
     return stt, srr, szz, srz
