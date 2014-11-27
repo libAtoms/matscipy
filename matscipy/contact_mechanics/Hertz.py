@@ -112,24 +112,25 @@ def surface_stress(r, nu):
     return pz, pr, ptheta
     
     
-def surface_displacements(r, a):
+def surface_displacements(r):
     """
-    Return the displacements at the surface.
+    Return the displacements at the surface due to an indenting sphere.
+    See: K.L. Johnson, Contact Mechanics, p. 61
 
     Parameters
     ----------
     r : array_like
-        Radial position.
-    a : float
-        Contact radius.
+        Radial position normalized by contact radius a.
 
     Returns
     -------
     uz : array
-        Normal displacements at the surface of the contact.
+        Normal displacements at the surface of the contact (in units of
+        p0/Es * a where p0 is maximum pressure, Es contact modulus and a 
+        contact radius).
     """
 
-    maski = r < a
+    maski = r < 1.0
     masko = np.logical_not(maski)
     r_i = r[maski]
     r_o = r[masko]
@@ -139,12 +140,12 @@ def surface_displacements(r, a):
     
     # Solution inside the contact circle
     if maski.sum() > 0:
-        uz[maski] = -math.pi*(2*a**2-r_i**2)/(4*a)
+        uz[maski] = -math.pi*(2.-r_i**2)/4.
 
     # Solution outside the contact circle
     if masko.sum() > 0:
-        uz[masko] = (-(2*a**2-r_o**2)*np.arcsin(a/r_o) - 
-            a*r_o*np.sqrt(1-(a/r_o)**2))/(2*a)
+        uz[masko] = (-(2.-r_o**2)*np.arcsin(1./r_o) - 
+            r_o*np.sqrt(1.-(1./r_o)**2))/2.
 
     return uz
 
@@ -174,14 +175,15 @@ def subsurface_stress(r, z, nu=0.5):
 
     Returns
     -------
-    stt : float
-        Circumferential component of the stress tensor (in units of p0).
-    srr : float
-        Radial component of the stress tensor (in units of p0).
-    szz : float
-        Normal component of the stress tensor (in units of p0).
-    srz : float
-        Shear component of the stress tensor (in units of p0).
+    stt : array
+        Circumferential component of the stress tensor (in units of maximum
+        pressure p0).
+    srr : array
+        Radial component of the stress tensor (in units of maximum pressure p0).
+    szz : array
+        Normal component of the stress tensor (in units of maximum pressure p0).
+    srz : array
+        Shear component of the stress tensor (in units of maximum pressure p0).
     """
 
     p = r**2+z**2-1
