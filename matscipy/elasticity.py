@@ -86,9 +86,9 @@ def full_3x3_to_Voigt_6_stress(stress_matrix):
     return np.transpose([stress_matrix[...,0,0],
                          stress_matrix[...,1,1],
                          stress_matrix[...,2,2],
-                         stress_matrix[...,1,2],
-                         stress_matrix[...,0,2],
-                         stress_matrix[...,0,1]])
+                         (stress_matrix[...,1,2]+stress_matrix[...,1,2])/2,
+                         (stress_matrix[...,0,2]+stress_matrix[...,0,2])/2,
+                         (stress_matrix[...,0,1]+stress_matrix[...,0,1])/2])
 
 
 def Voigt_6x6_to_full_3x3x3x3(C):
@@ -206,7 +206,7 @@ def cubic_to_Voigt_6x6(C11, C12, C44):
                      [  0,  0,  0,  0,C44,  0],
                      [  0,  0,  0,  0,  0,C44]])
 
-def invariants(s):
+def invariants(s, full_3x3_to_Voigt_6=full_3x3_to_Voigt_6_stress):
     """
     Receives a list of stress tensors and returns the three tensor invariants.
     """
@@ -216,7 +216,7 @@ def invariants(s):
     elif s.shape == (3,3):
         s = s.reshape(1,3,3)
     if len(s.shape) >= 3:
-        s = full_3x3_to_Voigt_6_strain(s)
+        s = full_3x3_to_Voigt_6(s)
     I1 = s[...,0]+s[...,1]+s[...,2]
     I2 = s[...,0]*s[...,1]+s[...,1]*s[...,2]+s[...,2]*s[...,0]-s[...,3]**2-s[...,4]**2- \
         s[...,5]**2
