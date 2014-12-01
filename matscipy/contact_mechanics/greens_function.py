@@ -113,7 +113,7 @@ def gf_subsurface_stress_nonperiodic(x, y, z, nu=0.5):
     sxz = -3*x*z**2/(2*pi*rho**5)
     syz = -3*y*z**2/(2*pi*rho**5)
 
-    return sxx, syy, szz, syz, sxz, sxy
+    return -sxx, -syy, -szz, -syz, -sxz, -sxy
 
 
 def reciprocal_grid(nx, ny=None, gf=gf_displacement_nonperiodic,
