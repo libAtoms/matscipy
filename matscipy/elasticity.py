@@ -214,7 +214,7 @@ def invariants(s):
     if s.shape == (6,):
         s = s.reshape(1,-1)
     elif s.shape == (3,3):
-        s = s.reshape(1,-1,-1)
+        s = s.reshape(1,3,3)
     if len(s.shape) >= 3:
         s = full_3x3_to_Voigt_6_strain(s)
     I1 = s[...,0]+s[...,1]+s[...,2]
