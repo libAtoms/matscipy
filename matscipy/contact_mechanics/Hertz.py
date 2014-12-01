@@ -190,18 +190,22 @@ def subsurface_stress(r, z, nu=0.5):
     u = p/2 + np.sqrt(p**2/4+z**2)
     sqrtu = np.sqrt(u)
 
-    # Variable substitution - makes expression below simpler
-    z = z/sqrtu
+    # Variable substitution: r->r/sqrt(1+u), z->u/sqrt(u)
+    #z = np.where(u > 0.0, z/sqrtu, np.ones_like(u)) # r=0: z/sqrt(u)->1 for z->0
     r = r/np.sqrt(1+u)
+    z = np.sqrt(1-r**2) # equiv. to z=u/sqrt(u), but defined for z=0
 
-    # r**2 + z**2 should be unity after variable substitution
-    assert np.all(np.abs(r**2 + z**2 - 1) < 1e-6)
+    # Precompute arctan
+    sqrtu_arctan_inv_sqrtu = sqrtu*np.arctan(1./sqrtu)
 
-    stt = (1.-2.*nu)/3. * 1./(r**2*(1.+u)) * (1.-z**3) + \
-        z*(2.*nu + (1.-nu)*u/(1.+u) - (1.+nu)*sqrtu*np.arctan(1./sqrtu))
+    # Note: r**2/(1-z**3)->3/2 for r->0
+    r2_div_1_minus_z3 = np.where(r > 0., r**2/(1.-z**3), 3./2.*np.ones_like(r))
+
+    stt = (1.-2.*nu)/3. * 1./(1.+u) * r2_div_1_minus_z3 + \
+        z*(2.*nu + (1.-nu)*u/(1.+u) - (1.+nu)*sqrtu_arctan_inv_sqrtu)
     szz = z**3/(u+z**2)
-    srr = -( (1.-2.*nu)/3. * 1./(r**2*(1+u)) * (1.-z**3) + z**3/(u+z**2) + \
-         z*((1.-nu)*u/(1.+u) + (1.+nu)*sqrtu*np.arctan(1./sqrtu) - 2.) )
+    srr = -( (1.-2.*nu)/3. * 1./(1+u) * r2_div_1_minus_z3 + z**3/(u+z**2) + \
+         z*((1.-nu)*u/(1.+u) + (1.+nu)*sqrtu_arctan_inv_sqrtu - 2.) )
     srz = r*z**2/(u+z**2) * sqrtu/np.sqrt(1.+u)
 
     return stt, srr, szz, srz
