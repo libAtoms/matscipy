@@ -158,9 +158,12 @@ class MillerIndex(np.ndarray):
         copy.simplify()
         return copy
 
+    def norm(self):
+        return np.linalg.norm(self)
+
     def normalised(self):
         a = self.as3()
-        return a.copy()/a.norm()
+        return np.array(a, dtype=float)/a.norm()
 
     hat = normalised
 
