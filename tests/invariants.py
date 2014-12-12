@@ -23,15 +23,27 @@
 
 import unittest
 
-from cubic_crystal_crack import *
-from fit_elastic_constants import *
-from full_to_Voigt import *
-from greens_function import *
-from invariants import *
-from neighbours import *
-from rotation_of_elastic_constants import *
+import numpy as np
+
+import matscipytest
+from matscipy.elasticity import invariants
 
 ###
 
-unittest.main()
+class TestInvariants(matscipytest.MatSciPyTestCase):
+
+    def test_return_shape(self):
+        sxx = np.array([[[10,11,12,13,14,15],[20,21,22,23,24,25]]], dtype=float)
+        sxy = np.array([[[0,0,0,0,0,0],[0,0,0,0,0,0]]], dtype=float)
+        P, tau, J3 = invariants(sxx, sxx, sxx, sxy, sxy, sxy)
+        assert P.shape == sxx.shape
+        assert tau.shape == sxx.shape
+        assert J3.shape == sxx.shape
+
+        assert np.abs(sxx+P).max() < 1e-12
+
+###
+
+if __name__ == '__main__':
+    unittest.main()
 

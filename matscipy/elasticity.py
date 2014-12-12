@@ -206,17 +206,26 @@ def cubic_to_Voigt_6x6(C11, C12, C44):
                      [  0,  0,  0,  0,C44,  0],
                      [  0,  0,  0,  0,  0,C44]])
 
-def invariants(s, full_3x3_to_Voigt_6=full_3x3_to_Voigt_6_stress):
+def invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
+               full_3x3_to_Voigt_6=full_3x3_to_Voigt_6_stress):
     """
     Receives a list of stress tensors and returns the three tensor invariants.
     """
-    s = np.asarray(s)
-    if s.shape == (6,):
-        s = s.reshape(1,-1)
-    elif s.shape == (3,3):
-        s = s.reshape(1,3,3)
-    if len(s.shape) >= 3:
-        s = full_3x3_to_Voigt_6(s)
+    if syy is None:
+        s = np.asarray(s)
+        if s.shape == (6,):
+            s = s.reshape(1,-1)
+        elif s.shape == (3,3):
+            s = s.reshape(1,3,3)
+        if s[-1] == 3 and s[-2] == 3:
+            s = full_3x3_to_Voigt_6(s)
+    else:
+        s = np.transpose([np.transpose(s),
+                          np.transpose(syy),
+                          np.transpose(szz),
+                          np.transpose(syz),
+                          np.transpose(sxz),
+                          np.transpose(sxy)])
     I1 = s[...,0]+s[...,1]+s[...,2]
     I2 = s[...,0]*s[...,1]+s[...,1]*s[...,2]+s[...,2]*s[...,0]-s[...,3]**2- \
         s[...,4]**2-s[...,5]**2
