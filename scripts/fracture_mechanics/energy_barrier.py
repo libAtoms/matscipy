@@ -110,12 +110,21 @@ ase.io.write('notch.xyz', a, format='extxyz')
 # Assign calculator.
 a.set_calculator(params.calc)
 
+sig_xx, sig_yy, sig_xy = crk.stresses(cryst.positions[:,0],
+                                      cryst.positions[:,1],
+                                      tip_x, tip_y,
+                                      params.k1*k1g)
+sig = vstack([sig_xx, sig_yy] + [ np.zeros_like(sig_xx)]*3 + [sig_xy])
+eps = np.dot(crk.S, sig)
+
+1/0
+
 info = []
 
 # Run crack calculation.
 for i, bond_length in enumerate(params.bond_lengths):
     parprint('=== bond_length = {0} ==='.format(bond_length))
-    xyz_file = 'step_%4d.xyz' % int(bond_length*1000)
+    xyz_file = '%s_%4d.xyz' % (params.basename, int(bond_length*1000))
     if os.path.exists(xyz_file):
         parprint('%s found, skipping' % xyz_file)
         a = ase.io.read(xyz_file)
