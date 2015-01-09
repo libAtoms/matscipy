@@ -236,6 +236,9 @@ class CubicCrystalCrack:
         self.crack = RectilinearAnisotropicCrack()
         S6 = inv(C6)
 
+        self.C = C6
+        self.S = S6
+
         if stress_state == PLANE_STRESS:
             self.crack.set_plane_stress(S6[0, 0], S6[1, 1], S6[0, 1],
                                         S6[0, 5], S6[1, 5], S6[5, 5])
