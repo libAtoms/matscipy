@@ -74,17 +74,29 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         i = neighbour_list("i", a, 1.1)
         assert np.bincount(i)[0] == 4
 
-    def test_out_of_cell(self):
+    def test_out_of_cell_small_cell(self):
         a = ase.Atoms('CC', positions=[[0.5, 0.5, 0.5],
                                        [1.1, 0.5, 0.5]],
                       cell=[1, 1, 1], pbc=False)
-        raised = False
-        try:
-            i, j = neighbour_list("ii", a, 1.1)
-        except RuntimeError, e:
-            raised = True
-        self.assertTrue(raised)
+        i1, j1, r1 = neighbour_list("ijd", a, 1.1)
+        a.set_cell([2, 1, 1])
+        i2, j2, r2 = neighbour_list("ijd", a, 1.1)
 
+        self.assertArrayAlmostEqual(i1, i2)
+        self.assertArrayAlmostEqual(j1, j2)
+        self.assertArrayAlmostEqual(r1, r2)
+
+    def test_out_of_cell_large_cell(self):
+        a = ase.Atoms('CC', positions=[[9.5, 0.5, 0.5],
+                                       [10.1, 0.5, 0.5]],
+                      cell=[10, 10, 10], pbc=False)
+        i1, j1, r1 = neighbour_list("ijd", a, 1.1)
+        a.set_cell([20, 10, 10])
+        i2, j2, r2 = neighbour_list("ijd", a, 1.1)
+
+        self.assertArrayAlmostEqual(i1, i2)
+        self.assertArrayAlmostEqual(j1, j2)
+        self.assertArrayAlmostEqual(r1, r2)
 
 ###
 

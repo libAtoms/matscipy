@@ -310,6 +310,11 @@ py_neighbour_list(PyObject *self, PyObject *args)
         int ci1, ci2, ci3;
         position_to_cell_index(inv_cell, ri, n1, n2, n3, &ci1, &ci2, &ci3);
 
+        /* Truncate if non-periodic and outside of simulation domain */
+        if (!pbc[0])  ci1 = bin_trunc(ci1, n1);
+        if (!pbc[1])  ci2 = bin_trunc(ci2, n2);
+        if (!pbc[2])  ci3 = bin_trunc(ci3, n3);
+
         /* dri is the position relative to the lower left corner of the bin */
         double dri[3];
         dri[0] = ri[0] - ci1*bin1[0] - ci2*bin2[0] - ci3*bin3[0];
@@ -317,9 +322,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
         dri[2] = ri[2] - ci1*bin1[2] - ci2*bin2[2] - ci3*bin3[2];
 
         /* Apply periodic boundary conditions */
-        if (pbc[0])  ci1 = bin_wrap(ci1, n1); 
-        if (pbc[1])  ci2 = bin_wrap(ci2, n2); 
-        if (pbc[2])  ci3 = bin_wrap(ci3, n3); 
+        if (pbc[0])  ci1 = bin_wrap(ci1, n1);  else  ci1 = bin_trunc(ci1, n1);
+        if (pbc[1])  ci2 = bin_wrap(ci2, n2);  else  ci2 = bin_trunc(ci2, n2);
+        if (pbc[2])  ci3 = bin_wrap(ci3, n3);  else  ci3 = bin_trunc(ci3, n3);
 
         /* Loop over neighbouring bins */
         int x, y, z;
@@ -330,7 +335,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
             /* Skip to next z value if cell is out of simulation bounds */
             if (cj3 < 0 || cj3 >= n3)  continue;
 
-            int ncj3 = n2*bin_trunc(cj3, n3);
+            cj3 = bin_trunc(cj3, n3);
+            int ncj3 = n2*cj3;
 
             double off3[3];
             off3[0] = z*bin3[0];
@@ -344,7 +350,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
                 /* Skip to next y value if cell is out of simulation bounds */
                 if (cj2 < 0 || cj2 >= n2)  continue;
 
-                int ncj2 = n1*(bin_trunc(cj2, n2) + ncj3);
+                cj2 = bin_trunc(cj2, n2);
+                int ncj2 = n1*(cj2 + ncj3);
                 
                 double off2[3];
                 off2[0] = off3[0] + y*bin2[0];
@@ -360,11 +367,10 @@ py_neighbour_list(PyObject *self, PyObject *args)
                      */                    
                     if (cj1 < 0 || cj1 >= n1)  continue;
 
-                    int ncj = bin_trunc(cj1, n1) + ncj2;
+                    cj1 = bin_trunc(cj1, n1);
+                    int ncj = cj1 + ncj2;
 
-                    assert(ncj == bin_trunc(cj1, n1)+
-                           n1*(bin_trunc(cj2, n2)+
-                           n2*bin_trunc(cj3, n3)));
+                    assert(ncj == cj1+n1*(cj2+n2*cj3));
 
                     /* Offset of the neighboring bins */
                     double off[3];
@@ -381,6 +387,12 @@ py_neighbour_list(PyObject *self, PyObject *args)
                             int cj1, cj2, cj3;
                             position_to_cell_index(inv_cell, rj, n1, n2, n3,
                                                    &cj1, &cj2, &cj3);
+
+                            /* Truncate if non-periodic and outside of
+                               simulation domain. */
+                            if (!pbc[0])  cj1 = bin_trunc(cj1, n1);
+                            if (!pbc[1])  cj2 = bin_trunc(cj2, n2);
+                            if (!pbc[2])  cj3 = bin_trunc(cj3, n3);
 
                             /* drj is position relative to lower
                                left corner of the bin */
