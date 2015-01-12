@@ -21,6 +21,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from math import pi, sqrt
+
 import unittest
 
 import numpy as np
@@ -94,6 +96,27 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
             self.assertTrue(np.max(np.abs((syz[0,1:nx/4]-srzref[0,1:nx/4])/
                                            srzref[0,1:nx/4])) < 1e-2)
 
+    def test_min_ccg(self):
+        nx = 256 # Grid size
+        R = 256. # sphere radius
+        d = R/20. # penetration depth
+        G, x, y = gf.reciprocal_grid(nx, nx, gf=gf.gf_displacement_nonperiodic,
+                                     coordinates=True)
+
+        r_sq = (x**2 + y**2)/R**2
+        h = np.where(r_sq > 1., (R-d)*np.ones_like(r_sq), (R-d)-R*np.sqrt(1.-r_sq))
+
+        # Contact radius
+        a = R*sqrt(d/R)
+        p0 = 2/pi*sqrt(d/R)
+        r_sq = (x**2 + y**2)/a**2
+        p_analytic, sr, stheta = Hertz.surface_stress(np.sqrt(r_sq), nu=0.5)
+        p_analytic *= p0
+
+        u, p = gf.min_ccg(h, G)
+        p /= 2 # E* of GF is 2
+
+        assert (p-p_analytic).max() < 1e-3
 
 ###
 

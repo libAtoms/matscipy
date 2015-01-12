@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from math import pi
+from math import isnan, pi, sqrt
 
 import numpy as np
 
@@ -207,3 +207,140 @@ def reciprocal_stiffness_periodic(nx, ny=None, phi0=None, size=None):
         phi[0, 0] = phi0
 
     return phi
+
+
+def min_ccg(h_xy, gf, u_xy=None, pentol=1e-6, maxiter=100000,
+            logger=None):
+    """
+    Use a constrained conjugate gradient optimization to find the equilibrium
+    configuration deflection of an elastic manifold. The conjugate gradient
+    iteration is reset using the steepest descent direction whenever the contact
+    area changes.
+    Method is described in I.A. Polonsky, L.M. Keer, Wear 231, 206 (1999)
+
+    Parameters
+    ----------
+    h_xy : array_like
+        Height profile of the rigid counterbody.
+    gf : array_like
+        Green's function (in reciprocal space).
+    u_xy : array
+        Array used for initial displacements. A new array is created if omitted.
+    pentol : float
+        Maximum penetration of contacting regions required for convergence.
+    maxiter : float
+        Maximum number of iterations.
+
+    Returns
+    -------
+    u : array
+        2d-array of displacements.
+    p : array
+        2d-array of pressure.
+    """
+
+    if logger is not None:
+        logger.pr('maxiter = {0}'.format(maxiter))
+        logger.pr('pentol = {0}'.format(pentol))
+
+    if u_xy is None:
+        u_xy = np.zeros_like(h_xy)
+
+    u_xy[:, :] = np.where(u_xy > h_xy, h_xy, u_xy)
+
+    # Compute forces
+    p_xy = -np.fft.ifft2(np.fft.fft2(u_xy)/gf).real
+
+    # iteration
+    delta = 0
+    delta_str = 'reset'
+    G_old = 1.0
+    for it in range(1, maxiter+1):
+        # Reset contact area
+        c_xy = p_xy > 0.0
+
+        # Compute total contact area (area with repulsive force)
+        A = np.sum(c_xy)
+
+        # Compute G = sum(g*g) (over contact area only)
+        g_xy = h_xy-u_xy
+        G = np.sum(c_xy*g_xy*g_xy)
+
+        # t = (g + delta*(G/G_old)*t) inside contact area and 0 outside
+        if delta > 0:
+            t_xy = c_xy*(g_xy + delta*(G/G_old)*t_xy)
+        else:
+            t_xy = c_xy*g_xy
+
+        # Compute elastic displacement that belong to t_xy
+        # (Note: r_xy is negative of Polonsky, Kerr's r)
+        r_xy = -np.fft.ifft2(gf*np.fft.fft2(t_xy)).real
+
+        # Note: Sign reversed from Polonsky, Keer because this r_xy is negative
+        # of theirs.
+        tau = 0.0
+        if A > 0:
+            # tau = -sum(g*t)/sum(r*t) where sum is only over contact region
+            x = -np.sum(c_xy*r_xy*t_xy)
+            if x > 0.0:
+                tau = np.sum(c_xy*g_xy*t_xy)/x
+            else:
+                G = 0.0
+
+        # Save forces for later
+        fold_xy = p_xy.copy()
+
+        p_xy -= tau*c_xy*t_xy
+
+        # Find area with negative forces and negative gap
+        # (i.e. penetration of the two surfaces)
+        nc_xy = np.logical_and(p_xy <= 0.0, g_xy < 0.0)
+
+        # Set all negative forces to zero
+        p_xy *= p_xy > 0.0
+
+        if np.sum(nc_xy) > 0:
+            # nc_xy contains area that just jumped into contact. Update their
+            # forces.
+            p_xy -= tau*nc_xy*g_xy
+        
+            delta = 0
+            delta_str = 'sd'
+        else:
+            delta = 1
+            delta_str = 'cg'
+
+        # Compute new displacements from updated forces
+        u_xy = -np.fft.ifft2(gf*np.fft.fft2(p_xy)).real
+       
+        # Store G for next step
+        G_old = G
+        
+        # Compute root-mean square penetration, max penetration and max force
+        # difference between the steps
+        if A > 0:
+            rms_pen = sqrt(G/A)
+        else:
+            rms_pen = sqrt(G)
+        max_pen = max(0.0, np.max(c_xy*(u_xy-h_xy)))
+
+        # Elastic energy would be
+        # e_el = -0.5*np.sum(p_xy*u_xy)
+
+        if rms_pen < pentol and max_pen < pentol:
+            if logger is not None:
+                logger.st(['status', 'it', 'A', 'tau', 'rms_pen', 'max_pen'],
+                          ['CONVERGED', it, A, tau, rms_pen, max_pen],
+                          force_print=True)
+            return u_xy, p_xy
+
+        if logger is not None:
+            logger.st(['status', 'it', 'A', 'tau', 'rms_pen', 'max_pen'],
+                      [delta_str, it, A, tau, rms_pen, max_pen])
+
+        if isnan(G) or isnan(rms_pen):
+            raise RuntimeError('nan encountered.')
+
+    raise RuntimeError('Maximum number of iterations ({0}) exceeded.' \
+                           .format(maxiter))
+
