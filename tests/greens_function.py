@@ -81,12 +81,12 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
             sttref, srrref, szzref, srzref = \
                 Hertz.stress(np.sqrt(r_sq), z/a, nu=nu)
 
-            np.savetxt('s0.out', np.transpose([y[0,:nx/4], sxx[0,:nx/4],
-                                               syy[0,:nx/4], szz[0,:nx/4],
-                                               syz[0,:nx/4]]))
-            np.savetxt('sref0.out', np.transpose([y[0,:nx/4], sttref[0,:nx/4],
-                                                 srrref[0,:nx/4], szzref[0,:nx/4],
-                                                 srzref[0,:nx/4]]))
+            #np.savetxt('s0.out', np.transpose([y[0,:nx/4], sxx[0,:nx/4],
+            #                                   syy[0,:nx/4], szz[0,:nx/4],
+            #                                   syz[0,:nx/4]]))
+            #np.savetxt('sref0.out', np.transpose([y[0,:nx/4], sttref[0,:nx/4],
+            #                                     srrref[0,:nx/4], szzref[0,:nx/4],
+            #                                     srzref[0,:nx/4]]))
             self.assertTrue(np.max(np.abs((sxx[0,1:nx/4]-sttref[0,1:nx/4])/
                                            sttref[0,1:nx/4])) < 1e-2)
             self.assertTrue(np.max(np.abs((syy[0,1:nx/4]-srrref[0,1:nx/4])/
