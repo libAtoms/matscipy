@@ -209,7 +209,7 @@ def reciprocal_stiffness_periodic(nx, ny=None, phi0=None, size=None):
     return phi
 
 
-def min_ccg(h_xy, gf, u_xy=None, pentol=1e-6, maxiter=100000,
+def min_ccg(h_r, gf_q, u_r=None, pentol=1e-6, maxiter=100000,
             logger=None):
     """
     Use a constrained conjugate gradient optimization to find the equilibrium
@@ -220,11 +220,11 @@ def min_ccg(h_xy, gf, u_xy=None, pentol=1e-6, maxiter=100000,
 
     Parameters
     ----------
-    h_xy : array_like
+    h_r : array_like
         Height profile of the rigid counterbody.
-    gf : array_like
+    gf_q : array_like
         Green's function (in reciprocal space).
-    u_xy : array
+    u_r : array
         Array used for initial displacements. A new array is created if omitted.
     pentol : float
         Maximum penetration of contacting regions required for convergence.
@@ -239,17 +239,19 @@ def min_ccg(h_xy, gf, u_xy=None, pentol=1e-6, maxiter=100000,
         2d-array of pressure.
     """
 
+    # Note: Suffix _r deontes real-space _q reciprocal space 2d-arrays
+
     if logger is not None:
         logger.pr('maxiter = {0}'.format(maxiter))
         logger.pr('pentol = {0}'.format(pentol))
 
-    if u_xy is None:
-        u_xy = np.zeros_like(h_xy)
+    if u_r is None:
+        u_r = np.zeros_like(h_r)
 
-    u_xy[:, :] = np.where(u_xy > h_xy, h_xy, u_xy)
+    u_r[:, :] = np.where(u_r > h_r, h_r, u_r)
 
     # Compute forces
-    p_xy = -np.fft.ifft2(np.fft.fft2(u_xy)/gf).real
+    p_r = -np.fft.ifft2(np.fft.fft2(u_r)/gf_q).real
 
     # iteration
     delta = 0
@@ -257,52 +259,52 @@ def min_ccg(h_xy, gf, u_xy=None, pentol=1e-6, maxiter=100000,
     G_old = 1.0
     for it in range(1, maxiter+1):
         # Reset contact area
-        c_xy = p_xy > 0.0
+        c_r = p_r > 0.0
 
         # Compute total contact area (area with repulsive force)
-        A = np.sum(c_xy)
+        A = np.sum(c_r)
 
         # Compute G = sum(g*g) (over contact area only)
-        g_xy = h_xy-u_xy
-        G = np.sum(c_xy*g_xy*g_xy)
+        g_r = h_r-u_r
+        G = np.sum(c_r*g_r*g_r)
 
         # t = (g + delta*(G/G_old)*t) inside contact area and 0 outside
         if delta > 0:
-            t_xy = c_xy*(g_xy + delta*(G/G_old)*t_xy)
+            t_r = c_r*(g_r + delta*(G/G_old)*t_r)
         else:
-            t_xy = c_xy*g_xy
+            t_r = c_r*g_r
 
-        # Compute elastic displacement that belong to t_xy
-        # (Note: r_xy is negative of Polonsky, Kerr's r)
-        r_xy = -np.fft.ifft2(gf*np.fft.fft2(t_xy)).real
+        # Compute elastic displacement that belong to t_r
+        # (Note: r_r is negative of Polonsky, Kerr's r)
+        r_r = -np.fft.ifft2(gf_q*np.fft.fft2(t_r)).real
 
-        # Note: Sign reversed from Polonsky, Keer because this r_xy is negative
+        # Note: Sign reversed from Polonsky, Keer because this r_r is negative
         # of theirs.
         tau = 0.0
         if A > 0:
             # tau = -sum(g*t)/sum(r*t) where sum is only over contact region
-            x = -np.sum(c_xy*r_xy*t_xy)
+            x = -np.sum(c_r*r_r*t_r)
             if x > 0.0:
-                tau = np.sum(c_xy*g_xy*t_xy)/x
+                tau = np.sum(c_r*g_r*t_r)/x
             else:
                 G = 0.0
 
         # Save forces for later
-        fold_xy = p_xy.copy()
+        fold_r = p_r.copy()
 
-        p_xy -= tau*c_xy*t_xy
+        p_r -= tau*c_r*t_r
 
         # Find area with negative forces and negative gap
         # (i.e. penetration of the two surfaces)
-        nc_xy = np.logical_and(p_xy <= 0.0, g_xy < 0.0)
+        nc_r = np.logical_and(p_r <= 0.0, g_r < 0.0)
 
         # Set all negative forces to zero
-        p_xy *= p_xy > 0.0
+        p_r *= p_r > 0.0
 
-        if np.sum(nc_xy) > 0:
-            # nc_xy contains area that just jumped into contact. Update their
+        if np.sum(nc_r) > 0:
+            # nc_r contains area that just jumped into contact. Update their
             # forces.
-            p_xy -= tau*nc_xy*g_xy
+            p_r -= tau*nc_r*g_r
         
             delta = 0
             delta_str = 'sd'
@@ -311,7 +313,7 @@ def min_ccg(h_xy, gf, u_xy=None, pentol=1e-6, maxiter=100000,
             delta_str = 'cg'
 
         # Compute new displacements from updated forces
-        u_xy = -np.fft.ifft2(gf*np.fft.fft2(p_xy)).real
+        u_r = -np.fft.ifft2(gf_q*np.fft.fft2(p_r)).real
        
         # Store G for next step
         G_old = G
@@ -322,17 +324,17 @@ def min_ccg(h_xy, gf, u_xy=None, pentol=1e-6, maxiter=100000,
             rms_pen = sqrt(G/A)
         else:
             rms_pen = sqrt(G)
-        max_pen = max(0.0, np.max(c_xy*(u_xy-h_xy)))
+        max_pen = max(0.0, np.max(c_r*(u_r-h_r)))
 
         # Elastic energy would be
-        # e_el = -0.5*np.sum(p_xy*u_xy)
+        # e_el = -0.5*np.sum(p_r*u_r)
 
         if rms_pen < pentol and max_pen < pentol:
             if logger is not None:
                 logger.st(['status', 'it', 'A', 'tau', 'rms_pen', 'max_pen'],
                           ['CONVERGED', it, A, tau, rms_pen, max_pen],
                           force_print=True)
-            return u_xy, p_xy
+            return u_r, p_r
 
         if logger is not None:
             logger.st(['status', 'it', 'A', 'tau', 'rms_pen', 'max_pen'],
