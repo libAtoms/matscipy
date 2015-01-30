@@ -142,8 +142,8 @@ class RectilinearAnisotropicCrack:
         h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
         h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
 
-        u = h1 * ( self.inv_mu1_mu2 * ( self.mu1_p2 * h2 - self.mu2_p1 * h3 ) ).real
-        v = h1 * ( self.inv_mu1_mu2 * ( self.mu1_q2 * h2 - self.mu2_q1 * h3 ) ).real
+        u = h1*( self.inv_mu1_mu2*( self.mu1_p2*h2 - self.mu2_p1*h3 ) ).real
+        v = h1*( self.inv_mu1_mu2*( self.mu1_q2*h2 - self.mu2_q1*h3 ) ).real
 
         return u, v
 
@@ -183,11 +183,11 @@ class RectilinearAnisotropicCrack:
         h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
         h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
 
-        du_dx = f * ( self.inv_mu1_mu2 * ( self.mu1_p2 / h2 - self.mu2_p1 / h3 ) ).real
-        du_dy = f * ( h1 * ( self.p2 / h2 - self.p1 / h3 ) ).real
+        du_dx = f*( self.inv_mu1_mu2*( self.mu1_p2/h2 - self.mu2_p1/h3 ) ).real
+        du_dy = f*( h1*( self.p2/h2 - self.p1/h3 ) ).real
 
-        dv_dx = f * ( self.inv_mu1_mu2 * ( self.mu1_q2 / h2 - self.mu2_q1 / h3 ) ).real
-        dv_dy = f * ( h1 * ( self.q2 / h2 - self.q1 / h3 ) ).real
+        dv_dx = f*( self.inv_mu1_mu2*( self.mu1_q2/h2 - self.mu2_q1/h3 ) ).real
+        dv_dy = f*( h1*( self.q2/h2 - self.q1/h3 ) ).real
 
         return du_dx, du_dy, dv_dx, dv_dy
 
