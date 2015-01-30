@@ -108,11 +108,11 @@ class RectilinearAnisotropicCrack:
         self.q1  = self.a12*self.mu1 + self.a22/self.mu1 - self.a26
         self.q2  = self.a12*self.mu2 + self.a22/self.mu2 - self.a26
 
-        self.h1 = 1/(self.mu1 - self.mu2)
-        self.h2 = self.mu1 * self.p2
-        self.h3 = self.mu2 * self.p1
-        self.h4 = self.mu1 * self.q2
-        self.h5 = self.mu2 * self.q1
+        self.inv_mu1_mu2 = 1/(self.mu1 - self.mu2)
+        self.mu1_p2 = self.mu1 * self.p2
+        self.mu2_p1 = self.mu2 * self.p1
+        self.mu1_q2 = self.mu1 * self.q2
+        self.mu2_q1 = self.mu2 * self.q1
 
 
     def displacements(self, r, theta, k):
@@ -142,8 +142,8 @@ class RectilinearAnisotropicCrack:
         h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
         h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
 
-        u = h1 * ( self.h1 * ( self.h2 * h2 - self.h3 * h3 ) ).real
-        v = h1 * ( self.h1 * ( self.h4 * h2 - self.h5 * h3 ) ).real
+        u = h1 * ( self.inv_mu1_mu2 * ( self.mu1_p2 * h2 - self.mu2_p1 * h3 ) ).real
+        v = h1 * ( self.inv_mu1_mu2 * ( self.mu1_q2 * h2 - self.mu2_q1 * h3 ) ).real
 
         return u, v
 
@@ -176,12 +176,12 @@ class RectilinearAnisotropicCrack:
 
         f = k / np.sqrt(2.0*math.pi*r)
 
-        h1 = (self.mu1*self.mu2)*self.h1
+        h1 = (self.mu1*self.mu2)*self.inv_mu1_mu2
         h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
         h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
 
         sig_x  = f*(h1*(self.mu2/h2 - self.mu1/h3)).real
-        sig_y  = f*(self.h1*(self.mu1/h2 - self.mu2/h3)).real
+        sig_y  = f*(self.inv_mu1_mu2*(self.mu1/h2 - self.mu2/h3)).real
         sig_xy = f*(h1*(1/h2 - 1/h3)).real
 
         return sig_x, sig_y, sig_xy
@@ -191,8 +191,8 @@ class RectilinearAnisotropicCrack:
         h2 = ( cos(theta) + self.mu2*sin(theta) )**0.5
         h3 = ( cos(theta) + self.mu1*sin(theta) )**0.5
 
-        return v - ( self.h2 * h2 - self.h3 * h3 ).real/ \
-            ( self.h4 * h2 - self.h5 * h3 ).real
+        return v - ( self.mu1_p2 * h2 - self.mu2_p1 * h3 ).real/ \
+            ( self.mu1_q2 * h2 - self.mu2_q1 * h3 ).real
 
 
     def rtheta(self, u, v, k):
@@ -201,7 +201,7 @@ class RectilinearAnisotropicCrack:
         from displacements.
         """
 
-        # u/v = (self.h2*h2 - self.h3*h3)/(self.h4*h2-self.h5*h3)
+        # u/v = (self.mu1_p2*h2 - self.mu2_p1*h3)/(self.mu1_q2*h2-self.mu2_q1*h3)
         theta = brentq(self._f, -pi, pi, args=(u/v))
 
         h1 = k * sqrt(2.0*r/math.pi)
@@ -209,9 +209,9 @@ class RectilinearAnisotropicCrack:
         h2 = ( cos(theta) + self.mu2*sin(theta) )**0.5
         h3 = ( cos(theta) + self.mu1*sin(theta) )**0.5
 
-        sqrt_2_r = ( self.h1 * ( self.h2 * h2 - self.h3 * h3 ) ).real/k
+        sqrt_2_r = ( self.inv_mu1_mu2 * ( self.mu1_p2 * h2 - self.mu2_p1 * h3 ) ).real/k
         r1 = sqrt_2_r**2/2
-        sqrt_2_r = ( self.h1 * ( self.h4 * h2 - self.h5 * h3 ) ).real/k
+        sqrt_2_r = ( self.inv_mu1_mu2 * ( self.mu1_q2 * h2 - self.mu2_q1 * h3 ) ).real/k
         r2 = sqrt_2_r**2/2
 
         return ( (r1+r2)/2, theta )
