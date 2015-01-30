@@ -114,7 +114,7 @@ sig_xx, sig_yy, sig_xy = crk.stresses(cryst.positions[:,0],
                                       cryst.positions[:,1],
                                       tip_x, tip_y,
                                       params.k1*k1g)
-sig = vstack([sig_xx, sig_yy] + [ np.zeros_like(sig_xx)]*3 + [sig_xy])
+sig = np.vstack([sig_xx, sig_yy] + [ np.zeros_like(sig_xx)]*3 + [sig_xy])
 eps = np.dot(crk.S, sig)
 
 1/0
