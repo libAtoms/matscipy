@@ -164,27 +164,27 @@ class RectilinearAnisotropicCrack:
 
         Returns
         -------
-        sig_u : array
+        sig_x : array
             Diagonal component of stress tensor parallel to the plane of the
             crack.
-        sig_v : array
+        sig_y : array
             Diagonal component of stress tensor normal to the plane of the
             crack.
-        sig_uv : array
+        sig_xy : array
             Off-diagonal component of the stress tensor.
         """
 
         f = k / np.sqrt(2.0*math.pi*r)
 
-        h1 = (self.mu1*self.mu2)/self.h1
+        h1 = (self.mu1*self.mu2)*self.h1
         h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
         h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
 
-        sig_u  = f*(h1*(self.mu2/h2 - self.mu1/h3)).real
-        sig_v  = f*(self.h1*(self.mu1/h2 - self.mu2/h3)).real
-        sig_uv = f*(h1*(1/h2 - 1/h3)).real
+        sig_x  = f*(h1*(self.mu2/h2 - self.mu1/h3)).real
+        sig_y  = f*(self.h1*(self.mu1/h2 - self.mu2/h3)).real
+        sig_xy = f*(h1*(1/h2 - 1/h3)).real
 
-        return sig_u, sig_v, sig_uv
+        return sig_x, sig_y, sig_xy
 
 
     def _f(self, theta, v):
