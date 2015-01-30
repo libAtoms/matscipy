@@ -148,6 +148,50 @@ class RectilinearAnisotropicCrack:
         return u, v
 
 
+    def deformation_gradient(self, r, theta, k):
+        """
+        Deformation gradient tensor in mode I fracture. Positions are passed in
+        cyclinder coordinates.
+
+        Parameters
+        ----------
+        r : array_like
+            Distances from the crack tip.
+        theta : array_like
+            Angles with respect to the plane of the crack.
+        k : float
+            Stress intensity factor.
+
+        Returns
+        -------
+        du_dx : array
+            Derivatives of displacements parallel to the plane within the plane.
+        du_dy : array
+            Derivatives of displacements parallel to the plane perpendicular to
+            the plane.
+        dv_dx : array
+            Derivatives of displacements normal to the plane of the crack within
+            the plane.
+        dv_dy : array
+            Derivatives of displacements normal to the plane of the crack 
+            perpendicular to the plane.
+        """
+
+        f = k / np.sqrt(2*math.pi*r)
+
+        h1 = (self.mu1*self.mu2)*self.inv_mu1_mu2
+        h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
+        h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
+
+        du_dx = f * ( self.inv_mu1_mu2 * ( self.mu1_p2 / h2 - self.mu2_p1 / h3 ) ).real
+        du_dy = f * ( h1 * ( self.p2 / h2 - self.p1 / h3 ) ).real
+
+        dv_dx = f * ( self.inv_mu1_mu2 * ( self.mu1_q2 / h2 - self.mu2_q1 / h3 ) ).real
+        dv_dy = f * ( h1 * ( self.q2 / h2 - self.q1 / h3 ) ).real
+
+        return du_dx, du_dy, dv_dx, dv_dy
+
+
     def stresses(self, r, theta, k):
         """
         Stress field in mode I fracture. Positions are passed in cylinder
