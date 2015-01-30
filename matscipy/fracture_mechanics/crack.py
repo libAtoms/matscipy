@@ -117,9 +117,24 @@ class RectilinearAnisotropicCrack:
 
     def displacements(self, r, theta, k):
         """
-        Displacement field in mode I fracture
+        Displacement field in mode I fracture. Positions are passed in cyclinder
+        coordinates.
 
-        Returns (u, v) each with shape of r and theta
+        Parameters
+        ----------
+        r : array_like
+            Distances from the crack tip.
+        theta : array_like
+            Angles with respect to the plane of the crack.
+        k : float
+            Stress intensity factor.
+
+        Returns
+        -------
+        u : array
+            Displacements parallel to the plane of the crack.
+        v : array
+            Displacements normal to the plane of the crack.
         """
 
         h1 = k * np.sqrt(2.0*r/math.pi)
@@ -135,9 +150,28 @@ class RectilinearAnisotropicCrack:
 
     def stresses(self, r, theta, k):
         """
-        Stress field in mode I fracture
+        Stress field in mode I fracture. Positions are passed in cylinder
+        coordinates.
 
-        Returns (sig_x, sig_y, sig_xy), each with shape of r and theta.
+        Parameters
+        ----------
+        r : array_like
+            Distances from the crack tip.
+        theta : array_like
+            Angles with respect to the plane of the crack.
+        k : float
+            Stress intensity factor.
+
+        Returns
+        -------
+        sig_u : array
+            Diagonal component of stress tensor parallel to the plane of the
+            crack.
+        sig_v : array
+            Diagonal component of stress tensor normal to the plane of the
+            crack.
+        sig_uv : array
+            Off-diagonal component of the stress tensor.
         """
 
         f = k / np.sqrt(2.0*math.pi*r)
@@ -146,11 +180,11 @@ class RectilinearAnisotropicCrack:
         h2 = np.sqrt( np.cos(theta) + self.mu2*np.sin(theta) )
         h3 = np.sqrt( np.cos(theta) + self.mu1*np.sin(theta) )
 
-        sig_x  = f*(h1*(self.mu2/h2 - self.mu1/h3)).real
-        sig_y  = f*(self.h1*(self.mu1/h2 - self.mu2/h3)).real
-        sig_xy = f*(h1*(1/h2 - 1/h3)).real
+        sig_u  = f*(h1*(self.mu2/h2 - self.mu1/h3)).real
+        sig_v  = f*(self.h1*(self.mu1/h2 - self.mu2/h3)).real
+        sig_uv = f*(h1*(1/h2 - 1/h3)).real
 
-        return sig_x, sig_y, sig_xy
+        return sig_u, sig_v, sig_uv
 
 
     def _f(self, theta, v):
