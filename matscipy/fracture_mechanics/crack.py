@@ -390,8 +390,52 @@ class CubicCrystalCrack:
         """
         dx = ref_x - x0
         dy = ref_y - y0
-        ux, uy = self.displacements_from_cartesian_coordinates(dx, dy, k)
-        return ux, uy
+        return self.displacements_from_cartesian_coordinates(dx, dy, k)
+
+
+    def deformation_gradient_from_cylinder_coordinates(self, r, theta, k):
+        """
+        Displacement field in mode I fracture from cylindrical coordinates.
+        """
+        return self.crack.deformation_gradient(r, theta, k)
+
+
+    def deformation_gradient_from_cartesian_coordinates(self, dx, dy, k):
+        """
+        Displacement field in mode I fracture from cartesian coordinates.
+        """
+        abs_dr = np.sqrt(dx*dx+dy*dy)
+        theta = np.arctan2(dy, dx)
+        return self.deformation_gradient_from_cylinder_coordinates(abs_dr, theta, k)
+
+
+    def deformation_gradient(self, ref_x, ref_y, x0, y0, k):
+        """
+        Deformation gradient for a list of cartesian positions.
+
+        Parameters
+        ----------
+        ref_x : array_like
+            x-positions of the reference crystal.
+        ref_y : array_like
+            y-positions of the reference crystal.
+        x0 : float
+            x-coordinate of the crack tip.
+        y0 : float
+            y-coordinate of the crack tip.
+        k : float
+            Stress intensity factor.
+        
+        Returns
+        -------
+        ux : array_like
+            x-displacements.
+        uy : array_like
+            y-displacements.
+        """
+        dx = ref_x - x0
+        dy = ref_y - y0
+        return self.deformation_gradient_from_cartesian_coordinates(dx, dy, k)
 
 
     def displacement_residuals(self, x, y, ref_x, ref_y, x0, y0, k):
@@ -404,9 +448,10 @@ class CubicCrystalCrack:
         return u1x - u2x, u1y - u2y
 
 
-    def _residual(self, r0, x, y, ref_x, ref_y, k, mask):
+    def _residual(self, r0, x, y, ref_x, ref_y, k, mask,
+                  residual_func=self.displacement_residuals):
         x0, y0 = r0
-        dux, duy = self.displacement_residuals(x, y, ref_x, ref_y, x0, y0, k)
+        dux, duy = residual_func(x, y, ref_x, ref_y, x0, y0, k)
         return dux[mask]*dux[mask]+duy[mask]*duy[mask]
 
 
