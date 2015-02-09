@@ -39,9 +39,10 @@ def savetbl(fn, **kwargs):
     kwargs : dict
         Keyword argument pass data and column header names.
     """
-    header = reduce(lambda s, (i, x): '{0} {1}:{2}'.format(s, i+1, x),
-                    enumerate(kwargs.iterkeys()), '')
-    data = np.transpose([x for x in kwargs.itervalues()])
+    sorted_kwargs = sorted(kwargs.items(), key=lambda t: t[0])
+    header = reduce(lambda s, (i, (x, y)): '{0} {1}:{2}'.format(s, i+1, x),
+                    enumerate(sorted_kwargs), '')
+    data = np.transpose([y for x, y in sorted_kwargs])
     np.savetxt(fn, data, header=header)
 
 
