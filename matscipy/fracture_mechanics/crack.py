@@ -454,13 +454,65 @@ class CubicCrystalCrack:
         return u1x - u2x, u1y - u2y
 
 
-    def _displacement_residual(self, r0, x, y, ref_x, ref_y, k, mask):
+    def displacement_residual(self, r0, x, y, ref_x, ref_y, k, mask):
         x0, y0 = r0
         dux, duy = self.displacement_residuals(x, y, ref_x, ref_y, x0, y0, k)
         return dux[mask]*dux[mask]+duy[mask]*duy[mask]
 
 
-    def crack_tip_position(self, x, y, ref_x, ref_y, x0, y0, k, mask=None):
+    def displacement_div_sqrt_r_residuals(self, x, y, ref_x, ref_y, x0, y0, k):
+        """
+        Return actual displacement field minus ideal displacement field,
+        divided by sqrt(r). This is useful because it fully eliminates
+        dependence on distance from the crack tip, hence not biasing the 
+        atoms that contribute to the fit.
+        """
+        u1x = x - ref_x
+        u1y = y - ref_y
+        dx = ref_x - x0
+        dy = ref_y - y0
+        abs_dr = np.sqrt(dx*dx+dy*dy)
+        theta = np.arctan2(dy, dx)
+        u2x, u2y = self.displacements_from_cylinder_coordinates(abs_dr, theta,
+                                                                k)
+        sqrt_abs_dr = np.sqrt(abs_dr)
+        return (u1x - u2x)/sqrt_abs_dr, (u1y - u2y)/sqrt_abs_dr
+
+
+    def displacement_div_sqrt_r_residual(self, r0, x, y, ref_x, ref_y, k, mask):
+        x0, y0 = r0
+        dux, duy = self.displacement_div_sqrt_r_residuals(x, y, ref_x, ref_y,
+                                                          x0, y0, k)
+        return dux[mask]*dux[mask]+duy[mask]*duy[mask]
+
+
+    def deformation_gradient_residuals(self, cur, ref, x0, y0, k, cutoff):
+        """
+        Return actual displacement field minus ideal displacement field.
+        """
+        F1, res1 = atomic_strain(cur, ref, cutoff=cutoff)
+        # F1 is a 3x3 tensor, we throw away all z-components
+        [F1xx, F1yx, F1zx], [F1xy, F1yy, F1zy], [F1xz, F1yz, F1zz] = F1.T
+        F1 = np.array([[F1xx, F1xy], [F1yx, F1yy]]).T
+
+        F2 = self.deformation_gradient(ref.positions[:, 0], ref.positions[:, 1],
+                                       x0, y0, k)
+
+        return F1-F2
+
+
+    def deformation_gradient_residual(self, r0, cur, ref, k, cutoff, mask):
+        x0, y0 = r0
+        dF = self.deformation_gradient_residuals(cur, ref, x0, y0, k, cutoff)
+        #print dF.shape
+        if mask is None:
+            return (dF*dF).sum(axis=1).sum(axis=2)
+        else:
+            return (dF[mask]*dF[mask]).sum(axis=2).sum(axis=1)
+
+
+    def crack_tip_position(self, x, y, ref_x, ref_y, x0, y0, k, mask=None,
+                           residual_func=None):
         """
         Return an estimate of the real crack tip position by minimizing the 
         mean square error of the current configuration relative to the
@@ -495,81 +547,16 @@ class CubicCrystalCrack:
         """
         if mask is None:
             mask = np.ones(len(a), dtype=bool)
-        ( x0, y0 ), ier = leastsq(self._displacement_residual, ( x0, y0 ),
+        if residual_func is None:
+            residual_func = self.displacement_div_sqrt_r_residual
+        ( x0, y0 ), ier = leastsq(residual_func, ( x0, y0 ),
                                   args=(x, y, ref_x, ref_y, k, mask))
         if ier not in [ 1, 2, 3, 4 ]:
             raise RuntimeError('Could not find crack tip')
         return x0, y0
 
 
-    def deformation_gradient_residuals(self, cur, ref, x0, y0, k, cutoff):
-        """
-        Return actual displacement field minus ideal displacement field.
-        """
-        F1, res1 = atomic_strain(cur, ref, cutoff=cutoff)
-        # F1 is a 3x3 tensor, we throw away all z-components
-        [F1xx, F1yx, F1zx], [F1xy, F1yy, F1zy], [F1xz, F1yz, F1zz] = F1.T
-        F1 = np.array([[F1xx, F1xy], [F1yx, F1yy]]).T
-
-        F2 = self.deformation_gradient(ref.positions[:, 0], ref.positions[:, 1],
-                                       x0, y0, k)
-
-        return F1-F2
-
-
-    def _deformation_gradient_residual(self, r0, cur, ref, k, cutoff, mask):
-        x0, y0 = r0
-        dF = self.deformation_gradient_residuals(cur, ref, x0, y0, k, cutoff)
-        #print dF.shape
-        if mask is None:
-            return (dF*dF).sum(axis=1).sum(axis=2)
-        else:
-            return (dF[mask]*dF[mask]).sum(axis=2).sum(axis=1)
-
-
-    def crack_tip_position_from_deformation_gradient(self, cur, ref, x0, y0, k,
-                                                     cutoff, mask=None):
-        """
-        Return an estimate of the real crack tip position by minimizing the 
-        mean square error of the current configuration relative to the
-        deformation gradient field obtained for a stress intensity factor k from
-        linear elastic fracture mechanics.
-
-        Parameters
-        ----------
-        cur : ase.Atoms
-            The atomic system containing the crack.
-        ref : ase.Atoms
-            The reference crystal without a crack.
-        x0 : float
-            Initial guess for the x-coordinate of the crack tip.
-        y0 : float
-            Initial guess for the y-coordinate of the crack tip.
-        k : float
-            Stress intensity factor.
-        cutoff : float
-            Cutoff radius for computing atomic deformation gradient.
-        mask : array_like, optional
-            Marks the atoms to use for this calculation.
-
-        Returns
-        -------
-        x0 : float
-            x-coordinate of the crack tip.
-        y0 : float
-            y-coordinate of the crack tip.
-        """
-        if mask is None:
-            mask = np.ones(len(a), dtype=bool)
-        ( x0, y0 ), ier = leastsq(self._deformation_gradient_residual,
-                                  ( x0, y0 ),
-                                  args=(cur, ref, k, cutoff, mask))
-        if ier not in [ 1, 2, 3, 4 ]:
-            raise RuntimeError('Could not find crack tip')
-        return x0, y0
-
-
-    def _residual_z(self, y0, x0, x, y, ref_x, ref_y, k, mask):
+    def _residual_y(self, y0, x0, x, y, ref_x, ref_y, k, mask):
         dux, duy = self.displacement_residuals(x, y, ref_x, ref_y, x0, y0, k)
         return dux[mask]*dux[mask]+duy[mask]*duy[mask]
 
@@ -605,7 +592,7 @@ class CubicCrystalCrack:
         """
         if mask is None:
             mask = np.ones(len(a), dtype=bool)
-        ( y0, ), ier = leastsq(self._residual_z, y0,
+        ( y0, ), ier = leastsq(self._residual_y, y0,
                           args=(x0, x, y, ref_x, ref_y, k, mask))
         if ier not in [ 1, 2, 3, 4 ]:
             raise RuntimeError('Could not find crack tip')
