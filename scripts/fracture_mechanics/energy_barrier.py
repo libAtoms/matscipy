@@ -42,6 +42,8 @@ import params
 
 ###
 
+Optimizer = ase.optimize.FIRE
+
 # Atom types used for outputting the crack tip position.
 ACTUAL_CRACK_TIP = 'Au'
 FITTED_CRACK_TIP = 'Ag'
@@ -75,7 +77,7 @@ else:
 # Apply initial strain field.
 a = cryst.copy()
 ux, uy = crk.displacements(cryst.positions[:,0], cryst.positions[:,1],
-                             tip_x, tip_y, params.k1*k1g)
+                           tip_x, tip_y, params.k1*k1g)
 a.positions[:,0] += ux
 a.positions[:,1] += uy
 
@@ -117,14 +119,12 @@ sig_xx, sig_yy, sig_xy = crk.stresses(cryst.positions[:,0],
 sig = np.vstack([sig_xx, sig_yy] + [ np.zeros_like(sig_xx)]*3 + [sig_xy])
 eps = np.dot(crk.S, sig)
 
-1/0
-
-info = []
-
 # Run crack calculation.
 for i, bond_length in enumerate(params.bond_lengths):
     parprint('=== bond_length = {0} ==='.format(bond_length))
     xyz_file = '%s_%4d.xyz' % (params.basename, int(bond_length*1000))
+    log_file = open('%s_%4d.log' % (params.basename, int(bond_length*1000)),
+                    'w')
     if os.path.exists(xyz_file):
         parprint('%s found, skipping' % xyz_file)
         a = ase.io.read(xyz_file)
@@ -159,7 +159,7 @@ for i, bond_length in enumerate(params.bond_lengths):
                 a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                                   bond_length_constraint])
                 parprint('Optimizing positions...')
-                opt = ase.optimize.FIRE(a, logfile=None)
+                opt = Optimizer(a, logfile=log_file)
                 opt.run(fmax=params.fmax)
                 parprint('...done. Converged within {0} steps.' \
                          .format(opt.get_number_of_steps()))
@@ -167,18 +167,18 @@ for i, bond_length in enumerate(params.bond_lengths):
                 old_x = tip_x
                 old_y = tip_y
                 tip_x, tip_y = crk.crack_tip_position(a.positions[:,0],
-                                                        a.positions[:,1],
-                                                        cryst.positions[:,0],
-                                                        cryst.positions[:,1],
-                                                        tip_x, tip_y,
-                                                        params.k1*k1g,
-                                                        mask=mask)
+                                                      a.positions[:,1],
+                                                      cryst.positions[:,0],
+                                                      cryst.positions[:,1],
+                                                      tip_x, tip_y,
+                                                      params.k1*k1g,
+                                                      mask=mask)
                 parprint('New crack tip at {0} {1}'.format(tip_x, tip_y))
         else:
             a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                               bond_length_constraint])
             parprint('Optimizing positions...')
-            opt = ase.optimize.FIRE(a, logfile=sys.stdout)
+            opt = Optimizer(a, logfile=log_file)
             opt.run(fmax=params.fmax)
             parprint('...done. Converged within {0} steps.' \
                      .format(opt.get_number_of_steps()))
@@ -193,28 +193,26 @@ for i, bond_length in enumerate(params.bond_lengths):
         b.info['actual_crack_tip'] = (tip_x, tip_y, b.cell.diagonal()[2]/2)
 
         fit_x, fit_y = crk.crack_tip_position(a.positions[:,0],
-                                                a.positions[:,1],
-                                                cryst.positions[:,0],
-                                                cryst.positions[:,1],
-                                                tip_x, tip_y, params.k1*k1g,
-                                                mask=mask)
+                                              a.positions[:,1],
+                                              cryst.positions[:,0],
+                                              cryst.positions[:,1],
+                                              tip_x, tip_y, params.k1*k1g,
+                                              mask=mask)
 
         parprint('Measured crack tip at %f %f' % (fit_x, fit_y))
 
         # The fitted crack tip is marked by a silver atom.
         b += ase.Atom(FITTED_CRACK_TIP, (fit_x, fit_y, b.cell.diagonal()[2]/2))
-        b.info['fitted_crack_tip'] =  (fit_x, fit_y, b.cell.diagonal()[2]/2)
+        b.info['fitted_crack_tip'] = (fit_x, fit_y, b.cell.diagonal()[2]/2)
 
         bond_dir = a[bond1].position - a[bond2].position
         bond_dir /= np.linalg.norm(bond_dir)
         force = np.dot(bond_length_constraint.get_constraint_force(), bond_dir)
 
-        info += [ ( bond_length, force, a.get_potential_energy() ) ]
         b.info['bond_length'] = bond_length
         b.info['force'] = force
         b.info['energy'] = a.get_potential_energy()
         b.info['cell_origin'] = [0, 0, 0]
         ase.io.write(xyz_file, b, format='extxyz')
 
-# Output info data to seperate file.
-np.savetxt('crack.out', info)
+        log_file.close()
