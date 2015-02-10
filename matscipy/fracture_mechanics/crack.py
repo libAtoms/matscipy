@@ -1148,8 +1148,8 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     g = a.get_array('groups')
 
     y = a.positions[:, 1]
-    above = (nn < bulk_nn) & (g == 1) & (y > a.cell[1,1]/2.0)
-    below = (nn < bulk_nn) & (g == 1) & (y < a.cell[1,1]/2.0)
+    above = (nn < bulk_nn) & (g != 0) & (y > a.cell[1,1]/2.0)
+    below = (nn < bulk_nn) & (g != 0) & (y < a.cell[1,1]/2.0)
 
     a.set_array('above', above)
     a.set_array('below', below)
