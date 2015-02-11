@@ -24,11 +24,10 @@ import warnings
 
 import numpy as np
 from numpy.linalg import inv, norm
-#try:
-#    import scipy.stats as scipy_stats
-#except:
-
-scipy_stats = None
+try:
+    import scipy.stats as scipy_stats
+except:
+    scipy_stats = None
 
 import ase.units as units
 from ase.atoms import Atoms
