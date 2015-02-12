@@ -25,7 +25,7 @@ import warnings
 import numpy as np
 from numpy.linalg import inv
 try:
-    from scipy.optimize import brentq, leastsq
+    from scipy.optimize import brentq, leastsq, minimize
 except ImportError:
     warnings.warn('Warning: no scipy')
 
@@ -282,29 +282,12 @@ class RectilinearAnisotropicCrack:
 
 ###
 
-def displacement_residuals(crack, x, y, ref_x, ref_y, x0, y0, k):
-    """
-    Return actual displacement field minus ideal displacement field.
-    """
-    u1x = x - ref_x
-    u1y = y - ref_y
-    u2x, u2y = crack.displacements(ref_x, ref_y, x0, y0, k)
-    return u1x - u2x, u1y - u2y
-
-
-def displacement_residual(r0, crack, x, y, ref_x, ref_y, k, mask):
-    x0, y0 = r0
-    dux, duy = displacement_residuals(crack, x, y, ref_x, ref_y, x0, y0, k)
-    return dux[mask]*dux[mask]+duy[mask]*duy[mask]
-
-
-def displacement_div_sqrt_r_residuals(crack, x, y, ref_x, ref_y, x0, y0, k):
+def displacement_residuals(r0, crack, x, y, ref_x, ref_y, k, power=0):
     """
     Return actual displacement field minus ideal displacement field,
-    divided by sqrt(r). This is useful because it fully eliminates
-    dependence on distance from the crack tip, hence not biasing the 
-    atoms that contribute to the fit.
+    divided by r**alpha.
     """
+    x0, y0 = r0
     u1x = x - ref_x
     u1y = y - ref_y
     dx = ref_x - x0
@@ -312,21 +295,34 @@ def displacement_div_sqrt_r_residuals(crack, x, y, ref_x, ref_y, x0, y0, k):
     abs_dr = np.sqrt(dx*dx+dy*dy)
     theta = np.arctan2(dy, dx)
     u2x, u2y = crack.displacements_from_cylinder_coordinates(abs_dr, theta, k)
-    sqrt_abs_dr = np.sqrt(abs_dr)
-    return (u1x - u2x)/sqrt_abs_dr, (u1y - u2y)/sqrt_abs_dr
+    if abs(power) < 1e-12:
+        power_of_abs_dr = 1.0
+    else:
+        power_of_abs_dr = abs_dr**power
+    return (u1x - u2x)/power_of_abs_dr, (u1y - u2y)/power_of_abs_dr
 
 
-def displacement_div_sqrt_r_residual(r0, crack, x, y, ref_x, ref_y, k, mask):
-    x0, y0 = r0
-    dux, duy = displacement_div_sqrt_r_residuals(crack, x, y, ref_x, ref_y,
-                                                 x0, y0, k)
-    return dux[mask]*dux[mask]+duy[mask]*duy[mask]
+def displacement_residual(r0, crack, x, y, ref_x, ref_y, k, mask=None, power=0):
+    dux, duy = displacement_residuals(r0, crack, x, y, ref_x, ref_y, k,
+                                      power=power)
+    if mask is None:
+        return np.transpose([dux, duy]).flatten()
+    else:
+        return np.transpose([dux[mask], duy[mask]]).flatten()
 
 
-def deformation_gradient_residuals(crack, cur, ref, x0, y0, k, cutoff):
+def deformation_gradient_residuals(r0, crack, x, y, cur, ref_x, ref_y, ref, k,
+                                   cutoff):
     """
     Return actual displacement field minus ideal displacement field.
     """
+    x0, y0 = r0
+
+    cur = cur.copy()
+    cur.set_positions(np.transpose([x, y, cur.positions[:, 2]]))
+    ref = ref.copy()
+    ref.set_positions(np.transpose([ref_x, ref_y, ref.positions[:, 2]]))
+
     F1, res1 = atomic_strain(cur, ref, cutoff=cutoff)
     # F1 is a 3x3 tensor, we throw away all z-components
     [F1xx, F1yx, F1zx], [F1xy, F1yy, F1zy], [F1xz, F1yz, F1zz] = F1.T
@@ -339,18 +335,14 @@ def deformation_gradient_residuals(crack, cur, ref, x0, y0, k, cutoff):
 
 
 def deformation_gradient_residual(r0, crack, x, y, cur, ref_x, ref_y, ref, k,
-                                  cutoff, mask):
-    x0, y0 = r0
-    cur = cur.copy()
-    cur.set_positions(np.transpose([x, y, cur.positions[:, 2]]))
-    ref = ref.copy()
-    ref.set_positions(np.transpose([ref_x, ref_y, ref.positions[:, 2]]))
-    dF = deformation_gradient_residuals(crack, cur, ref, x0, y0, k, cutoff)
-    #print dF.shape
+                                  cutoff, mask=None):
+    dF = deformation_gradient_residuals(r0, crack, x, y, cur, ref_x, ref_y, ref,
+                                        k, cutoff)
     if mask is None:
-        return (dF*dF).sum(axis=1).sum(axis=2)
+        return dF.flatten()
     else:
-        return (dF[mask]*dF[mask]).sum(axis=2).sum(axis=1)
+        #return (dF[mask]*dF[mask]).sum(axis=2).sum(axis=1)
+        return dF[mask].flatten()
 
 ###
 
@@ -517,7 +509,8 @@ class CubicCrystalCrack:
 
 
     def crack_tip_position(self, x, y, ref_x, ref_y, x0, y0, k, mask=None,
-                           residual_func=displacement_div_sqrt_r_residual):
+                           residual_func=displacement_residual,
+                           method='Powell', return_residuals=False):
         """
         Return an estimate of the real crack tip position by minimizing the 
         mean square error of the current configuration relative to the
@@ -542,6 +535,13 @@ class CubicCrystalCrack:
             Stress intensity factor.
         mask : array_like, optional
             Marks the atoms to use for this calculation.
+        residual_func : function
+            Function returning per-atom residuals to be minimized.
+        method : str
+            Optimization method. See method argument of scipy.optimize.minimize.
+            Additionally, 'leastsq' invokes scipy.optimize.leastsq.
+        return_residuals : bool
+            Function returns residuals if set to True.
 
         Returns
         -------
@@ -549,14 +549,28 @@ class CubicCrystalCrack:
             x-coordinate of the crack tip.
         y0 : float
             y-coordinate of the crack tip.
+        residuals : array, optional
+            Per-atom residuals at end of optimization.
         """
         if mask is None:
             mask = np.ones(len(a), dtype=bool)
-        (x0, y0), ier = leastsq(residual_func, (x0, y0),
-                                args=(self, x, y, ref_x, ref_y, k, mask))
-        if ier not in [ 1, 2, 3, 4 ]:
-            raise RuntimeError('Could not find crack tip')
-        return x0, y0
+        if method == 'leastsq':
+            (x1, y1), ier = leastsq(residual_func, (x0, y0),
+                                    args=(self, x, y, ref_x, ref_y, k, mask))
+            if ier not in [ 1, 2, 3, 4 ]:
+                raise RuntimeError('Could not find crack tip')
+        else:
+            opt = minimize(lambda *args: (residual_func(*args)**2).sum(),
+                           (x0, y0), args=(self, x, y, ref_x, ref_y, k, mask),
+                           method=method)
+            if not opt.success:
+                raise RuntimeError('Could not find crack tip. Reason: {}'
+                                   .format(opt.message))
+            x1, y1 = opt.x
+        if return_residuals:
+            return x1, y1, residual_func((x0, y0), self, x, y, ref_x, ref_y, k)
+        else:
+            return x1, y1
 
 
     def _residual_y(self, y0, x0, x, y, ref_x, ref_y, k, mask):
