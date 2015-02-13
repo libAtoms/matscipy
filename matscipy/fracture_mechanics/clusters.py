@@ -19,169 +19,71 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import print_function
+
 import numpy as np
 
 from ase.lattice.cubic import Diamond, FaceCenteredCubic, SimpleCubic
 
 ###
 
-def diamond_110_110(el, a0, n, crack_surface=[1,1,0],
-                    crack_front=[1,-1,0],
-                    skin_x=0.5, skin_y=1.0,
-                    central_x=-1.0, central_y=-1.0,
-                    vac=5.0):
+def set_groups(a, n, skin_x, skin_y, central_x=-1./2, central_y=-1./2,
+               invert_central=False):
     nx, ny, nz = n
-    third_dir = np.cross(crack_surface, crack_front)
-    a = Diamond(el,
-            latticeconstant = a0,
-            size = [nx, ny, nz], 
-            directions = [third_dir, crack_surface, crack_front]
-            )
-    sx, sy, sz = a.get_cell().diagonal()
-    a.translate([sx/(8*nx), sy/(4*ny), sz/(4*nz)])
-    a.set_scaled_positions(a.get_scaled_positions())
-
+    sx, sy, sz = a.cell.diagonal()
+    print('skin_x = {}*a0, skin_y = {}*a0'.format(skin_x, skin_y))
     skin_x = skin_x*sx/nx
     skin_y = skin_y*sy/ny
-    r = a.get_positions()
-    g = np.where(
-        np.logical_or(
-            np.logical_or(
-                np.logical_or(
-                    r[:, 0] < skin_x, r[:, 0] > sx-skin_x),
-                r[:, 1] < skin_y),
-            r[:, 1] > sy-skin_y),
-        np.zeros(len(a), dtype=int),
-        np.ones(len(a), dtype=int))
+    print('skin_x = {}, skin_y = {}'.format(skin_x, skin_y))
+    r = a.positions
 
-    g = np.where(
-        np.logical_or(
-            np.logical_or(
-                np.logical_or(
-                    r[:, 0] < sx/2-central_x, r[:, 0] > sx/2+central_x),
-                r[:, 1] < sy/2-central_y),
-            r[:, 1] > sy/2+central_y),
-        g,
-        2*np.ones(len(a), dtype=int))
+    g = np.ones(len(a), dtype=int)
+    mask = np.logical_or(
+               np.logical_or(
+                   np.logical_or(
+                       r[:, 0]/sx < (1.-central_x)/2,
+                       r[:, 0]/sx > (1.+central_x)/2),
+                   r[:, 1]/sy < (1.-central_y)/2),
+               r[:, 1]/sy > (1.+central_y)/2)
+    if invert_central:
+        mask = np.logical_not(mask)
+    g = np.where(mask, g, 2*np.ones_like(g))
+
+    mask = np.logical_or(
+               np.logical_or(
+                   np.logical_or(
+                       r[:, 0] < skin_x, r[:, 0] > sx-skin_x),
+                   r[:, 1] < skin_y),
+               r[:, 1] > sy-skin_y)
+    g = np.where(mask, np.zeros_like(g), g)
+
     a.set_array('groups', g)
-
-    a.set_cell([sx+2*vac, sy+2*vac, sz])
-    a.translate([vac, vac, 0.0])
-    a.set_pbc([False, False, True])
-
-    return a
-
-
-def diamond_110_001(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
-            skin_x=1.0, skin_y=1.0, vac=5.0):
-    nx, ny, nz = n
-    third_dir = np.cross(crack_surface, crack_front)
-    directions = [ third_dir, crack_surface, crack_front ]
-    if np.linalg.det(directions) < 0:
-        third_dir = -third_dir
-    directions = [ third_dir, crack_surface, crack_front ]
-    a = Diamond(el, latticeconstant = a0, size = [ nx,ny,nz ], 
-                directions = directions)
-    sx, sy, sz = a.get_cell().diagonal()
-    a.translate([a0/100,a0/100,a0/100])
-    a.set_scaled_positions(a.get_scaled_positions())
-    a.center()
-
-    lx  = skin_x*sx/nx
-    ly  = skin_y*sy/ny
-    r   = a.get_positions()
-    g   = np.where(
-        np.logical_or(
-            np.logical_or(
-                np.logical_or(
-                    r[:, 0] < lx, r[:, 0] > sx-lx),
-                r[:, 1] < ly),
-            r[:, 1] > sy-ly),
-        np.zeros(len(a), dtype=int),
-        np.ones(len(a), dtype=int))
-    a.set_array('groups', g)
-
-    a.set_cell([sx+2*vac, sy+2*vac, sz])
-    a.translate([vac, vac, 0.0])
-    a.set_pbc([False, False, True])
-
-    return a
-
-
-def diamond_111_110(el, a0, n, crack_surface=[1,1,1], crack_front=[1,-1,0],
-                    skin_x=1.0, skin_y=1.0, vac=5.0):
-    nx, ny, nz = n
-    third_dir = np.cross(crack_surface, crack_front)
-    directions = [ third_dir, crack_surface, crack_front ]
-    if np.linalg.det(directions) < 0:
-        third_dir = -third_dir
-    directions = [ third_dir, crack_surface, crack_front ]
-    a = Diamond(el, latticeconstant = a0, size = [ nx,ny,nz ], 
-                directions = directions)
-    sx, sy, sz = a.get_cell().diagonal()
-    a.translate([a0/100,a0/100 + a0/2,a0/100])
-    a.set_scaled_positions(a.get_scaled_positions())
-    a.center()
-
-    lx  = skin_x*sx/nx
-    ly  = skin_y*sy/ny
-    r   = a.get_positions()
-    g   = np.where(
-        np.logical_or(
-            np.logical_or(
-                np.logical_or(
-                    r[:, 0] < lx, r[:, 0] > sx-lx),
-                r[:, 1] < ly),
-            r[:, 1] > sy-ly),
-        np.zeros(len(a), dtype=int),
-        np.ones(len(a), dtype=int))
-    a.set_array('groups', g)
-
-    a.set_cell([sx+2*vac, sy+2*vac, sz])
-    a.translate([ vac, vac, 0.0 ])
-    a.set_pbc([False, False, True])
-
-    return a
 
 
 def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
-            skin_x=1.0, skin_y=1.0, vac=5.0, lattice=None, shift=None):
+            lattice=None, shift=None):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
     directions = [ third_dir, crack_surface, crack_front ]
     if np.linalg.det(directions) < 0:
         third_dir = -third_dir
     directions = [ third_dir, crack_surface, crack_front ]
-    a = lattice(el, latticeconstant = a0, size = [ nx,ny,nz ], 
-                         directions = directions)
-    sx, sy, sz = a.get_cell().diagonal()
-
-    ax = sx/nx
-    ay = sy/ny
-    az = sz/nz
-
-    a.translate([ax/100,ay/100,az/100])
+    unitcell = lattice(el, latticeconstant=a0, size=[1, 1, 1], 
+                       directions=directions)
     if shift is not None:
-        a.translate(shift)
-    a.set_scaled_positions(a.get_scaled_positions())
-    a.center()
+        unitcell.translate(np.dot(shift, unitcell.cell))
 
-    lx = skin_x*ax
-    ly = skin_y*ay
-    r = a.get_positions()
-    g = np.where(
-        np.logical_or(
-            np.logical_or(
-                np.logical_or(
-                    r[:, 0] < lx, r[:, 0] > sx-lx),
-                r[:, 1] < ly),
-            r[:, 1] > sy-ly),
-        np.zeros(len(a), dtype=int),
-        np.ones(len(a), dtype=int))
-    a.set_array('groups', g)
+    # Center cluster in unit cell
+    x, y, z = (unitcell.get_scaled_positions()%1.0).T
+    x += (1.0-x.max())/2 - x.min()
+    y += (1.0-y.max())/2 - y.min()
+    z += (1.0-z.max())/2 - z.min()
+    unitcell.set_scaled_positions(np.transpose([x, y, z]))
 
-    a.set_cell([sx+2*vac, sy+2*vac, sz])
-    a.translate([vac, vac, 0.0])
+    a = unitcell.copy()
+    a *= (nx, ny, nz)
+    #a.info['unitcell'] = unitcell
+
     a.set_pbc([False, False, True])
 
     return a
