@@ -282,7 +282,7 @@ class RectilinearAnisotropicCrack:
 
 ###
 
-def displacement_residuals(r0, crack, x, y, ref_x, ref_y, k, power=0):
+def displacement_residuals(r0, crack, x, y, ref_x, ref_y, k, power=1):
     """
     Return actual displacement field minus ideal displacement field,
     divided by r**alpha.
@@ -302,7 +302,7 @@ def displacement_residuals(r0, crack, x, y, ref_x, ref_y, k, power=0):
     return (u1x - u2x)/power_of_abs_dr, (u1y - u2y)/power_of_abs_dr
 
 
-def displacement_residual(r0, crack, x, y, ref_x, ref_y, k, mask=None, power=0):
+def displacement_residual(r0, crack, x, y, ref_x, ref_y, k, mask=None, power=1):
     dux, duy = displacement_residuals(r0, crack, x, y, ref_x, ref_y, k,
                                       power=power)
     if mask is None:
