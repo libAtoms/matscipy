@@ -351,8 +351,8 @@ class CubicCrystalCrack:
     Crack in a cubic crystal.
     """
 
-    def __init__(self, C11, C12, C44, crack_surface, crack_front,
-                 stress_state=PLANE_STRAIN, C=None):
+    def __init__(self, crack_surface, crack_front, C11=None, C12=None,
+                 C44=None, stress_state=PLANE_STRAIN, C=None, Crot=None):
         """
         Initialize a crack in a cubic crystal with elastic constants C11, C12
         and C44 (or optionally a full 6x6 elastic constant matrix C).
@@ -376,7 +376,9 @@ class CubicCrystalCrack:
             third_dir = -third_dir
         A = np.array([third_dir, crack_surface, crack_front])
 
-        if C is not None:
+        if Crot is not None:
+            C6 = Crot
+        elif C is not None:
             C6 = rotate_elastic_constants(C, A)
         else:
             C6 = rotate_cubic_elastic_constants(C11, C12, C44, A)
