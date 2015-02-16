@@ -100,6 +100,11 @@ class MatSciPyTestCase(unittest.TestCase):
                 self.fail('Maximum abs difference between array elements is %e at location %r' %
                           (absdiff.max(), loc))
 
+    def assertAtomsAlmostEqual(self, a, b, tol=1e-7):
+        self.assertArrayAlmostEqual(a.positions, b.positions, tol)
+        self.assertArrayAlmostEqual(a.numbers, b.numbers)
+        self.assertArrayAlmostEqual(a._cell, b._cell)
+        self.assertArrayAlmostEqual(a._pbc, b._pbc)
 
 def skip(f):
     """
