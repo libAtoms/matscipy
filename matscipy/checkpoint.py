@@ -24,25 +24,25 @@ Checkpointing functionality.
 
 Initialize checkpoint object:
 
-cp = Checkpoint('checkpoints.db')
+CP = Checkpoint('checkpoints.db')
 
 Checkpointed code block, try ... except notation:
 
 try:
-    a, C, C_err = cp.load()
+    a, C, C_err = CP.load()
 except NoCheckpoint:
     C, C_err = fit_elastic_constants(a)
-    cp.save(a, C, C_err)
+    CP.save(a, C, C_err)
 
 Checkpoint code block, shorthand notation:
 
-a, C, C_err = cp(fit_elastic_constants, a)
+C, C_err = CP(fit_elastic_constants)(a)
 
 Example for checkpointing within an iterative loop, e.g. for searching crack
 tip position:
 
 try:
-    a, converged, tip_x, tip_y = cp.load()
+    a, converged, tip_x, tip_y = CP.load()
 except NoCheckpoint:
     converged = False
     tip_x = tip_x0
@@ -50,16 +50,16 @@ except NoCheckpoint:
 while not converged:
     ... do something to find better crack tip position ...
     converged = ...
-    cp.save(a, converged, tip_x, tip_y)
+    CP.save(a, converged, tip_x, tip_y)
 
 """
-
-from __future__ import print_function
 
 import os
 
 import ase
 from ase.db import connect
+
+from matscipy.logger import quiet
 
 ###
 
@@ -69,35 +69,29 @@ class NoCheckpoint(Exception):
 class Checkpoint(object):
     _value_prefix = '_values_'
 
-    def __init__(self, db='checkpoints.db'):
+    def __init__(self, db='checkpoints.db', logger=quiet):
         self.db = db
+        self.logger = logger
+
         self.checkpoint_id = 0
 
     def __call__(self, func, *args, **kwargs):
-        try:
-            retvals = self.load()
-
-            # Get the calculator object of the first parameter that is passed
-            # to the function.
-            calc = None
+        checkpoint_func_name = str(func)
+        def decorated_func(*args, **kwargs):
+            # Get the first ase.Atoms object.
+            atoms = None
             for a in args:
-                if calc is None:
-                    try:
-                        calc = a.get_calculator()
-                    except:
-                        pass
+                if atoms is None and isinstance(a, ase.Atoms):
+                    atoms = a
 
-            # Assign the calculator to any ase.Atoms just loaded from the
-            # checkpoint.
-            for r in retvals:
-                try:
-                    r.set_calculator(calc)
-                except:
-                    pass
-        except NoCheckpoint:
-            retvals = func(*args, **kwargs)
-            self.save(retvals)
-        return retvals
+            try:
+                retvals = self.load(atoms=atoms)
+            except NoCheckpoint:
+                retvals = func(*args, **kwargs)
+                self.save(retvals, atoms=atoms,
+                          checkpoint_func_name=checkpoint_func_name)
+            return retvals
+        return decorated_func
 
     def _mangled_checkpoint_id(self):
         return self.checkpoint_id
@@ -108,29 +102,54 @@ class Checkpoint(object):
         retvals = []
         with connect(self.db) as db:
             try:
-                print('Try loading:', self._mangled_checkpoint_id())
                 dbentry = db.get(checkpoint_id=self._mangled_checkpoint_id())
             except KeyError:
                 raise NoCheckpoint
 
+            atomsi = dbentry.checkpoint_atoms_args_index
             i = 0
-            while hasattr(dbentry, '{}{}'.format(self._value_prefix, i)):
-                retvals += [db.entry['{}{}'.format(self._value_prefix, i)]]
+            while i == atomsi or \
+                hasattr(dbentry, '{}{}'.format(self._value_prefix, i)):
+                if i == atomsi:
+                    newatoms = dbentry.toatoms()
+                    if atoms is not None:
+                        # Assign calculator
+                        newatoms.set_calculator(atoms.get_calculator())
+                    retvals += [dbentry.toatoms()]
+                else:
+                    retvals += [db.entry['{}{}'.format(self._value_prefix, i)]]
                 i += 1
-        if len(retvals) == 0:
-            return dbentry.toatoms()
+
+        self.logger.pr('Successfully restored checkpoint '
+                       '{}.'.format(self.checkpoint_id))
+        if len(retvals) == 1:
+            return retvals[0]
         else:
-            return tuple([dbentry.toatoms()]+retvals)
+            return tuple(retvals)
 
-    def save(self, atoms, *args):
-        print('Saving:', self._mangled_checkpoint_id())
-        if not isinstance(atoms, ase.Atoms):
-            raise TypeError('First argument must be an ase.Atoms object.')
-
+    def save(self, *args, **kwargs):
         d = {'{}{}'.format(self._value_prefix, i): v
              for i, v in enumerate(args)}
-        d['checkpoint_id'] = self._mangled_checkpoint_id()
 
+        try:
+            atomsi = [isinstance(v, ase.Atoms) for v in args].index(True)
+            atoms = args[atomsi]
+            del d['{}{}'.format(self._value_prefix, atomsi)]
+        except ValueError:
+            atomsi = -1
+            try:
+                atoms = kwargs['atoms']
+            except:
+                raise RuntimeError('No atoms object provided in arguments.')
+
+        try:
+            del kwargs['atoms']
+        except:
+            pass
+
+        d['checkpoint_id'] = self._mangled_checkpoint_id()
+        d['checkpoint_atoms_args_index'] = atomsi
+        d.update(kwargs)
 
         with connect(self.db) as db:
             db.write(atoms, **d)

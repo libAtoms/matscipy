@@ -52,18 +52,18 @@ class TestCheckpoint(matscipytest.MatSciPyTestCase):
         except OSError:
             pass
 
-        cp = Checkpoint('checkpoints.db')
+        CP = Checkpoint('checkpoints.db')
         a = Diamond('Si', size=[2,2,2])
-        a = cp(self.op1, a, 1.0)
+        a = CP(self.op1)(a, 1.0)
         op1a = a.copy()
-        a = cp(self.op2, a, 2.0)
+        a = CP(self.op2)(a, 2.0)
         op2a = a.copy()
 
-        cp = Checkpoint('checkpoints.db')
+        CP = Checkpoint('checkpoints.db')
         a = Diamond('Si', size=[2,2,2])
-        a = cp(self.op1, a, 1.0)
+        a = CP(self.op1)(a, 1.0)
         self.assertAtomsAlmostEqual(a, op1a)
-        a = cp(self.op2, a, 2.0)
+        a = CP(self.op2)(a, 2.0)
         self.assertAtomsAlmostEqual(a, op2a)
 
 ###
