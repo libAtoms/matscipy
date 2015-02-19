@@ -30,7 +30,7 @@ import ase
 from ase.lattice.cubic import Diamond
 
 import matscipytest
-from matscipy.checkpoint import checkpoint, reset, open_extxyz
+from matscipy.checkpoint import Checkpoint
 
 ###
 
@@ -44,52 +44,26 @@ class TestCheckpoint(matscipytest.MatSciPyTestCase):
         a += ase.Atom('C', m*np.array([0.2, 0.3, 0.1]))
         return a
 
-    def test_multiple_files(self):
-        try:
-            os.remove('0001_op1.traj')
-        except OSError:
-            pass
-        try:
-            os.remove('0002_op2.traj')
-        except OSError:
-            pass
-
-        reset()
-        a = Diamond('Si', size=[2,2,2])
-        a = checkpoint('op1.traj', self.op1, a, 1.0)
-        op1a = a.copy()
-        a = checkpoint('op2.traj', self.op2, a, 2.0)
-        op2a = a.copy()
-
-        reset()
-        a = Diamond('Si', size=[2,2,2])
-        a = checkpoint('op1.traj', self.op1, a, 1.0)
-        assert a == op1a
-        a = checkpoint('op2.traj', self.op2, a, 2.0)
-        assert a == op2a
-
-    def test_single_file(self):
+    def test_sqlite(self):
         print 'test_single_file'
 
         try:
-            os.remove('checkpoints.xyz')
+            os.remove('checkpoints.db')
         except OSError:
             pass
 
-        reset()
-        f = open_extxyz('checkpoints.xyz')
+        cp = Checkpoint('checkpoints.db')
         a = Diamond('Si', size=[2,2,2])
-        a = checkpoint(f, self.op1, a, 1.0)
+        a = cp(self.op1, a, 1.0)
         op1a = a.copy()
-        a = checkpoint(f, self.op2, a, 2.0)
+        a = cp(self.op2, a, 2.0)
         op2a = a.copy()
 
-        reset()
-        f = open_extxyz('checkpoints.xyz')
+        cp = Checkpoint('checkpoints.db')
         a = Diamond('Si', size=[2,2,2])
-        a = checkpoint(f, self.op1, a, 1.0)
+        a = cp(self.op1, a, 1.0)
         self.assertAtomsAlmostEqual(a, op1a)
-        a = checkpoint(f, self.op2, a, 2.0)
+        a = cp(self.op2, a, 2.0)
         self.assertAtomsAlmostEqual(a, op2a)
 
 ###
