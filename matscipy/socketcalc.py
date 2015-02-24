@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import subprocess
+import socket
 import SocketServer
 import StringIO
 import time
@@ -166,11 +167,13 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     allow_reuse_address = True
 
     def __init__(self, server_address, RequestHandlerClass, clients,
-                 bind_and_activate=True, max_attempts=3):
+                 bind_and_activate=True, max_attempts=3, bgq=False):
         
         self.njobs = len(clients)
         # allow up to twice as many threads as sub-block jobs
         self.request_queue_size = 2*self.njobs
+        self.max_attempts = max_attempts
+        self.bgq = bgq # If True, we're running on IBM Blue Gene/Q platform
 
         SocketServer.TCPServer.__init__(self, 
                                         server_address, 
@@ -189,16 +192,20 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.input_qs = [Queue() for i in range(self.njobs) ]
         self.output_q = Queue()
 
-        self.max_attempts = max_attempts
 
 
     def server_activate(self):
         SocketServer.TCPServer.server_activate(self)
-        # note that IP address returned by server.server_address is
-        # not the correct one for CNs to talk to FEN, so we discard
-        # it, and use the InfiniBand address returned by get_hostname_ip()
-        ip, self.port = self.server_address
-        hostname, self.ip = bgqtools.get_hostname_ip()
+        self.ip, self.port = self.server_address
+        if self.bgq:
+            # If we're on a Blue Gene, note that IP address returned
+            # by server.server_address is not the correct one for CNs
+            # to talk to FEN, so we discard it, and use the InfiniBand
+            # address returned by get_hostname_ip()
+            import bgqtools
+            hostname, self.ip = bgqtools.get_hostname_ip()
+        else:
+            hostname = socket.gethostname()
         logging.info('AtomsServer running on %s %s:%d with njobs=%d' % 
                      (hostname, self.ip, self.port, self.njobs))
 
