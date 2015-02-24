@@ -54,7 +54,7 @@ def reset():
 
 def open_extxyz(fn):
     """
-    Open and extended XYZ file as a checkpointing database.
+    Open an extended XYZ file as a checkpointing database.
     """
 
     set_write_args(format='extxyz')
