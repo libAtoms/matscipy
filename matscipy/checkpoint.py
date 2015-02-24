@@ -21,87 +21,135 @@
 
 """
 Checkpointing functionality.
+
+Initialize checkpoint object:
+
+CP = Checkpoint('checkpoints.db')
+
+Checkpointed code block, try ... except notation:
+
+try:
+    a, C, C_err = CP.load()
+except NoCheckpoint:
+    C, C_err = fit_elastic_constants(a)
+    CP.save(a, C, C_err)
+
+Checkpoint code block, shorthand notation:
+
+C, C_err = CP(fit_elastic_constants)(a)
+
+Example for checkpointing within an iterative loop, e.g. for searching crack
+tip position:
+
+try:
+    a, converged, tip_x, tip_y = CP.load()
+except NoCheckpoint:
+    converged = False
+    tip_x = tip_x0
+    tip_y = tip_y0
+while not converged:
+    ... do something to find better crack tip position ...
+    converged = ...
+    CP.save(a, converged, tip_x, tip_y)
+
 """
 
 import os
 
-import ase.io as io
-from ase.parallel import parprint
+import ase
+from ase.db import connect
+
+from matscipy.logger import quiet
 
 ###
 
-_checkpoint_num = 0
-_read_args = {}
-_write_args = {}
+class NoCheckpoint(Exception):
+    pass
 
-###
+class Checkpoint(object):
+    _value_prefix = '_values_'
 
-def set_read_args(**read_args):
-    global _read_args
-    _read_args = read_args
+    def __init__(self, db='checkpoints.db', logger=quiet):
+        self.db = db
+        self.logger = logger
 
-def set_write_args(**write_args):
-    global _write_args
-    _write_args = write_args
+        self.checkpoint_id = 0
 
-def reset():
-    global _checkpoint_num
-    _checkpoint_num = 0
-    set_read_args()
-    set_write_args()
+    def __call__(self, func, *args, **kwargs):
+        checkpoint_func_name = str(func)
+        def decorated_func(*args, **kwargs):
+            # Get the first ase.Atoms object.
+            atoms = None
+            for a in args:
+                if atoms is None and isinstance(a, ase.Atoms):
+                    atoms = a
 
-###
+            try:
+                retvals = self.load(atoms=atoms)
+            except NoCheckpoint:
+                retvals = func(*args, **kwargs)
+                self.save(retvals, atoms=atoms,
+                          checkpoint_func_name=checkpoint_func_name)
+            return retvals
+        return decorated_func
 
-def open_extxyz(fn):
-    """
-    Open an extended XYZ file as a checkpointing database.
-    """
+    def _mangled_checkpoint_id(self):
+        return self.checkpoint_id
 
-    set_write_args(format='extxyz')
-    set_read_args(format='extxyz', index=0)
+    def load(self, atoms=None):
+        self.checkpoint_id += 1
 
-    f = open(fn, 'a+')
-    f.seek(0)
-    return f
+        retvals = []
+        with connect(self.db) as db:
+            try:
+                dbentry = db.get(checkpoint_id=self._mangled_checkpoint_id())
+            except KeyError:
+                raise NoCheckpoint
 
-###
+            atomsi = dbentry.checkpoint_atoms_args_index
+            i = 0
+            while i == atomsi or \
+                hasattr(dbentry, '{}{}'.format(self._value_prefix, i)):
+                if i == atomsi:
+                    newatoms = dbentry.toatoms()
+                    if atoms is not None:
+                        # Assign calculator
+                        newatoms.set_calculator(atoms.get_calculator())
+                    retvals += [dbentry.toatoms()]
+                else:
+                    retvals += [db.entry['{}{}'.format(self._value_prefix, i)]]
+                i += 1
 
-def checkpoint(f, func, atoms, *args, **kwargs):
-    """
-    Call function only if checkpoint file does not exist, otherwise read atoms
-    object from checkpoint file. This allows to have multiple consecutive
-    operations in a single script and restart from the latest one that
-    completed.
+        self.logger.pr('Successfully restored checkpoint '
+                       '{}.'.format(self.checkpoint_id))
+        if len(retvals) == 1:
+            return retvals[0]
+        else:
+            return tuple(retvals)
 
-    Example:
+    def save(self, *args, **kwargs):
+        d = {'{}{}'.format(self._value_prefix, i): v
+             for i, v in enumerate(args)}
 
-    a = checkpoint('geometry_optimized.traj', optimize_geometry, a, fmax=0.01)
-    a = checkpoint('charge_computed.xyz', compute_charge, a)
-
-    f = open_extxyz('checkpoints.xyz')
-    a = checkpoint(f, optimize_geometry, a, fmax=0.01)
-    a = checkpoint(f, compute_charge, a)
-    """
-    global _checkpoint_num, _read_args, _write_args
-
-    if isinstance(f, str):
-        f = '{:04}_{}'.format(_checkpoint_num+1, f)
-
-    try:
-        newatoms = io.read(f, **_read_args)
-        parprint('Successfully read configuration {:04} from checkpoint '
-                 'file...'.format(_checkpoint_num+1))
-
-        newatoms.set_calculator(atoms.get_calculator())
-    except IOError:
-        newatoms = func(atoms, *args, **kwargs)
-        io.write(f, atoms, **_write_args)
         try:
-            f.flush()
+            atomsi = [isinstance(v, ase.Atoms) for v in args].index(True)
+            atoms = args[atomsi]
+            del d['{}{}'.format(self._value_prefix, atomsi)]
+        except ValueError:
+            atomsi = -1
+            try:
+                atoms = kwargs['atoms']
+            except:
+                raise RuntimeError('No atoms object provided in arguments.')
+
+        try:
+            del kwargs['atoms']
         except:
             pass
-        parprint('Successfully wrote configuration {:04} to checkpoint '
-                 'file...'.format(_checkpoint_num+1))
 
-    _checkpoint_num += 1
-    return newatoms
+        d['checkpoint_id'] = self._mangled_checkpoint_id()
+        d['checkpoint_atoms_args_index'] = atomsi
+        d.update(kwargs)
+
+        with connect(self.db) as db:
+            db.write(atoms, **d)
