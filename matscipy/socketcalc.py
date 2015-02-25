@@ -11,6 +11,8 @@ from Queue import Queue
 
 import numpy as np
 
+from matscipy.elasticity import full_3x3_to_Voigt_6_stress
+
 from ase.atoms import Atoms
 from ase.io.extxyz import read_xyz, write_xyz
 from ase.io.vasp import write_vasp
@@ -36,11 +38,11 @@ MAX_CELL_DIFF = 1e-3 # angstrom
 def pack_atoms_to_reftraj_str(at, label):
     data = ''
     data += MSG_INT_FORMAT % label + '\n'
-    data += MSG_INT_FORMAT % at.n + '\n'
-    for i in (1, 2, 3):
+    data += MSG_INT_FORMAT % len(at) + '\n'
+    for i in range(3):
         data += (3*MSG_FLOAT_FORMAT) % tuple(at.cell[:, i]) + '\n'
     g = np.linalg.inv(at.cell.T).T
-    for i in at.indices:
+    for i in range(len(at)):
         data += (3*MSG_FLOAT_FORMAT) % tuple(np.dot(g, at.positions[i, :])) + '\n'
 
     # preceed message by its length
@@ -74,7 +76,7 @@ def unpack_reftraj_str_to_atoms(data):
 
 def pack_results_to_reftraj_output_str(at):
     data = ''
-    data += MSG_INT_FORMAT % at.n + '\n'
+    data += MSG_INT_FORMAT % len(at) + '\n'
     data += MSG_FLOAT_FORMAT % at.energy + '\n'
     force = at.get_array('force')
     virial = at.info['virial']
@@ -333,7 +335,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 at = res
             else:
                 (natoms, energy, force, virial) = res
-                assert inp_at.n == natoms
+                assert len(inp_at) == natoms
                 
                 at = inp_at.copy() # FIXME could possibly store results inplace, but need to think about sorting
                 at.info['label'] = label
@@ -407,13 +409,14 @@ class Client(object):
         if self.process is not None:
             raise RuntimeError('client %d is already running' % client_id)
 
-        # Convert env to "--envs KEY=value" arguments for runjob
-        envargs = []
-        for (k, v) in self.env.iteritems():
-            envargs.extend(['--envs', '%s=%s' % (k, v) ])
-
         runjob_args = []
+        popen_args = {}
         if self.cobalt:
+            # Convert env to "--envs KEY=value" arguments for runjob
+            envargs = []
+            for (k, v) in self.env.iteritems():
+                envargs.extend(['--envs', '%s=%s' % (k, v) ])
+            
             runjob_args += ['runjob', '--block', self.block]
             if self.corner is not None:
                 runjob_args += ['--corner', self.corner]
@@ -421,11 +424,15 @@ class Client(object):
                 runjob_args += ['--shape', self.shape]
             runjob_args += (['-n', str(self.npj*self.ppn), '-p', str(self.ppn)] + envargs + 
                             ['--cwd', self.subdir, ':'])
+        else:
+            popen_args['cwd'] = self.subdir
+            popen_args['env'] = self.env
         runjob_args += [self.exe]
         runjob_args += self.extra_args(label)
         logging.info('starting client %d with args %r' % (self.client_id, runjob_args))
         self.log = open(os.path.join(self.rundir, '%s-%03d.output' % (self.jobname, self.client_id)), 'a')
-        self.process = subprocess.Popen(runjob_args, stdout=self.log, stderr=self.log) # stdout and stderr to same file
+        # send stdout and stderr to same file
+        self.process = subprocess.Popen(runjob_args, stdout=self.log, stderr=self.log, **popen_args) 
 
 
     def shutdown(self, block=True):
@@ -582,10 +589,13 @@ class Client(object):
 
         
 class QUIPClient(Client):
-    """Subclass of Client for running QUIP calculations.
+    """
+    Subclass of Client for running QUIP calculations.
 
     Initial input files are written in extended XYZ format, and
-    subsequent communication is via sockets."""
+    subsequent communication is via sockets, in either REFTRAJ
+    or XYZ format.
+    """
 
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
@@ -607,24 +617,13 @@ class QUIPClient(Client):
 
 _chdir_lock = threading.Lock()
 
-def pbc_diff(a, b):
-    """
-    Return difference between atomic positions of a and b, correcting for jumps across PBC
-    """
-    aa = a.copy()
-    bb = a.copy()
-    bb.positions[:] = b.positions
-    g = np.linalg.inv(b.cell.T).T
-    b.positions = (b.pos.positions.T -
-                   (np.dot(b.cell.T, np.floor(np.dot(g, (b.positions - a.positions).T) + 0.5)))).T
-    return aa.get_positions() - bb.get_positions()
-
-
 class VaspClient(Client):
-    """Subclass of Client for running VASP calculations.
+    """
+    Subclass of Client for running VASP calculations.
 
     Initial input files are written in POSCAR, INCAR, POTCAR and KPOINTS
-    formats, and subsequent communicatin is via sockets."""
+    formats, and subsequent communicatin is via sockets in REFTRAJ format.
+    """
 
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
@@ -768,8 +767,10 @@ class SocketCalculator(Calculator):
 
     implemented_properties = ['energy', 'forces', 'stress']
     
-    def __init__(self, client, ip, atoms=None, port=0):
+    def __init__(self, client, ip=None, atoms=None, port=0):
         self.client = client
+        if ip is None:
+            ip = '127.0.0.1' # default to localhost
         self.server = AtomsServer((ip, port), AtomsRequestHandler, [self.client])
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
@@ -778,10 +779,17 @@ class SocketCalculator(Calculator):
         self.atoms = atoms
 
     def calculate(self, atoms, properties, system_changes):
-        self.server.put(atoms, 0, self.label)
-        self.label += 1
-        [results] = self.server.get_results()
-        self.results['energy'] = results.info['energy']
-        self.results['forces'] = results.arrays['force'].view(np.ndarray)
-        self.results['stress'] = -(results.info['virial']/results.get_volume())
+        Calculator.calculate(self, atoms, properties, system_changes)
+        if system_changes: # if anything at all changed (could be made more fine-grained)
+            self.server.put(atoms, 0, self.label)
+            self.label += 1
+            [results] = self.server.get_results()
+            self.results['energy'] = results.info['energy']
+            self.results['forces'] = results.arrays['force']
+            stress = -(results.info['virial']/results.get_volume())
+            self.results['stress'] = full_3x3_to_Voigt_6_stress(stress)
+
+
+    def shutdown(self):
+        self.server.shutdown()
                         
