@@ -50,7 +50,8 @@ except NoCheckpoint:
 while not converged:
     ... do something to find better crack tip position ...
     converged = ...
-    CP.save(a, converged, tip_x, tip_y)
+    CP.flush(a, converged, tip_x, tip_y)
+CP.save(a, converged, tip_x, tip_y)
 
 """
 
@@ -68,12 +69,14 @@ class NoCheckpoint(Exception):
 
 class Checkpoint(object):
     _value_prefix = '_values_'
+    _max_id = 1000 # Maximum checkpoint id
 
     def __init__(self, db='checkpoints.db', logger=quiet):
         self.db = db
         self.logger = logger
 
-        self.checkpoint_id = 0
+        self.checkpoint_id = [0]
+        self.in_checkpointed_region = False
 
     def __call__(self, func, *args, **kwargs):
         checkpoint_func_name = str(func)
@@ -93,11 +96,42 @@ class Checkpoint(object):
             return retvals
         return decorated_func
 
+    def _increase_checkpoint_id(self):
+        if self.in_checkpointed_region:
+            self.checkpoint_id += [1]
+        else:
+            self.checkpoint_id[-1] += 1
+            assert self.checkpoint_id[-1] < self._max_id
+        self.in_checkpointed_region = True
+
+    def _decrease_checkpoint_id(self):
+        if not self.in_checkpointed_region:
+            self.checkpoint_id = self.checkpoint_id[:-1]
+            assert len(self.checkpoint_id) >= 1
+        self.in_checkpointed_region = False
+        assert self.checkpoint_id[-1] >= 1
+
     def _mangled_checkpoint_id(self):
-        return self.checkpoint_id
+        """
+        Returns a linear checkpoint id:
+            sum_i 1000**i + c_i
+        E.g. if checkpoint is nested an id is [3,2,6] it returns:
+            600030001
+        """
+        return reduce(lambda a, b: a+b,
+                      map(lambda (i, c): c if i == 0 else self._max_id**i * c,
+                          enumerate(self.checkpoint_id)))
 
     def load(self, atoms=None):
-        self.checkpoint_id += 1
+        """
+        Retrieve checkpoint data from file. If atoms object is specified, then
+        the calculator connected to that object is copied to all returning
+        atoms object.
+
+        Returns tuple of values as passed to flush or save during checkpoint
+        write.
+        """
+        self._increase_checkpoint_id()
 
         retvals = []
         with connect(self.db) as db:
@@ -122,12 +156,22 @@ class Checkpoint(object):
 
         self.logger.pr('Successfully restored checkpoint '
                        '{}.'.format(self.checkpoint_id))
+        self._decrease_checkpoint_id()
         if len(retvals) == 1:
             return retvals[0]
         else:
             return tuple(retvals)
 
-    def save(self, *args, **kwargs):
+    def flush(self, *args, **kwargs):
+        """
+        Store data to a checkpoint without increasing the checkpoint id. This
+        is useful to continously update the checkpoint state in an iterative
+        loop.
+        """
+        if not self.in_checkpointed_region:
+            raise RuntimeError('*flush* can only be called from within a '
+                               'checkpointed region.')
+
         d = {'{}{}'.format(self._value_prefix, i): v
              for i, v in enumerate(args)}
 
@@ -153,3 +197,15 @@ class Checkpoint(object):
 
         with connect(self.db) as db:
             db.write(atoms, **d)
+
+    def save(self, *args, **kwargs):
+        """
+        Store data to a checkpoint and increase the checkpoint id. This closes
+        the checkpoint.
+        """
+        if not self.in_checkpointed_region:
+            raise RuntimeError('*save* can only be called from within a '
+                               'checkpointed region.')
+
+        self.flush(*args, **kwargs)
+        self._decrease_checkpoint_id()
