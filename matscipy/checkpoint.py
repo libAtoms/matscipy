@@ -106,22 +106,14 @@ class Checkpoint(object):
         else:
             self.checkpoint_id[-1] += 1
             assert self.checkpoint_id[-1] < self._max_id
-        if self.in_checkpointed_region:
-            self.logger.pr('Entered checkpoint region {} with increased '
-                           'checkpoint hierarchy.'.format(self.checkpoint_id))
-        else:
-            self.logger.pr('Entered checkpoint region '
-                           '{}.'.format(self.checkpoint_id))
+        self.logger.pr('Entered checkpoint region '
+                       '{}.'.format(self.checkpoint_id))
 
         self.in_checkpointed_region = True
 
     def _decrease_checkpoint_id(self):
-        if self.in_checkpointed_region:
-            self.logger.pr('Leaving checkpoint region '
-                           '{}.'.format(self.checkpoint_id))
-        else:
-            self.logger.pr('Leaving checkpoint region {} and decreasing '
-                           'checkpoint hierarchy.'.format(self.checkpoint_id))
+        self.logger.pr('Leaving checkpoint region '
+                       '{}.'.format(self.checkpoint_id))
         if not self.in_checkpointed_region:
             self.checkpoint_id = self.checkpoint_id[:-1]
             assert len(self.checkpoint_id) >= 1
@@ -180,12 +172,7 @@ class Checkpoint(object):
         else:
             return tuple(retvals)
 
-    def flush(self, *args, **kwargs):
-        """
-        Store data to a checkpoint without increasing the checkpoint id. This
-        is useful to continously update the checkpoint state in an iterative
-        loop.
-        """
+    def _flush(self, *args, **kwargs):
         data = {'{}{}'.format(self._value_prefix, i): v
                 for i, v in enumerate(args)}
 
@@ -220,10 +207,25 @@ class Checkpoint(object):
         self.logger.pr('Successfully stored checkpoint '
                        '{}.'.format(self.checkpoint_id))
 
+
+    def flush(self, *args, **kwargs):
+        """
+        Store data to a checkpoint without increasing the checkpoint id. This
+        is useful to continously update the checkpoint state in an iterative
+        loop.
+        """
+        # If we are flushing from a successfully restored checkpoint, then
+        # in_checkpointed_region will be set to False. We need to reset to True
+        # because a call to flush indicates that this checkpoint is still
+        # active.
+        self.in_checkpointed_region = False
+        self._flush(*args, **kwargs)
+
+
     def save(self, *args, **kwargs):
         """
         Store data to a checkpoint and increase the checkpoint id. This closes
         the checkpoint.
         """
         self._decrease_checkpoint_id()
-        self.flush(*args, **kwargs)
+        self._flush(*args, **kwargs)
