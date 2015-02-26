@@ -269,7 +269,6 @@ for i, bond_length in enumerate(params.bond_lengths):
                          '(= {:3.2e} {:3.2e} from the former position).'.format(tip_x, tip_y, tip_x-old_x, tip_y-old_y))
                 converged = np.asscalar(abs(dtip_x) < tip_tol and abs(dtip_y) < tip_tol)
                 CP.flush(a, converged, tip_x, tip_y, old_x, old_y)
-            CP.save(a, converged, tip_x, tip_y, old_x, old_y)
         else:
             a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                               bond_length_constraint])
