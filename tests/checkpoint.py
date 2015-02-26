@@ -42,7 +42,7 @@ class TestCheckpoint(matscipytest.MatSciPyTestCase):
 
     def op2(self, a, m):
         a += ase.Atom('C', m*np.array([0.2, 0.3, 0.1]))
-        return a
+        return a, a.positions[0]
 
     def test_sqlite(self):
         print 'test_single_file'
@@ -56,15 +56,17 @@ class TestCheckpoint(matscipytest.MatSciPyTestCase):
         a = Diamond('Si', size=[2,2,2])
         a = CP(self.op1)(a, 1.0)
         op1a = a.copy()
-        a = CP(self.op2)(a, 2.0)
+        a, ra = CP(self.op2)(a, 2.0)
         op2a = a.copy()
+        op2ra = ra.copy()
 
         CP = Checkpoint('checkpoints.db')
         a = Diamond('Si', size=[2,2,2])
         a = CP(self.op1)(a, 1.0)
         self.assertAtomsAlmostEqual(a, op1a)
-        a = CP(self.op2)(a, 2.0)
+        a, ra = CP(self.op2)(a, 2.0)
         self.assertAtomsAlmostEqual(a, op2a)
+        self.assertArrayAlmostEqual(ra, op2ra)
 
 ###
 

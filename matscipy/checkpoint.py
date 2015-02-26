@@ -91,8 +91,12 @@ class Checkpoint(object):
                 retvals = self.load(atoms=atoms)
             except NoCheckpoint:
                 retvals = func(*args, **kwargs)
-                self.save(retvals, atoms=atoms,
-                          checkpoint_func_name=checkpoint_func_name)
+                if isinstance(retvals, tuple):
+                    self.save(*retvals, atoms=atoms,
+                              checkpoint_func_name=checkpoint_func_name)
+                else:
+                    self.save(retvals, atoms=atoms,
+                              checkpoint_func_name=checkpoint_func_name)
             return retvals
         return decorated_func
 
@@ -140,10 +144,11 @@ class Checkpoint(object):
             except KeyError:
                 raise NoCheckpoint
 
-            atomsi = dbentry.checkpoint_atoms_args_index
+            data = dbentry.data
+            atomsi = data['checkpoint_atoms_args_index']
             i = 0
             while i == atomsi or \
-                hasattr(dbentry, '{}{}'.format(self._value_prefix, i)):
+                '{}{}'.format(self._value_prefix, i) in data:
                 if i == atomsi:
                     newatoms = dbentry.toatoms()
                     if atoms is not None:
@@ -151,7 +156,7 @@ class Checkpoint(object):
                         newatoms.set_calculator(atoms.get_calculator())
                     retvals += [dbentry.toatoms()]
                 else:
-                    retvals += [db.entry['{}{}'.format(self._value_prefix, i)]]
+                    retvals += [data['{}{}'.format(self._value_prefix, i)]]
                 i += 1
 
         self.logger.pr('Successfully restored checkpoint '
@@ -172,13 +177,13 @@ class Checkpoint(object):
             raise RuntimeError('*flush* can only be called from within a '
                                'checkpointed region.')
 
-        d = {'{}{}'.format(self._value_prefix, i): v
-             for i, v in enumerate(args)}
+        data = {'{}{}'.format(self._value_prefix, i): v
+                for i, v in enumerate(args)}
 
         try:
             atomsi = [isinstance(v, ase.Atoms) for v in args].index(True)
             atoms = args[atomsi]
-            del d['{}{}'.format(self._value_prefix, atomsi)]
+            del data['{}{}'.format(self._value_prefix, atomsi)]
         except ValueError:
             atomsi = -1
             try:
@@ -191,12 +196,12 @@ class Checkpoint(object):
         except:
             pass
 
-        d['checkpoint_id'] = self._mangled_checkpoint_id()
-        d['checkpoint_atoms_args_index'] = atomsi
-        d.update(kwargs)
+        data['checkpoint_atoms_args_index'] = atomsi
+        data.update(kwargs)
 
         with connect(self.db) as db:
-            db.write(atoms, **d)
+            db.write(atoms, checkpoint_id=self._mangled_checkpoint_id(),
+                     data=data)
 
     def save(self, *args, **kwargs):
         """
