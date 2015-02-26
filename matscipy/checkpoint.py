@@ -51,7 +51,6 @@ while not converged:
     ... do something to find better crack tip position ...
     converged = ...
     CP.flush(a, converged, tip_x, tip_y)
-CP.save(a, converged, tip_x, tip_y)
 
 """
 
