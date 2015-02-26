@@ -35,14 +35,28 @@ from ase.parallel import parprint
 from ase.units import GPa
 
 import matscipy.fracture_mechanics.crack as crack
+from matscipy.checkpoint import Checkpoint, NoCheckpoint
 from matscipy.elasticity import (fit_elastic_constants,
                                  measure_triclinic_elastic_constants)
+from matscipy.logger import screen
 from matscipy.neighbours import neighbour_list
 
 ###
 
-sys.path += [ "." ]
+sys.path += ['.', '..']
 import params
+
+###
+
+def param(s, d):
+    global logger
+    try:
+        val = params.__dict__[s]
+        logger.pr('(user value)      {} = {}'.format(s, val))
+    except KeyError:
+        val = d
+        logger.pr('(default value)   {} = {}'.format(s, val))
+    return val
 
 ###
 
@@ -54,20 +68,22 @@ FITTED_CRACK_TIP = 'Ag'
 
 ###
 
+logger = screen
+
+# Checkpointing
+CP = Checkpoint(logger=logger)
+fit_elastic_constants = CP(fit_elastic_constants)
+
+###
+
 cryst = params.cryst.copy()
-if hasattr(params, 'C'):
-    crk = crack.CubicCrystalCrack(params.crack_surface, params.crack_front,
-                                  C=params.C)
-else:    
-    crk = crack.CubicCrystalCrack(params.crack_surface, params.crack_front,
-                                  params.C11, params.C12, params.C44)
 
 # Double check elastic constants. We're just assuming this is really a periodic
 # system. (True if it comes out of the cluster routines.)
 
-if hasattr(params, 'check_elastic_constants') and \
-    params.check_elastic_constants:
+compute_elastic_constants = param('compute_elastic_constants', False)
 
+if params.compute_elastic_constants:
     pbc = cryst.pbc.copy()
     cryst.set_pbc(True)
     cryst.set_calculator(params.calc)
@@ -75,59 +91,42 @@ if hasattr(params, 'check_elastic_constants') and \
                                      optimizer=ase.optimize.FIRE)
     cryst.set_pbc(pbc)
 
-    print 'Measured elastic constants (in GPa):'
-    print np.round(C*10/GPa)/10
-    print 'Given and rotated elastic constants (in GPa):'
-    print crk.C
+    print('Measured elastic constants (in GPa):')
+    print(np.round(C*10/GPa)/10)
 
-    if hasattr(params, 'use_checked_elastic_constants') and \
-        params.use_checked_elastic_constants:
+    crk = crack.CubicCrystalCrack(params.crack_surface, params.crack_front,
+                                  Crot=C/GPa)
+else:
+    if hasattr(params, 'C'):
         crk = crack.CubicCrystalCrack(params.crack_surface, params.crack_front,
-                                      Crot=C/GPa)
+                                      C=params.C)
+    else:    
+        crk = crack.CubicCrystalCrack(params.crack_surface, params.crack_front,
+                                      params.C11, params.C12, params.C44)
 
-print 'Elastic constants used for boundary condition (in GPa):'
-print np.round(crk.C*10)/10
+
+print('Elastic constants used for boundary condition (in GPa):')
+print(np.round(crk.C*10)/10)
 
 # Get parameter used for fitting crack tip position
 
-if hasattr(params, 'residual_func'):
-    _residual_func = params.residual_func
-    residual_func = params.residual_func
-else:
-    _residual_func = crack.displacement_residual 
-    residual_func = crack.displacement_residual
-print 'Residual function for fitting crack tip position:', residual_func
+residual_func = param('residual_func', crack.displacement_residual)
+_residual_func = residual_func
 
-try:
-    tip_tol = params.tip_tol
-except:
-    tip_tol = 1e-4
+tip_tol = param('tip_tol', 1e-4)
 
-try:
-    tip_mixing_alpha = params.tip_mixing_alpha
-except:
-    tip_mixing_alpha = 1.0
+tip_mixing_alpha = param('tip_mixing_alpha', 1.0)
 
-try:
-    opt_traj = params.opt_traj
-except:
-    opt_traj = None
+write_trajectory_during_optimization = param('write_trajectory_during_optimization', False)
     
 # Get Griffith's k1.
 k1g = crk.k1g(params.surface_energy)
 parprint('Griffith k1 = %f' % k1g)
 
-# Crack tip position.
-if hasattr(params, 'tip_x'):
-    tip_x = params.tip_x
-else:
-    tip_x = cryst.cell.diagonal()[0]/2
-if hasattr(params, 'tip_y'):
-    tip_y = params.tip_y
-else:
-    tip_y = cryst.cell.diagonal()[1]/2
-
 # Apply initial strain field.
+tip_x = param('tip_x', cryst.cell.diagonal()[0]/2)
+tip_y = param('tip_y', cryst.cell.diagonal()[1]/2)
+
 a = cryst.copy()
 ux, uy = crk.displacements(cryst.positions[:,0], cryst.positions[:,1],
                            tip_x, tip_y, params.k1*k1g)
@@ -147,10 +146,7 @@ cryst.translate(a[0].position - oldr)
 g = a.get_array('groups')
 
 # Choose which bond to break.
-if hasattr(params, 'bond'):
-    bond1, bond2 = params.bond
-else:
-    bond1, bond2 = crack.find_tip_coordination(a, bondlength=2.7)
+bond1, bond2 = param('bond', crack.find_tip_coordination(a, bondlength=2.7))
 
 print('Opening bond {0}--{1}, initial bond length {2}'.
       format(bond1, bond2, a.get_distance(bond1, bond2, mic=True)))
@@ -164,10 +160,13 @@ ase.io.write('notch.xyz', a, format='extxyz')
 
 ### Notched system has been created here ###
 
-# Center tip on bond initially if tip position is to be optimized.
-if hasattr(params, 'optimize_tip_position') and params.optimize_tip_position:
+optimize_tip_position = param('optimize_tip_position', False)
+
+if optimize_tip_position:
     tip_x = (a.positions[bond1, 0] + a.positions[bond2, 0])/2
     tip_y = (a.positions[bond1, 1] + a.positions[bond2, 1])/2
+    logger.pr('Optimizing tip position -> initially centering tip bond. '
+              'Tip positions = {} {}'.format(tip_x, tip_y))
 
 # Assign calculator.
 a.set_calculator(params.calc)
@@ -183,16 +182,12 @@ eps = np.dot(crk.S, sig)
 for i, bond_length in enumerate(params.bond_lengths):
     parprint('=== bond_length = {0} ==='.format(bond_length))
     xyz_file = '%s_%4d.xyz' % (params.basename, int(bond_length*1000))
-    if os.path.exists(xyz_file):
-        parprint('%s found, skipping' % xyz_file)
-        a = ase.io.read(xyz_file)
-        del a[np.logical_or(a.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
-                            a.numbers == atomic_numbers[FITTED_CRACK_TIP])]
-        a.set_calculator(params.calc)
-    else:
+    try:
+        a = CP.load(a)
+    except NoCheckpoint:
         log_file = open('%s_%4d.log' % (params.basename, int(bond_length*1000)),
                         'w')
-        if opt_traj:
+        if write_trajectory_during_optimization:
             traj_file = ase.io.NetCDFTrajectory('%s_%4d.nc' % \
                 (params.basename, int(bond_length*1000)), mode='w', atoms=a)
             traj_file.write()
@@ -214,13 +209,14 @@ for i, bond_length in enumerate(params.bond_lengths):
         mask = g==1
 
         # Optimize x and z position of crack tip.
-        if hasattr(params, 'optimize_tip_position') and \
-               params.optimize_tip_position:
-            old_x = tip_x
-            old_y = tip_y
-            dtip_x = 1.0
-            dtip_y = 1.0
-            while abs(dtip_x) > tip_tol or abs(dtip_y) > tip_tol:
+        if optimize_tip_position:
+            try:
+                a, converged, tip_x, tip_y, old_x, old_y = CP.load(a)
+            except NoCheckpoint:
+                old_x = tip_x
+                old_y = tip_y
+                converged = False
+            while not converged:
                 #b = cryst.copy()
                 u0x, u0y = crk.displacements(cryst.positions[:,0],
                                              cryst.positions[:,1],
@@ -271,6 +267,9 @@ for i, bond_length in enumerate(params.bond_lengths):
                 tip_y = old_y + tip_mixing_alpha*dtip_y
                 parprint('- New crack tip (after mixing) is at {:3.2f} {:3.2f} '
                          '(= {:3.2e} {:3.2e} from the former position).'.format(tip_x, tip_y, tip_x-old_x, tip_y-old_y))
+                converged = np.asscalar(abs(dtip_x) < tip_tol and abs(dtip_y) < tip_tol)
+                CP.flush(a, converged, tip_x, tip_y, old_x, old_y)
+            CP.save(a, converged, tip_x, tip_y, old_x, old_y)
         else:
             a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                               bond_length_constraint])
@@ -324,3 +323,5 @@ for i, bond_length in enumerate(params.bond_lengths):
         log_file.close()
         if traj_file:
             traj_file.close()
+
+        CP.save(a)
