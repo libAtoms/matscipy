@@ -3,6 +3,8 @@ matscipy
 
 Repository for generic Python materials science tools
 
+[![Build Status](https://travis-ci.org/libAtoms/matscipy.svg?branch=master)](https://travis-ci.org/libAtoms/matscipy)
+
 Dependencies
 ============
 
