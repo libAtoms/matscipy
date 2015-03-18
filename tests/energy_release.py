@@ -53,6 +53,7 @@ class TestEnergyRelease(unittest.TestCase):
 
         if not atomistica:
             print 'Atomistica not available. Skipping test.'
+            return
 
         nx = 128
         for calc, a0, C11, C12, C44, surface_energy, bulk_coordination in [

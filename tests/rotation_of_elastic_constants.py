@@ -30,7 +30,10 @@ from ase.lattice.cubic import Diamond, FaceCenteredCubic
 from ase.optimize import FIRE
 from ase.units import GPa
 
-from atomistica import Kumagai, TabulatedAlloyEAM
+try:
+    from atomistica import Kumagai, TabulatedAlloyEAM
+except:
+    atomistica = None
 
 import matscipytest
 from matscipy.elasticity import (CubicElasticModuli, Voigt_6x6_to_cubic,
@@ -47,6 +50,10 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
     delta = 1e-6
 
     def test_rotation(self):
+        if not atomistica:
+            print 'Atomistica not available. Skipping test.'
+            return
+
         for make_atoms, calc in [ 
 #            ( lambda a0,x : 
 #              FaceCenteredCubic('He', size=[1,1,1],

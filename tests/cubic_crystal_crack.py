@@ -90,6 +90,7 @@ class TestCubicCrystalCrack(unittest.TestCase):
 
         if not atomistica:
             print 'Atomistica not available. Skipping test.'
+            return
 
         for nx in [ 8, 16, 32, 64 ]:
             for calc, a, C11, C12, C44, surface_energy, bulk_coordination in [
