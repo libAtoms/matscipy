@@ -64,7 +64,7 @@ class TestCubicCrystalCrack(unittest.TestCase):
         kappa = 3-4*nu
         #kappa = 4./(1+nu)-1
 
-        crack = CubicCrystalCrack(C11, C12, C44, [1,0,0], [0,1,0])
+        crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
    
         #r = np.random.random(10)*10
         #theta = np.random.random(10)*2*math.pi
@@ -94,16 +94,17 @@ class TestCubicCrystalCrack(unittest.TestCase):
 
         for nx in [ 8, 16, 32, 64 ]:
             for calc, a, C11, C12, C44, surface_energy, bulk_coordination in [
-                ( atomistica.DoubleHarmonic(k1=1.0, r1=1.0, k2=1.0,
-                                            r2=math.sqrt(2), cutoff=1.6),
-                  clusters.sc('He', 1.0, [nx,nx,1], [1,0,0], [0,1,0]),
-                  3, 1, 1, 0.05, 6 ),
+                #( atomistica.DoubleHarmonic(k1=1.0, r1=1.0, k2=1.0,
+                #                            r2=math.sqrt(2), cutoff=1.6),
+                #  clusters.sc('He', 1.0, [nx,nx,1], [1,0,0], [0,1,0]),
+                #  3, 1, 1, 0.05, 6 ),
                 ( atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=True),
                   clusters.fcc('He', math.sqrt(2.0), [nx,nx,1], [1,0,0],
                                [0,1,0]),
                   math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.05, 12)
                 ]:
-                crack = CubicCrystalCrack(C11, C12, C44, [1,0,0], [0,1,0])
+                clusters.set_groups(a, (nx, nx, 1), 0.5, 0.5)
+                crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
 
                 a.center(vacuum=20.0, axis=0)
                 a.center(vacuum=20.0, axis=1)
@@ -139,7 +140,8 @@ class TestCubicCrystalCrack(unittest.TestCase):
                 #a.set_array('residual', residual)
                 #ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz')
 
-                self.assertTrue(np.max(residual[mask]) < 0.21)
+                #print np.max(residual[mask])
+                self.assertTrue(np.max(residual[mask]) < 0.2)
 
 ###
 
