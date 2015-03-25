@@ -19,7 +19,9 @@ setup(name='matscipy',
       ext_modules=[
         Extension(
             '_matscipy',
-            [ 'c/matscipymodule.c' ],
+            [ 'c/tools.c',
+              'c/neighbours.c',
+              'c/matscipymodule.c' ],
             )
         ]
       )
