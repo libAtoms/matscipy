@@ -23,7 +23,7 @@ setup(name='matscipy',
              'c/neighbours.c',
              'c/ring_statistics.cpp',
              'c/matscipymodule.c'],
-            extra_compile_args=['-std=c++11']
+            extra_compile_args=['-std=c++0x']
             )
         ]
       )
