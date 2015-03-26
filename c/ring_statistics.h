@@ -21,48 +21,22 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
    ====================================================================== */
 
-#include <Python.h>
-#define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
-#include <numpy/arrayobject.h>
+#ifndef __RING_STATISTICS_H_
+#define __RING_STATISTICS_H_
 
-#include <stdbool.h>
-#include <stddef.h>
+#include "Python.h"
 
-#include "neighbours.h"
-#include "ring_statistics.h"
-
-#include "matscipymodule.h"
-
-/*
- * Method declaration
- */
-
-static PyMethodDef module_methods[] = {
-    { "distance_map", (PyCFunction) py_distance_map, METH_VARARGS,
-      "Compute a map of distance on a graph." },
-    { "neighbour_list", (PyCFunction) py_neighbour_list, METH_VARARGS,
-      "Compute a neighbour list for an atomic configuration." },
-    { NULL, NULL, 0, NULL }  /* Sentinel */
-};
-
-
-/*
- * Module initialization
- */
-
-#ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
-#define PyMODINIT_FUNC void
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-PyMODINIT_FUNC
-init_matscipy(void)
-{
-    PyObject* m;
+PyObject *py_distance_map(PyObject *self, PyObject *args);
+#if 0
+void py_find_sp_rings(PyObject *self, PyObject *args);
+#endif
 
-    import_array();
-
-    m = Py_InitModule3("_matscipy", module_methods,
-                       "C support functions for matscipy.");
-    if (m == NULL)
-        return;
+#ifdef __cplusplus
 }
+#endif
+
+#endif

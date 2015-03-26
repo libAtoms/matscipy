@@ -21,6 +21,7 @@ setup(name='matscipy',
             '_matscipy',
             [ 'c/tools.c',
               'c/neighbours.c',
+              'c/ring_statistics.cpp',
               'c/matscipymodule.c' ],
             )
         ]
