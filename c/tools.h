@@ -27,11 +27,17 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 
+#ifdef __cplusplus
+extern "C" {
+#else
+
 /*
  * Basics
  */
 
 #define max(x, y)  ( x > y ? x : y )
+
+#endif
 
 /*
  * Some basic linear algebra
@@ -46,5 +52,9 @@ double normsq(double *a);
  */
 
 void *resize_array(PyObject *py_arr, npy_intp newsize);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
