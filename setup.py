@@ -19,10 +19,11 @@ setup(name='matscipy',
       ext_modules=[
         Extension(
             '_matscipy',
-            [ 'c/tools.c',
-              'c/neighbours.c',
-              'c/ring_statistics.cpp',
-              'c/matscipymodule.c' ],
+            ['c/tools.c',
+             'c/neighbours.c',
+             'c/ring_statistics.cpp',
+             'c/matscipymodule.c'],
+            extra_compile_args=['-std=c++11']
             )
         ]
       )

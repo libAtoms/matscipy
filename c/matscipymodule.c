@@ -40,6 +40,8 @@
 static PyMethodDef module_methods[] = {
     { "distance_map", (PyCFunction) py_distance_map, METH_VARARGS,
       "Compute a map of distance on a graph." },
+    { "find_sp_rings", (PyCFunction) py_find_sp_rings, METH_VARARGS,
+      "Identify shortest-path rings on a graph." },
     { "neighbour_list", (PyCFunction) py_neighbour_list, METH_VARARGS,
       "Compute a neighbour list for an atomic configuration." },
     { NULL, NULL, 0, NULL }  /* Sentinel */

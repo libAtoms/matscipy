@@ -31,9 +31,7 @@ extern "C" {
 #endif
 
 PyObject *py_distance_map(PyObject *self, PyObject *args);
-#if 0
-void py_find_sp_rings(PyObject *self, PyObject *args);
-#endif
+PyObject *py_find_sp_rings(PyObject *self, PyObject *args);
 
 #ifdef __cplusplus
 }
