@@ -26,9 +26,22 @@
 
 #include <Python.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Neighbour list construction
  */
 PyObject *py_neighbour_list(PyObject *self, PyObject *args);
+
+/*
+ * Construct seed array that points to start of rows
+ */
+void seed_array(int n, int nn, int *i_n, int *seed);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

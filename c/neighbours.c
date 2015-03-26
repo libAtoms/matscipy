@@ -463,3 +463,24 @@ py_neighbour_list(PyObject *self, PyObject *args)
     if (py_shift)  Py_DECREF(py_shift);
     return NULL;
 }
+
+/*
+ * Construct seed array that points to start of rows: O(n)
+ */
+
+void
+seed_array(int n, int nn, int *i_n, int *seed)
+{
+    int k;
+
+    seed[0] = 0;
+    seed[n] = nn;
+    for (k = 1; k < n; k++) {
+        seed[k] = -1;
+    }
+    for (k = 1; k < nn; k++) {
+        if (i_n[k] != i_n[k-1]) {
+            seed[i_n[k]] = k;
+        }
+    }
+}
