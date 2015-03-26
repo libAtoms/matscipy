@@ -26,6 +26,7 @@
 #include <numpy/arrayobject.h>
 
 #include <algorithm>
+#include <array>
 
 #include "neighbours.h"
 #include "tools.h"
@@ -60,16 +61,16 @@ find_shortest_distances(int *seed, int *neighbours, int root, int *dist)
             for (int ni = seed[i]; ni < seed[i+1]; ni++) {
                 int j = neighbours[ni];
                 if (dist[j] == 0) {
-                    n_new_walker++;
                     if (n_new_walker > MAX_WALKER) {
                         PyErr_SetString(PyExc_RuntimeError,
                                         "MAX_WALKER exceeded");
                         return false;
                     }
 
-                    new_walker[n_new_walker-1] = j;
-
+                    new_walker[n_new_walker] = j;
                     dist[j] = dist[i]+1;
+
+                    n_new_walker++;
                 }
             }
         }
@@ -136,8 +137,6 @@ py_distance_map(PyObject *self, PyObject *args)
     int *i = (int *) PyArray_DATA(py_i);
     int nat = *std::max_element(i, i+nneigh)+1;
 
-    printf("nat = %i\n", nat);
-
     /* Construct seed array */
     int seed[nat+1];
     seed_array(nat, nneigh, i, seed);
@@ -156,243 +155,249 @@ py_distance_map(PyObject *self, PyObject *args)
     return py_dist;
 }
 
-#if 0
+class vec3 : public std::array<double, 3> {
+public:
+    vec3(const double *v) {
+        (*this)[0] = v[0];
+        (*this)[1] = v[1];
+        (*this)[2] = v[2];
+    }
+};
+
+class Walker {
+public:
+    int vertex, previous_vertex;
+    std::vector<int> ring_vertices;
+    std::vector<vec3> distances_to_root_vertex;
+
+    Walker() : vertex(0), previous_vertex(0) { }
+
+    Walker(int _vertex, int _previous_vertex, vec3 &_dist) :
+        vertex(_vertex), previous_vertex(_previous_vertex),
+        ring_vertices(1, _vertex),
+        distances_to_root_vertex(1, _dist) { }
+
+    Walker(int _vertex, int _previous_vertex, const double *_dist) :
+        vertex(_vertex), previous_vertex(_previous_vertex),
+        ring_vertices(1, _vertex),
+        distances_to_root_vertex(1, vec3(_dist)) { }
+
+    Walker(Walker &from, int new_vertex, vec3 &step_dist) : 
+        vertex(new_vertex), previous_vertex(from.vertex),
+        ring_vertices(from.ring_vertices),
+        distances_to_root_vertex(from.distances_to_root_vertex)
+    {
+        add_vertex(new_vertex, step_dist);
+    }
+
+    Walker(Walker &from, int new_vertex, const double *step_dist) : 
+        vertex(new_vertex), previous_vertex(from.vertex),
+        ring_vertices(from.ring_vertices),
+        distances_to_root_vertex(from.distances_to_root_vertex)
+    {
+        add_vertex(new_vertex, vec3(step_dist));
+    }
+
+    void add_vertex(int new_vertex, vec3 step_dist) {
+        ring_vertices.push_back(new_vertex);
+
+        vec3 new_dist = distances_to_root_vertex.back();
+        new_dist[0] += step_dist[0];
+        new_dist[1] += step_dist[1];
+        new_dist[2] += step_dist[2];
+        distances_to_root_vertex.push_back(new_dist);       
+    }
+
+    int ring_size() { return ring_vertices.size(); }
+};
+
+
+bool
+step_away(std::vector<Walker> &new_walkers, Walker &walker,
+          int root, /* root vertex */
+          int nat, int *seed, int *neighbours, double *r, /* neighbour list */
+          int *dist, /* distance map */
+          std::vector<bool> &done, int max_ring_len)
+{
+    /* Loop over neighbours of walker atom */
+    int i = walker.vertex;
+    for (int ni = seed[i]; ni < seed[i+1]; ni++) {
+        int j = neighbours[ni];
+        /* Check if edge has already been visited or if
+           vertex is identical to previous_vertices vertex of
+           walker k. (This would be a reverse jump.) */
+        if (!done[ni] && j != walker.previous_vertex) {
+            /* Did we jump farther away from the root
+               vertex? */
+            if (dist[nat*root+j] == dist[nat*root+i]+1) {
+                /* Don't continue stepping further if we are already at half the
+                   maximum ring length */
+                if (walker.ring_vertices.size() < (max_ring_len-1)/2) {
+                    new_walkers.push_back(Walker(walker, j, &r[3*ni]));
+                }
+            }
+            /* Did we either not change distance from root vertex or moved
+               closer to root vertex? */
+            else if (dist[nat*root+j] == dist[nat*root+i] ||
+                     dist[nat*root+j] == dist[nat*root+i]-1) {
+                /* This is a jump back towards the root */
+                new_walkers.push_back(Walker(walker, -j, &r[3*ni]));
+            }
+            else {
+                PyErr_SetString(PyExc_RuntimeError, "Distance map and "
+                                "graph do not match.");
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+bool
+step_closer(std::vector<Walker> &new_walkers, Walker &walker,
+            int root, /* root vertex */
+            int nat, int *seed, int *neighbours, double *r, /* neighbour list */
+            int *dist, /* distance map */
+            std::vector<bool> &done, int max_ring_len,
+            int *ringstat)
+{
+    /* Loop over neighbours of walker vertex */
+    int i = -walker.vertex;
+    for (int ni = seed[i]; ni < seed[i+1]; ni++) {
+        int j = neighbours[ni];
+        /* Check if edge has already been visited or if
+           vertex is identical to previous_vertices vertex of
+           walker k. (This would be a reverse jump.) */
+        if (!done[ni] && j != walker.previous_vertex) {
+            /* Are we back to the root vertex? */
+            if (j == root) {
+                auto droot = walker.distances_to_root_vertex.back();
+                double d[3];
+                d[0] = r[3*ni+0] + droot[0];
+                d[1] = r[3*ni+1] + droot[1];
+                d[2] = r[3*ni+2] + droot[2];
+
+                /* Check if the sum of vertex vectors is zero. This is to
+                   exclude chains that cross the periodic boundaries from
+                   counting as rings. */
+                if (normsq(d) < TOL) {
+                    /* Now we need to check whether this ring is SP */
+                    bool is_sp = true;
+
+                    /* Add the root vertex */
+                    walker.ring_vertices.push_back(root);
+
+                    /* Check if the length along the ring agrees with the map
+                       distance. Otherwise, there is a short ring that cuts
+                       this one. */
+                    int ring_size = walker.ring_size();
+                    for (int m = 0; m < ring_size; m++) {
+                        for (int n = m+2; n < ring_size; n++) {
+                            int dn = n-m;
+                            if (dn > ring_size/2) dn = ring_size-dn;
+                            if (dist[nat*walker.ring_vertices[n]+
+                                     walker.ring_vertices[m]] != dn)
+                                is_sp = false;
+                        }
+                    }
+
+                    if (is_sp && walker.ring_size() < max_ring_len) {
+                        ringstat[walker.ring_size()]++;
+                    }
+                }
+            }
+            /* Did we jump closer to the root vertex? */
+            else if (dist[nat*root+j] == dist[nat*root+i]-1) {
+                new_walkers.push_back(Walker(walker, -j, &r[3*ni]));
+            }
+            /* We discard this path if we jump away again. */
+        }
+    }
+
+    return true;
+}
+
 
 /*
  * Look for the "shortest path" ring starting at atom *at*,
  * look only for elements *f*
  */
-void
-find_sp_rings(p, nl, cutoff, dist, max_ring_len, stat, stat_per_at, stat_per_slice, mask, plane, weight, error)
+bool
+find_sp_ring_vertices(int nat, int *seed, int neighbours_size, int *neighbours,
+                      double *r, int *dist, int max_ring_len, int *ringstat)
 {
-    /*
-    implicit none
+    std::vector<bool> done(neighbours_size, false);
 
-    type(particles_t),           intent(in)    :: p
-    type(neighbors_t),           intent(in)    :: nl
-    real(DP),                    intent(in)    :: cutoff
-    integer,                     intent(in)    :: dist(p%nat, p%nat)
-    integer,                     intent(in)    :: max_ring_len
-    integer,           optional, intent(out)   :: stat(max_ring_len)
-    logical,           optional, intent(in)    :: mask(p%nat)
-    integer,           optional, intent(out)   :: error
-    */
+    std::fill(ringstat, ringstat+max_ring_len, 0);
 
+    /* Loop over all vertices */
+    for (int a = 0; a < nat; a++) {
+        /* Loop over neighbours of vertex a, i.e. walk on graph */
+        for (int na = seed[a]; na < seed[a+1]; na++) {
+            int b = neighbours[na];
 
-
-    ! ---
-
-    double d[3], abs_dr_sq, cutoff_sq;
-
-    bool done[neighbors_size];
-
-    int n_walker;
-    int walker[MAX_WALKER], last[MAX_WALKER];
-
-    int ring_len[MAX_WALKER];
-    int rings[max_ring_len, MAX_WALKER];
-    double dr[3, max_ring_len, MAX_WALKER];
-
-    int n_new_walker;
-    int new_walker[MAX_WALKER], new_last[MAX_WALKER];
-
-    int new_ring_len[MAX_WALKER];
-    int new_rings[max_ring_len, MAX_WALKER];
-    double new_dr[3, max_ring_len, MAX_WALKER];
-
-    cutoff_sq  = cutoff*cutoff;
-
-    for (i = 0; i < max_ring_len; i++) stat[i] = 0;
-    for (i = 0; i < neighbours_size; i++) done[i] = false;
-
-    for (a = 0; a < nat; a++) {
-        if (!mask || mask[a]) {
-            int na;
-            for (na = seed[a]; na <= last[a]; na++) {
-                int b = neighbors[na];
-
-                if (a < b && (!mask || mask[b])) {
-                    int ni;
-                    done[na] = true;
-                    for (ni = seed[b]; ni <= last[b]; ni++) {
-                        if (neighbors[ni] == a) {
-                            done[ni] = true;
-                        }
-                    }
+            /* Only walk in one direction */
+            if (a < b) {
+                /* We have visited this site. Loop over neighbours of b and
+                   mark reverse jump as visited. */
+                done[na] = true;
+                for (int ni = seed[b]; ni < seed[b+1]; ni++) {
+                    if (neighbours[ni] == a) done[ni] = true;
                 }
 
-                n_walker = 1;
-                walker[1] = b;
-                last[1] = a;
+                /* Initialize Single walker on atom b coming from atom a. */
+                std::vector<Walker> *walkers = 
+                    new std::vector<Walker>(1, Walker(b, a, &r[3*na]));
 
-                ring_len = 1;
-                rings[1, 1] = b;
-                dr[:, 1, 1] = GET_DRJ(p, nl, a, b, na)
+                /* Continue loop while there are walkers active. */
+                while (walkers->size() > 0) {
+                    std::vector<Walker> *new_walkers = 
+                        new std::vector<Walker>(0);
 
-                while (n_walker > 0) {
-                    int k;
-
-                    n_new_walker = 0;
-
-                    for (k = 0; k < n_walker; k++) {
-                        i = walker[k];
-
-                        if (i > 0) {
-                            int ni;
-                            for (ni = seed[i]; ni <= last[i]; ni++) {
-                                if (!done[ni]) {
-                                    DISTJ_SQ(p, nl, i, ni, j, d, abs_dr_sq)
-
-                                    if (abs_dr_sq < cutoff_sq && (!mask || mask[j]) && j != last[k]) {
-                                        if (dist[j, a] == dist[i, a]+1) {
-                                            if (ring_len[k] < (max_ring_len-1)/2) {
-                                                int n;
-
-                                                n_new_walker = n_new_walker+1;
-                                                if (n_new_walker > MAX_WALKER) {
-                                                  /* RAISE ERROR or increase buffer size */
-                                                }
-
-                                                new_walker[n_new_walker] = j;
-                                                new_last[n_new_walker] = i;
-
-                                                for (n = 0; n < ring_len[k]; n++) {
-                                                    new_rings(n, n_new_walker) = rings(n, k);
-                                                }
-                                                new_ring_len[n_new_walker] = ring_len[k]+1;
-                                                if (new_ring_len[n_new_walker] > max_ring_len) {
-                                                    /* RAISE ERROR */
-                                                }
-                                                new_rings[new_ring_len[n_new_walker], n_new_walker] = j;
-
-                                                new_dr[:, 1:ring_len[k], n_new_walker] = dr[:, 1:ring_len[k], n_new_walker];
-                                                new_dr[:, new_ring_len[n_new_walker], n_new_walker] = dr[:, ring_len[k], k] + d;
-                                            }
-                                        }
-                                        else {
-                                            if (dist[j, a] == dist[i, a] .or. dist[j, a] == dist[i, a]-1) {
-                                                int n;
-
-                                                /* Reverse search direction */
-                                                n_new_walker = n_new_walker+1;
-                                                if (n_new_walker > MAX_WALKER) {
-                                                  /* RAISE ERROR or increase buffer size */
-                                                }
-
-                                                new_walker[n_new_walker] = -j;
-                                                new_last[n_new_walker] = i;
-
-                                                for (n = 0; n < ring_len[k]; n++) {
-                                                    new_rings[n, n_new_walker] = rings[n, k];
-                                                }
-                                                new_ring_len[n_new_walker] = ring_len[k]+1;
-                                                if (new_ring_len[n_new_walker] > max_ring_len) {
-                                                    /* RAISE ERROR */
-                                                }
-                                                new_rings[new_ring_len[n_new_walker], n_new_walker] = j;
-
-                                                new_dr[:, 1:ring_len[k], n_new_walker] = dr[:, 1:ring_len[k], k];
-                                                new_dr[:, new_ring_len(n_new_walker), n_new_walker] = dr[:, ring_len[k], k) + d;
-                                            }
-                                            else {
-                                                stop "Something is wrong with the distance map."
-                                            }
-                                        }
-
-                                    }
-
-                                }
-                            }
+                    /* Loop over all walkers and advance them. */
+                    for (auto walker: *walkers) {
+                        /* Walker walks away from root */
+                        if (walker.vertex > 0) {
+                            if (!step_away(*new_walkers, walker, a,
+                                           nat, seed, neighbours, r,
+                                           dist, done,
+                                           max_ring_len))
+                                return false;
                         }
+                        /* Walker walks towards root */
                         else {
-                            int ni;
-                            i = -i
-
-                            for (ni = seed[i]; ni <= last[i]; ni++) {
-                                if (!done[ni]) {
-                                    DISTJ_SQ(p, nl, i, ni, j, d, abs_dr_sq)
-                                    if (abs_dr_sq < cutoff_sq && (!mask || mask[j]) && j /= last[k]) {
-                                        if (j == a) {
-                                            d = d + dr[:, ring_len[k], k];
-                                            if (dot_product(d, d) < TOL) {
-                                                int m, n;
-
-                                                /* Now we need to check whether this ring is SP */
-                                                bool is_sp = true;
-
-                                                ring_len[k] = ring_len[k]+1;
-                                                if (ring_len[k] > max_ring_len) {
-                                                    /* RAISE ERROR */
-                                                }
-                                                rings[ring_len[k], k] = a;
-
-                                                for (m = 0; m < ring_len[k]; m++) {
-                                                    for (n = m+2; n < ring_len[k]; n++) {
-                                                        int dn = n-m;
-                                                        if (dn > ring_len[k]/2) dn = ring_len[k]-dn;
-                                                        if (dist[rings[n, k], rings[m, k]] != dn) {
-                                                            is_sp = false;
-                                                        }
-                                                    }
-                                                }
-
-                                                if (is_sp) {
-                                                    stat(ring_len[k]) = stat(ring_len[k])+1;
-                                                }
-                                            }
-                                        else {
-                                            if (dist(j, a) == dist(i, a)-1) {
-                                                if (all(rings(1:ring_len[k], k) /= j)) {
-                                                    n_new_walker = n_new_walker+1;
-                                                    if (n_new_walker > MAX_WALKER) {
-                                                        /* RAISE ERROR */
-                                                    }
-
-                                                    new_walker[n_new_walker] = -j;
-                                                    new_last[n_new_walker] = i;
-
-                                                    new_rings[1:ring_len[k], n_new_walker] = rings[1:ring_len[k], k];
-                                                    new_ring_len[n_new_walker] = ring_len[k]+1;
-                                                    if (new_ring_len[n_new_walker] > max_ring_len) {
-                                                        /* RAISE ERROR */
-                                                    }
-                                                    new_rings[new_ring_len(n_new_walker), n_new_walker] = j;
-
-                                                    new_dr[:, 1:ring_len[k], n_new_walker]               = dr[:, 1:ring_len[k], k];
-                                                    new_dr[:, new_ring_len(n_new_walker), n_new_walker]  = dr[:, ring_len[k], k) + d;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            if (!step_closer(*new_walkers, walker, a,
+                                             nat, seed, neighbours, r,
+                                             dist, done,
+                                             max_ring_len,
+                                             ringstat))
+                                return false;
                         }
                     }
 
-                    n_walker = n_new_walker;
-                    std::copy(new_walker, new_walker+n_walker, walker);
-                    std::copy(new_last, new_last+n_walker, last);
-
-                    std::copy(new_ring_len, new_ring_len+n_walker, ring_len);
-                    std::copy(new_rings, new_rings+max_ring_len*n_walker, rings);
-
-                    dr(:, :, 1:n_walker)  = new_dr(:, :, 1:n_walker);
+                    /* Copy new walker list to old walker list */
+                    delete walkers;
+                    walkers = new_walkers;
                 }
             }
         }
     }
+
+    return true;
 }
 
 
 /*
  * Python wrapper
  */
-extern "C" void
+extern "C" PyObject *
 py_find_sp_rings(PyObject *self, PyObject *args)
 {
-    PyObject *py_i, *py_j, *py_r;
+    PyObject *py_i, *py_j, *py_r, *py_dist;
 
-    if (!PyArg_ParseTuple(args, "OOO", &py_i, &py_j, &py_r))
+    if (!PyArg_ParseTuple(args, "OOOO", &py_i, &py_j, &py_r, &py_dist))
         return NULL;
 
     /* Make sure our arrays are contiguous */
@@ -402,6 +407,8 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     if (!py_j) return NULL;
     py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_C_CONTIGUOUS);
     if (!py_r) return NULL;
+    py_dist = PyArray_FROMANY(py_dist, NPY_INT, 2, 2, NPY_C_CONTIGUOUS);
+    if (!py_dist) return NULL;
 
     /* Check array shapes. */
     npy_intp nneigh = PyArray_DIM((PyArrayObject *) py_i, 0);
@@ -420,18 +427,37 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     }
 
     /* Get total number of atoms */
-    int nat = *std::max_element(py_i, py_i+nneigh)+1;
+    int *i = (int *) PyArray_DATA(py_i);
+    int nat = *std::max_element(i, i+nneigh)+1;
 
-    printf("nat = %i\n", nat);
+    /* Check shape of distance map */
+    if (PyArray_DIM((PyArrayObject *) py_dist, 0) != nat ||
+        PyArray_DIM((PyArrayObject *) py_dist, 1) != nat) {
+        char errstr[1024];
+        sprintf(errstr, "Distance map has shape %" NPY_INTP_FMT " x %" 
+                NPY_INTP_FMT " while number of atoms is %i.",
+                PyArray_DIM((PyArrayObject *) py_dist, 0),
+                PyArray_DIM((PyArrayObject *) py_dist, 1),
+                nat);
+        PyErr_SetString(PyExc_ValueError, errstr);
+        return NULL;
+    }
 
     /* Construct seed array */
     int seed[nat+1];
-    seed_array(nat, nneigh, py_i, seed);
+    seed_array(nat, nneigh, i, seed);
 
     npy_intp max_ring_len = 32;
-    PyObject *py_ringstat = PyArray_ZERO(1, &max_ring_len, NPY_INT, 0);
+    PyObject *py_ringstat = PyArray_ZEROS(1, &max_ring_len, NPY_INT, 0);
+
+    if (!find_sp_ring_vertices(nat, seed, nneigh, (int *) PyArray_DATA(py_j),
+                               (double *) PyArray_DATA(py_r),
+                               (int *) PyArray_DATA(py_dist),
+                               max_ring_len,
+                               (int *) PyArray_DATA(py_ringstat))) {
+        Py_DECREF(py_ringstat);
+        return NULL;
+    }
 
     return py_ringstat;
 }
-
-#endif
