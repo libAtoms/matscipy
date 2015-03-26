@@ -134,7 +134,7 @@ py_distance_map(PyObject *self, PyObject *args)
     }
 
     /* Get total number of atoms */
-    int *i = (int *) PyArray_DATA(py_i);
+    npy_int *i = (npy_int *) PyArray_DATA(py_i);
     int nat = *std::max_element(i, i+nneigh)+1;
 
     /* Construct seed array */
@@ -146,8 +146,8 @@ py_distance_map(PyObject *self, PyObject *args)
     dims[1] = nat;
     PyObject *py_dist = PyArray_ZEROS(2, dims, NPY_INT, 0);
 
-    if (!distance_map(nat, seed, (int *) PyArray_DATA(py_j),
-                      (int *) PyArray_DATA(py_dist), NULL)) {
+    if (!distance_map(nat, seed, (npy_int *) PyArray_DATA(py_j),
+                      (npy_int *) PyArray_DATA(py_dist), NULL)) {
         Py_DECREF(py_dist);
         return NULL;
     }
@@ -217,7 +217,7 @@ step_away(std::vector<Walker> &new_walkers, Walker &walker,
           int root, /* root vertex */
           int nat, int *seed, int *neighbours, double *r, /* neighbour list */
           int *dist, /* distance map */
-          std::vector<bool> &done, int max_ring_len)
+          std::vector<bool> &done, npy_intp max_ring_size)
 {
     /* Loop over neighbours of walker atom */
     int i = walker.vertex;
@@ -232,7 +232,10 @@ step_away(std::vector<Walker> &new_walkers, Walker &walker,
             if (dist[nat*root+j] == dist[nat*root+i]+1) {
                 /* Don't continue stepping further if we are already at half the
                    maximum ring length */
-                if (walker.ring_vertices.size() < (max_ring_len-1)/2) {
+                if (max_ring_size < 0) {
+                    new_walkers.push_back(Walker(walker, j, &r[3*ni]));
+                }
+                else if (walker.ring_vertices.size() < (max_ring_size-1)/2) {
                     new_walkers.push_back(Walker(walker, j, &r[3*ni]));
                 }
             }
@@ -260,8 +263,8 @@ step_closer(std::vector<Walker> &new_walkers, Walker &walker,
             int root, /* root vertex */
             int nat, int *seed, int *neighbours, double *r, /* neighbour list */
             int *dist, /* distance map */
-            std::vector<bool> &done, int max_ring_len,
-            int *ringstat)
+            std::vector<bool> &done,
+            std::vector<npy_int> &ringstat)
 {
     /* Loop over neighbours of walker vertex */
     int i = -walker.vertex;
@@ -294,16 +297,18 @@ step_closer(std::vector<Walker> &new_walkers, Walker &walker,
                        this one. */
                     int ring_size = walker.ring_size();
                     for (int m = 0; m < ring_size; m++) {
-                        for (int n = m+2; n < ring_size; n++) {
+                        for (int n = m+1; n < ring_size; n++) {
                             int dn = n-m;
                             if (dn > ring_size/2) dn = ring_size-dn;
-                            if (dist[nat*walker.ring_vertices[n]+
-                                     walker.ring_vertices[m]] != dn)
+                            if (dist[nat*abs(walker.ring_vertices[n])+
+                                     abs(walker.ring_vertices[m])] != dn)
                                 is_sp = false;
                         }
                     }
 
-                    if (is_sp && walker.ring_size() < max_ring_len) {
+                    if (is_sp) {
+                        if (ringstat.size() < walker.ring_size()+1)
+                            ringstat.resize(walker.ring_size()+1);
                         ringstat[walker.ring_size()]++;
                     }
                 }
@@ -326,11 +331,10 @@ step_closer(std::vector<Walker> &new_walkers, Walker &walker,
  */
 bool
 find_sp_ring_vertices(int nat, int *seed, int neighbours_size, int *neighbours,
-                      double *r, int *dist, int max_ring_len, int *ringstat)
+                      double *r, int *dist, int max_ring_size,
+                      std::vector<int> &ringstat)
 {
     std::vector<bool> done(neighbours_size, false);
-
-    std::fill(ringstat, ringstat+max_ring_len, 0);
 
     /* Loop over all vertices */
     for (int a = 0; a < nat; a++) {
@@ -363,7 +367,7 @@ find_sp_ring_vertices(int nat, int *seed, int neighbours_size, int *neighbours,
                             if (!step_away(*new_walkers, walker, a,
                                            nat, seed, neighbours, r,
                                            dist, done,
-                                           max_ring_len))
+                                           max_ring_size))
                                 return false;
                         }
                         /* Walker walks towards root */
@@ -371,7 +375,6 @@ find_sp_ring_vertices(int nat, int *seed, int neighbours_size, int *neighbours,
                             if (!step_closer(*new_walkers, walker, a,
                                              nat, seed, neighbours, r,
                                              dist, done,
-                                             max_ring_len,
                                              ringstat))
                                 return false;
                         }
@@ -396,8 +399,10 @@ extern "C" PyObject *
 py_find_sp_rings(PyObject *self, PyObject *args)
 {
     PyObject *py_i, *py_j, *py_r, *py_dist;
+    int max_ring_size = -1;
 
-    if (!PyArg_ParseTuple(args, "OOOO", &py_i, &py_j, &py_r, &py_dist))
+    if (!PyArg_ParseTuple(args, "OOOO|i", &py_i, &py_j, &py_r, &py_dist,
+                          &max_ring_size))
         return NULL;
 
     /* Make sure our arrays are contiguous */
@@ -427,12 +432,13 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     }
 
     /* Get total number of atoms */
-    int *i = (int *) PyArray_DATA(py_i);
+    npy_int *i = (npy_int *) PyArray_DATA(py_i);
     int nat = *std::max_element(i, i+nneigh)+1;
 
     /* Check shape of distance map */
     if (PyArray_DIM((PyArrayObject *) py_dist, 0) != nat ||
         PyArray_DIM((PyArrayObject *) py_dist, 1) != nat) {
+        /*
         char errstr[1024];
         sprintf(errstr, "Distance map has shape %" NPY_INTP_FMT " x %" 
                 NPY_INTP_FMT " while number of atoms is %i.",
@@ -440,6 +446,8 @@ py_find_sp_rings(PyObject *self, PyObject *args)
                 PyArray_DIM((PyArrayObject *) py_dist, 1),
                 nat);
         PyErr_SetString(PyExc_ValueError, errstr);
+        */
+        PyErr_SetString(PyExc_ValueError, "Distance map has wrong shape.");
         return NULL;
     }
 
@@ -447,17 +455,18 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     int seed[nat+1];
     seed_array(nat, nneigh, i, seed);
 
-    npy_intp max_ring_len = 32;
-    PyObject *py_ringstat = PyArray_ZEROS(1, &max_ring_len, NPY_INT, 0);
-
+    std::vector<npy_int> ringstat;
     if (!find_sp_ring_vertices(nat, seed, nneigh, (int *) PyArray_DATA(py_j),
-                               (double *) PyArray_DATA(py_r),
-                               (int *) PyArray_DATA(py_dist),
-                               max_ring_len,
-                               (int *) PyArray_DATA(py_ringstat))) {
-        Py_DECREF(py_ringstat);
+                               (npy_double *) PyArray_DATA(py_r),
+                               (npy_int *) PyArray_DATA(py_dist),
+                               max_ring_size, ringstat)) {
         return NULL;
     }
+
+    npy_intp ringstat_size = ringstat.size();
+    PyObject *py_ringstat = PyArray_ZEROS(1, &ringstat_size, NPY_INT, 0);
+    std::copy(ringstat.begin(), ringstat.end(),
+              (npy_int *) PyArray_DATA(py_ringstat));
 
     return py_ringstat;
 }
