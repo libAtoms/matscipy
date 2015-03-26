@@ -29,13 +29,13 @@ import ase.structure
 
 import matscipytest
 from matscipy.neighbours import neighbour_list
-from _matscipy import distance_map
+from _matscipy import distance_map, find_sp_rings
 
 ###
 
 class TestNeighbours(matscipytest.MatSciPyTestCase):
 
-    def test_distance_map(self):
+    def test_single_ring(self):
         a = ase.structure.molecule('C6H6')
         a = a[a.numbers==6]
         a.center(vacuum=5)
@@ -47,10 +47,13 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
         self.assertArrayAlmostEqual(d-d.T, np.zeros_like(d))
 
-        i = np.arange(len(a))
-        i = np.abs(i.reshape(1,-1)-i.reshape(-1,1))
-        i = np.where(i > len(a)/2, len(a)-i, i)
-        self.assertArrayAlmostEqual(d, i)
+        dcheck = np.arange(len(a))
+        dcheck = np.abs(dcheck.reshape(1,-1)-dcheck.reshape(-1,1))
+        dcheck = np.where(dcheck > len(a)/2, len(a)-dcheck, dcheck)
+        self.assertArrayAlmostEqual(d, dcheck)
+
+        r = find_sp_rings(i, j, r, d)
+        self.assertArrayAlmostEqual(r, [0,0,0,0,0,0,1])
 
 ###
 
