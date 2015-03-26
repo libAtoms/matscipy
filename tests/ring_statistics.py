@@ -23,16 +23,37 @@
 
 import unittest
 
-from cubic_crystal_crack import *
-from fit_elastic_constants import *
-from full_to_Voigt import *
-from greens_function import *
-from invariants import *
-from neighbours import *
-from ring_statistics import *
-from rotation_of_elastic_constants import *
+import numpy as np
+
+import ase.structure
+
+import matscipytest
+from matscipy.neighbours import neighbour_list
+from _matscipy import distance_map
 
 ###
 
-unittest.main()
+class TestNeighbours(matscipytest.MatSciPyTestCase):
+
+    def test_distance_map(self):
+        a = ase.structure.molecule('C6H6')
+        a = a[a.numbers==6]
+        a.center(vacuum=5)
+
+        i, j, r = neighbour_list('ijD', a, 1.85)
+        d = distance_map(i, j)
+
+        self.assertEqual(d.shape, (6,6))
+
+        self.assertArrayAlmostEqual(d-d.T, np.zeros_like(d))
+
+        i = np.arange(len(a))
+        i = np.abs(i.reshape(1,-1)-i.reshape(-1,1))
+        i = np.where(i > len(a)/2, len(a)-i, i)
+        self.assertArrayAlmostEqual(d, i)
+
+###
+
+if __name__ == '__main__':
+    unittest.main()
 
