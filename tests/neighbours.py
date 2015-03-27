@@ -27,6 +27,7 @@ import numpy as np
 
 import ase
 import ase.io as io
+import ase.lattice.hexagonal
 
 import matscipytest
 from matscipy.neighbours import mic, neighbour_list
@@ -97,6 +98,13 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(i1, i2)
         self.assertArrayAlmostEqual(j1, j2)
         self.assertArrayAlmostEqual(r1, r2)
+
+    def test_hexagonal_cell(self):
+        for sx in range(3):
+            a = ase.lattice.hexagonal.Graphite('C', latticeconstant=(2.5, 10.0),
+                                               size=[sx+1,sx+1,1])
+            i = neighbour_list("i", a, 1.85)
+            self.assertTrue(np.all(np.bincount(i)==3))
 
 ###
 
