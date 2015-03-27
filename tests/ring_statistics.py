@@ -25,10 +25,13 @@ import unittest
 
 import numpy as np
 
+import ase.io
+import ase.lattice.hexagonal
 import ase.structure
 
 import matscipytest
 from matscipy.neighbours import neighbour_list
+from matscipy.rings import ring_statistics
 from _matscipy import distance_map, find_sp_rings
 
 ###
@@ -54,6 +57,36 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
         r = find_sp_rings(i, j, r, d)
         self.assertArrayAlmostEqual(r, [0,0,0,0,0,0,1])
+
+    def test_two_rings(self):
+        a = ase.structure.molecule('C6H6')
+        a = a[a.numbers==6]
+        a.center(vacuum=10)
+        b = a.copy()
+        b.translate([5.0,5.0,5.0])
+        a += b
+
+        r = ring_statistics(a, 1.85)
+        self.assertArrayAlmostEqual(r, [0,0,0,0,0,0,2])
+
+    def test_many_rings(self):
+        a = ase.lattice.hexagonal.Graphite('C', latticeconstant=(2.5, 10.0),
+                                           size=[2,2,1])
+        r = ring_statistics(a, 1.85)
+        self.assertArrayAlmostEqual(r, [0,0,0,0,0,0,8])
+
+    def test_pbc(self):
+        r = np.arange(6)
+        r = np.transpose([r,np.zeros_like(r),np.zeros_like(r)])
+        a = ase.Atoms('6C', positions=r, cell=[6,6,6], pbc=True)
+        r = ring_statistics(a, 1.5)
+        self.assertEqual(len(r), 0)
+
+    #def test_aC(self):
+    #    a = ase.io.read('aC.traj')
+    #    print(len(a))
+    #    r = ring_statistics(a, 1.85)
+    #    print(r)
 
 ###
 
