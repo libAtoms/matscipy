@@ -208,7 +208,7 @@ public:
         distances_to_root_vertex.push_back(new_dist);       
     }
 
-    int ring_size() { return ring_vertices.size(); }
+    std::vector<int>::size_type ring_size() { return ring_vertices.size(); }
 };
 
 
@@ -217,7 +217,7 @@ step_away(std::vector<Walker> &new_walkers, Walker &walker,
           int root, /* root vertex */
           int nat, int *seed, int *neighbours, double *r, /* neighbour list */
           int *dist, /* distance map */
-          std::vector<bool> &done, npy_intp max_ring_size)
+          std::vector<bool> &done, npy_intp maxlength)
 {
     /* Loop over neighbours of walker atom */
     int i = walker.vertex;
@@ -232,10 +232,11 @@ step_away(std::vector<Walker> &new_walkers, Walker &walker,
             if (dist[nat*root+j] == dist[nat*root+i]+1) {
                 /* Don't continue stepping further if we are already at half the
                    maximum ring length */
-                if (max_ring_size < 0) {
+                if (maxlength < 0) {
                     new_walkers.push_back(Walker(walker, j, &r[3*ni]));
                 }
-                else if (walker.ring_vertices.size() < (max_ring_size-1)/2) {
+                else if (walker.ring_vertices.size() <
+                         (std::vector<int>::size_type(maxlength)-1)/2) {
                     new_walkers.push_back(Walker(walker, j, &r[3*ni]));
                 }
             }
@@ -331,7 +332,7 @@ step_closer(std::vector<Walker> &new_walkers, Walker &walker,
  */
 bool
 find_sp_ring_vertices(int nat, int *seed, int neighbours_size, int *neighbours,
-                      double *r, int *dist, int max_ring_size,
+                      double *r, int *dist, int maxlength,
                       std::vector<int> &ringstat)
 {
     std::vector<bool> done(neighbours_size, false);
@@ -367,7 +368,7 @@ find_sp_ring_vertices(int nat, int *seed, int neighbours_size, int *neighbours,
                             if (!step_away(*new_walkers, walker, a,
                                            nat, seed, neighbours, r,
                                            dist, done,
-                                           max_ring_size))
+                                           maxlength))
                                 return false;
                         }
                         /* Walker walks towards root */
@@ -399,10 +400,10 @@ extern "C" PyObject *
 py_find_sp_rings(PyObject *self, PyObject *args)
 {
     PyObject *py_i, *py_j, *py_r, *py_dist;
-    int max_ring_size = -1;
+    npy_int maxlength = -1;
 
     if (!PyArg_ParseTuple(args, "OOOO|i", &py_i, &py_j, &py_r, &py_dist,
-                          &max_ring_size))
+                          &maxlength))
         return NULL;
 
     /* Make sure our arrays are contiguous */
@@ -459,7 +460,7 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     if (!find_sp_ring_vertices(nat, seed, nneigh, (int *) PyArray_DATA(py_j),
                                (npy_double *) PyArray_DATA(py_r),
                                (npy_int *) PyArray_DATA(py_dist),
-                               max_ring_size, ringstat)) {
+                               maxlength, ringstat)) {
         return NULL;
     }
 
