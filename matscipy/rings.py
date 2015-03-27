@@ -28,7 +28,7 @@ import _matscipy
 
 ###
 
-def ring_statistics(a, cutoff):
+def ring_statistics(a, cutoff, maxlength=-1):
     """
     Compute number of shortest path rings in sample.
     See: D.S. Franzblau, Phys. Rev. B 44, 4925 (1991)
@@ -39,6 +39,9 @@ def ring_statistics(a, cutoff):
         Atomic configuration.
     cutoff : float
         Cutoff for neighbor counting.
+    maxlength : float, optional
+        Maximum ring length. Search for rings will stop at this length. This
+        is useful to speed up calculations for large systems.
 
     Returns
     -------
@@ -47,4 +50,4 @@ def ring_statistics(a, cutoff):
     """
     i, j, r = neighbour_list('ijD', a, cutoff)
     d = _matscipy.distance_map(i, j)
-    return _matscipy.find_sp_rings(i, j, r, d)
+    return _matscipy.find_sp_rings(i, j, r, d, maxlength)
