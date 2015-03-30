@@ -3,12 +3,15 @@ matscipy
 
 Repository for generic Python materials science tools
 
+Build status
+============
+
 [![Build Status](https://travis-ci.org/libAtoms/matscipy.svg?branch=master)](https://travis-ci.org/libAtoms/matscipy)
 
 Dependencies
 ============
 
-The packages requires
+The package requires
 
 * numpy - http://www.numpy.org/
 * scipy (optional) - http://www.scipy.org/
