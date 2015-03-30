@@ -77,7 +77,7 @@ class Logger(object):
     # Debug option, redirect all output to screen
     __all_output_to_stdout = False
 
-    def __init__(self, logfile=sys.stdout, outevery=10, sepevery=10):
+    def __init__(self, logfile=sys.stdout, outevery=1, sepevery=10):
         self.sepevery = sepevery
 
         self.set_outevery(outevery)
