@@ -1173,13 +1173,14 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     a.set_array('above', above)
     a.set_array('below', below)
 
-    bond1 = above.nonzero()[0][a.positions[above, 0].argmax()]
-    bond2 = below.nonzero()[0][a.positions[below, 0].argmax()]
+    bond1 = np.asscalar(above.nonzero()[0][a.positions[above, 0].argmax()])
+    bond2 = np.asscalar(below.nonzero()[0][a.positions[below, 0].argmax()])
 
+    # These need to be ints, otherwise they are no JSON serializable.
     a.info['bond1'] = bond1
     a.info['bond2'] = bond2
 
-    return (bond1, bond2)
+    return bond1, bond2
     
 
 def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=None,
