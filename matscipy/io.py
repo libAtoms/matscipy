@@ -93,13 +93,13 @@ def loadtbl(fn, usecols=None, fromfile=False):
         data = np.fromfile(f, sep=' ')
         data.shape = (-1, len(column_labels))
         if usecols is None:
-            return {s: d for s, d in zip(column_labels, data.T)}
+            return dict((s, d) for s, d in zip(column_labels, data.T))
         else:
             return [data[:, column_labels.index(s)] for s in usecols]
     else:
         if usecols is None:
             data = np.loadtxt(fn, unpack=True)
-            return { s: d for s, d in zip(column_labels, data) }
+            return dict((s, d) for s, d in zip(column_labels, data))
         else:
             column_i = [ column_labels.index(s) for s in usecols ]
             return np.loadtxt(fn, usecols=column_i, unpack=True)

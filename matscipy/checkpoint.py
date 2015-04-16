@@ -172,8 +172,8 @@ class Checkpoint(object):
             return tuple(retvals)
 
     def _flush(self, *args, **kwargs):
-        data = {'{}{}'.format(self._value_prefix, i): v
-                for i, v in enumerate(args)}
+        data = dict(('{}{}'.format(self._value_prefix, i), v)
+                    for i, v in enumerate(args))
 
         try:
             atomsi = [isinstance(v, ase.Atoms) for v in args].index(True)
