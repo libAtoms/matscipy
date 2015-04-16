@@ -363,7 +363,7 @@ class Client(object):
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', cobalt=False):
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun'):
 
         self.client_id = client_id
         self.process = None # handle for the runjob process
@@ -383,7 +383,8 @@ class Client(object):
 
         self.jobname = jobname
         self.fmt = fmt
-        self.cobalt = cobalt
+        self.parmode = parmode
+        self.mpirun = mpirun
 
         self.rundir = rundir or os.getcwd()
         self.subdir = os.path.join(self.rundir, '%s-%03d' % (jobname, self.client_id))
@@ -411,7 +412,7 @@ class Client(object):
 
         runjob_args = []
         popen_args = {}
-        if self.cobalt:
+        if self.parmode == 'cobalt':
             # Convert env to "--envs KEY=value" arguments for runjob
             envargs = []
             for (k, v) in self.env.iteritems():
@@ -424,12 +425,16 @@ class Client(object):
                 runjob_args += ['--shape', self.shape]
             runjob_args += (['-n', str(self.npj*self.ppn), '-p', str(self.ppn)] + envargs + 
                             ['--cwd', self.subdir, ':'])
+        elif self.parmode == 'mpi':
+            runjob_args += [self.mpirun, '-np', str(self.npj*self.ppn)]
+            popen_args['cwd'] = self.subdir
+            popen_args['env'] = os.environ # for mpi, let mpirun inherit environment of script
         else:
             popen_args['cwd'] = self.subdir
             popen_args['env'] = self.env
         runjob_args += [self.exe]
         runjob_args += self.extra_args(label)
-        logging.info('starting client %d with args %r' % (self.client_id, runjob_args))
+        logging.info('starting client %d args %r' % (self.client_id, runjob_args))
         self.log = open(os.path.join(self.rundir, '%s-%03d.output' % (self.jobname, self.client_id)), 'a')
         # send stdout and stderr to same file
         self.process = subprocess.Popen(runjob_args, stdout=self.log, stderr=self.log, **popen_args) 
@@ -445,7 +450,7 @@ class Client(object):
         thread when block=False).
         """
         if self.process is None:
-            loggin.warn('client %d (requested to shutdonw) has never been started' % self.client_id)
+            loggin.warn('client %d (requested to shutdown) has never been started' % self.client_id)
             return
 
         if self.process.poll() is not None:
@@ -600,9 +605,9 @@ class QUIPClient(Client):
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', cobalt=False, param_files=None):
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', param_files=None):
         Client.__init__(self, client_id, exe, env, npj, ppn,
-                        block, corner, shape, jobname, rundir, fmt, cobalt)
+                        block, corner, shape, jobname, rundir, fmt, parmode, mpirun)
         self.param_files = param_files
 
     def write_input_files(self, at, label):
@@ -628,9 +633,9 @@ class VaspClient(Client):
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', cobalt=False, **vasp_args):
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', **vasp_args):
         Client.__init__(self, client_id, exe, env, npj, ppn,
-                        block, corner, shape, jobname, rundir, fmt, cobalt)        
+                        block, corner, shape, jobname, rundir, fmt, parmode, mpirun)
         self.vasp_args = vasp_args
 
     def is_compatible(self, old_at, new_at, label):
@@ -718,7 +723,8 @@ class VaspClient(Client):
         vasp = Vasp(**self.vasp_args)
         vasp.initialize(at)
         at = at.copy()
-        at.set_array('vasp_sort_order', range(len(at)))
+        order = np.array(range(len(at)))
+        at.set_array('vasp_sort_order', order)
         at = at[vasp.resort]
 
         return at, fmt, first_time
