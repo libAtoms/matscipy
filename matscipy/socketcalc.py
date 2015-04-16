@@ -636,6 +636,9 @@ class VaspClient(Client):
                  fmt='REFTRAJ', parmode=None, mpirun='mpirun', **vasp_args):
         Client.__init__(self, client_id, exe, env, npj, ppn,
                         block, corner, shape, jobname, rundir, fmt, parmode, mpirun)
+        if 'ibrion' not in vasp_args:
+            logging.warn('No ibrion key in vasp_args, setting ibrion=13')
+            vasp_args['ibrion'] = 13
         self.vasp_args = vasp_args
 
     def is_compatible(self, old_at, new_at, label):
@@ -667,7 +670,7 @@ class VaspClient(Client):
         old_z = old_at.get_chemical_symbols()
         new_z = new_at.get_chemical_symbols()
 
-        if 'index' in at.arrays:
+        if 'index' in old_at.arrays:
             old_index = old_at.get_array('index')
             new_index = new_at.get_array('index')
             
