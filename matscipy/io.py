@@ -77,11 +77,14 @@ def loadtbl(fn, usecols=None, fromfile=False):
     """
     f = open(fn)
     line = f.readline()
+    column_labels = None
     while line.startswith('#'):
         line = line[1:].strip()
         column_labels = [s.strip() for s in re.split('[\s,]+', line)]
         line = f.readline()
     f.close()
+    if column_labels is None:
+        raise RuntimeError("No header found in file '{}'".format(fn))
     
     sep_i = [x.find(':') for x in column_labels]
     column_labels = map(lambda s,i: s[i+1:] if i >= 0 else s, column_labels,
