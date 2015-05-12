@@ -25,7 +25,7 @@ import _matscipy
 
 ###
 
-def angle_distribution(i, j, dr, nbins, cutoff):
+def angle_distribution(i, j, dr, nbins, *args):
     """
     Compute a bond angle distribution from a neighbour list.
 
@@ -39,4 +39,4 @@ def angle_distribution(i, j, dr, nbins, cutoff):
         Bond length cutoff, i.e. consider only bonds shorter than this length.
     """
     return _matscipy.angle_distribution(np.asarray(i), np.asarray(j),
-                                        np.asarray(dr), nbins, cutoff)
+                                        np.asarray(dr), nbins, *args)

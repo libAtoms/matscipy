@@ -36,9 +36,9 @@ py_angle_distribution(PyObject *self, PyObject *args)
 {
   PyObject *i_arr, *j_arr, *r_arr;
   int nbins;
-  double cutoff;
+  double cutoff = -1.0;
 
-  if (!PyArg_ParseTuple(args, "O!O!O!id", &PyArray_Type, &i_arr, &PyArray_Type,
+  if (!PyArg_ParseTuple(args, "O!O!O!i|d", &PyArray_Type, &i_arr, &PyArray_Type,
                         &j_arr, &PyArray_Type, &r_arr, &nbins, &cutoff))
     return NULL;
 
@@ -94,12 +94,12 @@ py_angle_distribution(PyObject *self, PyObject *args)
 
     double n = r[3*p]*r[3*p] + r[3*p+1]*r[3*p+1] + r[3*p+2]*r[3*p+2];
 
-    if (n < cutoff_sq) {
+    if (cutoff < 0.0 || n < cutoff_sq) {
       int p2;
       for (p2 = i_start; i[p2] == last_i; p2++) {
         if (p2 != p) {
           double n2 = r[3*p2]*r[3*p2] + r[3*p2+1]*r[3*p2+1] + r[3*p2+2]*r[3*p2+2];
-          if (n2 < cutoff_sq) {
+          if (cutoff < 0.0 || n2 < cutoff_sq) {
             double angle = r[3*p]*r[3*p2] + r[3*p+1]*r[3*p2+1] + r[3*p+2]*r[3*p2+2];
             angle = acos(angle/sqrt(n*n2));
             int bin = (int) (nbins*angle/M_PI);

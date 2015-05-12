@@ -60,7 +60,7 @@ class TestAngleDistribution(matscipytest.MatSciPyTestCase):
                                        [0.5, 1.0, 1.0]],
                       cell=[2, 2, 2], pbc=True)
         i, j, dr = neighbour_list("ijD", a, 1.1)
-        hist = angle_distribution(i, j, dr, 20, 1.1)
+        hist = angle_distribution(i, j, dr, 20)
         #                                                 v 45 degrees
         self.assertArrayAlmostEqual(hist, [0, 0, 0, 0, 0, 2, 0, 0, 0, 0,
                                            2, 0, 0, 0, 0, 0, 0, 0, 0, 0])
