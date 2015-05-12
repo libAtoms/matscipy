@@ -37,7 +37,7 @@ from matscipy.neighbours import mic, neighbour_list
 class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_neighbour_list(self):
-        a = io.read('aC.traj')
+        a = io.read('aC.cfg')
         j, dr, i, abs_dr = neighbour_list("jDid", a, 1.85)
 
         self.assertTrue((np.bincount(i) == np.bincount(j)).all())

@@ -83,7 +83,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertEqual(len(r), 0)
 
     def test_aC(self):
-        a = ase.io.read('aC.traj')
+        a = ase.io.read('aC.cfg')
         r = ring_statistics(a, 1.85, maxlength=16)
         self.assertArrayAlmostEqual(r, [0,0,0,0,4,813,2678,1917,693,412,209,89,
                                         21,3])
