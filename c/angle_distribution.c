@@ -54,7 +54,7 @@ py_angle_distribution(PyObject *self, PyObject *args)
   }
   if (PyArray_NDIM(r_arr) != 2 || PyArray_DIM(r_arr, 1) != 3 ||
       PyArray_TYPE(r_arr) != NPY_DOUBLE) {
-    PyErr_SetString(PyExc_TypeError, "Second argument needs to be two-dimensional "
+    PyErr_SetString(PyExc_TypeError, "Third argument needs to be two-dimensional "
                     "double array.");
     return NULL;
   }
@@ -67,15 +67,13 @@ py_angle_distribution(PyObject *self, PyObject *args)
   }
 
   npy_intp dim = nbins;
-  PyObject *h_arr = PyArray_ZEROS(1, &dim, NPY_DOUBLE, 1);
-  PyObject *h2_arr = PyArray_ZEROS(1, &dim, NPY_DOUBLE, 1);
+  PyObject *h_arr = PyArray_ZEROS(1, &dim, NPY_INT, 1);
   PyObject *tmp_arr = PyArray_ZEROS(1, &dim, NPY_INT, 1);
 
   npy_int *i = PyArray_DATA(i_arr);
   npy_int *j = PyArray_DATA(j_arr);
   double *r = PyArray_DATA(r_arr);
-  double *h = PyArray_DATA(h_arr);
-  double *h2 = PyArray_DATA(h2_arr);
+  npy_int *h = PyArray_DATA(h_arr);
   npy_int *tmp = PyArray_DATA(tmp_arr);
 
   npy_int last_i = i[0], i_start = 0;
@@ -83,11 +81,11 @@ py_angle_distribution(PyObject *self, PyObject *args)
   int nangle = 1, p;
   double cutoff_sq = cutoff*cutoff;
   for (p = 0; p < npairs; p++) {
+    /* Avoid double counting */
     if (last_i != i[p]) {
       int bin;
       for (bin = 0; bin < nbins; bin++) {
         h[bin] += tmp[bin];
-        h2[bin] += tmp[bin]*tmp[bin];
       }
       memset(tmp, 0, nbins*sizeof(npy_int));
       last_i = i[p];
@@ -114,18 +112,8 @@ py_angle_distribution(PyObject *self, PyObject *args)
       }
     } /* n < cutoff_sq */
   }
-  double binvol = M_PI/nbins;
-  int bin;
-  for (bin = 0; bin < nbins; bin++) {
-    h[bin] += tmp[bin];
-    h2[bin] += tmp[bin]*tmp[bin];
-
-    h[bin] /= nangle*binvol;
-    h2[bin] /= nangle*binvol*binvol;
-    h2[bin] -= h[bin]*h[bin];
-  }
 
   Py_DECREF(tmp_arr);
 
-  return Py_BuildValue("OO", h_arr, h2_arr);
+  return h_arr;
 }
