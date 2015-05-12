@@ -51,7 +51,7 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
 
     def test_rotation(self):
         if not atomistica:
-            print 'Atomistica not available. Skipping test.'
+            print('Atomistica not available. Skipping test.')
             return
 
         for make_atoms, calc in [ 

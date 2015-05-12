@@ -19,6 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import print_function
+
 import math
 import warnings
 
@@ -1107,7 +1109,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
         mask = (r > rmin) & (r < rmax)
 
     if verbose:
-       print 'Fitting on %r atoms' % sigma[mask,1,1].shape
+       print('Fitting on %r atoms' % sigma[mask,1,1].shape)
     
     def objective_function(params, x, y, sigma, var_params):
         params = dict(zip(var_params, params))
@@ -1140,11 +1142,11 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
        err = dict(zip(var_params, np.sqrt(np.diag(cov))))
     
     if verbose:
-       print 'K = %.3f MPa sqrt(m)' % (params['K']/MPA_SQRT_M)
-       print 'sigma^0_{xx,yy,xy} = (%.1f, %.1f, %.1f) GPa' % (params['sxx0']*GPA,
+       print('K = %.3f MPa sqrt(m)' % (params['K']/MPA_SQRT_M))
+       print('sigma^0_{xx,yy,xy} = (%.1f, %.1f, %.1f) GPa' % (params['sxx0']*GPA,
                                                               params['syy0']*GPA,
-                                                              params['sxy0']*GPA)
-       print 'Crack position (x0, y0) = (%.1f, %.1f) A' % (params['x0'], params['y0'])
+                                                              params['sxy0']*GPA))
+       print('Crack position (x0, y0) = (%.1f, %.1f) A' % (params['x0'], params['y0']))
 
     atoms.info['K'] = params['K']
     atoms.info['sigma0'] = (params['sxx0'], params['syy0'], params['sxy0'])

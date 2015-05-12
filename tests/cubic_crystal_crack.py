@@ -21,6 +21,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import print_function
+
 import math
 import unittest
 
@@ -89,7 +91,7 @@ class TestCubicCrystalCrack(unittest.TestCase):
         """
 
         if not atomistica:
-            print 'Atomistica not available. Skipping test.'
+            print('Atomistica not available. Skipping test.')
             return
 
         for nx in [ 8, 16, 32, 64 ]:
@@ -140,7 +142,7 @@ class TestCubicCrystalCrack(unittest.TestCase):
                 #a.set_array('residual', residual)
                 #ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz')
 
-                #print np.max(residual[mask])
+                #print(np.max(residual[mask]))
                 self.assertTrue(np.max(residual[mask]) < 0.2)
 
 ###

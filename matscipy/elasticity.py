@@ -19,6 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import print_function
+
 import itertools
 import warnings
 
@@ -776,9 +778,9 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
 
     def do_fit(index1, index2, stress, strain, patt):
         if verbose:
-            print 'Fitting C_%d%d' % (index1+1, index2+1)
-            print 'Strain %r' % strain[:,index2]
-            print 'Stress %r GPa' % (stress[:,index1]/units.GPa)
+            print('Fitting C_%d%d' % (index1+1, index2+1))
+            print('Strain %r' % strain[:,index2])
+            print('Stress %r GPa' % (stress[:,index1]/units.GPa))
 
         if scipy_stats is not None:
             cijFitted, intercept,r,tt,stderr = scipy_stats.linregress(strain[:,index2],stress[:,index1])
@@ -788,15 +790,15 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
 
         if verbose:
             # print info about the fit
-            print     'Cij (gradient) / GPa    :    ',cijFitted/units.GPa
+            print('Cij (gradient) / GPa    :    ',cijFitted/units.GPa)
             if scipy_stats is not None:
-                print     'Error in Cij / GPa      :    ', stderr/units.GPa
+                print('Error in Cij / GPa      :    ', stderr/units.GPa)
                 if abs(r) > 0.9:
-                    print 'Correlation coefficient :    ',r
+                    print('Correlation coefficient :    ',r)
                 else:
-                    print 'Correlation coefficient :    ',r, '     <----- WARNING'
+                    print('Correlation coefficient :    ',r, '     <----- WARNING')
             else:
-                print 'scipy.stats not available, no error estimation performed'
+                print('scipy.stats not available, no error estimation performed')
 
         if graphics:
             # position this plot in a 6x6 grid
@@ -936,11 +938,11 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
                 C_labels[i,j] = '-C%d%d' % (ii+1, jj+1)
 
     if verbose:
-        print np.array2string(C_labels).replace("'","")
-        print '\n = \n'
-        print np.array2string(C/units.GPa,
+        print(np.array2string(C_labels).replace("'",""))
+        print('\n = \n')
+        print(np.array2string(C/units.GPa,
                               suppress_small=True,
-                              precision=2)
+                              precision=2))
         print
 
         # Summarise the independent components of C_ij matrix
