@@ -1,36 +1,64 @@
+#!/usr/bin/env python
+
 import logging
-#logging.root.setLevel(logging.DEBUG)
+logging.root.setLevel(logging.DEBUG)
 
 import os
+from distutils import spawn
 
+from ase import Atoms
 from matscipy.socketcalc import VaspClient, SocketCalculator
-from matscipy.fracture_mechanics.clusters import diamond
 
-from quippy import Potential
+# look for mpirun and vasp on $PATH
+mpirun = spawn.find_executable('mpirun')
+vasp = spawn.find_executable('vasp')
+#vasp = '/home/eng/essswb/vasp5/vasp.5.3.new/vasp'
 
-quip_client = VaspClient(client_id=0,
-                         exe=os.path.join(os.environ['QUIP_ROOT'],
-                                          'build.'+os.environ['QUIP_ARCH'],
-                                          'socktest'),
-                         gamma=True)
+a = 5.404
+bulk = Atoms(symbols='Si8',
+             positions=[(0, 0, 0.1 / a),
+                        (0, 0.5, 0.5),
+                        (0.5, 0, 0.5),
+                        (0.5, 0.5, 0),
+                        (0.25, 0.25, 0.25),
+                        (0.25, 0.75, 0.75),
+                        (0.75, 0.25, 0.75),
+                        (0.75, 0.75, 0.25)],
+             pbc=True)
+bulk.set_cell((a, a, a), scale_atoms=True)
 
-sock_calc = SocketCalculator(quip_client)
+vasp_client = VaspClient(client_id=0,
+                         npj=1,
+                         ppn=8,
+                         exe=vasp,
+                         mpirun=mpirun,
+                         parmode='mpi',
+                         xc='LDA',
+                         lreal=False, ibrion=13, nsw=1000000,
+                         algo='VeryFast', npar=8, 
+                         lplane=False, lwave=False, lcharg=False, nsim=1,
+                         voskown=1, ismear=0, sigma=0.01, iwavpr=11, isym=0, nelm=150)
 
-el = 'Si'
-a0              = 5.43 
-n               = [ 1, 1, 1 ]
-crack_surface   = [ 1, 1, 1 ]
-crack_front     = [ 1, -1, 0 ]
+sock_calc = SocketCalculator(vasp_client)
 
-cryst = diamond(el, a0, n, crack_surface, crack_front)
-cryst.pbc = [True, True, True]
-cryst.rattle(0.01)
+bulk.set_calculator(sock_calc)
+sock_e = bulk.get_potential_energy()
+sock_f = bulk.get_forces()
+sock_s = bulk.get_stress()
 
-cryst.set_calculator(sock_calc)
-sock_e = cryst.get_potential_energy()
-sock_f = cryst.get_forces()
-sock_s = cryst.get_stress()
+
+print 'energy', sock_e
+print 'forces', sock_f
+print 'stress', sock_s
+
+bulk.rattle(0.01)
+
+sock_e = bulk.get_potential_energy()
+sock_f = bulk.get_forces()
+sock_s = bulk.get_stress()
+
+print 'energy', sock_e
+print 'forces', sock_f
+print 'stress', sock_s
+
 sock_calc.shutdown()
-
-
-

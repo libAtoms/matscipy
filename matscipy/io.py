@@ -46,7 +46,7 @@ def savetbl(fn, **kwargs):
     np.savetxt(fn, data, header=header)
 
 
-def loadtbl(fn, usecols=None):
+def loadtbl(fn, usecols=None, fromfile=False):
     """
     Load tabulated data from column header strings.
 
@@ -64,6 +64,9 @@ def loadtbl(fn, usecols=None):
         Name of file to load.
     usecols : list of strings
         List of column names.
+    fromfile : bool
+        Use numpy.fromfile instead of numpy.loadtxt if set to True. Can be
+        faster in some circumstances.
         
     Returns
     -------
@@ -74,17 +77,32 @@ def loadtbl(fn, usecols=None):
     """
     f = open(fn)
     line = f.readline()
+    column_labels = None
     while line.startswith('#'):
-        column_labels = [ s.strip() for s in re.split('[\s,]+', line)[1:] ]
+        line = line[1:].strip()
+        column_labels = [s.strip() for s in re.split('[\s,]+', line)]
         line = f.readline()
     f.close()
+    if column_labels is None:
+        raise RuntimeError("No header found in file '{}'".format(fn))
     
-    sep_i = [ x.find(':') for x in column_labels ]
+    sep_i = [x.find(':') for x in column_labels]
     column_labels = map(lambda s,i: s[i+1:] if i >= 0 else s, column_labels,
                         sep_i)
-    if usecols is None:
-        data = np.loadtxt(fn, unpack=True)
-        return { s: d for s, d in zip(column_labels, data) }
+
+    if fromfile:
+        f = open(fn)
+        f.readline()
+        data = np.fromfile(f, sep=' ')
+        data.shape = (-1, len(column_labels))
+        if usecols is None:
+            return dict((s, d) for s, d in zip(column_labels, data.T))
+        else:
+            return [data[:, column_labels.index(s)] for s in usecols]
     else:
-        column_i = [ column_labels.index(s) for s in usecols ]
-        return np.loadtxt(fn, usecols=column_i, unpack=True)
+        if usecols is None:
+            data = np.loadtxt(fn, unpack=True)
+            return dict((s, d) for s, d in zip(column_labels, data))
+        else:
+            column_i = [ column_labels.index(s) for s in usecols ]
+            return np.loadtxt(fn, usecols=column_i, unpack=True)

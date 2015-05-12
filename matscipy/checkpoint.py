@@ -106,13 +106,13 @@ class Checkpoint(object):
             self.checkpoint_id[-1] += 1
             assert self.checkpoint_id[-1] < self._max_id
         self.logger.pr('Entered checkpoint region '
-                       '{}.'.format(self.checkpoint_id))
+                       '{0}.'.format(self.checkpoint_id))
 
         self.in_checkpointed_region = True
 
     def _decrease_checkpoint_id(self):
         self.logger.pr('Leaving checkpoint region '
-                       '{}.'.format(self.checkpoint_id))
+                       '{0}.'.format(self.checkpoint_id))
         if not self.in_checkpointed_region:
             self.checkpoint_id = self.checkpoint_id[:-1]
             assert len(self.checkpoint_id) >= 1
@@ -152,7 +152,7 @@ class Checkpoint(object):
             atomsi = data['checkpoint_atoms_args_index']
             i = 0
             while i == atomsi or \
-                '{}{}'.format(self._value_prefix, i) in data:
+                '{0}{1}'.format(self._value_prefix, i) in data:
                 if i == atomsi:
                     newatoms = dbentry.toatoms()
                     if atoms is not None:
@@ -160,11 +160,11 @@ class Checkpoint(object):
                         newatoms.set_calculator(atoms.get_calculator())
                     retvals += [newatoms]
                 else:
-                    retvals += [data['{}{}'.format(self._value_prefix, i)]]
+                    retvals += [data['{0}{1}'.format(self._value_prefix, i)]]
                 i += 1
 
         self.logger.pr('Successfully restored checkpoint '
-                       '{}.'.format(self.checkpoint_id))
+                       '{0}.'.format(self.checkpoint_id))
         self._decrease_checkpoint_id()
         if len(retvals) == 1:
             return retvals[0]
@@ -172,13 +172,13 @@ class Checkpoint(object):
             return tuple(retvals)
 
     def _flush(self, *args, **kwargs):
-        data = {'{}{}'.format(self._value_prefix, i): v
-                for i, v in enumerate(args)}
+        data = dict(('{0}{1}'.format(self._value_prefix, i), v)
+                    for i, v in enumerate(args))
 
         try:
             atomsi = [isinstance(v, ase.Atoms) for v in args].index(True)
             atoms = args[atomsi]
-            del data['{}{}'.format(self._value_prefix, atomsi)]
+            del data['{0}{1}'.format(self._value_prefix, atomsi)]
         except ValueError:
             atomsi = -1
             try:
@@ -204,7 +204,7 @@ class Checkpoint(object):
                      data=data)
 
         self.logger.pr('Successfully stored checkpoint '
-                       '{}.'.format(self.checkpoint_id))
+                       '{0}.'.format(self.checkpoint_id))
 
 
     def flush(self, *args, **kwargs):

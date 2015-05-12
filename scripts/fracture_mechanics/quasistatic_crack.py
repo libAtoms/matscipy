@@ -68,10 +68,10 @@ def param(s, d):
     global logger
     try:
         val = params.__dict__[s]
-        logger.pr('(user value)      {} = {}'.format(s, val))
+        logger.pr('(user value)      {0} = {1}'.format(s, val))
     except KeyError:
         val = d
-        logger.pr('(default value)   {} = {}'.format(s, val))
+        logger.pr('(default value)   {0} = {1}'.format(s, val))
     return val
 
 ###
@@ -92,7 +92,7 @@ cryst = params.cryst.copy()
 
 compute_elastic_constants = param('compute_elastic_constants', False)
 
-if params.compute_elastic_constants:
+if compute_elastic_constants:
     pbc = cryst.pbc.copy()
     cryst.set_pbc(True)
     cryst.set_calculator(params.calc)
@@ -119,7 +119,7 @@ logger.pr(np.round(crk.C*10)/10)
 
 # Get Griffith's k1.
 k1g = crk.k1g(params.surface_energy)
-logger.pr('Griffith k1 = {}'.format(k1g))
+logger.pr('Griffith k1 = {0}'.format(k1g))
 
 # Compute crack tip position.
 tip_x0 = param('tip_x', cryst.cell.diagonal()[0]/2)
@@ -221,7 +221,7 @@ for i, ( k1, tip_dx, tip_dy ) in enumerate(zip(k1_list, tip_dx_list,
             tip_x = tip_x0+tip_dx
             tip_y = tip_y0+tip_dy
 
-            logger.pr('Setting crack tip position to {} {}' \
+            logger.pr('Setting crack tip position to {0} {1}' \
                       .format(tip_x, tip_y))
 
             # Scale strain field and optimize crack

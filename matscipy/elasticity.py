@@ -709,7 +709,7 @@ def generate_strained_configs(at0, symmetry='triclinic', N_steps=5, delta=1e-2):
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimizer=None,
-                          verbose=True, graphics=True, logfile=None, **kwargs):
+                          verbose=True, graphics=False, logfile=None, **kwargs):
     """
     Compute elastic constants by linear regression of stress vs. strain
 
