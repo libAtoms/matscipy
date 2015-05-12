@@ -42,6 +42,8 @@ def J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y, r1, r2,
         len(a) x 3x3 array of atomic deformation gradients.
     virial : array_like
         len(a) x 3x3 array of atomic virials.
+    epot : float
+        Potential energy per atom of the cracked configuration.
     e0 : float
         Reference energy (cohesive energy per atom of the bulk crystal at
         equilibrium).
@@ -106,12 +108,12 @@ def J_integral(a, deformation_gradient, virial, epot, e0, tip_x, tip_y, r1, r2,
                 np.zeros_like(z)])
 
     # Potential energy
-    epot = ((epot[mask]-e0[mask])*gradq[mask,0]).sum()
+    Jpot = ((epot[mask]-e0[mask])*gradq[mask,0]).sum()
 
     # Strain energy
-    estrain = np.einsum('aij,ai,aj->', virial[mask,:,:],
+    Jstrain = np.einsum('aij,ai,aj->', virial[mask,:,:],
                         deformation_gradient[mask,:,0], gradq[mask,:])
 
     # Compute J-integral
-    return (epot-estrain)/sz
+    return (Jpot-Jstrain)/sz
 
