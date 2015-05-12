@@ -23,6 +23,7 @@
 
 import unittest
 
+from angle_distribution import *
 from cubic_crystal_crack import *
 from fit_elastic_constants import *
 from full_to_Voigt import *
