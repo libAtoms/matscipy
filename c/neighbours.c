@@ -86,8 +86,13 @@ py_neighbour_list(PyObject *self, PyObject *args)
     PyObject *py_cell, *py_inv_cell, *py_pbc, *py_r, *py_quantities;
     double cutoff;
 
+#if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTuple(args, "O!OOOOd", &PyUnicode_Type, &py_quantities,
                           &py_cell, &py_inv_cell, &py_pbc, &py_r, &cutoff))
+#else
+    if (!PyArg_ParseTuple(args, "O!OOOOd", &PyString_Type, &py_quantities,
+                          &py_cell, &py_inv_cell, &py_pbc, &py_r, &cutoff))
+#endif
         return NULL;
 
     /* Make sure our arrays are contiguous */
