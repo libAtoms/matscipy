@@ -20,6 +20,7 @@ setup(name='matscipy',
         Extension(
             '_matscipy',
             ['c/tools.c',
+             'c/angle_distribution.c',
              'c/neighbours.c',
              'c/ring_statistics.cpp',
              'c/matscipymodule.c'],

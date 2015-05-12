@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "angle_distribution.h"
 #include "neighbours.h"
 #include "ring_statistics.h"
 
@@ -38,6 +39,8 @@
  */
 
 static PyMethodDef module_methods[] = {
+    { "angle_distribution", (PyCFunction) py_angle_distribution, METH_VARARGS,
+      "Compute a bond angle distribution from a neighbour list." },
     { "distance_map", (PyCFunction) py_distance_map, METH_VARARGS,
       "Compute a map of distance on a graph." },
     { "find_sp_rings", (PyCFunction) py_find_sp_rings, METH_VARARGS,
