@@ -21,9 +21,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import print_function
+
 import unittest
 import logging
-from StringIO import StringIO
+from io import StringIO
 import numpy as np
 
 def string_to_array(s):
@@ -53,7 +55,7 @@ class MatSciPyTestCase(unittest.TestCase):
                 try:
                     self.assertArrayAlmostEqual(v1, v2)
                 except AssertionError:
-                    print key, v1, v2
+                    print(key, v1, v2)
                     raise
             else:
                 if v1 != v2:
@@ -77,10 +79,10 @@ class MatSciPyTestCase(unittest.TestCase):
         self.assertEqual(a.shape, b.shape)
 
         if np.isnan(a).any() or np.isnan(b).any():
-            print 'a'
-            print a
-            print 'b'
-            print b
+            print('a')
+            print(a)
+            print('b')
+            print(b)
             self.fail('Not a number (NaN) found in array')
 
         if a.dtype.kind != 'f':
@@ -89,14 +91,14 @@ class MatSciPyTestCase(unittest.TestCase):
             absdiff = abs(a-b)
             if absdiff.max() > tol:
                 loc = np.unravel_index(absdiff.argmax(), absdiff.shape)
-                print 'a'
-                print a
-                print
-                print 'b'
-                print b
-                print
-                print 'Absolute difference'
-                print absdiff
+                print('a')
+                print(a)
+                print()
+                print('b')
+                print(b)
+                print()
+                print('Absolute difference')
+                print(absdiff)
                 self.fail('Maximum abs difference between array elements is %e at location %r' %
                           (absdiff.max(), loc))
 
