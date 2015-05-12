@@ -86,7 +86,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     PyObject *py_cell, *py_inv_cell, *py_pbc, *py_r, *py_quantities;
     double cutoff;
 
-    if (!PyArg_ParseTuple(args, "O!OOOOd", &PyString_Type, &py_quantities,
+    if (!PyArg_ParseTuple(args, "O!OOOOd", &PyUnicode_Type, &py_quantities,
                           &py_cell, &py_inv_cell, &py_pbc, &py_r, &cutoff))
         return NULL;
 
@@ -196,7 +196,12 @@ py_neighbour_list(PyObject *self, PyObject *args)
     npy_int *first = NULL, *secnd = NULL, *shift = NULL;
     npy_double *distvec = NULL, *absdist = NULL;
 
+#if PY_MAJOR_VERSION >= 3
+    PyObject *py_bquantities = PyUnicode_AsASCIIString(py_quantities);
+    char *quantities = PyBytes_AS_STRING(py_bquantities);
+#else
     char *quantities = PyString_AS_STRING(py_quantities);
+#endif
     i = 0;
     npy_intp dims[2] = { neighsize, 3 };
     while (quantities[i] != '\0') {
@@ -228,6 +233,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
         }
         i++;
     }
+#if PY_MAJOR_VERSION >= 3
+    Py_DECREF(py_bquantities);
+#endif
 
     /* We need the square of the cutoff */
     double cutoff_sq = cutoff*cutoff;
