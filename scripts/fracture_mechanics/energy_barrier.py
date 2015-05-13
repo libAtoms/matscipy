@@ -21,6 +21,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+# USAGE:
+#
+# Code imports the file 'params.py' from current working directory. params.py
+# contains simulation parameters. Some parameters can be omitted, see below.
+
 import os
 import sys
 
@@ -36,8 +41,7 @@ from ase.units import GPa
 
 import matscipy.fracture_mechanics.crack as crack
 from matscipy.checkpoint import Checkpoint, NoCheckpoint
-from matscipy.elasticity import (fit_elastic_constants,
-                                 measure_triclinic_elastic_constants)
+from matscipy.elasticity import fit_elastic_constants
 from matscipy.logger import screen
 from matscipy.neighbours import neighbour_list
 
