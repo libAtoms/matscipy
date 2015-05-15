@@ -21,7 +21,7 @@
 
 # Generic stuff may go here.
 
-from logger import screen
+from matscipy.logger import screen
 
 ###
 
