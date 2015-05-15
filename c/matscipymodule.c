@@ -47,6 +47,8 @@ static PyMethodDef module_methods[] = {
       "Identify shortest-path rings on a graph." },
     { "neighbour_list", (PyCFunction) py_neighbour_list, METH_VARARGS,
       "Compute a neighbour list for an atomic configuration." },
+    { "first_neighbours", (PyCFunction) py_first_neighbours, METH_VARARGS,
+      "Compute indices of first neighbours in neighbour list array." },
     { NULL, NULL, 0, NULL }  /* Sentinel */
 };
 

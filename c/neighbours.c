@@ -482,18 +482,50 @@ py_neighbour_list(PyObject *self, PyObject *args)
  */
 
 void
-seed_array(int n, int nn, int *i_n, int *seed)
+first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed)
 {
     int k;
 
-    seed[0] = 0;
-    seed[n] = nn;
-    for (k = 1; k < n; k++) {
+    for (k = 0; k < n; k++) {
         seed[k] = -1;
     }
+    seed[n] = nn;
+
+    seed[i_n[0]] = 0;
+
     for (k = 1; k < nn; k++) {
         if (i_n[k] != i_n[k-1]) {
             seed[i_n[k]] = k;
         }
     }
+}
+
+/*
+ * Python wrapper for seed array calculation
+ */
+
+PyObject *
+py_first_neighbours(PyObject *self, PyObject *args)
+{
+    npy_int n;
+    PyObject *py_i;
+
+    if (!PyArg_ParseTuple(args, "iO", &n, &py_i))
+        return NULL;
+
+    /* Make sure our arrays are contiguous */
+    py_i = PyArray_FROMANY(py_i, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    if (!py_i) return NULL;
+
+    /* Neighbour list size */
+    npy_intp nn = PyArray_DIM((PyArrayObject *) py_i, 0);
+
+    /* Create seed array of length n */
+    npy_intp n1 = n+1;
+    PyObject *py_seed = PyArray_ZEROS(1, &n1, NPY_INT, 0);
+
+    /* Construct seed array */
+    first_neighbours(n, nn, PyArray_DATA(py_i), PyArray_DATA(py_seed));
+
+    return py_seed;
 }

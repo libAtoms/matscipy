@@ -34,11 +34,12 @@ extern "C" {
  * Neighbour list construction
  */
 PyObject *py_neighbour_list(PyObject *self, PyObject *args);
+PyObject *py_first_neighbours(PyObject *self, PyObject *args);
 
 /*
  * Construct seed array that points to start of rows
  */
-void seed_array(int n, int nn, int *i_n, int *seed);
+void first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed);
 
 #ifdef __cplusplus
 }
