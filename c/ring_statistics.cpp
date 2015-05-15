@@ -139,7 +139,7 @@ py_distance_map(PyObject *self, PyObject *args)
 
     /* Construct seed array */
     int seed[nat+1];
-    seed_array(nat, nneigh, i, seed);
+    first_neighbours(nat, nneigh, i, seed);
 
     npy_intp dims[2];
     dims[0] = nat;
@@ -454,7 +454,7 @@ py_find_sp_rings(PyObject *self, PyObject *args)
 
     /* Construct seed array */
     int seed[nat+1];
-    seed_array(nat, nneigh, i, seed);
+    first_neighbours(nat, nneigh, i, seed);
 
     std::vector<npy_int> ringstat;
     if (!find_sp_ring_vertices(nat, seed, nneigh, (int *) PyArray_DATA(py_j),

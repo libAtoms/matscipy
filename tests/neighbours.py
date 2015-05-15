@@ -30,7 +30,7 @@ import ase.io as io
 import ase.lattice.hexagonal
 
 import matscipytest
-from matscipy.neighbours import mic, neighbour_list
+from matscipy.neighbours import mic, neighbour_list, first_neighbours
 
 ###
 
@@ -105,6 +105,12 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
                                                size=[sx+1,sx+1,1])
             i = neighbour_list("i", a, 1.85)
             self.assertTrue(np.all(np.bincount(i)==3))
+
+    def test_first_neighbours(self):
+        i = [1,1,1,1,3,3,3]
+        self.assertArrayAlmostEqual(first_neighbours(5, i), [-1,0,-1,4,-1,7])
+        i = [0,1,2,3,4,5]
+        self.assertArrayAlmostEqual(first_neighbours(6, i), [0,1,2,3,4,5,6])
 
 ###
 

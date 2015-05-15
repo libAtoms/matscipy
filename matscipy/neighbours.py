@@ -24,6 +24,7 @@ import itertools
 import numpy as np
 
 import _matscipy 
+from _matscipy import first_neighbours
 
 ###
 
