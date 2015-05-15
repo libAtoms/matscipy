@@ -39,6 +39,7 @@ from ase.data import atomic_numbers
 from ase.parallel import parprint
 from ase.units import GPa
 
+from matscipy import parameter
 import matscipy.fracture_mechanics.crack as crack
 from matscipy.checkpoint import Checkpoint, NoCheckpoint
 from matscipy.elasticity import fit_elastic_constants
@@ -47,20 +48,9 @@ from matscipy.neighbours import neighbour_list
 
 ###
 
+import sys
 sys.path += ['.', '..']
 import params
-
-###
-
-def param(s, d):
-    global logger
-    try:
-        val = params.__dict__[s]
-        logger.pr('(user value)      {} = {}'.format(s, val))
-    except KeyError:
-        val = d
-        logger.pr('(default value)   {} = {}'.format(s, val))
-    return val
 
 ###
 
@@ -85,7 +75,7 @@ cryst = params.cryst.copy()
 # Double check elastic constants. We're just assuming this is really a periodic
 # system. (True if it comes out of the cluster routines.)
 
-compute_elastic_constants = param('compute_elastic_constants', False)
+compute_elastic_constants = parameter('compute_elastic_constants', False)
 
 if params.compute_elastic_constants:
     pbc = cryst.pbc.copy()
@@ -114,22 +104,22 @@ print(np.round(crk.C*10)/10)
 
 # Get parameter used for fitting crack tip position
 
-residual_func = param('residual_func', crack.displacement_residual)
+residual_func = parameter('residual_func', crack.displacement_residual)
 _residual_func = residual_func
 
-tip_tol = param('tip_tol', 1e-4)
+tip_tol = parameter('tip_tol', 1e-4)
 
-tip_mixing_alpha = param('tip_mixing_alpha', 1.0)
+tip_mixing_alpha = parameter('tip_mixing_alpha', 1.0)
 
-write_trajectory_during_optimization = param('write_trajectory_during_optimization', False)
+write_trajectory_during_optimization = parameter('write_trajectory_during_optimization', False)
     
 # Get Griffith's k1.
 k1g = crk.k1g(params.surface_energy)
 parprint('Griffith k1 = %f' % k1g)
 
 # Apply initial strain field.
-tip_x = param('tip_x', cryst.cell.diagonal()[0]/2)
-tip_y = param('tip_y', cryst.cell.diagonal()[1]/2)
+tip_x = parameter('tip_x', cryst.cell.diagonal()[0]/2)
+tip_y = parameter('tip_y', cryst.cell.diagonal()[1]/2)
 
 a = cryst.copy()
 ux, uy = crk.displacements(cryst.positions[:,0], cryst.positions[:,1],
@@ -150,7 +140,7 @@ cryst.translate(a[0].position - oldr)
 g = a.get_array('groups')
 
 # Choose which bond to break.
-bond1, bond2 = param('bond', crack.find_tip_coordination(a, bondlength=2.7))
+bond1, bond2 = parameter('bond', crack.find_tip_coordination(a, bondlength=2.7))
 
 print('Opening bond {0}--{1}, initial bond length {2}'.
       format(bond1, bond2, a.get_distance(bond1, bond2, mic=True)))
@@ -164,7 +154,7 @@ ase.io.write('notch.xyz', a, format='extxyz')
 
 ### Notched system has been created here ###
 
-optimize_tip_position = param('optimize_tip_position', False)
+optimize_tip_position = parameter('optimize_tip_position', False)
 
 if optimize_tip_position:
     tip_x = (a.positions[bond1, 0] + a.positions[bond2, 0])/2
