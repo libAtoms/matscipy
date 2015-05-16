@@ -68,7 +68,6 @@ class NoCheckpoint(Exception):
 
 class Checkpoint(object):
     _value_prefix = '_values_'
-    _max_id = 1000 # Maximum checkpoint id
 
     def __init__(self, db='checkpoints.db', logger=quiet):
         self.db = db
@@ -104,7 +103,6 @@ class Checkpoint(object):
             self.checkpoint_id += [1]
         else:
             self.checkpoint_id[-1] += 1
-            assert self.checkpoint_id[-1] < self._max_id
         self.logger.pr('Entered checkpoint region '
                        '{0}.'.format(self.checkpoint_id))
 
@@ -121,14 +119,12 @@ class Checkpoint(object):
 
     def _mangled_checkpoint_id(self):
         """
-        Returns a linear checkpoint id:
-            sum_i 1000**i + c_i
+        Returns a mangled checkpoint id string:
+            c_1:c_2:c_3:...
         E.g. if checkpoint is nested an id is [3,2,6] it returns:
-            600030001
+            '3:2:6'
         """
-        return reduce(lambda a, b: a+b,
-                      map(lambda (i, c): c if i == 0 else self._max_id**i * c,
-                          enumerate(self.checkpoint_id)))
+        return reduce(lambda a, b: '{0}:{1}'.format(a, b), self.checkpoint_id)
 
     def load(self, atoms=None):
         """
