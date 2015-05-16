@@ -222,12 +222,9 @@ for i, bond_length in enumerate(params.bond_lengths):
 
     # Optimize x and z position of crack tip.
     if optimize_tip_position:
-        try:
-            a, converged, tip_x, tip_y, old_x, old_y = CP.load(a)
-        except NoCheckpoint:
-            old_x = tip_x
-            old_y = tip_y
-            converged = False
+        old_x = tip_x
+        old_y = tip_y
+        converged = False
         while not converged:
             #b = cryst.copy()
             u0x, u0y = crk.displacements(cryst.positions[:,0],
