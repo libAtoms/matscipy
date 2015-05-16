@@ -41,7 +41,6 @@ from ase.units import GPa
 
 from matscipy import parameter
 import matscipy.fracture_mechanics.crack as crack
-from matscipy.checkpoint import Checkpoint, NoCheckpoint
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.hydrogenate import hydrogenate
 from matscipy.logger import screen
@@ -65,10 +64,6 @@ FITTED_CRACK_TIP = 'Ag'
 
 logger = screen
 
-# Checkpointing
-CP = Checkpoint(logger=logger)
-fit_elastic_constants = CP(fit_elastic_constants)
-
 ###
 
 cryst = params.cryst.copy()
@@ -80,7 +75,7 @@ ncryst = len(cryst)
 
 compute_elastic_constants = parameter('compute_elastic_constants', False)
 
-if params.compute_elastic_constants:
+if compute_elastic_constants:
     cryst.set_calculator(params.calc)
     C, C_err = fit_elastic_constants(cryst, verbose=False,
                                      optimizer=ase.optimize.FIRE)
@@ -202,93 +197,89 @@ eps = np.dot(crk.S, sig)
 for i, bond_length in enumerate(params.bond_lengths):
     parprint('=== bond_length = {0} ==='.format(bond_length))
     xyz_file = '%s_%4d.xyz' % (basename, int(bond_length*1000))
-    try:
-        a = CP.load(a)
-    except NoCheckpoint:
-        log_file = open('%s_%4d.log' % (basename, int(bond_length*1000)),
-                        'w')
-        if write_trajectory_during_optimization:
-            traj_file = ase.io.NetCDFTrajectory('%s_%4d.nc' % \
-                (basename, int(bond_length*1000)), mode='w', atoms=a)
-            traj_file.write()
-        else:
-            traj_file = None
+    log_file = open('%s_%4d.log' % (basename, int(bond_length*1000)),
+                    'w')
+    if write_trajectory_during_optimization:
+        traj_file = ase.io.NetCDFTrajectory('%s_%4d.nc' % \
+            (basename, int(bond_length*1000)), mode='w', atoms=a)
+        traj_file.write()
+    else:
+        traj_file = None
 
-        a.set_constraint(None)
-        a.set_distance(bond1, bond2, bond_length)
-        bond_length_constraint = ase.constraints.FixBondLength(bond1, bond2)
+    a.set_constraint(None)
+    a.set_distance(bond1, bond2, bond_length)
+    bond_length_constraint = ase.constraints.FixBondLength(bond1, bond2)
 
-        # Deformation gradient residual needs full Atoms object and therefore
-        # special treatment here.
-        if _residual_func == crack.deformation_gradient_residual:
-            residual_func = lambda r0, crack, x, y, ref_x, ref_y, k, mask=None:\
-                _residual_func(r0, crack, x, y, a, ref_x, ref_y, cryst, k,
-                               params.cutoff, mask)
+    # Deformation gradient residual needs full Atoms object and therefore
+    # special treatment here.
+    if _residual_func == crack.deformation_gradient_residual:
+        residual_func = lambda r0, crack, x, y, ref_x, ref_y, k, mask=None:\
+            _residual_func(r0, crack, x, y, a, ref_x, ref_y, cryst, k,
+                           params.cutoff, mask)
 
-        # Atoms to be used for fitting the crack tip position.
-        mask = g==1
+    # Atoms to be used for fitting the crack tip position.
+    mask = g==1
 
-        # Optimize x and z position of crack tip.
-        if optimize_tip_position:
-            try:
-                a, converged, tip_x, tip_y, old_x, old_y = CP.load(a)
-            except NoCheckpoint:
-                old_x = tip_x
-                old_y = tip_y
-                converged = False
-            while not converged:
-                #b = cryst.copy()
-                u0x, u0y = crk.displacements(cryst.positions[:,0],
-                                             cryst.positions[:,1],
-                                             old_x, old_y, params.k1*k1g)
-                ux, uy = crk.displacements(cryst.positions[:,0],
-                                           cryst.positions[:,1],
-                                           tip_x, tip_y, params.k1*k1g)
-                #b.positions[:,0] += ux
-                #b.positions[:,1] += uy
+    # Optimize x and z position of crack tip.
+    if optimize_tip_position:
+        try:
+            a, converged, tip_x, tip_y, old_x, old_y = CP.load(a)
+        except NoCheckpoint:
+            old_x = tip_x
+            old_y = tip_y
+            converged = False
+        while not converged:
+            #b = cryst.copy()
+            u0x, u0y = crk.displacements(cryst.positions[:,0],
+                                         cryst.positions[:,1],
+                                         old_x, old_y, params.k1*k1g)
+            ux, uy = crk.displacements(cryst.positions[:,0],
+                                       cryst.positions[:,1],
+                                       tip_x, tip_y, params.k1*k1g)
+            #b.positions[:,0] += ux
+            #b.positions[:,1] += uy
 
-                a.set_constraint(None)
-                #a.positions[g==0] = b.positions[g==0]
-                a.positions[:ncryst,0] += ux-u0x
-                a.positions[:ncryst,1] += uy-u0y
-                a.positions[bond1,0] -= ux[bond1]-u0x[bond1]
-                a.positions[bond1,1] -= uy[bond1]-u0y[bond1]
-                a.positions[bond2,0] -= ux[bond2]-u0x[bond2]
-                a.positions[bond2,1] -= uy[bond2]-u0y[bond2]
-                # Set bond length and boundary atoms explicitly to avoid numerical drift
-                a.set_distance(bond1, bond2, bond_length)
-                a.positions[g==0,0] = cryst.positions[gcryst==0,0] + ux[gcryst==0]
-                a.positions[g==0,1] = cryst.positions[gcryst==0,1] + uy[gcryst==0]
-                a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
-                                  bond_length_constraint])
-                parprint('Optimizing positions...')
-                opt = Optimizer(a, logfile=log_file)
-                if traj_file:
-                    opt.attach(traj_file.write)
-                opt.run(fmax=params.fmax)
-                parprint('...done. Converged within {0} steps.' \
-                         .format(opt.get_number_of_steps()))
+            a.set_constraint(None)
+            #a.positions[g==0] = b.positions[g==0]
+            a.positions[:ncryst,0] += ux-u0x
+            a.positions[:ncryst,1] += uy-u0y
+            a.positions[bond1,0] -= ux[bond1]-u0x[bond1]
+            a.positions[bond1,1] -= uy[bond1]-u0y[bond1]
+            a.positions[bond2,0] -= ux[bond2]-u0x[bond2]
+            a.positions[bond2,1] -= uy[bond2]-u0y[bond2]
+            # Set bond length and boundary atoms explicitly to avoid numerical drift
+            a.set_distance(bond1, bond2, bond_length)
+            a.positions[g==0,0] = cryst.positions[gcryst==0,0] + ux[gcryst==0]
+            a.positions[g==0,1] = cryst.positions[gcryst==0,1] + uy[gcryst==0]
+            a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
+                              bond_length_constraint])
+            parprint('Optimizing positions...')
+            opt = Optimizer(a, logfile=log_file)
+            if traj_file:
+                opt.attach(traj_file.write)
+            opt.run(fmax=params.fmax)
+            parprint('...done. Converged within {0} steps.' \
+                     .format(opt.get_number_of_steps()))
 
-                old_x = tip_x
-                old_y = tip_y
-                tip_x, tip_y = crk.crack_tip_position(a.positions[:ncryst,0],
-                                                      a.positions[:ncryst,1],
-                                                      cryst.positions[:,0],
-                                                      cryst.positions[:,1],
-                                                      tip_x, tip_y,
-                                                      params.k1*k1g,
-                                                      mask=mask,
-                                                      residual_func=residual_func)
-                dtip_x = tip_x-old_x
-                dtip_y = tip_y-old_y
-                parprint('- Fitted crack tip (before mixing) is at {:3.2f} {:3.2f} '
-                         '(= {:3.2e} {:3.2e} from the former position).'.format(tip_x, tip_y, dtip_x, dtip_y))
-                tip_x = old_x + tip_mixing_alpha*dtip_x
-                tip_y = old_y + tip_mixing_alpha*dtip_y
-                parprint('- New crack tip (after mixing) is at {:3.2f} {:3.2f} '
-                         '(= {:3.2e} {:3.2e} from the former position).'.format(tip_x, tip_y, tip_x-old_x, tip_y-old_y))
-                converged = np.asscalar(abs(dtip_x) < tip_tol and abs(dtip_y) < tip_tol)
-                CP.flush(a, converged, tip_x, tip_y, old_x, old_y)
+            old_x = tip_x
+            old_y = tip_y
+            tip_x, tip_y = crk.crack_tip_position(a.positions[:ncryst,0],
+                                                  a.positions[:ncryst,1],
+                                                  cryst.positions[:,0],
+                                                  cryst.positions[:,1],
+                                                  tip_x, tip_y,
+                                                  params.k1*k1g,
+                                                  mask=mask,
+                                                  residual_func=residual_func)
+            dtip_x = tip_x-old_x
+            dtip_y = tip_y-old_y
+            parprint('- Fitted crack tip (before mixing) is at {:3.2f} {:3.2f} '
+                     '(= {:3.2e} {:3.2e} from the former position).'.format(tip_x, tip_y, dtip_x, dtip_y))
+            tip_x = old_x + tip_mixing_alpha*dtip_x
+            tip_y = old_y + tip_mixing_alpha*dtip_y
+            parprint('- New crack tip (after mixing) is at {:3.2f} {:3.2f} '
+                     '(= {:3.2e} {:3.2e} from the former position).'.format(tip_x, tip_y, tip_x-old_x, tip_y-old_y))
+            converged = np.asscalar(abs(dtip_x) < tip_tol and abs(dtip_y) < tip_tol)
         else:
             a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                               bond_length_constraint])
@@ -342,5 +333,3 @@ for i, bond_length in enumerate(params.bond_lengths):
         log_file.close()
         if traj_file:
             traj_file.close()
-
-        CP.save(a)
