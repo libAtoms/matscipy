@@ -43,6 +43,7 @@ from matscipy import parameter
 import matscipy.fracture_mechanics.crack as crack
 from matscipy.checkpoint import Checkpoint, NoCheckpoint
 from matscipy.elasticity import fit_elastic_constants
+from matscipy.hydrogenate import hydrogenate
 from matscipy.logger import screen
 from matscipy.neighbours import neighbour_list
 
@@ -71,6 +72,8 @@ fit_elastic_constants = CP(fit_elastic_constants)
 ###
 
 cryst = params.cryst.copy()
+cryst.set_pbc(True)
+ncryst = len(cryst)
 
 # Double check elastic constants. We're just assuming this is really a periodic
 # system. (True if it comes out of the cluster routines.)
@@ -78,12 +81,9 @@ cryst = params.cryst.copy()
 compute_elastic_constants = parameter('compute_elastic_constants', False)
 
 if params.compute_elastic_constants:
-    pbc = cryst.pbc.copy()
-    cryst.set_pbc(True)
     cryst.set_calculator(params.calc)
     C, C_err = fit_elastic_constants(cryst, verbose=False,
                                      optimizer=ase.optimize.FIRE)
-    cryst.set_pbc(pbc)
 
     print('Measured elastic constants (in GPa):')
     print(np.round(C*10/GPa)/10)
@@ -121,11 +121,17 @@ parprint('Griffith k1 = %f' % k1g)
 tip_x = parameter('tip_x', cryst.cell.diagonal()[0]/2)
 tip_y = parameter('tip_y', cryst.cell.diagonal()[1]/2)
 
+bondlength = parameter('bondlength', 2.7)
+
 a = cryst.copy()
+a.set_pbc([False, False, True])
+
 ux, uy = crk.displacements(cryst.positions[:,0], cryst.positions[:,1],
                            tip_x, tip_y, params.k1*k1g)
-a.positions[:,0] += ux
-a.positions[:,1] += uy
+a.positions[:ncryst,0] += ux
+a.positions[:ncryst,1] += uy
+
+basename = parameter('basename', 'energy_barrier')
 
 # Center notched configuration in simulation cell and ensure enough vacuum.
 oldr = a[0].position.copy()
@@ -133,14 +139,34 @@ a.center(vacuum=params.vacuum, axis=0)
 a.center(vacuum=params.vacuum, axis=1)
 tip_x += a[0].position[0] - oldr[0]
 tip_y += a[0].position[1] - oldr[1]
+
+# Choose which bond to break.
+bond1, bond2 = parameter('bond',
+                         crack.find_tip_coordination(a, bondlength=bondlength))
+
+# Hydrogenate?
+if parameter('hydrogenate', False):
+    # Get surface atoms of cluster with crack
+    coord = np.bincount(neighbour_list('i', a, bondlength), minlength=len(a))
+    # Exclude all atoms of the crack face from hydrogenation
+    exclude = np.logical_and(a.get_array('groups')==1, coord!=4)
+    a.set_array('coord', coord)
+    a.set_array('exclude', exclude)
+    a = hydrogenate(cryst, bondlength, parameter('XH_bondlength'), b=a,
+                    exclude=exclude)
+    g = a.get_array('groups')
+    g[np.array(a.get_chemical_symbols())=='H'] = -1
+    a.set_array('groups', g)
+    ase.io.write('{0}_hydrogenated.cfg'.format(basename), a)
+
+# Move reference crystal by same amount
 cryst.set_cell(a.cell)
+cryst.set_pbc([False, False, True])
 cryst.translate(a[0].position - oldr)
 
 # Groups mark the fixed region and the region use for fitting the crack tip.
 g = a.get_array('groups')
-
-# Choose which bond to break.
-bond1, bond2 = parameter('bond', crack.find_tip_coordination(a, bondlength=2.7))
+gcryst = cryst.get_array('groups')
 
 print('Opening bond {0}--{1}, initial bond length {2}'.
       format(bond1, bond2, a.get_distance(bond1, bond2, mic=True)))
@@ -175,15 +201,15 @@ eps = np.dot(crk.S, sig)
 # Run crack calculation.
 for i, bond_length in enumerate(params.bond_lengths):
     parprint('=== bond_length = {0} ==='.format(bond_length))
-    xyz_file = '%s_%4d.xyz' % (params.basename, int(bond_length*1000))
+    xyz_file = '%s_%4d.xyz' % (basename, int(bond_length*1000))
     try:
         a = CP.load(a)
     except NoCheckpoint:
-        log_file = open('%s_%4d.log' % (params.basename, int(bond_length*1000)),
+        log_file = open('%s_%4d.log' % (basename, int(bond_length*1000)),
                         'w')
         if write_trajectory_during_optimization:
             traj_file = ase.io.NetCDFTrajectory('%s_%4d.nc' % \
-                (params.basename, int(bond_length*1000)), mode='w', atoms=a)
+                (basename, int(bond_length*1000)), mode='w', atoms=a)
             traj_file.write()
         else:
             traj_file = None
@@ -223,16 +249,16 @@ for i, bond_length in enumerate(params.bond_lengths):
 
                 a.set_constraint(None)
                 #a.positions[g==0] = b.positions[g==0]
-                a.positions[:,0] += ux-u0x
-                a.positions[:,1] += uy-u0y
+                a.positions[:ncryst,0] += ux-u0x
+                a.positions[:ncryst,1] += uy-u0y
                 a.positions[bond1,0] -= ux[bond1]-u0x[bond1]
                 a.positions[bond1,1] -= uy[bond1]-u0y[bond1]
                 a.positions[bond2,0] -= ux[bond2]-u0x[bond2]
                 a.positions[bond2,1] -= uy[bond2]-u0y[bond2]
                 # Set bond length and boundary atoms explicitly to avoid numerical drift
                 a.set_distance(bond1, bond2, bond_length)
-                a.positions[g==0,0] = cryst.positions[g==0,0] + ux[g==0]
-                a.positions[g==0,1] = cryst.positions[g==0,1] + uy[g==0]
+                a.positions[g==0,0] = cryst.positions[gcryst==0,0] + ux[gcryst==0]
+                a.positions[g==0,1] = cryst.positions[gcryst==0,1] + uy[gcryst==0]
                 a.set_constraint([ase.constraints.FixAtoms(mask=g==0),
                                   bond_length_constraint])
                 parprint('Optimizing positions...')
@@ -245,8 +271,8 @@ for i, bond_length in enumerate(params.bond_lengths):
 
                 old_x = tip_x
                 old_y = tip_y
-                tip_x, tip_y = crk.crack_tip_position(a.positions[:,0],
-                                                      a.positions[:,1],
+                tip_x, tip_y = crk.crack_tip_position(a.positions[:ncryst,0],
+                                                      a.positions[:ncryst,1],
                                                       cryst.positions[:,0],
                                                       cryst.positions[:,1],
                                                       tip_x, tip_y,
@@ -283,8 +309,8 @@ for i, bond_length in enumerate(params.bond_lengths):
 
         # Fit crack tip (again), and get residuals.
         fit_x, fit_y, residuals = \
-            crk.crack_tip_position(a.positions[:,0],
-                                   a.positions[:,1],
+            crk.crack_tip_position(a.positions[:ncryst,0],
+                                   a.positions[:ncryst,1],
                                    cryst.positions[:,0],
                                    cryst.positions[:,1],
                                    tip_x, tip_y, params.k1*k1g,
