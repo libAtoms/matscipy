@@ -78,20 +78,28 @@ def hydrogenate(a, cutoff, bond_length, b=None, mask=[True, True, True],
 
     hydrogens = []
     # Surface atoms have coord_a != coord_b. Those need hydrogenation
-    for k in np.arange(len(a))[coord_a!=coord_b]:
-        l_a = firstneigh_a[k]
-        l_b = firstneigh_b[k]
-        while l_a < len(i_a) and i_a[l_a] == k:
-            if l_b < len(i_b) and i_a[l_a] == i_b[l_b] and j_a[l_a] == j_b[l_b]:
-                l_a += 1
-                l_b += 1
-            else:
+    for k in np.arange(len(a))[np.logical_and(coord_a!=coord_b,
+                                              np.logical_not(exclude))]:
+        l1_a = firstneigh_a[k]
+        l2_a = firstneigh_a[k+1]
+        l1_b = firstneigh_b[k]
+        l2_b = firstneigh_b[k+1]
+        n_H = 0
+        for l_a in range(l1_a, l2_a):
+            assert i_a[l_a] == k
+            bond_exists = False
+            for l_b in range(l1_b, l2_b):
+                assert i_b[l_b] == k
+                if j_a[l_a] == j_b[l_b]:
+                    bond_exists = True
+            if not bond_exists:
                 # Bond existed before cut
-                hydrogens += [a[k].position+bond_length*D_a[l_a]/d_a[l_a]]
-                l_a += 1
+                hydrogens += [b[k].position+bond_length*D_a[l_a]/d_a[l_a]]
+                n_H += 1
+        assert n_H == coord_a[k]-coord_b[k]
 
     if hydrogens == []:
-        raise RuntimeError('Non Hydrogens created.')
+        raise RuntimeError('No Hydrogen created.')
 
     b += ase.Atoms(['H']*len(hydrogens), hydrogens)
 
