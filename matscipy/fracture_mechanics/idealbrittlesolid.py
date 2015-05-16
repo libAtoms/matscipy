@@ -44,6 +44,10 @@ class IdealBrittleSolid(Calculator):
                           'b': 0.01 # Stokes dissipation
                           }
 
+    def __init__(self, *args, **kwargs):
+        Calculator.__init__(self, *args, **kwargs)
+        self.crystal_bonds = 0
+
     def set_reference_crystal(self, crystal):
         rc = self.parameters['rc']
         self.crystal = crystal.copy()
