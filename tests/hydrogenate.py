@@ -39,7 +39,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_hydrogenate(self):
         a = Diamond('Si', size=[2,2,1])
-        b = hydrogenate(a, 2.85, 1.0, [True,True,False], vacuum=5.0)
+        b = hydrogenate(a, 2.85, 1.0, mask=[True,True,False], vacuum=5.0)
         # Check if every atom is fourfold coordinated
         syms = np.array(b.get_chemical_symbols())
         c = np.bincount(neighbour_list('i', b, 2.4))

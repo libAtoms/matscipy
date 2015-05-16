@@ -29,7 +29,8 @@ from matscipy.neighbours import first_neighbours, neighbour_list
 
 ###
 
-def hydrogenate(a, cutoff, bond_length, mask, vacuum=None):
+def hydrogenate(a, cutoff, bond_length, b=None, mask=[True, True, True],
+                exclude=None, vacuum=None):
     """
     Hydrogenate a slab of material at its periodic boundary conditions.
     Boundary conditions are turned into nonperiodic.
@@ -42,8 +43,15 @@ def hydrogenate(a, cutoff, bond_length, mask, vacuum=None):
         Cutoff for neighbor counting.
     bond_length : float
         X-H bond length for hydrogenation.
+    b : ase.Atoms, optional
+        If present, this is the configuration to hydrogenate. Number of atoms
+        must be identical to a object. All bonds present in a but not present
+        in b will be hydrogenated in b.
     mask : list of bool
-        Cartesian directions which to hydrogenate.
+        Cartesian directions which to hydrogenate, only if b argument is not
+        given.
+    exclude : array_like
+        Boolean array masking atoms to be excluded from hydrogenation.
     vacuum : float, optional
         Add this much vacuum after hydrogenation.
 
@@ -52,8 +60,12 @@ def hydrogenate(a, cutoff, bond_length, mask, vacuum=None):
     a : ase.Atoms
         Atomic configuration of the hydrogenated slab.
     """
-    b = a.copy()
-    b.set_pbc(np.logical_not(mask))
+    if b is None:
+        b = a.copy()
+        b.set_pbc(np.logical_not(mask))
+
+    if exclude is None:
+        exclude = np.zeros(len(a), dtype=bool)
 
     i_a, j_a, D_a, d_a = neighbour_list('ijDd', a, cutoff)
     i_b, j_b = neighbour_list('ij', b, cutoff)
