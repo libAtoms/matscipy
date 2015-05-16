@@ -1,0 +1,58 @@
+# ======================================================================
+# matscipy - Python materials science tools
+# https://github.com/libAtoms/matscipy
+#
+# Copyright (2014) James Kermode, King's College London
+#                  Lars Pastewka, Karlsruhe Institute of Technology
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ======================================================================
+
+# Generic stuff may go here.
+
+from matscipy.logger import screen
+
+###
+
+def parameter(name, default=None, logger=screen):
+    """
+    Read parameter from params.py control file.
+
+    Parameters
+    ----------
+    name : str
+        Name of the parameter.
+    default : optional
+        Default value. Will be returned if parameter is not present.
+
+    Returns
+    -------
+    value
+        Value of the parameter.
+    """
+    import sys
+    for x in ['.', '..']:
+        if x not in sys.path:
+            sys.path += [x]
+    import params
+    try:
+        value = params.__dict__[name]
+        logger.pr('(user value)      {} = {}'.format(name, value))
+    except KeyError:
+        if default is not None:
+            value = default
+            logger.pr('(default value)   {} = {}'.format(name, value))
+        else:
+            raise
+    return value
