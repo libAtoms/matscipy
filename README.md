@@ -1,12 +1,18 @@
 matscipy
 ========
 
-Repository for generic Python materials science tools
+This repository contains generic Python materials science tools build around the
+[Atomic Simulation Environment (ASE)](https://wiki.fysik.dtu.dk/ase/).
 
 Build status
 ============
 
 [![Build Status](https://travis-ci.org/libAtoms/matscipy.svg?branch=master)](https://travis-ci.org/libAtoms/matscipy)
+
+Documentation
+=============
+
+[Sphinx](http://sphinx-doc.org/)-generated documentation for the project can be found [here](http://libatoms.github.io/matscipy/).
 
 Dependencies
 ============
