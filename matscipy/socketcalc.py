@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 import subprocess
@@ -12,6 +11,7 @@ from Queue import Queue
 import numpy as np
 
 from matscipy.elasticity import full_3x3_to_Voigt_6_stress
+from matscipy.logger import quiet
 
 from ase.atoms import Atoms
 from ase.io.extxyz import read_xyz, write_xyz
@@ -128,7 +128,7 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
             raise RuntimeError('Unknown client ID %d outside of range 0 < ID < %d' % 
                                (client_id, self.server.njobs-1))
 
-        logging.info('"%s" request from %s:%d client %d' % (request, ip, port, client_id))
+        self.server.logger.pr('"%s" request from %s:%d client %d' % (request, ip, port, client_id))
         #print 'input queue lengths ', ''.join(['%d:%d ' % (i,q.qsize()) for (i,q) in enumerate(input_qs)])
         #print 'output queue length %d' % output_q.qsize()
 
@@ -160,8 +160,8 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
             # and re-initialise. Restart won't do anything until shutdown
             # of old client has completed.
             data, fmt, label, at = self.server.input_qs[client_id].get()
-            logging.info('"%s" request from client %d triggering restart for calculation with label %d' % 
-                         (request, client_id, label))
+            self.server.logger.pr('"%s" request from client %d triggering restart for calculation with label %d' % 
+                                (request, client_id, label))
             self.server.clients[client_id].start_or_restart(at, label, restart=True)
         
 
@@ -169,13 +169,14 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     allow_reuse_address = True
 
     def __init__(self, server_address, RequestHandlerClass, clients,
-                 bind_and_activate=True, max_attempts=3, bgq=False):
+                 bind_and_activate=True, max_attempts=3, bgq=False, logger=quiet):
         
         self.njobs = len(clients)
         # allow up to twice as many threads as sub-block jobs
         self.request_queue_size = 2*self.njobs
         self.max_attempts = max_attempts
         self.bgq = bgq # If True, we're running on IBM Blue Gene/Q platform
+        self.logger = logger
 
         SocketServer.TCPServer.__init__(self, 
                                         server_address, 
@@ -208,12 +209,12 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             hostname, self.ip = bgqtools.get_hostname_ip()
         else:
             hostname = socket.gethostname()
-        logging.info('AtomsServer running on %s %s:%d with njobs=%d' % 
+        self.logger.pr('AtomsServer running on %s %s:%d with njobs=%d' % 
                      (hostname, self.ip, self.port, self.njobs))
 
 
     def shutdown_clients(self):
-        logging.info('shutting down all clients')
+        self.logger.pr('shutting down all clients')
         wait_threads = []
         for client_id, client in enumerate(self.clients):
             if (client.process is not None and client.process.poll() is None and 
@@ -224,7 +225,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             if wait_thread is None or not wait_thread.isAlive():
                 continue
             wait_thread.join()
-        logging.info('all client shutdowns complete')
+        self.logger.info('all client shutdowns complete')
 
 
     def shutdown(self):
@@ -233,7 +234,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 
     def put(self, at, client_id, label, force_restart=False):
-        logging.info('Putting Atoms to client %d label %d' % (client_id, label))
+        self.logger.pr('Putting Atoms to client %d label %d' % (client_id, label))
 
         # allow client to modify atoms (e.g. sort them)
         at, fmt, first_time = self.clients[client_id].preprocess(at, label, force_restart)
@@ -256,21 +257,21 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 
     def join_all(self):
-        logging.info('AtomsServer waiting for input queues to empty')
+        self.logger.pr('AtomsServer waiting for input queues to empty')
         for input_q in self.input_qs:
             input_q.join()
-        logging.info('all AtomsServer queues drained.')
+        self.logger.pr('all AtomsServer queues drained.')
 
 
     def get_results(self):
-        logging.info('AtomsServer getting results')
+        self.logger.pr('AtomsServer getting results')
 
         results = {}
 
         for attempt in range(self.max_attempts):
             rejects = []
             self.join_all()
-            logging.info('AtomsServer.get_results() attempt %d of %d jobs finished' %
+            self.logger.pr('AtomsServer.get_results() attempt %d of %d jobs finished' %
                          (attempt+1, self.max_attempts))
 
             while self.output_q.unfinished_tasks:
@@ -285,11 +286,11 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
                 if label > 0: # WARNING: labels must start from 1, or first calc never passes test
                     # calculation converged, save the results
-                    logging.info('calculation label %d client %d CONVERGED' % (label, client_id))
+                    self.logger.pr('calculation label %d client %d CONVERGED' % (label, client_id))
                     results[label] = res
                 else:
                     # calculation did not converge, we need to repeat it
-                    logging.info('calculation label %d client %d DID NOT CONVERGE' % (label, client_id))
+                    self.logger.pr('calculation label %d client %d DID NOT CONVERGE' % (label, client_id))
                     rejects.append(-label)
 
                 self.output_q.task_done()
@@ -309,7 +310,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             # resubmit any failed calculations
             for label in rejects:
                 client_id, at = input[label]
-                logging.info('Resubmiting calculation label %d client_id %d' % (label, client_id))
+                self.logger.pr('Resubmiting calculation label %d client_id %d' % (label, client_id))
                 self.put(at, client_id, label, force_restart=True)
 
             assert len(results) + len(rejects) == len(input)
@@ -348,7 +349,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
             results_atoms.append(at)
 
-        logging.info('AtomsServer processed %d results' % len(results))
+        self.logger.pr('AtomsServer processed %d results' % len(results))
         return results_atoms
 
 
@@ -389,7 +390,7 @@ class Client(object):
         self.rundir = rundir or os.getcwd()
         self.subdir = os.path.join(self.rundir, '%s-%03d' % (jobname, self.client_id))
         if not os.path.exists(self.subdir):
-            logging.info('Making subdir %s' % self.subdir)
+            self.logger.pr('Making subdir %s' % self.subdir)
             os.mkdir(self.subdir)
 
     def extra_args(self, label=None):
@@ -434,7 +435,7 @@ class Client(object):
             popen_args['env'] = self.env
         runjob_args += [self.exe]
         runjob_args += self.extra_args(label)
-        logging.info('starting client %d args %r' % (self.client_id, runjob_args))
+        self.logger.pr('starting client %d args %r' % (self.client_id, runjob_args))
         self.log = open(os.path.join(self.rundir, '%s-%03d.output' % (self.jobname, self.client_id)), 'a')
         # send stdout and stderr to same file
         self.process = subprocess.Popen(runjob_args, stdout=self.log, stderr=self.log, **popen_args) 
@@ -489,23 +490,23 @@ class Client(object):
         servers's input_q for this client.
         """
         wait_thread = threading.Thread(target=self.process.wait)
-        logging.info('waiting for client %d to shutdown' % self.client_id)
+        self.logger.pr('waiting for client %d to shutdown' % self.client_id)
         wait_thread.start()
         wait_thread.join(CLIENT_TIMEOUT)
         if wait_thread.isAlive():
-            logging.info('client %d did not shutdown gracefully in %d seconds - sending SIGTERM' %
+            self.logger.pr('client %d did not shutdown gracefully in %d seconds - sending SIGTERM' %
                          (self.client_id, CLIENT_TIMEOUT))
             self.process.terminate()
             wait_thread.join(CLIENT_TIMEOUT)
             if wait_thread.isAlive():
-                logging.info('client %d did not respond to SIGTERM - sending SIGKILL' % self.client_id)
+                self.logger.pr('client %d did not respond to SIGTERM - sending SIGKILL' % self.client_id)
                 self.process.kill()
                 wait_thread.join() # no timeout for kill
             else:
-                logging.info('client %d responded to SIGTERM' % self.client_id)
+                self.logger.pr('client %d responded to SIGTERM' % self.client_id)
         else:
-            logging.info('client %d shutdown within timeout' % self.client_id)
-        logging.info('client %d shutdown complete - exit code %r' % (self.client_id, self.process.poll()))
+            self.logger.pr('client %d shutdown within timeout' % self.client_id)
+        self.logger.pr('client %d shutdown complete - exit code %r' % (self.client_id, self.process.poll()))
         self.log.close()
 
         self.process = None
@@ -650,14 +651,14 @@ class VaspClient(Client):
             return False
 
         if len(old_at) != len(new_at):
-            logging.info('is_compatible() on client %d label %d got number of atoms mismatch: %d != %d' % (self.client_id,
+            self.logger.pr('is_compatible() on client %d label %d got number of atoms mismatch: %d != %d' % (self.client_id,
                                                                                                            label,
                                                                                                            len(old_at),
                                                                                                            len(new_at)))
             return False # number of atoms must match
 
         if abs(old_at.cell - new_at.cell).max() > MAX_CELL_DIFF:
-            logging.info('is_compatible() on client %d label %d got cell mismatch: %r != %r' % (self.client_id,
+            self.logger.pr('is_compatible() on client %d label %d got cell mismatch: %r != %r' % (self.client_id,
                                                                                                    label,
                                                                                                    old_at.cell,
                                                                                                    new_at.cell))
@@ -695,7 +696,7 @@ class VaspClient(Client):
             new_z = np.r_[[z for (i, z, p) in a2s]]
 
         if not np.all(old_z == new_z):
-            logging.info('is_compatible() on client %d label %d got atomic number mismatch: %r != %r' % (self.client_id,
+            self.logger.pr('is_compatible() on client %d label %d got atomic number mismatch: %r != %r' % (self.client_id,
                                                                                                          label,
                                                                                                          old_z, new_z))
             return False # atomic numbers must match
@@ -704,10 +705,10 @@ class VaspClient(Client):
         old_g = np.linalg.inv(old_at.cell.T).T
         d = new_p.T - old_p.T - (np.dot(old_at.cell, np.floor(np.dot(old_g, (new_p - old_p).T)+0.5)))
         rms_diff = np.sqrt((d**2).mean())
-        logging.info('is_compatible() on client %d label %d got RMS position difference %.3f' % (self.client_id, label, rms_diff))
+        self.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f' % (self.client_id, label, rms_diff))
 
         if rms_diff > MAX_RMS_DIFF:
-            logging.info('is_compatible() on client %d label %d got RMS position difference %.3f > MAX_RMS_DIFF=%.3f' %
+            self.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f > MAX_RMS_DIFF=%.3f' %
                          (self.client_id, label, rms_diff, MAX_RMS_DIFF))
             return False
 
@@ -715,7 +716,7 @@ class VaspClient(Client):
 
 
     def preprocess(self, at, label, force_restart=False):
-        logging.info('vasp client %d preprocessing atoms label %d' % (self.client_id, label))
+        self.logger.pr('vasp client %d preprocessing atoms label %d' % (self.client_id, label))
         # call the parent method first
         at, fmt, first_time = Client.preprocess(self, at, label, force_restart)
 
@@ -734,7 +735,7 @@ class VaspClient(Client):
 
 
     def postprocess(self, at, label):
-        logging.info('vasp client %d postprocessing atoms label %d' % (self.client_id, label))
+        self.logger.pr('vasp client %d postprocessing atoms label %d' % (self.client_id, label))
         # call the parent method first
         at = Client.postprocess(self, at, label)
         # restore original atom ordering
@@ -797,7 +798,6 @@ class SocketCalculator(Calculator):
             self.results['forces'] = results.arrays['force']
             stress = -(results.info['virial']/results.get_volume())
             self.results['stress'] = full_3x3_to_Voigt_6_stress(stress)
-
 
     def shutdown(self):
         self.server.shutdown()
