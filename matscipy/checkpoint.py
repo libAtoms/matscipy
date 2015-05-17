@@ -250,14 +250,11 @@ class CheckpointCalculator(Calculator):
             try:
                 assert atoms == prev_atoms
             except AssertionError:
-                print('positions', atoms.positions, prev_atoms.positions) 
-                print('numbers', atoms.numbers, prev_atoms.numbers)
-                raise
+                raise AssertionError('mismatch between current atoms and those read from checkpoint file')
             self.logger.pr('retrieved results for {0} from checkpoint'.format(properties))
         except NoCheckpoint:
             if isinstance(self.calculator, Calculator):
                 self.logger.pr('doing calculation of {0} with new-style calculator interface'.format(properties))
-                # new-style Calculator interface
                 self.calculator.calculate(atoms, properties, system_changes)
                 results = [self.calculator.results[prop] for prop in properties]
             else:
