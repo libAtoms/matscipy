@@ -12,7 +12,7 @@ Build status
 Documentation
 =============
 
-[pdoc](https://github.com/BurntSushi/pdoc)-generated documentation for the project can be found [here](http://libatoms.github.io/matscipy/).
+[Sphinx](http://sphinx-doc.org/)-generated documentation for the project can be found [here](http://libatoms.github.io/matscipy/).
 
 Dependencies
 ============
