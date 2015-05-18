@@ -32,7 +32,7 @@ RESULTS_REQUESTS = {'R': 'REFTRAJ', 'Y': 'XYZ'}
 ZERO_ATOMS_DATA = {'REFTRAJ': '     242     0\n     0\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n',
                    'XYZ': '     2500\nlabel=0 cutoff_factor=1.20000000 nneightol=1.20000000 Lattice="0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000" Properties=species:S:1:pos:R:3:Z:I:1\n'}
 CLIENT_TIMEOUT = 60
-MAX_RMS_DIFF = 1.0   # angstrom 
+MAX_POS_DIFF = 1.0   # angstrom 
 MAX_CELL_DIFF = 1e-3 # angstrom
 
 def pack_atoms_to_reftraj_str(at, label):
@@ -364,7 +364,9 @@ class Client(object):
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', logger=screen):
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', 
+                 logger=screen, max_pos_diff=MAX_POS_DIFF,
+                 max_cell_diff=MAX_CELL_DIFF):
 
         self.client_id = client_id
         self.process = None # handle for the runjob process
@@ -387,6 +389,8 @@ class Client(object):
         self.parmode = parmode
         self.mpirun = mpirun
         self.logger = logger
+        self.max_pos_diff = max_pos_diff
+        self.max_cell_diff = max_cell_diff
 
         self.rundir = rundir or os.getcwd()
         self.subdir = os.path.join(self.rundir, '%s-%03d' % (jobname, self.client_id))
@@ -608,9 +612,13 @@ class QUIPClient(Client):
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
                  fmt='REFTRAJ', parmode=None, mpirun='mpirun', 
-                 logger=screen, param_files=None):
+                 logger=screen, 
+                 max_pos_diff=MAX_POS_DIFF,
+                 max_cell_diff=MAX_CELL_DIFF,
+                 param_files=None):
         Client.__init__(self, client_id, exe, env, npj, ppn,
-                        block, corner, shape, jobname, rundir, fmt, parmode, mpirun, logger)
+                        block, corner, shape, jobname, rundir, fmt, parmode, mpirun, logger,
+                        max_pos_diff, max_cell_diff)
         self.param_files = param_files
 
     def write_input_files(self, at, label):
@@ -636,9 +644,14 @@ class VaspClient(Client):
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', logger=screen, **vasp_args):
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', 
+                 logger=screen, max_pos_diff=MAX_POS_DIFF,
+                 max_cell_diff=MAX_CELL_DIFF,
+                 **vasp_args):
         Client.__init__(self, client_id, exe, env, npj, ppn,
-                        block, corner, shape, jobname, rundir, fmt, parmode, mpirun, logger)
+                        block, corner, shape, jobname, rundir, 
+                        fmt, parmode, mpirun, logger,
+                        max_pos_diff, max_cell_diff)
         if 'ibrion' not in vasp_args:
             self.logger.pr('No ibrion key in vasp_args, setting ibrion=13')
             vasp_args['ibrion'] = 13
@@ -659,14 +672,14 @@ class VaspClient(Client):
                                                                                                            len(new_at)))
             return False # number of atoms must match
 
-        if abs(old_at.cell - new_at.cell).max() > MAX_CELL_DIFF:
+        if abs(old_at.cell - new_at.cell).max() > self.max_cell_diff:
             self.logger.pr('is_compatible() on client %d label %d got cell mismatch: %r != %r' % (self.client_id,
                                                                                                    label,
                                                                                                    old_at.cell,
                                                                                                    new_at.cell))
             return False # cells must match
         
-        # RMS difference in positions must be less than MAX_RMS_DIFF
+        # RMS difference in positions must be less than max_pos_diff
         old_p = old_at.get_positions()
         new_p = new_at.get_positions()
         
@@ -709,9 +722,9 @@ class VaspClient(Client):
         rms_diff = np.sqrt((d**2).mean())
         self.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f' % (self.client_id, label, rms_diff))
 
-        if rms_diff > MAX_RMS_DIFF:
-            self.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f > MAX_RMS_DIFF=%.3f' %
-                                  (self.client_id, label, rms_diff, MAX_RMS_DIFF))
+        if rms_diff > self.max_pos_diff:
+            self.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f > max_pos_diff=%.3f' %
+                                  (self.client_id, label, rms_diff, self.max_pos_diff))
             return False
 
         return True
@@ -779,11 +792,13 @@ class SocketCalculator(Calculator):
 
     implemented_properties = ['energy', 'forces', 'stress']
     
-    def __init__(self, client, ip=None, atoms=None, port=0):
+    def __init__(self, client, ip=None, atoms=None, port=0, logger=screen):
         self.client = client
         if ip is None:
             ip = '127.0.0.1' # default to localhost
-        self.server = AtomsServer((ip, port), AtomsRequestHandler, [self.client])
+        self.logger = logger
+        self.server = AtomsServer((ip, port), AtomsRequestHandler, 
+                                  [self.client], logger=self.logger)
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.start()
@@ -793,14 +808,18 @@ class SocketCalculator(Calculator):
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
         if system_changes: # if anything at all changed (could be made more fine-grained)
+            self.logger.pr('calculation triggered with properties={0}, system_changes={1}'.format(properties, 
+                                                                                                  system_changes))
             self.server.put(atoms, 0, self.label)
             self.label += 1
             [results] = self.server.get_results()
-            self.results = {}
-            self.results['energy'] = results.info['energy']
-            self.results['forces'] = results.arrays['force']
             stress = -(results.info['virial']/results.get_volume())
-            self.results['stress'] = full_3x3_to_Voigt_6_stress(stress)
+            self.results = {'energy': results.info['energy'],
+                            'forces': results.arrays['force'],
+                            'stress': full_3x3_to_Voigt_6_stress(stress)}
+        else:
+            self.logger.pr('calculation avoided with properties={0}, system_changes={1}'.format(properties,
+                                                                                                system_changes))
 
     def shutdown(self):
         self.server.shutdown()
