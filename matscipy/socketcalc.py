@@ -295,8 +295,8 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
                 self.output_q.task_done()
 
-            logging.debug('AtomsServer.get_results() rejects=%r' % rejects)
-            logging.debug('AtomsServer.get_results() sorted(results.keys())=%r' % sorted(results.keys()))
+            self.logger.pr('AtomsServer.get_results() rejects=%r' % rejects)
+            self.logger.pr('AtomsServer.get_results() sorted(results.keys())=%r' % sorted(results.keys()))
 
             # collect all input task so we can see if anything is missing
             input = {}
@@ -305,7 +305,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 input[label] = (client_id, at)
                 self.input_q.task_done()
 
-            logging.debug('AtomsServer.get_results() sorted(input.keys())=%r' % sorted(input.keys()))
+            self.logger.pr('AtomsServer.get_results() sorted(input.keys())=%r' % sorted(input.keys()))
 
             # resubmit any failed calculations
             for label in rejects:
@@ -452,11 +452,11 @@ class Client(object):
         thread when block=False).
         """
         if self.process is None:
-            loggin.warn('client %d (requested to shutdown) has never been started' % self.client_id)
+            self.logger.pr('client %d (requested to shutdown) has never been started' % self.client_id)
             return
 
         if self.process.poll() is not None:
-            logging.warn('client %d is already shutdown' % self.client_id)
+            self.logger.pr('client %d is already shutdown' % self.client_id)
             return
 
         if (self.wait_thread is not None and self.wait_thread.isAlive()):
@@ -559,7 +559,7 @@ class Client(object):
         if restart_reqd:
             # put a shutdown command into the queue, ahead of this config.
             # once it gets completed, restart_client() will be called as below
-            logging.warn('restart scheduled for client %d label %d' % (self.client_id, label))
+            self.logger.pr('restart scheduled for client %d label %d' % (self.client_id, label))
             self.server.input_qs[self.client_id].put(('restart', self.fmt, -1, None))
         if first_time:
             self.start_or_restart(at, label, restart=False)
@@ -640,7 +640,7 @@ class VaspClient(Client):
         Client.__init__(self, client_id, exe, env, npj, ppn,
                         block, corner, shape, jobname, rundir, fmt, parmode, mpirun, logger)
         if 'ibrion' not in vasp_args:
-            logging.warn('No ibrion key in vasp_args, setting ibrion=13')
+            self.logger.pr('No ibrion key in vasp_args, setting ibrion=13')
             vasp_args['ibrion'] = 13
         self.vasp_args = vasp_args
 
