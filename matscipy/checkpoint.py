@@ -244,6 +244,7 @@ class CheckpointCalculator(Calculator):
         self.logger = logger
 
     def calculate(self, atoms, properties, system_changes):
+        Calculator.calculate(self, atoms, properties, system_changes)
         try:
             results = self.checkpoint.load(atoms)
             prev_atoms, results = results[0], results[1:]
@@ -266,5 +267,5 @@ class CheckpointCalculator(Calculator):
                     results.append(method(atoms))
             self.checkpoint.save(atoms, *results)
             
-        self.results = dict(zip(properties, results))            
+        self.results = dict(zip(properties, results))
 
