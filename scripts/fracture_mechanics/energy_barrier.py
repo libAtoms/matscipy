@@ -75,7 +75,7 @@ ncryst = len(cryst)
 
 compute_elastic_constants = parameter('compute_elastic_constants', False)
 elastic_fmax = parameter('elastic_fmax', 0.05)
-elastic_symmetry = parameter('elastic_symmetry', 'cubic')
+elastic_symmetry = parameter('elastic_symmetry', 'triclinic')
 fmax = parameter('fmax', 0.01)
 
 if compute_elastic_constants:
