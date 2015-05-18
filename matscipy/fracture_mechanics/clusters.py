@@ -31,10 +31,10 @@ def set_groups(a, n, skin_x, skin_y, central_x=-1./2, central_y=-1./2,
                invert_central=False):
     nx, ny, nz = n
     sx, sy, sz = a.cell.diagonal()
-    print('skin_x = {}*a0, skin_y = {}*a0'.format(skin_x, skin_y))
+    print('skin_x = {0}*a0, skin_y = {1}*a0'.format(skin_x, skin_y))
     skin_x = skin_x*sx/nx
     skin_y = skin_y*sy/ny
-    print('skin_x = {}, skin_y = {}'.format(skin_x, skin_y))
+    print('skin_x = {0}, skin_y = {1}'.format(skin_x, skin_y))
     r = a.positions
 
     g = np.ones(len(a), dtype=int)

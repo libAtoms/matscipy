@@ -48,11 +48,11 @@ def parameter(name, default=None, logger=screen):
     import params
     try:
         value = params.__dict__[name]
-        logger.pr('(user value)      {} = {}'.format(name, value))
+        logger.pr('(user value)      {0} = {1}'.format(name, value))
     except KeyError:
         if default is not None:
             value = default
-            logger.pr('(default value)   {} = {}'.format(name, value))
+            logger.pr('(default value)   {0} = {1}'.format(name, value))
         else:
             raise
     return value
