@@ -253,6 +253,11 @@ class CheckpointCalculator(Calculator):
             except AssertionError:
                 raise AssertionError('mismatch between current atoms and those read from checkpoint file')
             self.logger.pr('retrieved results for {0} from checkpoint'.format(properties))
+            # save results in calculator for next time
+            if isinstance(self.calculator, Calculator):
+                if not hasattr(self.calculator, 'results'):
+                    self.calculator.results = {}
+                self.calculator.results.update(dict(zip(properties, results)))
         except NoCheckpoint:
             if isinstance(self.calculator, Calculator):
                 self.logger.pr('doing calculation of {0} with new-style calculator interface'.format(properties))
