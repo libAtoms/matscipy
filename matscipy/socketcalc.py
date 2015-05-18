@@ -796,6 +796,7 @@ class SocketCalculator(Calculator):
             self.server.put(atoms, 0, self.label)
             self.label += 1
             [results] = self.server.get_results()
+            self.results = {}
             self.results['energy'] = results.info['energy']
             self.results['forces'] = results.arrays['force']
             stress = -(results.info['virial']/results.get_volume())
