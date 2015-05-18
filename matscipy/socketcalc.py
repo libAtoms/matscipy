@@ -390,7 +390,7 @@ class Client(object):
         self.rundir = rundir or os.getcwd()
         self.subdir = os.path.join(self.rundir, '%s-%03d' % (jobname, self.client_id))
         if not os.path.exists(self.subdir):
-            self.logger.pr('Making subdir %s' % self.subdir)
+            self.server.logger.pr('Making subdir %s' % self.subdir)
             os.mkdir(self.subdir)
 
     def extra_args(self, label=None):
@@ -435,7 +435,7 @@ class Client(object):
             popen_args['env'] = self.env
         runjob_args += [self.exe]
         runjob_args += self.extra_args(label)
-        self.logger.pr('starting client %d args %r' % (self.client_id, runjob_args))
+        self.server.logger.pr('starting client %d args %r' % (self.client_id, runjob_args))
         self.log = open(os.path.join(self.rundir, '%s-%03d.output' % (self.jobname, self.client_id)), 'a')
         # send stdout and stderr to same file
         self.process = subprocess.Popen(runjob_args, stdout=self.log, stderr=self.log, **popen_args) 
@@ -490,23 +490,23 @@ class Client(object):
         servers's input_q for this client.
         """
         wait_thread = threading.Thread(target=self.process.wait)
-        self.logger.pr('waiting for client %d to shutdown' % self.client_id)
+        self.server.logger.pr('waiting for client %d to shutdown' % self.client_id)
         wait_thread.start()
         wait_thread.join(CLIENT_TIMEOUT)
         if wait_thread.isAlive():
-            self.logger.pr('client %d did not shutdown gracefully in %d seconds - sending SIGTERM' %
+            self.server.logger.pr('client %d did not shutdown gracefully in %d seconds - sending SIGTERM' %
                          (self.client_id, CLIENT_TIMEOUT))
             self.process.terminate()
             wait_thread.join(CLIENT_TIMEOUT)
             if wait_thread.isAlive():
-                self.logger.pr('client %d did not respond to SIGTERM - sending SIGKILL' % self.client_id)
+                self.server.logger.pr('client %d did not respond to SIGTERM - sending SIGKILL' % self.client_id)
                 self.process.kill()
                 wait_thread.join() # no timeout for kill
             else:
-                self.logger.pr('client %d responded to SIGTERM' % self.client_id)
+                self.server.logger.pr('client %d responded to SIGTERM' % self.client_id)
         else:
-            self.logger.pr('client %d shutdown within timeout' % self.client_id)
-        self.logger.pr('client %d shutdown complete - exit code %r' % (self.client_id, self.process.poll()))
+            self.server.logger.pr('client %d shutdown within timeout' % self.client_id)
+        self.server.logger.pr('client %d shutdown complete - exit code %r' % (self.client_id, self.process.poll()))
         self.log.close()
 
         self.process = None
@@ -651,14 +651,14 @@ class VaspClient(Client):
             return False
 
         if len(old_at) != len(new_at):
-            self.logger.pr('is_compatible() on client %d label %d got number of atoms mismatch: %d != %d' % (self.client_id,
+            self.server.logger.pr('is_compatible() on client %d label %d got number of atoms mismatch: %d != %d' % (self.client_id,
                                                                                                            label,
                                                                                                            len(old_at),
                                                                                                            len(new_at)))
             return False # number of atoms must match
 
         if abs(old_at.cell - new_at.cell).max() > MAX_CELL_DIFF:
-            self.logger.pr('is_compatible() on client %d label %d got cell mismatch: %r != %r' % (self.client_id,
+            self.server.logger.pr('is_compatible() on client %d label %d got cell mismatch: %r != %r' % (self.client_id,
                                                                                                    label,
                                                                                                    old_at.cell,
                                                                                                    new_at.cell))
@@ -696,7 +696,7 @@ class VaspClient(Client):
             new_z = np.r_[[z for (i, z, p) in a2s]]
 
         if not np.all(old_z == new_z):
-            self.logger.pr('is_compatible() on client %d label %d got atomic number mismatch: %r != %r' % (self.client_id,
+            self.server.logger.pr('is_compatible() on client %d label %d got atomic number mismatch: %r != %r' % (self.client_id,
                                                                                                          label,
                                                                                                          old_z, new_z))
             return False # atomic numbers must match
@@ -705,18 +705,18 @@ class VaspClient(Client):
         old_g = np.linalg.inv(old_at.cell.T).T
         d = new_p.T - old_p.T - (np.dot(old_at.cell, np.floor(np.dot(old_g, (new_p - old_p).T)+0.5)))
         rms_diff = np.sqrt((d**2).mean())
-        self.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f' % (self.client_id, label, rms_diff))
+        self.server.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f' % (self.client_id, label, rms_diff))
 
         if rms_diff > MAX_RMS_DIFF:
-            self.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f > MAX_RMS_DIFF=%.3f' %
-                         (self.client_id, label, rms_diff, MAX_RMS_DIFF))
+            self.server.logger.pr('is_compatible() on client %d label %d got RMS position difference %.3f > MAX_RMS_DIFF=%.3f' %
+                                  (self.client_id, label, rms_diff, MAX_RMS_DIFF))
             return False
 
         return True
 
 
     def preprocess(self, at, label, force_restart=False):
-        self.logger.pr('vasp client %d preprocessing atoms label %d' % (self.client_id, label))
+        self.server.logger.pr('vasp client %d preprocessing atoms label %d' % (self.client_id, label))
         # call the parent method first
         at, fmt, first_time = Client.preprocess(self, at, label, force_restart)
 
@@ -735,7 +735,7 @@ class VaspClient(Client):
 
 
     def postprocess(self, at, label):
-        self.logger.pr('vasp client %d postprocessing atoms label %d' % (self.client_id, label))
+        self.server.logger.pr('vasp client %d postprocessing atoms label %d' % (self.client_id, label))
         # call the parent method first
         at = Client.postprocess(self, at, label)
         # restore original atom ordering
