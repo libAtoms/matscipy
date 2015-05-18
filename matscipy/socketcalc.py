@@ -225,7 +225,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             if wait_thread is None or not wait_thread.isAlive():
                 continue
             wait_thread.join()
-        self.logger.info('all client shutdowns complete')
+        self.logger.pr('all client shutdowns complete')
 
 
     def shutdown(self):
