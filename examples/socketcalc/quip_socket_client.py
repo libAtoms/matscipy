@@ -12,7 +12,8 @@ quip_client = QUIPClient(client_id=0,
                          exe=os.path.join(os.environ['QUIP_ROOT'],
                                           'build.'+os.environ['QUIP_ARCH'],
                                           'socktest'),
-                         param_files=['params.xml'])
+                         param_files=['params.xml'],
+                         env=os.environ)
 
 sock_calc = SocketCalculator(quip_client)
 

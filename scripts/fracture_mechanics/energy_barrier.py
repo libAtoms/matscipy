@@ -74,12 +74,19 @@ ncryst = len(cryst)
 # system. (True if it comes out of the cluster routines.)
 
 compute_elastic_constants = parameter('compute_elastic_constants', False)
+elastic_fmax = parameter('elastic_fmax', 0.05)
+elastic_symmetry = parameter('elastic_symmetry', 'triclinic')
+fmax = parameter('fmax', 0.01)
 
 if compute_elastic_constants:
     cryst.set_calculator(params.calc)
+    log_file = open('elastic_constants.log', 'w')
     C, C_err = fit_elastic_constants(cryst, verbose=False,
-                                     optimizer=ase.optimize.FIRE)
-
+                                     symmetry=elastic_symmetry,
+                                     optimizer=ase.optimize.FIRE,
+                                     logfile=log_file,
+                                     fmax=elastic_fmax)
+    log_file.close()
     print('Measured elastic constants (in GPa):')
     print(np.round(C*10/GPa)/10)
 
@@ -254,7 +261,7 @@ for i, bond_length in enumerate(params.bond_lengths):
             opt = Optimizer(a, logfile=log_file)
             if traj_file:
                 opt.attach(traj_file.write)
-            opt.run(fmax=params.fmax)
+            opt.run(fmax=fmax)
             parprint('...done. Converged within {0} steps.' \
                      .format(opt.get_number_of_steps()))
 
@@ -284,7 +291,7 @@ for i, bond_length in enumerate(params.bond_lengths):
             opt = Optimizer(a, logfile=log_file)
             if traj_file:
                 opt.attach(traj_file.write)
-            opt.run(fmax=params.fmax)
+            opt.run(fmax=fmax)
             parprint('...done. Converged within {0} steps.' \
                      .format(opt.get_number_of_steps()))
 

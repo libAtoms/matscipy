@@ -55,6 +55,8 @@ class IdealBrittleSolid(Calculator):
         self.crystal_bonds = len(i)
 
     def calculate(self, atoms, properties, system_changes):
+        Calculator.calculate(self, atoms, properties, system_changes)
+
         a = self.parameters['a']
         rc = self.parameters['rc']
         k = self.parameters['k']
