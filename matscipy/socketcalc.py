@@ -319,7 +319,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             if len(rejects) == 0:
                 break
         else:
-            raise RuntimeError('max_attempts (%d) exceeded without all calculations completing succeasfully' %
+            raise RuntimeError('max_attempts (%d) exceeded without all calculations completing successfully' %
                                self.max_attempts)
 
         assert(len(results) == len(input))
