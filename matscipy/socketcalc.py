@@ -754,7 +754,7 @@ class VaspClient(Client):
         # call the parent method first
         at = Client.postprocess(self, at, label)
         # restore original atom ordering
-        at = at[at.arrays['vasp_sort_order']]
+        at = at[at.arrays['vasp_sort_order'].tolist()]
         return at
 
 
