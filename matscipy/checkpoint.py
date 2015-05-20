@@ -55,6 +55,8 @@ while not converged:
 """
 import os
 
+import numpy as np
+
 import ase
 from ase.db import connect
 from ase.calculators.calculator import Calculator
@@ -227,10 +229,10 @@ class Checkpoint(object):
 
 
 def atoms_almost_equal(a, b, tol=1e-9):
-    return np.max(np.abs(atoms.positions - prev_atoms.positions)) < tol and
-           atoms.numbers == prev_atoms.numbers and
-           np.max(np.abs(atoms.cell - prev_atoms.cell)) < tol and
-           atoms.pbc == prev_atoms.pbc
+    return np.abs(a.positions - b.positions).max() < tol and \
+           (a.numbers == b.numbers).all() and \
+           np.abs(a.cell - b.cell).max() < tol and \
+           (a.pbc == b.pbc).all()
 
 
 class CheckpointCalculator(Calculator):
