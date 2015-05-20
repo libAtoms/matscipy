@@ -226,6 +226,13 @@ class Checkpoint(object):
         self._flush(*args, **kwargs)
 
 
+def atoms_almost_equal(a, b, tol=1e-9):
+    return np.max(np.abs(atoms.positions - prev_atoms.positions)) < tol and
+           atoms.numbers == prev_atoms.numbers and
+           np.max(np.abs(atoms.cell - prev_atoms.cell)) < tol and
+           atoms.pbc == prev_atoms.pbc
+
+
 class CheckpointCalculator(Calculator):
     implemented_properties = ase.calculators.calculator.all_properties
 
@@ -249,7 +256,7 @@ class CheckpointCalculator(Calculator):
             results = self.checkpoint.load(atoms)
             prev_atoms, results = results[0], results[1:]
             try:
-                assert atoms == prev_atoms
+                assert atoms_almost_equal(atoms, prev_atoms)
             except AssertionError:
                 raise AssertionError('mismatch between current atoms and those read from checkpoint file')
             self.logger.pr('retrieved results for {0} from checkpoint'.format(properties))
