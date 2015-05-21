@@ -42,7 +42,7 @@ from atomistica.analysis import voropp
 
 ###
 
-sys.path += [ "." ]
+sys.path += [ ".", ".." ]
 import params
 
 ###
@@ -153,15 +153,15 @@ for fn in fns:
     mask = np.logical_or(b.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
                          b.numbers == atomic_numbers[FITTED_CRACK_TIP])
     del b[mask]
-    b.set_calculator(params.calc)
+    #b.set_calculator(params.calc)
 
-    assert abs(epot_cluster[-1]-b.get_potential_energy()) < 1e-6
-    assert np.all(np.abs(forces[np.logical_not(mask)]-b.get_forces()) < 1e-6)
+    #assert abs(epot_cluster[-1]-b.get_potential_energy()) < 1e-6
+    #assert np.all(np.abs(forces[np.logical_not(mask)]-b.get_forces()) < 1e-6)
 
     #virial = params.calc.wpot_per_at
-    deformation_gradient, residual = atomic_strain(b, ref, cutoff=2.85)
-    virial = b.get_stresses()
-    strain = full_3x3_to_Voigt_6_strain(deformation_gradient)
+    #deformation_gradient, residual = atomic_strain(b, ref, cutoff=2.85)
+    #virial = b.get_stresses()
+    #strain = full_3x3_to_Voigt_6_strain(deformation_gradient)
     #virial2 = strain.dot(C6)*vol0
 
     #vols = voropp(b)
@@ -171,12 +171,12 @@ for fn in fns:
     #print virial2[175]
     #print virial3[175]
 
-    virial = Voigt_6_to_full_3x3_stress(virial)
+    #virial = Voigt_6_to_full_3x3_stress(virial)
     #vol, dev, J3 = invariants(strain)
     #b.set_array('vol', vol)
     #b.set_array('dev', dev)
-    x, y, z = b.positions.T
-    r = np.sqrt((x-_tip_x)**2 + (y-_tip_y)**2)
+    #x, y, z = b.positions.T
+    #r = np.sqrt((x-_tip_x)**2 + (y-_tip_y)**2)
     #b.set_array('J_eval', np.logical_and(r > params.eval_r1,
     #                                     r < params.eval_r2))
 
@@ -188,10 +188,10 @@ for fn in fns:
     #G3 = J_integral(b, deformation_gradient, virial, epot, e0, _tip_x, _tip_y,
     #                5.0, 10.0)
     #print G/J_m2, G2/J_m2, G3/J_m2
-    G = G2 = G3 = 0.0
-    J_int1 += [ forces[bond1, 0] ]
-    J_int2 += [ forces[bond1, 1] ]
-    J_int3 += [ forces[bond1, 2] ]
+    #G = G2 = G3 = 0.0
+    #J_int1 += [ forces[bond1, 0] ]
+    #J_int2 += [ forces[bond1, 1] ]
+    #J_int3 += [ forces[bond1, 2] ]
 
     #b.set_array('J_integral', np.logical_and(r > params.eval_r1,
     #                                         r < params.eval_r2))
@@ -257,7 +257,7 @@ savetbl('{}_eval.out'.format(prefix),
         epot_cluster=epot_cluster,
         work=work,
         tip_x=tip_x,
-        tip_y=tip_y,
-        J_int1=J_int1,
-        J_int2=J_int2,
-        J_int3=J_int3)
+        tip_y=tip_y)
+        #J_int1=J_int1,
+        #J_int2=J_int2,
+        #J_int3=J_int3)
