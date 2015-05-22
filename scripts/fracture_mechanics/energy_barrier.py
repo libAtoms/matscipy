@@ -159,7 +159,7 @@ if parameter('hydrogenate', False):
     g = a.get_array('groups')
     g[np.array(a.get_chemical_symbols())=='H'] = -1
     a.set_array('groups', g)
-    ase.io.write('{0}_hydrogenated.cfg'.format(basename), a)
+    ase.io.write('{0}_hydrogenated.xyz'.format(basename), a, format='extxyz')
 
 # Move reference crystal by same amount
 cryst.set_cell(a.cell)
