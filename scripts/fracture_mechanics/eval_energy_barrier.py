@@ -42,7 +42,7 @@ from atomistica.analysis import voropp
 
 ###
 
-sys.path += [ ".", ".." ]
+sys.path += ['.', '..']
 import params
 
 ###
@@ -56,6 +56,8 @@ ACTUAL_CRACK_TIP = 'Au'
 FITTED_CRACK_TIP = 'Ag'
 
 ###
+
+compute_J_integral = len(sys.argv) == 3 and sys.argv[2] == '-J'
 
 # Elastic constants
 C6 = cubic_to_Voigt_6x6(params.C11, params.C12, params.C44) * units.GPa
@@ -80,18 +82,13 @@ C6 = rotate_cubic_elastic_constants(params.C11, params.C12, params.C44, A) * uni
 
 ###
 
-#a = params.unitcell.copy()
-#a.set_calculator(params.calc)
-#e0 = a.get_potential_energy()/len(a)
-#vol0 = a.get_volume()/len(a)
-#print 'cohesive energy = {}'.format(e0)
-#print 'volume per atom = {}'.format(vol0)
-
-# Reference configuration for strain calculation
-#ref = params.cryst.copy()
-#ref.center(vacuum=params.vacuum, axis=0)
-#ref.center(vacuum=params.vacuum, axis=1)
 ref = ase.io.read('cluster.xyz')
+ref_sx, ref_sy, ref_sz = ref.cell.diagonal()
+
+ref.set_pbc(True)
+if compute_J_integral:
+    ref.set_calculator(params.calc)
+    epotref_per_at = ref.get_potential_energies()
 
 ###
 
@@ -106,9 +103,7 @@ epot_cluster = []
 bond_length = []
 bond_force = []
 work = []
-J_int1 = []
-J_int2 = []
-J_int3 = []
+J_int = []
 
 last_a = None
 for fn in fns:
@@ -153,45 +148,40 @@ for fn in fns:
     mask = np.logical_or(b.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
                          b.numbers == atomic_numbers[FITTED_CRACK_TIP])
     del b[mask]
-    #b.set_calculator(params.calc)
+    G = 0.0
+    if compute_J_integral:
+        b.set_calculator(params.calc)
+        epot_per_at = b.get_potential_energies()
 
-    #assert abs(epot_cluster[-1]-b.get_potential_energy()) < 1e-6
-    #assert np.all(np.abs(forces[np.logical_not(mask)]-b.get_forces()) < 1e-6)
+        assert abs(epot_cluster[-1]-b.get_potential_energy()) < 1e-6
+        assert np.all(np.abs(forces[np.logical_not(mask)]-b.get_forces()) < 1e-6)
 
-    #virial = params.calc.wpot_per_at
-    #deformation_gradient, residual = atomic_strain(b, ref, cutoff=2.85)
-    #virial = b.get_stresses()
-    #strain = full_3x3_to_Voigt_6_strain(deformation_gradient)
-    #virial2 = strain.dot(C6)*vol0
+        #virial = params.calc.wpot_per_at
+        deformation_gradient, residual = atomic_strain(b, ref, cutoff=2.85)
+        virial = b.get_stresses()
+        strain = full_3x3_to_Voigt_6_strain(deformation_gradient)
+        #virial2 = strain.dot(C6)*vol0
 
-    #vols = voropp(b)
-    #virial3 = strain.dot(C6)*vols.reshape(-1,1)
+        #vols = voropp(b)
+        #virial3 = strain.dot(C6)*vols.reshape(-1,1)
 
-    #print virial[175]
-    #print virial2[175]
-    #print virial3[175]
+        #print virial[175]
+        #print virial2[175]
+        #print virial3[175]
 
-    #virial = Voigt_6_to_full_3x3_stress(virial)
-    #vol, dev, J3 = invariants(strain)
-    #b.set_array('vol', vol)
-    #b.set_array('dev', dev)
-    #x, y, z = b.positions.T
-    #r = np.sqrt((x-_tip_x)**2 + (y-_tip_y)**2)
-    #b.set_array('J_eval', np.logical_and(r > params.eval_r1,
-    #                                     r < params.eval_r2))
+        virial = Voigt_6_to_full_3x3_stress(virial)
+        #vol, dev, J3 = invariants(strain)
+        #b.set_array('vol', vol)
+        #b.set_array('dev', dev)
+        x, y, z = b.positions.T
+        r = np.sqrt((x-_tip_x)**2 + (y-_tip_y)**2)
+        #b.set_array('J_eval', np.logical_and(r > params.eval_r1,
+        #                                     r < params.eval_r2))
 
-    #epot = b.get_potential_energies()
-    #G = J_integral(b, deformation_gradient, virial, epot, e0, _tip_x, _tip_y,
-    #               params.eval_r1, params.eval_r2)
-    #G2 = J_integral(b, deformation_gradient, virial, epot, e0, _tip_x, _tip_y,
-    #                10.0, 15.0)
-    #G3 = J_integral(b, deformation_gradient, virial, epot, e0, _tip_x, _tip_y,
-    #                5.0, 10.0)
-    #print G/J_m2, G2/J_m2, G3/J_m2
-    #G = G2 = G3 = 0.0
-    #J_int1 += [ forces[bond1, 0] ]
-    #J_int2 += [ forces[bond1, 1] ]
-    #J_int3 += [ forces[bond1, 2] ]
+        #epot = b.get_potential_energies()
+        G = J_integral(b, deformation_gradient, virial, epot_per_at, epotref_per_at,
+                       _tip_x, _tip_y, (ref_sx+ref_sy)/8, 3*(ref_sx+ref_sy)/8)
+    J_int += [ G ]
 
     #b.set_array('J_integral', np.logical_and(r > params.eval_r1,
     #                                         r < params.eval_r2))
@@ -211,6 +201,16 @@ print 'tip_x =', tip_x
 epot = -cumtrapz(bond_force, bond_length, initial=0.0)
 
 print 'epot =', epot
+
+savetbl('{}_eval.out'.format(prefix),
+        bond_length=bond_length,
+        bond_force=bond_force,
+        epot=epot,
+        epot_cluster=epot_cluster,
+        work=work,
+        tip_x=tip_x,
+        tip_y=tip_y,
+        J_int=J_int)
 
 # Fit and subtract first energy minimum
 i = 1
@@ -233,6 +233,16 @@ min_bond_length += bond_length[i-1]
 epot -= min_epot
 tip_x = tip_x-min_tip_x
 tip_y = tip_y-min_tip_y
+
+savetbl('{}_eval.out'.format(prefix),
+        bond_length=bond_length,
+        bond_force=bond_force,
+        epot=epot,
+        epot_cluster=epot_cluster,
+        work=work,
+        tip_x=tip_x,
+        tip_y=tip_y,
+        J_int=J_int)
 
 # Fit and subtract second energy minimum
 i = len(epot)-1
@@ -257,7 +267,5 @@ savetbl('{}_eval.out'.format(prefix),
         epot_cluster=epot_cluster,
         work=work,
         tip_x=tip_x,
-        tip_y=tip_y)
-        #J_int1=J_int1,
-        #J_int2=J_int2,
-        #J_int3=J_int3)
+        tip_y=tip_y,
+        J_int=J_int)
