@@ -74,7 +74,7 @@ ncryst = len(cryst)
 # system. (True if it comes out of the cluster routines.)
 
 compute_elastic_constants = parameter('compute_elastic_constants', False)
-elastic_fmax = parameter('elastic_fmax', 0.05)
+elastic_fmax = parameter('elastic_fmax', 0.01)
 elastic_symmetry = parameter('elastic_symmetry', 'triclinic')
 fmax = parameter('fmax', 0.01)
 
