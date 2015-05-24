@@ -66,9 +66,10 @@ logger = screen
 
 ###
 
+calc = parameter('calc')
+
 cryst = params.cryst.copy()
 cryst.set_pbc(True)
-ncryst = len(cryst)
 
 # Double check elastic constants. We're just assuming this is really a periodic
 # system. (True if it comes out of the cluster routines.)
@@ -79,7 +80,7 @@ elastic_symmetry = parameter('elastic_symmetry', 'triclinic')
 fmax = parameter('fmax', 0.01)
 
 if compute_elastic_constants:
-    cryst.set_calculator(params.calc)
+    cryst.set_calculator(calc)
     log_file = open('elastic_constants.log', 'w')
     C, C_err = fit_elastic_constants(cryst, verbose=False,
                                      symmetry=elastic_symmetry,
@@ -128,10 +129,18 @@ bondlength = parameter('bondlength', 2.7)
 a = cryst.copy()
 a.set_pbc([False, False, True])
 
+hydrogenate_flag = parameter('hydrogenate', False)
+hydrogenate_crack_face_flag = parameter('hydrogenate_crack_face', True)
+
+if hydrogenate_flag and not hydrogenate_crack_face_flag:
+    # Get surface atoms of cluster with crack
+    a = hydrogenate(cryst, bondlength, parameter('XH_bondlength'), b=a)
+    cryst = a.copy()
+
 ux, uy = crk.displacements(cryst.positions[:,0], cryst.positions[:,1],
                            tip_x, tip_y, params.k1*k1g)
-a.positions[:ncryst,0] += ux
-a.positions[:ncryst,1] += uy
+a.positions[:len(cryst),0] += ux
+a.positions[:len(cryst),1] += uy
 
 basename = parameter('basename', 'energy_barrier')
 
@@ -147,10 +156,9 @@ bond1, bond2 = parameter('bond',
                          crack.find_tip_coordination(a, bondlength=bondlength))
 
 # Hydrogenate?
-if parameter('hydrogenate', False):
+if hydrogenate_flag and hydrogenate_crack_face_flag:
     # Get surface atoms of cluster with crack
     coord = np.bincount(neighbour_list('i', a, bondlength), minlength=len(a))
-    # Exclude all atoms of the crack face from hydrogenation
     exclude = np.logical_and(a.get_array('groups')==1, coord!=4)
     a.set_array('coord', coord)
     a.set_array('exclude', exclude)
@@ -191,7 +199,7 @@ if optimize_tip_position:
               'Tip positions = {} {}'.format(tip_x, tip_y))
 
 # Assign calculator.
-a.set_calculator(params.calc)
+a.set_calculator(calc)
 
 sig_xx, sig_yy, sig_xy = crk.stresses(cryst.positions[:,0],
                                       cryst.positions[:,1],
@@ -199,6 +207,12 @@ sig_xx, sig_yy, sig_xy = crk.stresses(cryst.positions[:,0],
                                       params.k1*k1g)
 sig = np.vstack([sig_xx, sig_yy] + [ np.zeros_like(sig_xx)]*3 + [sig_xy])
 eps = np.dot(crk.S, sig)
+
+# Do we have a converged run that we want to restart from?
+restart_from = parameter('restart_from', 'None')
+if restart_from == 'None':
+    restart_from = None
+original_cell = a.get_cell().copy()
 
 # Run crack calculation.
 for i, bond_length in enumerate(params.bond_lengths):
@@ -212,6 +226,19 @@ for i, bond_length in enumerate(params.bond_lengths):
         traj_file.write()
     else:
         traj_file = None
+
+    if restart_from is not None:
+        fn = '{0}/{1}'.format(restart_from, xyz_file)
+        logger.pr('Restart relaxation from {0}'.format(fn))
+        b = ase.io.read(fn)
+        mask = np.logical_or(b.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
+                             b.numbers == atomic_numbers[FITTED_CRACK_TIP])
+        del b[mask]
+        assert (a.numbers == b.numbers).all()
+        a = b
+        a.set_calculator(calc)
+        tip_x, tip_y, dummy = a.info['actual_crack_tip']
+        a.set_cell(original_cell, scale_atoms=True)
 
     a.set_constraint(None)
     a.set_distance(bond1, bond2, bond_length)
@@ -244,9 +271,9 @@ for i, bond_length in enumerate(params.bond_lengths):
             #b.positions[:,1] += uy
 
             a.set_constraint(None)
-            #a.positions[g==0] = b.positions[g==0]
-            a.positions[:ncryst,0] += ux-u0x
-            a.positions[:ncryst,1] += uy-u0y
+            # Displace atom positions
+            a.positions[:len(cryst),0] += ux-u0x
+            a.positions[:len(cryst),1] += uy-u0y
             a.positions[bond1,0] -= ux[bond1]-u0x[bond1]
             a.positions[bond1,1] -= uy[bond1]-u0y[bond1]
             a.positions[bond2,0] -= ux[bond2]-u0x[bond2]
@@ -267,8 +294,8 @@ for i, bond_length in enumerate(params.bond_lengths):
 
             old_x = tip_x
             old_y = tip_y
-            tip_x, tip_y = crk.crack_tip_position(a.positions[:ncryst,0],
-                                                  a.positions[:ncryst,1],
+            tip_x, tip_y = crk.crack_tip_position(a.positions[:len(cryst),0],
+                                                  a.positions[:len(cryst),1],
                                                   cryst.positions[:,0],
                                                   cryst.positions[:,1],
                                                   tip_x, tip_y,
@@ -304,8 +331,8 @@ for i, bond_length in enumerate(params.bond_lengths):
 
         # Fit crack tip (again), and get residuals.
         fit_x, fit_y, residuals = \
-            crk.crack_tip_position(a.positions[:ncryst,0],
-                                   a.positions[:ncryst,1],
+            crk.crack_tip_position(a.positions[:len(cryst),0],
+                                   a.positions[:len(cryst),1],
                                    cryst.positions[:,0],
                                    cryst.positions[:,1],
                                    tip_x, tip_y, params.k1*k1g,
