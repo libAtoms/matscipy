@@ -25,7 +25,7 @@ import unittest
 
 import numpy as np
 
-from ase.calculators.eam import EAM
+#from ase.calculators.eam import EAM
 from ase.constraints import StrainFilter
 from ase.lattice.cubic import Diamond, FaceCenteredCubic
 from ase.optimize import FIRE
@@ -33,8 +33,9 @@ from ase.units import GPa
 
 try:
     from atomistica import Kumagai, TabulatedAlloyEAM
+    atomistica = True
 except:
-    atomistica = None
+    atomistica = False
 
 import matscipytest
 from matscipy.elasticity import (CubicElasticModuli, Voigt_6x6_to_cubic,
@@ -51,9 +52,9 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
     delta = 1e-6
 
     def test_rotation(self):
-        #if not atomistica:
-        #    print('Atomistica not available. Skipping test.')
-        #    return
+        if not atomistica:
+            print('Atomistica not available. Skipping test.')
+            return
 
         for make_atoms, calc in [ 
 #            ( lambda a0,x : 
@@ -61,15 +62,15 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
 #                                latticeconstant=3.5 if a0 is None else a0,
 #                                directions=x),
 #              LJCut(epsilon=10.2, sigma=2.28, cutoff=5.0, shift=True) ),
-            #( lambda a0,x : FaceCenteredCubic('Au', size=[1,1,1],
-            #                                  latticeconstant=a0, directions=x),
-            #  TabulatedAlloyEAM(fn='Au-Grochola-JCP05.eam.alloy') ),
-            #( lambda a0,x : Diamond('Si', size=[1,1,1], latticeconstant=a0,
-            #                        directions=x),
-            #  Kumagai() )
             ( lambda a0,x : FaceCenteredCubic('Au', size=[1,1,1],
                                               latticeconstant=a0, directions=x),
-              EAM(potential='Au-Grochola-JCP05.eam.alloy') ),
+              TabulatedAlloyEAM(fn='Au-Grochola-JCP05.eam.alloy') ),
+            ( lambda a0,x : Diamond('Si', size=[1,1,1], latticeconstant=a0,
+                                    directions=x),
+              Kumagai() )
+            #( lambda a0,x : FaceCenteredCubic('Au', size=[1,1,1],
+            #                                  latticeconstant=a0, directions=x),
+            #  EAM(potential='Au-Grochola-JCP05.eam.alloy') ),
             ]:
 
             a = make_atoms(None, [[1,0,0], [0,1,0], [0,0,1]])
