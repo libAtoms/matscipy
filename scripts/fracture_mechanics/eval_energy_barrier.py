@@ -82,7 +82,8 @@ C6 = rotate_cubic_elastic_constants(params.C11, params.C12, params.C44, A) * uni
 
 ###
 
-ref = ase.io.read('cluster.xyz')
+#ref = ase.io.read('cluster.xyz')
+ref = params.cryst.copy()
 ref_sx, ref_sy, ref_sz = ref.cell.diagonal()
 
 ref.set_pbc(True)
