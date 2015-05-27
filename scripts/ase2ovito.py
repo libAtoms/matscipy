@@ -8,23 +8,22 @@ import numpy as np
 from ovito import *
 from ovito.data import *
 
-from ase.io import read, write
 from ase.atoms import Atoms
 
-def datacollection_to_atoms(data):
+def datacollection_to_atoms(self):
     """
     Convert from ovito.data.DataCollection to ase.atoms.Atoms
     """
 
     # Extract basic dat: pbc, cell, positions, particle types
-    pbc = data.cell.pbc
-    cell_matrix = np.array(data.cell.matrix)    
+    pbc = self.cell.pbc
+    cell_matrix = np.array(self.cell.matrix)    
     cell, origin = cell_matrix[:, :3], cell_matrix[:, 3]
     info = {'cell_origin': origin }
-    positions = np.array(data.position)
+    positions = np.array(self.position)
     type_names = dict([(t.id, t.name) for t in
-                       data.particle_type.type_list])
-    symbols = [type_names[id] for id in np.array(data.particle_type)]
+                       self.particle_type.type_list])
+    symbols = [type_names[id] for id in np.array(self.particle_type)]
 
     # construct ase.Atoms object
     atoms = Atoms(symbols,
@@ -34,7 +33,7 @@ def datacollection_to_atoms(data):
                   info=info)
 
     # Convert any other particle properties to additional arrays
-    for name, prop in data.iteritems():
+    for name, prop in self.iteritems():
         if name in ['Simulation cell',
                     'Position',
                     'Particle Type']:
@@ -43,11 +42,14 @@ def datacollection_to_atoms(data):
     
     return atoms
 
-def atoms_to_datacollection(atoms):
+DataCollection.to_atoms = datacollection_to_atoms
+
+
+def datacollection_create_from_atoms(cls, atoms):
     """
     Convert from ase.atoms.Atoms to ovito.data.DataCollection
     """
-    data = DataCollection()
+    data = cls()
 
     # Set the unit cell and origin (if specified in atoms.info)
     cell = SimulationCell()
@@ -99,6 +101,11 @@ def atoms_to_datacollection(atoms):
     
     return data
 
+DataCollection.create_from_atoms = classmethod(datacollection_create_from_atoms)
+
+
+from ase.io import read, write
+
 # Read ASE Atoms instance from disk
 atoms = read(sys.argv[1])
 
@@ -107,7 +114,7 @@ atoms.new_array('real', (atoms.positions**2).sum(axis=1))
 atoms.new_array('int', np.array([-1]*len(atoms)))
 
 # convert from Atoms to DataCollection
-data = atoms_to_datacollection(atoms)
+data = DataCollection.create_from_atoms(atoms)
 
 # Create a node and insert it into the scene
 node = ObjectNode()
@@ -122,7 +129,7 @@ for vp in dataset.viewports:
 new_data = node.compute()
     
 # Do the reverse conversion, after pipeline has been applied
-atoms = datacollection_to_atoms(new_data)
+atoms = new_data.to_atoms()
 
 # Dump results to disk
 atoms.write('dump.extxyz')
