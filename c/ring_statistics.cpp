@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <vector>
 
 #include "neighbours.h"
 #include "tools.h"
