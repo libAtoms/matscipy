@@ -1,14 +1,14 @@
-import sys
-
-sys.stdout = open('stdout.txt', 'w')
-sys.stderr = open('stderr.txt', 'w')
-
 import numpy as np
 
-from ovito import *
-from ovito.data import *
+from ovito.data import (DataCollection,
+                        SimulationCell,
+                        ParticleProperty,
+                        ParticleType,
+                        Bonds)
 
 from ase.atoms import Atoms
+
+from matscipy.neighbours import neighbour_list
 
 def datacollection_to_atoms(self):
     """
@@ -37,6 +37,8 @@ def datacollection_to_atoms(self):
         if name in ['Simulation cell',
                     'Position',
                     'Particle Type']:
+            continue
+        if not isinstance(prop, ParticleProperty):
             continue
         atoms.new_array(prop.name, prop.array)
     
@@ -103,33 +105,10 @@ def datacollection_create_from_atoms(cls, atoms):
 
 DataCollection.create_from_atoms = classmethod(datacollection_create_from_atoms)
 
-
-from ase.io import read, write
-
-# Read ASE Atoms instance from disk
-atoms = read(sys.argv[1])
-
-# add some comuted properties
-atoms.new_array('real', (atoms.positions**2).sum(axis=1))
-atoms.new_array('int', np.array([-1]*len(atoms)))
-
-# convert from Atoms to DataCollection
-data = DataCollection.create_from_atoms(atoms)
-
-# Create a node and insert it into the scene
-node = ObjectNode()
-node.source = data
-dataset.scene_nodes.append(node)
-
-# Select the new node and adjust viewport cameras to show everything.
-dataset.selected_node = node
-for vp in dataset.viewports:
-    vp.zoom_all()
-
-new_data = node.compute()
+def neighbours_to_bonds(atoms, cutoff):
+    i, j = neighbour_list('ij', atoms, cutoff)
+    bonds = Bonds()
+    for ii, jj in zip(i, j):
+        bonds.add_full(int(ii), int(jj))
+    return bonds
     
-# Do the reverse conversion, after pipeline has been applied
-atoms = new_data.to_atoms()
-
-# Dump results to disk
-atoms.write('dump.extxyz')
