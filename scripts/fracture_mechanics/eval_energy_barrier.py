@@ -60,7 +60,7 @@ FITTED_CRACK_TIP = 'Ag'
 compute_J_integral = len(sys.argv) == 3 and sys.argv[2] == '-J'
 
 # Elastic constants
-C6 = cubic_to_Voigt_6x6(params.C11, params.C12, params.C44) * units.GPa
+#C6 = cubic_to_Voigt_6x6(params.C11, params.C12, params.C44) * units.GPa
 
 crack_surface = params.crack_surface
 crack_front = params.crack_front
@@ -78,7 +78,7 @@ if np.linalg.det(A) < 0:
     third_dir = -third_dir
 A = np.array([third_dir, crack_surface, crack_front])
 
-C6 = rotate_cubic_elastic_constants(params.C11, params.C12, params.C44, A) * units.GPa
+#C6 = rotate_cubic_elastic_constants(params.C11, params.C12, params.C44, A) * units.GPa
 
 ###
 
@@ -94,7 +94,7 @@ if compute_J_integral:
 ###
 
 prefix = sys.argv[1]
-fns = sorted(glob.glob('%s_*.xyz' % prefix))
+fns = sorted(glob.glob('%s_????.xyz' % prefix))
 if len(fns) == 0:
     raise RuntimeError("Could not find files with prefix '{}'.".format(prefix))
 
