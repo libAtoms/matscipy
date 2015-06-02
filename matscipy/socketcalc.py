@@ -365,7 +365,8 @@ class Client(object):
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
                  fmt='REFTRAJ', parmode=None, mpirun='mpirun', 
-                 logger=screen, max_pos_diff=MAX_POS_DIFF,
+                 mpirun_args=['-np'], logger=screen,
+                 max_pos_diff=MAX_POS_DIFF,
                  max_cell_diff=MAX_CELL_DIFF):
 
         self.client_id = client_id
@@ -388,6 +389,7 @@ class Client(object):
         self.fmt = fmt
         self.parmode = parmode
         self.mpirun = mpirun
+        self.mpirun_args = mpirun_args
         self.logger = logger
         self.max_pos_diff = max_pos_diff
         self.max_cell_diff = max_cell_diff
@@ -432,7 +434,11 @@ class Client(object):
             runjob_args += (['-n', str(self.npj*self.ppn), '-p', str(self.ppn)] + envargs + 
                             ['--cwd', self.subdir, ':'])
         elif self.parmode == 'mpi':
-            runjob_args += [self.mpirun, '-np', str(self.npj*self.ppn)]
+            runjob_args += [self.mpirun]
+            for mpirun_arg in self.mpirun_args:
+                runjob_args += [mpirun_arg]
+                if mpirun_arg in ['-n', '-np']:
+                    runjob_args += [str(self.npj*self.ppn)]
             popen_args['cwd'] = self.subdir
             popen_args['env'] = os.environ # for mpi, let mpirun inherit environment of script
         else:
@@ -612,13 +618,14 @@ class QUIPClient(Client):
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
                  fmt='REFTRAJ', parmode=None, mpirun='mpirun', 
-                 logger=screen, 
+                 mpirun_args=['-np'], logger=screen, 
                  max_pos_diff=MAX_POS_DIFF,
                  max_cell_diff=MAX_CELL_DIFF,
                  param_files=None):
         Client.__init__(self, client_id, exe, env, npj, ppn,
-                        block, corner, shape, jobname, rundir, fmt, parmode, mpirun, logger,
-                        max_pos_diff, max_cell_diff)
+                        block, corner, shape, jobname, rundir, fmt, parmode,
+                        mpirun, mpirun_args, logger, max_pos_diff,
+                        max_cell_diff)
         self.param_files = param_files
 
     def write_input_files(self, at, label):
@@ -644,13 +651,14 @@ class VaspClient(Client):
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', 
-                 logger=screen, max_pos_diff=MAX_POS_DIFF,
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun',
+                 mpirun_args=['-np'], logger=screen,
+                 max_pos_diff=MAX_POS_DIFF,
                  max_cell_diff=MAX_CELL_DIFF,
                  **vasp_args):
         Client.__init__(self, client_id, exe, env, npj, ppn,
                         block, corner, shape, jobname, rundir, 
-                        fmt, parmode, mpirun, logger,
+                        fmt, parmode, mpirun, mpirun_args, logger,
                         max_pos_diff, max_cell_diff)
         if 'ibrion' not in vasp_args:
             self.logger.pr('No ibrion key in vasp_args, setting ibrion=13')
