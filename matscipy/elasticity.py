@@ -1019,3 +1019,72 @@ def poisson_ratio(C, l, m):
          lhat[0]*lhat[0]*lhat[2]*lhat[2])))
     return v
 
+
+def elastic_moduli(C, l=np.array([1, 0, 0])):
+    """
+    Calculate elastic moduli from 6x6 elastic constant matrix C_{ij}:
+    - Young's muduli
+    - Poisson's ratios
+    - Shear moduli
+    - Bulk mudulus
+    - Bulk mudulus tensor
+    
+    Notes
+    ---
+    
+    It works by rotating the elastic constant tensor to the desired direction, so it
+    should be valid for arbitrary crystal structures.
+    There are an infinite number of possible rotations. The chosen one is a rotation
+    along the axis orthogonal to the plane defined by the vectors (1, 0, 0) and l.
+    """
+
+    u_a = np.array([1, 0, 0])
+    u_b = l/norm(l)  # Normalise directions
+    R = np.eye(3)
+
+    if not np.allclose(l, u_a, rtol=1e-10, atol=1e-10):
+        u_v = np.cross(u_a, u_b)
+        u_v_mat = np.array([[ 0,      -u_v[2], u_v[1]],
+                            [ u_v[2], 0,      -u_v[0]],
+                            [-u_v[1], u_v[0], 0]])
+
+        R = R + u_v_mat + \
+            np.dot(u_v_mat, u_v_mat) * (1 - np.dot(u_a, u_b)) / \
+            np.linalg.norm(u_v)**2
+
+    Cr = rotate_elastic_constants(C, R)
+    S = np.linalg.inv(Cr)
+
+    # Young's modulus for a stress in $\alpha$ direction; $\alpha$ = x, y, z
+    E = np.zeros(3)
+    E[0] = 1/S[0, 0]  # Young's modulus for a stress in x direction
+    E[1] = 1/S[1, 1]  # Young's modulus for a stress in y direction
+    E[2] = 1/S[2, 2]  # Young's modulus for a stress in z direction
+
+    # Poisson's ratio ($\alpha$, $\beta$); $\alpha$, $\beta$ = x, y, z
+    nu = np.array([
+            [-1,               -S[1, 0]/S[0, 0], -S[2, 0]/S[0, 0]],
+            [-S[0, 1]/S[1, 1], -1,               -S[2, 1]/S[1, 1]],
+            [-S[0, 2]/S[2, 2], -S[1, 2]/S[2, 2], -1]
+            ])
+
+    # Shear modulus ($\alpha$, $\beta$); $\alpha$, $\beta$ = x, y, z
+    G = np.zeros(3)
+    G[0] = 1/S[3, 3]  # Shear modulus yz
+    G[1] = 1/S[4, 4]  # Shear modulus zx
+    G[2] = 1/S[5, 5]  # Shear modulus xy
+    Gm = np.array([
+            [E[0]/4,  G[2],    G[1]],
+            [G[2],    E[1]/4,  G[0]],
+            [G[1],    G[0],    E[2]/4]
+            ])
+
+    # Bulk modulus tensor as defined in
+    # O. Rand and V. Rovenski, "Analytical Methods in Anisotropic Elasticity",
+    # Birkh\"auser (2005), pp. 71.
+    Crt = Voigt_6x6_to_full_3x3x3x3(Cr)
+    K = np.einsum('ijkk', Crt)
+    # Bulk modulus
+    B = 1/np.sum(S[0:3, 0:3])
+
+    return E, nu, Gm, B, K
