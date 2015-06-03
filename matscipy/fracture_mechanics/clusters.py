@@ -75,9 +75,9 @@ def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
 
     # Center cluster in unit cell
     x, y, z = (unitcell.get_scaled_positions()%1.0).T
-    x += (1.0-x.max())/2 - x.min()
-    y += (1.0-y.max())/2 - y.min()
-    z += (1.0-z.max())/2 - z.min()
+    x += (1.0-x.max()+x.min())/2 - x.min()
+    y += (1.0-y.max()+y.min())/2 - y.min()
+    z += (1.0-z.max()+z.min())/2 - z.min()
     unitcell.set_scaled_positions(np.transpose([x, y, z]))
 
     a = unitcell.copy()
