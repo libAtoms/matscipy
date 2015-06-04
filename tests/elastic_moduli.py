@@ -29,7 +29,7 @@ import numpy as np
 # from ase.constraints import StrainFilter
 # from ase.lattice.cubic import Diamond, FaceCenteredCubic
 # from ase.optimize import FIRE
-# from ase.units import GPa
+from ase.units import GPa
 
 import matscipytest
 from matscipy.elasticity import (rotate_elastic_constants,
@@ -44,40 +44,37 @@ class TestElasticModuli(matscipytest.MatSciPyTestCase):
     delta = 1e-6
 
     def test_rotation(self):
-        n_atoms = 3
-        for atom in range(n_atoms):
-            C = np.random.randint(300, size=(6, 6))
-            C = (C.T+C)/2
+        Cs = [
+             np.array([
+             [165.7, 63.9, 63.9, 0, 0, 0],
+             [63.9, 165.7, 63.9, 0, 0, 0],
+             [63.9, 63.9, 165.7, 0, 0, 0],
+             [0, 0, 0, 79.6, 0, 0],
+             [0, 0, 0, 0, 79.6, 0],
+             [0, 0, 0, 0, 0, 79.6],
+             ])
+             ]
+        l = [np.array([1, 0, 0]), np.array([1, 1, 0])]
+        EM = [
+              {'E': np.array([130, 130, 130]),
+              'nu': np.array([0.28, 0.28, 0.28]),
+              'G': np.array([79.6, 79.6, 79.6])},
+              {'E': np.array([169, 169, 130]),
+              'nu': np.array([0.36, 0.28, 0.064]),
+              'G': np.array([79.6, 79.6, 50.9])}
+              ]
+        for C in Cs:
+            for i, directions in enumerate(l):
+                directions = directions/np.linalg.norm(directions)
 
-            for directions in [[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-                               [[0, 1, 0], [0, 0, 1], [1, 0, 0]],
-                               [[1, 1, 0], [0, 0, 1], [1, -1, 0]],
-                               [[1, 1, 1], [-1, -1, 2], [1, -1, 0]]]:
-                a, b, c = directions
+                E, nu, Gm, B, K = elastic_moduli(C, l=directions)
 
-                directions = np.array([np.array(x)/np.linalg.norm(x)
-                                       for x in directions])
+                nu_v = np.array([nu[1, 2], nu[2, 0], nu[0, 1]])
+                G = np.array([Gm[1, 2], Gm[2, 0], Gm[0, 1]])
 
-                E, nu, Gm, B, K = elastic_moduli(C)
-                E1, nu1, Gm1, B1, K1 = elastic_moduli(C, R=directions)
-
-                Cr = rotate_elastic_constants(C, directions)
-                Er, nur, Gmr, Br, Kr = elastic_moduli(Cr)
-                E1r, nu1r, Gm1r, B1r, K1r = elastic_moduli(
-                                              Cr,
-                                              R=np.transpose(directions)
-                                              )
-
-                self.assertArrayAlmostEqual(E1, Er, tol=1e-6)
-                self.assertArrayAlmostEqual(E, E1r, tol=1e-6)
-                self.assertArrayAlmostEqual(nu1, nur, tol=1e-6)
-                self.assertArrayAlmostEqual(nu, nu1r, tol=1e-6)
-                self.assertArrayAlmostEqual(Gm1, Gmr, tol=1e-6)
-                self.assertArrayAlmostEqual(Gm, Gm1r, tol=1e-6)
-                self.assertArrayAlmostEqual(B1, Br, tol=1e-6)
-                self.assertArrayAlmostEqual(B, B1r, tol=1e-6)
-                self.assertArrayAlmostEqual(K1, Kr, tol=1e-6)
-                self.assertArrayAlmostEqual(K, K1r, tol=1e-6)
+                self.assertArrayAlmostEqual(E, EM[i]['E'], tol=1e0)
+                self.assertArrayAlmostEqual(nu_v, EM[i]['nu'], tol=1e-2)
+                self.assertArrayAlmostEqual(G, EM[i]['G'], tol=1e-1)
 
 ###
 
