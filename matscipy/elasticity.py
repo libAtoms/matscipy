@@ -1022,20 +1022,45 @@ def poisson_ratio(C, l, m):
 
 def elastic_moduli(C, l=np.array([1, 0, 0])):
     """
-    Calculate elastic moduli from 6x6 elastic constant matrix C_{ij}:
-    - Young's muduli
-    - Poisson's ratios
-    - Shear moduli
-    - Bulk mudulus
-    - Bulk mudulus tensor
+    Calculate elastic moduli from 6x6 elastic constant matrix C_{ij} for
+    a pull in direction l (see Notes about response direction):
+    
+    The elastic moduli calculated are: Young's muduli, Poisson's ratios,
+    shear moduli, bulk mudulus and bulk mudulus tensor.
+    
+    Parameters
+    ----------
+    C : array_like
+        6x6 stiffness matrix (Voigt notation).
+    l : array_like, optional
+        3D direction vector for pull (the default is the x direction
+        of the original system)
+    
+    Returns
+    -------
+    E : array_like
+        Young's modulus for a stress in each of the three directions
+        of the rotated system.
+    nu : array_like
+         3x3 matrix with Poisson's ratios.
+    Gm : array_like
+         3x3 matrix with shear moduli.
+    B : float
+        Bulk modulus.
+    K : array_like
+        3x3 matrix with bulk modulus tensor.
     
     Notes
     ---
+    It works by rotating the elastic constant tensor to the desired
+    direction, so it should be valid for arbitrary crystal structures.
+    There are an infinite number of possible rotations. The chosen one
+    is a rotation along the axis orthogonal to the plane defined by the
+    vectors (1, 0, 0) and l.
+    Bulk modulus tensor as defined in
+    O. Rand and V. Rovenski, "Analytical Methods in Anisotropic
+    Elasticity", Birkh\"auser (2005), pp. 71.
     
-    It works by rotating the elastic constant tensor to the desired direction, so it
-    should be valid for arbitrary crystal structures.
-    There are an infinite number of possible rotations. The chosen one is a rotation
-    along the axis orthogonal to the plane defined by the vectors (1, 0, 0) and l.
     """
 
     u_a = np.array([1, 0, 0])
@@ -1055,11 +1080,11 @@ def elastic_moduli(C, l=np.array([1, 0, 0])):
     Cr = rotate_elastic_constants(C, R)
     S = np.linalg.inv(Cr)
 
-    # Young's modulus for a stress in $\alpha$ direction; $\alpha$ = x, y, z
+    # Young's modulus for a stress in \alpha direction; \alpha = x, y, z
     E = np.zeros(3)
-    E[0] = 1/S[0, 0]  # Young's modulus for a stress in x direction
-    E[1] = 1/S[1, 1]  # Young's modulus for a stress in y direction
-    E[2] = 1/S[2, 2]  # Young's modulus for a stress in z direction
+    E[0] = 1/S[0, 0]
+    E[1] = 1/S[1, 1]
+    E[2] = 1/S[2, 2]
 
     # Poisson's ratio ($\alpha$, $\beta$); $\alpha$, $\beta$ = x, y, z
     nu = np.array([
@@ -1079,12 +1104,11 @@ def elastic_moduli(C, l=np.array([1, 0, 0])):
             [G[1],    G[0],    E[2]/4]
             ])
 
-    # Bulk modulus tensor as defined in
-    # O. Rand and V. Rovenski, "Analytical Methods in Anisotropic Elasticity",
-    # Birkh\"auser (2005), pp. 71.
-    Crt = Voigt_6x6_to_full_3x3x3x3(Cr)
-    K = np.einsum('ijkk', Crt)
     # Bulk modulus
     B = 1/np.sum(S[0:3, 0:3])
+    
+    # Bulk modulus tensor
+    Crt = Voigt_6x6_to_full_3x3x3x3(Cr)
+    K = np.einsum('ijkk', Crt)
 
     return E, nu, Gm, B, K
