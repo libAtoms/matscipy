@@ -1020,13 +1020,16 @@ def poisson_ratio(C, l, m):
     return v
 
 
-def elastic_moduli(C, l=np.array([1, 0, 0])):
+def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
     """
-    Calculate elastic moduli from 6x6 elastic constant matrix C_{ij} for
-    a pull in direction l (see Notes about response direction):
+    Calculate elastic moduli from 6x6 elastic constant matrix C_{ij}.
     
     The elastic moduli calculated are: Young's muduli, Poisson's ratios,
     shear moduli, bulk mudulus and bulk mudulus tensor.
+    
+    If a direction l is specified, the system is rotated to have it as its
+    x direction (see Notes for details). If R is specified the system is
+    rotated according to it.
     
     Parameters
     ----------
@@ -1035,6 +1038,8 @@ def elastic_moduli(C, l=np.array([1, 0, 0])):
     l : array_like, optional
         3D direction vector for pull (the default is the x direction
         of the original system)
+    R : array_like, optional
+        3x3 rotation matrix.
     
     Returns
     -------
@@ -1050,32 +1055,47 @@ def elastic_moduli(C, l=np.array([1, 0, 0])):
     K : array_like
         3x3 matrix with bulk modulus tensor.
     
+    Other Parameters
+    ----------------
+    tol : float, optional
+        tolerance for checking validity of rotation and comparison
+        of vectors.
+    
     Notes
     ---
     It works by rotating the elastic constant tensor to the desired
     direction, so it should be valid for arbitrary crystal structures.
-    There are an infinite number of possible rotations. The chosen one
-    is a rotation along the axis orthogonal to the plane defined by the
-    vectors (1, 0, 0) and l.
+    If only l is specified there is an infinite number of possible
+    rotations. The chosen one is a rotation along the axis orthogonal
+    to the plane defined by the vectors (1, 0, 0) and l.
+    
     Bulk modulus tensor as defined in
     O. Rand and V. Rovenski, "Analytical Methods in Anisotropic
     Elasticity", Birkh\"auser (2005), pp. 71.
     
     """
+    
+    if R is not None:
+        R = np.asarray(R)
 
-    u_a = np.array([1, 0, 0])
-    u_b = l/norm(l)  # Normalise directions
-    R = np.eye(3)
+        # Is this a rotation matrix?
+        if np.sometrue(np.abs(np.dot(np.array(R), np.transpose(np.array(R))) - 
+                              np.eye(3, dtype=float)) > tol):
+            raise RuntimeError('Matrix *R* does not describe a rotation.')
+    else:
+        u_a = np.array([1, 0, 0])
+        u_b = l/norm(l)  # Normalise directions
+        R = np.eye(3)
 
-    if not np.allclose(l, u_a, rtol=1e-10, atol=1e-10):
-        u_v = np.cross(u_a, u_b)
-        u_v_mat = np.array([[ 0,      -u_v[2], u_v[1]],
-                            [ u_v[2], 0,      -u_v[0]],
-                            [-u_v[1], u_v[0], 0]])
+        if not np.allclose(l, u_a, rtol=tol, atol=tol):
+            u_v = np.cross(u_a, u_b)
+            u_v_mat = np.array([[ 0,      -u_v[2], u_v[1]],
+                                [ u_v[2], 0,      -u_v[0]],
+                                [-u_v[1], u_v[0], 0]])
 
-        R = R + u_v_mat + \
-            np.dot(u_v_mat, u_v_mat) * (1 - np.dot(u_a, u_b)) / \
-            np.linalg.norm(u_v)**2
+            R = R + u_v_mat + \
+                np.dot(u_v_mat, u_v_mat) * (1 - np.dot(u_a, u_b)) / \
+                np.linalg.norm(u_v)**2
 
     Cr = rotate_elastic_constants(C, R)
     S = np.linalg.inv(Cr)
