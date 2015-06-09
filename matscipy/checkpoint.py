@@ -279,7 +279,12 @@ class CheckpointCalculator(Calculator):
                     method_name = CheckpointCalculator.property_to_method_name[prop]
                     method = getattr(self.calculator, method_name)
                     results.append(method(atoms))
-            self.checkpoint.save(atoms, *results)
+            _calculator = atoms.get_calculator
+            try:
+                atoms.set_calculator(self.calculator)
+                self.checkpoint.save(atoms, *results)
+            finally:
+                atoms.set_calculator(_calculator)
             
         self.results = dict(zip(properties, results))
 
