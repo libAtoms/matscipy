@@ -25,6 +25,7 @@ import unittest
 
 import numpy as np
 
+#from ase.calculators.eam import EAM
 from ase.constraints import StrainFilter
 from ase.lattice.cubic import Diamond, FaceCenteredCubic
 from ase.optimize import FIRE
@@ -32,8 +33,9 @@ from ase.units import GPa
 
 try:
     from atomistica import Kumagai, TabulatedAlloyEAM
+    atomistica = True
 except:
-    atomistica = None
+    atomistica = False
 
 import matscipytest
 from matscipy.elasticity import (CubicElasticModuli, Voigt_6x6_to_cubic,
@@ -66,6 +68,9 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
             ( lambda a0,x : Diamond('Si', size=[1,1,1], latticeconstant=a0,
                                     directions=x),
               Kumagai() )
+            #( lambda a0,x : FaceCenteredCubic('Au', size=[1,1,1],
+            #                                  latticeconstant=a0, directions=x),
+            #  EAM(potential='Au-Grochola-JCP05.eam.alloy') ),
             ]:
 
             a = make_atoms(None, [[1,0,0], [0,1,0], [0,0,1]])

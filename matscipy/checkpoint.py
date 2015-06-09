@@ -20,13 +20,14 @@
 # ======================================================================
 
 """
-Checkpointing functionality.
+Checkpointing and restart functionality for Python scripts use ASE Atoms
+objects.
 
 Initialize checkpoint object:
 
 CP = Checkpoint('checkpoints.db')
 
-Checkpointed code block, try ... except notation:
+Checkpointed code block in try ... except notation:
 
 try:
     a, C, C_err = CP.load()
@@ -51,6 +52,9 @@ while not converged:
     ... do something to find better crack tip position ...
     converged = ...
     CP.flush(a, converged, tip_x, tip_y)
+
+The simplest way to use checkpointing is through the CheckpointCalculator. It
+wraps any calculator object and 
 
 """
 import os
