@@ -25,9 +25,12 @@ import unittest
 
 from angle_distribution import *
 from cubic_crystal_crack import *
+from elastic_moduli import *
 from fit_elastic_constants import *
 from full_to_Voigt import *
 from greens_function import *
+from Hertz import *
+from hydrogenate import *
 from invariants import *
 from neighbours import *
 from ring_statistics import *
