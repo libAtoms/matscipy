@@ -25,5 +25,5 @@ The package requires
 
 Some functionality relies on the following interatomic modeling toolkits
 
-* quippy - http://www.jrkermode.co.uk/quippy/
+* quippy - http://www.github.com/libAtoms/QUIP
 * atomistica - https://www.github.com/pastewka/atomistica/
