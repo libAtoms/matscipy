@@ -29,6 +29,7 @@
 #include <stddef.h>
 
 #include "angle_distribution.h"
+#include "islands.h"
 #include "neighbours.h"
 #include "ring_statistics.h"
 
@@ -41,14 +42,26 @@
 static PyMethodDef module_methods[] = {
     { "angle_distribution", (PyCFunction) py_angle_distribution, METH_VARARGS,
       "Compute a bond angle distribution from a neighbour list." },
-    { "distance_map", (PyCFunction) py_distance_map, METH_VARARGS,
-      "Compute a map of distance on a graph." },
+    { "distances_on_graph", (PyCFunction) py_distances_on_graph, METH_VARARGS,
+      "Compute a map of distances on a graph." },
     { "find_sp_rings", (PyCFunction) py_find_sp_rings, METH_VARARGS,
       "Identify shortest-path rings on a graph." },
     { "neighbour_list", (PyCFunction) py_neighbour_list, METH_VARARGS,
       "Compute a neighbour list for an atomic configuration." },
     { "first_neighbours", (PyCFunction) py_first_neighbours, METH_VARARGS,
       "Compute indices of first neighbours in neighbour list array." },
+    { "count_islands", (PyCFunction) py_count_islands, METH_VARARGS,
+      "N/A" },
+    { "count_segments", (PyCFunction) py_count_segments, METH_VARARGS,
+      "N/A" },
+    { "correlation_function", (PyCFunction) py_correlation_function, METH_VARARGS,
+      "N/A" },
+    { "distance_map", (PyCFunction) py_distance_map, METH_VARARGS,
+      "N/A" },
+    { "perimeter_length", (PyCFunction) py_perimeter_length, METH_VARARGS,
+      "N/A" },
+    { "shortest_distance", (PyCFunction) py_shortest_distance, METH_VARARGS,
+      "N/A" },
     { NULL, NULL, 0, NULL }  /* Sentinel */
 };
 

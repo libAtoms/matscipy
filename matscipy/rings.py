@@ -49,5 +49,5 @@ def ring_statistics(a, cutoff, maxlength=-1):
         Array with number of shortest path rings.
     """
     i, j, r = neighbour_list('ijD', a, cutoff)
-    d = _matscipy.distance_map(i, j)
+    d = _matscipy.distances_on_graph(i, j)
     return _matscipy.find_sp_rings(i, j, r, d, maxlength)

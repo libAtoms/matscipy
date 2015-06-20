@@ -21,20 +21,28 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
    ====================================================================== */
 
-#ifndef __RING_STATISTICS_H_
-#define __RING_STATISTICS_H_
+#include <stdio.h>
 
-#include "Python.h"
+#include "stack.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+int main(int argc, char *argv[])
+{
+  Stack s(8);
 
-PyObject *py_distances_on_graph(PyObject *self, PyObject *args);
-PyObject *py_find_sp_rings(PyObject *self, PyObject *args);
+  int i;
+  double d;
 
-#ifdef __cplusplus
+  s.push((int) 1);
+  s.push((double) 3.4);
+  s.push((int) 2);
+  s.pop_bottom(i);
+  printf("%i\n", i);
+  s.pop(i);
+  printf("%i\n", i);
+  s.push((double) 4.8);
+  s.pop_bottom(d);
+  printf("%f\n", d);
+  s.pop_bottom(d);
+  printf("%f\n", d);
+  printf("size = %i\n", s.get_size());
 }
-#endif
-
-#endif

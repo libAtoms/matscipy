@@ -21,17 +21,19 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
    ====================================================================== */
 
-#ifndef __RING_STATISTICS_H_
-#define __RING_STATISTICS_H_
-
-#include "Python.h"
+#ifndef __ISLANDS_H
+#define __ISLANDS_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PyObject *py_distances_on_graph(PyObject *self, PyObject *args);
-PyObject *py_find_sp_rings(PyObject *self, PyObject *args);
+PyObject *py_count_islands(PyObject *self, PyObject *args);
+PyObject *py_count_segments(PyObject *self, PyObject *args);
+PyObject *py_shortest_distance(PyObject *self, PyObject *args);
+PyObject *py_distance_map(PyObject *self, PyObject *args);
+PyObject *py_correlation_function(PyObject *self, PyObject *args);
+PyObject *py_perimeter_length(PyObject *self, PyObject *args);
 
 #ifdef __cplusplus
 }

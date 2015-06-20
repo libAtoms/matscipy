@@ -32,7 +32,7 @@ import ase.structure
 import matscipytest
 from matscipy.neighbours import neighbour_list
 from matscipy.rings import ring_statistics
-from _matscipy import distance_map, find_sp_rings
+from _matscipy import distances_on_graph, find_sp_rings
 
 ###
 
@@ -44,7 +44,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         a.center(vacuum=5)
 
         i, j, r = neighbour_list('ijD', a, 1.85)
-        d = distance_map(i, j)
+        d = distances_on_graph(i, j)
 
         self.assertEqual(d.shape, (6,6))
 

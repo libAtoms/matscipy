@@ -92,7 +92,7 @@ find_shortest_distances(int *seed, int *neighbours, int root, int *dist)
  * look only for elements *f*
  */
 bool
-distance_map(int nat, int *seed, int *neighbours, int *dist, int *diameter)
+distances_on_graph(int nat, int *seed, int *neighbours, int *dist, int *diameter)
 {
     if (diameter) *diameter = 0;
     std::fill(dist, dist+nat*nat, 0);
@@ -115,7 +115,7 @@ distance_map(int nat, int *seed, int *neighbours, int *dist, int *diameter)
  * Python wrapper
  */
 extern "C" PyObject *
-py_distance_map(PyObject *self, PyObject *args)
+py_distances_on_graph(PyObject *self, PyObject *args)
 {
     PyObject *py_i, *py_j;
 
@@ -148,8 +148,8 @@ py_distance_map(PyObject *self, PyObject *args)
     dims[1] = nat;
     PyObject *py_dist = PyArray_ZEROS(2, dims, NPY_INT, 0);
 
-    if (!distance_map(nat, seed, (npy_int *) PyArray_DATA(py_j),
-                      (npy_int *) PyArray_DATA(py_dist), NULL)) {
+    if (!distances_on_graph(nat, seed, (npy_int *) PyArray_DATA(py_j),
+                            (npy_int *) PyArray_DATA(py_dist), NULL)) {
         Py_DECREF(py_dist);
         return NULL;
     }
