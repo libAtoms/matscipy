@@ -23,6 +23,7 @@
 
 import unittest
 
+from analysis import *
 from angle_distribution import *
 from cubic_crystal_crack import *
 from elastic_moduli import *
