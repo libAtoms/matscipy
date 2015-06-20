@@ -21,30 +21,20 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
    ====================================================================== */
 
-#include "Python.h"
-#include "numpy/arrayobject.h"
-#include "islands.h"
+#include <Python.h>
+#define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
+#define NO_IMPORT_ARRAY
+#include <numpy/arrayobject.h>
+
 #include <math.h>
 
+#include "islands.h"
 #include "stack.h"
 
 /* This is sufficient for typically 2048x2048 */
 #define DEFAULT_STACK_SIZE 16*1024*1024
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
-
-static PyMethodDef pycontact_methods[] = {
-  {"count_islands", py_count_islands, METH_VARARGS},
-  {"count_segments", py_count_segments, METH_VARARGS},
-  {"correlation_function", py_correlation_function, METH_VARARGS},
-  {"distance_map", py_distance_map, METH_VARARGS},
-  {"perimeter_length", py_perimeter_length, METH_VARARGS},
-  {"shortest_distance", py_shortest_distance, METH_VARARGS},
-  {NULL, NULL}     /* Sentinel - marks the end of this structure */
-};
-
-
-
 
 /*
  * Find continous 2d patches
@@ -103,9 +93,8 @@ void fill_patch(npy_intp nx, npy_intp ny, npy_bool *map, int i0, int j0,
 extern "C" PyObject *
 py_count_islands(PyObject *self, PyObject *args)
 {
-  PyObject *py_map, *py_stencil;
+  PyObject *py_map = NULL, *py_stencil = NULL;
 
-  py_stencil = NULL;
   if (!PyArg_ParseTuple(args, "O|O",
                         &py_map, &py_stencil))
     return NULL;
@@ -115,13 +104,12 @@ py_count_islands(PyObject *self, PyObject *args)
   npy_intp sx;
   npy_long *stencil;
 
-  PyArrayObject *py_bool_map = NULL;
-  PyArrayObject *py_long_stencil = NULL;
+  PyObject *py_bool_map = NULL;
+  PyObject *py_long_stencil = NULL;
 
   if (py_stencil) {
-    py_long_stencil = 
-      (PyArrayObject*) PyArray_FROMANY((PyObject *) py_stencil, NPY_LONG,
-                                       2, 2, NPY_C_CONTIGUOUS);
+    py_long_stencil =  PyArray_FROMANY(py_stencil, NPY_LONG, 2, 2,
+                                       NPY_C_CONTIGUOUS);
     if (!py_long_stencil)
       return NULL;
 
@@ -140,8 +128,7 @@ py_count_islands(PyObject *self, PyObject *args)
     stencil = default_stencil;
   }
 
-  py_bool_map = (PyArrayObject*) PyArray_FROMANY((PyObject *) py_map, NPY_BOOL,
-                                                 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
   if (!py_bool_map)
     return NULL;
 
@@ -227,9 +214,8 @@ py_count_segments(PyObject *self, PyObject *args)
   if (!py_map)
     return NULL;
 
-  PyArrayObject *py_bool_map = NULL;
-  py_bool_map = (PyArrayObject*) PyArray_FROMANY((PyObject *) py_map, NPY_BOOL,
-                                                 2, 2, NPY_C_CONTIGUOUS);
+  PyObject *py_bool_map = NULL;
+  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
   if (!py_bool_map)
     return NULL;
 
@@ -276,19 +262,16 @@ py_shortest_distance(PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "OOO|i", &py_fromc, &py_fromp, &py_to, &maxd))
     return NULL;
 
-  PyArrayObject *py_bool_fromc = NULL, *py_bool_fromp = NULL;
-  PyArrayObject *py_bool_to = NULL;
+  PyObject *py_bool_fromc = NULL, *py_bool_fromp = NULL;
+  PyObject *py_bool_to = NULL;
 
-  py_bool_fromc = (PyArrayObject*)
-    PyArray_FROMANY((PyObject *) py_fromc, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_fromc = PyArray_FROMANY(py_fromc, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
   if (!py_bool_fromc)
     return NULL;
-  py_bool_fromp = (PyArrayObject*)
-    PyArray_FROMANY((PyObject *) py_fromp, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_fromp = PyArray_FROMANY(py_fromp, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
   if (!py_bool_fromp)
     return NULL;
-  py_bool_to = (PyArrayObject*)
-    PyArray_FROMANY((PyObject *) py_to, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_to = PyArray_FROMANY(py_to, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
   if (!py_bool_to)
     return NULL;
 
@@ -518,10 +501,10 @@ py_distance_map(PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "O", &py_map_xy))
     return NULL;
 
-  PyArrayObject *py_bool_map_xy = NULL;
+  PyObject *py_bool_map_xy = NULL;
 
-  py_bool_map_xy = (PyArrayObject*)
-    PyArray_FROMANY((PyObject *) py_map_xy, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_map_xy = PyArray_FROMANY(py_map_xy, NPY_BOOL, 2, 2,
+                                   NPY_C_CONTIGUOUS);
   if (!py_bool_map_xy)
     return NULL;
 
@@ -583,14 +566,14 @@ py_correlation_function(PyObject *self, PyObject *args)
     return NULL;
   max_dist_sq = max_dist*max_dist;
 
-  PyArrayObject *py_double_map1 = NULL, *py_double_map2 = NULL;
+  PyObject *py_double_map1 = NULL, *py_double_map2 = NULL;
 
-  py_double_map1 = (PyArrayObject*)
-    PyArray_FROMANY((PyObject *) py_map1, NPY_DOUBLE, 2, 2, NPY_C_CONTIGUOUS);
+  py_double_map1 = PyArray_FROMANY(py_map1, NPY_DOUBLE, 2, 2,
+                                   NPY_C_CONTIGUOUS);
   if (!py_double_map1)
     return NULL;
-  py_double_map2 = (PyArrayObject*)
-    PyArray_FROMANY((PyObject *) py_map2, NPY_DOUBLE, 2, 2, NPY_C_CONTIGUOUS);
+  py_double_map2 = PyArray_FROMANY(py_map2, NPY_DOUBLE, 2, 2,
+                                   NPY_C_CONTIGUOUS);
   if (!py_double_map2)
     return NULL;
 
@@ -795,10 +778,9 @@ py_perimeter_length(PyObject *self, PyObject *args)
   if (!py_map)
     return NULL;
 
-  PyArrayObject *py_bool_map = NULL;
+  PyObject *py_bool_map = NULL;
 
-  py_bool_map = (PyArrayObject*) PyArray_FROMANY((PyObject *) py_map, NPY_BOOL,
-                                                 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
   if (!py_bool_map)
     return NULL;
 
