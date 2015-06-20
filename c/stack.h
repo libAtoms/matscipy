@@ -24,9 +24,10 @@
 #ifndef __STACK_H
 #define __STACK_H
 
+#include <cassert>
+#include <malloc.h>
 #include <string.h>
 #include <stdint.h>
-#include <malloc.h>
 
 class Stack {
  public:
