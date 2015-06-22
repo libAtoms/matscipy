@@ -156,11 +156,21 @@ bond1, bond2 = parameter('bond',
                          crack.find_tip_coordination(a, bondlength=bondlength))
 
 # Hydrogenate?
+coord = np.bincount(neighbour_list('i', a, bondlength), minlength=len(a))
+a.set_array('coord', coord)
+
+if parameter('optimize_full_crack_face', False):
+    g = a.get_array('groups')
+    gcryst = cryst.get_array('groups')
+    coord = a.get_array('coord')
+    g[coord!=4] = -1
+    gcryst[coord!=4] = -1
+    a.set_array('groups', g)
+    cryst.set_array('groups', gcryst)
+
 if hydrogenate_flag and hydrogenate_crack_face_flag:
     # Get surface atoms of cluster with crack
-    coord = np.bincount(neighbour_list('i', a, bondlength), minlength=len(a))
     exclude = np.logical_and(a.get_array('groups')==1, coord!=4)
-    a.set_array('coord', coord)
     a.set_array('exclude', exclude)
     a = hydrogenate(cryst, bondlength, parameter('XH_bondlength'), b=a,
                     exclude=exclude)
