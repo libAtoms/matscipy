@@ -239,16 +239,20 @@ for i, bond_length in enumerate(params.bond_lengths):
 
     if restart_from is not None:
         fn = '{0}/{1}'.format(restart_from, xyz_file)
-        logger.pr('Restart relaxation from {0}'.format(fn))
-        b = ase.io.read(fn)
-        mask = np.logical_or(b.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
-                             b.numbers == atomic_numbers[FITTED_CRACK_TIP])
-        del b[mask]
-        assert (a.numbers == b.numbers).all()
-        a = b
-        a.set_calculator(calc)
-        tip_x, tip_y, dummy = a.info['actual_crack_tip']
-        a.set_cell(original_cell, scale_atoms=True)
+        if os.path.exists(fn):
+            logger.pr('Restart relaxation from {0}'.format(fn))
+            b = ase.io.read(fn)
+            mask = np.logical_or(b.numbers == atomic_numbers[ACTUAL_CRACK_TIP],
+                                 b.numbers == atomic_numbers[FITTED_CRACK_TIP])
+            del b[mask]
+            print(len(a), len(b))
+            print(a.numbers)
+            print(b.numbers)
+            assert np.all(a.numbers == b.numbers)
+            a = b
+            a.set_calculator(calc)
+            tip_x, tip_y, dummy = a.info['actual_crack_tip']
+            a.set_cell(original_cell, scale_atoms=True)
 
     a.set_constraint(None)
     a.set_distance(bond1, bond2, bond_length)
