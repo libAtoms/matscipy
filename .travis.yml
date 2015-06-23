@@ -9,9 +9,10 @@ install:
   - "sudo apt-get update"
   - "sudo apt-get install python-numpy python-scipy"
   # Fetch and install ASE
-  - "curl https://wiki.fysik.dtu.dk/ase-files/python-ase-3.9.0.4465.tar.gz | tar -zvx ; cd python-ase-3.9.0.4465 ; python setup.py install ; cd .."
+  #- "curl https://wiki.fysik.dtu.dk/ase-files/python-ase-3.9.0.4465.tar.gz | tar -zvx ; cd python-ase-3.9.0.4465 ; python setup.py install ; cd .."
   #- "svn checkout https://svn.fysik.dtu.dk/projects/ase/trunk ase ; cd ase ; python setup.py install ; cd .."
-  - "python setup.py install"
+  #- "python setup.py install"
+  - "pip install -r requirements.txt"
 script:
   - "cd tests ; python run_tests.py"
 notifications:
