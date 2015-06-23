@@ -799,9 +799,12 @@ class SocketCalculator(Calculator):
     """
 
     implemented_properties = ['energy', 'forces', 'stress']
+    default_parameters = {}
     name = 'SocketCalculator'
     
     def __init__(self, client, ip=None, atoms=None, port=0, logger=screen):
+        Calculator.__init__(self)
+
         self.client = client
         if ip is None:
             ip = '127.0.0.1' # default to localhost

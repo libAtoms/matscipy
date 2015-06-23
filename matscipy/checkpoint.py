@@ -241,6 +241,7 @@ def atoms_almost_equal(a, b, tol=1e-9):
 
 class CheckpointCalculator(Calculator):
     implemented_properties = ase.calculators.calculator.all_properties
+    default_parameters = {}
     name = 'CheckpointCalculator'
 
     property_to_method_name = {
