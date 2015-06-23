@@ -799,6 +799,7 @@ class SocketCalculator(Calculator):
     """
 
     implemented_properties = ['energy', 'forces', 'stress']
+    name = 'SocketCalculator'
     
     def __init__(self, client, ip=None, atoms=None, port=0, logger=screen):
         self.client = client

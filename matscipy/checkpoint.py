@@ -241,6 +241,7 @@ def atoms_almost_equal(a, b, tol=1e-9):
 
 class CheckpointCalculator(Calculator):
     implemented_properties = ase.calculators.calculator.all_properties
+    name = 'CheckpointCalculator'
 
     property_to_method_name = {
         'energy': 'get_potential_energy',
@@ -283,7 +284,7 @@ class CheckpointCalculator(Calculator):
                     method_name = CheckpointCalculator.property_to_method_name[prop]
                     method = getattr(self.calculator, method_name)
                     results.append(method(atoms))
-            _calculator = atoms.get_calculator
+            _calculator = atoms.get_calculator()
             try:
                 atoms.set_calculator(self.calculator)
                 self.checkpoint.save(atoms, *results)
