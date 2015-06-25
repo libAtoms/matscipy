@@ -261,10 +261,14 @@ for i, ( k1, tip_dx, tip_dy ) in enumerate(zip(k1_list, tip_dx_list,
     b += ase.Atom('H', (tip_x, tip_y, b.cell[2, 2]/2))
 
     # Measure the true (fitted) crack tip position.
-    measured_tip_x, measured_tip_y = \
-        crk.crack_tip_position(a.positions[:,0], a.positions[:,1],
-                               cryst.positions[:,0], cryst.positions[:,1],
-                               tip_x, tip_y, k1*k1g, mask=mask)
+    try:
+        measured_tip_x, measured_tip_y = \
+            crk.crack_tip_position(a.positions[:,0], a.positions[:,1],
+                                   cryst.positions[:,0], cryst.positions[:,1],
+                                   tip_x, tip_y, k1*k1g, mask=mask)
+    except:
+        measured_tip_x = 0.0
+        measured_tip_y = 0.0
 
     # The fitted crack tip is marked by a Helium atom.
     b += ase.Atom('He', (measured_tip_x, measured_tip_y, b.cell[2, 2]/2))
