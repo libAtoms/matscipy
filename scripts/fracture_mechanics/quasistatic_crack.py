@@ -54,7 +54,7 @@ from ase.units import GPa
 
 import matscipy.fracture_mechanics.crack as crack
 from matscipy import parameter
-from matscipy.logger import Logger, screen
+from matscipy.logger import screen
 
 from setup_crack import setup_crack
 
@@ -66,7 +66,6 @@ import params
 ###
 
 logger = screen
-out = Logger('bond_length.out')
 
 ###
 
@@ -75,6 +74,7 @@ a, cryst, crk, k1g, tip_x0, tip_y0, bond1, bond2, boundary_mask, \
 ase.io.write('notch.xyz', a, format='extxyz')   
 
 # Global parameters
+basename = parameter('basename', 'quasistatic_crack')
 calc = parameter('calc')
 fmax = parameter('fmax', 0.01)
 
@@ -132,13 +132,13 @@ for i, ( k1, tip_dx, tip_dy ) in enumerate(zip(k1_list, tip_dx_list,
                   .format(tip_x, tip_y))
         # Scale strain field and optimize crack
         a.set_constraint(None)
-        x, y = crk.scale_displacements(a.positions[:,0],
-                                       a.positions[:,1],
+        x, y = crk.scale_displacements(a.positions[:len(cryst),0],
+                                       a.positions[:len(cryst),1],
                                        cryst.positions[:,0],
                                        cryst.positions[:,1],
                                        old_k1, k1)
-        a.positions[:,0] = x
-        a.positions[:,1] = y
+        a.positions[:len(cryst),0] = x
+        a.positions[:len(cryst),1] = y
         # Optimize atoms in center
         a.set_constraint(ase.constraints.FixAtoms(mask=boundary_mask))
         logger.pr('Optimizing positions...')
@@ -164,14 +164,16 @@ for i, ( k1, tip_dx, tip_dy ) in enumerate(zip(k1_list, tip_dx_list,
             crk.crack_tip_position(a.positions[:,0], a.positions[:,1],
                                    cryst.positions[:,0], cryst.positions[:,1],
                                    tip_x, tip_y, k1*k1g, mask=tip_mask)
+        measured_tip_x %= a.cell[0][0]
+        measured_tip_y %= a.cell[0][0]
     except:
         measured_tip_x = 0.0
         measured_tip_y = 0.0
 
     # The fitted crack tip is marked by a Helium atom.
     b += ase.Atom('He', (measured_tip_x, measured_tip_y, b.cell[2, 2]/2))
-    ase.io.write('step_%2.2i.xyz' % i, b, format='extxyz')
 
-    out.st(['k1', 'bond_length', 'tip_x', 'tip_y'],
-           [k1, a.get_distance(bond1, bond2), measured_tip_x,
-            measured_tip_y])
+    b.info['bond_length'] = a.get_distance(bond1, bond2)
+    b.info['energy'] = a.get_potential_energy()
+    b.info['cell_origin'] = [0, 0, 0]
+    ase.io.write('%s_%2.2i.xyz' % (basename, i), b, format='extxyz')
