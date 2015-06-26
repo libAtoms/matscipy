@@ -25,6 +25,28 @@ from matscipy.logger import screen
 
 ###
 
+def has_parameter(name):
+    """
+    Test if a parameter has been provided in params.py.
+
+    Parameters
+    ----------
+    name : str
+        Name of the parameter.
+
+    Returns
+    -------
+    value : bool
+        Returns True if parameter exists.
+    """
+    import sys
+    for x in ['.', '..']:
+        if x not in sys.path:
+            sys.path += [x]
+    import params
+    return name in params.__dict__
+
+
 def parameter(name, default=None, logger=screen):
     """
     Read parameter from params.py control file.
