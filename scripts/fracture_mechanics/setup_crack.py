@@ -98,6 +98,9 @@ def setup_crack(logger=screen):
     # Choose which bond to break.
     bond1, bond2 = \
         parameter('bond', crack.find_tip_coordination(a, bondlength=bondlength))
+
+    if parameter('center_crack_tip_on_bond', False):
+        tip_x, tip_z, dummy = (a.positions[bond1]+a.positions[bond2])/2
     
     # Hydrogenate?
     coord = np.bincount(neighbour_list('i', a, bondlength), minlength=len(a))
@@ -141,5 +144,8 @@ def setup_crack(logger=screen):
     a.translate([0., a.cell[1,1]/2.0 - 
                     (a.positions[bond1, 1] + 
                      a.positions[bond2, 1])/2.0, 0.])
+
+    a.info['bond1'] = bond1
+    a.info['bond2'] = bond2
     
     return a, cryst, crk, k1g, tip_x, tip_y, bond1, bond2, g==0, gcryst==0, g==1
