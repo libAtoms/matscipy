@@ -64,8 +64,8 @@ logger = screen
 
 ###
 
-a, cryst, crk, k1g, bond1, bond2, boundary_mask, boundary_mask_bulk, tip_mask =\
-  setup_crack(logger=logger)
+a, cryst, crk, k1g, tip_x, tip_y, bond1, bond2, boundary_mask, \
+    boundary_mask_bulk, tip_mask = setup_crack(logger=logger)
 ase.io.write('notch.xyz', a, format='extxyz')   
 
 # Get general parameters

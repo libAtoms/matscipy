@@ -77,8 +77,13 @@ def setup_crack(logger=screen):
         a = hydrogenate(cryst, bondlength, parameter('XH_bondlength'), b=a)
         cryst = a.copy()
     
+    k1 = parameter('k1')
+    try:
+      k1 = k1[0]
+    except:
+      pass
     ux, uy = crk.displacements(cryst.positions[:,0], cryst.positions[:,1],
-                               tip_x, tip_y, parameter('k1')*k1g)
+                               tip_x, tip_y, k1*k1g)
     a.positions[:len(cryst),0] += ux
     a.positions[:len(cryst),1] += uy
        
@@ -137,4 +142,4 @@ def setup_crack(logger=screen):
                     (a.positions[bond1, 1] + 
                      a.positions[bond2, 1])/2.0, 0.])
     
-    return a, cryst, crk, k1g, bond1, bond2, g==0, gcryst==0, g==1
+    return a, cryst, crk, k1g, tip_x, tip_y, bond1, bond2, g==0, gcryst==0, g==1
