@@ -22,15 +22,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-# -------------------------------------------------------------------------- #
-# --- EAM and EAM alloy toolbox - Adrien Gola - 30/06/15
-# -------------------------------------------------------------------------- #
-# considering the eam forumulation Ei =  F(sum f(r)) + sum rep(r)
-# eam alloy mixing = takes eam/alloy files name list as input and return corresponding source,parameters, F,f,rep 
-#	with rep containing the mixed interspecies interaction according to rep_ij = sqrt(rep_ii*rep_jj)
-# eam alloy writing = takes source,parameters, F,f,rep and an output file name and write the corresponding eam/alloy lammps file format
-# plot functions = takes eam or eam/alloy file (eam or eam/alloy as type for 2nd arg) and plot the corresponding functions F,f and rep.
-# -------------------------------------------------------------------------- #
 
 from __future__ import division
 import numpy as np
