@@ -303,12 +303,12 @@ def write_eam_alloy(source, parameters, F, f, rep,out_file):
             potfile.write("%.10e \n"%j)
         for j in f[i,i,:]:
             potfile.write("%.10e \n"%j)
-        for i in range(len(rep)):
-            for j in range(len(rep)):
-                if j < i :
-                    for h in rep[j,i,:]:
-                        potfile.write("%.10e \n"%h)
-            for h in rep[i,i,:]:
-                potfile.write("%.10e \n"%h)
+    for i in range(len(rep)):
+        for j in range(len(rep)):
+            if j < i :
+                for h in rep[j,i,:]:
+                    potfile.write("%.10e \n"%h)
+        for h in rep[i,i,:]:
+            potfile.write("%.10e \n"%h)
 
     potfile.close()  
