@@ -130,7 +130,7 @@ def read_eam_alloy(eam_alloy_file):
     drho = float(eam[4].split()[1])	# spacing in density space
     dr = float(eam[4].split()[3]) # spacing in distance space
     cutoff = float(eam[4].split()[4])
-    atnumber,atmass,crystallatt,crystal = np.empty(nb_atoms),np.empty(nb_atoms),np.empty(nb_atoms),np.empty(nb_atoms).astype(np.str)
+    atnumber,atmass,crystallatt,crystal = np.empty(nb_atoms,dtype=int),np.empty(nb_atoms),np.empty(nb_atoms),np.empty(nb_atoms).astype(np.str)
     for i in range(nb_atoms):
 	l = len(eam[6].strip().split())
 	row = int(5+i*((Nr+Nrho)/l+1))
@@ -138,7 +138,7 @@ def read_eam_alloy(eam_alloy_file):
 	atmass[i] = float(eam[row].split()[1])
 	crystallatt[i] = float(eam[row].split()[2])
 	crystal[i] = str(eam[row].split()[3])
-    parameters = np.array((atoms, atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff))
+    parameters = (atoms, atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff)
     # -- Tabulated data -- #
     eam_tmp = open(eam_alloy_file+"_tmp",'w')
     crysstr = ["FCC","fcc","BCC","bcc","HCP","hcp"]
