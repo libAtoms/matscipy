@@ -26,7 +26,13 @@ import unittest
 from analysis import *
 from angle_distribution import *
 from cubic_crystal_crack import *
-from eam_calculator import *
+try:
+    from scipy.interpolate import InterpolatedUnivariateSpline
+except:
+    print('No scipy.interpolate.InterpolatedUnivariateSpline, skipping '
+          'EAM test.')
+else:
+	from eam_calculator import *
 from elastic_moduli import *
 from fit_elastic_constants import *
 from full_to_Voigt import *
