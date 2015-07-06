@@ -315,7 +315,7 @@ def write_eam_alloy(source, parameters, F, f, rep,out_file):
     
 def write_eam(source, parameters, F, f, rep,out_file):
     """
-    Write an eam alloy lammps format file 
+    Write an eam lammps format file 
     http://lammps.sandia.gov/doc/pair_eam.html
     
     Parameters
