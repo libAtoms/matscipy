@@ -312,3 +312,56 @@ def write_eam_alloy(source, parameters, F, f, rep,out_file):
             potfile.write("%.10e \n"%h)
 
     potfile.close()  
+    
+def write_eam(source, parameters, F, f, rep,out_file):
+    """
+    Write an eam alloy lammps format file 
+    http://lammps.sandia.gov/doc/pair_eam.html
+    
+    Parameters
+    ----------
+    source : string
+	  Source information or comment line for the file header
+    parameters : array_like
+		[0] - array of int - atomic numbers
+		[1] - array of float -atomic masses
+		[2] - array of float - equilibrium lattice parameter
+		[3] - array of str - crystal structure
+		[4] - int - number of data point for embedded function
+		[5] - int - number of data point for density and pair functions
+		[6] - float - step size for the embedded function
+		[7] - float - step size for the density and pair functions
+		[8] - float - cutoff of the potentials
+    F : array_like
+	contain the tabulated values of the embedded functions
+	shape = (nb of data points)
+    f : array_like
+	contain the tabulated values of the density functions
+	shape = (nb of data points)
+    rep : array_like
+	contain the tabulated values of pair potential
+	shape = (nb of data points)
+    out_file : string
+	      output file name for the eam alloy potential file
+    Returns
+    -------
+      
+    """
+    atnumber,atmass,crystallatt,crystal = parameters[0],parameters[1],parameters[2],parameters[3]
+    Nrho,Nr, drho, dr, cutoff = parameters[4],parameters[5],parameters[6],parameters[7],parameters[8]
+    # parameters unpacked
+    atline = "%i %f %f %s\n"%(int(atnumber),float(atmass),float(crystallatt),str(crystal))
+    pottitle = "# EAM potential from : # %s \n"%(source)
+    # --- Writing new EAM alloy pot file --- #
+    potfile = open(out_file,'w')
+    potfile.write(pottitle)
+    potfile.write(atline)
+    potfile.write('%i\t%.16e\t%i\t%.16e\t%.10e\n'%(int(Nrho),float(drho),int(Nr),float(dr),float(cutoff)))
+    for i in F:
+	potfile.write("%.16e \n"%i)
+    for i in f:
+	potfile.write("%.16e \n"%i)
+    for i in rep:
+	potfile.write("%.16e \n"%i)
+
+    potfile.close()  
