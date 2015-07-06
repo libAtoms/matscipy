@@ -21,30 +21,40 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import print_function
+
+import random
 import unittest
 
-from analysis import *
-from angle_distribution import *
-from cubic_crystal_crack import *
-try:
-    from scipy.interpolate import InterpolatedUnivariateSpline
-except:
-    print('No scipy.interpolate.InterpolatedUnivariateSpline, skipping '
-          'EAM test.')
-else:
-	from eam_calculator import *
-from elastic_moduli import *
-from fit_elastic_constants import *
-from full_to_Voigt import *
-from greens_function import *
-from Hertz import *
-from hydrogenate import *
-from invariants import *
-from neighbours import *
-from ring_statistics import *
-from rotation_of_elastic_constants import *
+import numpy as np
+
+import ase.io as io
+from ase.calculators.test import numeric_force
+
+import matscipytest
+from matscipy.eam.calculator import EAM
 
 ###
 
-unittest.main()
+class TestEAMCalculator(matscipytest.MatSciPyTestCase):
 
+    disp = 1e-6
+    tol = 1e-6
+
+    def test_forces(self):
+        for calc in [EAM('Au-Grochola-JCP05.eam.alloy')]:
+            a = io.read('Au_923.xyz')
+            a.center(vacuum=10.0)
+            a.set_calculator(calc)
+            f = a.get_forces()
+            random.seed()
+            for dummy in range(10):
+                i = random.randrange(len(a))
+                d = random.randrange(3)
+                self.assertTrue((numeric_force(a, i, d, self.disp)-f[i, d]) <
+                                self.tol)
+
+###
+
+if __name__ == '__main__':
+    unittest.main()
