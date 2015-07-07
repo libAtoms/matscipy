@@ -50,19 +50,17 @@ class EAM(Calculator):
             self.cutoff = parameters
 
         # Create spline interpolation
-        self.F = [[InterpolatedUnivariateSpline(np.arange(len(x))*dF, x)
-                   for x in y]
-                  for y in F]
-        self.f = [[InterpolatedUnivariateSpline(np.arange(len(x))*df, x)
-                   for x in y]
-                  for y in f]
+        self.F = [InterpolatedUnivariateSpline(np.arange(len(x))*dF, x)
+                  for x in F]
+        self.f = [InterpolatedUnivariateSpline(np.arange(len(x))*df, x)
+                  for x in f]
         self.rep = [[InterpolatedUnivariateSpline(np.arange(len(x))*df, x)
                      for x in y]
                     for y in rep]
 
         # Derivative of spline interpolation
-        self.dF = [[x.derivative() for x in y] for y in self.F]
-        self.df = [[x.derivative() for x in y] for y in self.f]
+        self.dF = [x.derivative() for x in self.F]
+        self.df = [x.derivative() for x in self.f]
         self.drep = [[x.derivative() for x in y] for y in self.rep]
 
     def calculate(self, atoms, properties, system_changes):
@@ -73,12 +71,12 @@ class EAM(Calculator):
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', self.atoms,
                                                    self.cutoff)
 
-        f = self.f[0][0]
-        F = self.F[0][0]
+        f = self.f[0]
+        F = self.F[0]
         rep = self.rep[0][0]
 
-        df = self.df[0][0]
-        dF = self.dF[0][0]
+        df = self.df[0]
+        dF = self.dF[0]
         drep = self.drep[0][0]
 
         # Density
