@@ -111,10 +111,10 @@ def read_eam_alloy(eam_alloy_file):
                 [9] - float - cutoff of the potentials
       F : array_like
           contain the tabulated values of the embedded functions
-          shape = (nb atoms,nb atoms, nb of data points)
+          shape = (nb atoms, nb of data points)
       f : array_like
           contain the tabulated values of the density functions
-          shape = (nb atoms,nb atoms, nb of data points)
+          shape = (nb atoms, nb of data points)
       rep : array_like
           contain the tabulated values of pair potential
           shape = (nb atoms,nb atoms, nb of data points)
@@ -151,10 +151,10 @@ def read_eam_alloy(eam_alloy_file):
             eam_tmp.write(line)
     eam_tmp.close()
     data = np.genfromtxt(eam_alloy_file+"_tmp", dtype="float", skip_header = 6 , comments = "#").flatten()
-    F,f,rep = np.empty((nb_atoms,nb_atoms,Nrho)),np.empty((nb_atoms,nb_atoms,Nr)),np.empty((nb_atoms,nb_atoms,Nr))
+    F,f,rep = np.empty((nb_atoms,Nrho)),np.empty((nb_atoms,Nr)),np.empty((nb_atoms,nb_atoms,Nr))
     for i in range(nb_atoms):
-        F[i,i,:] = data[i*(Nrho+Nr):Nrho+i*(Nrho+Nr)]
-        f[i,i,:] = data[Nrho+i*(Nrho+Nr):Nrho+Nr+i*(Nrho+Nr)]
+        F[i,:] = data[i*(Nrho+Nr):Nrho+i*(Nrho+Nr)]
+        f[i,:] = data[Nrho+i*(Nrho+Nr):Nrho+Nr+i*(Nrho+Nr)]
     interaction = 0
     for i in range(nb_atoms):
         for j in range(nb_atoms):
@@ -269,10 +269,10 @@ def write_eam_alloy(source, parameters, F, f, rep,out_file):
                 [9] - float - cutoff of the potentials
     F : array_like
         contain the tabulated values of the embedded functions
-        shape = (nb atoms,nb atoms, nb of data points)
+        shape = (nb atoms, nb of data points)
     f : array_like
         contain the tabulated values of the density functions
-        shape = (nb atoms,nb atoms, nb of data points)
+        shape = (nb atoms, nb of data points)
     rep : array_like
         contain the tabulated values of pair potential
         shape = (nb atoms,nb atoms, nb of data points)
@@ -299,17 +299,17 @@ def write_eam_alloy(source, parameters, F, f, rep,out_file):
     potfile.write('%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff))
     for i,at in enumerate(atoms):
         potfile.write(atlines[i])
-        for j in F[i,i,:]:
-            potfile.write("%.10e \n"%j)
-        for j in f[i,i,:]:
-            potfile.write("%.10e \n"%j)
+        for j in F[i,:]:
+            potfile.write("%.16e \n"%j)
+        for j in f[i,:]:
+            potfile.write("%.16e \n"%j)
     for i in range(len(rep)):
         for j in range(len(rep)):
             if j < i :
-                for h in rep[j,i,:]:
-                    potfile.write("%.10e \n"%h)
+                for h in rep[i,j,:]:
+                    potfile.write("%.16e \n"%h)
         for h in rep[i,i,:]:
-            potfile.write("%.10e \n"%h)
+            potfile.write("%.16e \n"%h)
 
     potfile.close()  
     
