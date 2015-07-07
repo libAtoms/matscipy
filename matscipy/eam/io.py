@@ -140,30 +140,25 @@ def read_eam_alloy(eam_alloy_file):
         crystal[i] = str(eam[row].split()[3])
     parameters = (atoms, atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff)
     # -- Tabulated data -- #
-    eam_tmp = open(eam_alloy_file+"_tmp",'w')
-    crysstr = ["FCC","fcc","BCC","bcc","HCP","hcp"]
-    for i,line in enumerate(eam):
-        if i < 6 :
-            eam_tmp.write("#"+line)
-        elif line.strip().split()[-1] in crysstr :
-            eam_tmp.write("#"+line)
-        else:
-            eam_tmp.write(line)
-    eam_tmp.close()
-    data = np.genfromtxt(eam_alloy_file+"_tmp", dtype="float", skip_header = 6 , comments = "#").flatten()
-    F,f,rep = np.empty((nb_atoms,Nrho)),np.empty((nb_atoms,Nr)),np.empty((nb_atoms,nb_atoms,Nr))
+    F,f,rep,data = np.empty((nb_atoms,Nrho)),np.empty((nb_atoms,Nr)),np.empty((nb_atoms,nb_atoms,Nr)),np.empty(())
+    eam = open(eam_alloy_file,'r')
+    [eam.readline() for i in range(5)]
     for i in range(nb_atoms):
-        F[i,:] = data[i*(Nrho+Nr):Nrho+i*(Nrho+Nr)]
-        f[i,:] = data[Nrho+i*(Nrho+Nr):Nrho+Nr+i*(Nrho+Nr)]
+        eam.readline()
+        data = np.append(data,np.fromfile(eam,count=Nrho+Nr, sep=' '))
+    data = np.append(data,np.fromfile(eam,count=-1, sep=' '))
+    data = data[1:]
+    for i in range(nb_atoms):
+	F[i,:] = data[i*(Nrho+Nr):Nrho+i*(Nrho+Nr)]
+	f[i,:] = data[Nrho+i*(Nrho+Nr):Nrho+Nr+i*(Nrho+Nr)]
     interaction = 0
     for i in range(nb_atoms):
-        for j in range(nb_atoms):
-            if j < i :
-              rep[i,j,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
-              interaction+=1
-        rep[i,i,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
-        interaction+=1
-    os.remove(eam_alloy_file+"_tmp")
+	for j in range(nb_atoms):
+	    if j < i :
+	      rep[i,j,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
+	      interaction+=1
+	rep[i,i,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
+	interaction+=1
     return source,parameters, F,f,rep
 
 def mix_eam_alloy(files):
