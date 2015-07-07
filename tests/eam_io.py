@@ -66,8 +66,8 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
         self.assertTrue((F == F1).all())
         self.assertTrue((f == f1).all())
         for i in range(len(rep)):
-	    for j in range(len(rep)):
-	        if j < i :
+            for j in range(len(rep)):
+                if j < i :
                     self.assertTrue((rep[i,j,:] == rep1[i,j,:]).all())
 
 ###
