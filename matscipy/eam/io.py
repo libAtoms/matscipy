@@ -154,16 +154,16 @@ def read_eam_alloy(eam_alloy_file):
     data = np.append(data,np.fromfile(eam,count=-1, sep=' '))
     data = data[1:]
     for i in range(nb_atoms):
-	F[i,:] = data[i*(Nrho+Nr):Nrho+i*(Nrho+Nr)]
-	f[i,:] = data[Nrho+i*(Nrho+Nr):Nrho+Nr+i*(Nrho+Nr)]
+        F[i,:] = data[i*(Nrho+Nr):Nrho+i*(Nrho+Nr)]
+        f[i,:] = data[Nrho+i*(Nrho+Nr):Nrho+Nr+i*(Nrho+Nr)]
     interaction = 0
     for i in range(nb_atoms):
-	for j in range(nb_atoms):
-	    if j < i :
-	      rep[i,j,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
-	      interaction+=1
-	rep[i,i,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
-	interaction+=1
+        for j in range(nb_atoms):
+            if j < i :
+                rep[i,j,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
+                interaction+=1
+        rep[i,i,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
+        interaction+=1
     return source,parameters, F,f,rep
 
 def mix_eam_alloy(files):
