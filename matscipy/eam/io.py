@@ -23,9 +23,14 @@
 # ======================================================================
 
 
-from __future__ import division
+from __future__ import division, print_function
+
 import numpy as np
-from scipy import interpolate
+try:
+    from scipy import interpolate
+except:
+    print('Warning: No scipy')
+    interpolate = False
 
 import os
 
