@@ -82,7 +82,7 @@ def read_eam(eam_file):
     drho = float(eam[2].split()[1])     # spacing in density space
     dr = float(eam[2].split()[3]) # spacing in distance space
     cutoff = float(eam[2].split()[4])
-    parameters = np.array([atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff])
+    parameters = (atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff)
     # -- Tabulated data -- #
     data = np.loadtxt(eam_file, dtype="float", skiprows = 3).flatten()
     F = data[0:Nrho]
