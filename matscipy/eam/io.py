@@ -49,7 +49,7 @@ def read_eam(eam_file):
     -------
       source : string
           Source informations or comment line for the file header
-      parameters : array_like
+      parameters : list of tuples
                 [0] - array of int - atomic numbers
                 [1] - array of float -atomic masses
                 [2] - array of float - equilibrium lattice parameter
@@ -103,7 +103,7 @@ def read_eam_alloy(eam_alloy_file):
     -------
       source : string
           Source informations or comment line for the file header
-      parameters : array_like
+      parameters : list of tuples
                 [0] - array of str - atoms 
                 [1] - array of int - atomic numbers
                 [2] - array of float -atomic masses
@@ -256,7 +256,7 @@ def write_eam_alloy(source, parameters, F, f, rep,out_file):
     ----------
     source : string
           Source information or comment line for the file header
-    parameters : array_like
+    parameters : list of tuples
                 [0] - array of str - atoms 
                 [1] - array of int - atomic numbers
                 [2] - array of float -atomic masses
@@ -284,33 +284,17 @@ def write_eam_alloy(source, parameters, F, f, rep,out_file):
     """
     atoms,atnumber,atmass,crystallatt,crystal = parameters[0],parameters[1],parameters[2],parameters[3],parameters[4]
     Nrho,Nr, drho, dr, cutoff = parameters[5],parameters[6],parameters[7],parameters[8],parameters[9]  
+    nb_atoms = len(atoms)
     # parameters unpacked
-    atlines = []
-    for i,at in enumerate(atoms):
-        atlines.append('%i\t%f\t%f\t%s\n'%(atnumber[i],atmass[i],crystallatt[i],crystal[i]))
-    pottitle = "# Mixed EAM alloy potential from :\n#%s \n#\n"%(source)
+    potheader = "# Mixed EAM alloy potential from :\n# %s \n# \n"%(source)
     # --- Writing new EAM alloy pot file --- #
     potfile = open(out_file,'w')
-    potfile.write(pottitle)
-    potfile.write('%i '%len(atoms))
-    for at in atoms:
-        potfile.write(at+' ')
-    potfile.write('\n')
-    potfile.write('%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff))
-    for i,at in enumerate(atoms):
-        potfile.write(atlines[i])
-        for j in F[i,:]:
-            potfile.write("%.16e \n"%j)
-        for j in f[i,:]:
-            potfile.write("%.16e \n"%j)
-    for i in range(len(rep)):
-        for j in range(len(rep)):
-            if j < i :
-                for h in rep[i,j,:]:
-                    potfile.write("%.16e \n"%h)
-        for h in rep[i,i,:]:
-            potfile.write("%.16e \n"%h)
-
+    # write header and file parameters
+    np.savetxt(potfile,atoms,fmt="%s",newline=' ', header=potheader+str(nb_atoms),footer='\n%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff), comments='')
+    # write F and f tables
+    [np.savetxt(potfile,np.append(F[i,:],f[i,:]),fmt="%.16e",header='%i\t%f\t%f\t%s'%(atnumber[i],atmass[i],crystallatt[i],crystal[i]),comments='') for i in range(nb_atoms)]
+    # write pair interactions tables
+    [[np.savetxt(potfile,rep[i,j,:],fmt="%.16e") for j in range(rep.shape[0]) if j <= i] for i in range(rep.shape[0])]
     potfile.close()  
     
 def write_eam(source, parameters, F, f, rep,out_file):
@@ -322,7 +306,7 @@ def write_eam(source, parameters, F, f, rep,out_file):
     ----------
     source : string
           Source information or comment line for the file header
-    parameters : array_like
+    parameters : list of tuples
                 [0] - array of int - atomic numbers
                 [1] - array of float -atomic masses
                 [2] - array of float - equilibrium lattice parameter
@@ -350,18 +334,15 @@ def write_eam(source, parameters, F, f, rep,out_file):
     atnumber,atmass,crystallatt,crystal = parameters[0],parameters[1],parameters[2],parameters[3]
     Nrho,Nr, drho, dr, cutoff = parameters[4],parameters[5],parameters[6],parameters[7],parameters[8]
     # parameters unpacked
-    atline = "%i %f %f %s\n"%(int(atnumber),float(atmass),float(crystallatt),str(crystal))
-    pottitle = "# EAM potential from : # %s \n"%(source)
+    atline = "%i %f %f %s"%(int(atnumber),float(atmass),float(crystallatt),str(crystal))
+    parameterline = '%i\t%.16e\t%i\t%.16e\t%.10e'%(int(Nrho),float(drho),int(Nr),float(dr),float(cutoff))
+    potheader = "# EAM potential from : # %s \n %s \n %s"%(source,atline,parameterline)
     # --- Writing new EAM alloy pot file --- #
+    # write header and file parameters
     potfile = open(out_file,'w')
-    potfile.write(pottitle)
-    potfile.write(atline)
-    potfile.write('%i\t%.16e\t%i\t%.16e\t%.10e\n'%(int(Nrho),float(drho),int(Nr),float(dr),float(cutoff)))
-    for i in F:
-        potfile.write("%.16e \n"%i)
-    for i in f:
-        potfile.write("%.16e \n"%i)
-    for i in rep:
-        potfile.write("%.16e \n"%i)
-
+    # write F and f tables
+    np.savetxt(potfile, F, fmt='%.16e',header=potheader,comments='')
+    np.savetxt(potfile, f, fmt='%.16e')
+    # write pair interactions tables
+    np.savetxt(potfile, rep, fmt='%.16e')
     potfile.close()  
