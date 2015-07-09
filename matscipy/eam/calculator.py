@@ -42,12 +42,16 @@ class EAM(Calculator):
     default_parameters = {}
     name = 'CheckpointCalculator'
        
-    def __init__(self, fn, kind='linear'):
+    def __init__(self, fn):
         Calculator.__init__(self)        
         source, parameters, F, f, rep = read_eam_alloy(fn)
-        atoms, self.atomic_numbers, atomic_masses, lattice_constants, \
+        atoms, self.atnums, atomic_masses, lattice_constants, \
             crystal_structure, nF, nf, dF, df, \
             self.cutoff = parameters
+
+        self.atnum_to_index = -np.ones(np.max(self.atnums)+1, dtype=int)
+        self.atnum_to_index[self.atnums] = \
+            np.arange(len(self.atnums))
 
         # Create spline interpolation
         self.F = [InterpolatedUnivariateSpline(np.arange(len(x))*dF, x)
@@ -67,32 +71,56 @@ class EAM(Calculator):
         Calculator.calculate(self, atoms, properties, system_changes)
 
         nat = len(self.atoms)
+        atnums = self.atoms.numbers
+
+        atnums_in_system = set(atnums)
+        for atnum in atnums_in_system:
+            if atnum not in self.atnums:
+                raise RuntimeError('Element with atomic number {} found, but '
+                                   'this atomic number has no EAM '
+                                   'parameterization'.format(atnum))
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', self.atoms,
                                                    self.cutoff)
 
-        f = self.f[0]
-        F = self.F[0]
-        rep = self.rep[0][0]
-
-        df = self.df[0]
-        dF = self.dF[0]
-        drep = self.drep[0][0]
-
         # Density
-        f_n = f(abs_dr_n)
+        f_n = np.zeros_like(abs_dr_n)
+        df_n = np.zeros_like(abs_dr_n)
+        for atidx, atnum in enumerate(self.atnums):
+            f = self.f[atidx]
+            df = self.df[atidx]
+            mask = atnums[j_n]==atnum
+            if mask.sum() > 0:
+                f_n[mask] = f(abs_dr_n[mask])
+                df_n[mask] = df(abs_dr_n[mask])
+
         density_i = np.bincount(i_n, weights=f_n, minlength=nat)
 
         # Repulsion
-        rep_n = rep(abs_dr_n)/abs_dr_n
+        rep_n = np.zeros_like(abs_dr_n)
+        drep_n = np.zeros_like(abs_dr_n)
+        for atidx1, atnum1 in enumerate(self.atnums):
+            for atidx2, atnum2 in enumerate(self.atnums):
+                rep = self.rep[atidx1][atidx2]
+                drep = self.drep[atidx1][atidx2]
+                mask = np.logical_and(atnums[i_n]==atnum1, atnums[j_n]==atnum2)
+                if mask.sum() > 0:
+                    r = rep(abs_dr_n[mask])/abs_dr_n[mask]
+                    rep_n[mask] = r
+                    drep_n[mask] = (drep(abs_dr_n[mask])-r)/abs_dr_n[mask]
 
         # Energy
-        epot = np.sum(F(density_i)) + 0.5*np.sum(rep_n)
+        epot = 0.5*np.sum(rep_n)
+        demb_i = np.zeros(len(self.atoms))
+        for atidx, atnum in enumerate(self.atnums):
+            F = self.F[atidx]
+            dF = self.dF[atidx]
+            mask = atnums==atnum
+            if mask.sum() > 0:
+                epot += np.sum(F(density_i[mask]))
+                demb_i[mask] += dF(density_i[mask])
 
         # Forces
-        df_n = df(abs_dr_n)
-        demb_i = dF(density_i)
-        drep_n = (drep(abs_dr_n)-rep_n)/abs_dr_n
         df_nc = -0.5*((demb_i[i_n]+demb_i[j_n])*df_n+drep_n).reshape(-1,1)*dr_nc/abs_dr_n.reshape(-1,1)
 
         # Sum for each atom
