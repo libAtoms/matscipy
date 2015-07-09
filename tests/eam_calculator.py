@@ -30,7 +30,8 @@ import numpy as np
 
 import ase.io as io
 from ase.calculators.test import numeric_force
-from ase.constraints import StrainFilter
+from ase.constraints import StrainFilter, UnitCellFilter
+from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.optimize import FIRE
 from ase.units import GPa
@@ -113,6 +114,51 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         C11, C12, C44 = Voigt_6x6_to_cubic(C)
         self.assertTrue(abs((C11-C12)/GPa-32.07)<0.7)
         self.assertTrue(abs(C44/GPa-45.94)<0.5)
+
+    def test_CuAg(self):
+        a = FaceCenteredCubic('Cu', size=[2,2,2])
+        calc = EAM('CuAg.eam.alloy')
+        a.set_calculator(calc)
+        FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        e_Cu = a.get_potential_energy()/len(a)
+
+        a = FaceCenteredCubic('Ag', size=[2,2,2])
+        a.set_calculator(calc)
+        FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        e_Ag = a.get_potential_energy()/len(a)
+        self.assertTrue(abs(e_Ag+2.85)<1e-6)
+
+        a = L1_2(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+        a.set_calculator(calc)
+        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        e = a.get_potential_energy()
+        syms = np.array(a.get_chemical_symbols())
+        self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
+                               (syms=='Ag').sum()*e_Ag)/len(a)-0.096)<0.0005)
+
+        a = B1(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+        a.set_calculator(calc)
+        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        e = a.get_potential_energy()
+        syms = np.array(a.get_chemical_symbols())
+        self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
+                               (syms=='Ag').sum()*e_Ag)/len(a)-0.516)<0.0005)
+
+        a = B2(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+        a.set_calculator(calc)
+        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        e = a.get_potential_energy()
+        syms = np.array(a.get_chemical_symbols())
+        self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
+                               (syms=='Ag').sum()*e_Ag)/len(a)-0.177)<0.0003)
+
+        a = L1_2(['Cu', 'Ag'], size=[2,2,2], latticeconstant=4.0)
+        a.set_calculator(calc)
+        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        e = a.get_potential_energy()
+        syms = np.array(a.get_chemical_symbols())
+        self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
+                               (syms=='Ag').sum()*e_Ag)/len(a)-0.083)<0.0005)
 
 ###
 
