@@ -38,7 +38,7 @@ from matscipy.neighbours import neighbour_list
 ###
 
 class EAM(Calculator):
-    implemented_properties = ['energy', 'forces']
+    implemented_properties = ['energy', 'stress', 'forces']
     default_parameters = {}
     name = 'CheckpointCalculator'
        
@@ -131,5 +131,14 @@ class EAM(Calculator):
         fz_i = np.bincount(j_n, weights=df_nc[:,2], minlength=nat) - \
             np.bincount(i_n, weights=df_nc[:,2], minlength=nat)
 
+        # Virial
+        virial_v = -np.array([dr_nc[:,0]*df_nc[:,0],               # xx
+                              dr_nc[:,1]*df_nc[:,1],               # yy
+                              dr_nc[:,2]*df_nc[:,2],               # zz
+                              dr_nc[:,1]*df_nc[:,2],               # yz
+                              dr_nc[:,0]*df_nc[:,2],               # xz
+                              dr_nc[:,0]*df_nc[:,1]]).sum(axis=1)  # xy
+
         self.results = {'energy': epot,
+                        'stress': virial_v/self.atoms.get_volume(),
                         'forces': np.transpose([fx_i, fy_i, fz_i])}
