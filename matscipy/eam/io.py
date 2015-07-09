@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # ======================================================================
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
@@ -161,6 +159,7 @@ def read_eam_alloy(eam_alloy_file):
         for j in range(nb_atoms):
             if j < i :
                 rep[i,j,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
+                rep[j,i,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
                 interaction+=1
         rep[i,i,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
         interaction+=1
