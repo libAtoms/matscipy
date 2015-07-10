@@ -30,7 +30,13 @@ import numpy as np
 
 import os
 from matscipy.eam.io import read_eam,read_eam_alloy,write_eam,write_eam_alloy,mix_eam_alloy
-from matscipy.eam.calculator import EAM
+try:
+    from scipy import interpolate
+    from matscipy.eam.calculator import EAM
+except:
+    print('Warning: No scipy')
+    interpolate = False
+
 
 import ase.io as io
 from ase.calculators.test import numeric_force
