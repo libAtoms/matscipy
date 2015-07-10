@@ -40,7 +40,7 @@ from matscipy.neighbours import neighbour_list
 class EAM(Calculator):
     implemented_properties = ['energy', 'stress', 'forces']
     default_parameters = {}
-    name = 'CheckpointCalculator'
+    name = 'EAM'
        
     def __init__(self, fn=None, atomic_numbers=None, F=None, f=None, rep=None,
                  cutoff=None):
