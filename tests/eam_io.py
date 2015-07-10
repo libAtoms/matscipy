@@ -156,8 +156,8 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
             os.remove("CuAu_mixed.eam.alloy")
           
         except:
-	    print('Warning: No scipy')
-	    print('Cannot test mix_eam_alloy')
+            print('Warning: No scipy')
+            print('Cannot test mix_eam_alloy')
             
 ###
 
