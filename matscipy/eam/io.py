@@ -23,6 +23,8 @@
 
 from __future__ import division, print_function
 
+from collections import namedtuple
+
 import numpy as np
 try:
     from scipy import interpolate
@@ -31,6 +33,15 @@ except:
     interpolate = False
 
 import os
+
+###
+
+EAMParameters = namedtuple('EAMParameters', 'symbols atomic_numbers '
+                           'atomic_masses lattice_constants crystal_structures '
+                           'number_of_density_grid_points '
+                           'number_of_distance_grid_points '
+                           'density_grid_spacing distance_grid_spacing '
+                           'cutoff')
 
 ###
 
@@ -141,14 +152,7 @@ def read_eam_alloy(eam_alloy_file):
         atmass[i] = float(eam[row].split()[1])
         crystallatt[i] = float(eam[row].split()[2])
         crystal[i] = str(eam[row].split()[3])
-    parameters = dict(symbols=atoms,
-                      atomic_numbers=atnumber,
-                      atomic_masses=atmass,
-                      lattice_constant=crystallatt,
-                      crystal_structure=crystal,
-                      density_grid_spacing=drho,
-                      distance_grid_spacing=dr,
-                      cutoff=cutoff)
+    parameters = EAMParameters(atoms,atnumber,atmass,crystallatt,crystal,Nrho,Nr,drho,dr,cutoff)
     # -- Tabulated data -- #
     F,f,rep,data = np.empty((nb_atoms,Nrho)),np.empty((nb_atoms,Nr)),np.empty((nb_atoms,nb_atoms,Nr)),np.empty(())
     eam = open(eam_alloy_file,'r')

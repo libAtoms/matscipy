@@ -47,10 +47,10 @@ class EAM(Calculator):
         Calculator.__init__(self)
         if fn is not None:
             source, parameters, F, f, rep = read_eam_alloy(fn)
-            self.atnums = parameters['atomic_numbers']
-            self.cutoff = parameters['cutoff']
-            dr = parameters['distance_grid_spacing']
-            dF = parameters['density_grid_spacing']
+            self.atnums = parameters.atomic_numbers
+            self.cutoff = parameters.cutoff
+            dr = parameters.distance_grid_spacing
+            dF = parameters.density_grid_spacing
 
             # Create spline interpolation
             self.F = [InterpolatedUnivariateSpline(np.arange(len(x))*dF, x)
