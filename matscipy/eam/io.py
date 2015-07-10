@@ -141,7 +141,14 @@ def read_eam_alloy(eam_alloy_file):
         atmass[i] = float(eam[row].split()[1])
         crystallatt[i] = float(eam[row].split()[2])
         crystal[i] = str(eam[row].split()[3])
-    parameters = (atoms, atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff)
+    parameters = dict(symbols=atoms,
+                      atomic_numbers=atnumber,
+                      atomic_masses=atmass,
+                      lattice_constant=crystallatt,
+                      crystal_structure=crystal,
+                      density_grid_spacing=drho,
+                      distance_grid_spacing=dr,
+                      cutoff=cutoff)
     # -- Tabulated data -- #
     F,f,rep,data = np.empty((nb_atoms,Nrho)),np.empty((nb_atoms,Nr)),np.empty((nb_atoms,nb_atoms,Nr)),np.empty(())
     eam = open(eam_alloy_file,'r')

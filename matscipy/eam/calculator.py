@@ -42,25 +42,34 @@ class EAM(Calculator):
     default_parameters = {}
     name = 'CheckpointCalculator'
        
-    def __init__(self, fn):
-        Calculator.__init__(self)        
-        source, parameters, F, f, rep = read_eam_alloy(fn)
-        atoms, self.atnums, atomic_masses, lattice_constants, \
-            crystal_structure, nF, nf, dF, df, \
-            self.cutoff = parameters
+    def __init__(self, fn=None, atomic_numbers=None, F=None, f=None, rep=None,
+                 cutoff=None):
+        Calculator.__init__(self)
+        if fn is not None:
+            source, parameters, F, f, rep = read_eam_alloy(fn)
+            self.atnums = parameters['atomic_numbers']
+            self.cutoff = parameters['cutoff']
+            dr = parameters['distance_grid_spacing']
+            dF = parameters['density_grid_spacing']
+
+            # Create spline interpolation
+            self.F = [InterpolatedUnivariateSpline(np.arange(len(x))*dF, x)
+                      for x in F]
+            self.f = [InterpolatedUnivariateSpline(np.arange(len(x))*dr, x)
+                      for x in f]
+            self.rep = [[InterpolatedUnivariateSpline(np.arange(len(x))*dr, x)
+                         for x in y]
+                        for y in rep]
+        else:
+            self.atnums = atomic_numbers
+            self.F = F
+            self.f = f
+            self.rep = rep
+            self.cutoff = cutoff
 
         self.atnum_to_index = -np.ones(np.max(self.atnums)+1, dtype=int)
         self.atnum_to_index[self.atnums] = \
             np.arange(len(self.atnums))
-
-        # Create spline interpolation
-        self.F = [InterpolatedUnivariateSpline(np.arange(len(x))*dF, x)
-                  for x in F]
-        self.f = [InterpolatedUnivariateSpline(np.arange(len(x))*df, x)
-                  for x in f]
-        self.rep = [[InterpolatedUnivariateSpline(np.arange(len(x))*df, x)
-                     for x in y]
-                    for y in rep]
 
         # Derivative of spline interpolation
         self.dF = [x.derivative() for x in self.F]
