@@ -30,7 +30,10 @@ import numpy as np
 import ase
 from ase.calculators.calculator import Calculator
 
-from scipy.interpolate import InterpolatedUnivariateSpline
+try:
+    from scipy.interpolate import InterpolatedUnivariateSpline
+except:
+    InterpolatedUnivariateSpline = None
 
 from matscipy.calculators.eam.io import read_eam_alloy
 from matscipy.neighbours import neighbour_list
