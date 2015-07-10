@@ -29,7 +29,9 @@ import unittest
 import numpy as np
 
 import os
-from matscipy.eam.io import read_eam,read_eam_alloy,write_eam,write_eam_alloy,mix_eam_alloy
+from matscipy.calculators.eam.io import (read_eam, read_eam_alloy,
+                                         write_eam,write_eam_alloy,
+                                         mix_eam_alloy)
 try:
     from scipy import interpolate
     from matscipy.eam.calculator import EAM

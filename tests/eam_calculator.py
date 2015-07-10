@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env pytho
 
 # ======================================================================
 # matscipy - Python materials science tools
@@ -37,7 +37,7 @@ from ase.optimize import FIRE
 from ase.units import GPa
 
 import matscipytest
-from matscipy.eam.calculator import EAM
+from matscipy.calculators.eam import EAM
 from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
 
 ###

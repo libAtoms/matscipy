@@ -15,7 +15,8 @@ setup(name='matscipy',
       license='LGPLv2.1+',
       package_dir={'matscipy': 'matscipy'},
       packages=['matscipy', 'matscipy.fracture_mechanics',
-                'matscipy.contact_mechanics', 'matscipy.eam'],
+                'matscipy.contact_mechanics', 'matscipy.calculators',
+                'matscipy.calculators.eam'],
       scripts=scripts,
       ext_modules=[
         Extension(

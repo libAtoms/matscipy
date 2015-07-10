@@ -32,7 +32,7 @@ from ase.calculators.calculator import Calculator
 
 from scipy.interpolate import InterpolatedUnivariateSpline
 
-from matscipy.eam.io import read_eam_alloy
+from matscipy.calculators.eam.io import read_eam_alloy
 from matscipy.neighbours import neighbour_list
 
 ###
