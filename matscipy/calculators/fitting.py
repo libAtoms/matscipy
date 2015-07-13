@@ -286,9 +286,10 @@ class Fit(object):
             c = np.sum(self.get_square_residuals(p, log=log))
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
+        except Exception as e:
             print('# Warning: Error computing residuals. Penalizing '
-                  'parameters.', file=log)
+                  'parameters but continuing. Error message: {}' \
+                  .format(e), file=log)
             c = 1e40
             #raise
         if isnan(c):
