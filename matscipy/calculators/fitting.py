@@ -41,7 +41,7 @@ import ase.optimize
 
 from ase.units import GPa
 
-from scipy.optimize import fmin, leastsq, anneal, brute
+from scipy.optimize import minimize, leastsq, anneal, brute
 
 try:
     from openopt import GLP
@@ -303,12 +303,11 @@ class Fit(object):
     def get_cost_history(self):
         return np.array(self.cost_history)
 
-    def optimize(self, optimizer=fmin, log=sys.stdout, **kwargs):
+    def optimize(self, log=sys.stdout, **kwargs):
         self.par.set_range_derived()
-        self.set_parameters_from_array(optimizer(self.get_cost_function,
-                                                 self.par.get_array(),
-                                                 args=(log,),
-                                                 **kwargs))
+        res = minimize(self.get_cost_function, self.par.get_array(),
+                       args=(log,), **kwargs)
+        self.set_parameters_from_array(res.x)
         return self.par
 
     def optimize_leastsq(self, log=sys.stdout):
@@ -395,7 +394,7 @@ class RotatingFit(object):
         self.targets = targets
 
 
-    def optimize(self, pmax=1e-3, optimizer=fmin, mix=None, **kwargs):
+    def optimize(self, pmax=1e-3, mix=None, **kwargs):
         globalv = np.array(self.par.get_variable()).copy()
 
         dp = 1e6
@@ -407,7 +406,7 @@ class RotatingFit(object):
                     print('# ===', target, '===', variable, '===', file=log)
                 self.par.set_variable(variable)
                 target.set_parameters(self.par)
-                self.par = target.optimize(fmin, **kwargs)
+                self.par = target.optimize(**kwargs)
 
             self.par.set_variable(globalv)
 
