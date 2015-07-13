@@ -566,10 +566,10 @@ class FitCubicCrystal(Fit):
 
     def __init__(self, calc, par, els,
                  Ec, a0,
-                 B = None, C11 = None, C12 = None, C44 = None, Cp = None,
-                 w_Ec = 1.0, w_a0 = 1.0,
-                 w_B = 1.0, w_C11 = 1.0, w_C12 = 1.0, w_C44 = 1.0, w_Cp = 1.0,
-                 fmax = 0.01, eps = 0.001):
+                 B=None, C11=None, C12=None, C44=None, Cp=None,
+                 w_Ec=1.0, w_a0=1.0,
+                 w_B=1.0, w_C11=1.0, w_C12=1.0, w_C44=1.0, w_Cp=1.0,
+                 fmax=0.01, eps=0.001, size=[1,1,1]):
         Fit.__init__(self, calc, par)
 
         self.a0 = a0
@@ -595,16 +595,17 @@ class FitCubicCrystal(Fit):
         if self.Cp is not None:
             self.w_Cp = sqrt(w_Cp)/self.Cp
 
+        self.size = size
+
         self.fmax = fmax
         self.eps = eps
 
         self.atoms = self.crystal(
             els,
             latticeconstant  = a0,
-            size             = [1,1,1]
+            size             = size
             )
         self.atoms.translate([0.1,0.1,0.1])
-
 
     def set_calculator(self, calc):
         self.atoms.set_calculator(calc)
@@ -612,10 +613,8 @@ class FitCubicCrystal(Fit):
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
             logfile=_logfile).run(fmax=self.fmax)
 
-
     def get_lattice_constant(self):
-        return np.sum(self.atoms.get_cell().diagonal())/3
-
+        return np.sum(self.atoms.get_cell().diagonal())/np.sum(self.size)
 
     def get_C11(self):
         sxx0, syy0, szz0, syz0, szx0, sxy0  = self.atoms.get_stress()
@@ -628,7 +627,6 @@ class FitCubicCrystal(Fit):
 
         return (sxx11-sxx0)/self.eps
 
-
     def get_Cp(self):
         sxx0, syy0, szz0, syz0, szx0, sxy0  = self.atoms.get_stress()
 
@@ -639,7 +637,6 @@ class FitCubicCrystal(Fit):
         self.atoms.set_cell(cell, scale_atoms=True)
 
         return ((sxx12-sxx0)-(syy12-syy0))/(4*self.eps)
-
 
     def get_C44(self):
         sxx0, syy0, szz0, syz0, szx0, sxy0  = self.atoms.get_stress()
@@ -654,7 +651,6 @@ class FitCubicCrystal(Fit):
 
         return (syz44+szx44+sxy44-syz0-szx0-sxy0)/(3*self.eps)
         
-
     def get_residuals(self, log=None):
         Ec = self.get_potential_energy()/len(self.atoms)
         a0 = self.get_lattice_constant()
