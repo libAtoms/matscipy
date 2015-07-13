@@ -20,3 +20,4 @@
 # ======================================================================
 
 from matscipy.calculators.eam.calculator import *
+from matscipy.calculators.eam.io import *
