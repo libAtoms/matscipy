@@ -24,6 +24,8 @@
 Helper routines for potential fitting
 """
 
+from __future__ import print_function
+
 from math import atanh, sqrt, tanh, isnan
 import sys
 
@@ -275,9 +277,8 @@ class Fit(object):
         self.residuals_history += [ r ]
         #return r*r + r2
         if log is not None:
-            print >> log, '# Current value of the cost function: {0}'.format(
-                sqrt(np.mean(r*r))
-                )
+            print('# Current value of the cost function: {0}' \
+                .format(sqrt(np.mean(r*r))), file=log)
         return r*r
 
     def get_cost_function(self, p=None, log=None):
@@ -286,7 +287,8 @@ class Fit(object):
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
-            print >> log, '# Warning: Error computing residuals. Penalizing parameters.'
+            print('# Warning: Error computing residuals. Penalizing '
+                  'parameters.', file=log)
             c = 1e40
             #raise
         if isnan(c):
@@ -340,7 +342,7 @@ class Fit(object):
                 lb=self.par.get_lower_bounds(),
                 ub=self.par.get_upper_bounds())
         r = p.solve(solver)
-        print >> log, r
+        print(r, file=log)
         self.set_parameters_from_array(r.xf)
         return self.par
 
@@ -367,11 +369,11 @@ class CombinedFit(Fit):
 
     def get_residuals(self, log=None):
         if log is not None:
-            print >> log, ''
-            print >> log, '# Computing properties for parameter set:'
-            print >> log, self.par
+            print('', file=log)
+            print('# Computing properties for parameter set:', file=log)
+            print(self.par, file=log)
             f = open('par.out', 'w')
-            print >> f, self.par
+            print(self.par, file=f)
             f.close()
         r = []
         for target in self.targets:
@@ -401,7 +403,7 @@ class RotatingFit(object):
 
             for target, variable in self.targets:
                 if log is not None:
-                    print >> log, '# ===', target, '===', variable, '==='
+                    print('# ===', target, '===', variable, '===', file=log)
                 self.par.set_variable(variable)
                 target.set_parameters(self.par)
                 self.par = target.optimize(fmin, **kwargs)
@@ -551,10 +553,10 @@ class FitDimer(Fit):
         r_r0 = self.w_r0*(r0-self.r0)
 
         if log is not None:
-            print >> log, '# %20s D0  = %20.10f eV    (%20.10f eV)    - %20.10f' \
-                % ( 'Dimer', D0, -self.D0, r_D0 )
-            print >> log, '# %20s r0  = %20.10f A     (%20.10f A)     - %20.10f' \
-                % ( '', r0, self.r0, r_r0 )
+            print('# %20s D0  = %20.10f eV    (%20.10f eV)    - %20.10f' \
+                % ( 'Dimer', D0, -self.D0, r_D0 ), file=log)
+            print('# %20s r0  = %20.10f A     (%20.10f A)     - %20.10f' \
+                % ( '', r0, self.r0, r_r0 ), file=log)
 
         return r_D0, r_r0
 
@@ -661,10 +663,10 @@ class FitCubicCrystal(Fit):
         r_a0 = self.w_a0*( a0 - self.a0 )
 
         if log is not None:
-            print >> log, '# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
-                % ( 'Crystal (%s)' % self.crystalstr, Ec, -self.Ec, r_Ec )
-            print >> log, '# %20s a0  = %20.10f A     (%20.10f A)     - %20.10f' \
-                % ( '', a0, self.a0, r_a0 )
+            print('# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
+                % ( 'Crystal (%s)' % self.crystalstr, Ec, -self.Ec, r_Ec ))
+            print('# %20s a0  = %20.10f A     (%20.10f A)     - %20.10f' \
+                % ( '', a0, self.a0, r_a0 ))
 
         r = [ r_Ec, r_a0 ]
 
@@ -679,32 +681,32 @@ class FitCubicCrystal(Fit):
             r_B = self.w_B*( (3*C11-4*Cp)/3 - self.B )
             r += [ r_B ]
             if log is not None:
-                print >> log, '# %20s B   = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
-                    % ( '', (3*C11-4*Cp)/3/GPa, self.B/GPa, r_B )
+                print('# %20s B   = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', (3*C11-4*Cp)/3/GPa, self.B/GPa, r_B ))
         if self.C11 is not None:
             r_C11 = self.w_C11*( C11 - self.C11 )
             r += [ r_C11 ]
             if log is not None:
-                print >> log, '# %20s C11 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
-                    % ( '', C11/GPa, self.C11/GPa, r_C11 )
+                print('# %20s C11 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', C11/GPa, self.C11/GPa, r_C11 ))
         if self.C12 is not None:
             r_C12 = self.w_C12*( C11-2*Cp - self.C12 )
             r += [ r_C12 ]
             if log is not None:
-                print >> log, '# %20s C12 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
-                    % ( '', (C11-2*Cp)/GPa, self.C12/GPa, r_C12 )
+                print('# %20s C12 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', (C11-2*Cp)/GPa, self.C12/GPa, r_C12 ))
         if self.C44 is not None:
             r_C44 = self.w_C44*( C44 - self.C44 )
             r += [ r_C44 ]
             if log is not None:
-                print >> log, '# %20s C44 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
-                    % ( '', C44/GPa, self.C44/GPa, r_C44 )
+                print('# %20s C44 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', C44/GPa, self.C44/GPa, r_C44 ))
         if self.Cp is not None:
             r_Cp = self.w_Cp*( Cp - self.Cp )
             r += [ r_Cp ]
             if log is not None:
-                print >> log, '# %20s Cp  = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
-                    % ( '', Cp/GPa, self.Cp/GPa, r_Cp )
+                print('# %20s Cp  = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', Cp/GPa, self.Cp/GPa, r_Cp ))
         
         return r
 
@@ -754,10 +756,10 @@ class FitHexagonalCrystal(Fit):
         r_a0 = self.w_a0*( a0 - self.a0 )
 
         if log is not None:
-            print >> log, '# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
-                % ( 'Crystal (%s)' % self.crystalstr, Ec, -self.Ec, r_Ec )
-            print >> log, '# %20s a0  = %20.10f A     (%20.10f A)     - %20.10f' \
-                % ( '', a0, self.a0, r_a0 )
+            print('# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
+                % ( 'Crystal (%s)' % self.crystalstr, Ec, -self.Ec, r_Ec ))
+            print('# %20s a0  = %20.10f A     (%20.10f A)     - %20.10f' \
+                % ( '', a0, self.a0, r_a0 ))
 
         r = [ r_Ec, r_a0 ]
 
@@ -799,13 +801,13 @@ class FitSurface(Fit):
         r_Esurf = self.w_Esurf*( Esurf - tar_Esurf )/tar_Esurf
 
         if log is not None:
-            print >> log, '# %20s Es  = %20.10f eV    (%20.10f eV)    - %20.10f' \
+            print('# %20s Es  = %20.10f eV    (%20.10f eV)    - %20.10f' \
                 % ( 'Surface(%s)' % self.surfstr, Esurf,
-                    tar_Esurf, r_Esurf )
-            print >> log, '# %20s       %20.10f J/m^2 (%20.10f J/m^2)' \
+                    tar_Esurf, r_Esurf ))
+            print('# %20s       %20.10f J/m^2 (%20.10f J/m^2)' \
                 % ( '',
                     Esurf*self.ncells*Jm2/(sx*sy),
-                    self.Esurf*Jm2 )
+                    self.Esurf*Jm2 ))
         
         return [ r_Esurf ]
 
