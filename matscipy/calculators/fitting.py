@@ -41,8 +41,6 @@ from ase.units import GPa
 
 from scipy.optimize import fmin, leastsq, anneal, brute
 
-from mdcore.tests import Jm2
-
 try:
     from openopt import GLP
     have_openopt = True
@@ -52,6 +50,7 @@ except:
 ###
 
 _logfile = None
+Jm2 = 1e23/ase.units.kJ
 
 ### Parameters
 
