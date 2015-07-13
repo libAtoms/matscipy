@@ -844,7 +844,7 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
     Cij_rev_map = dict(zip(Cij_map.values(), Cij_map.keys()))
 
     # Add the lower triangle to Cij_map, e.g. C21 = C12
-    for (i1,i2) in Cij_map.keys():
+    for (i1,i2) in Cij_map.copy().keys():
         Cij_map[(i2,i1)] = Cij_map[(i1,i2)]
         Cij_map_sym[(i2,i1)] = Cij_map_sym[(i1,i2)]
 
