@@ -358,15 +358,15 @@ class CombinedFit(Fit):
         for target in self.targets:
             target.set_parameters_from_array(p)
 
-        def set_parameters(self, p):
+    def set_parameters(self, p):
         for target in self.targets:
             target.set_parameters(p)
 
-        def set_calculator_class(self, calc):
+    def set_calculator_class(self, calc):
         for target in self.targets:
             target.set_calculator_class(calc)
 
-        def get_residuals(self, log=None):
+    def get_residuals(self, log=None):
         if log is not None:
             print >> log, ''
             print >> log, '# Computing properties for parameter set:'
@@ -824,11 +824,11 @@ class FitFCC(FitCubicCrystal):
     crystal = cubic.FaceCenteredCubic
     crystalstr = 'fcc'
 
-class FitB2(FitCubicCrystal)
+class FitB2(FitCubicCrystal):
     crystal = compounds.B2
     crystalstr = 'B2'
 
-class FitL12(FitCubicCrystal)
+class FitL12(FitCubicCrystal):
     crystal = compounds.L1_2
     crystalstr = 'L1_2'
 
