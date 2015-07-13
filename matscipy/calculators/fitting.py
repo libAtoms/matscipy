@@ -95,7 +95,7 @@ class Parameters(object):
 
     def set_range_derived(self):
         self.range_mapping = True
-        for key, ( x1, x2 ) in self.ranges.iteritems():
+        for key, ( x1, x2 ) in self.ranges.items():
             if x1 > x2:
                 raise RuntimeError('Inverted ranges {0}:{1} for parameter {2}.'
                                    .format(x1, x2, key))
@@ -124,10 +124,10 @@ class Parameters(object):
 
     def _update_derived(self):
         if self.range_mapping:
-            for key, ( x1, x2 ) in self.ranges.iteritems():
+            for key, ( x1, x2 ) in self.ranges.items():
                 self.parameters[key] = x1+\
                     0.5*(x2-x1)*(1+tanh(self.parameters[':'+key]))
-        for key, func in self.derived.iteritems():
+        for key, func in self.derived.items():
             self.parameters[key] = func(self.parameters)
 
     def __len__(self):
@@ -176,7 +176,7 @@ class Parameters(object):
             return super(Parameters, self).__getattr__(key)
 
     def set_dict(self, d):
-        for key, value in d.iteritems():
+        for key, value in d.items():
             self.set(key, value)
 
     def get_dict(self):
@@ -220,7 +220,7 @@ class Parameters(object):
                 return True
 
         r = True
-        for key, value in self.parameters.iteritems():
+        for key, value in self.parameters.items():
             if key in self.ranges:
                 x1, x2 = self.ranges[key]
                 r = r and self.parameters[key] >= x1 and \
@@ -229,7 +229,7 @@ class Parameters(object):
 
     def __str__(self):
         s = ''
-        for key, value in self.parameters.iteritems():
+        for key, value in self.parameters.items():
             if not key.startswith(':'):
                 s += '# {0:>24s} = {1}\n'.format(key, value)
         return s
