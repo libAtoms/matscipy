@@ -278,7 +278,7 @@ class Fit(object):
         #return r*r + r2
         if log is not None:
             print('# Current value of the cost function: {0}' \
-                .format(sqrt(np.mean(r*r))), file=log)
+                .format(np.sum(r*r)), file=log)
         return r*r
 
     def get_cost_function(self, p=None, log=None):
@@ -308,6 +308,10 @@ class Fit(object):
         res = minimize(self.get_cost_function, self.par.get_array(),
                        args=(log,), **kwargs)
         self.set_parameters_from_array(res.x)
+        print('=== HISTORY OF COST FUNCTION ===', file=log)
+        print(self.cost_history, file=log)
+        print('=== FINAL OPTIMIZED PARAMETER SET ===', file=log)
+        self.get_cost_function(res.x, log)
         return self.par
 
     def optimize_leastsq(self, log=sys.stdout):
@@ -333,6 +337,8 @@ class Fit(object):
                                           self.par.get_upper_bounds()]))),
             **kwargs)
         self.set_parameters_from_array(x0)
+        print('=== OPTIMIZED PARAMETER SET ===', file=log)
+        self.get_cost_function(x0)
         return self.par
 
     def optimize_openopt(self, solver='interalg'):
@@ -344,6 +350,8 @@ class Fit(object):
         r = p.solve(solver)
         print(r, file=log)
         self.set_parameters_from_array(r.xf)
+        print('=== OPTIMIZED PARAMETER SET ===', file=log)
+        self.get_cost_function(r.xf)
         return self.par
 
 class CombinedFit(Fit):
@@ -838,7 +846,11 @@ class FitB2(FitCubicCrystal):
     crystal = compounds.B2
     crystalstr = 'B2'
 
-class FitL12(FitCubicCrystal):
+class FitL1_0(FitCubicCrystal):
+    crystal = compounds.L1_0
+    crystalstr = 'L1_0'
+
+class FitL1_2(FitCubicCrystal):
     crystal = compounds.L1_2
     crystalstr = 'L1_2'
 
