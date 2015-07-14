@@ -277,6 +277,8 @@ def mix_eam_alloy(files,method,rep_ab=[]):
                 if method == "weighted":
                     rep_[i,j,:] = 0.5*(np.divide(f_[j,:],f_[i,:])*rep_[i,i,:]+np.divide(f_[i,:],f_[j,:])*rep_[j,j,:])
                 if method == "fitted":
+                    rep_ab[np.isnan(rep_ab)] = 0
+                    rep_ab[np.isinf(rep_ab)] = 0
                     rep_[i,j,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,max(Nr*dr),rep_ab.shape[0]),rep_ab)(np.linspace(0,Nr_*dr_,Nr_))
                 rep_[i,j,:][np.isnan(rep_[i,j,:])] = 0
                 rep_[i,j,:][np.isinf(rep_[i,j,:])] = 0
