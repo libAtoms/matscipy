@@ -176,7 +176,7 @@ def read_eam_alloy(eam_alloy_file):
         interaction+=1
     return source,parameters, F,f,rep
 
-def mix_eam_alloy(files,method):
+def mix_eam_alloy(files,method,rep_ab=[]):
     """
     mix eam alloy files data set and compute the interspecies pair potential part using the 
     mean geometric value from each pure species 
@@ -185,13 +185,15 @@ def mix_eam_alloy(files,method):
     ----------
       files : array of strings
               Contain all the files to merge and mix
-      method : string, (geometric,arithmetic,weighted)
+      method : string, (geometric,arithmetic,weighted,fitted)
               Method used to mix the pair interaction terms
               Available : Geometric average, arithmetic average, weighted arithmetic average
                   The Weighted arithmetic method is using the electron density function values of atom a and b to 
                   ponderate the pair potential between species a and b, 
                   rep_ab = 0.5*(fb/fa * rep_a + fa/fb * rep_b)
                   ref : X. W. Zhou, R. A. Johnson, and H. N. G. Wadley, Phys. Rev. B, 69, 144113 (2004)
+                  Fitted method is to be used if the rep_ab has been previously fitted and is parse as rep_ab karg
+      rep_ab : np.array of the fitted rep_ab term
     Returns
     -------
       sources : string
@@ -274,8 +276,11 @@ def mix_eam_alloy(files,method):
                     rep_[i,j,:] = 0.5*(rep_[i,i,:]+rep_[j,j,:])
                 if method == "weighted":
                     rep_[i,j,:] = 0.5*(np.divide(f_[j,:],f_[i,:])*rep_[i,i,:]+np.divide(f_[i,:],f_[j,:])*rep_[j,j,:])
+                if method == "fitted":
+                    rep_[i,j,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),rep_ab)(np.linspace(0,Nr_*dr_,Nr_))
                 rep_[i,j,:][np.isnan(rep_[i,j,:])] = 0
                 rep_[i,j,:][np.isinf(rep_[i,j,:])] = 0
+                
 
     parameters_mix = EAMParameters(atoms, atnumber, atmass,crystallatt,crystal, Nrho_,Nr_, drho_, dr_, cutoff[max_cutoff])
     return sources, parameters_mix, F_, f_, rep_
