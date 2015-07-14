@@ -661,15 +661,13 @@ class FitCubicCrystal(Fit):
         Ec = self.get_potential_energy()
         a0 = self.get_lattice_constant()
 
-        if self.ecoh_ref is None:
-            Ec /= len(self.atoms)
-            r_Ec = self.w_Ec*( Ec - self.Ec )
-        else:
+        if self.ecoh_ref is not None:
             syms = np.array(self.atoms.get_chemical_symbols())
             for el in set(syms):
                 Ec -= (syms==el).sum()*self.ecoh_ref[el]
-            Ec /= len(self.atoms)
-            r_Ec = self.w_Ec*( Ec - self.Ec )
+
+        Ec /= len(self.atoms)
+        r_Ec = self.w_Ec*( Ec - self.Ec )
         r_a0 = self.w_a0*( a0 - self.a0 )
 
         if log is not None:
