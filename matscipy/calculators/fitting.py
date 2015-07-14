@@ -569,7 +569,8 @@ class FitCubicCrystal(Fit):
                  B=None, C11=None, C12=None, C44=None, Cp=None,
                  w_Ec=1.0, w_a0=1.0,
                  w_B=1.0, w_C11=1.0, w_C12=1.0, w_C44=1.0, w_Cp=1.0,
-                 fmax=0.01, eps=0.001, size=[1,1,1]):
+                 fmax=0.01, eps=0.001,
+                 size=[1,1,1]):
         Fit.__init__(self, calc, par)
 
         self.a0 = a0
@@ -600,11 +601,13 @@ class FitCubicCrystal(Fit):
         self.fmax = fmax
         self.eps = eps
 
-        self.atoms = self.crystal(
+        self.unitcell = self.crystal(
             els,
             latticeconstant  = a0,
-            size             = size
+            size             = [1,1,1]
             )
+        self.atoms = self.unitcell.copy()
+        self.atoms *= size
         self.atoms.translate([0.1,0.1,0.1])
 
     def set_calculator(self, calc):
@@ -660,7 +663,8 @@ class FitCubicCrystal(Fit):
 
         if log is not None:
             print('# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
-                % ( 'Crystal (%s)' % self.crystalstr, Ec, -self.Ec, r_Ec ))
+                % ( '%s (%s)' % (self.unitcell.get_chemical_formula(),
+                                 self.crystalstr), Ec, -self.Ec, r_Ec ))
             print('# %20s a0  = %20.10f A     (%20.10f A)     - %20.10f' \
                 % ( '', a0, self.a0, r_a0 ))
 
