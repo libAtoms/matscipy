@@ -570,6 +570,7 @@ class FitCubicCrystal(Fit):
                  w_Ec=1.0, w_a0=1.0,
                  w_B=1.0, w_C11=1.0, w_C12=1.0, w_C44=1.0, w_Cp=1.0,
                  fmax=0.01, eps=0.001,
+                 ecoh_ref=None,
                  size=[1,1,1]):
         Fit.__init__(self, calc, par)
 
@@ -581,6 +582,8 @@ class FitCubicCrystal(Fit):
         self.C12 = C12
         self.C44 = C44
         self.Cp = Cp
+
+        self.ecoh_ref = ecoh_ref
 
         self.w_a0 = sqrt(w_a0)/self.a0
         self.w_Ec = sqrt(w_Ec)/self.Ec
@@ -655,16 +658,24 @@ class FitCubicCrystal(Fit):
         return (syz44+szx44+sxy44-syz0-szx0-sxy0)/(3*self.eps)
         
     def get_residuals(self, log=None):
-        Ec = self.get_potential_energy()/len(self.atoms)
+        Ec = self.get_potential_energy()
         a0 = self.get_lattice_constant()
 
-        r_Ec = self.w_Ec*( Ec + self.Ec )
+        if self.ecoh_ref is None:
+            Ec /= len(self.atoms)
+            r_Ec = self.w_Ec*( Ec - self.Ec )
+        else:
+            syms = np.array(self.atoms.get_chemical_symbols())
+            for el in set(syms):
+                Ec -= (syms==el).sum()*self.ecoh_ref[el]
+            Ec /= len(self.atoms)
+            r_Ec = self.w_Ec*( Ec - self.Ec )
         r_a0 = self.w_a0*( a0 - self.a0 )
 
         if log is not None:
             print('# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
                 % ( '%s (%s)' % (self.unitcell.get_chemical_formula(),
-                                 self.crystalstr), Ec, -self.Ec, r_Ec ))
+                                 self.crystalstr), Ec, self.Ec, r_Ec ))
             print('# %20s a0  = %20.10f A     (%20.10f A)     - %20.10f' \
                 % ( '', a0, self.a0, r_a0 ))
 
