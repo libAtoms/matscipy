@@ -65,6 +65,12 @@ import params
 
 ###
 
+# Atom types used for outputting the crack tip position.
+ACTUAL_CRACK_TIP = 'Au'
+FITTED_CRACK_TIP = 'Ag'
+
+###
+
 logger = screen
 
 ###
@@ -156,7 +162,7 @@ for i, ( k1, tip_dx, tip_dy ) in enumerate(zip(k1_list, tip_dx_list,
     # the displacmenets of the boundary atoms) and the fitted crack tip
     # positions. The target crack tip is marked by a Hydrogen atom.
     b = a.copy()
-    b += ase.Atom('H', (tip_x, tip_y, b.cell[2, 2]/2))
+    b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, tip_y, b.cell[2, 2]/2))
 
     # Measure the true (fitted) crack tip position.
     try:
@@ -171,9 +177,10 @@ for i, ( k1, tip_dx, tip_dy ) in enumerate(zip(k1_list, tip_dx_list,
         measured_tip_y = 0.0
 
     # The fitted crack tip is marked by a Helium atom.
-    b += ase.Atom('He', (measured_tip_x, measured_tip_y, b.cell[2, 2]/2))
+    b += ase.Atom(FITTED_CRACK_TIP, (measured_tip_x, measured_tip_y,
+                                     b.cell[2, 2]/2))
 
     b.info['bond_length'] = a.get_distance(bond1, bond2)
     b.info['energy'] = a.get_potential_energy()
     b.info['cell_origin'] = [0, 0, 0]
-    ase.io.write('%s_%2.2i.xyz' % (basename, i), b, format='extxyz')
+    ase.io.write('%s_%4.4i.xyz' % (basename, i), b, format='extxyz')
