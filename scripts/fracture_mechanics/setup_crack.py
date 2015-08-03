@@ -75,6 +75,9 @@ def setup_crack(logger=screen):
     if hydrogenate_flag and not hydrogenate_crack_face_flag:
         # Get surface atoms of cluster with crack
         a = hydrogenate(cryst, bondlength, parameter('XH_bondlength'), b=a)
+        g = a.get_array('groups')
+        g[a.numbers==1] = -1
+        a.set_array('groups', g)
         cryst = a.copy()
     
     k1 = parameter('k1')
@@ -92,8 +95,8 @@ def setup_crack(logger=screen):
     vacuum = parameter('vacuum')
     a.center(vacuum=vacuum, axis=0)
     a.center(vacuum=vacuum, axis=1)
-    tip_x += a[0].position[0] - oldr[0]
-    tip_y += a[0].position[1] - oldr[1]
+    tip_x += a[0].x - oldr[0]
+    tip_y += a[0].y - oldr[1]
     
     # Choose which bond to break.
     bond1, bond2 = \
@@ -122,7 +125,7 @@ def setup_crack(logger=screen):
         a = hydrogenate(cryst, bondlength, parameter('XH_bondlength'), b=a,
                         exclude=exclude)
         g = a.get_array('groups')
-        g[np.array(a.get_chemical_symbols())=='H'] = -1
+        g[a.numbers==1] = -1
         a.set_array('groups', g)
         basename = parameter('basename', 'energy_barrier')
         ase.io.write('{0}_hydrogenated.xyz'.format(basename), a,
@@ -141,9 +144,10 @@ def setup_crack(logger=screen):
           format(bond1, bond2, a.get_distance(bond1, bond2, mic=True)))
     
     # centre vertically on the opening bond
-    a.translate([0., a.cell[1,1]/2.0 - 
-                    (a.positions[bond1, 1] + 
-                     a.positions[bond2, 1])/2.0, 0.])
+    if parameter('center_cell_on_bond', True):
+      a.translate([0., a.cell[1,1]/2.0 - 
+                      (a.positions[bond1, 1] + 
+                       a.positions[bond2, 1])/2.0, 0.])
 
     a.info['bond1'] = bond1
     a.info['bond2'] = bond2
