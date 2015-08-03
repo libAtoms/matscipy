@@ -40,8 +40,8 @@ def radius_and_pressure(N, R, Es):
         Contact modulus: Es = E/(1-nu**2) with Young's modulus E and Poisson
         number nu.
 
-    Return
-    ------
+    Returns
+    -------
     a : float
         Contact radius.
     p0 : float
