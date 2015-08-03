@@ -271,14 +271,8 @@ class Fit(object):
         r2 = 0.0
         if p is not None:
             self.set_parameters_from_array(p)
-        #    # Penalize if the parameters needed to be adjusted
-        #    r2 = 1e6*np.sum((np.array(self.par.get_array()) - np.array(p))**2)
         r = np.array(self.get_residuals(log=log))
         self.residuals_history += [ r ]
-        #return r*r + r2
-        if log is not None:
-            print('# Current value of the cost function: {0}' \
-                .format(np.sum(r*r)), file=log)
         return r*r
 
     def get_cost_function(self, p=None, log=None):
@@ -288,10 +282,12 @@ class Fit(object):
             raise
         except Exception as e:
             print('# Warning: Error computing residuals. Penalizing '
-                  'parameters but continuing. Error message: {}' \
+                  'parameters but continuing. Error message: {0}' \
                   .format(e), file=log)
             c = 1e40
-            #raise
+        if log is not None:
+            print('# Current value of the cost function/residual: {0}' \
+                .format(c), file=log)
         if isnan(c):
             c = 1e40
         self.cost_history += [ c ]
