@@ -241,13 +241,14 @@ class Fit(object):
     Parameter optimization class.
     """
 
-    __slots__ = [ 'atoms', 'calc', 'cost_history', 'par', 'par_at_minimal_cost',
-                  'residuals_history' ]
+    __slots__ = [ 'atoms', 'calc', 'cost_history', 'minimal_cost', 'par',
+                  'par_at_minimal_cost', 'residuals_history' ]
 
     def __init__(self, calc, par):
         self.calc = calc
         self.par = par
 
+        self.minimal_cost = 1e40
         self.par_at_minimal_cost = None
 
         self.cost_history = []
@@ -296,6 +297,7 @@ class Fit(object):
         if store_history:
             if self.cost_history == [] or c < np.min(self.cost_history):
                 print('# New minimum of cost function: {0}'.format(c))
+                self.minimal_cost = c
                 self.par_at_minimal_cost = p
             self.cost_history += [c]
         return c
@@ -320,7 +322,11 @@ class Fit(object):
         print('=== HISTORY OF COST FUNCTION ===', file=log)
         print(self.cost_history, file=log)
         print('=== FINAL OPTIMIZED PARAMETER SET ===', file=log)
-        self.get_cost_function(res.x, log)
+        final_cost = self.get_cost_function(res.x, log)
+        if abs(final_cost - self.minimal_cost) > 1e-6:
+            print('# WARNING: Final cost (={0}) is not minimal (={1}). This '
+                  'may come from insufficiently converged calculations. Try '
+                  'to decrease fmax.'.format(final_cost, self.minimal_cost))
         return self.par
 
     def optimize_leastsq(self, log=sys.stdout):
@@ -471,7 +477,7 @@ class FitSinglePoint(Fit):
     def __init__(self, calc, par, atoms, w_energy=None, w_forces=None,
                  w_stress=None): 
         Fit.__init__(self, calc, par)
-        self.atoms = atoms
+        self.original_atoms = atoms
         self.w_energy = w_energy
         self.w_forces = w_forces
         self.w_stress = w_stress
@@ -480,14 +486,15 @@ class FitSinglePoint(Fit):
         self.forces = self.atoms.get_forces().copy()
         self.stress = self.atoms.get_stress().copy()
 
+        self.atoms = None
 
     def set_calculator(self, calc):
         """
         Set the calculator
         """
+        self.atoms = self.original_atoms.copy()
         self.atoms.set_calculator(calc)
         self.atoms.get_potential_energy()
-
 
     def get_residuals(self, log=None):
         r = []
@@ -528,6 +535,8 @@ class FitDimer(Fit):
                  vacuum=10.0, fmax=1e-6):
         Fit.__init__(self, calc, par)
 
+        self.els = els
+
         self.D0 = D0
         self.r0 = r0
 
@@ -539,28 +548,29 @@ class FitDimer(Fit):
 
         self.fmax = fmax
 
-        if type(els) == str:
-            els = 2*[ els ]
+        if type(self.els) == str:
+            self.els = 2*[self.els]
 
+        self.atoms = None
+
+    def new_dimer(self):
         self.atoms = ase.Atoms(
-            els,
-            [ [  0.0, 0.0, 0.0  ],
-              [  0.0, 0.0, r0   ] ],
+            self.els,
+            [[0.0, 0.0, 0.0],
+             [0.0, 0.0, r0 ]],
             pbc = False)
         self.atoms.center(vacuum=vacuum)
-
 
     def set_calculator(self, calc):
         """
         Set the calculator, and relax the structure to its ground-state.
         """
+        self.new_dimer()
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(self.atoms, logfile=_logfile).run(fmax=self.fmax)
 
-
     def get_distance(self):
         return self.atoms.get_distance(0, 1)
-
 
     def get_residuals(self, log=None):
         D0 = self.atoms.get_potential_energy()
@@ -590,6 +600,8 @@ class FitCubicCrystal(Fit):
                  ecoh_ref=None,
                  size=[1,1,1]):
         Fit.__init__(self, calc, par)
+
+        self.els = els
 
         self.a0 = a0
         self.Ec = Ec
@@ -621,16 +633,20 @@ class FitCubicCrystal(Fit):
         self.fmax = fmax
         self.eps = eps
 
+        self.atoms = None
+
+    def new_bulk(self):
         self.unitcell = self.crystal(
-            els,
-            latticeconstant  = a0,
-            size             = [1,1,1]
+            self.els,
+            latticeconstant  = self.a0,
+            size             = [1, 1, 1]
             )
         self.atoms = self.unitcell.copy()
-        self.atoms *= size
-        self.atoms.translate([0.1,0.1,0.1])
+        self.atoms *= self.size
+        self.atoms.translate([0.1, 0.1, 0.1])
 
     def set_calculator(self, calc):
+        self.new_bulk()
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
@@ -747,6 +763,8 @@ class FitHexagonalCrystal(Fit):
                  fmax = 0.01):
         Fit.__init__(self, calc, par)
 
+        self.els = els
+
         self.Ec = Ec
         self.a0 = a0
         self.c0 = c0
@@ -756,14 +774,18 @@ class FitHexagonalCrystal(Fit):
 
         self.fmax = fmax
 
+        self.atoms = None
+
+    def new_bulk(self):
         self.atoms = self.crystal(
-            els,
-            latticeconstant  = [ a0, c0 ],
-            size             = [1,1,1]
+            self.els,
+            latticeconstant  = [self.a0, self.c0],
+            size             = [1, 1, 1]
             )
-        self.atoms.translate([0.1,0.1,0.1])
+        self.atoms.translate([0.1, 0.1, 0.1])
 
     def set_calculator(self, calc):
+        self.new_bulk()
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,0,0,0,0]),
