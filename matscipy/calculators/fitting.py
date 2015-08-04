@@ -295,8 +295,9 @@ class Fit(object):
             c = 1e40
         if store_history:
             if self.cost_history == [] or c < np.min(self.cost_history):
+                print('# New minimum of cost function: {0}'.format(c))
                 self.par_at_minimal_cost = p
-            self.cost_history += [ c ]
+            self.cost_history += [c]
         return c
 
     def get_residuals_history(self):
@@ -523,8 +524,8 @@ class FitDimer(Fit):
     __slots__ = [ 'D0', 'fmax', 'r0', 'w_D0', 'w_r0' ]
 
     def __init__(self, calc, par, els, D0, r0,
-                 w_D0 = 1.0, w_r0 = 1.0,
-                 vacuum = 10.0, fmax = 0.01):
+                 w_D0=1.0, w_r0=1.0,
+                 vacuum=10.0, fmax=1e-6):
         Fit.__init__(self, calc, par)
 
         self.D0 = D0
@@ -585,7 +586,7 @@ class FitCubicCrystal(Fit):
                  B=None, C11=None, C12=None, C44=None, Cp=None,
                  w_Ec=1.0, w_a0=1.0,
                  w_B=1.0, w_C11=1.0, w_C12=1.0, w_C44=1.0, w_Cp=1.0,
-                 fmax=0.01, eps=0.001,
+                 fmax=1e-6, eps=0.001,
                  ecoh_ref=None,
                  size=[1,1,1]):
         Fit.__init__(self, calc, par)
