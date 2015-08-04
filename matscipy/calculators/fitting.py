@@ -241,11 +241,14 @@ class Fit(object):
     Parameter optimization class.
     """
 
-    __slots__ = [ 'atoms', 'calc', 'cost_history', 'par', 'residuals_history' ]
+    __slots__ = [ 'atoms', 'calc', 'cost_history', 'par', 'par_at_minimal_cost',
+                  'residuals_history' ]
 
     def __init__(self, calc, par):
         self.calc = calc
         self.par = par
+
+        self.par_at_minimal_cost = None
 
         self.cost_history = []
         self.residuals_history = []
@@ -275,7 +278,7 @@ class Fit(object):
         self.residuals_history += [ r ]
         return r*r
 
-    def get_cost_function(self, p=None, log=None):
+    def get_cost_function(self, p=None, log=None, store_history=False):
         try:
             c = np.sum(self.get_square_residuals(p, log=log))
         except (KeyboardInterrupt, SystemExit):
@@ -290,7 +293,10 @@ class Fit(object):
                 .format(c), file=log)
         if isnan(c):
             c = 1e40
-        self.cost_history += [ c ]
+        if store_history:
+            if self.cost_history == [] or c < np.min(self.cost_history):
+                self.par_at_minimal_cost = p
+            self.cost_history += [ c ]
         return c
 
     def get_residuals_history(self):
@@ -299,10 +305,16 @@ class Fit(object):
     def get_cost_history(self):
         return np.array(self.cost_history)
 
+    def get_parameters_at_minimal_cost(self, log=sys.stdout):
+        self.set_parameters_from_array(self.par_at_minimal_cost)
+        print('=== PARAMETERS AT MINIMAL COST ===', file=log)
+        self.get_cost_function(self.par_at_minimal_cost, log=log)
+        return self.par
+
     def optimize(self, log=sys.stdout, **kwargs):
         self.par.set_range_derived()
         res = minimize(self.get_cost_function, self.par.get_array(),
-                       args=(log,), **kwargs)
+                       args=(log, True,), **kwargs)
         self.set_parameters_from_array(res.x)
         print('=== HISTORY OF COST FUNCTION ===', file=log)
         print(self.cost_history, file=log)
