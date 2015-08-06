@@ -176,7 +176,7 @@ def read_eam_alloy(eam_alloy_file):
         interaction+=1
     return source,parameters, F,f,rep
 
-def mix_eam_alloy(files,method,rep_ab=[]):
+def mix_eam_alloy(files,method,rep_ab=[],alphas=[]):
     """
     mix eam alloy files data set and compute the interspecies pair potential part using the 
     mean geometric value from each pure species 
@@ -194,6 +194,7 @@ def mix_eam_alloy(files,method,rep_ab=[]):
                   ref : X. W. Zhou, R. A. Johnson, and H. N. G. Wadley, Phys. Rev. B, 69, 144113 (2004)
                   Fitted method is to be used if the rep_ab has been previously fitted and is parse as rep_ab karg
       rep_ab : np.array of the fitted rep_ab term
+      alphas : array of fitted alpha values for the fine tuned mixing. rep_ab = alpha_a*rep_a+alpha_b*rep_b
     Returns
     -------
       sources : string
@@ -273,7 +274,10 @@ def mix_eam_alloy(files,method,rep_ab=[]):
                 if method == "geometric":
                     rep_[i,j,:] = (rep_[i,i,:]*rep_[j,j,:])**0.5
                 if method == "arithmetic":
-                    rep_[i,j,:] = 0.5*(rep_[i,i,:]+rep_[j,j,:])
+                    if alphas:
+                        rep_[i,j,:] = alphas[i]*rep_[i,i,:]+alphas[j]*rep_[j,j,:]
+                    else:
+                        rep_[i,j,:] = 0.5*(rep_[i,i,:]+rep_[j,j,:])
                 if method == "weighted":
                     rep_[i,j,:] = 0.5*(np.divide(f_[j,:],f_[i,:])*rep_[i,i,:]+np.divide(f_[i,:],f_[j,:])*rep_[j,j,:])
                 if method == "fitted":
