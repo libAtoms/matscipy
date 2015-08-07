@@ -751,6 +751,264 @@ class FitCubicCrystal(Fit):
                     % ( '', Cp/GPa, self.Cp/GPa, r_Cp ))
         
         return r
+      
+class FitTetragonalCrystal(Fit):
+
+    __slots__ = [ 'a0','c0', 'calc', 'crystal', 'Ec', 'fmax', 'par', 'w_a0','w_c0', 'w_Ec' ]
+
+    def __init__(self, calc, par, els,
+                 a0, c0, Ec=None,
+                 B=None, C11=None, C12=None,C13=None, C33=None, C44=None, C66=None,
+                 w_Ec=1.0, w_a0=1.0,w_c0=1.0,
+                 w_B=1.0, w_C11=1.0, w_C12=1.0,w_C13=1.0,w_C33=1.0,w_C44=1.0,w_C66=1.0, w_Cp=1.0,
+                 fmax=1e-6, eps=0.001,
+                 ecoh_ref=None,
+                 size=[1,1,1]):
+        Fit.__init__(self, calc, par)
+
+        self.els = els
+
+        self.a0 = a0
+        self.c0 = c0
+        self.Ec = Ec
+
+        self.B = B
+        self.C11 = C11
+        self.C12 = C12
+        self.C13 = C13
+        self.C44 = C44
+        self.C33 = C33
+        self.C66 = C66
+
+
+        self.ecoh_ref = ecoh_ref
+
+        self.w_a0 = sqrt(w_a0)/self.a0
+        self.w_c0 = sqrt(w_c0)/self.c0
+        
+        if self.Ec is not None:
+            self.w_Ec = sqrt(w_Ec)/self.Ec
+        if self.B is not None:
+            self.w_B = sqrt(w_B)/self.B
+        if self.C11 is not None:
+            self.w_C11 = sqrt(w_C11)/self.C11
+        if self.C12 is not None:
+            self.w_C12 = sqrt(w_C12)/self.C12
+        if self.C13 is not None:
+            self.w_C13 = sqrt(w_C13)/self.C13
+        if self.C33 is not None:
+            self.w_C33 = sqrt(w_C33)/self.C33
+        if self.C44 is not None:
+            self.w_C44 = sqrt(w_C44)/self.C44
+        if self.C66 is not None:
+            self.w_C66 = sqrt(w_C66)/self.C66
+
+        self.size = size
+
+        self.fmax = fmax
+        self.eps = eps
+
+        self.atoms = None
+
+    def new_bulk(self):
+        self.unitcell = self.crystal(
+            self.els,
+            latticeconstant  = [self.a0, self.c0],
+            size             = [1, 1, 1]
+            )
+        self.atoms = self.unitcell.copy()
+        self.atoms *= self.size
+        self.atoms.translate([0.1, 0.1, 0.1])
+
+    def set_calculator(self, calc):
+        self.new_bulk()
+        self.atoms.set_calculator(calc)
+        ase.optimize.FIRE(
+            ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
+            logfile=_logfile).run(fmax=self.fmax)
+
+    def get_lattice_constant(self):
+        return np.sum(self.atoms.get_cell().diagonal()[:2])/np.sum(self.size[:2]),self.atoms.get_cell().diagonal()[2]/self.size[2]
+
+    def get_C33(self):
+        e0 = self.atoms.get_potential_energy()
+        v0 = self.atoms.get_volume()
+        
+        cell = self.atoms.get_cell()
+        T = np.array( [ [ 0.0, 0.0, 0.0 ],
+                        [ 0.0, 0.0, 0.0 ],
+                        [ 0.0, 0.0, self.eps ] ] )
+        self.atoms.set_cell( np.dot(np.eye(3)+T, cell), scale_atoms=True )
+        e = self.atoms.get_potential_energy()
+        self.atoms.set_cell(cell, scale_atoms=True)
+        
+        
+        return (2*(e-e0))/(v0*self.eps**2)
+      
+    def get_C44(self):
+        e0 = self.atoms.get_potential_energy()
+        v0 = self.atoms.get_volume()
+        
+        cell = self.atoms.get_cell()
+        T = np.array( [ [ 0.0, 0.0, self.eps ],
+                        [ 0.0, 0.0, self.eps ],
+                        [ self.eps, self.eps, self.eps**2 ] ] )
+        self.atoms.set_cell( np.dot(np.eye(3)+T, cell), scale_atoms=True )
+        e = self.atoms.get_potential_energy()
+        self.atoms.set_cell(cell, scale_atoms=True)
+        
+        
+        return (e-e0)/(4*v0*self.eps**2)
+      
+    def get_C66(self):
+        e0 = self.atoms.get_potential_energy()
+        v0 = self.atoms.get_volume()
+        
+        cell = self.atoms.get_cell()
+        T = np.array( [ [ (1.0+self.eps**2)**0.5, 0.0, 0.0 ],
+                        [ 0.0, (1.0-self.eps**2)**0.5, 0.0 ],
+                        [ 0.0, 0.0, 1.0 ] ] )
+        self.atoms.set_cell( np.dot(np.eye(3)+T, cell), scale_atoms=True )
+        e = self.atoms.get_potential_energy()
+        self.atoms.set_cell(cell, scale_atoms=True)
+        
+        
+        return (e-e0)/(2*v0*self.eps**2)
+      
+    def get_D1(self):
+        e0 = self.atoms.get_potential_energy()
+        v0 = self.atoms.get_volume()
+        
+        cell = self.atoms.get_cell()
+        T = np.array( [ [ self.eps, 0.0, 0.0 ],
+                        [ 0.0, self.eps, 0.0 ],
+                        [ 0.0, 0.0, 0.0 ] ] )
+        self.atoms.set_cell( np.dot(np.eye(3)+T, cell), scale_atoms=True )
+        e = self.atoms.get_potential_energy()
+        self.atoms.set_cell(cell, scale_atoms=True)
+        
+        
+        return (e-e0)/(v0*self.eps**2)
+
+    def get_D2(self):
+        e0 = self.atoms.get_potential_energy()
+        v0 = self.atoms.get_volume()
+        
+        cell = self.atoms.get_cell()
+        T = np.array( [ [ 1.0+self.eps, 0.0, 0.0 ],
+                        [ 0.0, 1.0+self.eps, 0.0 ],
+                        [ 0.0, 0.0, 1.0/(1+self.eps)**2 ] ] )
+        self.atoms.set_cell( np.dot(T, cell), scale_atoms=True )
+        e = self.atoms.get_potential_energy()
+        self.atoms.set_cell(cell, scale_atoms=True)
+        
+        
+        return (e-e0)/(v0*self.eps**2)
+      
+    def get_D4(self):
+        e0 = self.atoms.get_potential_energy()
+        v0 = self.atoms.get_volume()
+        
+        cell = self.atoms.get_cell()
+        T = np.array( [ [ ((1.0+self.eps)/(1.0-self.eps))**0.5, 0.0, 0.0 ],
+                        [ 0.0, ((1.0-self.eps)/(1.0+self.eps))**0.5, 0.0 ],
+                        [ 0.0, 0.0, 1.0 ] ] )
+        self.atoms.set_cell( np.dot(T, cell), scale_atoms=True )
+        e = self.atoms.get_potential_energy()
+        self.atoms.set_cell(cell, scale_atoms=True)
+        
+        
+        return (e-e0)/(v0*self.eps**2)
+      
+        
+    def get_residuals(self, log=None):
+        Ec = self.get_potential_energy()
+        a0,c0 = self.get_lattice_constant()
+
+        if self.ecoh_ref is not None:
+            syms = np.array(self.atoms.get_chemical_symbols())
+            for el in set(syms):
+                Ec -= (syms==el).sum()*self.ecoh_ref[el]
+
+        Ec /= len(self.atoms)
+
+        r_a0 = self.w_a0*( a0 - self.a0 )
+        r_c0 = self.w_c0*( c0 - self.c0 )
+
+        if log is not None:
+            print('# %20s a0  = %20.10f A     (%20.10f A)     - %20.10f' \
+                % ( '', a0, self.a0, r_a0 ))
+            print('# %20s c0  = %20.10f A     (%20.10f A)     - %20.10f' \
+                % ( '', c0, self.c0, r_c0 ))
+
+        r = [ r_a0 ,r_c0]
+        
+        if self.Ec is not None:
+            r_Ec = self.w_Ec*( Ec - self.Ec )
+            r += [ r_Ec ]
+            if log is not None:
+                print('# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
+                % ( '%s (%s)' % (self.unitcell.get_chemical_formula(),
+                                 self.crystalstr), Ec, self.Ec, r_Ec ))
+
+        if self.B is not None or self.C11 is not None or self.C12 is not None or self.C13 is not None or self.C33 is not None:
+            Czz = self.get_D2()
+        if self.B is not None or self.C11 is not None or self.C12 is not None:
+            Cp = self.get_D1()
+        if self.B is not None or self.C11 is not None or self.C12 is not None:
+            Cm = self.get_D4()
+        if self.C33 is not None:
+            C33 = self.get_C66()
+        if self.C44 is not None:
+            C44 = self.get_C66()
+        if self.C66 is not None:
+            C66 = self.get_C66()
+
+        if self.B is not None:
+            r_B = self.w_B*( (C33*Cp-2*C13**2)/Czz - self.B )
+            r += [ r_B ]
+            if log is not None:
+                print('# %20s B   = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', (C33*Cp-2*C13**2)/Czz/GPa, self.B/GPa, r_B ))
+        if self.C11 is not None:
+            r_C11 = self.w_C11*( (Cp+Cm)/2 - self.C11 )
+            r += [ r_C11 ]
+            if log is not None:
+                print('# %20s C11 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', (Cp+Cm)/2/GPa, self.C11/GPa, r_C11 ))
+        if self.C12 is not None:
+            r_C12 = self.w_C12*( (Cp-Cm)/2 - self.C12 )
+            r += [ r_C12 ]
+            if log is not None:
+                print('# %20s C12 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', (Cp-Cm)/2/GPa, self.C12/GPa, r_C12 ))
+        if self.C13 is not None:
+            r_C13 = self.w_C13*( -(Czz-Cp-2*C33)/4 - self.C13 )
+            r += [ r_C13 ]
+            if log is not None:
+                print('# %20s C13 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', -(Czz-Cp-2*C33)/4/GPa, self.C13/GPa, r_C13 ))
+        if self.C33 is not None:
+            r_C33 = self.w_C33*( C33 - self.C33 )
+            r += [ r_C33 ]
+            if log is not None:
+                print('# %20s C33 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', C33/GPa, self.C33/GPa, r_C33 ))
+        if self.C44 is not None:
+            r_C44 = self.w_C44*( C44 - self.C44 )
+            r += [ r_C44 ]
+            if log is not None:
+                print('# %20s C44 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', C44/GPa, self.C44/GPa, r_C44 ))
+        if self.C66 is not None:
+            r_C66 = self.w_C66*( C66 - self.C66 )
+            r += [ r_C66 ]
+            if log is not None:
+                print('# %20s C66 = %20.10f GPa   (%20.10f GPa)   - %20.10f' \
+                    % ( '', C66/GPa, self.C66/GPa, r_C66 ))
+
+        
+        return r
 
 class FitHexagonalCrystal(Fit):
 
@@ -877,7 +1135,7 @@ class FitB2(FitCubicCrystal):
     crystal = compounds.B2
     crystalstr = 'B2'
 
-class FitL1_0(FitCubicCrystal):
+class FitL1_0(FitTetragonalCrystal):
     crystal = compounds.L1_0
     crystalstr = 'L1_0'
 
