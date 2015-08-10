@@ -935,21 +935,26 @@ class FitTetragonalCrystal(Fit):
         r_a0 = self.w_a0*( a0 - self.a0 )
         r_c0 = self.w_c0*( c0 - self.c0 )
 
+        r_Ec = self.w_Ec*( Ec - self.Ec )
+        
         if log is not None:
+            print('# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
+                % ( '%s (%s)' % (self.unitcell.get_chemical_formula(),
+                                 self.crystalstr), Ec, self.Ec, r_Ec ))
             print('# %20s a0  = %20.10f A     (%20.10f A)     - %20.10f' \
                 % ( '', a0, self.a0, r_a0 ))
             print('# %20s c0  = %20.10f A     (%20.10f A)     - %20.10f' \
                 % ( '', c0, self.c0, r_c0 ))
 
-        r = [ r_a0 ,r_c0]
+        r = [ r_a0 ,r_c0, r_Ec]
         
-        if self.Ec is not None:
-            r_Ec = self.w_Ec*( Ec - self.Ec )
-            r += [ r_Ec ]
-            if log is not None:
-                print('# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
-                % ( '%s (%s)' % (self.unitcell.get_chemical_formula(),
-                                 self.crystalstr), Ec, self.Ec, r_Ec ))
+        #if self.Ec is not None:
+            #r_Ec = self.w_Ec*( Ec - self.Ec )
+            #r += [ r_Ec ]
+            #if log is not None:
+                #print('# %20s Ec  = %20.10f eV    (%20.10f eV)    - %20.10f' \
+                #% ( '%s (%s)' % (self.unitcell.get_chemical_formula(),
+                                 #self.crystalstr), Ec, self.Ec, r_Ec ))
 
         if self.B is not None or self.C11 is not None or self.C12 is not None or self.C13 is not None or self.C33 is not None:
             Czz = self.get_D2()
