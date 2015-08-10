@@ -41,7 +41,15 @@ import ase.optimize
 
 from ase.units import GPa
 
-from scipy.optimize import minimize, leastsq, anneal, brute
+import scipy
+scipy_v = scipy.__version__
+
+if int(scipy_v.split('.')[1]) <= 14 : 
+    from scipy.optimize import minimize, leastsq, anneal, brute
+else :
+    # scipy.optimize.anneal decprecated from version 0.14.0, documentation advise to use scipy.optimize.basinhopping instead
+    from scipy.optimize import minimize, leastsq, brute
+    
 
 try:
     from openopt import GLP
@@ -343,6 +351,7 @@ class Fit(object):
                                               upper=self.par.get_upper_bounds(),
                                               **kwargs))
         return self.par
+      
 
     def optimize_brute(self, **kwargs):
         x0, fval = brute(
