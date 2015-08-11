@@ -32,7 +32,7 @@ from ase.optimize import FIRE
 from ase.units import GPa
 
 import matscipytest
-from matscipy.eam.calculator import EAM
+from matscipy.calculators.eam import EAM
 from matscipy.elasticity import (CubicElasticModuli, Voigt_6x6_to_cubic,
                                  cubic_to_Voigt_6x6,
                                  measure_triclinic_elastic_constants,
