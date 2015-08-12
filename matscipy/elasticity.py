@@ -870,7 +870,7 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
     # Fill in strain and stress arrays from config Atoms list
     for pattern_index, (pattern, fit_pairs) in enumerate(strain_patterns[symmetry]):
         for step in range(N_steps):
-            at = configs.next()
+            at = next(configs)
             if optimizer is not None:
                 optimizer(at, logfile=logfile).run(**kwargs)
             strain[pattern_index, step, :] = full_3x3_to_Voigt_6_strain(at.info['strain'])
