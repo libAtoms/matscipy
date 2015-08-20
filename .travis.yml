@@ -1,3 +1,4 @@
+sudo: false
 language: python
 python:
   - "2.6"
@@ -6,8 +7,6 @@ python:
   - "3.3"
   - "3.4"
 install:
-  - "sudo apt-get update"
-  - "sudo apt-get install python-numpy python-scipy"
   # Fetch and install ASE
   #- "curl https://wiki.fysik.dtu.dk/ase-files/python-ase-3.9.0.4465.tar.gz | tar -zvx ; cd python-ase-3.9.0.4465 ; python setup.py install ; cd .."
   #- "svn checkout https://svn.fysik.dtu.dk/projects/ase/trunk ase ; cd ase ; python setup.py install ; cd .."
@@ -20,3 +19,8 @@ notifications:
     - lars.pastewka@kit.edu
     - j.r.kermode@warwick.ac.uk
     - adrien.gola@kit.edu
+addons:
+  apt:
+    packages:
+    - python-numpy
+    - python-scipy
