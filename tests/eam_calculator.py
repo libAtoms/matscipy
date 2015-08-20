@@ -102,6 +102,13 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         a.set_calculator(calc)
         self.assertArrayAlmostEqual(a.get_stress(), numeric_stress(a))
 
+        sx, sy, sz = a.cell.diagonal()
+        a.set_cell([sx, 0.9*sy, 1.2*sz], scale_atoms=True)
+        self.assertArrayAlmostEqual(a.get_stress(), numeric_stress(a))
+
+        a.set_cell([[sx, 0.1*sx, 0], [0, 0.9*sy, 0], [0, -0.1*sy, 1.2*sz]], scale_atoms=True)
+        self.assertArrayAlmostEqual(a.get_stress(), numeric_stress(a))
+
     def test_Grochola(self):
         a = FaceCenteredCubic('Au', size=[2,2,2])
         calc = EAM('Au-Grochola-JCP05.eam.alloy')

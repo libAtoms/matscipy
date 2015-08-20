@@ -576,7 +576,7 @@ class FitDimer(Fit):
         """
         self.new_dimer()
         self.atoms.set_calculator(calc)
-        ase.optimize.FIRE(self.atoms, logfile=_logfile).run(fmax=self.fmax)
+        ase.optimize.FIRE(self.atoms, logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_distance(self):
         return self.atoms.get_distance(0, 1)
@@ -659,7 +659,7 @@ class FitCubicCrystal(Fit):
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
-            logfile=_logfile).run(fmax=self.fmax)
+            logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_lattice_constant(self):
         return np.sum(self.atoms.get_cell().diagonal())/np.sum(self.size)
@@ -766,9 +766,9 @@ class FitTetragonalCrystal(Fit):
     __slots__ = [ 'a0','c0', 'calc', 'crystal', 'Ec', 'fmax', 'par', 'w_a0','w_c0', 'w_Ec' ]
 
     def __init__(self, calc, par, els,
-                 a0, c0, Ec=None,
+                 Ec, a0, c0, c_a=None,
                  B=None, C11=None, C12=None,C13=None, C33=None, C44=None, C66=None,
-                 w_Ec=1.0, w_a0=1.0,w_c0=1.0,
+                 w_Ec=1.0, w_a0=1.0,w_c0=1.0, w_c_a=1.0,
                  w_B=1.0, w_C11=1.0, w_C12=1.0,w_C13=1.0,w_C33=1.0,w_C44=1.0,w_C66=1.0, w_Cp=1.0,
                  fmax=1e-6, eps=0.001,
                  ecoh_ref=None,
@@ -780,6 +780,7 @@ class FitTetragonalCrystal(Fit):
         self.a0 = a0
         self.c0 = c0
         self.Ec = Ec
+        self.c_a = c_a
 
         self.B = B
         self.C11 = C11
@@ -797,6 +798,8 @@ class FitTetragonalCrystal(Fit):
         
         if self.Ec is not None:
             self.w_Ec = sqrt(w_Ec)/self.Ec
+        if self.c_a is not None:
+            self.w_c_a = sqrt(w_c_a)/self.c_a
         if self.B is not None:
             self.w_B = sqrt(w_B)/self.B
         if self.C11 is not None:
@@ -818,23 +821,33 @@ class FitTetragonalCrystal(Fit):
         self.eps = eps
 
         self.atoms = None
-
+    
     def new_bulk(self):
         self.unitcell = self.crystal(
             self.els,
-            latticeconstant  = [self.a0, self.c0],
+            latticeconstant  = [self.a0,self.c0],
             size             = [1, 1, 1]
             )
         self.atoms = self.unitcell.copy()
         self.atoms *= self.size
         self.atoms.translate([0.1, 0.1, 0.1])
+    #def new_bulk(self):
+        #self.unitcell = ase.Atoms(
+            #self.els,
+            #positions=[(0.0,0.0,0.0),(0.5,0.5,0.0),(0.5,0.0,0.5),(0.0,0.5,0.5)],
+            #cell  = (self.a0,self.a0, self.c0),
+            #pbc=(1,1,1)
+            #)
+        #self.atoms = self.unitcell.copy()
+        #self.atoms *= self.size
+        #self.atoms.translate([0.1, 0.1, 0.1])
 
     def set_calculator(self, calc):
         self.new_bulk()
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
-            ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
-            logfile=_logfile).run(fmax=self.fmax)
+            ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,1,1,1]),
+            logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_lattice_constant(self):
         return np.sum(self.atoms.get_cell().diagonal()[:2])/np.sum(self.size[:2]),self.atoms.get_cell().diagonal()[2]/self.size[2]
@@ -970,6 +983,14 @@ class FitTetragonalCrystal(Fit):
         if self.C66 is not None:
             C66 = self.get_C66()
 
+
+
+        if self.c_a is not None:
+            r_c_a = self.w_c_a*( c0/a0 - self.c_a )
+            r += [ r_c_a ]
+            if log is not None:
+                print('# %20s c/a   = %20.10f   (%20.10f )   - %20.10f' \
+                    % ( '', c0/a0 , self.c_a, r_c_a ))
         if self.B is not None:
             r_B = self.w_B*( (C33*Cp-2*C13**2)/Czz - self.B )
             r += [ r_B ]
@@ -1053,7 +1074,7 @@ class FitHexagonalCrystal(Fit):
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,0,0,0,0]),
-            logfile=_logfile).run(fmax=self.fmax)
+            logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_lattice_constant(self):
         cx, cy, cz = self.atoms.get_cell()
