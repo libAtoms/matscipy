@@ -37,11 +37,11 @@ import matscipy.contact_mechanics.Hertz as Hertz
 
 class TestGreensFunction(matscipytest.MatSciPyTestCase):
 
-    def test_Hertz_displacements(self):
+    def test_Hertz_displacements_square(self):
         nx = 256 # Grid size
         a = 32. # Contact radius
         G, x, y = gf.real_to_reciprocal_space(
-            nx, nx, gf=gf.displacement_from_uniform_pressure__nonperiodic,
+            nx, nx, gf=gf.square_pressure__nonperiodic,
             coordinates=True)
 
         r_sq = (x**2 + y**2)/a**2
@@ -103,7 +103,7 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
         R = 256. # sphere radius
         d = R/20. # penetration depth
         G, x, y = gf.real_to_reciprocal_space(
-            nx, nx, gf=gf.displacement_from_uniform_pressure__nonperiodic,
+            nx, nx, gf=gf.square_pressure__nonperiodic,
             coordinates=True)
 
         r_sq = (x**2 + y**2)/R**2

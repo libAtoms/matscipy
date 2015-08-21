@@ -35,7 +35,7 @@ import numpy as np
 
 ###
 
-def displacement_from_uniform_pressure__nonperiodic(x, y, a=0.5, b=0.5):
+def square_pressure__nonperiodic(x, y, a=0.5, b=0.5):
     """
     Real-space representation of Green's function for the normal displacements
     of a non-periodic linear elastic half-space with contact modulus 2 and
@@ -71,7 +71,7 @@ def displacement_from_uniform_pressure__nonperiodic(x, y, a=0.5, b=0.5):
                            ( (x+a)+np.sqrt((y-b)*(y-b)+(x+a)*(x+a)) ) ) )/(2*pi);
 
 
-def point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
+def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
     """
     Real-space representation of Green's function for the displacement and
     stress in the bulk of a non-periodic linear elastic half-space in response
@@ -83,6 +83,8 @@ def point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
     quantities : str
         Each character in this string defines a return quantity. They are
         returned in a tuple of the same order. Possible quantities are
+            'x' : Displacement for a concentrated surface traction in
+                  x-direction.
             'X' : Stress for a concentrated surface traction in x-direction.
             'Y' : Stress for a concentrated surface traction in y-direction.
             'Z' : Stress for a concentrated surface pressure
@@ -96,6 +98,8 @@ def point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
         y-coordinates.
     z : array_like
         z_coordinates.
+    G : float
+        Shear modulus.
     nu : float
         Poisson number.
 
@@ -121,10 +125,23 @@ def point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
     rho = np.sqrt(r_sq + z**2)
 
     r_sq[r_sq <= 0.0] = 1e-9
+    rho[rho <= 0.0] = 1e-9
 
     retvals = []
     for q in quantities:
-        if q == 'X':
+        if q == 'x':
+            ux = (1/rho+x**2/rho**3+(1-2*nu)*(1/(rho+z)-x**2/(rho*(rho+z)**2)))/(4*pi*G)
+            uy = (x*y/rho**3-(1-2*nu)*x*y/(rho*(rho+z)**2))/(4*pi*G)
+            uz = (x*z/rho**3+(1-2*nu)*x/(rho*(rho+z)))/(4*pi*G)
+            retvals += [np.array([ux, uy, uz])]
+        elif q == 'y':
+            raise NotImplementedError()
+        elif q == 'z':
+            ux = (x*z/rho**3-(1-2*nu)*x/(rho*(rho+z)))/(4*pi*G)
+            uy = (y*z/rho**3-(1-2*nu)*y/(rho*(rho+z)))/(4*pi*G)
+            uz = (z**2/rho**3+2*(1-nu)/rho)/(4*pi*G)
+            retvals += [np.array([ux, uy, uz])]
+        elif q == 'X':
             sxx = ( -3*x**3/rho**5 + (1-2*nu)*(x/rho**3 - 3*x/(rho*(rho+z)**2) + x**3/(rho**3*(rho+z)**2) + 2*x**3/(rho**2*(rho+z)**3)) )/(2*pi)
             syy = ( -3*x*y**2/rho**5 + (1-2*nu)*(x/rho**3 - x/(rho*(rho+z)**2) + x*y**2/(rho**3*(rho+z)**2) + 2*x*y**2/(rho**2*(rho+z)**3)) )/(2*pi)
             szz = ( -3*x*z**2/rho**5 )/(2*pi)
@@ -151,8 +168,7 @@ def point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
         return retvals
 
 
-def real_to_reciprocal_space(nx, ny=None,
-                             gf=displacement_from_uniform_pressure__nonperiodic,
+def real_to_reciprocal_space(nx, ny=None, gf=square_pressure__nonperiodic,
                              coordinates=False):
     """
     Return the reciprocal space representation of a real-space Green's function
@@ -206,8 +222,7 @@ def real_to_reciprocal_space(nx, ny=None,
         return r
 
 
-def point_traction_from_displacement__periodic(nx, ny=None, phi0=None,
-                                               size=None):
+def point_displacement__periodic(nx, ny=None, phi0=None, size=None):
     """
     Return reciprocal space stiffness coefficients (i.e. inverse of the Green's
     function) for a periodic system with contact modulus 2 and Poisson number
