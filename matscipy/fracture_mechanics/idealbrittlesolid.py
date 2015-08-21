@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 
 from ase.atoms import Atoms
@@ -176,7 +178,7 @@ def find_crack_tip(atoms, dt=None, store=True, results=None):
 
     strain = get_strain(atoms)
     eps_G = atoms.info['eps_G']
-    print 'tip_x: %.3f strain: %.4f delta: %.3f' % (tip_x, strain, strain/eps_G)
+    print('tip_x: %.3f strain: %.4f delta: %.3f' % (tip_x, strain, strain/eps_G))
 
     if store:
         atoms.info['tip_atom'] = tip_atom
@@ -207,7 +209,7 @@ def set_initial_velocities(c):
     v[lower, 1] = -v0
     c.set_velocities(v)
 
-    print 'Setting velocities of upper=%s, lower=%s to +/- %.2f' % (upper, lower, v0)
+    print('Setting velocities of upper=%s, lower=%s to +/- %.2f' % (upper, lower, v0))
     return (upper, lower, v0)
 
 
@@ -261,7 +263,7 @@ def extend_strip(atoms, a, N, M, vacuum):
         # only need to extend strip when crack gets near end
         return False
 
-    print 'tip_x (%.2f) > left + 0.75*width (%.2f)' % (tip_x, left + 0.75*width)
+    print('tip_x (%.2f) > left + 0.75*width (%.2f)' % (tip_x, left + 0.75*width))
     
     # extra material for pasting onto end
     a = atoms.get_calculator().parameters['a']    
@@ -276,12 +278,12 @@ def extend_strip(atoms, a, N, M, vacuum):
     extra.positions[:, 1] -= extra.positions[:, 1].mean()
     extra.positions[:, 1] *= (1.0 + strain)
 
-    print 'Adding %d atoms' % len(extra)
+    print('Adding %d atoms' % len(extra))
     atoms += extra
     atoms.set_constraint([])
 
     discard = atoms.positions[:, 0].argsort()[:len(extra)]
-    print 'Discarding %d atoms' % len(discard)
+    print('Discarding %d atoms' % len(discard))
     del atoms[discard]
 
     return True
