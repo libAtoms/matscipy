@@ -71,8 +71,7 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
             ( Gxx, Gyy, Gzz, Gyz, Gxz, Gxy ), x, y = \
                 gf.real_to_reciprocal_space(
                     nx, nx, gf=lambda x, y:
-                    gf.stress_from_point_traction__nonperiodic('z', x, y, z,
-                                                               nu=nu),
+                    gf.point_traction__nonperiodic('Z', x, y, z, nu=nu),
                     coordinates=True)
 
             r_sq = (x**2 + y**2)/a**2

@@ -71,11 +71,11 @@ def displacement_from_uniform_pressure__nonperiodic(x, y, a=0.5, b=0.5):
                            ( (x+a)+np.sqrt((y-b)*(y-b)+(x+a)*(x+a)) ) ) )/(2*pi);
 
 
-def stress_from_point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
+def point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
     """
-    Real-space representation of Green's function for the stress in the bulk of
-    a non-periodic linear elastic half-space in response to a concentrated
-    normal force. This is the Boussinesq-Cerrutti solution.
+    Real-space representation of Green's function for the displacement and
+    stress in the bulk of a non-periodic linear elastic half-space in response
+    to a concentrated surface force. This is the Boussinesq-Cerrutti solution.
     See: K.L. Johnson, Contact Mechanics, p. 51 and p. 69
 
     Parameters
@@ -83,14 +83,13 @@ def stress_from_point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
     quantities : str
         Each character in this string defines a return quantity. They are
         returned in a tuple of the same order. Possible quantities are
-            'x' : Green's function for a concentrated tangential force in
-                  x-direction.
-            'y' : Green's function for a concentrated tangential force in
-                  y-direction.
-            'z' : Green's function for a concentrated normal force
-                  (i.e. in z-direction). Important note: Positive force points
-                  upwards and hence pulls on the system. Signs are reversed from
-                  solution given in Johnson.
+            'X' : Stress for a concentrated surface traction in x-direction.
+            'Y' : Stress for a concentrated surface traction in y-direction.
+            'Z' : Stress for a concentrated surface pressure
+                  (i.e. "traction" in z-direction). Important note: Positive
+                  force points upwards and hence pulls on the system. This is
+                  really the surface normal stress. Signs are therefore reversed
+                  from solution given in Johnson.
     x : array_like
         x-coordinates.
     y : array_like
@@ -123,51 +122,33 @@ def stress_from_point_traction__nonperiodic(quantities, x, y, z, nu=0.5):
 
     r_sq[r_sq <= 0.0] = 1e-9
 
-    sxx = []
-    syy = []
-    szz = []
-    sxy = []
-    sxz = []
-    syz = []
-
+    retvals = []
     for q in quantities:
-        _sxx = np.zeros_like(rho)
-        _syy = np.zeros_like(rho)
-        _szz = np.zeros_like(rho)
-        _sxy = np.zeros_like(rho)
-        _sxz = np.zeros_like(rho)
-        _syz = np.zeros_like(rho)
-
-        if q == 'x':
-            _sxx = ( -3*x**3/rho**5 + (1-2*nu)*(x/rho**3 - 3*x/(rho*(rho+z)**2) + x**3/(rho**3*(rho+z)**2) + 2*x**3/(rho**2*(rho+z)**3)) )/(2*pi)
-            _syy = ( -3*x*y**2/rho**5 + (1-2*nu)*(x/rho**3 - x/(rho*(rho+z)**2) + x*y**2/(rho**3*(rho+z)**2) + 2*x*y**2/(rho**2*(rho+z)**3)) )/(2*pi)
-            _szz = ( -3*x*z**2/rho**5 )/(2*pi)
-            _sxy = ( -3*x**2*y/rho**5 + (1-2*nu)*(-y/(rho*(rho+z)**2) + x**2*y/(rho**3*(rho+z)**2) + 2*x**2*y/(rho**2*(rho+z)**3)) )/(2*pi)
-            _sxz = ( -3*x**2*z/rho**5 )/(2*pi)
-            _syz = ( -3*x*y*z/rho**5 )/(2*pi)
-        if q == 'y':
+        if q == 'X':
+            sxx = ( -3*x**3/rho**5 + (1-2*nu)*(x/rho**3 - 3*x/(rho*(rho+z)**2) + x**3/(rho**3*(rho+z)**2) + 2*x**3/(rho**2*(rho+z)**3)) )/(2*pi)
+            syy = ( -3*x*y**2/rho**5 + (1-2*nu)*(x/rho**3 - x/(rho*(rho+z)**2) + x*y**2/(rho**3*(rho+z)**2) + 2*x*y**2/(rho**2*(rho+z)**3)) )/(2*pi)
+            szz = ( -3*x*z**2/rho**5 )/(2*pi)
+            sxy = ( -3*x**2*y/rho**5 + (1-2*nu)*(-y/(rho*(rho+z)**2) + x**2*y/(rho**3*(rho+z)**2) + 2*x**2*y/(rho**2*(rho+z)**3)) )/(2*pi)
+            sxz = ( -3*x**2*z/rho**5 )/(2*pi)
+            syz = ( -3*x*y*z/rho**5 )/(2*pi)
+            retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
+        elif q == 'Y':
             raise NotImplementedError()
-        if q == 'z':
-            _sxx = -( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
-            _syy = -( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
-            _szz = 3*z**3/(2*pi*rho**5)
-            _sxy = -( (1-2*nu)/r_sq * ((1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
-            _sxz = 3*x*z**2/(2*pi*rho**5)
-            _syz = 3*y*z**2/(2*pi*rho**5)
+        elif q == 'Z':
+            sxx = -( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
+            syy = -( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
+            szz = 3*z**3/(2*pi*rho**5)
+            sxy = -( (1-2*nu)/r_sq * ((1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
+            sxz = 3*x*z**2/(2*pi*rho**5)
+            syz = 3*y*z**2/(2*pi*rho**5)
+            retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
         else:
             raise ValueError("Unknown quantity '{0}' requested.".format(q))
 
-        sxx += [_sxx]
-        syy += [_syy]
-        szz += [_szz]
-        sxy += [_sxy]
-        sxz += [_sxz]
-        syz += [_syz]
-
     if len(quantities) == 1:
-        return sxx[0], syy[0], szz[0], syz[0], sxz[0], sxy[0]
+        return retvals[0]
     else:
-        return sxx, syy, szz, syz, sxz, sxy
+        return retvals
 
 
 def real_to_reciprocal_space(nx, ny=None,
