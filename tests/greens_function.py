@@ -21,6 +21,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import division
+
 from math import pi, sqrt
 
 import unittest
@@ -38,8 +40,9 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
     def test_Hertz_displacements(self):
         nx = 256 # Grid size
         a = 32. # Contact radius
-        G, x, y = gf.reciprocal_grid(nx, nx, gf=gf.gf_displacement_nonperiodic,
-                                     coordinates=True)
+        G, x, y = gf.real_to_reciprocal_space(
+            nx, nx, gf=gf.displacement_from_uniform_pressure__nonperiodic,
+            coordinates=True)
 
         r_sq = (x**2 + y**2)/a**2
         P = np.where(r_sq > 1., np.zeros_like(r_sq), np.sqrt(1.-r_sq))
@@ -49,12 +52,12 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
 
         # Only the middle section of displacements is correct in for the
         # free-space Green's function.
-        u = u[:nx/4, :nx/4]
-        uref = uref[:nx/4, :nx/4]
+        u = u[:nx//4, :nx//4]
+        uref = uref[:nx//4, :nx//4]
         #np.savetxt('u.out', u)
-        #np.savetxt('u0.out', np.transpose([y[0,:nx/4], u[0,:]]))
+        #np.savetxt('u0.out', np.transpose([y[0,:nx//4], u[0,:]]))
         #np.savetxt('uref.out', uref)
-        #np.savetxt('uref0.out', np.transpose([y[0,:nx/4], uref[0,:]]))
+        #np.savetxt('uref0.out', np.transpose([y[0,:nx//4], uref[0,:]]))
         #np.savetxt('u_uref.out', u/uref)
         self.assertTrue(np.max(np.abs((u-uref)/uref)) < 0.01)
 
@@ -66,10 +69,10 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
         # nu: Poisson
         for z, nu in [ ( 16., 0.5 ), ( 32., 0.5 ), ( 16., 0.3 ) ]:
             ( Gxx, Gyy, Gzz, Gyz, Gxz, Gxy ), x, y = \
-                gf.reciprocal_grid(
-                    nx, nx,
-                    gf=lambda x, y: gf.gf_subsurface_stress_nonperiodic(x, y, z,
-                                                                        nu=nu),
+                gf.real_to_reciprocal_space(
+                    nx, nx, gf=lambda x, y:
+                    gf.stress_from_point_traction__nonperiodic('z', x, y, z,
+                                                               nu=nu),
                     coordinates=True)
 
             r_sq = (x**2 + y**2)/a**2
@@ -81,27 +84,28 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
             sttref, srrref, szzref, srzref = \
                 Hertz.stress(np.sqrt(r_sq), z/a, nu=nu)
 
-            #np.savetxt('s0.out', np.transpose([y[0,:nx/4], sxx[0,:nx/4],
-            #                                   syy[0,:nx/4], szz[0,:nx/4],
-            #                                   syz[0,:nx/4]]))
-            #np.savetxt('sref0.out', np.transpose([y[0,:nx/4], sttref[0,:nx/4],
-            #                                     srrref[0,:nx/4], szzref[0,:nx/4],
-            #                                     srzref[0,:nx/4]]))
-            self.assertTrue(np.max(np.abs((sxx[0,1:nx/4]-sttref[0,1:nx/4])/
-                                           sttref[0,1:nx/4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((syy[0,1:nx/4]-srrref[0,1:nx/4])/
-                                           srrref[0,1:nx/4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((szz[0,1:nx/4]-szzref[0,1:nx/4])/
-                                           szzref[0,1:nx/4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((syz[0,1:nx/4]-srzref[0,1:nx/4])/
-                                           srzref[0,1:nx/4])) < 1e-2)
+            #np.savetxt('s0.out', np.transpose([y[0,:nx//4], sxx[0,:nx//4],
+            #                                   syy[0,:nx//4], szz[0,:nx//4],
+            #                                   syz[0,:nx//4]]))
+            #np.savetxt('sref0.out', np.transpose([y[0,:nx//4], sttref[0,:nx//4],
+            #                                     srrref[0,:nx//4], szzref[0,:nx//4],
+            #                                     srzref[0,:nx//4]]))
+            self.assertTrue(np.max(np.abs((sxx[0,1:nx//4]-sttref[0,1:nx//4])/
+                                           sttref[0,1:nx//4])) < 1e-2)
+            self.assertTrue(np.max(np.abs((syy[0,1:nx//4]-srrref[0,1:nx//4])/
+                                           srrref[0,1:nx//4])) < 1e-2)
+            self.assertTrue(np.max(np.abs((szz[0,1:nx//4]-szzref[0,1:nx//4])/
+                                           szzref[0,1:nx//4])) < 1e-2)
+            self.assertTrue(np.max(np.abs((syz[0,1:nx//4]-srzref[0,1:nx//4])/
+                                           srzref[0,1:nx//4])) < 1e-2)
 
     def test_min_ccg(self):
         nx = 256 # Grid size
         R = 256. # sphere radius
         d = R/20. # penetration depth
-        G, x, y = gf.reciprocal_grid(nx, nx, gf=gf.gf_displacement_nonperiodic,
-                                     coordinates=True)
+        G, x, y = gf.real_to_reciprocal_space(
+            nx, nx, gf=gf.displacement_from_uniform_pressure__nonperiodic,
+            coordinates=True)
 
         r_sq = (x**2 + y**2)/R**2
         h = np.where(r_sq > 1., (R-d)*np.ones_like(r_sq), (R-d)-R*np.sqrt(1.-r_sq))
