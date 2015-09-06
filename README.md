@@ -9,6 +9,15 @@ Build status
 
 [![Build Status](https://travis-ci.org/libAtoms/matscipy.svg?branch=master)](https://travis-ci.org/libAtoms/matscipy)
 
+Compilation/installation follows the standard distutils route:
+
+    python setup.py build
+    python setup.py install
+
+If building on Mac OS X, we recommend you use the GCC toolchain
+    
+    CC=gcc CXX=g++ python setup.py build
+
 Documentation
 =============
 
