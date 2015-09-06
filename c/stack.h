@@ -25,7 +25,7 @@
 #define __STACK_H
 
 #include <cassert>
-#include <malloc/malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 
