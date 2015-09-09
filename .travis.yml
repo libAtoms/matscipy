@@ -16,9 +16,13 @@ matrix:
     - python: 2
       os: osx
       env: PYTHON=/usr/bin/python
+      env: CC=gcc
+      env: CXX=g++
     - python: 3
       os: osx
       env: PYTHON=/usr/local/bin/python3
+      env: CC=gcc
+      env: CXX=g++
 before_install:
   - source .travis.before_install.bash
 install:
