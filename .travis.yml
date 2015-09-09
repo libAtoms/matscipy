@@ -1,20 +1,30 @@
-os:
-  - linux
-  - osx
-sudo: false
-language: python
-python:
-  - "2.6"
-  - "2.7"
-  - "3.2"
-  - "3.3"
-  - "3.4"
+# Travis auto-virtualenv isn't supported on OS X
+language: generic
+matrix:
+  include:
+    - python: 2.7
+      language: python
+      python: "2.7"
+      os: linux
+      env: PYTHON=/usr/bin/python2.7
+    - python: 3.4
+      language: python
+      python: "3.4"
+      os: linux
+      env: PYTHON=/usr/bin/python3.4
+    - python: 2
+      os: osx
+      env: PYTHON=/usr/bin/python
+    - python: 3
+      os: osx
+      env: PYTHON=/usr/local/bin/python3
+before_install:
+  - source .travis.before_install.bash
 install:
-  # Fetch and install ASE
-  #- "curl https://wiki.fysik.dtu.dk/ase-files/python-ase-3.9.0.4465.tar.gz | tar -zvx ; cd python-ase-3.9.0.4465 ; python setup.py install ; cd .."
-  #- "svn checkout https://svn.fysik.dtu.dk/projects/ase/trunk ase ; cd ase ; python setup.py install ; cd .."
   - "pip install -r requirements.txt"
   - "python setup.py install"
+before_script:
+  - source .travis.before_script.bash
 script:
   - "cd tests ; python run_tests.py"
 notifications:
@@ -22,8 +32,3 @@ notifications:
     - lars.pastewka@kit.edu
     - j.r.kermode@warwick.ac.uk
     - adrien.gola@kit.edu
-addons:
-  apt:
-    packages:
-    - python-numpy
-    - python-scipy
