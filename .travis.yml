@@ -36,8 +36,8 @@ before_script:
   - source .travis.before_script.bash
 script:
   - "cd tests ; python run_tests.py"
-#notifications:
-#  email:
-#    - lars.pastewka@kit.edu
-#    - j.r.kermode@warwick.ac.uk
-#    - adrien.gola@kit.edu
+notifications:
+  email:
+    - lars.pastewka@kit.edu
+    - j.r.kermode@warwick.ac.uk
+    - adrien.gola@kit.edu
