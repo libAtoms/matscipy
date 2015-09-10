@@ -18,7 +18,7 @@ matrix:
       python: "3.4"
       os: linux
       env: PYTHON=/usr/bin/python3.4
-   - python: 2
+    - python: 2
       os: osx
       env: PYTHON=/usr/bin/python CC=clang CXX=clang++
     - python: 2
