@@ -7,6 +7,11 @@ version = (os.popen('git config --get remote.origin.url').read() + ',' +
 
 scripts = []
 
+
+extra_compile_args = []
+if 'CC' in os.environ and os.environ['CC'] != 'clang':
+    extra_compile_args.append('-std=c++0x')
+
 setup(name='matscipy',
       version=version,
       description='Generic Python Materials Science tools',
@@ -27,7 +32,7 @@ setup(name='matscipy',
              'c/neighbours.c',
              'c/ring_statistics.cpp',
              'c/matscipymodule.c'],
-            extra_compile_args=['-std=c++0x']
+            extra_compile_args=extra_compile_args
             )
         ]
       )
