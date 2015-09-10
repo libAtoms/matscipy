@@ -9,7 +9,7 @@ scripts = []
 
 
 extra_compile_args = []
-if 'CC' in os.environ and os.environ['CC'] != 'clang':
+if 'CC' not in os.environ or not os.environ['CC'].endswith('clang'):
     extra_compile_args.append('-std=c++0x')
 
 setup(name='matscipy',
