@@ -22,7 +22,13 @@
 
 import multiprocessing
 import multiprocessing.managers
-import argparse
+
+try:
+    import argparse
+except ImportError:
+    from matscipy.logger import screen
+    screen.pr('argparse module not availability, some functionality disabled')
+
 import abc
 import datetime
 import sys
