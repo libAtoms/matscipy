@@ -28,6 +28,7 @@ import numpy as np
 import ase
 import ase.io as io
 import ase.lattice.hexagonal
+from ase.structure import molecule
 
 import matscipytest
 from matscipy.neighbours import mic, neighbour_list, first_neighbours
@@ -111,6 +112,31 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(first_neighbours(5, i), [-1,0,-1,4,-1,7])
         i = [0,1,2,3,4,5]
         self.assertArrayAlmostEqual(first_neighbours(6, i), [0,1,2,3,4,5,6])
+
+    def test_multiple_elements(self):
+        a = molecule('HCOOH')
+        a.center(vacuum=5.0)
+        io.write('HCOOH.cfg', a)
+        i = neighbour_list("i", a, 1.85)
+        self.assertArrayAlmostEqual(np.bincount(i), [2,3,1,1,1])
+
+        cutoffs = np.zeros([9, 9])
+        cutoffs[1, 6] = cutoffs[6, 1] = 1.2
+        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        self.assertArrayAlmostEqual(np.bincount(i), [0,1,0,0,1])
+
+        cutoffs = np.zeros([9, 9])
+        cutoffs[6, 8] = cutoffs[8, 6] = 1.4
+        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        self.assertArrayAlmostEqual(np.bincount(i), [1,2,1])
+
+        cutoffs = np.zeros([9, 9])
+        cutoffs[1, 6] = cutoffs[6, 1] = 1.2
+        cutoffs[6, 8] = cutoffs[8, 6] = 1.4
+        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        self.assertArrayAlmostEqual(np.bincount(i), [1,3,1,0,1])
+
+
 
 ###
 

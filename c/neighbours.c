@@ -85,14 +85,17 @@ PyObject *
 py_neighbour_list(PyObject *self, PyObject *args)
 {
     PyObject *py_cell, *py_inv_cell, *py_pbc, *py_r, *py_quantities;
+    PyObject *py_cutoffs, *py_types = NULL;
     double cutoff;
 
 #if PY_MAJOR_VERSION >= 3
-    if (!PyArg_ParseTuple(args, "O!OOOOd", &PyUnicode_Type, &py_quantities,
-                          &py_cell, &py_inv_cell, &py_pbc, &py_r, &cutoff))
+    if (!PyArg_ParseTuple(args, "O!OOOOO|O", &PyUnicode_Type, &py_quantities,
+                          &py_cell, &py_inv_cell, &py_pbc, &py_r, &py_cutoffs,
+                          &py_types))
 #else
-    if (!PyArg_ParseTuple(args, "O!OOOOd", &PyString_Type, &py_quantities,
-                          &py_cell, &py_inv_cell, &py_pbc, &py_r, &cutoff))
+    if (!PyArg_ParseTuple(args, "O!OOOOO|O", &PyString_Type, &py_quantities,
+                          &py_cell, &py_inv_cell, &py_pbc, &py_r, &py_cutoffs,
+                          &py_types))
 #endif
         return NULL;
 
@@ -107,9 +110,46 @@ py_neighbour_list(PyObject *self, PyObject *args)
     if (!py_pbc) return NULL;
     py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_C_CONTIGUOUS);
     if (!py_r) return NULL;
+    if (py_types) {
+        py_types = PyArray_FROMANY(py_types, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+        if (!py_types) return NULL;
+    }
+
+    npy_intp ncutoffs = 1;
+    npy_double *cutoffs = NULL;
+    double *cutoffs_sq = NULL;
+    if (PyFloat_Check(py_cutoffs)) {
+        cutoff = PyFloat_AsDouble(py_cutoffs);
+    }
+    else {
+        int i;
+
+        /* This must be an array of cutoffs */
+        py_cutoffs = PyArray_FROMANY(py_cutoffs, NPY_DOUBLE, 2, 2,
+                                     NPY_C_CONTIGUOUS);
+        if (!py_cutoffs) return NULL;
+        ncutoffs = PyArray_DIM((PyArrayObject *) py_cutoffs, 0);
+        if (PyArray_DIM((PyArrayObject *) py_cutoffs, 1) != ncutoffs) {
+            PyErr_SetString(PyExc_TypeError, "Cutoff array must be square.");
+            goto fail;
+        }
+        cutoffs = PyArray_DATA((PyArrayObject *) py_cutoffs);
+        cutoffs_sq = malloc(ncutoffs*ncutoffs*sizeof(double));
+        cutoff = 0.0;
+        for (i = 0; i < ncutoffs*ncutoffs; i++) {
+            cutoff = max(cutoff, cutoffs[i]);
+            cutoffs_sq[i] = cutoffs[i]*cutoffs[i];
+        }
+    }
 
     /* FIXME! Check array shapes. */
     npy_intp nat = PyArray_DIM((PyArrayObject *) py_r, 0);
+
+    if (py_types && PyArray_DIM((PyArrayObject *) py_types, 0) != nat) {
+       PyErr_SetString(PyExc_TypeError, "Position and type arrays must have "
+                                        "identical first dimension.");
+       goto fail;
+    }
 
     /* Get pointers to array data */
     npy_double *cell = PyArray_DATA((PyArrayObject *) py_cell);
@@ -117,6 +157,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
     npy_double *inv_cell = PyArray_DATA((PyArrayObject *) py_inv_cell);
     npy_bool *pbc = PyArray_DATA((PyArrayObject *) py_pbc);
     npy_double *r = PyArray_DATA((PyArrayObject *) py_r);
+    npy_int *types = NULL;
+    if (py_types) types = PyArray_DATA((PyArrayObject *) py_types);
 
     /* Compute vectors to opposite face */
     double norm1[3], norm2[3], norm3[3];
@@ -363,7 +405,19 @@ py_neighbour_list(PyObject *self, PyObject *args)
                             double abs_dr_sq = dr[0]*dr[0] + dr[1]*dr[1] +
                                 dr[2]*dr[2];
 
-                            if (abs_dr_sq < cutoff_sq) {
+                            bool inside_cutoff = false;
+                            if (cutoffs && types) {
+                                if (types[i] < ncutoffs && types[j] < ncutoffs){
+                                   double c_sq = cutoffs_sq[types[i]*ncutoffs+
+                                                            types[j]];
+                                   inside_cutoff = abs_dr_sq < c_sq;
+                                }
+                            }
+                            else {
+                                inside_cutoff = abs_dr_sq < cutoff_sq;
+                            }
+
+                            if (inside_cutoff) {
 
                                 if (nneigh >= neighsize) {
                                     neighsize *= 2;
@@ -470,6 +524,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     /* Cleanup. Sorry for the goto. */
     if (seed)  free(seed);
     if (next)  free(next);
+    if (cutoffs_sq)  free(cutoffs_sq);
     if (py_first)  Py_DECREF(py_first);
     if (py_secnd)  Py_DECREF(py_secnd);
     if (py_distvec)  Py_DECREF(py_distvec);

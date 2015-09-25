@@ -59,7 +59,7 @@ def mic(dr, cell, pbc=None):
     return dr - np.dot(dri, cell)
 
 
-def neighbour_list(quantities, a, cutoff):
+def neighbour_list(quantities, a, cutoff, *args):
     """
     Compute a neighbour list for an atomic configuration.
 
@@ -77,8 +77,12 @@ def neighbour_list(quantities, a, cutoff):
                   between atom i and j)
     a : ase.Atoms
         Atomic configuration.
-    cutoff : float
-        Cutoff for neighbour search.
+    cutoff : float or array_like
+        Cutoff for neighbour search. If array is given, then different cutoffs
+        will be used for individual bonds.
+    numbers : array_like, optional
+        Atomic numbers of similar identifiers for elements. Used for cutoff
+        lookup.
 
     Returns
     -------
@@ -88,5 +92,5 @@ def neighbour_list(quantities, a, cutoff):
 
     return _matscipy.neighbour_list(quantities, a.cell,
                                     np.linalg.inv(a.cell.T), a.pbc,
-                                    a.positions, cutoff)
+                                    a.positions, cutoff, *args)
 
