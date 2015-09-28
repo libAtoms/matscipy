@@ -88,6 +88,13 @@ py_neighbour_list(PyObject *self, PyObject *args)
     PyObject *py_cutoffs, *py_types = NULL;
     double cutoff;
 
+    /* Neighbour list */
+    int *seed = NULL, *last, *next = NULL;
+
+    /* Optional quantities to be computed */
+    PyObject *py_first = NULL, *py_secnd = NULL, *py_distvec = NULL;
+    PyObject *py_absdist = NULL, *py_shift = NULL;
+
 #if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTuple(args, "O!OOOOO|O", &PyUnicode_Type, &py_quantities,
                           &py_cell, &py_inv_cell, &py_pbc, &py_r, &py_cutoffs,
@@ -165,7 +172,13 @@ py_neighbour_list(PyObject *self, PyObject *args)
     cross_product(cell2, cell3, norm1);
     cross_product(cell3, cell1, norm2);
     cross_product(cell1, cell2, norm3);
-    double volume = cell1[0]*norm3[0] + cell2[1]*norm3[1] + cell3[2]*norm3[2];
+    double volume = cell3[0]*norm3[0] + cell3[1]*norm3[1] + cell3[2]*norm3[2];
+
+    if (volume < 1e-12) {
+        PyErr_SetString(PyExc_RuntimeError, "Zero cell volume.");
+        goto fail;
+    }
+
     double len1 = normsq(norm1), len2 = normsq(norm2), len3 = normsq(norm3);
     int i;
     for (i = 0; i < 3; i++) {
@@ -195,7 +208,6 @@ py_neighbour_list(PyObject *self, PyObject *args)
     int nz = (int) ceil(cutoff*n3/len3);
 
     /* Sort particles into bins */
-    int *seed = NULL, *last, *next = NULL;
     int ncells = n1*n2*n3;
     seed = (int *) malloc(ncells*sizeof(int));
     last = (int *) malloc(ncells*sizeof(int));
@@ -236,10 +248,6 @@ py_neighbour_list(PyObject *self, PyObject *args)
     /* Neighbour list counter and size */
     npy_intp nneigh = 0; /* Number of neighbours found */
     npy_intp neighsize = nat; /* Initial guess for neighbour list size */
-
-    /* Optional quantities to be computed */
-    PyObject *py_first = NULL, *py_secnd = NULL, *py_distvec = NULL;
-    PyObject *py_absdist = NULL, *py_shift = NULL;
 
     npy_int *first = NULL, *secnd = NULL, *shift = NULL;
     npy_double *distvec = NULL, *absdist = NULL;
