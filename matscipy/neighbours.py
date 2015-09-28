@@ -23,7 +23,7 @@ import itertools
 
 import numpy as np
 
-import _matscipy 
+import _matscipy
 from _matscipy import first_neighbours
 
 ###
@@ -67,7 +67,7 @@ def neighbour_list(quantities, a, cutoff, *args):
     ----------
     quantities : str
         Quantities to compute by the neighbor list algorithm. Each character
-        in this string defines a quantity. They are returned in a tuple of 
+        in this string defines a quantity. They are returned in a tuple of
         the same order. Possible quantities are
             'i' : first atom index
             'j' : second atom index
@@ -87,7 +87,9 @@ def neighbour_list(quantities, a, cutoff, *args):
     Returns
     -------
     i, j, ... : array
-        Tuple with arrays for each quantity specified above.
+        Tuple with arrays for each quantity specified above. Indices in `i`
+        are returned in ascending order 0..len(a), but the order of (i,j)
+        pairs is not guaranteed.
     """
 
     return _matscipy.neighbour_list(quantities, a.cell,
