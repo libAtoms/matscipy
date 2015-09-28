@@ -405,63 +405,65 @@ py_neighbour_list(PyObject *self, PyObject *args)
                             double abs_dr_sq = dr[0]*dr[0] + dr[1]*dr[1] +
                                 dr[2]*dr[2];
 
-                            bool inside_cutoff = false;
-                            if (cutoffs && types) {
-                                if (types[i] < ncutoffs && types[j] < ncutoffs){
-                                   double c_sq = cutoffs_sq[types[i]*ncutoffs+
-                                                            types[j]];
-                                   inside_cutoff = abs_dr_sq < c_sq;
+                            if (abs_dr_sq < cutoff_sq) {
+                                bool inside_cutoff = true;
+                                if (cutoffs && types) {
+                                    if (types[i] < ncutoffs && 
+                                        types[j] < ncutoffs){
+                                        double c_sq = 
+                                            cutoffs_sq[types[i]*ncutoffs+
+                                                       types[j]];
+                                        inside_cutoff = abs_dr_sq < c_sq;
+                                    }
                                 }
-                            }
-                            else {
-                                inside_cutoff = abs_dr_sq < cutoff_sq;
-                            }
 
-                            if (inside_cutoff) {
+                                if (inside_cutoff) {
 
-                                if (nneigh >= neighsize) {
-                                    neighsize *= 2;
+                                    if (nneigh >= neighsize) {
+                                        neighsize *= 2;
+    
+                                        if (py_first &&
+                                            !(first = resize_array(py_first,
+                                                                   neighsize)))
+                                            goto fail;
+                                        if (py_secnd &&
+                                            !(secnd = resize_array(py_secnd,
+                                                                   neighsize)))
+                                            goto fail;
+                                        if (py_distvec &&
+                                            !(distvec = resize_array(
+                                                py_distvec, neighsize)))
+                                            goto fail;
+                                        if (py_absdist &&
+                                            !(absdist = resize_array(
+                                                py_absdist, neighsize)))
+                                            goto fail;
+                                        if (py_shift &&
+                                            !(shift = resize_array(py_shift,
+                                                                   neighsize)))
+                                            goto fail;
+                                    }
+                                                
+                                    if (py_first)
+                                        first[nneigh] = i;
+                                    if (py_secnd)
+                                        secnd[nneigh] = j;
+                                    if (py_distvec) {
+                                        distvec[3*nneigh+0] = dr[0];
+                                        distvec[3*nneigh+1] = dr[1];
+                                        distvec[3*nneigh+2] = dr[2];
+                                    }
+                                    if (py_absdist) 
+                                        absdist[nneigh] = sqrt(abs_dr_sq);
+                                    if (py_shift) {
+                                        shift[3*nneigh+0] = (ci1 - cj1 + x)/n1;
+                                        shift[3*nneigh+1] = (ci2 - cj2 + y)/n2;
+                                        shift[3*nneigh+2] = (ci3 - cj3 + z)/n3;
+                                    }
+                                    
+                                    nneigh++;
+                                }
 
-                                    if (py_first &&
-                                        !(first = resize_array(py_first,
-                                                               neighsize)))
-                                        goto fail;
-                                    if (py_secnd &&
-                                        !(secnd = resize_array(py_secnd,
-                                                               neighsize)))
-                                        goto fail;
-                                    if (py_distvec &&
-                                        !(distvec = resize_array(py_distvec,
-                                                                 neighsize)))
-                                        goto fail;
-                                    if (py_absdist &&
-                                        !(absdist = resize_array(py_absdist,
-                                                                 neighsize)))
-                                        goto fail;
-                                    if (py_shift &&
-                                        !(shift = resize_array(py_shift,
-                                                               neighsize)))
-                                        goto fail;
-                                }
-                                            
-                                if (py_first)
-                                    first[nneigh] = i;
-                                if (py_secnd)
-                                    secnd[nneigh] = j;
-                                if (py_distvec) {
-                                    distvec[3*nneigh+0] = dr[0];
-                                    distvec[3*nneigh+1] = dr[1];
-                                    distvec[3*nneigh+2] = dr[2];
-                                }
-                                if (py_absdist) 
-                                    absdist[nneigh] = sqrt(abs_dr_sq);
-                                if (py_shift) {
-                                    shift[3*nneigh+0] = (ci1 - cj1 + x)/n1;
-                                    shift[3*nneigh+1] = (ci2 - cj2 + y)/n2;
-                                    shift[3*nneigh+2] = (ci3 - cj3 + z)/n3;
-                                }
-                                
-                                nneigh++;
                             }
                         }
                         
