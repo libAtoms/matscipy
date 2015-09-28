@@ -28,6 +28,7 @@ import numpy as np
 import ase
 import ase.io as io
 import ase.lattice.hexagonal
+from ase.lattice import bulk
 from ase.structure import molecule
 
 import matscipytest
@@ -136,7 +137,11 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
         self.assertArrayAlmostEqual(np.bincount(i), [1,3,1,0,1])
 
-
+    def test_noncubic(self):
+        a = bulk("Al", cubic=False)
+        i, j, d = neighbour_list("ijd", a, 3.1)
+        self.assertArrayAlmostEqual(np.bincount(i), [12])
+        self.assertArrayAlmostEqual(d, [2.86378246]*12)
 
 ###
 
