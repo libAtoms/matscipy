@@ -72,13 +72,13 @@ class build_ext_subclass(build_ext):
         c = os.path.basename(self.compiler.compiler[0])
         cxx = os.path.basename(self.compiler.compiler_cxx[0])
         if None in copt:
-             extra_args += copt[None]
+            extra_args += copt[None]
         if c in copt:
-             extra_args += copt[c]
+            extra_args += copt[c]
         if None in cxxopt:
-             cxx_extra_args += copt[None]
+            cxx_extra_args += cxxopt[None]
         if cxx in cxxopt:
-             cxx_extra_args += cxxopt[cxx]
+            cxx_extra_args += cxxopt[cxx]
         if None in lopt:
             extra_link_args += lopt[None]
         if c in lopt:
