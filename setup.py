@@ -13,16 +13,13 @@ from numpy.distutils.misc_util import filter_sources, has_f_sources, \
      msvc_version
 
 # custom compilation options for various compilers
+# entry with key None gives default vaalues always used
 copt =  {
-        'gcc': [],
-        'clang': []
+          None: []
         }
 
 cxxopt = {
-        'g++': ['-std=c++0x'],
-        'g++-4.8': ['-std=c++0x'],
-        'g++-4.9': ['-std=c++0x'],
-        'clang++': ['-std=c++0x']
+          None: ['-std=c++0x']
          }
 
 lopt =  {
@@ -74,10 +71,16 @@ class build_ext_subclass(build_ext):
 
         c = os.path.basename(self.compiler.compiler[0])
         cxx = os.path.basename(self.compiler.compiler_cxx[0])
+        if None in copt:
+             extra_args += copt[None]
         if c in copt:
              extra_args += copt[c]
+        if None in cxxopt:
+             cxx_extra_args += copt[None]
         if cxx in cxxopt:
              cxx_extra_args += cxxopt[cxx]
+        if None in lopt:
+            extra_link_args += lopt[None]
         if c in lopt:
             extra_link_args += lopt[c]
         if cxx in lopt:
