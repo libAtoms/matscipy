@@ -72,8 +72,8 @@ class build_ext_subclass(build_ext):
         cxx_extra_args = ext.extra_compile_args or []
         extra_link_args = ext.extra_link_args or []
 
-        c = self.compiler.compiler[0]
-        cxx = self.compiler.compiler_cxx[0]
+        c = os.path.basename(self.compiler.compiler[0])
+        cxx = os.path.basename(self.compiler.compiler_cxx[0])
         if c in copt:
              extra_args += copt[c]
         if cxx in cxxopt:
