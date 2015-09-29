@@ -31,6 +31,8 @@ version = (os.popen('git config --get remote.origin.url').read() + ',' +
 
 scripts = []
 
+# subclass build_ext so that we can override build_extension()
+# to supply different flags to the C and C++ compiler
 class build_ext_subclass(build_ext):
     def build_extension(self, ext):
         sources = ext.sources
@@ -70,13 +72,13 @@ class build_ext_subclass(build_ext):
 
         c = self.compiler.compiler[0]
         cxx = self.compiler.compiler_cxx[0]
-        if copt.has_key(c):
+        if c in copt:
              extra_args += copt[c]
-        if cxxopt.has_key(cxx):
+        if cxx in cxxopt:
              cxx_extra_args += cxxopt[cxx]
-        if lopt.has_key(c):
+        if c in lopt:
             extra_link_args += lopt[c]
-        if lopt.has_key(cxx):
+        if cxx in lopt:
             extra_link_args += lopt[cxx]
 
         macros = ext.define_macros[:]
