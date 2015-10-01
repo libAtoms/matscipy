@@ -32,7 +32,8 @@ The package requires
 * scipy (optional) - http://www.scipy.org/
 * ASE - https://wiki.fysik.dtu.dk/ase/
 
-Some functionality relies on the following interatomic modeling toolkits
+Optional packages
 
 * quippy - http://www.github.com/libAtoms/QUIP
-* atomistica - https://www.github.com/Atomistica/atomistica/
+* atomistica - https://www.github.com/Atomistica/atomistica
+* chemview - https://github.com/gabrielelanaro/chemview
