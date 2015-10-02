@@ -41,21 +41,46 @@ from chemview import MolecularViewer
 
 ###
 
-def view(a, scale=1.2):
-    n = a.numbers
-    maxn = n.max()
-    cutoffs = np.zeros([maxn+1, maxn+1])
+def view(a, bonds=True, cell=True,
+         scale=10.0, cutoff_scale=1.2):
+    topology = {}
+    topology['atom_types'] = a.get_chemical_symbols()
 
-    for n1, n2 in itertools.product(n, n):
-        cutoffs[n1, n2] = scale*(covalent_radii[n1]+covalent_radii[n2])
+    if bonds:
+        n = a.numbers
+        maxn = n.max()
+        cutoffs = np.zeros([maxn+1, maxn+1])
 
-    # Construct a bond list
-    i, j, S = neighbour_list('ijS', a, cutoffs, np.array(a.numbers, dtype=np.int32))
-    m = np.logical_and(i<j, (S==0).all(axis=1))
-    i = i[m]
-    j = j[m]
+        for n1, n2 in itertools.product(n, n):
+            cutoffs[n1, n2] = cutoff_scale*(covalent_radii[n1]+covalent_radii[n2])
 
-    mv = MolecularViewer(a.positions/10, topology=dict(atom_types=a.get_chemical_symbols(),
-                                                       bonds=[(x, y) for x, y in zip(i, j)]))
+        # Construct a bond list
+        i, j, S = neighbour_list('ijS',
+                                 a, cutoffs,
+                                 np.array(a.numbers, dtype=np.int32))
+        m = np.logical_and(i<j, (S==0).all(axis=1))
+        i = i[m]
+        i = j[m]
+        topology['bonds'] = [(x, y) for x, y in zip(i, j)]
+
+    mv = MolecularViewer(a.positions/scale,
+                         topology=topology)
     mv.ball_and_sticks()
+
+    if cell:
+        O = np.zeros(3, dtype=np.float32)
+        La, Lb, Lc = a.cell.astype(np.float32)/scale
+        start = np.r_[O, O, O,
+                      O + Lb, O + Lc, O + La,
+                      O + Lc, O + La, O + Lb,
+                      O + Lb + Lc, O + La + Lc, O + La + Lb]
+        end = np.r_[O + La, O + Lb, O + Lc,
+                    O + Lb + La, O + Lc + Lb, O + La + Lc,
+                    O + Lc + La, O + La + Lb, O + Lb + Lc,
+                    O + Lb + Lc + La, O + La + Lc + Lb, O + La + Lb + Lc]
+        rgb = [0xFF0000, 0x00FF00, 0x0000FF]*4
+        mv.add_representation('lines', {'startCoords': start,
+                                        'endCoords': end,
+                                        'startColors': rgb,
+                                        'endColors': rgb})
     return mv
