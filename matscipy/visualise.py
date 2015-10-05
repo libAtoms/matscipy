@@ -41,7 +41,7 @@ from chemview import MolecularViewer
 
 ###
 
-def view(a, bonds=True, cell=True,
+def view(a, bonds=True, cell=True, colour=None,
          scale=10.0, cutoff_scale=1.2):
     topology = {}
     topology['atom_types'] = a.get_chemical_symbols()
@@ -60,7 +60,7 @@ def view(a, bonds=True, cell=True,
                                  np.array(a.numbers, dtype=np.int32))
         m = np.logical_and(i<j, (S==0).all(axis=1))
         i = i[m]
-        i = j[m]
+        j = j[m]
         topology['bonds'] = [(x, y) for x, y in zip(i, j)]
 
     mv = MolecularViewer(a.positions/scale,
