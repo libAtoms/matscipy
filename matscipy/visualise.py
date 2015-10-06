@@ -41,8 +41,9 @@ from chemview import MolecularViewer
 
 ###
 
-def view(a, bonds=True, cell=True, colour=None,
-         scale=10.0, cutoff_scale=1.2):
+def view(a, colour=None, bonds=True, cell=True,
+         scale=10.0, cutoff_scale=1.2,
+         cmap=None, vmin=None, vmax=None):
     topology = {}
     topology['atom_types'] = a.get_chemical_symbols()
 
@@ -63,9 +64,22 @@ def view(a, bonds=True, cell=True, colour=None,
         j = j[m]
         topology['bonds'] = [(x, y) for x, y in zip(i, j)]
 
+    colorlist = None
+    if colour is not None:
+        if cmap is None:
+            from matplotlib.cm import jet
+            cmap = jet
+        if vmin is None:
+            vmin = np.min(colour)
+        if vmax is None:
+            vmax = np.max(colour)
+        colour = (np.array(colour) - vmin)/(vmax - vmin)
+        colorlist = ['0x%02x%02x%02x' % (r*256, g*256, b*256)
+                     for (r, g, b, alpha) in cmap(colour)]
+
     mv = MolecularViewer(a.positions/scale,
                          topology=topology)
-    mv.ball_and_sticks()
+    mv.ball_and_sticks(colorlist=colorlist)
 
     if cell:
         O = np.zeros(3, dtype=np.float32)
