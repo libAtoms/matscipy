@@ -66,6 +66,7 @@ def view(a, colour=None, bonds=True, cell=True,
 
     colorlist = None
     if colour is not None:
+        colour = np.array(colour, dtype=np.float64)
         if cmap is None:
             from matplotlib.cm import jet
             cmap = jet
@@ -73,7 +74,7 @@ def view(a, colour=None, bonds=True, cell=True,
             vmin = np.min(colour)
         if vmax is None:
             vmax = np.max(colour)
-        colour = (np.array(colour) - vmin)/(vmax - vmin)
+        colour = (colour - vmin)/(vmax - vmin)
         colorlist = ['0x%02x%02x%02x' % (r*256, g*256, b*256)
                      for (r, g, b, alpha) in cmap(colour)]
 
