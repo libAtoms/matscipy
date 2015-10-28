@@ -179,7 +179,7 @@ def surface_displacements(r):
     return uz
 
 
-def interior_stress(r, z, nu=0.5):
+def stress(r, z, nu=0.5):
     """
     Return components of the stress tensor in the interior of the Hertz solid.
     This is the solution given by: M.T. Huber, Ann. Phys. 319, 153 (1904)
