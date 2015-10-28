@@ -179,9 +179,9 @@ def surface_displacements(r):
     return uz
 
 
-def stress(r, z, nu=0.5):
+def interior_stress(r, z, nu=0.5):
     """
-    Return components of the stress tensor in the bulk of the Hertz solid.
+    Return components of the stress tensor in the interior of the Hertz solid.
     This is the solution given by: M.T. Huber, Ann. Phys. 319, 153 (1904)
 
     Note that the stress tensor at any point in the solid has the form below.
@@ -219,7 +219,11 @@ def stress(r, z, nu=0.5):
     u = p/2 + np.sqrt(p**2/4+z**2)
     sqrtu = np.sqrt(u)
 
-    # Variable substitution: r->r/sqrt(1+u), z->z/sqrt(u)
+    # Note: The equation for u is
+    #     r**2/(1+u) + z**2/u = 1
+    # With r' = r/sqrt(1+u) and z' = z/sqrt(u) this expression becomes
+    #     r'**2 + z'**2 = 1, hence z' = sqrt(1-r'**2)
+    # Variables r and z below are substituted by r->r' and z->z'.
     r = r/np.sqrt(1+u)
     z = np.sqrt(1-r**2) # equiv. to z=u/sqrt(u), but defined for z=0
 
@@ -229,16 +233,19 @@ def stress(r, z, nu=0.5):
     # The next two expressions give numerical problems at the tip center and the
     # contact edge, regularize with the asymptotic value.
 
-    # Note: r**2/(1-z**3)->3/2 for r->0
+    # Note: (1-z**3)/r**2->3/2 for r->0
     one_minus_z3_div_r2 = 3./2.*np.ones_like(r)
-    mask = r > 0
-    one_minus_z3_div_r2[mask] = (1.-z[mask]**3)/r[mask]**2
+    try:
+        one_minus_z3_div_r2[mask] = (1.-z[mask]**3)/r[mask]**2
+    except:
+        one_minus_z3_div_r2 = (1.-z**3)/r**2
 
     # Note: z**2/(u+z**2)->1 for u+z**2->0
     u_plus_z2 = u+z**2
     z2_div_u_plus_z2 = np.where(u_plus_z2 > 0., z**2/u_plus_z2, np.ones_like(z))
 
     # Compute stresses
+    # Note: the factor 1/(1+u) stems from the substitution r->r' and z->z' above
     stt = (1.-2.*nu)/3. * 1./(1.+u) * one_minus_z3_div_r2 + \
         z*(2.*nu + (1.-nu)*u/(1.+u) - (1.+nu)*sqrtu_arctan_inv_sqrtu)
     szz = z*z2_div_u_plus_z2
