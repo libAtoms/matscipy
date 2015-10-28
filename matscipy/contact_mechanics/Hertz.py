@@ -184,10 +184,11 @@ def stress(r, z, nu=0.5):
     Return components of the stress tensor in the interior of the Hertz solid.
     This is the solution given by: M.T. Huber, Ann. Phys. 319, 153 (1904)
 
-    Note that the stress tensor at any point in the solid has the form below.
-    Zero off-diagonal components are zero by rotational symmetry. stt is the
-    circumferential component, srr the radial component and szz the normal
-    component of the stress tensor.
+    Note that the stress tensor at any point in the solid has the form below in
+    a cylindrical coordinate system centered at the tip apex. Some off-diagonal
+    components are zero by rotational symmetry. stt is the circumferential
+    component, srr the radial component and szz the normal component of the
+    stress tensor.
 
             / stt  0   0  \ 
         s = |  0  srr srz |
