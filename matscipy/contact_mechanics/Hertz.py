@@ -235,10 +235,8 @@ def stress(r, z, nu=0.5):
 
     # Note: (1-z**3)/r**2->3/2 for r->0
     one_minus_z3_div_r2 = 3./2.*np.ones_like(r)
-    try:
-        one_minus_z3_div_r2[mask] = (1.-z[mask]**3)/r[mask]**2
-    except:
-        one_minus_z3_div_r2 = (1.-z**3)/r**2
+    mask = r > 0
+    one_minus_z3_div_r2[mask] = (1.-z[mask]**3)/r[mask]**2
 
     # Note: z**2/(u+z**2)->1 for u+z**2->0
     u_plus_z2 = u+z**2
