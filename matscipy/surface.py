@@ -212,7 +212,7 @@ def angle_between(a, b):
     return MillerIndex(a).angle(b)
 
 
-def unit_slab(unit_cell, axes):   
+def make_unit_slab(unit_cell, axes):   
     """
     General purpose unit slab creation routine
 
