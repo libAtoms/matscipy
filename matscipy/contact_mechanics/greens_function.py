@@ -77,6 +77,7 @@ def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
     stress in the bulk of a non-periodic linear elastic half-space in response
     to a concentrated surface force. This is the Boussinesq-Cerrutti solution.
     See: K.L. Johnson, Contact Mechanics, p. 51 and p. 69
+    Sign convention is as in Johnson!
 
     Parameters
     ----------
@@ -88,16 +89,13 @@ def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
             'X' : Stress for a concentrated surface traction in x-direction.
             'Y' : Stress for a concentrated surface traction in y-direction.
             'Z' : Stress for a concentrated surface pressure
-                  (i.e. "traction" in z-direction). Important note: Positive
-                  force points upwards and hence pulls on the system. This is
-                  really the surface normal stress. Signs are therefore reversed
-                  from solution given in Johnson.
+                  (i.e. "traction" in z-direction).
     x : array_like
         x-coordinates.
     y : array_like
         y-coordinates.
     z : array_like
-        z_coordinates.
+        z-coordinates. Into the solid is positive.
     G : float
         Shear modulus.
     nu : float
@@ -152,12 +150,12 @@ def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
         elif q == 'Y':
             raise NotImplementedError()
         elif q == 'Z':
-            sxx = -( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
-            syy = -( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
-            szz = 3*z**3/(2*pi*rho**5)
-            sxy = -( (1-2*nu)/r_sq * ((1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
-            sxz = 3*x*z**2/(2*pi*rho**5)
-            syz = 3*y*z**2/(2*pi*rho**5)
+            sxx = ( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
+            syy = ( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
+            szz = -3*z**3/(2*pi*rho**5)
+            sxy = ( (1-2*nu)/r_sq * ((1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
+            sxz = -3*x*z**2/(2*pi*rho**5)
+            syz = -3*y*z**2/(2*pi*rho**5)
             retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
         else:
             raise ValueError("Unknown quantity '{0}' requested.".format(q))
