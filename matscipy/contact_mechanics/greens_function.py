@@ -29,6 +29,8 @@ Typically, all *nonperiodic* kernel return real space Green's functions,
 all *periodic* kernel reciprocal space ones.
 """
 
+from __future__ import division
+
 from math import isnan, pi, sqrt
 
 import numpy as np
@@ -202,10 +204,10 @@ def real_to_reciprocal_space(nx, ny=None, gf=square_pressure__nonperiodic,
         nx, ny = nx
 
     x = np.arange(nx)
-    x = np.where(x <= nx/2, x, x-nx)
+    x = np.where(x <= nx//2, x, x-nx)
     x.shape = (-1,1)
     y = np.arange(ny)
-    y = np.where(y <= ny/2, y, y-ny)
+    y = np.where(y <= ny//2, y, y-ny)
     y.shape = (1,-1)
 
     G = gf(x, y)
@@ -247,9 +249,9 @@ def point_displacement__periodic(nx, ny=None, phi0=None, size=None):
         nx, ny = nx
 
     qx = np.arange(nx, dtype=np.float64)
-    qx = np.where(qx <= nx/2, 2*pi*qx/sx, 2*pi*(nx-qx)/sx)
+    qx = np.where(qx <= nx//2, 2*pi*qx/sx, 2*pi*(nx-qx)/sx)
     qy = np.arange(ny, dtype=np.float64)
-    qy = np.where(qy <= ny/2, 2*pi*qy/sy, 2*pi*(ny-qy)/sy)
+    qy = np.where(qy <= ny//2, 2*pi*qy/sy, 2*pi*(ny-qy)/sy)
     phi  = np.sqrt( (qx*qx).reshape(-1, 1) + (qy*qy).reshape(1, -1) )
     if phi0 is None:
         phi[0, 0] = (phi[1, 0].real + phi[0, 1].real)/2
