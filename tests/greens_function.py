@@ -76,10 +76,10 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
 
             r_sq = (x**2 + y**2)/a**2
             P = np.where(r_sq > 1., np.zeros_like(r_sq), np.sqrt(1.-r_sq))
-            sxx = -np.fft.ifft2(Gxx*np.fft.fft2(P)).real
-            syy = -np.fft.ifft2(Gyy*np.fft.fft2(P)).real
-            szz = -np.fft.ifft2(Gzz*np.fft.fft2(P)).real
-            syz = -np.fft.ifft2(Gyz*np.fft.fft2(P)).real
+            sxx = np.fft.ifft2(Gxx*np.fft.fft2(P)).real
+            syy = np.fft.ifft2(Gyy*np.fft.fft2(P)).real
+            szz = np.fft.ifft2(Gzz*np.fft.fft2(P)).real
+            syz = np.fft.ifft2(Gyz*np.fft.fft2(P)).real
             sttref, srrref, szzref, srzref = \
                 Hertz.stress(np.sqrt(r_sq), z/a, nu=nu)
 
