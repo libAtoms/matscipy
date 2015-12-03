@@ -64,10 +64,11 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
     def test_Hertz_stress(self):
         nx = 256 # Grid size
         a = 32. # Contact radius
+        tol = 1e-2
 
         # z: Depth at which to compute stress
         # nu: Poisson
-        for z, nu in [ ( 16., 0.5 ), ( 32., 0.5 ), ( 16., 0.3 ) ]:
+        for z, nu in [ ( 16., 0.5 ), ( 32., 0.5 ), ( 16., 0.3 ), ( a/8, 1/3) ]:
             ( Gxx, Gyy, Gzz, Gyz, Gxz, Gxy ), x, y = \
                 gf.real_to_reciprocal_space(
                     nx, nx, gf=lambda x, y:
@@ -80,23 +81,21 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
             syy = np.fft.ifft2(Gyy*np.fft.fft2(P)).real
             szz = np.fft.ifft2(Gzz*np.fft.fft2(P)).real
             syz = np.fft.ifft2(Gyz*np.fft.fft2(P)).real
-            sttref, srrref, szzref, srzref = \
-                Hertz.stress(np.sqrt(r_sq), z/a, nu=nu)
+            sxz = np.fft.ifft2(Gxz*np.fft.fft2(P)).real
+            sxy = np.fft.ifft2(Gxy*np.fft.fft2(P)).real
 
-            #np.savetxt('s0.out', np.transpose([y[0,:nx//4], sxx[0,:nx//4],
-            #                                   syy[0,:nx//4], szz[0,:nx//4],
-            #                                   syz[0,:nx//4]]))
-            #np.savetxt('sref0.out', np.transpose([y[0,:nx//4], sttref[0,:nx//4],
-            #                                     srrref[0,:nx//4], szzref[0,:nx//4],
-            #                                     srzref[0,:nx//4]]))
-            self.assertTrue(np.max(np.abs((sxx[0,1:nx//4]-sttref[0,1:nx//4])/
-                                           sttref[0,1:nx//4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((syy[0,1:nx//4]-srrref[0,1:nx//4])/
-                                           srrref[0,1:nx//4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((szz[0,1:nx//4]-szzref[0,1:nx//4])/
-                                           szzref[0,1:nx//4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((syz[0,1:nx//4]-srzref[0,1:nx//4])/
-                                           srzref[0,1:nx//4])) < 1e-2)
+            x, y, z = np.meshgrid(x, y, z, indexing='ij')
+
+            sxx2, syy2, szz2, syz2, sxz2, sxy2 = \
+                Hertz.stress_Cartesian(x/a, y/a, z/a, nu=nu)
+
+            m = np.abs(szz2[:nx//4,:nx//4,0]).max()
+            self.assertArrayAlmostEqual(sxx[:nx//4,:nx//4]/m, sxx2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(syy[:nx//4,:nx//4]/m, syy2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(szz[:nx//4,:nx//4]/m, szz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(syz[:nx//4,:nx//4]/m, syz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(sxz[:nx//4,:nx//4]/m, sxz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(sxy[:nx//4,:nx//4]/m, sxy2[:nx//4,:nx//4,0]/m, tol)
 
     def test_min_ccg(self):
         nx = 256 # Grid size
