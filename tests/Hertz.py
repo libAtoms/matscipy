@@ -28,9 +28,6 @@ import numpy as np
 import matscipytest
 import matscipy.contact_mechanics.Hertz as Hertz
 
-from math import pi
-import matplotlib.pyplot as plt
-
 ###
 
 class TestHertz(matscipytest.MatSciPyTestCase):
