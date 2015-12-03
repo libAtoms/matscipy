@@ -67,7 +67,6 @@ class TestHertz(matscipytest.MatSciPyTestCase):
 
         x = np.zeros_like(y)
 
-        # z: Depth at which to compute stress
         # nu: Poisson
         for nu in [0.3, 0.5]:
             sxx, syy, szz, syz, sxz, sxy = \
