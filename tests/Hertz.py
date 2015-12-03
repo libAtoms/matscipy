@@ -60,8 +60,8 @@ class TestHertz(matscipytest.MatSciPyTestCase):
         nx = 51 # Grid size
         a = 32. # Contact radius
 
-        y = np.linspace(0.1, 3*a, nx)
-        z = np.linspace(0.1, 3*a, nx)
+        y = np.linspace(0, 3*a, nx)
+        z = np.linspace(0, 3*a, nx)
 
         y, z = np.meshgrid(y, z)
 
@@ -77,10 +77,10 @@ class TestHertz(matscipytest.MatSciPyTestCase):
             stt2, srr2, szz2, srz2 = \
                 Hertz.stress(np.sqrt(r_sq), z/a, nu=nu)
 
-            self.assertTrue(np.max(np.abs((sxx-stt2)/stt2)) < 1e-2)
-            self.assertTrue(np.max(np.abs((syy-srr2)/srr2)) < 1e-2)
-            self.assertTrue(np.max(np.abs((szz-szz2)/szz2)) < 1e-2)
-            self.assertTrue(np.max(np.abs((syz-srz2)/srz2)) < 1e-2)            
+            self.assertTrue(np.max(np.abs(sxx-stt2)) < 1e-12)
+            self.assertTrue(np.max(np.abs(syy-srr2)) < 1e-12)
+            self.assertTrue(np.max(np.abs(szz-szz2)) < 1e-12)
+            self.assertTrue(np.max(np.abs(syz-srz2)) < 1e-12)
 
 ###
 
