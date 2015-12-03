@@ -155,7 +155,8 @@ def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
             sxx = ( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
             syy = ( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
             szz = -3*z**3/(2*pi*rho**5)
-            sxy = ( (1-2*nu)/r_sq * ((1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
+            # Note: Johnson is lacking a factor of 2 here!!!
+            sxy = ( (1-2*nu)/r_sq * (2*(1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
             sxz = -3*x*z**2/(2*pi*rho**5)
             syz = -3*y*z**2/(2*pi*rho**5)
             retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
