@@ -258,9 +258,10 @@ def stress(r, z, nu=0.5):
     return -stt, -srr, -szz, -srz
 
 
-def stress_Cartesian(x, y, z, nu=0.5):
+def stress_Cartesian(x, y, z, poisson=0.5):
     """
-    Return components of the stress tensor in the interior of the Hertz solid.
+    Return components of the stress tensor in the interior of solid due to
+    normal Hertz loading.
     This is the solution given by:
     G.M. Hamilton, Proc. Instn. Mech. Engrs. 197C, 53-59 (1983)
 
@@ -270,7 +271,7 @@ def stress_Cartesian(x, y, z, nu=0.5):
         In-plane positions (in units of the contact radius a).
     z : array_like
         Depth (in units of the contact radius a).
-    nu : float
+    poisson : float
         Poisson number.
 
     Returns
@@ -279,7 +280,7 @@ def stress_Cartesian(x, y, z, nu=0.5):
         Individual components of the Cartesian stress tensor.
     """
 
-    def stress_offcenter(x, y, z, r_sq, nu=0.5):
+    def stress_offcenter(x, y, z, r_sq, poisson=0.5):
         A = r_sq + z**2 - 1
         S = np.sqrt(A**2 + 4*z**2)
 
@@ -290,10 +291,10 @@ def stress_Cartesian(x, y, z, nu=0.5):
         G = M**2 - N**2 + z*M - N
         H = 2*M*N + M + z*N
 
-        sxx = (1+nu)*z*phi+1/r_sq*((y**2-x**2)/r_sq*((1-nu)*N*z**2-(1-2*nu)/3*(N*S+2*A*N+1)-nu*M*z)-N*(x**2+2*nu*y**2)-M*x**2*z/S)
-        syy = (1+nu)*z*phi+1/r_sq*((x**2-y**2)/r_sq*((1-nu)*N*z**2-(1-2*nu)/3*(N*S+2*A*N+1)-nu*M*z)-N*(y**2+2*nu*x**2)-M*y**2*z/S)
+        sxx = (1+poisson)*z*phi+1/r_sq*((y**2-x**2)/r_sq*((1-poisson)*N*z**2-(1-2*poisson)/3*(N*S+2*A*N+1)-poisson*M*z)-N*(x**2+2*poisson*y**2)-M*x**2*z/S)
+        syy = (1+poisson)*z*phi+1/r_sq*((x**2-y**2)/r_sq*((1-poisson)*N*z**2-(1-2*poisson)/3*(N*S+2*A*N+1)-poisson*M*z)-N*(y**2+2*poisson*x**2)-M*y**2*z/S)
         szz = -N+z*M/S
-        sxy = x*y*(1-2*nu)/r_sq**2*(-N*r_sq+2/3*N*(S+2*A)-z*(z*N+M)+2/3)+x*y*z/r_sq**2*(-M*r_sq/S-z*N+M)
+        sxy = x*y*(1-2*poisson)/r_sq**2*(-N*r_sq+2/3*N*(S+2*A)-z*(z*N+M)+2/3)+x*y*z/r_sq**2*(-M*r_sq/S-z*N+M)
         syz = -z*(y*N/S-y*z*H/(G**2+H**2))
         sxz = -z*(x*N/S-x*z*H/(G**2+H**2))
 
@@ -314,7 +315,7 @@ def stress_Cartesian(x, y, z, nu=0.5):
 
     mask = r_sq > 0
     xx, yy, zz, yz, xz, xy = stress_offcenter(x[mask], y[mask], z[mask],
-                                              r_sq[mask], nu=nu)
+                                              r_sq[mask], poisson=poisson)
     sxx[mask] = xx
     syy[mask] = yy
     szz[mask] = zz
@@ -325,8 +326,82 @@ def stress_Cartesian(x, y, z, nu=0.5):
     mask = np.logical_not(mask)
     if mask.sum() > 0:
         z = z[mask]
-        sxx[mask] = ((1+nu)*(z*np.arctan2(1, z)-1)+1/(2*(1+z**2)))
+        sxx[mask] = ((1+poisson)*(z*np.arctan2(1, z)-1)+1/(2*(1+z**2)))
         syy[mask] = sxx[mask]
         szz[mask] = -1/(1+z**2)
 
     return sxx, syy, szz, syz, sxz, sxy
+
+
+def stress_for_tangential_loading(x, y, z, poisson=0.5):
+    """
+    Return components of the stress tensor in the interior of solid due to
+    tangential (Hertz) loading.
+    This is the solution given by:
+    G.M. Hamilton, Proc. Instn. Mech. Engrs. 197C, 53-59 (1983)
+
+    Parameters
+    ----------
+    x, y : array_like
+        In-plane positions (in units of the contact radius a).
+    z : array_like
+        Depth (in units of the contact radius a).
+    poisson : float
+        Poisson number.
+
+    Returns
+    -------
+    sxx, syy, szz, syz, sxz, sxy : array
+        Individual components of the Cartesian stress tensor.
+    """
+
+    def stress_offcenter(x, y, z, r_sq, poisson=0.5):
+        A = r_sq + z**2 - 1
+        S = np.sqrt(A**2 + 4*z**2)
+
+        M = np.sqrt((S+A)/2)
+        N = np.sqrt((S-A)/2)
+        phi = np.arctan2(1, M)
+
+        G = M**2 - N**2 + z*M - N
+        H = 2*M*N + M + z*N
+
+        sxx = -x*(poisson/4+1)*phi+x*M/r_sq**2*((3/2-2*x**2/r_sq)*(S*poisson-2*A*poisson+z**2)+x**2*z**2/S+7*poisson*r_sq/4-2*poisson*x**2+r_sq)+x*z*N/r_sq**2*((3/2-2*x**2/r_sq)*(-S/6*(1-2*poisson)-A/3*(1-2*poisson)-1/2*(z**2+3))+x**2/S-poisson*r_sq/4-7*r_sq/4)+4*x*z/(3*r_sq**2)*(3/2-2*x**2/r_sq)*(1-2*poisson)
+        syy = -3*poisson*x*phi/4+x*M/r_sq**2*((1/2-2*y**2/r_sq)*(poisson*(S-2*A+r_sq)+z**2)+y**2*z**2/S+3/4*poisson*r_sq)+z*x*N/r_sq**2*((1/2-2*y**2/r_sq)*(-S/6*(1-2*poisson)-A/3*(1-2*poisson)-z**2/2-3/2)+y**2/S-3/4*poisson*r_sq-r_sq/4)+4/3*z*x/r_sq**2*(1/2-2*y**2/r_sq)*(1-2*poisson)
+        szz = z*x*N/(2*r_sq)*(1-(r_sq+z**2+1)/S)
+        sxy = y/2*(poisson/2-1)*phi+y*M/r_sq**2*(x**2*z**2/S+poisson*((S-2*A)*(1/2-2*x**2/r_sq)-2*x**2+r_sq/4)+r_sq/2+z**2*(1/2-2*x**2/r_sq))+y*z*N/r_sq**2*((1/2-2*x**2/r_sq)*((2*poisson-1)*(S/6+A/3)-z**2/2-3/2-r_sq/2)+r_sq*poisson/4+x**2/S-y**2/2-3*x**2/2)+4*y*z/(3*r_sq**2)*(1/2-2*x**2/r_sq)*(1-2*poisson)
+        syz = x*y*z/(2*r_sq**2)*(M*(1/2+1/S*(z**2/2-3/2-r_sq/2))+z*N/2*(-3+1/S*(5+z**2+r_sq)))
+        sxz = 3*z*phi/2+z*M/r_sq*(1+x**2/r_sq-x**2/S)+N/r_sq*(-3/4*(S+2*A)+z**2-3/4-1/4*r_sq+z**2/2*(1/2-2*x**2/r_sq))
+
+        return sxx, syy, szz, syz, sxz, sxy
+
+    x = np.asarray(x)
+    y = np.asarray(y)
+    z = np.asarray(z)
+
+    sxx = np.zeros_like(x)
+    syy = np.zeros_like(x)
+    szz = np.zeros_like(x)
+    syz = np.zeros_like(x)
+    sxz = np.zeros_like(x)
+    sxy = np.zeros_like(x)
+
+    r_sq = x**2 + y**2
+
+    mask = r_sq > 0
+    xx, yy, zz, yz, xz, xy = stress_offcenter(x[mask], y[mask], z[mask],
+                                              r_sq[mask], poisson=poisson)
+    sxx[mask] = xx
+    syy[mask] = yy
+    szz[mask] = zz
+    syz[mask] = yz
+    sxz[mask] = xz
+    sxy[mask] = xy
+
+    mask = np.logical_not(mask)
+    if mask.sum() > 0:
+        z = z[mask]
+        sxz[mask] += -1+3/2*z*np.arctan2(1, z)-z**2/(2*(1+z**2))
+
+    return sxx, syy, szz, syz, sxz, sxy
+

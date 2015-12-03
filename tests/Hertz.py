@@ -67,7 +67,7 @@ class TestHertz(matscipytest.MatSciPyTestCase):
         # nu: Poisson
         for nu in [0.3, 0.5]:
             sxx, syy, szz, syz, sxz, sxy = \
-                Hertz.stress_Cartesian(x/a, y/a, z/a, nu=nu)
+                Hertz.stress_Cartesian(x/a, y/a, z/a, poisson=nu)
 
             r_sq = (x**2 + y**2)/a**2
             stt2, srr2, szz2, srz2 = \
