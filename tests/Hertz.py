@@ -28,6 +28,9 @@ import numpy as np
 import matscipytest
 import matscipy.contact_mechanics.Hertz as Hertz
 
+from math import pi
+import matplotlib.pyplot as plt
+
 ###
 
 class TestHertz(matscipytest.MatSciPyTestCase):
@@ -52,6 +55,32 @@ class TestHertz(matscipytest.MatSciPyTestCase):
             self.assertTrue(np.max(np.abs(pzz1+szz2)) < 1e-6)
             self.assertTrue(np.max(np.abs(srr1-srr2)) < 1e-6)
             self.assertTrue(np.max(np.abs(stt1-stt2)) < 1e-6)
+
+    def test_Hertz_subsurface_stress(self):
+        nx = 51 # Grid size
+        a = 32. # Contact radius
+
+        y = np.linspace(0.1, 3*a, nx)
+        z = np.linspace(0.1, 3*a, nx)
+
+        y, z = np.meshgrid(y, z)
+
+        x = np.zeros_like(y)
+
+        # z: Depth at which to compute stress
+        # nu: Poisson
+        for nu in [0.3, 0.5]:
+            sxx, syy, szz, syz, sxz, sxy = \
+                Hertz.stress_Cartesian(x/a, y/a, z/a, nu=nu)
+
+            r_sq = (x**2 + y**2)/a**2
+            stt2, srr2, szz2, srz2 = \
+                Hertz.stress(np.sqrt(r_sq), z/a, nu=nu)
+
+            self.assertTrue(np.max(np.abs((sxx-stt2)/stt2)) < 1e-2)
+            self.assertTrue(np.max(np.abs((syy-srr2)/srr2)) < 1e-2)
+            self.assertTrue(np.max(np.abs((szz-szz2)/szz2)) < 1e-2)
+            self.assertTrue(np.max(np.abs((syz-srz2)/srz2)) < 1e-2)            
 
 ###
 

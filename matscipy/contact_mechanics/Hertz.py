@@ -19,6 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import division
+
 import math
 
 import numpy as np
@@ -254,3 +256,77 @@ def stress(r, z, nu=0.5):
     srz = r*z2_div_u_plus_z2 * sqrtu/np.sqrt(1.+u)
 
     return -stt, -srr, -szz, -srz
+
+
+def stress_Cartesian(x, y, z, nu=0.5):
+    """
+    Return components of the stress tensor in the interior of the Hertz solid.
+    This is the solution given by:
+    G.M. Hamilton, Proc. Instn. Mech. Engrs. 197C, 53-59 (1983)
+
+    Parameters
+    ----------
+    x, y : array_like
+        In-plane positions (in units of the contact radius a).
+    z : array_like
+        Depth (in units of the contact radius a).
+    nu : float
+        Poisson number.
+
+    Returns
+    -------
+    sxx, syy, szz, syz, sxz, sxy : array
+        Individual components of the Cartesian stress tensor.
+    """
+
+    def stress_offcenter(x, y, z, r_sq, nu=0.5):
+        A = r_sq + z**2 - 1
+        S = np.sqrt(A**2 + 4*z**2)
+
+        M = np.sqrt((S+A)/2)
+        N = np.sqrt((S-A)/2)
+        phi = np.arctan2(1, M)
+
+        G = M**2 - N**2 + z*M - N
+        H = 2*M*N + M + z*N
+
+        sxx = (1+nu)*z*phi+1/r_sq*((y**2-x**2)/r_sq*((1-nu)*N*z**2-(1-2*nu)/3*(N*S+2*A*N+1)-nu*M*z)-N*(x**2+2*nu*y**2)-M*x**2*z/S)
+        syy = (1+nu)*z*phi+1/r_sq*((x**2-y**2)/r_sq*((1-nu)*N*z**2-(1-2*nu)/3*(N*S+2*A*N+1)-nu*M*z)-N*(y**2+2*nu*x**2)-M*y**2*z/S)
+        szz = -N+z*M/S
+        sxy = x*y*(1-2*nu)/r_sq**2*(-N*r_sq+2/3*N*(S+2*A)-z*(z*N+M)+2/3)+x*y*z/r_sq**2*(-M*r_sq/S-z*N+M)
+        syz = -z*(y*N/S-y*z*H/(G**2+H**2))
+        sxz = -z*(x*N/S-x*z*H/(G**2+H**2))
+
+        return sxx, syy, szz, syz, sxz, sxy
+
+    x = np.asarray(x)
+    y = np.asarray(y)
+    z = np.asarray(z)
+
+    sxx = np.zeros_like(x)
+    syy = np.zeros_like(x)
+    szz = np.zeros_like(x)
+    syz = np.zeros_like(x)
+    sxz = np.zeros_like(x)
+    sxy = np.zeros_like(x)
+
+    r_sq = x**2 + y**2
+
+    mask = r_sq > 0
+    xx, yy, zz, yz, xz, xy = stress_offcenter(x[mask], y[mask], z[mask],
+                                              r_sq[mask], nu=nu)
+    sxx[mask] = xx
+    syy[mask] = yy
+    szz[mask] = zz
+    syz[mask] = yz
+    sxz[mask] = xz
+    sxy[mask] = xy
+
+    mask = np.logical_not(mask)
+    if mask.sum() > 0:
+        z = z[mask]
+        sxx[mask] = ((1+nu)*(z*np.arctan2(1, z)-1)+1/(2*(1+z**2)))
+        syy[mask] = sxx[mask]
+        szz[mask] = -1/(1+z**2)
+
+    return sxx, syy, szz, syz, sxz, sxy
