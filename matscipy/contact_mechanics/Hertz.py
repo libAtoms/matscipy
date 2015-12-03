@@ -6,7 +6,7 @@
 #                  Lars Pastewka, Karlsruhe Institute of Technology
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNUGeneral Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -56,7 +56,7 @@ def radius_and_pressure(N, R, Es):
     return a, p0
 
 
-def surface_stress(r, nu=0.5):
+def surface_stress(r, poisson=0.5):
     """
     Given distance from the center of the sphere, contact radius and Poisson
     number contact, compute the stress at the surface.
@@ -66,7 +66,7 @@ def surface_stress(r, nu=0.5):
     r : array_like
         Array of distance (from the center of the sphere in units of contact
         radius a).
-    nu : float
+    poisson : float
         Poisson number.
 
     Returns
@@ -94,29 +94,29 @@ def surface_stress(r, nu=0.5):
     # Solution at r=0
     if mask0.sum() > 0:
         pz[mask0] = np.ones_like(r_0)
-        sr[mask0] = -(1.+2*nu)/2.*np.ones_like(r_0)
-        stheta[mask0] = -(1.+2*nu)/2.*np.ones_like(r_0)
+        sr[mask0] = -(1.+2*poisson)/2.*np.ones_like(r_0)
+        stheta[mask0] = -(1.+2*poisson)/2.*np.ones_like(r_0)
 
     # Solution inside the contact radius
     if maski.sum() > 0:
         r_a_sq = r_i**2
         pz[maski] = np.sqrt(1-r_a_sq)
-        sr[maski] = (1.-2.*nu)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))- \
+        sr[maski] = (1.-2.*poisson)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))- \
             np.sqrt(1.-r_a_sq)
-        stheta[maski] = -(1.-2.*nu)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))- \
-            2*nu*np.sqrt(1.-r_a_sq)
+        stheta[maski] = -(1.-2.*poisson)/(3.*r_a_sq)*(1.-(1.-r_a_sq)**(3./2))- \
+            2*poisson*np.sqrt(1.-r_a_sq)
     
     # Solution outside of the contact radius
     if masko.sum() > 0:
         r_a_sq = r_o**2
-        po = (1.-2.*nu)/(3.*r_a_sq)
+        po = (1.-2.*poisson)/(3.*r_a_sq)
         sr[masko] = po
         stheta[masko] = -po
     
     return pz, sr, stheta
 
 
-def centerline_stress(z, nu=0.5):
+def centerline_stress(z, poisson=0.5):
     """
     Given distance from the center of the sphere, contact radius and Poisson
     number contact, compute the stress at the surface.
@@ -126,7 +126,7 @@ def centerline_stress(z, nu=0.5):
     z : array_like
         Array of depths (from the center of the sphere in units of contact
         radius a).
-    nu : float
+    poisson : float
         Poisson number.
 
     Returns
@@ -137,7 +137,7 @@ def centerline_stress(z, nu=0.5):
         Contact pressure (in units of maximum pressure p0).
     """
 
-    srr = -(1.+nu)*(1.-z*np.arctan(1./z)) + 1./(2.*(1.+z**2))
+    srr = -(1.+poisson)*(1.-z*np.arctan(1./z)) + 1./(2.*(1.+z**2))
     szz = -1./(1.+z**2)
 
     return srr, szz
@@ -181,7 +181,7 @@ def surface_displacements(r):
     return uz
 
 
-def stress(r, z, nu=0.5):
+def stress(r, z, poisson=0.5):
     """
     Return components of the stress tensor in the interior of the Hertz solid.
     This is the solution given by: M.T. Huber, Ann. Phys. 319, 153 (1904)
@@ -202,7 +202,7 @@ def stress(r, z, nu=0.5):
         Radial position (in units of the contact radius a).
     z : array_like
         Depth (in units of the contact radius a).
-    nu : float
+    poisson: float
         Poisson number.
 
     Returns
@@ -247,12 +247,12 @@ def stress(r, z, nu=0.5):
 
     # Compute stresses
     # Note: the factor 1/(1+u) stems from the substitution r->r' and z->z' above
-    stt = (1.-2.*nu)/3. * 1./(1.+u) * one_minus_z3_div_r2 + \
-        z*(2.*nu + (1.-nu)*u/(1.+u) - (1.+nu)*sqrtu_arctan_inv_sqrtu)
+    stt = (1.-2.*poisson)/3. * 1./(1.+u) * one_minus_z3_div_r2 + \
+        z*(2.*poisson+ (1.-poisson)*u/(1.+u) - (1.+poisson)*sqrtu_arctan_inv_sqrtu)
     szz = z*z2_div_u_plus_z2
-    srr = -( (1.-2.*nu)/3. * 1./(1+u) * one_minus_z3_div_r2 + \
+    srr = -( (1.-2.*poisson)/3. * 1./(1+u) * one_minus_z3_div_r2 + \
          z*z2_div_u_plus_z2 + \
-         z*((1.-nu)*u/(1.+u) + (1.+nu)*sqrtu_arctan_inv_sqrtu - 2.) )
+         z*((1.-poisson)*u/(1.+u) + (1.+poisson)*sqrtu_arctan_inv_sqrtu - 2.) )
     srz = r*z2_div_u_plus_z2 * sqrtu/np.sqrt(1.+u)
 
     return -stt, -srr, -szz, -srz

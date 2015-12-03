@@ -72,7 +72,7 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
             ( Gxx, Gyy, Gzz, Gyz, Gxz, Gxy ), x, y = \
                 gf.real_to_reciprocal_space(
                     nx, nx, gf=lambda x, y:
-                    gf.point_traction__nonperiodic('Z', x, y, z, nu=nu),
+                    gf.point_traction__nonperiodic('Z', x, y, z, poisson=nu),
                     coordinates=True)
 
             r_sq = (x**2 + y**2)/a**2
@@ -108,7 +108,7 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
             ( Gxx, Gyy, Gzz, Gyz, Gxz, Gxy ), x, y = \
                 gf.real_to_reciprocal_space(
                     nx, nx, gf=lambda x, y:
-                    gf.point_traction__nonperiodic('X', x, y, z, nu=nu),
+                    gf.point_traction__nonperiodic('X', x, y, z, poisson=nu),
                     coordinates=True)
 
             r_sq = (x**2 + y**2)/a**2
@@ -161,7 +161,7 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
         a = R*sqrt(d/R)
         p0 = 2/pi*sqrt(d/R)
         r_sq = (x**2 + y**2)/a**2
-        p_analytic, sr, stheta = Hertz.surface_stress(np.sqrt(r_sq), nu=0.5)
+        p_analytic, sr, stheta = Hertz.surface_stress(np.sqrt(r_sq), poisson=0.5)
         p_analytic *= p0
 
         u, p = gf.min_ccg(h, G)

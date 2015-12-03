@@ -35,8 +35,8 @@ class TestHertz(matscipytest.MatSciPyTestCase):
     def test_Hertz_centerline_stress(self):
         z = np.linspace(0.0, 5.0, 101)
         for nu in [ 0.3, 0.5 ]:
-            srr1, szz1 = Hertz.centerline_stress(z, nu=nu)
-            stt2, srr2, szz2, srz2 = Hertz.stress(np.zeros_like(z), z, nu=nu)
+            srr1, szz1 = Hertz.centerline_stress(z, poisson=nu)
+            stt2, srr2, szz2, srz2 = Hertz.stress(np.zeros_like(z), z, poisson=nu)
 
             self.assertTrue(np.max(np.abs(srr1-srr2)) < 1e-6)
             self.assertTrue(np.max(np.abs(srr1-stt2)) < 1e-6)
@@ -46,8 +46,8 @@ class TestHertz(matscipytest.MatSciPyTestCase):
     def test_Hertz_surface_stress(self):
         r = np.linspace(0.0, 5.0, 101)
         for nu in [ 0.3, 0.5 ]:
-            pzz1, srr1, stt1 = Hertz.surface_stress(r, nu=nu)
-            stt2, srr2, szz2, srz2 = Hertz.stress(r, np.zeros_like(r), nu=nu)
+            pzz1, srr1, stt1 = Hertz.surface_stress(r, poisson=nu)
+            stt2, srr2, szz2, srz2 = Hertz.stress(r, np.zeros_like(r), poisson=nu)
 
             self.assertTrue(np.max(np.abs(pzz1+szz2)) < 1e-6)
             self.assertTrue(np.max(np.abs(srr1-srr2)) < 1e-6)
@@ -71,7 +71,7 @@ class TestHertz(matscipytest.MatSciPyTestCase):
 
             r_sq = (x**2 + y**2)/a**2
             stt2, srr2, szz2, srz2 = \
-                Hertz.stress(np.sqrt(r_sq), z/a, nu=nu)
+                Hertz.stress(np.sqrt(r_sq), z/a, poisson=nu)
 
             self.assertTrue(np.max(np.abs(sxx-stt2)) < 1e-12)
             self.assertTrue(np.max(np.abs(syy-srr2)) < 1e-12)

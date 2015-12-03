@@ -73,7 +73,7 @@ def square_pressure__nonperiodic(x, y, a=0.5, b=0.5):
                            ( (x+a)+np.sqrt((y-b)*(y-b)+(x+a)*(x+a)) ) ) )/(2*pi);
 
 
-def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
+def point_traction__nonperiodic(quantities, x, y, z, G=1.0, poisson=0.5):
     """
     Real-space representation of Green's function for the displacement and
     stress in the bulk of a non-periodic linear elastic half-space in response
@@ -100,7 +100,7 @@ def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
         z-coordinates. Into the solid is positive.
     G : float
         Shear modulus.
-    nu : float
+    poisson : float
         Poisson number.
 
     Returns
@@ -130,33 +130,33 @@ def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
     retvals = []
     for q in quantities:
         if q == 'x':
-            ux = (1/rho+x**2/rho**3+(1-2*nu)*(1/(rho+z)-x**2/(rho*(rho+z)**2)))/(4*pi*G)
-            uy = (x*y/rho**3-(1-2*nu)*x*y/(rho*(rho+z)**2))/(4*pi*G)
-            uz = (x*z/rho**3+(1-2*nu)*x/(rho*(rho+z)))/(4*pi*G)
+            ux = (1/rho+x**2/rho**3+(1-2*poisson)*(1/(rho+z)-x**2/(rho*(rho+z)**2)))/(4*pi*G)
+            uy = (x*y/rho**3-(1-2*poisson)*x*y/(rho*(rho+z)**2))/(4*pi*G)
+            uz = (x*z/rho**3+(1-2*poisson)*x/(rho*(rho+z)))/(4*pi*G)
             retvals += [np.array([ux, uy, uz])]
         elif q == 'y':
             raise NotImplementedError()
         elif q == 'z':
-            ux = (x*z/rho**3-(1-2*nu)*x/(rho*(rho+z)))/(4*pi*G)
-            uy = (y*z/rho**3-(1-2*nu)*y/(rho*(rho+z)))/(4*pi*G)
-            uz = (z**2/rho**3+2*(1-nu)/rho)/(4*pi*G)
+            ux = (x*z/rho**3-(1-2*poisson)*x/(rho*(rho+z)))/(4*pi*G)
+            uy = (y*z/rho**3-(1-2*poisson)*y/(rho*(rho+z)))/(4*pi*G)
+            uz = (z**2/rho**3+2*(1-poisson)/rho)/(4*pi*G)
             retvals += [np.array([ux, uy, uz])]
         elif q == 'X':
-            sxx = ( -3*x**3/rho**5 + (1-2*nu)*(x/rho**3 - 3*x/(rho*(rho+z)**2) + x**3/(rho**3*(rho+z)**2) + 2*x**3/(rho**2*(rho+z)**3)) )/(2*pi)
-            syy = ( -3*x*y**2/rho**5 + (1-2*nu)*(x/rho**3 - x/(rho*(rho+z)**2) + x*y**2/(rho**3*(rho+z)**2) + 2*x*y**2/(rho**2*(rho+z)**3)) )/(2*pi)
+            sxx = ( -3*x**3/rho**5 + (1-2*poisson)*(x/rho**3 - 3*x/(rho*(rho+z)**2) + x**3/(rho**3*(rho+z)**2) + 2*x**3/(rho**2*(rho+z)**3)) )/(2*pi)
+            syy = ( -3*x*y**2/rho**5 + (1-2*poisson)*(x/rho**3 - x/(rho*(rho+z)**2) + x*y**2/(rho**3*(rho+z)**2) + 2*x*y**2/(rho**2*(rho+z)**3)) )/(2*pi)
             szz = ( -3*x*z**2/rho**5 )/(2*pi)
-            sxy = ( -3*x**2*y/rho**5 + (1-2*nu)*(-y/(rho*(rho+z)**2) + x**2*y/(rho**3*(rho+z)**2) + 2*x**2*y/(rho**2*(rho+z)**3)) )/(2*pi)
+            sxy = ( -3*x**2*y/rho**5 + (1-2*poisson)*(-y/(rho*(rho+z)**2) + x**2*y/(rho**3*(rho+z)**2) + 2*x**2*y/(rho**2*(rho+z)**3)) )/(2*pi)
             sxz = ( -3*x**2*z/rho**5 )/(2*pi)
             syz = ( -3*x*y*z/rho**5 )/(2*pi)
             retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
         elif q == 'Y':
             raise NotImplementedError()
         elif q == 'Z':
-            sxx = ( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
-            syy = ( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
+            sxx = ( (1-2*poisson)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
+            syy = ( (1-2*poisson)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
             szz = -3*z**3/(2*pi*rho**5)
             # Note: Johnson is lacking a factor of 2 here!!!
-            sxy = ( (1-2*nu)/r_sq * (2*(1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
+            sxy = ( (1-2*poisson)/r_sq * (2*(1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
             sxz = -3*x*z**2/(2*pi*rho**5)
             syz = -3*y*z**2/(2*pi*rho**5)
             retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
