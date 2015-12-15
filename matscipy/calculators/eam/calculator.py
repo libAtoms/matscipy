@@ -94,7 +94,7 @@ class EAM(Calculator):
             if atnum not in self.atnums:
                 raise RuntimeError('Element with atomic number {} found, but '
                                    'this atomic number has no EAM '
-                                   'parameterization'.format(atnum))
+                                   'parametrization'.format(atnum))
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', self.atoms,
                                                    self.cutoff)
