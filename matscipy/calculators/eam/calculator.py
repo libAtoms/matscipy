@@ -60,10 +60,10 @@ class EAM(Calculator):
     name = 'EAM'
        
     def __init__(self, fn=None, atomic_numbers=None, F=None, f=None, rep=None,
-                 cutoff=None):
+                 cutoff=None, kind='eam/alloy'):
         Calculator.__init__(self)
         if fn is not None:
-            source, parameters, F, f, rep = read_eam(fn,kind="eam/alloy")
+            source, parameters, F, f, rep = read_eam(fn, kind=kind)
             self.atnums = parameters.atomic_numbers
             self.cutoff = parameters.cutoff
             dr = parameters.distance_grid_spacing
