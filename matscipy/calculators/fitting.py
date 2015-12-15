@@ -576,7 +576,7 @@ class FitDimer(Fit):
         """
         self.new_dimer()
         self.atoms.set_calculator(calc)
-        ase.optimize.FIRE(self.atoms, logfile=_logfile).run(fmax=self.fmax)
+        ase.optimize.FIRE(self.atoms, logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_distance(self):
         return self.atoms.get_distance(0, 1)
@@ -659,7 +659,7 @@ class FitCubicCrystal(Fit):
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
-            logfile=_logfile).run(fmax=self.fmax)
+            logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_lattice_constant(self):
         return np.sum(self.atoms.get_cell().diagonal())/np.sum(self.size)
@@ -847,7 +847,7 @@ class FitTetragonalCrystal(Fit):
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,1,1,1]),
-            logfile=_logfile).run(fmax=self.fmax)
+            logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_lattice_constant(self):
         return np.sum(self.atoms.get_cell().diagonal()[:2])/np.sum(self.size[:2]),self.atoms.get_cell().diagonal()[2]/self.size[2]
@@ -1074,7 +1074,7 @@ class FitHexagonalCrystal(Fit):
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,0,0,0,0]),
-            logfile=_logfile).run(fmax=self.fmax)
+            logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_lattice_constant(self):
         cx, cy, cz = self.atoms.get_cell()

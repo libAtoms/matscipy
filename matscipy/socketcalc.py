@@ -663,6 +663,9 @@ class VaspClient(Client):
         if 'ibrion' not in vasp_args:
             self.logger.pr('No ibrion key in vasp_args, setting ibrion=13')
             vasp_args['ibrion'] = 13
+        if 'nsw' not in vasp_args:
+            self.logger.pr('No nsw key in vasp_args, setting nsw=1000000')
+            vasp_args['nsw'] = 1000000
         self.vasp_args = vasp_args
 
     def is_compatible(self, old_at, new_at, label):

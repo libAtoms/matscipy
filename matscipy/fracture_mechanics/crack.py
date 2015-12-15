@@ -36,7 +36,8 @@ from ase.calculators.neighborlist import NeighborList
 
 from matscipy.atomic_strain import atomic_strain
 from matscipy.elasticity import (rotate_elastic_constants,
-                                 rotate_cubic_elastic_constants)
+                                 rotate_cubic_elastic_constants,
+                                 Voigt_6_to_full_3x3_stress)
 from matscipy.surface import MillerDirection, MillerPlane
 
 ###
@@ -1090,6 +1091,9 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
        if calc is None:
            calc = atoms.get_calculator()
        sigma = calc.get_stresses(atoms)
+
+    if sigma.shape != (len(atoms), 3, 3):
+        sigma = Voigt_6_to_full_3x3_stress(sigma)
 
     # Update avg_sigma in place
     if avg_sigma is not None:

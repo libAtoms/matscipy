@@ -40,8 +40,8 @@ def savetbl(fn, **kwargs):
         Keyword argument pass data and column header names.
     """
     sorted_kwargs = sorted(kwargs.items(), key=lambda t: t[0])
-    header = reduce(lambda s, (i, (x, y)): '{0} {1}:{2}'.format(s, i+1, x),
-                    enumerate(sorted_kwargs), '')
+    header = reduce(lambda s, i, x, y: '{0} {1}:{2}'.format(s, i+1, x),
+                    enumerate([sum(x, ()) for x in sorted_kwargs]), '')
     data = np.transpose([y for x, y in sorted_kwargs])
     np.savetxt(fn, data, header=header)
 

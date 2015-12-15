@@ -19,13 +19,25 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+"""
+Contact mechanics module.
+
+This module contains functions creating real and reciprocal space Green's
+function. Continuous real space Green's function can be converted to their
+discrete reciprocal space representation by `real_to_reciprocal_space`.
+Typically, all *nonperiodic* kernel return real space Green's functions,
+all *periodic* kernel reciprocal space ones.
+"""
+
+from __future__ import division
+
 from math import isnan, pi, sqrt
 
 import numpy as np
 
 ###
 
-def gf_displacement_nonperiodic(x, y, a=0.5, b=0.5):
+def square_pressure__nonperiodic(x, y, a=0.5, b=0.5):
     """
     Real-space representation of Green's function for the normal displacements
     of a non-periodic linear elastic half-space with contact modulus 2 and
@@ -61,22 +73,34 @@ def gf_displacement_nonperiodic(x, y, a=0.5, b=0.5):
                            ( (x+a)+np.sqrt((y-b)*(y-b)+(x+a)*(x+a)) ) ) )/(2*pi);
 
 
-def gf_subsurface_stress_nonperiodic(x, y, z, nu=0.5):
+def point_traction__nonperiodic(quantities, x, y, z, G=1.0, poisson=0.5):
     """
-    Real-space representation of Green's function for the stress in the bulk of
-    a non-periodic linear elastic half-space in response to a concentrated
-    normal force. This is the Boussinesq-Cerrutti solution.
-    See: K.L. Johnson, Contact Mechanics, p. 51
+    Real-space representation of Green's function for the displacement and
+    stress in the bulk of a non-periodic linear elastic half-space in response
+    to a concentrated surface force. This is the Boussinesq-Cerrutti solution.
+    See: K.L. Johnson, Contact Mechanics, p. 51 and p. 69
+    Sign convention is as in Johnson!
 
     Parameters
     ----------
+    quantities : str
+        Each character in this string defines a return quantity. They are
+        returned in a tuple of the same order. Possible quantities are
+            'x' : Displacement for a concentrated surface traction in
+                  x-direction.
+            'X' : Stress for a concentrated surface traction in x-direction.
+            'Y' : Stress for a concentrated surface traction in y-direction.
+            'Z' : Stress for a concentrated surface pressure
+                  (i.e. "traction" in z-direction).
     x : array_like
         x-coordinates.
     y : array_like
         y-coordinates.
     z : array_like
-        z_coordinates.
-    nu : float
+        z-coordinates. Into the solid is positive.
+    G : float
+        Shear modulus.
+    poisson : float
         Poisson number.
 
     Returns
@@ -96,31 +120,60 @@ def gf_subsurface_stress_nonperiodic(x, y, z, nu=0.5):
         xy-component of the stress tensor.
     """
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
     r_sq = x**2 + y**2
+    r_sq = np.array(r_sq, dtype=float)
+    rho = np.sqrt(r_sq + z**2)
 
-    sxx = ( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 
-            3*z*x**2/rho**5 )/(2*pi)
-    sxx = np.where(r_sq > 0.0, sxx, np.zeros_like(sxx))
-    syy = ( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 
-            3*z*y**2/rho**5 )/(2*pi)
-    syy = np.where(r_sq > 0.0, syy, np.zeros_like(syy))
-    szz = -3*z**3/(2*pi*rho**5)
+    r_sq[r_sq <= 0.0] = 1e-9
+    rho[rho <= 0.0] = 1e-9
 
-    sxy = ( (1-2*nu)/r_sq * ((1 - z/rho) * x*y/r_sq - x*y*z/rho**3) -
-            3*x*y*z/rho**5 )/(2*pi)
-    sxy = np.where(r_sq > 0.0, sxy, np.zeros_like(sxy))
-    sxz = -3*x*z**2/(2*pi*rho**5)
-    syz = -3*y*z**2/(2*pi*rho**5)
+    retvals = []
+    for q in quantities:
+        if q == 'x':
+            ux = (1/rho+x**2/rho**3+(1-2*poisson)*(1/(rho+z)-x**2/(rho*(rho+z)**2)))/(4*pi*G)
+            uy = (x*y/rho**3-(1-2*poisson)*x*y/(rho*(rho+z)**2))/(4*pi*G)
+            uz = (x*z/rho**3+(1-2*poisson)*x/(rho*(rho+z)))/(4*pi*G)
+            retvals += [np.array([ux, uy, uz])]
+        elif q == 'y':
+            raise NotImplementedError()
+        elif q == 'z':
+            ux = (x*z/rho**3-(1-2*poisson)*x/(rho*(rho+z)))/(4*pi*G)
+            uy = (y*z/rho**3-(1-2*poisson)*y/(rho*(rho+z)))/(4*pi*G)
+            uz = (z**2/rho**3+2*(1-poisson)/rho)/(4*pi*G)
+            retvals += [np.array([ux, uy, uz])]
+        elif q == 'X':
+            sxx = ( -3*x**3/rho**5 + (1-2*poisson)*(x/rho**3 - 3*x/(rho*(rho+z)**2) + x**3/(rho**3*(rho+z)**2) + 2*x**3/(rho**2*(rho+z)**3)) )/(2*pi)
+            syy = ( -3*x*y**2/rho**5 + (1-2*poisson)*(x/rho**3 - x/(rho*(rho+z)**2) + x*y**2/(rho**3*(rho+z)**2) + 2*x*y**2/(rho**2*(rho+z)**3)) )/(2*pi)
+            szz = ( -3*x*z**2/rho**5 )/(2*pi)
+            sxy = ( -3*x**2*y/rho**5 + (1-2*poisson)*(-y/(rho*(rho+z)**2) + x**2*y/(rho**3*(rho+z)**2) + 2*x**2*y/(rho**2*(rho+z)**3)) )/(2*pi)
+            sxz = ( -3*x**2*z/rho**5 )/(2*pi)
+            syz = ( -3*x*y*z/rho**5 )/(2*pi)
+            retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
+        elif q == 'Y':
+            raise NotImplementedError()
+        elif q == 'Z':
+            sxx = ( (1-2*poisson)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
+            syy = ( (1-2*poisson)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
+            szz = -3*z**3/(2*pi*rho**5)
+            # Note: Johnson is lacking a factor of 2 here!!!
+            sxy = ( (1-2*poisson)/r_sq * (2*(1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
+            sxz = -3*x*z**2/(2*pi*rho**5)
+            syz = -3*y*z**2/(2*pi*rho**5)
+            retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
+        else:
+            raise ValueError("Unknown quantity '{0}' requested.".format(q))
 
-    return -sxx, -syy, -szz, -syz, -sxz, -sxy
+    if len(quantities) == 1:
+        return retvals[0]
+    else:
+        return retvals
 
 
-def reciprocal_grid(nx, ny=None, gf=gf_displacement_nonperiodic,
-                    coordinates=False):
+def real_to_reciprocal_space(nx, ny=None, gf=square_pressure__nonperiodic,
+                             coordinates=False):
     """
-    Return the reciprocal space representation of a Green's function on an FFT
-    grid.
+    Return the reciprocal space representation of a real-space Green's function
+    on an FFT grid.
     Note: If the Green's function is for the non-periodic (free-bounday)
     problem, then only a section of 1/2 nx by 1/2 ny of the grid can have
     non-zero pressure. The other region is a padding region. See R.W. Hockney,
@@ -152,10 +205,10 @@ def reciprocal_grid(nx, ny=None, gf=gf_displacement_nonperiodic,
         nx, ny = nx
 
     x = np.arange(nx)
-    x = np.where(x <= nx/2, x, x-nx)
+    x = np.where(x <= nx//2, x, x-nx)
     x.shape = (-1,1)
     y = np.arange(ny)
-    y = np.where(y <= ny/2, y, y-ny)
+    y = np.where(y <= ny//2, y, y-ny)
     y.shape = (1,-1)
 
     G = gf(x, y)
@@ -170,11 +223,11 @@ def reciprocal_grid(nx, ny=None, gf=gf_displacement_nonperiodic,
         return r
 
 
-def reciprocal_stiffness_periodic(nx, ny=None, phi0=None, size=None):
+def point_displacement__periodic(nx, ny=None, phi0=None, size=None):
     """
     Return reciprocal space stiffness coefficients (i.e. inverse of the Green's
     function) for a periodic system with contact modulus 2 and Poisson number
-    1/2.
+    1/2. This gives force as a function of displacement.
 
     Parameters
     ----------
@@ -197,9 +250,9 @@ def reciprocal_stiffness_periodic(nx, ny=None, phi0=None, size=None):
         nx, ny = nx
 
     qx = np.arange(nx, dtype=np.float64)
-    qx = np.where(qx <= nx/2, 2*pi*qx/sx, 2*pi*(nx-qx)/sx)
+    qx = np.where(qx <= nx//2, 2*pi*qx/sx, 2*pi*(nx-qx)/sx)
     qy = np.arange(ny, dtype=np.float64)
-    qy = np.where(qy <= ny/2, 2*pi*qy/sy, 2*pi*(ny-qy)/sy)
+    qy = np.where(qy <= ny//2, 2*pi*qy/sy, 2*pi*(ny-qy)/sy)
     phi  = np.sqrt( (qx*qx).reshape(-1, 1) + (qy*qy).reshape(1, -1) )
     if phi0 is None:
         phi[0, 0] = (phi[1, 0].real + phi[0, 1].real)/2

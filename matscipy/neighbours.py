@@ -23,7 +23,7 @@ import itertools
 
 import numpy as np
 
-import _matscipy 
+import _matscipy
 from _matscipy import first_neighbours
 
 ###
@@ -59,7 +59,7 @@ def mic(dr, cell, pbc=None):
     return dr - np.dot(dri, cell)
 
 
-def neighbour_list(quantities, a, cutoff):
+def neighbour_list(quantities, a, cutoff, *args):
     """
     Compute a neighbour list for an atomic configuration.
 
@@ -67,7 +67,7 @@ def neighbour_list(quantities, a, cutoff):
     ----------
     quantities : str
         Quantities to compute by the neighbor list algorithm. Each character
-        in this string defines a quantity. They are returned in a tuple of 
+        in this string defines a quantity. They are returned in a tuple of
         the same order. Possible quantities are
             'i' : first atom index
             'j' : second atom index
@@ -77,16 +77,22 @@ def neighbour_list(quantities, a, cutoff):
                   between atom i and j)
     a : ase.Atoms
         Atomic configuration.
-    cutoff : float
-        Cutoff for neighbour search.
+    cutoff : float or array_like
+        Cutoff for neighbour search. If array is given, then different cutoffs
+        will be used for individual bonds.
+    numbers : array_like, optional
+        Atomic numbers of similar identifiers for elements. Used for cutoff
+        lookup.
 
     Returns
     -------
     i, j, ... : array
-        Tuple with arrays for each quantity specified above.
+        Tuple with arrays for each quantity specified above. Indices in `i`
+        are returned in ascending order 0..len(a), but the order of (i,j)
+        pairs is not guaranteed.
     """
 
     return _matscipy.neighbour_list(quantities, a.cell,
                                     np.linalg.inv(a.cell.T), a.pbc,
-                                    a.positions, cutoff)
+                                    a.positions, cutoff, *args)
 

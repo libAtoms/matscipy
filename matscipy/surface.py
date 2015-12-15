@@ -22,6 +22,7 @@
 import itertools
 
 import numpy as np
+from numpy.linalg import norm, inv
 
 def gcd(a, b):
     """Calculate the greatest common divisor of a and b"""
@@ -209,3 +210,71 @@ def MillerDirection(v):
 def angle_between(a, b):
     """Angle between crystallographic directions between a=[ijk] and b=[lmn], in radians."""
     return MillerIndex(a).angle(b)
+
+
+def make_unit_slab(unit_cell, axes):   
+    """
+    General purpose unit slab creation routine
+
+    Only tested with cubic unit cells.
+
+    Code translated from quippy.structures.unit_slab()
+        https://github.com/libAtoms/QUIP/blob/public/src/libAtoms/Structures.f95
+
+    Arguments
+    ---------
+        unit_cell : Atoms
+            Atoms object containing primitive unit cell
+        axes: 3x3 array
+            Miller indices of desired slab, as columns
+
+    Returns
+    -------
+        slab : Atoms
+            Output slab, with axes aligned with x, y, z.
+    """
+    a1 = axes[:,0]
+    a2 = axes[:,1]
+    a3 = axes[:,2]
+    rot = np.zeros((3,3))
+    rot[0,:] = a1/norm(a1)
+    rot[1,:] = a2/norm(a2)
+    rot[2,:] = a3/norm(a3)
+    
+    pos = unit_cell.get_positions().T
+    lattice = unit_cell.get_cell().T
+    lattice = np.dot(rot, lattice)
+    
+    at = unit_cell.copy()
+    at.set_positions(np.dot(rot, pos).T)
+    at.set_cell(lattice.T)
+
+    sup = at * (5,5,5)
+    sup.positions[...] -= sup.positions.mean(axis=0)
+    
+    sup_lattice = np.zeros((3,3))
+    for i in range(3):
+        sup_lattice[:,i] = (axes[0,i]*lattice[:,0] + 
+                            axes[1,i]*lattice[:,1] + 
+                            axes[2,i]*lattice[:,2])
+    
+    sup.set_cell(sup_lattice.T, scale_atoms=False)
+    
+    # Form primitive cell by discarding atoms with 
+    # lattice coordinates outside range [-0.5,0.5]
+    d = [0.01,0.02,0.03]  # Small shift to avoid conincidental alignments
+    i = 0
+    g = inv(sup_lattice)
+    sup_pos = sup.get_positions().T
+    while True:
+        t = np.dot(g, sup_pos[:, i] + d)
+        if (t <= -0.5).any() | (t >= 0.5).any():
+            del sup[i]
+            sup_pos = sup.get_positions().T
+            i -= 1 # Retest since we've removed an atom
+        if i == len(sup)-1:
+            break
+        i += 1
+
+    sup.set_scaled_positions(sup.get_scaled_positions())
+    return sup    

@@ -217,8 +217,8 @@ def invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
         if s.shape == (6,):
             s = s.reshape(1,-1)
         elif s.shape == (3,3):
-            s = s.reshape(1,3,3)
-        if s[-1] == 3 and s[-2] == 3:
+            s = full_3x3_to_Voigt_6(s)
+        elif s.shape[-1] == 3 and s.shape[-2] == 3:
             s = full_3x3_to_Voigt_6(s)
     else:
         s = np.transpose([np.transpose(s),
