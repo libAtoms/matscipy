@@ -35,7 +35,7 @@ try:
 except:
     InterpolatedUnivariateSpline = None
 
-from matscipy.calculators.eam.io import read_eam_alloy
+from matscipy.calculators.eam.io import read_eam
 from matscipy.neighbours import neighbour_list
 
 ###
@@ -57,7 +57,7 @@ class EAM(Calculator):
                  cutoff=None):
         Calculator.__init__(self)
         if fn is not None:
-            source, parameters, F, f, rep = read_eam_alloy(fn)
+            source, parameters, F, f, rep = read_eam(fn,kind="eam/alloy")
             self.atnums = parameters.atomic_numbers
             self.cutoff = parameters.cutoff
             dr = parameters.distance_grid_spacing
