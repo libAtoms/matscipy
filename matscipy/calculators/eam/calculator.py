@@ -40,6 +40,14 @@ from matscipy.neighbours import neighbour_list
 
 ###
 
+def _make_splines(dx, y):
+    if len(np.asarray(y).shape) > 1:
+        return [_make_splines(dx, yy) for yy in y]
+    else:
+        return InterpolatedUnivariateSpline(np.arange(len(y))*dx, y)
+
+###
+
 class EAM(Calculator):
     implemented_properties = ['energy', 'stress', 'forces']
     default_parameters = {}
@@ -56,13 +64,9 @@ class EAM(Calculator):
             dF = parameters.density_grid_spacing
 
             # Create spline interpolation
-            self.F = [InterpolatedUnivariateSpline(np.arange(len(x))*dF, x)
-                      for x in F]
-            self.f = [InterpolatedUnivariateSpline(np.arange(len(x))*dr, x)
-                      for x in f]
-            self.rep = [[InterpolatedUnivariateSpline(np.arange(len(x))*dr, x)
-                         for x in y]
-                        for y in rep]
+            self.F = _make_splines(dF, F)
+            self.f = _make_splines(dr, f)
+            self.rep = _make_splines(dr, rep)
         else:
             self.atnums = atomic_numbers
             self.F = F
