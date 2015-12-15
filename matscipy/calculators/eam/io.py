@@ -395,8 +395,8 @@ def write_eam(source, parameters, F, f, rep,out_file):
     -------
       
     """
-    atnumber,atmass,crystallatt,crystal = parameters[0],parameters[1],parameters[2],parameters[3]
-    Nrho,Nr, drho, dr, cutoff = parameters[4],parameters[5],parameters[6],parameters[7],parameters[8]
+    atoms, atnumber, atmass, crystallatt, crystal = parameters[0:5]
+    Nrho, Nr, drho, dr, cutoff = parameters[5:10]
     # parameters unpacked
     atline = "%i %f %f %s"%(int(atnumber),float(atmass),float(crystallatt),str(crystal))
     parameterline = '%i\t%.16e\t%i\t%.16e\t%.10e'%(int(Nrho),float(drho),int(Nr),float(dr),float(cutoff))
