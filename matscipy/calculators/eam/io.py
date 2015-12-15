@@ -115,6 +115,8 @@ def read_eam(eam_file,kind="eam/alloy"):
         cutoff = float(eam[4].split()[4])
         atnumber,atmass,crystallatt,crystal = np.empty(nb_atoms,dtype=int),np.empty(nb_atoms),np.empty(nb_atoms),np.empty(nb_atoms).astype(np.str)
         for i in range(nb_atoms):
+            # Fixme: The following lines assume that data occurs in blocks of
+            # homogeneous width. This can break.
             l = len(eam[6].strip().split())
             row = int(5+i*((Nr+Nrho)/l+1))
             atnumber[i] = int(eam[row].split()[0])
@@ -157,6 +159,8 @@ def read_eam(eam_file,kind="eam/alloy"):
         cutoff = float(eam[4].split()[4])
         atnumber,atmass,crystallatt,crystal = np.empty(nb_atoms,dtype=int),np.empty(nb_atoms),np.empty(nb_atoms),np.empty(nb_atoms).astype(np.str)
         for i in range(nb_atoms):
+            # Fixme: The following lines assume that data occurs in blocks of
+            # homogeneous width. This can break.
             l = len(eam[6].strip().split())
             row = int(5+i*((Nr+Nrho)/l+1))
             atnumber[i] = int(eam[row].split()[0])
