@@ -162,7 +162,7 @@ def read_eam(eam_file,kind="eam/alloy"):
             # Fixme: The following lines assume that data occurs in blocks of
             # homogeneous width. This can break.
             l = len(eam[6].strip().split())
-            row = int(5+i*((Nr+Nrho)/l+1))
+            row = int(5+i*((Nr*nb_atoms+Nrho)/l+1))
             atnumber[i] = int(eam[row].split()[0])
             atmass[i] = float(eam[row].split()[1])
             crystallatt[i] = float(eam[row].split()[2])
