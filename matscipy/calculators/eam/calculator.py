@@ -46,6 +46,12 @@ def _make_splines(dx, y):
     else:
         return InterpolatedUnivariateSpline(np.arange(len(y))*dx, y)
 
+def _make_derivative(x):
+    if type(x) == list:
+        return [_make_derivative(xx) for xx in x]
+    else:
+        return x.derivative()
+
 ###
 
 class EAM(Calculator):
@@ -79,9 +85,9 @@ class EAM(Calculator):
             np.arange(len(self.atnums))
 
         # Derivative of spline interpolation
-        self.dF = [x.derivative() for x in self.F]
-        self.df = [x.derivative() for x in self.f]
-        self.drep = [[x.derivative() for x in y] for y in self.rep]
+        self.dF = _make_derivative(self.F)
+        self.df = _make_derivative(self.f)
+        self.drep = _make_derivative(self.rep)
 
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
@@ -102,13 +108,22 @@ class EAM(Calculator):
         # Density
         f_n = np.zeros_like(abs_dr_n)
         df_n = np.zeros_like(abs_dr_n)
-        for atidx, atnum in enumerate(self.atnums):
-            f = self.f[atidx]
-            df = self.df[atidx]
-            mask = atnums[j_n]==atnum
-            if mask.sum() > 0:
-                f_n[mask] = f(abs_dr_n[mask])
-                df_n[mask] = df(abs_dr_n[mask])
+        for atidx1, atnum1 in enumerate(self.atnums):
+            f1 = self.f[atidx1]
+            df1 = self.df[atidx1]
+            mask1 = atnums[j_n]==atnum1
+            if mask1.sum() > 0:
+                if type(f1) == list:
+                    for atidx2, atnum2 in enumerate(self.atnums):
+                        f = f1[atidx2]
+                        df = df1[atidx2]
+                        mask = np.logical_and(mask1, atnums[i_n]==atnum2)
+                        if mask.sum() > 0:
+                            f_n[mask] = f(abs_dr_n[mask])
+                            df_n[mask] = df(abs_dr_n[mask])
+                else:
+                    f_n[mask1] = f1(abs_dr_n[mask1])
+                    df_n[mask1] = df1(abs_dr_n[mask1])
 
         density_i = np.bincount(i_n, weights=f_n, minlength=nat)
 
@@ -116,14 +131,18 @@ class EAM(Calculator):
         rep_n = np.zeros_like(abs_dr_n)
         drep_n = np.zeros_like(abs_dr_n)
         for atidx1, atnum1 in enumerate(self.atnums):
-            for atidx2, atnum2 in enumerate(self.atnums):
-                rep = self.rep[atidx1][atidx2]
-                drep = self.drep[atidx1][atidx2]
-                mask = np.logical_and(atnums[i_n]==atnum1, atnums[j_n]==atnum2)
-                if mask.sum() > 0:
-                    r = rep(abs_dr_n[mask])/abs_dr_n[mask]
-                    rep_n[mask] = r
-                    drep_n[mask] = (drep(abs_dr_n[mask])-r)/abs_dr_n[mask]
+            rep1 = self.rep[atidx1]
+            drep1 = self.drep[atidx1]
+            mask1 = atnums[i_n]==atnum1
+            if mask1.sum() > 0:
+                for atidx2, atnum2 in enumerate(self.atnums):
+                    rep = rep1[atidx2]
+                    drep = drep1[atidx2]
+                    mask = np.logical_and(mask1, atnums[j_n]==atnum2)
+                    if mask.sum() > 0:
+                        r = rep(abs_dr_n[mask])/abs_dr_n[mask]
+                        rep_n[mask] = r
+                        drep_n[mask] = (drep(abs_dr_n[mask])-r)/abs_dr_n[mask]
 
         # Energy
         epot = 0.5*np.sum(rep_n)
