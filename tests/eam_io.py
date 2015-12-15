@@ -29,7 +29,7 @@ import unittest
 import numpy as np
 
 import os
-from matscipy.calculators.eam.io import (read_eam, read_eam_alloy,
+from matscipy.calculators.eam.io import (read_eam,
                                          write_eam,write_eam_alloy,
                                          mix_eam_alloy)
 try:
@@ -56,9 +56,9 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
     tol = 1e-6
 
     def test_eam_read_write(self):
-        source,parameters,F,f,rep = read_eam("Au_u3.eam")
+        source,parameters,F,f,rep = read_eam("Au_u3.eam",kind="eam")
         write_eam(source,parameters,F,f,rep,"Au_u3_copy.eam")
-        source1,parameters1,F1,f1,rep1 = read_eam("Au_u3_copy.eam")
+        source1,parameters1,F1,f1,rep1 = read_eam("Au_u3_copy.eam",kind="eam")
         os.remove("Au_u3_copy.eam")
         for i,p in enumerate(parameters):
             try:
@@ -74,9 +74,9 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
         self.assertTrue((rep == rep1).all())
     
     def test_eam_alloy_read_write(self):
-        source,parameters,F,f,rep = read_eam_alloy("CuAgNi_Zhou.eam.alloy")
+        source,parameters,F,f,rep = read_eam("CuAgNi_Zhou.eam.alloy",kind="eam/alloy")
         write_eam_alloy(source,parameters,F,f,rep,"CuAgNi_Zhou.eam_copy.alloy")
-        source1,parameters1,F1,f1,rep1 = read_eam_alloy("CuAgNi_Zhou.eam_copy.alloy")
+        source1,parameters1,F1,f1,rep1 = read_eam("CuAgNi_Zhou.eam_copy.alloy",kind="eam/alloy")
         os.remove("CuAgNi_Zhou.eam_copy.alloy")
         fail = 0
         for i,p in enumerate(parameters):
@@ -98,7 +98,7 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
     def test_mix_eam_alloy(self):
         try:
             from scipy import interpolate
-            source,parameters,F,f,rep = read_eam_alloy("CuAu_Zhou.eam.alloy")
+            source,parameters,F,f,rep = read_eam("CuAu_Zhou.eam.alloy",kind="eam/alloy")
             source1,parameters1,F1,f1,rep1 = mix_eam_alloy(["Cu_Zhou.eam.alloy","Au_Zhou.eam.alloy"],"weight")
             write_eam_alloy(source1,parameters1,F1,f1,rep1,"CuAu_mixed.eam.alloy")
 
