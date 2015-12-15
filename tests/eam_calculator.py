@@ -170,6 +170,8 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
                                (syms=='Ag').sum()*e_Ag)/len(a)-0.083)<0.0005)
 
     def test_CuZr(self):
+        # This is a test for the potential published in:
+        # Mendelev, Sordelet, Kramer, J. Appl. Phys. 102, 043501 (2007)
         a = FaceCenteredCubic('Cu', size=[2,2,2])
         calc = EAM('CuZr_mm.eam.fs', kind='eam/fs')
         a.set_calculator(calc)
@@ -193,6 +195,18 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         a.set_calculator(calc)
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         self.assertAlmostEqual(a.cell.diagonal().mean()/2, 4.324, 3)
+
+        # Cu3Zr
+        a = L1_2(['Zr', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+        a.set_calculator(calc)
+        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        self.assertAlmostEqual(a.cell.diagonal().mean()/2, 3.935, 3)
+
+        # CuZr
+        a = B2(['Zr', 'Cu'], size=[2,2,2], latticeconstant=3.3)
+        a.set_calculator(calc)
+        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        self.assertAlmostEqual(a.cell.diagonal().mean()/2, 3.237, 3)
 
 ###
 
