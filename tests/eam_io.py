@@ -53,8 +53,6 @@ import matscipytest
 
 class TestEAMIO(matscipytest.MatSciPyTestCase):
 
-    tol = 1e-6
-
     def test_eam_read_write(self):
         source,parameters,F,f,rep = read_eam("Au_u3.eam",kind="eam")
         write_eam(source,parameters,F,f,rep,"Au_u3_copy.eam")
@@ -68,8 +66,7 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
             if diff is None:
                 self.assertTrue(p == parameters1[i])
             else:
-                print(i, diff, self.tol, diff < self.tol)
-                self.assertTrue(diff < self.tol)
+                self.assertTrue(diff < 1e-6)
         self.assertTrue((F == F1).all())
         self.assertTrue((f == f1).all())
         self.assertTrue((rep == rep1).all())
