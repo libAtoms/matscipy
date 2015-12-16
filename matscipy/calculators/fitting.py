@@ -764,7 +764,10 @@ class FitCubicCrystal(Fit):
             C44 = self.get_C44()
 
         if self.SFE is not None:
-            r_SFE = self.w_SFE*( SFE - self.SFE )
+            if SFE < 0:
+                r_SFE = self.w_SFE*( SFE - self.SFE )*1000
+            else:  
+                r_SFE = self.w_SFE*( SFE - self.SFE )
             r += [ r_SFE ]
             if log is not None:
                 print('# %20s SFE = %20.10f mJ/m**2   (%20.10f mJ/m**2)   - %20.10f' \
@@ -1050,13 +1053,19 @@ class FitTetragonalCrystal(Fit):
 
 
         if self.SFE is not None:
-            r_SFE = self.w_SFE*( SFE - self.SFE )
+            if SFE < 0:
+                r_SFE = self.w_SFE*( SFE - self.SFE )*1000
+            else:  
+                r_SFE = self.w_SFE*( SFE - self.SFE )
             r += [ r_SFE ]
             if log is not None:
                 print('# %20s SFE = %20.10f mJ/m**2   (%20.10f mJ/m**2)   - %20.10f' \
                     % ( '', SFE, self.SFE, r_SFE ))
         if self.c_a is not None:
-            r_c_a = self.w_c_a*( c0/a0 - self.c_a )
+            if (self.c_a < 1 and c0/a0 < 1) or (self.c_a > 1 and c0/a0 > 1) :
+                r_c_a = self.w_c_a*( c0/a0 - self.c_a )
+            else:
+                r_c_a = self.w_c_a*( c0/a0 - self.c_a )*1000
             r += [ r_c_a ]
             if log is not None:
                 print('# %20s c/a   = %20.10f   (%20.10f )   - %20.10f' \
