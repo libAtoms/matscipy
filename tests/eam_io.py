@@ -30,7 +30,7 @@ import numpy as np
 
 import os
 from matscipy.calculators.eam.io import (read_eam,
-                                         write_eam,write_eam_alloy,
+                                         write_eam,
                                          mix_eam_alloy)
 try:
     from scipy import interpolate
@@ -57,7 +57,7 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
 
     def test_eam_read_write(self):
         source,parameters,F,f,rep = read_eam("Au_u3.eam",kind="eam")
-        write_eam(source,parameters,F,f,rep,"Au_u3_copy.eam")
+        write_eam(source,parameters,F,f,rep,"Au_u3_copy.eam",kind="eam")
         source1,parameters1,F1,f1,rep1 = read_eam("Au_u3_copy.eam",kind="eam")
         os.remove("Au_u3_copy.eam")
         for i,p in enumerate(parameters):
@@ -76,9 +76,9 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
     
     def test_eam_alloy_read_write(self):
         source,parameters,F,f,rep = read_eam("CuAgNi_Zhou.eam.alloy",kind="eam/alloy")
-        write_eam_alloy(source,parameters,F,f,rep,"CuAgNi_Zhou.eam_copy.alloy")
-        source1,parameters1,F1,f1,rep1 = read_eam("CuAgNi_Zhou.eam_copy.alloy",kind="eam/alloy")
-        os.remove("CuAgNi_Zhou.eam_copy.alloy")
+        write_eam(source,parameters,F,f,rep,"CuAgNi_Zhou.eam.alloy_copy",kind="eam/alloy")
+        source1,parameters1,F1,f1,rep1 = read_eam("CuAgNi_Zhou.eam.alloy_copy",kind="eam/alloy")
+        os.remove("CuAgNi_Zhou.eam.alloy_copy")
         fail = 0
         for i,p in enumerate(parameters):
             try:
@@ -95,12 +95,36 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
             for j in range(len(rep)):
                 if j < i :
                     self.assertTrue((rep[i,j,:] == rep1[i,j,:]).all())
+                    
+    def test_eam_fs_read_write(self):
+        source,parameters,F,f,rep = read_eam("CuZr_mm.eam.fs",kind="eam/fs")
+        write_eam(source,parameters,F,f,rep,"CuZr_mm.eam.fs_copy",kind="eam/fs")
+        source1,parameters1,F1,f1,rep1 = read_eam("CuZr_mm.eam.fs_copy",kind="eam/fs")
+        os.remove("CuZr_mm.eam.fs_copy")
+        fail = 0
+        for i,p in enumerate(parameters):
+            try:
+              for j,d in enumerate(p):
+                  if d != parameters[i][j]:
+                      fail+=1
+            except:
+                if p != parameters[i]:
+                    fail +=1
+        self.assertTrue(fail == 0)
+        self.assertTrue((F == F1).all())
+        for i in range(f.shape[0]):
+            for j in range(f.shape[0]):
+                self.assertTrue((f[i,j,:] == f1[i,j,:]).all())
+        for i in range(len(rep)):
+            for j in range(len(rep)):
+                if j < i :
+                    self.assertTrue((rep[i,j,:] == rep1[i,j,:]).all())
          
     def test_mix_eam_alloy(self):
         if False:
             source,parameters,F,f,rep = read_eam("CuAu_Zhou.eam.alloy",kind="eam/alloy")
             source1,parameters1,F1,f1,rep1 = mix_eam_alloy(["Cu_Zhou.eam.alloy","Au_Zhou.eam.alloy"],"weight")
-            write_eam_alloy(source1,parameters1,F1,f1,rep1,"CuAu_mixed.eam.alloy")
+            write_eam(source1,parameters1,F1,f1,rep1,"CuAu_mixed.eam.alloy",kind="eam/alloy")
 
             calc0 = EAM('CuAu_Zhou.eam.alloy')
             calc1 = EAM('CuAu_mixed.eam.alloy')
