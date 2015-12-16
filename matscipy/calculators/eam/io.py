@@ -196,7 +196,7 @@ def read_eam(eam_file,kind="eam/alloy"):
         raise ValueError
             
 
-def mix_eam_alloy(files,method,rep_ab=[],alphas=[]):
+def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[]):
     """
     mix eam alloy files data set and compute the interspecies pair potential part using the 
     mean geometric value from each pure species 
@@ -205,6 +205,8 @@ def mix_eam_alloy(files,method,rep_ab=[],alphas=[]):
     ----------
       files : array of strings
               Contain all the files to merge and mix
+      kind : string
+              kinf of eam. Supported eam/alloy, eam/fs
       method : string, (geometric,arithmetic,weighted,fitted)
               Method used to mix the pair interaction terms
               Available : Geometric average, arithmetic average, weighted arithmetic average
@@ -213,6 +215,7 @@ def mix_eam_alloy(files,method,rep_ab=[],alphas=[]):
                   rep_ab = 0.5*(fb/fa * rep_a + fa/fb * rep_b)
                   ref : X. W. Zhou, R. A. Johnson, and H. N. G. Wadley, Phys. Rev. B, 69, 144113 (2004)
                   Fitted method is to be used if the rep_ab has been previously fitted and is parse as rep_ab karg
+      f : np.array of the fitted density term (for FS eam style)
       rep_ab : np.array of the fitted rep_ab term
       alphas : array of fitted alpha values for the fine tuned mixing. rep_ab = alpha_a*rep_a+alpha_b*rep_b
     Returns
@@ -245,122 +248,151 @@ def mix_eam_alloy(files,method,rep_ab=[],alphas=[]):
     # Counting elements and repartition and select smallest tabulated set Nrho*drho // Nr*dr
     Nrho,drho,Nr,dr,cutoff = np.empty((len(files))),np.empty((len(files))),np.empty((len(files))),np.empty((len(files))),np.empty((len(files)))
     sources = ""
-    for i,f_eam in enumerate(files):
-        source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
-        sources+= source
-        source += " "
-        nb_at+=len(parameters[0])
-        Nrho[i] = parameters[5]
-        drho[i] = parameters[7]
-        cutoff[i] = parameters[9]
-        Nr[i] = parameters[6]
-        dr[i] = parameters[8]
-    # --- #
-    max_cutoff = cutoff.argmax()
-    max_prod = (Nrho*drho).argmax()
-    max_prod_r = (Nr*dr).argmax()
-    atnumber,atmass,crystallatt,crystal,atoms = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
-    Nr_ = Nr[max_prod_r]
-    dr_ = ((Nr*dr).max())/Nr_
-    Nrho_ = Nrho[max_prod]
-    drho_ = ((Nrho*drho).max())/Nrho_
-    
-    if Nr_ > 2000:
-      Nr_ = 2000   # reduce
-      dr_ = ((Nr*dr).max())/Nr_
-    if Nrho_ > 2000:
-      Nrho_ = 2000 # reduce
-      drho_ = ((Nrho*drho).max())/Nrho_
-    F_,f_,rep_ = np.empty((nb_at,Nrho_)),np.empty((nb_at,Nr_)),np.empty((nb_at,nb_at,Nr_))
-    at = 0
-    for i,f_eam in enumerate(files):
-        source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
-        atoms = np.append(atoms,parameters[0])
-        atnumber = np.append(atnumber,parameters[1])
-        atmass = np.append(atmass,parameters[2])
-        crystallatt = np.append(crystallatt,parameters[3])
-        crystal = np.append(crystal,parameters[4])
-        for j in range(len(parameters[0])):
-            F_[at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nrho[i]*drho[i],Nrho[i]),F[j,:])(np.linspace(0,Nrho_*drho_,Nrho_))
-            f_[at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),f[j,:])(np.linspace(0,Nr_*dr_,Nr_))
-            rep_[at,at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),rep[j,j,:])(np.linspace(0,Nr_*dr_,Nr_))
-            at+=1
-    # mixing repulsive part
-    old_err_state = np.seterr(divide='raise')
-    ignored_states = np.seterr(**old_err_state)
-    for i in range(nb_at):
-        for j in range(nb_at):
-            if j < i :
+    if kind == "eam/alloy":
+        for i,f_eam in enumerate(files):
+            source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
+            sources+= source
+            source += " "
+            nb_at+=len(parameters[0])
+            Nrho[i] = parameters[5]
+            drho[i] = parameters[7]
+            cutoff[i] = parameters[9]
+            Nr[i] = parameters[6]
+            dr[i] = parameters[8]
+        # --- #
+        max_cutoff = cutoff.argmax()
+        max_prod = (Nrho*drho).argmax()
+        max_prod_r = (Nr*dr).argmax()
+        atnumber,atmass,crystallatt,crystal,atoms = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
+        Nr_ = Nr[max_prod_r]
+        dr_ = ((Nr*dr).max())/Nr_
+        Nrho_ = Nrho[max_prod]
+        drho_ = ((Nrho*drho).max())/Nrho_
+        
+        if Nr_ > 2000:
+          Nr_ = 2000   # reduce
+          dr_ = ((Nr*dr).max())/Nr_
+        if Nrho_ > 2000:
+          Nrho_ = 2000 # reduce
+          drho_ = ((Nrho*drho).max())/Nrho_
+        F_,f_,rep_ = np.empty((nb_at,Nrho_)),np.empty((nb_at,Nr_)),np.empty((nb_at,nb_at,Nr_))
+        at = 0
+        for i,f_eam in enumerate(files):
+            source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
+            atoms = np.append(atoms,parameters[0])
+            atnumber = np.append(atnumber,parameters[1])
+            atmass = np.append(atmass,parameters[2])
+            crystallatt = np.append(crystallatt,parameters[3])
+            crystal = np.append(crystal,parameters[4])
+            for j in range(len(parameters[0])):
+                F_[at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nrho[i]*drho[i],Nrho[i]),F[j,:])(np.linspace(0,Nrho_*drho_,Nrho_))
+                f_[at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),f[j,:])(np.linspace(0,Nr_*dr_,Nr_))
+                rep_[at,at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),rep[j,j,:])(np.linspace(0,Nr_*dr_,Nr_))
+                at+=1
+        # mixing repulsive part
+        old_err_state = np.seterr(divide='raise')
+        ignored_states = np.seterr(**old_err_state)
+        for i in range(nb_at):
+            for j in range(nb_at):
+                if j < i :
+                    if method == "geometric":
+                        rep_[i,j,:] = (rep_[i,i,:]*rep_[j,j,:])**0.5
+                    if method == "arithmetic":
+                        if alphas:
+                            rep_[i,j,:] = alphas[i]*rep_[i,i,:]+alphas[j]*rep_[j,j,:]
+                        else:
+                            rep_[i,j,:] = 0.5*(rep_[i,i,:]+rep_[j,j,:])
+                    if method == "weighted":
+                        rep_[i,j,:] = 0.5*(np.divide(f_[j,:],f_[i,:])*rep_[i,i,:]+np.divide(f_[i,:],f_[j,:])*rep_[j,j,:])
+                    if method == "fitted":
+                        rep_ab[np.isnan(rep_ab)] = 0
+                        rep_ab[np.isinf(rep_ab)] = 0
+                        rep_[i,j,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,max(Nr*dr),rep_ab.shape[0]),rep_ab)(np.linspace(0,Nr_*dr_,Nr_))
+                    rep_[i,j,:][np.isnan(rep_[i,j,:])] = 0
+                    rep_[i,j,:][np.isinf(rep_[i,j,:])] = 0
+    elif kind == "eam/fs":
+        for i,f_eam in enumerate(files):
+            source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
+            sources+= source
+            source += " "
+            nb_at+=len(parameters[0])
+            Nrho[i] = parameters[5]
+            drho[i] = parameters[7]
+            cutoff[i] = parameters[9]
+            Nr[i] = parameters[6]
+            dr[i] = parameters[8]
+        # --- #
+        max_cutoff = cutoff.argmax()
+        max_prod = (Nrho*drho).argmax()
+        max_prod_r = (Nr*dr).argmax()
+        atnumber,atmass,crystallatt,crystal,atoms = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
+        Nr_ = Nr[max_prod_r]
+        dr_ = ((Nr*dr).max())/Nr_
+        Nrho_ = Nrho[max_prod]
+        drho_ = ((Nrho*drho).max())/Nrho_
+        
+        if Nr_ > 2000:
+          Nr_ = 2000   # reduce
+          dr_ = ((Nr*dr).max())/Nr_
+        if Nrho_ > 2000:
+          Nrho_ = 2000 # reduce
+          drho_ = ((Nrho*drho).max())/Nrho_
+        F_,f_,rep_ = np.empty((nb_at,Nrho_)),np.empty((nb_at,nb_at,Nr_)),np.empty((nb_at,nb_at,Nr_))
+        at = 0
+        for i,f_eam in enumerate(files):
+            source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
+            atoms = np.append(atoms,parameters[0])
+            atnumber = np.append(atnumber,parameters[1])
+            atmass = np.append(atmass,parameters[2])
+            crystallatt = np.append(crystallatt,parameters[3])
+            crystal = np.append(crystal,parameters[4])
+            for j in range(len(parameters[0])):
+                F_[at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nrho[i]*drho[i],Nrho[i]),F[j,:])(np.linspace(0,Nrho_*drho_,Nrho_))
+                f_[at,at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),f[j,:])(np.linspace(0,Nr_*dr_,Nr_))
+                rep_[at,at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),rep[j,j,:])(np.linspace(0,Nr_*dr_,Nr_))
+                at+=1
+        # mixing density part
+        old_err_state = np.seterr(divide='raise')
+        ignored_states = np.seterr(**old_err_state)
+        for i in range(nb_at):
+            for j in range(nb_at):
                 if method == "geometric":
-                    rep_[i,j,:] = (rep_[i,i,:]*rep_[j,j,:])**0.5
+                    f_[i,j,:] = (f_[i,i,:]*f_[j,j,:])**0.5
                 if method == "arithmetic":
-                    if alphas:
-                        rep_[i,j,:] = alphas[i]*rep_[i,i,:]+alphas[j]*rep_[j,j,:]
+                    if betas:
+                        f_[i,j,:] = betas[i,j]*f_[i,i,:]+betas[i,j]*f_[j,j,:]
                     else:
-                        rep_[i,j,:] = 0.5*(rep_[i,i,:]+rep_[j,j,:])
-                if method == "weighted":
-                    rep_[i,j,:] = 0.5*(np.divide(f_[j,:],f_[i,:])*rep_[i,i,:]+np.divide(f_[i,:],f_[j,:])*rep_[j,j,:])
+                        f_[i,j,:] = 0.5*(f_[i,i,:]+f_[j,j,:])
                 if method == "fitted":
-                    rep_ab[np.isnan(rep_ab)] = 0
-                    rep_ab[np.isinf(rep_ab)] = 0
-                    rep_[i,j,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,max(Nr*dr),rep_ab.shape[0]),rep_ab)(np.linspace(0,Nr_*dr_,Nr_))
-                rep_[i,j,:][np.isnan(rep_[i,j,:])] = 0
-                rep_[i,j,:][np.isinf(rep_[i,j,:])] = 0
+                    f_ab[np.isnan(f_ab)] = 0
+                    f_ab[np.isinf(f_ab)] = 0
+                    f_[i,j,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,max(Nr*dr),rep_ab.shape[0]),rep_ab)(np.linspace(0,Nr_*dr_,Nr_))
+                f_[i,j,:][np.isnan(f_[i,j,:])] = 0
+                f_[i,j,:][np.isinf(f_[i,j,:])] = 0
+        # mixing repulsive part
+        for i in range(nb_at):
+            for j in range(nb_at):
+                if j < i :
+                    if method == "geometric":
+                        rep_[i,j,:] = (rep_[i,i,:]*rep_[j,j,:])**0.5
+                    if method == "arithmetic":
+                        if alphas:
+                            rep_[i,j,:] = alphas[i]*rep_[i,i,:]+alphas[j]*rep_[j,j,:]
+                        else:
+                            rep_[i,j,:] = 0.5*(rep_[i,i,:]+rep_[j,j,:])
+                    if method == "fitted":
+                        rep_ab[np.isnan(rep_ab)] = 0
+                        rep_ab[np.isinf(rep_ab)] = 0
+                        rep_[i,j,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,max(Nr*dr),rep_ab.shape[0]),rep_ab)(np.linspace(0,Nr_*dr_,Nr_))
+                    rep_[i,j,:][np.isnan(rep_[i,j,:])] = 0
+                    rep_[i,j,:][np.isinf(rep_[i,j,:])] = 0
+    else:
+        print('Non supported eam file type')
+        raise ValueError
                 
-
     parameters_mix = EAMParameters(atoms, atnumber, atmass,crystallatt,crystal, Nrho_,Nr_, drho_, dr_, cutoff[max_cutoff])
     return sources, parameters_mix, F_, f_, rep_
-  
-#def write_eam_alloy(source, parameters, F, f, rep,out_file):
-    #"""
-    #Write an eam alloy lammps format file 
-    #http://lammps.sandia.gov/doc/pair_eam.html
-    
-    #Parameters
-    #----------
-    #source : string
-          #Source information or comment line for the file header
-    #parameters : list of tuples
-                #[0] - array of str - atoms 
-                #[1] - array of int - atomic numbers
-                #[2] - array of float -atomic masses
-                #[3] - array of float - equilibrium lattice parameter
-                #[4] - array of str - crystal structure
-                #[5] - int - number of data point for embedded function
-                #[6] - int - number of data point for density and pair functions
-                #[7] - float - step size for the embedded function
-                #[8] - float - step size for the density and pair functions
-                #[9] - float - cutoff of the potentials
-    #F : array_like
-        #contain the tabulated values of the embedded functions
-        #shape = (nb atoms, nb of data points)
-    #f : array_like
-        #contain the tabulated values of the density functions
-        #shape = (nb atoms, nb of data points)
-    #rep : array_like
-        #contain the tabulated values of pair potential
-        #shape = (nb atoms,nb atoms, nb of data points)
-    #out_file : string
-              #output file name for the eam alloy potential file
-    #Returns
-    #-------
       
-    #"""
-    #atoms,atnumber,atmass,crystallatt,crystal = parameters[0],parameters[1],parameters[2],parameters[3],parameters[4]
-    #Nrho,Nr, drho, dr, cutoff = parameters[5],parameters[6],parameters[7],parameters[8],parameters[9]  
-    #nb_atoms = len(atoms)
-    ## parameters unpacked
-    #potheader = "# Mixed EAM alloy potential from :\n# %s \n# \n"%(source)
-    ## --- Writing new EAM alloy pot file --- #
-    #potfile = open(out_file,'wb')
-    ## write header and file parameters
-    #np.savetxt(potfile,atoms,fmt="%s",newline=' ', header=potheader+str(nb_atoms),footer='\n%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff), comments='')
-    ## write F and f tables
-    #[np.savetxt(potfile,np.append(F[i,:],f[i,:]),fmt="%.16e",header='%i\t%f\t%f\t%s'%(atnumber[i],atmass[i],crystallatt[i],crystal[i]),comments='') for i in range(nb_atoms)]
-    ## write pair interactions tables
-    #[[np.savetxt(potfile,rep[i,j,:],fmt="%.16e") for j in range(rep.shape[0]) if j <= i] for i in range(rep.shape[0])]
-    #potfile.close()  
-    
 def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
     """
     Write an eam lammps format file 
@@ -396,13 +428,11 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
     -------
       
     """
-    
+  
     atoms, atnumber, atmass, crystallatt, crystal = parameters[0:5]
     Nrho, Nr, drho, dr, cutoff = parameters[5:10]
     
     if kind == "eam":
-        #atoms, atnumber, atmass, crystallatt, crystal = parameters[0:5]
-        #Nrho, Nr, drho, dr, cutoff = parameters[5:10]
         # parameters unpacked
         atline = "%i %f %f %s"%(int(atnumber),float(atmass),float(crystallatt),str(crystal))
         parameterline = '%i\t%.16e\t%i\t%.16e\t%.10e'%(int(Nrho),float(drho),int(Nr),float(dr),float(cutoff))
@@ -417,8 +447,6 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
         np.savetxt(potfile, rep, fmt='%.16e')
         potfile.close()  
     elif kind == "eam/alloy":
-        #atoms,atnumber,atmass,crystallatt,crystal = parameters[0:5]
-        #Nrho,Nr, drho, dr, cutoff = parameters[5:10]
         nb_atoms = len(atoms)
         # parameters unpacked
         potheader = "# Mixed EAM alloy potential from :\n# %s \n# \n"%(source)
@@ -432,8 +460,6 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
         [[np.savetxt(potfile,rep[i,j,:],fmt="%.16e") for j in range(rep.shape[0]) if j <= i] for i in range(rep.shape[0])]
         potfile.close() 
     elif kind == "eam/fs":
-        #atoms,atnumber,atmass,crystallatt,crystal = parameters[0:5]
-        #Nrho,Nr, drho, dr, cutoff = parameters[5:10]
         nb_atoms = len(atoms)
         # parameters unpacked
         potheader = "# Mixed EAM fs potential from :\n# %s \n# \n"%(source)
