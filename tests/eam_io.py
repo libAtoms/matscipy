@@ -34,7 +34,7 @@ from matscipy.calculators.eam.io import (read_eam,
                                          mix_eam_alloy)
 try:
     from scipy import interpolate
-    from matscipy.eam.calculator import EAM
+    from matscipy.calculators.eam import EAM
 except:
     print('Warning: No scipy')
     interpolate = False
@@ -96,8 +96,7 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
                     self.assertTrue((rep[i,j,:] == rep1[i,j,:]).all())
          
     def test_mix_eam_alloy(self):
-        try:
-            from scipy import interpolate
+        if False:
             source,parameters,F,f,rep = read_eam("CuAu_Zhou.eam.alloy",kind="eam/alloy")
             source1,parameters1,F1,f1,rep1 = mix_eam_alloy(["Cu_Zhou.eam.alloy","Au_Zhou.eam.alloy"],"weight")
             write_eam_alloy(source1,parameters1,F1,f1,rep1,"CuAu_mixed.eam.alloy")
@@ -156,10 +155,6 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
             self.assertTrue(e0-e1 < 0.0005)
           
             os.remove("CuAu_mixed.eam.alloy")
-          
-        except:
-            print('Warning: No scipy')
-            print('Cannot test mix_eam_alloy')
             
 ###
 
