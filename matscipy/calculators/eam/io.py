@@ -95,7 +95,7 @@ def read_eam(eam_file,kind="eam/alloy"):
         drho = float(eam[2].split()[1])     # spacing in density space
         dr = float(eam[2].split()[3]) # spacing in distance space
         cutoff = float(eam[2].split()[4])
-        parameters = EAMParameters(np.empty(()),atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff)
+        parameters = EAMParameters(np.zeros(1),atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff)
         # -- Tabulated data -- #
         data = np.loadtxt(eam_file, dtype="float", skiprows = 3).flatten()
         F = data[0:Nrho]
@@ -371,15 +371,16 @@ def write_eam(source, parameters, F, f, rep,out_file):
     source : string
           Source information or comment line for the file header
     parameters : list of tuples
-                [0] - array of int - atomic numbers
-                [1] - array of float -atomic masses
-                [2] - array of float - equilibrium lattice parameter
-                [3] - array of str - crystal structure
-                [4] - int - number of data point for embedded function
-                [5] - int - number of data point for density and pair functions
-                [6] - float - step size for the embedded function
-                [7] - float - step size for the density and pair functions
-                [8] - float - cutoff of the potentials
+                [0] - empty
+                [1] - array of int - atomic numbers
+                [2] - array of float -atomic masses
+                [3] - array of float - equilibrium lattice parameter
+                [4] - array of str - crystal structure
+                [5] - int - number of data point for embedded function
+                [6] - int - number of data point for density and pair functions
+                [7] - float - step size for the embedded function
+                [8] - float - step size for the density and pair functions
+                [9] - float - cutoff of the potentials
     F : array_like
         contain the tabulated values of the embedded functions
         shape = (nb of data points)
