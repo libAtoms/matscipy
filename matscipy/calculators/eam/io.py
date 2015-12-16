@@ -246,7 +246,7 @@ def mix_eam_alloy(files,method,rep_ab=[],alphas=[]):
     Nrho,drho,Nr,dr,cutoff = np.empty((len(files))),np.empty((len(files))),np.empty((len(files))),np.empty((len(files))),np.empty((len(files)))
     sources = ""
     for i,f_eam in enumerate(files):
-        source,parameters, F,f,rep = read_eam_alloy(f_eam)
+        source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
         sources+= source
         source += " "
         nb_at+=len(parameters[0])
@@ -274,7 +274,7 @@ def mix_eam_alloy(files,method,rep_ab=[],alphas=[]):
     F_,f_,rep_ = np.empty((nb_at,Nrho_)),np.empty((nb_at,Nr_)),np.empty((nb_at,nb_at,Nr_))
     at = 0
     for i,f_eam in enumerate(files):
-        source,parameters, F,f,rep = read_eam_alloy(f_eam)
+        source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
         atoms = np.append(atoms,parameters[0])
         atnumber = np.append(atnumber,parameters[1])
         atmass = np.append(atmass,parameters[2])
