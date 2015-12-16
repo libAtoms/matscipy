@@ -68,6 +68,7 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
             if diff is None:
                 self.assertTrue(p == parameters1[i])
             else:
+                print(i, diff)
                 self.assertTrue(diff < self.tol)
         self.assertTrue((F == F1).all())
         self.assertTrue((f == f1).all())
