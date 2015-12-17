@@ -196,7 +196,7 @@ def read_eam(eam_file,kind="eam/alloy"):
         raise ValueError
             
 
-def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[]):
+def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
     """
     mix eam alloy files data set and compute the interspecies pair potential part using the 
     mean geometric value from each pure species 
@@ -218,6 +218,8 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[]):
       f : np.array of the fitted density term (for FS eam style)
       rep_ab : np.array of the fitted rep_ab term
       alphas : array of fitted alpha values for the fine tuned mixing. rep_ab = alpha_a*rep_a+alpha_b*rep_b
+      betas : array of fitted values for the fine tuned mixing. f_ab = beta_00*rep_a+beta_01*rep_b
+                                                                f_ba = beta_10*rep_a+beta_11*rep_b
     Returns
     -------
       sources : string
@@ -359,7 +361,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[]):
                 if method == "geometric":
                     f_[i,j,:] = (f_[i,i,:]*f_[j,j,:])**0.5
                 if method == "arithmetic":
-                    if betas:
+                    if betas.any():
                         f_[i,j,:] = betas[i,j]*f_[i,i,:]+betas[i,j]*f_[j,j,:]
                     else:
                         f_[i,j,:] = 0.5*(f_[i,i,:]+f_[j,j,:])
