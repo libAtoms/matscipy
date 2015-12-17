@@ -31,7 +31,7 @@ import numpy as np
 import os
 from matscipy.calculators.eam.io import (read_eam,
                                          write_eam,
-                                         mix_eam_alloy)
+                                         mix_eam)
 try:
     from scipy import interpolate
     from matscipy.calculators.eam import EAM
@@ -123,7 +123,7 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
     def test_mix_eam_alloy(self):
         if False:
             source,parameters,F,f,rep = read_eam("CuAu_Zhou.eam.alloy",kind="eam/alloy")
-            source1,parameters1,F1,f1,rep1 = mix_eam_alloy(["Cu_Zhou.eam.alloy","Au_Zhou.eam.alloy"],"weight")
+            source1,parameters1,F1,f1,rep1 = mix_eam(["Cu_Zhou.eam.alloy","Au_Zhou.eam.alloy"],"eam/alloy","weight")
             write_eam(source1,parameters1,F1,f1,rep1,"CuAu_mixed.eam.alloy",kind="eam/alloy")
 
             calc0 = EAM('CuAu_Zhou.eam.alloy')
