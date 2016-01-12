@@ -64,39 +64,87 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
     def test_Hertz_stress(self):
         nx = 256 # Grid size
         a = 32. # Contact radius
+        tol = 1e-2
 
         # z: Depth at which to compute stress
         # nu: Poisson
-        for z, nu in [ ( 16., 0.5 ), ( 32., 0.5 ), ( 16., 0.3 ) ]:
+        for z, nu in [ ( 16., 0.5 ), ( 32., 0.5 ), ( 16., 0.3 ), ( a/8, 1/3) ]:
             ( Gxx, Gyy, Gzz, Gyz, Gxz, Gxy ), x, y = \
                 gf.real_to_reciprocal_space(
                     nx, nx, gf=lambda x, y:
-                    gf.point_traction__nonperiodic('Z', x, y, z, nu=nu),
+                    gf.point_traction__nonperiodic('Z', x, y, z, poisson=nu),
                     coordinates=True)
 
             r_sq = (x**2 + y**2)/a**2
             P = np.where(r_sq > 1., np.zeros_like(r_sq), np.sqrt(1.-r_sq))
-            sxx = -np.fft.ifft2(Gxx*np.fft.fft2(P)).real
-            syy = -np.fft.ifft2(Gyy*np.fft.fft2(P)).real
-            szz = -np.fft.ifft2(Gzz*np.fft.fft2(P)).real
-            syz = -np.fft.ifft2(Gyz*np.fft.fft2(P)).real
-            sttref, srrref, szzref, srzref = \
-                Hertz.stress(np.sqrt(r_sq), z/a, nu=nu)
+            sxx = np.fft.ifft2(Gxx*np.fft.fft2(P)).real
+            syy = np.fft.ifft2(Gyy*np.fft.fft2(P)).real
+            szz = np.fft.ifft2(Gzz*np.fft.fft2(P)).real
+            syz = np.fft.ifft2(Gyz*np.fft.fft2(P)).real
+            sxz = np.fft.ifft2(Gxz*np.fft.fft2(P)).real
+            sxy = np.fft.ifft2(Gxy*np.fft.fft2(P)).real
 
-            #np.savetxt('s0.out', np.transpose([y[0,:nx//4], sxx[0,:nx//4],
-            #                                   syy[0,:nx//4], szz[0,:nx//4],
-            #                                   syz[0,:nx//4]]))
-            #np.savetxt('sref0.out', np.transpose([y[0,:nx//4], sttref[0,:nx//4],
-            #                                     srrref[0,:nx//4], szzref[0,:nx//4],
-            #                                     srzref[0,:nx//4]]))
-            self.assertTrue(np.max(np.abs((sxx[0,1:nx//4]-sttref[0,1:nx//4])/
-                                           sttref[0,1:nx//4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((syy[0,1:nx//4]-srrref[0,1:nx//4])/
-                                           srrref[0,1:nx//4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((szz[0,1:nx//4]-szzref[0,1:nx//4])/
-                                           szzref[0,1:nx//4])) < 1e-2)
-            self.assertTrue(np.max(np.abs((syz[0,1:nx//4]-srzref[0,1:nx//4])/
-                                           srzref[0,1:nx//4])) < 1e-2)
+            x, y, z = np.meshgrid(x, y, z, indexing='ij')
+
+            sxx2, syy2, szz2, syz2, sxz2, sxy2 = \
+                Hertz.stress_Cartesian(x/a, y/a, z/a, poisson=nu)
+
+            m = np.abs(szz2[:nx//4,:nx//4,0]).max()
+            self.assertArrayAlmostEqual(sxx[:nx//4,:nx//4]/m, sxx2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(syy[:nx//4,:nx//4]/m, syy2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(szz[:nx//4,:nx//4]/m, szz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(syz[:nx//4,:nx//4]/m, syz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(sxz[:nx//4,:nx//4]/m, sxz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(sxy[:nx//4,:nx//4]/m, sxy2[:nx//4,:nx//4,0]/m, tol)
+
+    def test_Hertz_stress_tangential(self):
+        nx = 256 # Grid size
+        a = 32. # Contact radius
+        tol = 1e-2
+
+        # z: Depth at which to compute stress
+        # nu: Poisson
+        for z, nu in [ ( 16., 0.5 ), ( 32., 0.5 ), ( 16., 0.3 ), ( a/6, 1/3) ]:
+            ( Gxx, Gyy, Gzz, Gyz, Gxz, Gxy ), x, y = \
+                gf.real_to_reciprocal_space(
+                    nx, nx, gf=lambda x, y:
+                    gf.point_traction__nonperiodic('X', x, y, z, poisson=nu),
+                    coordinates=True)
+
+            r_sq = (x**2 + y**2)/a**2
+            P = np.where(r_sq > 1., np.zeros_like(r_sq), np.sqrt(1.-r_sq))
+            sxx = np.fft.ifft2(Gxx*np.fft.fft2(P)).real
+            syy = np.fft.ifft2(Gyy*np.fft.fft2(P)).real
+            szz = np.fft.ifft2(Gzz*np.fft.fft2(P)).real
+            syz = np.fft.ifft2(Gyz*np.fft.fft2(P)).real
+            sxz = np.fft.ifft2(Gxz*np.fft.fft2(P)).real
+            sxy = np.fft.ifft2(Gxy*np.fft.fft2(P)).real
+
+            x, y, z = np.meshgrid(x, y, z, indexing='ij')
+
+            sxx2, syy2, szz2, syz2, sxz2, sxy2 = \
+                Hertz.stress_for_tangential_loading(x/a, y/a, z/a, poisson=nu)
+
+            # DEBUG CODE
+            #plt.figure(figsize=[15,4])
+            #plt.subplot(1,3,1)
+            #plt.pcolormesh(np.fft.fftshift(sxx)[nx//4:3*nx//4,nx//4:3*nx//4])
+            #plt.colorbar()
+            #plt.subplot(1,3,2)
+            #plt.pcolormesh(np.fft.fftshift(sxx2)[nx//4:3*nx//4,nx//4:3*nx//4,0])
+            #plt.colorbar()
+            #plt.subplot(1,3,3)
+            #plt.pcolormesh(np.fft.fftshift(sxx-sxx2[:,:,0])[nx//4:3*nx//4,nx//4:3*nx//4])
+            #plt.colorbar()
+            #plt.show()
+
+            m = np.abs(szz2[:nx//4,:nx//4,0]).max()
+            self.assertArrayAlmostEqual(sxx[:nx//4,:nx//4]/m, sxx2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(syy[:nx//4,:nx//4]/m, syy2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(szz[:nx//4,:nx//4]/m, szz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(syz[:nx//4,:nx//4]/m, syz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(sxz[:nx//4,:nx//4]/m, sxz2[:nx//4,:nx//4,0]/m, tol)
+            self.assertArrayAlmostEqual(sxy[:nx//4,:nx//4]/m, sxy2[:nx//4,:nx//4,0]/m, tol)
 
     def test_min_ccg(self):
         nx = 256 # Grid size
@@ -113,7 +161,7 @@ class TestGreensFunction(matscipytest.MatSciPyTestCase):
         a = R*sqrt(d/R)
         p0 = 2/pi*sqrt(d/R)
         r_sq = (x**2 + y**2)/a**2
-        p_analytic, sr, stheta = Hertz.surface_stress(np.sqrt(r_sq), nu=0.5)
+        p_analytic, sr, stheta = Hertz.surface_stress(np.sqrt(r_sq), poisson=0.5)
         p_analytic *= p0
 
         u, p = gf.min_ccg(h, G)

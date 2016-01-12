@@ -39,7 +39,7 @@ import ase.lattice.cubic as cubic
 import ase.lattice.hexagonal as hexagonal
 import ase.optimize
 
-from ase.units import GPa
+from ase.units import GPa,J,m
 
 import scipy
 scipy_v = scipy.__version__
@@ -49,6 +49,7 @@ if int(scipy_v.split('.')[1]) <= 14 :
 else :
     # scipy.optimize.anneal decprecated from version 0.14.0, documentation advise to use scipy.optimize.basinhopping instead
     from scipy.optimize import minimize, leastsq, brute
+    from scipy.signal import argrelextrema
     
 
 try:
@@ -602,9 +603,9 @@ class FitCubicCrystal(Fit):
 
     def __init__(self, calc, par, els,
                  Ec, a0,
-                 B=None, C11=None, C12=None, C44=None, Cp=None,
+                 B=None, C11=None, C12=None, C44=None, Cp=None,SFE=None,
                  w_Ec=1.0, w_a0=1.0,
-                 w_B=1.0, w_C11=1.0, w_C12=1.0, w_C44=1.0, w_Cp=1.0,
+                 w_B=1.0, w_C11=1.0, w_C12=1.0, w_C44=1.0, w_Cp=1.0,w_SFE=1.0,
                  fmax=1e-6, eps=0.001,
                  ecoh_ref=None,
                  size=[1,1,1]):
@@ -614,6 +615,8 @@ class FitCubicCrystal(Fit):
 
         self.a0 = a0
         self.Ec = Ec
+        
+        self.SFE = SFE
 
         self.B = B
         self.C11 = C11
@@ -626,6 +629,8 @@ class FitCubicCrystal(Fit):
         self.w_a0 = sqrt(w_a0)/self.a0
         self.w_Ec = sqrt(w_Ec)/self.Ec
 
+        if self.SFE is not None:
+            self.w_SFE = sqrt(w_SFE)/self.SFE
         if self.B is not None:
             self.w_B = sqrt(w_B)/self.B
         if self.C11 is not None:
@@ -653,6 +658,14 @@ class FitCubicCrystal(Fit):
         self.atoms = self.unitcell.copy()
         self.atoms *= self.size
         self.atoms.translate([0.1, 0.1, 0.1])
+        self.supercell = self.crystal(
+            self.els,
+            latticeconstant  = self.a0,
+            size             = [3, 3, 6],
+            directions=[[1,1,2],[-1,1,0],[-1,-1,1]],
+            pbc=(1,1,0)
+            )
+        self.supercell.translate([0.1, 0.1, 0.1])
 
     def set_calculator(self, calc):
         self.new_bulk()
@@ -660,9 +673,29 @@ class FitCubicCrystal(Fit):
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
             logfile=_logfile).run(fmax=self.fmax,steps=10000)
+        self.supercell.set_calculator(calc)
 
     def get_lattice_constant(self):
         return np.sum(self.atoms.get_cell().diagonal())/np.sum(self.size)
+      
+    def get_SFE(self):
+        E0 = self.supercell.get_potential_energy()/J*1e3
+        S0 = self.supercell.get_cell()[0,0]*self.supercell.get_cell()[1,1]/m/m
+        pos = self.supercell.get_positions()
+        x,y=[],[]
+        for i in range(10):
+            pos1= np.copy(pos)
+            pos1[:,0][pos[:,2]>self.supercell.get_cell()[2,2]/2-2]-=0.08+(self.supercell.get_cell()[0,0]/3)*(1./50)*i
+            self.supercell.set_positions(pos1)
+            Es = self.supercell.get_potential_energy()/J*1e3
+            x.append(0.05+(1./50)*i)
+            y.append((Es/S0)-(E0/S0))
+        GSF_fit = scipy.interpolate.InterpolatedUnivariateSpline(x,y)
+        x_fit = np.linspace(0.08,0.08+(9./50),50)
+        mins = argrelextrema(GSF_fit(x_fit),np.less)
+        x_mins = x_fit[mins[0]]
+        y_mins = GSF_fit(x_fit)[mins[0]]
+        return y_mins[0]
 
     def get_C11(self):
         sxx0, syy0, szz0, syz0, szx0, sxy0  = self.atoms.get_stress()
@@ -721,6 +754,8 @@ class FitCubicCrystal(Fit):
 
         r = [ r_Ec, r_a0 ]
 
+        if self.SFE is not None:
+            SFE = self.get_SFE()
         if self.B is not None or self.C11 is not None or self.C12 is not None:
             C11 = self.get_C11()
         if self.B is not None or self.Cp is not None or self.C12 is not None:
@@ -728,6 +763,15 @@ class FitCubicCrystal(Fit):
         if self.C44 is not None:
             C44 = self.get_C44()
 
+        if self.SFE is not None:
+            if SFE < 0:
+                r_SFE = self.w_SFE*( SFE - self.SFE )*1000
+            else:  
+                r_SFE = self.w_SFE*( SFE - self.SFE )
+            r += [ r_SFE ]
+            if log is not None:
+                print('# %20s SFE = %20.10f mJ/m**2   (%20.10f mJ/m**2)   - %20.10f' \
+                    % ( '', SFE, self.SFE, r_SFE ))
         if self.B is not None:
             r_B = self.w_B*( (3*C11-4*Cp)/3 - self.B )
             r += [ r_B ]
@@ -767,9 +811,9 @@ class FitTetragonalCrystal(Fit):
 
     def __init__(self, calc, par, els,
                  Ec, a0, c0, c_a=None,
-                 B=None, C11=None, C12=None,C13=None, C33=None, C44=None, C66=None,
+                 B=None, C11=None, C12=None,C13=None, C33=None, C44=None, C66=None,SFE=None,
                  w_Ec=1.0, w_a0=1.0,w_c0=1.0, w_c_a=1.0,
-                 w_B=1.0, w_C11=1.0, w_C12=1.0,w_C13=1.0,w_C33=1.0,w_C44=1.0,w_C66=1.0, w_Cp=1.0,
+                 w_B=1.0, w_C11=1.0, w_C12=1.0,w_C13=1.0,w_C33=1.0,w_C44=1.0,w_C66=1.0, w_Cp=1.0,w_SFE=None,
                  fmax=1e-6, eps=0.001,
                  ecoh_ref=None,
                  size=[1,1,1]):
@@ -782,6 +826,8 @@ class FitTetragonalCrystal(Fit):
         self.Ec = Ec
         self.c_a = c_a
 
+        self.SFE = SFE
+        
         self.B = B
         self.C11 = C11
         self.C12 = C12
@@ -800,6 +846,8 @@ class FitTetragonalCrystal(Fit):
             self.w_Ec = sqrt(w_Ec)/self.Ec
         if self.c_a is not None:
             self.w_c_a = sqrt(w_c_a)/self.c_a
+        if self.SFE is not None:
+            self.w_SFE = sqrt(w_SFE)/self.SFE
         if self.B is not None:
             self.w_B = sqrt(w_B)/self.B
         if self.C11 is not None:
@@ -831,16 +879,14 @@ class FitTetragonalCrystal(Fit):
         self.atoms = self.unitcell.copy()
         self.atoms *= self.size
         self.atoms.translate([0.1, 0.1, 0.1])
-    #def new_bulk(self):
-        #self.unitcell = ase.Atoms(
-            #self.els,
-            #positions=[(0.0,0.0,0.0),(0.5,0.5,0.0),(0.5,0.0,0.5),(0.0,0.5,0.5)],
-            #cell  = (self.a0,self.a0, self.c0),
-            #pbc=(1,1,1)
-            #)
-        #self.atoms = self.unitcell.copy()
-        #self.atoms *= self.size
-        #self.atoms.translate([0.1, 0.1, 0.1])
+        self.supercell = self.crystal(
+            self.els,
+            latticeconstant  = [self.a0,self.c0],
+            size             = [3, 3, 6],
+            directions=[[1,1,2],[-1,1,0],[-1,-1,1]],
+            pbc=(1,1,0)
+            )
+        self.supercell.translate([0.1, 0.1, 0.1])
 
     def set_calculator(self, calc):
         self.new_bulk()
@@ -848,7 +894,27 @@ class FitTetragonalCrystal(Fit):
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,1,1,1]),
             logfile=_logfile).run(fmax=self.fmax,steps=10000)
+        self.supercell.set_calculator(calc)
 
+    def get_SFE(self):
+        E0 = self.supercell.get_potential_energy()/J*1e3
+        S0 = self.supercell.get_cell()[0,0]*self.supercell.get_cell()[1,1]/m/m
+        pos = self.supercell.get_positions()
+        x,y=[],[]
+        for i in range(10):
+            pos1= np.copy(pos)
+            pos1[:,0][pos[:,2]>self.supercell.get_cell()[2,2]/2-2]-=0.05+(self.supercell.get_cell()[0,0]/3)*(1./50)*i
+            self.supercell.set_positions(pos1)
+            Es = self.supercell.get_potential_energy()/J*1e3
+            x.append(0.05+(1./50)*i)
+            y.append((Es/S0)-(E0/S0))
+        GSF_fit = scipy.interpolate.InterpolatedUnivariateSpline(x,y)
+        x_fit = np.linspace(0.05,0.05+(9./50),50)
+        mins = argrelextrema(GSF_fit(x_fit),np.less)
+        x_mins = x_fit[mins[0]]
+        y_mins = GSF_fit(x_fit)[mins[0]]
+        return y_mins[0]
+      
     def get_lattice_constant(self):
         return np.sum(self.atoms.get_cell().diagonal()[:2])/np.sum(self.size[:2]),self.atoms.get_cell().diagonal()[2]/self.size[2]
 
@@ -970,6 +1036,8 @@ class FitTetragonalCrystal(Fit):
 
         r = [ r_a0 ,r_c0, r_Ec]
         
+        if self.SFE is not None:
+            SFE = self.get_SFE()
         if self.B is not None or self.C11 is not None or self.C12 is not None or self.C13 is not None or self.C33 is not None:
             Czz = self.get_D2()
         if self.B is not None or self.C11 is not None or self.C12 is not None:
@@ -984,9 +1052,20 @@ class FitTetragonalCrystal(Fit):
             C66 = self.get_C66()
 
 
-
+        if self.SFE is not None:
+            if SFE < 0:
+                r_SFE = self.w_SFE*( SFE - self.SFE )*1000
+            else:  
+                r_SFE = self.w_SFE*( SFE - self.SFE )
+            r += [ r_SFE ]
+            if log is not None:
+                print('# %20s SFE = %20.10f mJ/m**2   (%20.10f mJ/m**2)   - %20.10f' \
+                    % ( '', SFE, self.SFE, r_SFE ))
         if self.c_a is not None:
-            r_c_a = self.w_c_a*( c0/a0 - self.c_a )
+            if (self.c_a < 1 and c0/a0 < 1) or (self.c_a > 1 and c0/a0 > 1) :
+                r_c_a = self.w_c_a*( c0/a0 - self.c_a )
+            else:
+                r_c_a = self.w_c_a*( c0/a0 - self.c_a )*1000
             r += [ r_c_a ]
             if log is not None:
                 print('# %20s c/a   = %20.10f   (%20.10f )   - %20.10f' \

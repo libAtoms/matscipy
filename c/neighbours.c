@@ -147,6 +147,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
             cutoff = max(cutoff, cutoffs[i]);
             cutoffs_sq[i] = cutoffs[i]*cutoffs[i];
         }
+
+        Py_DECREF(py_cutoffs);
     }
 
     /* FIXME! Check array shapes. */
@@ -481,12 +483,15 @@ py_neighbour_list(PyObject *self, PyObject *args)
             }
         }
     }
-    
+
     /* Release cell subdivision information */
     free(seed);
     free(next);
+    if (cutoffs_sq)  free(cutoffs_sq);
+
     seed = NULL;
     next = NULL;
+    cutoffs_sq = NULL;
 
     /* Resize arrays to actual size of neighbour list */
     if (py_first && !resize_array(py_first, nneigh))  goto fail;
@@ -528,10 +533,24 @@ py_neighbour_list(PyObject *self, PyObject *args)
         Py_INCREF(py_ret);
         Py_DECREF(py_tuple);
     }
+
+    /* Final cleanup */
+    Py_DECREF(py_cell);
+    Py_DECREF(py_inv_cell);
+    Py_DECREF(py_pbc);
+    Py_DECREF(py_r);
+    if (py_types)  Py_DECREF(py_types);
+
     return py_ret;
 
     fail:
     /* Cleanup. Sorry for the goto. */
+    Py_DECREF(py_cell);
+    Py_DECREF(py_inv_cell);
+    Py_DECREF(py_pbc);
+    Py_DECREF(py_r);
+    if (py_types)  Py_DECREF(py_types);
+
     if (seed)  free(seed);
     if (next)  free(next);
     if (cutoffs_sq)  free(cutoffs_sq);

@@ -207,7 +207,7 @@ def cubic_to_Voigt_6x6(C11, C12, C44):
                      [  0,  0,  0,  0,C44,  0],
                      [  0,  0,  0,  0,  0,C44]])
 
-def invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
+def _invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
                full_3x3_to_Voigt_6=full_3x3_to_Voigt_6_stress):
     """
     Receives a list of stress tensors and returns the three tensor invariants.
@@ -217,8 +217,8 @@ def invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
         if s.shape == (6,):
             s = s.reshape(1,-1)
         elif s.shape == (3,3):
-            s = s.reshape(1,3,3)
-        if s[-1] == 3 and s[-2] == 3:
+            s = full_3x3_to_Voigt_6(s)
+        elif s.shape[-1] == 3 and s.shape[-2] == 3:
             s = full_3x3_to_Voigt_6(s)
     else:
         s = np.transpose([np.transpose(s),
@@ -232,6 +232,13 @@ def invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
         s[...,4]**2-s[...,5]**2
     I3 = s[...,0]*s[...,1]*s[...,2]+2*s[...,3]*s[...,4]*s[...,5]- \
         s[...,3]**2*s[...,2]-s[...,4]**2*s[...,0]-s[...,5]**2*s[...,1]
+
+    return I1, I2, I3
+
+def invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
+               full_3x3_to_Voigt_6=full_3x3_to_Voigt_6_stress):
+    I1, I2, I3 = _invariants(s, syy=syy, szz=szz, syz=syz, sxz=sxz, sxy=sxy,
+                             full_3x3_to_Voigt_6=full_3x3_to_Voigt_6)
 
     J2 = I1**2/3-I2
     J3 = 2*I1**3/27-I1*I2/3+I3
@@ -912,7 +919,7 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
         Cijs[k] = np.mean(Cijs[k])
 
     # Combine statistical errors
-    for k, v in Cij_err.iteritems():
+    for k, v in Cij_err.items():
         Cij_err[k] = np.sqrt(np.sum(np.array(v)**2))/np.sqrt(len(v))
 
     if symmetry.startswith('trigonal'):

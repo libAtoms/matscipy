@@ -29,6 +29,8 @@ Typically, all *nonperiodic* kernel return real space Green's functions,
 all *periodic* kernel reciprocal space ones.
 """
 
+from __future__ import division
+
 from math import isnan, pi, sqrt
 
 import numpy as np
@@ -71,12 +73,13 @@ def square_pressure__nonperiodic(x, y, a=0.5, b=0.5):
                            ( (x+a)+np.sqrt((y-b)*(y-b)+(x+a)*(x+a)) ) ) )/(2*pi);
 
 
-def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
+def point_traction__nonperiodic(quantities, x, y, z, G=1.0, poisson=0.5):
     """
     Real-space representation of Green's function for the displacement and
     stress in the bulk of a non-periodic linear elastic half-space in response
     to a concentrated surface force. This is the Boussinesq-Cerrutti solution.
     See: K.L. Johnson, Contact Mechanics, p. 51 and p. 69
+    Sign convention is as in Johnson!
 
     Parameters
     ----------
@@ -88,19 +91,16 @@ def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
             'X' : Stress for a concentrated surface traction in x-direction.
             'Y' : Stress for a concentrated surface traction in y-direction.
             'Z' : Stress for a concentrated surface pressure
-                  (i.e. "traction" in z-direction). Important note: Positive
-                  force points upwards and hence pulls on the system. This is
-                  really the surface normal stress. Signs are therefore reversed
-                  from solution given in Johnson.
+                  (i.e. "traction" in z-direction).
     x : array_like
         x-coordinates.
     y : array_like
         y-coordinates.
     z : array_like
-        z_coordinates.
+        z-coordinates. Into the solid is positive.
     G : float
         Shear modulus.
-    nu : float
+    poisson : float
         Poisson number.
 
     Returns
@@ -130,34 +130,35 @@ def point_traction__nonperiodic(quantities, x, y, z, G=1.0, nu=0.5):
     retvals = []
     for q in quantities:
         if q == 'x':
-            ux = (1/rho+x**2/rho**3+(1-2*nu)*(1/(rho+z)-x**2/(rho*(rho+z)**2)))/(4*pi*G)
-            uy = (x*y/rho**3-(1-2*nu)*x*y/(rho*(rho+z)**2))/(4*pi*G)
-            uz = (x*z/rho**3+(1-2*nu)*x/(rho*(rho+z)))/(4*pi*G)
+            ux = (1/rho+x**2/rho**3+(1-2*poisson)*(1/(rho+z)-x**2/(rho*(rho+z)**2)))/(4*pi*G)
+            uy = (x*y/rho**3-(1-2*poisson)*x*y/(rho*(rho+z)**2))/(4*pi*G)
+            uz = (x*z/rho**3+(1-2*poisson)*x/(rho*(rho+z)))/(4*pi*G)
             retvals += [np.array([ux, uy, uz])]
         elif q == 'y':
             raise NotImplementedError()
         elif q == 'z':
-            ux = (x*z/rho**3-(1-2*nu)*x/(rho*(rho+z)))/(4*pi*G)
-            uy = (y*z/rho**3-(1-2*nu)*y/(rho*(rho+z)))/(4*pi*G)
-            uz = (z**2/rho**3+2*(1-nu)/rho)/(4*pi*G)
+            ux = (x*z/rho**3-(1-2*poisson)*x/(rho*(rho+z)))/(4*pi*G)
+            uy = (y*z/rho**3-(1-2*poisson)*y/(rho*(rho+z)))/(4*pi*G)
+            uz = (z**2/rho**3+2*(1-poisson)/rho)/(4*pi*G)
             retvals += [np.array([ux, uy, uz])]
         elif q == 'X':
-            sxx = ( -3*x**3/rho**5 + (1-2*nu)*(x/rho**3 - 3*x/(rho*(rho+z)**2) + x**3/(rho**3*(rho+z)**2) + 2*x**3/(rho**2*(rho+z)**3)) )/(2*pi)
-            syy = ( -3*x*y**2/rho**5 + (1-2*nu)*(x/rho**3 - x/(rho*(rho+z)**2) + x*y**2/(rho**3*(rho+z)**2) + 2*x*y**2/(rho**2*(rho+z)**3)) )/(2*pi)
+            sxx = ( -3*x**3/rho**5 + (1-2*poisson)*(x/rho**3 - 3*x/(rho*(rho+z)**2) + x**3/(rho**3*(rho+z)**2) + 2*x**3/(rho**2*(rho+z)**3)) )/(2*pi)
+            syy = ( -3*x*y**2/rho**5 + (1-2*poisson)*(x/rho**3 - x/(rho*(rho+z)**2) + x*y**2/(rho**3*(rho+z)**2) + 2*x*y**2/(rho**2*(rho+z)**3)) )/(2*pi)
             szz = ( -3*x*z**2/rho**5 )/(2*pi)
-            sxy = ( -3*x**2*y/rho**5 + (1-2*nu)*(-y/(rho*(rho+z)**2) + x**2*y/(rho**3*(rho+z)**2) + 2*x**2*y/(rho**2*(rho+z)**3)) )/(2*pi)
+            sxy = ( -3*x**2*y/rho**5 + (1-2*poisson)*(-y/(rho*(rho+z)**2) + x**2*y/(rho**3*(rho+z)**2) + 2*x**2*y/(rho**2*(rho+z)**3)) )/(2*pi)
             sxz = ( -3*x**2*z/rho**5 )/(2*pi)
             syz = ( -3*x*y*z/rho**5 )/(2*pi)
             retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
         elif q == 'Y':
             raise NotImplementedError()
         elif q == 'Z':
-            sxx = -( (1-2*nu)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
-            syy = -( (1-2*nu)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
-            szz = 3*z**3/(2*pi*rho**5)
-            sxy = -( (1-2*nu)/r_sq * ((1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
-            sxz = 3*x*z**2/(2*pi*rho**5)
-            syz = 3*y*z**2/(2*pi*rho**5)
+            sxx = ( (1-2*poisson)/r_sq * ((1 - z/rho) * (x**2 - y**2)/r_sq + z*y**2/rho**3) - 3*z*x**2/rho**5 )/(2*pi)
+            syy = ( (1-2*poisson)/r_sq * ((1 - z/rho) * (y**2 - x**2)/r_sq + z*x**2/rho**3) - 3*z*y**2/rho**5 )/(2*pi)
+            szz = -3*z**3/(2*pi*rho**5)
+            # Note: Johnson is lacking a factor of 2 here!!!
+            sxy = ( (1-2*poisson)/r_sq * (2*(1 - z/rho) * x*y/r_sq - x*y*z/rho**3) - 3*x*y*z/rho**5 )/(2*pi)
+            sxz = -3*x*z**2/(2*pi*rho**5)
+            syz = -3*y*z**2/(2*pi*rho**5)
             retvals += [np.array([sxx, syy, szz, syz, sxz, sxy])]
         else:
             raise ValueError("Unknown quantity '{0}' requested.".format(q))
@@ -204,10 +205,10 @@ def real_to_reciprocal_space(nx, ny=None, gf=square_pressure__nonperiodic,
         nx, ny = nx
 
     x = np.arange(nx)
-    x = np.where(x <= nx/2, x, x-nx)
+    x = np.where(x <= nx//2, x, x-nx)
     x.shape = (-1,1)
     y = np.arange(ny)
-    y = np.where(y <= ny/2, y, y-ny)
+    y = np.where(y <= ny//2, y, y-ny)
     y.shape = (1,-1)
 
     G = gf(x, y)
@@ -249,9 +250,9 @@ def point_displacement__periodic(nx, ny=None, phi0=None, size=None):
         nx, ny = nx
 
     qx = np.arange(nx, dtype=np.float64)
-    qx = np.where(qx <= nx/2, 2*pi*qx/sx, 2*pi*(nx-qx)/sx)
+    qx = np.where(qx <= nx//2, 2*pi*qx/sx, 2*pi*(nx-qx)/sx)
     qy = np.arange(ny, dtype=np.float64)
-    qy = np.where(qy <= ny/2, 2*pi*qy/sy, 2*pi*(ny-qy)/sy)
+    qy = np.where(qy <= ny//2, 2*pi*qy/sy, 2*pi*(ny-qy)/sy)
     phi  = np.sqrt( (qx*qx).reshape(-1, 1) + (qy*qy).reshape(1, -1) )
     if phi0 is None:
         phi[0, 0] = (phi[1, 0].real + phi[0, 1].real)/2
