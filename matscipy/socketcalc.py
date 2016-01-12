@@ -16,8 +16,10 @@ from matscipy.logger import quiet, screen
 from ase.atoms import Atoms
 from ase.io.extxyz import read_xyz, write_xyz
 from ase.io.vasp import write_vasp
+
 from ase.calculators.calculator import Calculator
 from ase.calculators.vasp import Vasp
+from ase.calculators.castep import Castep
 
 MSG_LEN_SIZE = 8
 MSG_END_MARKER = 'done.\n'
@@ -32,8 +34,11 @@ RESULTS_REQUESTS = {'R': 'REFTRAJ', 'Y': 'XYZ'}
 ZERO_ATOMS_DATA = {'REFTRAJ': '     242     0\n     0\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n',
                    'XYZ': '     2500\nlabel=0 cutoff_factor=1.20000000 nneightol=1.20000000 Lattice="0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000" Properties=species:S:1:pos:R:3:Z:I:1\n'}
 CLIENT_TIMEOUT = 60
-MAX_POS_DIFF = 1.0   # angstrom 
+MAX_POS_DIFF = 1.0   # angstrom
 MAX_CELL_DIFF = 1e-3 # angstrom
+
+MAX_POS_DIFF_CASTEP = 1.0  # angstrom
+MAX_CELL_DIFF_CASTEP = 1.0 # angstrom
 
 def pack_atoms_to_reftraj_str(at, label):
     data = ''
@@ -55,7 +60,7 @@ def pack_atoms_to_xyz_str(at, label):
     buffer = StringIO.StringIO()
     write_xyz(buffer, at)
     data = str(buffer)
-    buffer.close()    
+    buffer.close()
     # preceed message by its length
     data_length = ('%8d' % len(data)).encode('ascii')
     data = data_length + data.encode('ascii')
@@ -84,7 +89,7 @@ def pack_results_to_reftraj_output_str(at):
         data += (3*MSG_FLOAT_FORMAT) % tuple(force[i, :]) + '\n'
     # NB: not in Voigt order (xx, yy, zz, yz, xz, xy)
     data += (6*MSG_FLOAT_FORMAT) % (virial[0,0], virial[1,1], virial[2,2],
-                                    virial[0,1], virial[1,2], virial[0,2]) 
+                                    virial[0,1], virial[1,2], virial[0,2])
 
     # preceed message by its length
     data_length = ('%8s' % len(data)).encode('ascii')
@@ -101,7 +106,7 @@ def unpack_reftraj_output_str_to_results(data):
        force[i, :] = [float(f) for f in line.split()]
     v6 = [float(v) for v in lines[-1].split()]
     virial = np.zeros((3,3))
-    # NB: not in Voigt order (xx, yy, zz, yz, xz, xy)    
+    # NB: not in Voigt order (xx, yy, zz, yz, xz, xy)
     virial[0,0], virial[1,1], virial[2,2], virial[0,1], virial[1,2], virial[0,2] = v6
     virial[1,0] = virial[0,1]
     virial[2,1] = virial[1,2]
@@ -123,9 +128,9 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
         request_str = self.rfile.read(MSG_LEN_SIZE)
         request = request_str[0]
         client_id = int(request_str[1:])
-        
+
         if client_id > self.server.njobs-1:
-            raise RuntimeError('Unknown client ID %d outside of range 0 < ID < %d' % 
+            raise RuntimeError('Unknown client ID %d outside of range 0 < ID < %d' %
                                (client_id, self.server.njobs-1))
 
         self.server.logger.pr('"%s" request from %s:%d client %d' % (request, ip, port, client_id))
@@ -160,17 +165,17 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
             # and re-initialise. Restart won't do anything until shutdown
             # of old client has completed.
             data, fmt, label, at = self.server.input_qs[client_id].get()
-            self.server.logger.pr('"%s" request from client %d triggering restart for calculation with label %d' % 
+            self.server.logger.pr('"%s" request from client %d triggering restart for calculation with label %d' %
                                 (request, client_id, label))
             self.server.clients[client_id].start_or_restart(at, label, restart=True)
-        
+
 
 class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     allow_reuse_address = True
 
     def __init__(self, server_address, RequestHandlerClass, clients,
                  bind_and_activate=True, max_attempts=3, bgq=False, logger=screen):
-        
+
         self.njobs = len(clients)
         # allow up to twice as many threads as sub-block jobs
         self.request_queue_size = 2*self.njobs
@@ -178,8 +183,8 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.bgq = bgq # If True, we're running on IBM Blue Gene/Q platform
         self.logger = logger
 
-        SocketServer.TCPServer.__init__(self, 
-                                        server_address, 
+        SocketServer.TCPServer.__init__(self,
+                                        server_address,
                                         RequestHandlerClass,
                                         bind_and_activate)
 
@@ -209,7 +214,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             hostname, self.ip = bgqtools.get_hostname_ip()
         else:
             hostname = socket.gethostname()
-        self.logger.pr('AtomsServer running on %s %s:%d with njobs=%d' % 
+        self.logger.pr('AtomsServer running on %s %s:%d with njobs=%d' %
                      (hostname, self.ip, self.port, self.njobs))
 
 
@@ -217,7 +222,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.logger.pr('shutting down all clients')
         wait_threads = []
         for client_id, client in enumerate(self.clients):
-            if (client.process is not None and client.process.poll() is None and 
+            if (client.process is not None and client.process.poll() is None and
                 (client.wait_thread is None or not client.wait_thread.isAlive())):
                 wait_threads.append(client.shutdown(block=False))
         # wait for them all to finish shutting down
@@ -337,7 +342,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             else:
                 (natoms, energy, force, virial) = res
                 assert len(inp_at) == natoms
-                
+
                 at = inp_at.copy() # FIXME could possibly store results inplace, but need to think about sorting
                 at.info['label'] = label
                 at.info['energy'] = energy
@@ -364,7 +369,7 @@ class Client(object):
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', 
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun',
                  mpirun_args=['-np'], logger=screen,
                  max_pos_diff=MAX_POS_DIFF,
                  max_cell_diff=MAX_CELL_DIFF):
@@ -379,7 +384,7 @@ class Client(object):
         if env is None:
             env = {}
         self.env = env # environment
-        self.exe = exe # executable 
+        self.exe = exe # executable
         self.npj = npj # nodes per job
         self.ppn = ppn # processes per node
 
@@ -425,13 +430,13 @@ class Client(object):
             envargs = []
             for (k, v) in self.env.iteritems():
                 envargs.extend(['--envs', '%s=%s' % (k, v) ])
-            
+
             runjob_args += ['runjob', '--block', self.block]
             if self.corner is not None:
                 runjob_args += ['--corner', self.corner]
             if self.shape is not None:
                 runjob_args += ['--shape', self.shape]
-            runjob_args += (['-n', str(self.npj*self.ppn), '-p', str(self.ppn)] + envargs + 
+            runjob_args += (['-n', str(self.npj*self.ppn), '-p', str(self.ppn)] + envargs +
                             ['--cwd', self.subdir, ':'])
         elif self.parmode == 'mpi':
             runjob_args += [self.mpirun]
@@ -449,7 +454,7 @@ class Client(object):
         self.logger.pr('starting client %d args %r' % (self.client_id, runjob_args))
         self.log = open(os.path.join(self.rundir, '%s-%03d.output' % (self.jobname, self.client_id)), 'a')
         # send stdout and stderr to same file
-        self.process = subprocess.Popen(runjob_args, stdout=self.log, stderr=self.log, **popen_args) 
+        self.process = subprocess.Popen(runjob_args, stdout=self.log, stderr=self.log, **popen_args)
 
 
     def shutdown(self, block=True):
@@ -481,7 +486,7 @@ class Client(object):
             self.wait_thread = threading.Thread(target=self.wait_for_shutdown)
             self.wait_thread.start()
             return self.wait_thread
-            
+
 
     def wait_for_shutdown(self):
         """
@@ -496,7 +501,7 @@ class Client(object):
         is sent. If this has had no effect after a further
         CLIENT_TIMEOUT, then a SIGKILL is sent. Does not return until
         the SIGKILL has taken effect.
-        
+
         This function also marks shutdown task as complete in
         servers's input_q for this client.
         """
@@ -523,7 +528,7 @@ class Client(object):
         self.process = None
         self.log = None
         self.server.input_qs[self.client_id].task_done()
-                                               
+
 
     def start_or_restart(self, at, label, restart=False):
         """
@@ -550,11 +555,11 @@ class Client(object):
         atomic numbe. If Atoms object needs to be changed, a copy
         should be returned rather than updating it inplace.
 
-        Returns (at, first_time). 
+        Returns (at, first_time).
         """
 
         first_time = self.process is None
-        restart_reqd = (not first_time and (force_restart or 
+        restart_reqd = (not first_time and (force_restart or
                                             (not self.is_compatible(self.last_atoms, at, label))))
 
         # keep a copy of last config queued for this client.
@@ -586,11 +591,11 @@ class Client(object):
         """
         return at
 
-    
+
     def is_compatible(self, old_at, new_at, label):
         """
         Check if new_at and old_at are compatible.
-        
+
         Returns True if calculation can be continued, or False
         if client must be restarted before it can process new_at.
         """
@@ -604,7 +609,7 @@ class Client(object):
         raise NotImplementedError('to be implemented in subclasses')
 
 
-        
+
 class QUIPClient(Client):
     """
     Subclass of Client for running QUIP calculations.
@@ -617,8 +622,8 @@ class QUIPClient(Client):
     def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
                  block=None, corner=None, shape=None,
                  jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', parmode=None, mpirun='mpirun', 
-                 mpirun_args=['-np'], logger=screen, 
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun',
+                 mpirun_args=['-np'], logger=screen,
                  max_pos_diff=MAX_POS_DIFF,
                  max_cell_diff=MAX_CELL_DIFF,
                  param_files=None):
@@ -640,33 +645,10 @@ class QUIPClient(Client):
 
 _chdir_lock = threading.Lock()
 
-class VaspClient(Client):
+class QMClient(Client):
     """
-    Subclass of Client for running VASP calculations.
-
-    Initial input files are written in POSCAR, INCAR, POTCAR and KPOINTS
-    formats, and subsequent communicatin is via sockets in REFTRAJ format.
+    Abstract subclass of Client for QM calculations
     """
-
-    def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
-                 block=None, corner=None, shape=None,
-                 jobname='socketcalc', rundir=None,
-                 fmt='REFTRAJ', parmode=None, mpirun='mpirun',
-                 mpirun_args=['-np'], logger=screen,
-                 max_pos_diff=MAX_POS_DIFF,
-                 max_cell_diff=MAX_CELL_DIFF,
-                 **vasp_args):
-        Client.__init__(self, client_id, exe, env, npj, ppn,
-                        block, corner, shape, jobname, rundir, 
-                        fmt, parmode, mpirun, mpirun_args, logger,
-                        max_pos_diff, max_cell_diff)
-        if 'ibrion' not in vasp_args:
-            self.logger.pr('No ibrion key in vasp_args, setting ibrion=13')
-            vasp_args['ibrion'] = 13
-        if 'nsw' not in vasp_args:
-            self.logger.pr('No nsw key in vasp_args, setting nsw=1000000')
-            vasp_args['nsw'] = 1000000
-        self.vasp_args = vasp_args
 
     def is_compatible(self, old_at, new_at, label):
         # first time, anything goes
@@ -689,27 +671,27 @@ class VaspClient(Client):
                                                                                                    old_at.cell,
                                                                                                    new_at.cell))
             return False # cells must match
-        
+
         # RMS difference in positions must be less than max_pos_diff
         old_p = old_at.get_positions()
         new_p = new_at.get_positions()
-        
+
         old_z = old_at.get_chemical_symbols()
         new_z = new_at.get_chemical_symbols()
 
         if 'index' in old_at.arrays:
             old_index = old_at.get_array('index')
             new_index = new_at.get_array('index')
-            
+
             # if termination exists, undo ordering differences due to cluster hopping
             if ('termindex_%d' % self.client_id) in old_at.arrays:
                 old_termindex = old_at.get_array('termindex_%d' % self.client_id)
                 new_termindex = new_at.get_array('termindex_%d' % self.client_id)
-                
+
                 a1s = sorted([(old_index[i], old_z[i], list(old_p[i]))
                               for i in range(len(old_at)) if old_termindex == 0])
 
-                a2s = sorted([(new_index[i], new_z[i], list(new_p[i])) 
+                a2s = sorted([(new_index[i], new_z[i], list(new_p[i]))
                               for i in range(len(new_at)) if new_termindex == 0])
             else:
                 a1s = sorted([(old_index[i], old_z[i], list(old_p[i])) for i in range(len(old_at)) ])
@@ -739,6 +721,34 @@ class VaspClient(Client):
             return False
 
         return True
+
+class VaspClient(QMClient):
+    """
+    Subclass of Client for running VASP calculations.
+
+    Initial input files are written in POSCAR, INCAR, POTCAR and KPOINTS
+    formats, and subsequent communicatin is via sockets in REFTRAJ format.
+    """
+
+    def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
+                 block=None, corner=None, shape=None,
+                 jobname='socketcalc', rundir=None,
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun',
+                 mpirun_args=['-np'], logger=screen,
+                 max_pos_diff=MAX_POS_DIFF,
+                 max_cell_diff=MAX_CELL_DIFF,
+                 **vasp_args):
+        Client.__init__(self, client_id, exe, env, npj, ppn,
+                        block, corner, shape, jobname, rundir,
+                        fmt, parmode, mpirun, mpirun_args, logger,
+                        max_pos_diff, max_cell_diff)
+        if 'ibrion' not in vasp_args:
+            self.logger.pr('No ibrion key in vasp_args, setting ibrion=13')
+            vasp_args['ibrion'] = 13
+        if 'nsw' not in vasp_args:
+            self.logger.pr('No nsw key in vasp_args, setting nsw=1000000')
+            vasp_args['nsw'] = 1000000
+        self.vasp_args = vasp_args
 
 
     def preprocess(self, at, label, force_restart=False):
@@ -772,7 +782,7 @@ class VaspClient(Client):
     def write_input_files(self, at, label):
         global _chdir_lock
         vasp = Vasp(**self.vasp_args)
-        vasp.initialize(at) 
+        vasp.initialize(at)
         # chdir not thread safe, so acquire global lock before using it
         orig_dir = os.getcwd()
         try:
@@ -795,16 +805,85 @@ class VaspClient(Client):
             _chdir_lock.release()
 
 
+class CastepClient(QMClient):
+    """
+    Subclass of Client for running CASTEP calculations.
+
+    Initial input files are written in .cell and .param
+    formats, and subsequent communication is via sockets in REFTRAJ format.
+    """
+    def __init__(self, client_id, exe, env=None, npj=1, ppn=1,
+                 block=None, corner=None, shape=None,
+                 jobname='socketcalc', rundir=None,
+                 fmt='REFTRAJ', parmode=None, mpirun='mpirun',
+                 mpirun_args=['-np'], logger=screen,
+                 max_pos_diff=MAX_POS_DIFF_CASTEP,
+                 max_cell_diff=MAX_CELL_DIFF_CASTEP,
+                 **castep_args):
+        Client.__init__(self, client_id, exe, env, npj, ppn,
+                        block, corner, shape, jobname, rundir,
+                        fmt, parmode, mpirun, mpirun_args, logger,
+                        max_pos_diff, max_cell_diff)
+        if 'task' not in castep_args:
+            self.logger.pr('No task key in castep_args, setting task=MD')
+            castep_args['task'] = 'MD'
+        if 'md_ensemble' not in castep_args:
+            self.logger.pr('No md_ensemble key in castep_args, setting md_ensemble=SOC')
+            castep_args['md_ensemble'] = 'SOC'
+        if 'md_num_iter' not in castep_args:
+            self.logger.pr('No md_num_iter key in castep_args, setting md_num_iter=1000000')
+            castep_args['md_num_iter'] = 1000000
+        self.castep_args = castep_args
+
+
+    def preprocess(self, at, label, force_restart=False):
+        self.logger.pr('Castep client %d preprocessing atoms label %d' % (self.client_id, label))
+        # call the parent method first
+        at, fmt, first_time = Client.preprocess(self, at, label, force_restart)
+
+        # make a copy and then sort atoms by atomic number
+        # in the same way that Castep will internally. We store the sort
+        # order in the Atoms so it can be reversed when results are ready.
+        at = at.copy()
+        order = np.array(range(len(at)))
+        at.set_array('castep_sort_order', order)
+        resort = order[np.argsort(at.get_atomic_numbers())]
+        at = at[resort]
+        return at, fmt, first_time
+
+
+    def postprocess(self, at, label):
+        self.logger.pr('Castep client %d postprocessing atoms label %d' % (self.client_id, label))
+        # call the parent method first
+        at = Client.postprocess(self, at, label)
+        # restore original atom ordering
+        at = at[at.arrays['castep_sort_order'].tolist()]
+        return at
+
+
+    def write_input_files(self, at, label):
+        castep_args = self.castep_args.copy()
+        if 'devel_code' not in self.castep_args:
+            castep_args['devel_code'] = []
+        castep_args['devel_code'] = \
+            'SOCKET_IP=%s\nSOCKET_PORT=%d\nSOCKET_CLIENT_ID=%d\nSOCKET_LABEL=%d' % \
+                (self.server.ip, self.server.port, self.client_id, label)
+        castep = Castep(directory=self.subdir, **castep_args)
+        castep.initialize(at)
+
+    def extra_args(self, label=None):
+        return ['castep']
+
 class SocketCalculator(Calculator):
     """
-    ASE-compatible calculator which communicates with remote 
+    ASE-compatible calculator which communicates with remote
     force engines via sockets using an AtomsServer.
     """
 
     implemented_properties = ['energy', 'forces', 'stress']
     default_parameters = {}
     name = 'SocketCalculator'
-    
+
     def __init__(self, client, ip=None, atoms=None, port=0, logger=screen):
         Calculator.__init__(self)
 
@@ -812,7 +891,7 @@ class SocketCalculator(Calculator):
         if ip is None:
             ip = '127.0.0.1' # default to localhost
         self.logger = logger
-        self.server = AtomsServer((ip, port), AtomsRequestHandler, 
+        self.server = AtomsServer((ip, port), AtomsRequestHandler,
                                   [self.client], logger=self.logger)
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
@@ -823,7 +902,7 @@ class SocketCalculator(Calculator):
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
         if system_changes: # if anything at all changed (could be made more fine-grained)
-            self.logger.pr('calculation triggered with properties={0}, system_changes={1}'.format(properties, 
+            self.logger.pr('calculation triggered with properties={0}, system_changes={1}'.format(properties,
                                                                                                   system_changes))
             self.server.put(atoms, 0, self.label)
             self.label += 1
@@ -840,4 +919,4 @@ class SocketCalculator(Calculator):
 
     def shutdown(self):
         self.server.shutdown()
-                        
+
