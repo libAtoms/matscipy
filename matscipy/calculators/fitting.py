@@ -658,14 +658,6 @@ class FitCubicCrystal(Fit):
         self.atoms = self.unitcell.copy()
         self.atoms *= self.size
         self.atoms.translate([0.1, 0.1, 0.1])
-        self.supercell = self.crystal(
-            self.els,
-            latticeconstant  = self.a0,
-            size             = [3, 3, 6],
-            directions=[[1,1,2],[-1,1,0],[-1,-1,1]],
-            pbc=(1,1,0)
-            )
-        self.supercell.translate([0.1, 0.1, 0.1])
 
     def set_calculator(self, calc):
         self.new_bulk()
@@ -673,6 +665,15 @@ class FitCubicCrystal(Fit):
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
             logfile=_logfile).run(fmax=self.fmax,steps=10000)
+        a0 = self.get_lattice_constant()
+        self.supercell = self.crystal(
+            self.els,
+            latticeconstant  = a0,
+            size             = [3, 3, 6],
+            directions=[[1,1,2],[-1,1,0],[-1,-1,1]],
+            pbc=(1,1,0)
+            )
+        self.supercell.translate([0.1, 0.1, 0.1])
         self.supercell.set_calculator(calc)
 
     def get_lattice_constant(self):
@@ -685,10 +686,10 @@ class FitCubicCrystal(Fit):
         x,y=[],[]
         for i in range(10):
             pos1= np.copy(pos)
-            pos1[:,0][pos[:,2]>self.supercell.get_cell()[2,2]/2-2]-=0.08+(self.supercell.get_cell()[0,0]/3)*(1./50)*i
+            pos1[:,0][pos[:,2]>self.supercell.get_cell()[2,2]/2-2]-=(self.supercell.get_cell()[0,0]/3)*0.08+(self.supercell.get_cell()[0,0]/3)*(1./50)*i
             self.supercell.set_positions(pos1)
             Es = self.supercell.get_potential_energy()/J*1e3
-            x.append(0.05+(1./50)*i)
+            x.append(0.08+(1./50)*i)
             y.append((Es/S0)-(E0/S0))
         GSF_fit = scipy.interpolate.InterpolatedUnivariateSpline(x,y)
         x_fit = np.linspace(0.08,0.08+(9./50),50)
@@ -879,14 +880,6 @@ class FitTetragonalCrystal(Fit):
         self.atoms = self.unitcell.copy()
         self.atoms *= self.size
         self.atoms.translate([0.1, 0.1, 0.1])
-        self.supercell = self.crystal(
-            self.els,
-            latticeconstant  = [self.a0,self.c0],
-            size             = [3, 3, 6],
-            directions=[[1,1,2],[-1,1,0],[-1,-1,1]],
-            pbc=(1,1,0)
-            )
-        self.supercell.translate([0.1, 0.1, 0.1])
 
     def set_calculator(self, calc):
         self.new_bulk()
@@ -894,6 +887,15 @@ class FitTetragonalCrystal(Fit):
         ase.optimize.FIRE(
             ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,1,1,1]),
             logfile=_logfile).run(fmax=self.fmax,steps=10000)
+        a0,c0 = self.get_lattice_constant()
+        self.supercell = self.crystal(
+            self.els,
+            latticeconstant  = [a0,c0],
+            size             = [3, 3, 6],
+            directions=[[1,1,2],[-1,1,0],[-1,-1,1]],
+            pbc=(1,1,0)
+            )
+        self.supercell.translate([0.1, 0.1, 0.1])
         self.supercell.set_calculator(calc)
 
     def get_SFE(self):
@@ -903,7 +905,7 @@ class FitTetragonalCrystal(Fit):
         x,y=[],[]
         for i in range(10):
             pos1= np.copy(pos)
-            pos1[:,0][pos[:,2]>self.supercell.get_cell()[2,2]/2-2]-=0.05+(self.supercell.get_cell()[0,0]/3)*(1./50)*i
+            pos1[:,0][pos[:,2]>self.supercell.get_cell()[2,2]/2-2]-=(self.supercell.get_cell()[0,0]/3)*0.05+(self.supercell.get_cell()[0,0]/3)*(1./50)*i
             self.supercell.set_positions(pos1)
             Es = self.supercell.get_potential_energy()/J*1e3
             x.append(0.05+(1./50)*i)
