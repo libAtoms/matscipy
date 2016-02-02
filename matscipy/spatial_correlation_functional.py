@@ -34,25 +34,24 @@ from ase import Atoms
 def fractional(xyz,cell):
     cell=np.array(cell,dtype=np.float64)
     abc=np.dot(np.linalg.inv(cell),xyz.T).T
-    #abc[abc<0]+=1
-    #abc[abc>1]-=1
+    abc[abc<0]+=1
+    abc[abc>1]-=1
     return abc
 
-def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None):
+def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize==None):
     if FFT_cutoff=None:
         FFT_cutoff=length_cutoff/5.
 
-    if output_gridsize=None:
+    if output_gridsize==None:
         output_gridsize=0.1
 
-    if approx_FFT_gridsize=None:
+    if approx_FFT_gridsize==None:
         approx_FFT_gridsize=3.
-
-    v_2_mean=(values**2).mean()
-    v_mean_2=(values.mean())**2
 
     coords=atoms.get_positions()
     #values=atoms.
+    v_2_mean=(values**2).mean()
+    v_mean_2=(values.mean())**2
     n_atoms=len(coords)
 
     n_lattice_points=np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize)
@@ -80,8 +79,9 @@ def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, o
     r = a*a1.reshape(1,1,1,-1) + b*a2.reshape(1,1,1,-1) + c*a3.reshape(1,1,1,-1)
     dist = np.sqrt((r**2).sum(axis=3))
     
+    nbins=length_cutoff/output_gridsize
     SCF=np.histogram(np.reshape(dist,(-1,1)),bins=np.arange(0,length_cutoff+length_cutoff/nbins,length_cutoff/nbins),weights=np.reshape(np.real(C),(-1,1)))[0]/np.histogram(np.reshape(dist,(-1,1)),bins=np.arange(0,length_cutoff+length_cutoff/nbins,length_cutoff/nbins))[0]
-    SCF[0][np.isnan(SCF[0])]=0
+    SCF[np.isnan(SCF)]=0
     SCF=(SCF-v_mean_2)/(v_2_mean-v_mean_2)
 
 
