@@ -25,7 +25,8 @@ import unittest
 import numpy as np
 from matscipy.neighbours import neighbour_list
 from ase import Atoms
-
+import matscipytest
+from matscipy import spatial_correlation_functional
 
 
 class TestSpatialCorrelationFunctional(unittest.TestCase):
