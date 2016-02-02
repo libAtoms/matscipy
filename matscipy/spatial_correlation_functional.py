@@ -52,7 +52,7 @@ def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, o
     #values=atoms.
     v_2_mean=(values**2).mean()
     v_mean_2=(values.mean())**2
-    n_atoms=len(coords)
+    n_atoms=len(xyz)
 
     n_lattice_points=np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize)
     FFT_gridsize=cell_vectors.diagonal()/n_lattice_points
