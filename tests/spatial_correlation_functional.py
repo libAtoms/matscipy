@@ -46,9 +46,9 @@ class TestSpatialCorrelationFunctional(unittest.TestCase):
         output_gridsize= 0.1
         FFT_cutoff= 7.5
         approx_FFT_gridsize= 1.
-        SCF=spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize)
-        SCF2=spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize/50.*n)
-        SCF3=spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize/20.*n)
+        SCF=spatial_correlation_functional.spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize)
+        SCF2=spatial_correlation_functional.spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize/50.*n)
+        SCF3=spatial_correlation_functional.spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize/20.*n)
         
         SCF-=SCF.min()
         SCF2-=SCF2.min()
