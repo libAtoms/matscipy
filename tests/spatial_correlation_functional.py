@@ -54,7 +54,7 @@ class TestSpatialCorrelationFunctional(unittest.TestCase):
         SCF3-=SCF3.min()
         
         self.assertTrue((np.isfinite(SCF/SCF)).sum()==np.floor(length_cutoff))
-        self.assertTrue((np.isfinite(SCF/SCF)).sum()==np.floor(FFT_cutoff)+np.ceil(np.ceil(length_cutoff-FFT_cutoff)/50.*n))
-        self.assertTrue((np.isfinite(SCF/SCF)).sum()==np.floor(FFT_cutoff)+np.ceil(np.ceil(length_cutoff-FFT_cutoff)/20.*n))
+        self.assertTrue((np.isfinite(SCF2/SCF2)).sum()==int(np.floor(FFT_cutoff)+np.ceil(np.ceil(length_cutoff-FFT_cutoff)*50./n)))
+        self.assertTrue((np.isfinite(SCF3/SCF3)).sum()==int(np.floor(FFT_cutoff)+np.ceil(np.ceil(length_cutoff-FFT_cutoff)*20./n)))
 
-
+    def test
