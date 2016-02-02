@@ -39,7 +39,7 @@ def fractional(xyz,cell):
     return abc
 
 def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None):
-    if FFT_cutoff=None:
+    if FFT_cutoff==None:
         FFT_cutoff=length_cutoff/5.
 
     if output_gridsize==None:
