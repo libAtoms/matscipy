@@ -48,7 +48,7 @@ def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, o
     if approx_FFT_gridsize==None:
         approx_FFT_gridsize=3.
 
-    coords=atoms.get_positions()
+    xyz=atoms.get_positions()
     #values=atoms.
     v_2_mean=(values**2).mean()
     v_mean_2=(values.mean())**2
