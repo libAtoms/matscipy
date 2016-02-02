@@ -55,7 +55,7 @@ def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, o
     n_atoms=len(coords)
 
     n_lattice_points=np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize)
-    FFT_gridsize=cell.diagonal()/n_lattice_points
+    FFT_gridsize=cell_vectors.diagonal()/n_lattice_points
 
     abc=fractional(xyz,cell_vectors)
 
