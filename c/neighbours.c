@@ -11,12 +11,12 @@
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 2 of the License, or
    (at your option) any later version.
-  
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-  
+
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
    ====================================================================== */
@@ -174,7 +174,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     cross_product(cell2, cell3, norm1);
     cross_product(cell3, cell1, norm2);
     cross_product(cell1, cell2, norm3);
-    double volume = cell3[0]*norm3[0] + cell3[1]*norm3[1] + cell3[2]*norm3[2];
+    double volume = fabs(cell3[0]*norm3[0] + cell3[1]*norm3[1] + cell3[2]*norm3[2]);
 
     if (volume < 1e-12) {
         PyErr_SetString(PyExc_RuntimeError, "Zero cell volume.");
@@ -304,7 +304,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
         bin1[i] = cell1[i]/n1;
         bin2[i] = cell2[i]/n2;
         bin3[i] = cell3[i]/n3;
-    }  
+    }
 
     /* Loop over atoms */
     for (i = 0; i < nat; i++) {
@@ -345,7 +345,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
             off3[0] = z*bin3[0];
             off3[1] = z*bin3[1];
             off3[2] = z*bin3[2];
-            
+
             for (y = -ny; y <= ny; y++) {
                 int cj2 = ci2 + y;
                 if (pbc[1])  cj2 = bin_wrap(cj2, n2);
@@ -355,7 +355,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
                 cj2 = bin_trunc(cj2, n2);
                 int ncj2 = n1*(cj2 + ncj3);
-                
+
                 double off2[3];
                 off2[0] = off3[0] + y*bin2[0];
                 off2[1] = off3[1] + y*bin2[1];
@@ -367,7 +367,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
                     if (pbc[0])  cj1 = bin_wrap(cj1, n1);
 
                     /* Skip to next x value if cell is out of simulation bounds
-                     */                    
+                     */
                     if (cj1 < 0 || cj1 >= n1)  continue;
 
                     cj1 = bin_trunc(cj1, n1);
@@ -418,9 +418,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
                             if (abs_dr_sq < cutoff_sq) {
                                 bool inside_cutoff = true;
                                 if (cutoffs && types) {
-                                    if (types[i] < ncutoffs && 
+                                    if (types[i] < ncutoffs &&
                                         types[j] < ncutoffs){
-                                        double c_sq = 
+                                        double c_sq =
                                             cutoffs_sq[types[i]*ncutoffs+
                                                        types[j]];
                                         inside_cutoff = abs_dr_sq < c_sq;
@@ -431,7 +431,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
                                     if (nneigh >= neighsize) {
                                         neighsize *= 2;
-    
+
                                         if (py_first &&
                                             !(first = resize_array(py_first,
                                                                    neighsize)))
@@ -453,7 +453,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                                                    neighsize)))
                                             goto fail;
                                     }
-                                                
+
                                     if (py_first)
                                         first[nneigh] = i;
                                     if (py_secnd)
@@ -463,20 +463,20 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                         distvec[3*nneigh+1] = dr[1];
                                         distvec[3*nneigh+2] = dr[2];
                                     }
-                                    if (py_absdist) 
+                                    if (py_absdist)
                                         absdist[nneigh] = sqrt(abs_dr_sq);
                                     if (py_shift) {
                                         shift[3*nneigh+0] = (ci1 - cj1 + x)/n1;
                                         shift[3*nneigh+1] = (ci2 - cj2 + y)/n2;
                                         shift[3*nneigh+2] = (ci3 - cj3 + z)/n3;
                                     }
-                                    
+
                                     nneigh++;
                                 }
 
                             }
                         }
-                        
+
                         j = next[j];
                     }
                 }
