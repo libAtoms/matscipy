@@ -243,7 +243,7 @@ setup(name='matscipy',
       package_dir={'matscipy': 'matscipy'},
       packages=['matscipy', 'matscipy.fracture_mechanics',
                 'matscipy.contact_mechanics', 'matscipy.calculators',
-                'matscipy.calculators.eam'],
+                'matscipy.calculators.eam','matscipy.tool'],
       scripts=scripts,
       ext_modules=[
         Extension(
