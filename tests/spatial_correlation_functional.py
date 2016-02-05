@@ -33,7 +33,7 @@ class TestSpatialCorrelationFunctional(unittest.TestCase):
     
 
     def test_peak_count(self):
-        n=100
+        n=50
 
         xyz=np.zeros((n,3))
         xyz[:,0]=np.arange(n)
@@ -59,6 +59,38 @@ class TestSpatialCorrelationFunctional(unittest.TestCase):
         self.assertTrue((np.isfinite(SCF3/SCF3)).sum()==int(np.floor(FFT_cutoff)+np.ceil(np.ceil(length_cutoff-FFT_cutoff)*20./n)))
 
 
+    def test_directional_spacing(self):
+        n=50
+
+        xyz=np.zeros((n**3,3))
+        m=np.meshgrid(np.arange(0,n,1),np.arange(0,2*n,2),np.arange(0,3*n,3))
+        xyz[:,0]=m[0].reshape((-1))
+        xyz[:,1]=m[0].reshape((-1))
+        xyz[:,2]=m[2].reshape((-1))
+
+        values=np.random.rand(len(xyz))
+        atoms=Atoms(positions=xyz)
+        cell=np.array([[n,0,0],[0,2*n,0],[0,0,3*n]])
+
+        length_cutoff= n
+        output_gridsize= 0.1
+        FFT_cutoff= 0.
+        approx_FFT_gridsize= 1.
+
+        SCF0=spatial_correlation_functional.spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=0, delta='simple', norm=True)
+        SCF1=spatial_correlation_functional.spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=1, delta='simple', norm=True)
+        SCF2=spatial_correlation_functional.spatial_correlation_functional(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=2, delta='simple', norm=True)
+
+        SCF0-=SCF0.min()
+        SCF1-=SCF1.min()
+        SCF2-=SCF2.min()
+
+        n_peaks0=np.isfinite(SCF0/SCF0).sum()
+        n_peaks1=np.isfinite(SCF1/SCF1).sum()
+        n_peaks2=np.isfinite(SCF2/SCF2).sum()
+
+        self.assertTrue(n_peaks0/2.-n_peaks1 < 2)
+        self.assertTrue(n_peaks0/3.-n_peaks2 < 2)
 
 ###
 if __name__ == '__main__':
