@@ -33,7 +33,7 @@ class TestSpatialCorrelationFunctional(unittest.TestCase):
     
 
     def test_peak_count(self):
-        n=30
+        n=50
 
         xyz=np.zeros((n,3))
         xyz[:,0]=np.arange(n)
