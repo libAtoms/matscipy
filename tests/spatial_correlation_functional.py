@@ -33,7 +33,7 @@ class TestSpatialCorrelationFunctional(unittest.TestCase):
     
 
     def test_peak_count(self):
-        n=50
+        n=30
 
         xyz=np.zeros((n,3))
         xyz[:,0]=np.arange(n)
@@ -60,7 +60,7 @@ class TestSpatialCorrelationFunctional(unittest.TestCase):
 
 
     def test_directional_spacing(self):
-        n=50
+        n=30
 
         xyz=np.zeros((n**3,3))
         m=np.meshgrid(np.arange(0,n,1),np.arange(0,2*n,2),np.arange(0,3*n,3))
