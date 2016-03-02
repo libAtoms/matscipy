@@ -43,7 +43,6 @@ def savetbl(fn, **kwargs):
     header = ''
     for i, (x, y) in enumerate(sorted_kwargs):
         header = '{0} {1}:{2}'.format(header, i+1, x)
-    print(header)
     data = np.transpose([y for x, y in sorted_kwargs])
     np.savetxt(fn, data, header=header)
 
