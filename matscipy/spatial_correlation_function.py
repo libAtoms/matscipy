@@ -49,7 +49,7 @@ def fractional(xyz,cell):
     abc[abc>1]-=1
     return abc
 
-def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None, dim=None, delta='simple', norm=False):
+def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None, dim=None, delta='simple', norm=False):
     if FFT_cutoff==None:
         FFT_cutoff=length_cutoff/5.
 
@@ -60,8 +60,6 @@ def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, o
         approx_FFT_gridsize=3.
 
     xyz=atoms.get_positions()
-    v_2_mean=(values**2).mean()
-    v_mean_2=(values.mean())**2
     n_atoms=len(xyz)
 
     n_lattice_points=np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize)
@@ -119,6 +117,8 @@ def spatial_correlation_functional(atoms, values, cell_vectors, length_cutoff, o
     SCF=np.histogram(np.reshape(dist,(-1,1)),bins=np.arange(0,length_cutoff+length_cutoff/nbins,length_cutoff/nbins),weights=np.reshape(np.real(C),(-1,1)))[0]/np.histogram(np.reshape(dist,(-1,1)),bins=np.arange(0,length_cutoff+length_cutoff/nbins,length_cutoff/nbins))[0]
     SCF[np.isnan(SCF)]=0
     if norm:
+        v_2_mean=(values**2).mean()
+        v_mean_2=(values.mean())**2
         SCF=(SCF-v_mean_2)/(v_2_mean-v_mean_2)
 
 
