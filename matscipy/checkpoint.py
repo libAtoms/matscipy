@@ -54,7 +54,7 @@ while not converged:
     CP.flush(a, converged, tip_x, tip_y)
 
 The simplest way to use checkpointing is through the CheckpointCalculator. It
-wraps any calculator object and 
+wraps any calculator object and
 
 """
 import os
@@ -251,9 +251,9 @@ class CheckpointCalculator(Calculator):
         'stress': 'get_stress',
         'stresses': 'get_stresses'
         }
-        
+
     def __init__(self, calculator,  db='checkpoints.db', logger=quiet):
-        Calculator.__init__(self)        
+        Calculator.__init__(self)
         self.calculator = calculator
         self.checkpoint = Checkpoint(db, logger)
         self.logger = logger
@@ -291,6 +291,37 @@ class CheckpointCalculator(Calculator):
                 self.checkpoint.save(atoms, *results)
             finally:
                 atoms.set_calculator(_calculator)
-            
+
         self.results = dict(zip(properties, results))
 
+
+class BatchCalculator(Calculator):
+    default_parameters = {}
+    name = 'BatchCalculator'
+
+    property_to_method_name = {
+        'energy': 'get_potential_energy',
+        'energies': 'get_potential_energies',
+        'forces': 'get_forces',
+        'stress': 'get_stress',
+        'stresses': 'get_stresses'
+        }
+
+    def __init__(self, db='checkpoints.db'):
+        Calculator.__init__(self)
+        self.checkpoint = Checkpoint(db, logger)
+        self.id = 0
+
+    def calculate(self, atoms, properties, system_changes):
+        Calculator.calculate(self, atoms, properties, system_changes)
+        if system_changes:
+            with connect(self.db) as db:
+                db.write(atoms, checkpoint_id=self.id)
+            self.id += 1
+
+            dummy_results = {'energy': 0.0,
+                             'forces': np.zeros((len(atoms), 3)),
+                             'stress': np.zeros((3,3))}
+            self.results = {}
+            for key in properties:
+                self.results[key] = dummy_results[key]
