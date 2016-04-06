@@ -98,8 +98,17 @@ def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, out
         b=np.abs(np.reshape(np.arange(-floor(n_lattice_points[1]/2.),ceil(n_lattice_points[1]/2.),1)/n_lattice_points[1],( 1,-1, 1, 1)))
         c=np.abs(np.reshape(np.arange(-floor(n_lattice_points[2]/2.),ceil(n_lattice_points[2]/2.),1)/n_lattice_points[2],( 1, 1,-1, 1)))
         a1, a2, a3 = cell_vectors.T
-        r = a*a1.reshape(1,1,1,-1) + b*a2.reshape(1,1,1,-1) + c*a3.reshape(1,1,1,-1)
-        dist = np.sqrt((r**2).sum(axis=3))
+        
+        #enforce PBC
+        dist=np.zeros(shape=(n_lattice_points[0],n_lattice_points[1],n_lattice_points[2],3,3,3))
+        for xx in [-1,0,1]:
+            for yy in [-1,0,1]:
+                for zz in [-1,0,1]:
+                    r =a*a1.reshape(1,1,1,-1)+b*a2.reshape(1,1,1,-1)+c*a3.reshape(1,1,1,-1)
+                    r+=(xx*a1+yy*a2+zz*a3).reshape(1,1,1,-1)
+                    dist[:,:,:,xx+1,yy+1,zz+1]= np.sqrt((r**2).sum(axis=3))
+                
+        dist=dist.min(axis=3).min(axis=3).min(axis=3)
     elif 0<=dim<3:
         #directional SCFs
         # for floor/ceil convention see *i*fftshift definition
