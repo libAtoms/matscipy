@@ -62,7 +62,7 @@ def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, out
     xyz=atoms.get_positions()
     n_atoms=len(xyz)
 
-    n_lattice_points=np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize)
+    n_lattice_points=np.array(np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize), dtype=int)
     FFT_gridsize=cell_vectors.diagonal()/n_lattice_points
 
     abc=fractional(xyz,cell_vectors)
@@ -71,7 +71,7 @@ def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, out
         #calc lattice values (add to nearest lattice point)
         Q=np.zeros(shape=(n_lattice_points))
         for _abc, _q in zip(abc, values):
-            x,y,z = np.round(_abc*(n_lattice_points-1))
+            x,y,z = np.array(np.round(_abc*(n_lattice_points-1)), dtype=int)
             Q[x,y,z] += _q
     else:
         #proportional distribution on 8 neightbor points
@@ -122,7 +122,7 @@ def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, out
         print('invalid correlation direction: '+str(dim))
         sys.exit()
 
-    nbins=length_cutoff/output_gridsize
+    nbins=int(length_cutoff/output_gridsize)
     SCF=np.histogram(np.reshape(dist,(-1,1)),bins=np.arange(0,length_cutoff+length_cutoff/nbins,length_cutoff/nbins),weights=np.reshape(np.real(C),(-1,1)))[0]/np.histogram(np.reshape(dist,(-1,1)),bins=np.arange(0,length_cutoff+length_cutoff/nbins,length_cutoff/nbins))[0]
     SCF[np.isnan(SCF)]=0
     if norm:
