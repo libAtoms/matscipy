@@ -42,13 +42,6 @@ from matscipy.neighbours import neighbour_list
 from ase import Atoms
 
 
-def fractional(xyz,cell):
-    cell=np.array(cell,dtype=np.float64)
-    abc=np.dot(np.linalg.inv(cell),xyz.T).T
-    abc[abc<0]+=1
-    abc[abc>1]-=1
-    return abc
-
 def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None, dim=None, delta='simple', norm=False):
     if FFT_cutoff==None:
         FFT_cutoff=length_cutoff/5.
@@ -60,12 +53,11 @@ def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, out
         approx_FFT_gridsize=3.
 
     xyz=atoms.get_positions()
+    abc=atoms.get_scaled_positions()%1.0
     n_atoms=len(xyz)
 
     n_lattice_points=np.array(np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize), dtype=int)
     FFT_gridsize=cell_vectors.diagonal()/n_lattice_points
-
-    abc=fractional(xyz,cell_vectors)
 
     if delta=='simple':
         #calc lattice values (add to nearest lattice point)
