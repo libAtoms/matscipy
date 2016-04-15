@@ -31,6 +31,18 @@ from matscipy import spatial_correlation_function
 
 class TestSpatialCorrelationFunction(unittest.TestCase):
     
+    def test_RDF(self):
+        atoms = io.read('aC.cfg')
+        values = np.ones(4001)
+        cell = atoms.get_cell()[:3,:].T #should be [[xx,yx,zx],[xy,yy,zy],[xz,yz,zz]]
+
+        length_cutoff = 10.0
+        output_gridsize = 0.25
+        FFT_cutoff = 0.0 #check FFT part, not short range
+        approx_FFT_gridsize = 1.0
+
+        SCF=spatial_correlation_function.spatial_correlation_function(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize,dim=None,delta='simple',norm=False)
+
 
     def test_peak_count(self):
         n=50
