@@ -42,7 +42,7 @@ from matscipy.neighbours import neighbour_list
 from ase import Atoms
 
 
-def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None, dim=None, delta='simple', norm=False):
+def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None, dim=None, delta='simple', norm=False):
     if FFT_cutoff==None:
         FFT_cutoff=length_cutoff/5.
 
@@ -54,6 +54,7 @@ def spatial_correlation_function(atoms, values, cell_vectors, length_cutoff, out
 
     xyz=atoms.get_positions()
     abc=atoms.get_scaled_positions()%1.0
+    cell_vectors=atoms.cell
     n_atoms=len(xyz)
 
     n_lattice_points=np.array(np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize), dtype=int)

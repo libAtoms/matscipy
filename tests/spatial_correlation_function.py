@@ -26,22 +26,21 @@ import numpy as np
 from matscipy.neighbours import neighbour_list
 from ase import Atoms
 import matscipytest
-from matscipy import spatial_correlation_function
-import ase.io as io
+from matscipy.spatial_correlation_function import spatial_correlation_function
+import ase.io as iop
 
 class TestSpatialCorrelationFunction(unittest.TestCase):
     
     def test_RDF(self):
         atoms = io.read('aC.cfg')
         values = np.ones(4001)
-        cell = atoms.get_cell()[:3,:].T #should be [[xx,yx,zx],[xy,yy,zy],[xz,yz,zz]]
 
-        length_cutoff = 10.0
+        length_cutoff = 3.0
         output_gridsize = 0.25
         FFT_cutoff = 0.0 #check FFT part, not short range
         approx_FFT_gridsize = 1.0
 
-        SCF=spatial_correlation_function.spatial_correlation_function(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize,dim=None,delta='simple',norm=False)
+        SCF=spatial_correlation_function(atoms, values, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize,dim=None,delta='simple',norm=False)
 
 
     def test_peak_count(self):
@@ -51,16 +50,15 @@ class TestSpatialCorrelationFunction(unittest.TestCase):
         xyz[:,0]=np.arange(n)
         values=np.random.rand(len(xyz))
         
-        atoms=Atoms(positions=xyz)
-        cell=np.array([[n,0,0],[0,n,0],[0,0,n]])
+        atoms=Atoms(positions=xyz, cell=np.array([[n,0,0],[0,n,0],[0,0,n]]))
 
         length_cutoff= n/2.
         output_gridsize= 0.1
         FFT_cutoff= 7.5
         approx_FFT_gridsize= 1.
-        SCF=spatial_correlation_function.spatial_correlation_function(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize,dim=None,delta='simple',norm=True)
-        SCF2=spatial_correlation_function.spatial_correlation_function(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize/50.*n,dim=None,delta='simple',norm=True)
-        SCF3=spatial_correlation_function.spatial_correlation_function(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize/20.*n,dim=None,delta='simple',norm=True)
+        SCF=spatial_correlation_function(atoms, values, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize,dim=None,delta='simple',norm=True)
+        SCF2=spatial_correlation_function(atoms, values, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize/50.*n,dim=None,delta='simple',norm=True)
+        SCF3=spatial_correlation_function(atoms, values, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize/20.*n,dim=None,delta='simple',norm=True)
         
         SCF-=SCF.min()
         SCF2-=SCF2.min()
@@ -81,17 +79,16 @@ class TestSpatialCorrelationFunction(unittest.TestCase):
         xyz[:,2]=m[2].reshape((-1))
 
         values=np.random.rand(len(xyz))
-        atoms=Atoms(positions=xyz)
-        cell=np.array([[n,0,0],[0,2*n,0],[0,0,3*n]])
+        atoms=Atoms(positions=xyz, cell=np.array([[n,0,0],[0,2*n,0],[0,0,3*n]]))
 
         length_cutoff= n
         output_gridsize= 0.1
         FFT_cutoff= 0.
         approx_FFT_gridsize= 1.
 
-        SCF0=spatial_correlation_function.spatial_correlation_function(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=0, delta='simple', norm=True)
-        SCF1=spatial_correlation_function.spatial_correlation_function(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=1, delta='simple', norm=True)
-        SCF2=spatial_correlation_function.spatial_correlation_function(atoms, values, cell, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=2, delta='simple', norm=True)
+        SCF0=spatial_correlation_function(atoms, values, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=0, delta='simple', norm=True)
+        SCF1=spatial_correlation_function(atoms, values, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=1, delta='simple', norm=True)
+        SCF2=spatial_correlation_function(atoms, values, length_cutoff, output_gridsize, FFT_cutoff, approx_FFT_gridsize, dim=2, delta='simple', norm=True)
 
         SCF0-=SCF0.min()
         SCF1-=SCF1.min()
