@@ -69,8 +69,7 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
         #calc lattice values (add to nearest lattice point)
         Q=np.zeros(shape=(n_lattice_points))
         for _abc, _q in zip(abc, values):
-            # FIXME! I think this have to be n_lattice_points, excluding the -1
-            x,y,z = np.array(np.round(_abc*(n_lattice_points-1)), dtype=int)
+            x,y,z = np.array(_abc*n_lattice_points, dtype=int)%n_lattice_points
             Q[x,y,z] += _q
     else:
         #proportional distribution on 8 neightbor points
@@ -127,9 +126,10 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
     bins = np.arange(0, length_cutoff+length_cutoff/nbins, length_cutoff/nbins)
     SCF, edges = np.histogram(np.ravel(dist), bins=bins,
                               weights=np.ravel(np.real(C)))
-    n, edges = np.histogram(np.reshape(dist,(-1,1)), bins=bins)
-    n[n==0] = 1
-    SCF /= n
+    #n, edges = np.histogram(np.reshape(dist,(-1,1)), bins=bins)
+    #n[n==0] = 1
+    #SCF /= n
+    SCF *= atoms.get_volume()/np.prod(n_lattice_points) / (4*np.pi/3 * (edges[1:]**3-edges[:-1]**3))
     if norm:
         v_2_mean=(values**2).mean()
         v_mean_2=(values.mean())**2
@@ -140,9 +140,10 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
     index1,index2,dist=neighbour_list('ijd', atoms, cutoff=FFT_cutoff)
     SCF_near, edges = np.histogram(dist, bins=bins,
                                    weights=values[index1]*values[index2])
-    n_near, edges = np.histogram(dist, bins=bins)
-    n_near[n_near==0] = 1
-    SCF_near /= n_near
+    #n_near, edges = np.histogram(dist, bins=bins)
+    #n_near[n_near==0] = 1
+    #SCF_near /= n_near
+    SCF_near *= atoms.get_volume()/n_atoms**2 / (4*np.pi/3 * (edges[1:]**3-edges[:-1]**3))
     if norm:
         SCF_near=(SCF_near-v_mean_2)/(v_2_mean-v_mean_2)
 
