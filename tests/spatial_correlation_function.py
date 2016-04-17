@@ -31,7 +31,7 @@ import matscipytest
 from matscipy.spatial_correlation_function import spatial_correlation_function
 import ase.io as io
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 class TestSpatialCorrelationFunction(unittest.TestCase):
 
