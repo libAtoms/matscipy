@@ -92,9 +92,9 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
 
     if dim==None:
         #distance mapping (for floor/ceil convention see *i*fftshift definition)
-        a=np.abs(np.reshape(np.arange(-floor(n_lattice_points[0]/2.),ceil(n_lattice_points[0]/2.),1)/n_lattice_points[0],(-1, 1, 1, 1)))
-        b=np.abs(np.reshape(np.arange(-floor(n_lattice_points[1]/2.),ceil(n_lattice_points[1]/2.),1)/n_lattice_points[1],( 1,-1, 1, 1)))
-        c=np.abs(np.reshape(np.arange(-floor(n_lattice_points[2]/2.),ceil(n_lattice_points[2]/2.),1)/n_lattice_points[2],( 1, 1,-1, 1)))
+        a=np.reshape(np.arange(-floor(n_lattice_points[0]/2.),ceil(n_lattice_points[0]/2.),1)/n_lattice_points[0],(-1, 1, 1, 1))
+        b=np.reshape(np.arange(-floor(n_lattice_points[1]/2.),ceil(n_lattice_points[1]/2.),1)/n_lattice_points[1],( 1,-1, 1, 1))
+        c=np.reshape(np.arange(-floor(n_lattice_points[2]/2.),ceil(n_lattice_points[2]/2.),1)/n_lattice_points[2],( 1, 1,-1, 1))
         a1, a2, a3 = cell_vectors.T
 
         ##enforce PBC
@@ -112,9 +112,9 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
     elif 0<=dim<3:
         #directional SCFs
         # for floor/ceil convention see *i*fftshift definition
-        a=np.abs(np.reshape(np.arange(-floor(n_lattice_points[0]/2.),ceil(n_lattice_points[0]/2.),1)/n_lattice_points[0],(-1, 1, 1, 1)))
-        b=np.abs(np.reshape(np.arange(-floor(n_lattice_points[1]/2.),ceil(n_lattice_points[1]/2.),1)/n_lattice_points[1],( 1,-1, 1, 1)))
-        c=np.abs(np.reshape(np.arange(-floor(n_lattice_points[2]/2.),ceil(n_lattice_points[2]/2.),1)/n_lattice_points[2],( 1, 1,-1, 1)))
+        a=np.reshape(np.arange(-floor(n_lattice_points[0]/2.),ceil(n_lattice_points[0]/2.),1)/n_lattice_points[0],(-1, 1, 1, 1))
+        b=np.reshape(np.arange(-floor(n_lattice_points[1]/2.),ceil(n_lattice_points[1]/2.),1)/n_lattice_points[1],( 1,-1, 1, 1))
+        c=np.reshape(np.arange(-floor(n_lattice_points[2]/2.),ceil(n_lattice_points[2]/2.),1)/n_lattice_points[2],( 1, 1,-1, 1))
         a1, a2, a3 = cell_vectors.T
         r = a*a1.reshape(1,1,1,-1) + b*a2.reshape(1,1,1,-1) + c*a3.reshape(1,1,1,-1)
         dist=np.abs(r[:,:,:,dim]) #use indices to access directions
@@ -126,10 +126,11 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
     bins = np.arange(0, length_cutoff+length_cutoff/nbins, length_cutoff/nbins)
     SCF, edges = np.histogram(np.ravel(dist), bins=bins,
                               weights=np.ravel(np.real(C)))
-    #n, edges = np.histogram(np.reshape(dist,(-1,1)), bins=bins)
-    #n[n==0] = 1
-    #SCF /= n
-    SCF *= atoms.get_volume()/np.prod(n_lattice_points) / (4*np.pi/3 * (edges[1:]**3-edges[:-1]**3))
+    n, edges = np.histogram(np.reshape(dist,(-1,1)), bins=bins)
+    n[n==0] = 1
+    SCF /= n
+    # Alternative to the above three lines:
+    # SCF *= atoms.get_volume()/np.prod(n_lattice_points) / slice_volume
     if norm:
         v_2_mean=(values**2).mean()
         v_mean_2=(values.mean())**2
@@ -140,10 +141,8 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
     index1,index2,dist=neighbour_list('ijd', atoms, cutoff=FFT_cutoff)
     SCF_near, edges = np.histogram(dist, bins=bins,
                                    weights=values[index1]*values[index2])
-    #n_near, edges = np.histogram(dist, bins=bins)
-    #n_near[n_near==0] = 1
-    #SCF_near /= n_near
-    SCF_near *= atoms.get_volume()/n_atoms**2 / (4*np.pi/3 * (edges[1:]**3-edges[:-1]**3))
+    slice_volume = 4*np.pi/3 * (edges[1:]**3-edges[:-1]**3)
+    SCF_near *= atoms.get_volume()/n_atoms**2 / slice_volume
     if norm:
         SCF_near=(SCF_near-v_mean_2)/(v_2_mean-v_mean_2)
 
