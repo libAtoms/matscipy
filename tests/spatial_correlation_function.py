@@ -59,7 +59,7 @@ class TestSpatialCorrelationFunction(unittest.TestCase):
             #plt.legend(loc='best')
             #plt.show()
 
-            self.assertLess(np.abs(SCF1-SCF2).max(), 0.31)
+            self.assertTrue(np.abs(SCF1-SCF2).max() < 0.31)
 
 #    def test_peak_count(self):
 #        n=50
@@ -115,8 +115,8 @@ class TestSpatialCorrelationFunction(unittest.TestCase):
         n_peaks1=np.isfinite(SCF1/SCF1).sum()
         n_peaks2=np.isfinite(SCF2/SCF2).sum()
 
-        self.assertLess(n_peaks0/2.-n_peaks1, 2)
-        self.assertLess(n_peaks0/3.-n_peaks2, 2)
+        self.assertTrue(n_peaks0/2.-n_peaks1 < 2)
+        self.assertTrue(n_peaks0/3.-n_peaks2 < 2)
 
 ###
 if __name__ == '__main__':
