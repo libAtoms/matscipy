@@ -43,24 +43,46 @@ from math import floor, ceil
 from matscipy.neighbours import neighbour_list
 from ase import Atoms
 
+def betrag(vec):
+    return np.sqrt((vec**2).sum())
+def max_rad(cell_vectors):
+    #calculate length cutoff from cell vectors
+    x = cell_vectors[:,0]
+    y = cell_vectors[:,1]
+    z = cell_vectors[:,2]
+    r = np.zeros(3)
+    nor = np.zeros(3)
 
-def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None, dim=None, delta='simple', norm=False):
+    nor = np.cross(y,z)
+    r[0] = np.abs((x*nor).sum()/betrag(x)/betrag(nor))*betrag(x)/2.0
+    nor = np.cross(z,x)
+    r[1] = np.abs((y*nor).sum()/betrag(y)/betrag(nor))*betrag(y)/2.0
+    nor = np.cross(x,y)
+    r[2] = np.abs((z*nor).sum()/betrag(z)/betrag(nor))*betrag(z)/2.0
+    
+    return r.min()
+
+
+def spatial_correlation_function(atoms, values, length_cutoff=None, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None, dim=None, delta='simple', norm=False):
     # Make sure values are floats
     values = np.asarray(values, dtype=float)
-
-    if FFT_cutoff==None:
-        FFT_cutoff=length_cutoff/5.
-
-    if output_gridsize==None:
-        output_gridsize=0.1
-
-    if approx_FFT_gridsize==None:
-        approx_FFT_gridsize=3.
 
     xyz=atoms.get_positions()
     abc=atoms.get_scaled_positions()%1.0
     cell_vectors=atoms.cell.T
     n_atoms=len(xyz)
+
+    if length_cutoff == None:
+        length_cutoff = np.floor(max_rad(cell_vectors))
+
+    if FFT_cutoff==None:
+        FFT_cutoff=7.5
+
+    if output_gridsize==None:
+        output_gridsize=0.1
+
+    if approx_FFT_gridsize==None:
+        approx_FFT_gridsize=1.0
 
     n_lattice_points=np.array(np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize), dtype=int)
     FFT_gridsize=cell_vectors.diagonal()/n_lattice_points
@@ -97,16 +119,6 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
         c=np.reshape(np.arange(-floor(n_lattice_points[2]/2.),ceil(n_lattice_points[2]/2.),1)/n_lattice_points[2],( 1, 1,-1, 1))
         a1, a2, a3 = cell_vectors.T
 
-        ##enforce PBC
-        #dist=np.zeros(shape=(n_lattice_points[0],n_lattice_points[1],n_lattice_points[2],3,3,3))
-        #for xx in [-1,0,1]:
-        #    for yy in [-1,0,1]:
-        #        for zz in [-1,0,1]:
-        #            r =a*a1.reshape(1,1,1,-1)+b*a2.reshape(1,1,1,-1)+c*a3.reshape(1,1,1,-1)
-        #            r+=(xx*a1+yy*a2+zz*a3).reshape(1,1,1,-1)
-        #            dist[:,:,:,xx+1,yy+1,zz+1]= np.sqrt((r**2).sum(axis=3))
-        #dist=dist.min(axis=3).min(axis=3).min(axis=3)
-
         r = a*a1.reshape(1,1,1,-1)+b*a2.reshape(1,1,1,-1)+c*a3.reshape(1,1,1,-1)
         dist = np.sqrt((r**2).sum(axis=3))
     elif 0<=dim<3:
@@ -136,17 +148,27 @@ def spatial_correlation_function(atoms, values, length_cutoff, output_gridsize=N
         v_mean_2=(values.mean())**2
         SCF=(SCF-v_mean_2)/(v_2_mean-v_mean_2)
 
+    return SCF, (edges[1:]+edges[:-1])/2
+
+
+
+def spatial_correlation_function_near(atoms, values, gridsize=None, cutoff=None, norm=False):
+    if gridsize == None:
+        gridsize = 0.1
+
+    if cutoff == None:
+        cutoff = 7.5
+
     #close range exact calculation
-    nbins = int(FFT_cutoff/output_gridsize)+1
-    index1,index2,dist=neighbour_list('ijd', atoms, cutoff=FFT_cutoff)
+    nbins = int(cutoff/gridsize)+1
+    index1,index2,dist=neighbour_list('ijd', atoms, cutoff=cutoff)
     SCF_near, edges = np.histogram(dist, bins=bins,
                                    weights=values[index1]*values[index2])
     slice_volume = 4*np.pi/3 * (edges[1:]**3-edges[:-1]**3)
     SCF_near *= atoms.get_volume()/n_atoms**2 / slice_volume
     if norm:
+        v_2_mean=(values**2).mean()
+        v_mean_2=(values.mean())**2
         SCF_near=(SCF_near-v_mean_2)/(v_2_mean-v_mean_2)
 
-    #combine short and long range SCF parts
-    SCF[:nbins-1]=SCF_near[:nbins-1]
-
-    return SCF, (edges[1:]+edges[:-1])/2
+    return SCF_near, (edges[1:]+edges[:-1])/2
