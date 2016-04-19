@@ -28,7 +28,7 @@ signal.signal(signal.SIGUSR2, handle_sigusr2)
 
 ###
 
-def random_solid(els, density):
+def random_solid(els, density, sx=None, sy=None):
     if isinstance(els, str):
         syms = string2symbols(els)
     else:
@@ -39,8 +39,12 @@ def random_solid(els, density):
     a = ase.Atoms(syms, positions=r, cell=[1,1,1], pbc=True)
 
     mass = np.sum(a.get_masses())
-    a0 = ( 1e24*mass/(density*mol) )**(1./3)
-    a.set_cell([a0,a0,a0], scale_atoms=True)
+    if sx is not None and sy is not None:
+        sz = ( 1e24*mass/(density*mol) )/(sx*sy)
+        a.set_cell([sx,sy,sz], scale_atoms=True)
+    else:
+        a0 = ( 1e24*mass/(density*mol) )**(1./3)
+        a.set_cell([a0,a0,a0], scale_atoms=True)
     a.set_initial_charges([0]*len(a))
 
     return a
@@ -70,8 +74,13 @@ calc = parameter('calc')
 
 ###
 
-for density in densities:
-    print('density = %2.1f' % density)
+for _density in densities:
+    try:
+        density, sx, sy = _density
+    except:
+        density = _density
+        sx = sy = None
+    print('density =', density)
 
     initial_fn = 'density_%2.1f-initial.traj' % density
 
@@ -86,7 +95,7 @@ for density in densities:
     if not os.path.exists(liquid_final_fn):
         if not os.path.exists(liquid_fn):
             print('... creating new solid ...')
-            a = random_solid(els, density)
+            a = random_solid(els, density, sx=sx, sy=sy)
             n = a.get_atomic_numbers().copy()
 
             # Relax with the quick potential
