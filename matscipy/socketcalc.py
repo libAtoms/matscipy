@@ -16,6 +16,7 @@ from matscipy.logger import quiet, screen
 from ase.atoms import Atoms
 from ase.io.extxyz import read_xyz, write_xyz
 from ase.io.vasp import write_vasp
+from ase.io.castep import write_castep_cell, write_param
 
 from ase.calculators.calculator import Calculator
 from ase.calculators.vasp import Vasp
@@ -170,7 +171,7 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
             self.server.clients[client_id].start_or_restart(at, label, restart=True)
 
 
-class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class AtomsServerSync(SocketServer.TCPServer):
     allow_reuse_address = True
 
     def __init__(self, server_address, RequestHandlerClass, clients,
@@ -225,6 +226,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             if (client.process is not None and client.process.poll() is None and
                 (client.wait_thread is None or not client.wait_thread.isAlive())):
                 wait_threads.append(client.shutdown(block=False))
+                self.handle_request() # dispatch the shutdown request via socket
         # wait for them all to finish shutting down
         for wait_thread in wait_threads:
             if wait_thread is None or not wait_thread.isAlive():
@@ -235,7 +237,7 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     def shutdown(self):
         self.shutdown_clients()
-        return SocketServer.TCPServer.shutdown(self)
+        self.server_close()
 
 
     def put(self, at, client_id, label, force_restart=False):
@@ -358,6 +360,32 @@ class AtomsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         return results_atoms
 
 
+class AtomsServerAsync(AtomsServerSync, SocketServer.ThreadingMixIn):
+    """
+    Asyncronous (threaded) version of AtomsServer
+    """
+
+    def shutdown(self):
+        self.shutdown_clients()
+        return SocketServer.TCPServer.shutdown(self)
+
+    def shutdown_clients(self):
+        self.logger.pr('shutting down all clients')
+        wait_threads = []
+        for client_id, client in enumerate(self.clients):
+            if (client.process is not None and client.process.poll() is None and
+                (client.wait_thread is None or not client.wait_thread.isAlive())):
+                wait_threads.append(client.shutdown(block=False))
+        # wait for them all to finish shutting down
+        for wait_thread in wait_threads:
+            if wait_thread is None or not wait_thread.isAlive():
+                continue
+            wait_thread.join()
+        self.logger.pr('all client shutdowns complete')
+
+
+AtomsServer = AtomsServerAsync # backwards compatibility
+
 class Client(object):
     """
     Represents a single Client job
@@ -457,6 +485,7 @@ class Client(object):
         self.process = subprocess.Popen(runjob_args, stdout=self.log, stderr=self.log, **popen_args)
 
 
+
     def shutdown(self, block=True):
         """Request a client to shutdown.
 
@@ -528,6 +557,7 @@ class Client(object):
         self.process = None
         self.log = None
         self.server.input_qs[self.client_id].task_done()
+        self.logger.pr('wait_for_shutdown done')
 
 
     def start_or_restart(self, at, label, restart=False):
@@ -645,6 +675,7 @@ class QUIPClient(Client):
 
 _chdir_lock = threading.Lock()
 
+
 class QMClient(Client):
     """
     Abstract subclass of Client for QM calculations
@@ -721,6 +752,7 @@ class QMClient(Client):
             return False
 
         return True
+
 
 class VaspClient(QMClient):
     """
@@ -833,8 +865,14 @@ class CastepClient(QMClient):
         if 'md_num_iter' not in castep_args:
             self.logger.pr('No md_num_iter key in castep_args, setting md_num_iter=1000000')
             castep_args['md_num_iter'] = 1000000
+        castep_args['_rename_existing_dir'] = False
         self.castep_args = castep_args
+        self.logger.pr('constructing Castep instance with args %r' % castep_args)
+        self.castep = Castep(directory=self.subdir, **castep_args)
 
+        self._orig_devel_code = ''
+        if hasattr(self.castep.param, 'devel_code'):
+            self._orig_devel_code = self.castep.param.devel_code.value.strip()+'\n'
 
     def preprocess(self, at, label, force_restart=False):
         self.logger.pr('Castep client %d preprocessing atoms label %d' % (self.client_id, label))
@@ -848,7 +886,9 @@ class CastepClient(QMClient):
         order = np.array(range(len(at)))
         at.set_array('castep_sort_order', order)
         resort = order[np.argsort(at.get_atomic_numbers())]
+        #print 'resort = ', resort
         at = at[resort]
+        #print 'castep_sort_order', at.get_array('castep_sort_order')
         return at, fmt, first_time
 
 
@@ -860,24 +900,36 @@ class CastepClient(QMClient):
         at = at[at.arrays['castep_sort_order'].tolist()]
         return at
 
-
     def write_input_files(self, at, label):
-        castep_args = self.castep_args.copy()
-        if 'devel_code' not in self.castep_args:
-            castep_args['devel_code'] = []
-        castep_args['devel_code'] = \
-            'SOCKET_IP=%s\nSOCKET_PORT=%d\nSOCKET_CLIENT_ID=%d\nSOCKET_LABEL=%d' % \
-                (self.server.ip, self.server.port, self.client_id, label)
-        castep = Castep(directory=self.subdir, **castep_args)
-        castep.initialize(at)
+        global _chdir_lock
+
+        devel_code = self._orig_devel_code
+        devel_code += ('SOCKET_IP=%s\nSOCKET_PORT=%d\nSOCKET_CLIENT_ID=%d\nSOCKET_LABEL=%d' % \
+                        (self.server.ip, self.server.port, self.client_id, label))
+        self.castep.param.devel_code = devel_code
+
+        # chdir not thread safe, so acquire global lock before using it
+        orig_dir = os.getcwd()
+        try:
+            _chdir_lock.acquire()
+            os.chdir(self.subdir)
+            cellf = open('castep.cell', 'w')
+            write_castep_cell(cellf, at, castep_cell=self.castep.cell)
+            cellf.close()
+            write_param('castep.param', self.castep.param, force_write=True)
+
+        finally:
+            os.chdir(orig_dir)
+            _chdir_lock.release()
 
     def extra_args(self, label=None):
         return ['castep']
 
+
 class SocketCalculator(Calculator):
     """
     ASE-compatible calculator which communicates with remote
-    force engines via sockets using an AtomsServer.
+    force engines via sockets using a (syncronous) AtomsServer.
     """
 
     implemented_properties = ['energy', 'forces', 'stress']
@@ -891,11 +943,8 @@ class SocketCalculator(Calculator):
         if ip is None:
             ip = '127.0.0.1' # default to localhost
         self.logger = logger
-        self.server = AtomsServer((ip, port), AtomsRequestHandler,
-                                  [self.client], logger=self.logger)
-        self.server_thread = threading.Thread(target=self.server.serve_forever)
-        self.server_thread.daemon = True
-        self.server_thread.start()
+        self.server = AtomsServerSync((ip, port), AtomsRequestHandler,
+                                      [self.client], logger=self.logger)
         self.label = 1
         self.atoms = atoms
 
@@ -905,6 +954,14 @@ class SocketCalculator(Calculator):
             self.logger.pr('calculation triggered with properties={0}, system_changes={1}'.format(properties,
                                                                                                   system_changes))
             self.server.put(atoms, 0, self.label)
+            if self.label != 1:
+                # send atoms over socket, unless first time
+                self.logger.pr('socket calculator sending Atoms label={0}'.format(self.label))
+                self.server.handle_request()
+            # wait for results to be ready
+            self.logger.pr('socket calculator waiting for results label={0}'.format(self.label))
+            self.server.handle_request()
+
             self.label += 1
             [results] = self.server.get_results()
 

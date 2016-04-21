@@ -3,50 +3,55 @@
 import logging
 logging.root.setLevel(logging.INFO)
 
+import sys
 import os
 from distutils import spawn
 
-from ase import Atoms
+from ase.lattice import bulk
+from ase.io import read
+
 from matscipy.socketcalc import CastepClient, SocketCalculator
 
-if 'CASTEP' in os.environ:
-      castep = os.environ['CASTEP']
+if 'CASTEP_COMMAND' in os.environ:
+      castep = os.environ['CASTEP_COMMAND']
 else:
       castep = spawn.find_executable('castep.serial')
 
-a = 5.404
-bulk = Atoms(symbols='Si8',
-             positions=[(0, 0, 0),
-                        (0, 0.5, 0.5),
-                        (0.5, 0, 0.5),
-                        (0.5, 0.5, 0),
-                        (0.25, 0.25, 0.25),
-                        (0.25, 0.75, 0.75),
-                        (0.75, 0.25, 0.75),
-                        (0.75, 0.75, 0.25)],
-             pbc=True)
-bulk.set_cell((a, a, a), scale_atoms=True)
+atoms = bulk('Si')
 
 castep_client = CastepClient(client_id=0,
-                             exe=castep)
+                             exe=castep,
+                             devel_code="""PP=T
+pp: NL=T SW=T :endpp
+""")
 
 try:
       sock_calc = SocketCalculator(castep_client)
 
-      bulk.set_calculator(sock_calc)
-      sock_e = bulk.get_potential_energy()
-      sock_f = bulk.get_forces()
-      sock_s = bulk.get_stress()
+      atoms.set_calculator(sock_calc)
+      sock_e = atoms.get_potential_energy()
+      sock_f = atoms.get_forces()
+      sock_s = atoms.get_stress()
 
       print 'energy', sock_e
       print 'forces', sock_f
       print 'stress', sock_s
 
-      bulk.rattle(0.01)
+      atoms.cell *= 2.0 # trigger a restart by changing cell
 
-      sock_e = bulk.get_potential_energy()
-      sock_f = bulk.get_forces()
-      sock_s = bulk.get_stress()
+      sock_e = atoms.get_potential_energy()
+      sock_f = atoms.get_forces()
+      sock_s = atoms.get_stress()
+
+      print 'energy', sock_e
+      print 'forces', sock_f
+      print 'stress', sock_s
+
+      atoms.rattle() # small change in position, no restart
+
+      sock_e = atoms.get_potential_energy()
+      sock_f = atoms.get_forces()
+      sock_s = atoms.get_stress()
 
       print 'energy', sock_e
       print 'forces', sock_f
