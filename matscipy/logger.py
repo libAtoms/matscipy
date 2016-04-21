@@ -23,6 +23,8 @@
 Log status to screen.
 """
 
+from __future__ import print_function
+
 import os
 import sys
 
@@ -129,9 +131,9 @@ class Logger(object):
 
     def _print(self, s, logfile=None):
         if logfile and self.logfile != logfile:
-            print >> logfile, s
+            print(s, file=logfile)
         if self.logfile:
-            print >> self.logfile, s
+            print(s, file=self.logfile)
         else:
             self.buffer += [ s ]
 
