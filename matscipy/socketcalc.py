@@ -362,7 +362,7 @@ class AtomsServerSync(SocketServer.TCPServer):
 
 class AtomsServerAsync(AtomsServerSync, SocketServer.ThreadingMixIn):
     """
-    Asyncronous (threaded) version of AtomsServer
+    Asynchronous (threaded) version of AtomsServer
     """
 
     def shutdown(self):
@@ -929,7 +929,7 @@ class CastepClient(QMClient):
 class SocketCalculator(Calculator):
     """
     ASE-compatible calculator which communicates with remote
-    force engines via sockets using a (syncronous) AtomsServer.
+    force engines via sockets using a (synchronous) AtomsServer.
     """
 
     implemented_properties = ['energy', 'forces', 'stress']
