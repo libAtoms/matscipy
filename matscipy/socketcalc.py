@@ -871,7 +871,7 @@ class CastepClient(QMClient):
         self.castep = Castep(directory=self.subdir, **castep_args)
 
         self._orig_devel_code = ''
-        if hasattr(self.castep.param, 'devel_code'):
+        if self.castep.param.devel_code.value is not None:
             self._orig_devel_code = self.castep.param.devel_code.value.strip()+'\n'
 
     def preprocess(self, at, label, force_restart=False):
