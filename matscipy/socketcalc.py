@@ -882,10 +882,10 @@ class CastepClient(QMClient):
         order = np.array(range(len(at)))
         at.set_array('castep_sort_order', order)
         resort = order[np.argsort(at.get_atomic_numbers())]
-        print 'resort = ', resort
-        print at.get_scaled_positions()[resort[0]]
+        #print 'resort = ', resort
+        #print at.get_scaled_positions()[resort[0]]
         at = at[resort]
-        print at.get_scaled_positions()[0]
+        #print at.get_scaled_positions()[0]
         #print 'castep_sort_order', at.get_array('castep_sort_order')
 
         # finally, call the parent method (potentially writing input files)
