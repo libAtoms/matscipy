@@ -47,10 +47,9 @@ def pack_atoms_to_reftraj_str(at, label):
     data += MSG_INT_FORMAT % len(at) + '\n'
     for i in range(3):
         data += (3*MSG_FLOAT_FORMAT) % tuple(at.cell[:, i]) + '\n'
-    g = np.linalg.inv(at.cell.T).T
+    s = at.get_scaled_positions()
     for i in range(len(at)):
-        data += (3*MSG_FLOAT_FORMAT) % tuple(np.dot(g, at.positions[i, :])) + '\n'
-
+        data += (3*MSG_FLOAT_FORMAT) % tuple(s[i, :]) + '\n'
     # preceed message by its length
     data_length = ('%8d' % len(data)).encode('ascii')
     data = data_length + data.encode('ascii')
@@ -77,7 +76,7 @@ def unpack_reftraj_str_to_atoms(data):
         at.cell[:, i] = [float(x) for x in lines[i].split()]
     for i, line in enumerate(lines[4:]):
         t = [float(x) for x in line.split()]
-        at.positions[i, :] = np.dot(at.cell.T, t)
+        at.positions[i, :] = np.dot(t, at.cell)
     return at
 
 def pack_results_to_reftraj_output_str(at):
@@ -582,7 +581,7 @@ class Client(object):
         one submitted to the queue (see is_compatible() method).
 
         Many be extended in subclasses to e.g. sort the atoms by
-        atomic numbe. If Atoms object needs to be changed, a copy
+        atomic number. If Atoms object needs to be changed, a copy
         should be returned rather than updating it inplace.
 
         Returns (at, first_time).
@@ -785,8 +784,6 @@ class VaspClient(QMClient):
 
     def preprocess(self, at, label, force_restart=False):
         self.logger.pr('vasp client %d preprocessing atoms label %d' % (self.client_id, label))
-        # call the parent method first
-        at, fmt, first_time = Client.preprocess(self, at, label, force_restart)
 
         # make a copy and then sort atoms in the same way that vasp
         # calculator will when it writes POSCAR. We use a new
@@ -799,7 +796,8 @@ class VaspClient(QMClient):
         at.set_array('vasp_sort_order', order)
         at = at[vasp.resort]
 
-        return at, fmt, first_time
+        # finally, call the parent method
+        return Client.preprocess(self, at, label, force_restart)
 
 
     def postprocess(self, at, label):
@@ -876,8 +874,6 @@ class CastepClient(QMClient):
 
     def preprocess(self, at, label, force_restart=False):
         self.logger.pr('Castep client %d preprocessing atoms label %d' % (self.client_id, label))
-        # call the parent method first
-        at, fmt, first_time = Client.preprocess(self, at, label, force_restart)
 
         # make a copy and then sort atoms by atomic number
         # in the same way that Castep will internally. We store the sort
@@ -886,10 +882,14 @@ class CastepClient(QMClient):
         order = np.array(range(len(at)))
         at.set_array('castep_sort_order', order)
         resort = order[np.argsort(at.get_atomic_numbers())]
-        #print 'resort = ', resort
+        print 'resort = ', resort
+        print at.get_scaled_positions()[resort[0]]
         at = at[resort]
+        print at.get_scaled_positions()[0]
         #print 'castep_sort_order', at.get_array('castep_sort_order')
-        return at, fmt, first_time
+
+        # finally, call the parent method (potentially writing input files)
+        return Client.preprocess(self, at, label, force_restart)
 
 
     def postprocess(self, at, label):
