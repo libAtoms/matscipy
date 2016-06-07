@@ -87,13 +87,35 @@ tip_y = (a.positions[bond1, 1] + a.positions[bond2, 1])/2
 logger.pr('Optimizing tip position -> initially centering tip bond. '
           'Tip positions = {} {}'.format(tip_x, tip_y))
 
+# Check if there is a request to restart from a positions file
+restart_from = parameter('restart_from', 'N/A')
+if restart_from != 'N/A':
+    logger.pr('Restarting from {0}'.format(restart_from))
+    a = ase.io.read(restart_from)
+    tip_x, tip_y = crk.crack_tip_position(a.positions[:len(cryst),0],
+                                          a.positions[:len(cryst),1],
+                                          cryst.positions[:,0],
+                                          cryst.positions[:,1],
+                                          tip_x, tip_y,
+                                          params.k1*k1g,
+                                          mask=tip_mask,
+                                          residual_func=residual_func)
+    logger.pr('Optimizing tip position -> initially autodetected tip position. '
+              'Tip positions = {} {}'.format(tip_x, tip_y))
+else:
+    tip_x = (a.positions[bond1, 0] + a.positions[bond2, 0])/2
+    tip_y = (a.positions[bond1, 1] + a.positions[bond2, 1])/2
+    logger.pr('Optimizing tip position -> initially centering tip bond. '
+              'Tip positions = {} {}'.format(tip_x, tip_y))
+
+
 # Assign calculator.
 a.set_calculator(calc)
 
 log_file = open('{0}.log'.format(basename), 'w')
 if write_trajectory_during_optimization:
-    traj_file = ase.io.NetCDFTrajectory('%s_%4d.nc' % \
-        (basename, int(bond_length*1000)), mode='w', atoms=a)
+    traj_file = ase.io.NetCDFTrajectory('{0}.nc'.format(basename), mode='w',
+                                        atoms=a)
     traj_file.write()
 else:
     traj_file = None
@@ -104,6 +126,8 @@ if _residual_func == crack.deformation_gradient_residual:
     residual_func = lambda r0, crack, x, y, ref_x, ref_y, k, mask=None:\
         _residual_func(r0, crack, x, y, a, ref_x, ref_y, cryst, k,
                        params.cutoff, mask)
+
+
 
 old_x = tip_x
 old_y = tip_y
@@ -117,6 +141,7 @@ while not converged:
                                cryst.positions[:,1],
                                tip_x, tip_y, params.k1*k1g)
 
+    a.set_constraint(None)
     # Displace atom positions
     a.positions[:len(cryst),0] += ux-u0x
     a.positions[:len(cryst),1] += uy-u0y
@@ -124,12 +149,13 @@ while not converged:
     a.positions[bond1,1] -= uy[bond1]-u0y[bond1]
     a.positions[bond2,0] -= ux[bond2]-u0x[bond2]
     a.positions[bond2,1] -= uy[bond2]-u0y[bond2]
-
     # Set bond length and boundary atoms explicitly to avoid numerical drift
     a.positions[boundary_mask,0] = \
         cryst.positions[boundary_mask_bulk,0] + ux[boundary_mask_bulk]
     a.positions[boundary_mask,1] = \
         cryst.positions[boundary_mask_bulk,1] + uy[boundary_mask_bulk]
+    # Fix outer boundary
+    a.set_constraint(ase.constraints.FixAtoms(mask=boundary_mask))
 
     logger.pr('Optimizing positions...')
     opt = Optimizer(a, logfile=log_file)
