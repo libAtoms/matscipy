@@ -32,7 +32,7 @@ except ImportError:
     warnings.warn('Warning: no scipy')
 
 import ase.units as units
-from ase.calculators.neighborlist import NeighborList    
+from ase.calculators.neighborlist import NeighborList
 
 from matscipy.atomic_strain import atomic_strain
 from matscipy.elasticity import (rotate_elastic_constants,
@@ -76,7 +76,7 @@ class RectilinearAnisotropicCrack:
         self._init_crack()
 
 
-    def set_plane_strain(self, b11, b22, b33, b12, b13, b23, b16, b26, b36, 
+    def set_plane_strain(self, b11, b22, b33, b12, b13, b23, b16, b26, b36,
                          b66):
         self.a11 = b11 - (b13*b13)/b33
         self.a22 = b22 - (b23*b23)/b33
@@ -177,7 +177,7 @@ class RectilinearAnisotropicCrack:
             Derivatives of displacements normal to the plane of the crack within
             the plane.
         dv_dy : array
-            Derivatives of displacements normal to the plane of the crack 
+            Derivatives of displacements normal to the plane of the crack
             perpendicular to the plane.
         """
 
@@ -418,7 +418,7 @@ class CubicCrystalCrack:
         """
         return self.crack.k1g(surface_energy)
 
-    
+
     def k1gsqG(self):
         return self.crack.k1gsqG()
 
@@ -455,7 +455,7 @@ class CubicCrystalCrack:
             y-coordinate of the crack tip.
         k : float
             Stress intensity factor.
-        
+
         Returns
         -------
         ux : array_like
@@ -500,7 +500,7 @@ class CubicCrystalCrack:
             y-coordinate of the crack tip.
         k : float
             Stress intensity factor.
-        
+
         Returns
         -------
         ux : array_like
@@ -517,7 +517,7 @@ class CubicCrystalCrack:
                            residual_func=displacement_residual,
                            method='Powell', return_residuals=False):
         """
-        Return an estimate of the real crack tip position by minimizing the 
+        Return an estimate of the real crack tip position by minimizing the
         mean square error of the current configuration relative to the
         diplacement field obtained for a stress intensity factor k from linear
         elastic fracture mechanics.
@@ -558,7 +558,7 @@ class CubicCrystalCrack:
             Per-atom residuals at end of optimization.
         """
         if mask is None:
-            mask = np.ones(len(a), dtype=bool)
+            mask = np.ones(len(x), dtype=bool)
         if method == 'leastsq':
             (x1, y1), ier = leastsq(residual_func, (x0, y0),
                                     args=(self, x, y, ref_x, ref_y, k, mask))
@@ -585,7 +585,7 @@ class CubicCrystalCrack:
 
     def crack_tip_position_y(self, x, y, ref_x, ref_y, x0, y0, k, mask=None):
         """
-        Return an estimate of the y-coordinate of the real crack tip position 
+        Return an estimate of the y-coordinate of the real crack tip position
         assuming the stress intensity factor is k.
 
         Parameters
@@ -624,7 +624,7 @@ class CubicCrystalCrack:
     def scale_displacements(self, x, y, ref_x, ref_y, old_k, new_k):
         """
         Rescale atomic positions from stress intensity factor old_k to the new
-        stress intensity factor new_k. This is useful for extrapolation of 
+        stress intensity factor new_k. This is useful for extrapolation of
         relaxed positions.
 
         Parameters
@@ -725,7 +725,7 @@ def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
     stress_state : str
        One of"plane stress" or "plane strain". Used if xyz_only=False to
        determine zz stresses.
-       
+
     Returns
     -------
     sigma : array with shape ``r.shape + (3,3)``
@@ -734,7 +734,7 @@ def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
     if r.shape != t.shape:
         raise ValueError('Shapes of radial and angular arrays "r" and "t" '
                          'must match.')
-    
+
     if stress_state not in [PLANE_STRAIN, PLANE_STRESS]:
         raise ValueError('"stress_state" should be either "{0}" or "{1}".'
             .format(PLANE_STRAIN, PLANE_STRESS))
@@ -751,8 +751,8 @@ def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
         sigma[...,2,2] = nu*(sigma[...,0,0] + sigma[...,1,1])              # zz
 
     return sigma
-    
-    
+
+
 def isotropic_modeI_crack_tip_displacement_field(K, G, nu, r, t,
                                                  stress_state=PLANE_STRAIN):
     """
@@ -775,7 +775,7 @@ def isotropic_modeI_crack_tip_displacement_field(K, G, nu, r, t,
     stress_state : str
         One of"plane stress" or "plane strain". Used if xyz_only=False to
         determine zz stresses.
-       
+
     Returns
     -------
     u : array
@@ -786,7 +786,7 @@ def isotropic_modeI_crack_tip_displacement_field(K, G, nu, r, t,
     if r.shape != t.shape:
         raise ValueError('Shapes of radial and angular arrays "r" and "t" '
                          'must match.')
-    
+
     if stress_state == PLANE_STRAIN:
         kappa = 3-4*nu
     elif stress_state == PLANE_STRESS:
@@ -832,12 +832,12 @@ class IsotropicStressField(object):
             x0 = atoms.info['CrackPos'][0]
         if y0 is None:
             y0 = atoms.info['CrackPos'][1]
-            
+
         x = atoms.positions[:, 0]
         y = atoms.positions[:, 1]
         r = np.sqrt((x - x0)**2 + (y - y0)**2)
         t = np.arctan2(y - y0, x - x0)
-        
+
         sigma = isotropic_modeI_crack_tip_stress_field(K, r, t, self.nu,
                                                        self.stress_state)
         sigma[:,0,0] += self.sxx0
@@ -846,7 +846,7 @@ class IsotropicStressField(object):
         sigma[:,1,0] += self.sxy0
 
         return sigma
-    
+
 
 def strain_to_G(strain, E, nu, orig_height):
     """
@@ -904,7 +904,7 @@ def get_strain(atoms):
 
     Also updates value stored in ``atoms.info``.
     """
-    
+
     orig_height = atoms.info['OrigHeight']
     current_height = atoms.positions[:, 1].max() - atoms.positions[:, 1].min()
     strain = current_height / orig_height - 1.0
@@ -922,7 +922,7 @@ def get_energy_release_rate(atoms):
 
     Also updates `G` value stored in ``atoms.info`` dictionary.
     """
-    
+
     current_strain = get_strain(atoms)
     orig_height = atoms.info['OrigHeight']
     E = atoms.info['YoungsModulus']
@@ -944,7 +944,7 @@ def get_stress_intensity_factor(atoms, stress_state=PLANE_STRAIN):
     """
 
     G = get_energy_release_rate(atoms)
-    
+
     E = atoms.info['YoungsModulus']
     nu = atoms.info['PoissonRatio_yx']
 
@@ -955,7 +955,7 @@ def get_stress_intensity_factor(atoms, stress_state=PLANE_STRAIN):
     else:
         raise ValueError('"stress_state" should be either "{0}" or "{1}".'
             .format(PLANE_STRAIN, PLANE_STRESS))
-                         
+
     K = np.sqrt(G*Ep)
     atoms.info['K'] = K
     return K
@@ -1022,7 +1022,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
        If present, override the calculator used to compute stresses
        on the atoms. Default is ``atoms.get_calculator``.
 
-       To use the atom resolved stress tensor pass an instance of the 
+       To use the atom resolved stress tensor pass an instance of the
        :class:`~quippy.elasticity.AtomResolvedStressField` class.
 
     verbose : bool, optional
@@ -1114,7 +1114,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
 
     if verbose:
        print('Fitting on %r atoms' % sigma[mask,1,1].shape)
-    
+
     def objective_function(params, x, y, sigma, var_params):
         params = dict(zip(var_params, params))
         if fix_params is not None:
@@ -1144,7 +1144,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
        s_sq = (objective_function(fitted_params, x, y, sigma, var_params)**2).sum()/(sigma.size-len(fitted_params))
        cov = cov * s_sq
        err = dict(zip(var_params, np.sqrt(np.diag(cov))))
-    
+
     if verbose:
        print('K = %.3f MPa sqrt(m)' % (params['K']/MPA_SQRT_M))
        print('sigma^0_{xx,yy,xy} = (%.1f, %.1f, %.1f) GPa' % (params['sxx0']*GPA,
@@ -1187,7 +1187,7 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     a.info['bond2'] = bond2
 
     return bond1, bond2
-    
+
 
 def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=None,
                                 sigma=None, avg_sigma=None, avg_decay=0.005, calc=None):
@@ -1206,7 +1206,7 @@ def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=N
                                          avg_sigma, avg_decay, calc)
 
     return np.array((params['x0'], params['y0'], atoms.cell[2,2]/2.0))
-    
+
 
 def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None,
                        sigma=None, avg_sigma=None, avg_decay=0.005, calc=None):
@@ -1228,7 +1228,7 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
 
     K, x0, y0, sxx0, syy0, sxy0 = (params['K'], params['x0'], params['y0'],
                                    params['sxx0'], params['syy0'], params['sxy0'])
-   
+
     x = atoms.positions[:, 0]
     y = atoms.positions[:, 1]
 
@@ -1357,18 +1357,18 @@ def thin_strip_displacement_y(x, y, strain, a, b):
 
     u_y[x < a] = np.sign(y[x < a]) * shift  # region shift for x < a
     u_y[x > b] = strain * y[x > b]          # constant strain for x > b
-    
+
     middle = (x >= a) & (x <= b)            # interpolate for a <= x <= b
     f = (x[middle] - a) / (b - a)
     u_y[middle] = (f * strain * y[middle] +
                    (1 - f) * shift * np.sign(y[middle]))
-    
+
     return u_y
 
 
 def print_crack_system(directions):
     """
-    Pretty printing of crack crystallographic coordinate system 
+    Pretty printing of crack crystallographic coordinate system
 
     Specified by list of Miller indices for crack_direction (x),
     cleavage_plane (y) and crack_front (z), each of which should be
@@ -1376,7 +1376,7 @@ def print_crack_system(directions):
     """
 
     crack_direction, cleavage_plane, crack_front = directions
-    
+
     crack_direction = MillerDirection(crack_direction)
     cleavage_plane = MillerPlane(cleavage_plane)
     crack_front = MillerDirection(crack_front)
@@ -1419,4 +1419,4 @@ class ConstantStrainRate(object):
 
 
 
-    
+
