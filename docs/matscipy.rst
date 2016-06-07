@@ -28,14 +28,6 @@ matscipy.atomic_strain module
     :undoc-members:
     :show-inheritance:
 
-matscipy.checkpoint module
---------------------------
-
-.. automodule:: matscipy.checkpoint
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 matscipy.elasticity module
 --------------------------
 

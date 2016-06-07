@@ -66,7 +66,7 @@ logger = screen
 
 a, cryst, crk, k1g, tip_x, tip_y, bond1, bond2, boundary_mask, \
     boundary_mask_bulk, tip_mask = setup_crack(logger=logger)
-ase.io.write('notch.xyz', a, format='extxyz')   
+ase.io.write('notch.xyz', a, format='extxyz')
 
 # Get general parameters
 
@@ -118,6 +118,7 @@ for i, bond_length in enumerate(params.bond_lengths):
     else:
         traj_file = None
 
+    mask = None
     if restart_from is not None:
         fn = '{0}/{1}'.format(restart_from, xyz_file)
         if os.path.exists(fn):
