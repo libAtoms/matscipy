@@ -98,7 +98,7 @@ if restart_from != 'N/A':
                                           cryst.positions[:,1],
                                           tip_x, tip_y,
                                           params.k1*k1g,
-                                          mask=tip_mask,
+                                          mask=tip_mask[:len(cryst)],
                                           residual_func=residual_func)
     logger.pr('Optimizing tip position -> initially autodetected tip position. '
               'Tip positions = {} {}'.format(tip_x, tip_y))
@@ -172,7 +172,7 @@ while not converged:
                                           cryst.positions[:,1],
                                           tip_x, tip_y,
                                           params.k1*k1g,
-                                          mask=tip_mask,
+                                          mask=tip_mask[:len(cryst)],
                                           residual_func=residual_func)
 
     dtip_x = tip_x-old_x
@@ -192,7 +192,7 @@ fit_x, fit_y, residuals = \
                            cryst.positions[:,0],
                            cryst.positions[:,1],
                            tip_x, tip_y, params.k1*k1g,
-                           mask=tip_mask,
+                           mask=tip_mask[:len(cryst)],
                            residual_func=residual_func,
                            return_residuals=True)
 
