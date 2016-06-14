@@ -40,6 +40,8 @@ from matscipy.elasticity import (rotate_elastic_constants,
                                  Voigt_6_to_full_3x3_stress)
 from matscipy.surface import MillerDirection, MillerPlane
 
+from matscipy.neighbours import neighbour_list
+
 ###
 
 # Constants
@@ -1189,6 +1191,62 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     return bond1, bond2
 
 
+def find_tip_broken_bonds(atoms, cutoff, bulk_nn=4, boundary_thickness=None):
+    """
+    Find position of the tip from the atom coordination, i.e. broken bonds.
+    Using the C implementation of 'neighbour_list'.
+    Returns the tip's position in cartesian coordinates.
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+        Atomic configuration.
+    cutoff : float
+        Cutoff distance for neighbour search.
+    bulk_nn : integer
+        Number of nearest neighbours for the standard bulk configuration.
+    boundary_buffer : float
+        Thickness of the boundaries.
+        Defaults to cutoff distance.
+
+    Returns
+    -------
+    tip_position : numpy array
+        The x and y values are found.
+        The z value is calculated as the midpoint of the depth.
+    """
+
+    # initialisation of the boundaries
+    if boundary_thickness is None:
+        boundary_thickness = cutoff
+
+    right_boundary = atoms.positions[(np.argmax(atoms.positions[:,0], axis=0)), 0] - boundary_thickness
+    top_boundary = atoms.positions[(np.argmax(atoms.positions[:,1], axis=0)), 1] - boundary_thickness
+    bottom_boundary = atoms.positions[(np.argmin(atoms.positions[:,1], axis=0)), 1] + boundary_thickness
+    left_boundary = atoms.positions[(np.argmin(atoms.positions[:,0], axis=0)), 0] + boundary_thickness
+
+    # calculating the coordination from the neighbours list
+    i = neighbour_list("i", atoms, cutoff)
+    coordination_list = np.bincount(i, minlength=len(atoms))
+
+    # list of atom numbers with at least one broken bond
+    broken_bonds_array = np.where(coordination_list <= bulk_nn-1)
+
+    # finds the atom number with the most positive x-valued position with a broken bond(s)
+    # within the bounded section
+    atom_number = 0
+    for m in range(0, len(broken_bonds_array[0])):
+        temp_atom_pos = atoms.positions[broken_bonds_array[0][m]]
+        if temp_atom_pos[0] > atoms.positions[atom_number,0]:
+            if left_boundary < temp_atom_pos[0] < right_boundary:
+                if bottom_boundary < temp_atom_pos[1] < top_boundary:
+                    atom_number = m
+
+    tip_position = atoms.positions[broken_bonds_array[0][atom_number]]
+
+    return np.array((tip_position[0], tip_position[1], atoms.cell[2,2]/2.0))
+
+
 def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=None,
                                 sigma=None, avg_sigma=None, avg_decay=0.005, calc=None):
     """
@@ -1416,7 +1474,3 @@ class ConstantStrainRate(object):
         return ConstantStrainRate(self.orig_height,
                                   self.delta_strain,
                                   self.mask)
-
-
-
-
