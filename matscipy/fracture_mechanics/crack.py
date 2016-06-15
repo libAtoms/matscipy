@@ -1463,7 +1463,7 @@ class ConstantStrainRate(object):
     def adjust_forces(self, positions, forces):
         pass
 
-    def adjust_positions(self, oldpos, newpos):
+    def adjust_positions(self, newpos):
         current_height = newpos[:, 1].max() - newpos[:, 1].min()
         current_strain = current_height / self.orig_height - 1.0
         new_strain = current_strain + self.delta_strain
