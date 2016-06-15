@@ -79,13 +79,14 @@ _residual_func = residual_func
 basename = parameter('basename', 'neb')
 calc = parameter('calc')
 fmax_neb = parameter('fmax_neb', 0.1)
+maxsteps_neb = parameter('maxsteps_neb', 100)
 Nimages = parameter('Nimages', 7)
 k_neb = parameter('k_neb', 1.0)
 
 a, cryst, crk, k1g, tip_x, tip_y, bond1, bond2, boundary_mask, \
     boundary_mask_bulk, tip_mask = setup_crack(logger=logger)
 
-# Deformation gradient residual needs fu  ll Atoms object and therefore
+# Deformation gradient residual needs full Atoms object and therefore
 # special treatment here.
 if _residual_func == crack.deformation_gradient_residual:
     residual_func = lambda r0, crack, x, y, ref_x, ref_y, k, mask=None:\
@@ -141,7 +142,7 @@ for image in neb.images:
 nebfile.close()
 
 opt = Optimizer(neb)
-opt.run(fmax_neb, 100)
+opt.run(fmax_neb, maxsteps_neb)
 
 nebfile = open('neb-final.xyz', 'w')
 for image in neb.images:
@@ -210,6 +211,8 @@ tip_y = np.array(tip_y)
 # Integrate bond force potential energy
 epot = -cumtrapz(bond_force, bond_length, initial=0.0)
 print 'epot =', epot
+
+print 'epot_cluster + work', epot_cluster + work
 
 savetbl('{}_eval.out'.format(basename),
         bond_length=bond_length,

@@ -92,6 +92,10 @@ restart_from = parameter('restart_from', 'N/A')
 if restart_from != 'N/A':
     logger.pr('Restarting from {0}'.format(restart_from))
     a = ase.io.read(restart_from)
+    # remove any marker atoms
+    marker_mask = np.logical_and(a.numbers != atomic_numbers[ACTUAL_CRACK_TIP],
+                                 a.numbers != atomic_numbers[FITTED_CRACK_TIP])
+    a = a[marker_mask]
     tip_x, tip_y = crk.crack_tip_position(a.positions[:len(cryst),0],
                                           a.positions[:len(cryst),1],
                                           cryst.positions[:,0],
