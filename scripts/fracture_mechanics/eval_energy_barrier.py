@@ -38,7 +38,7 @@ from matscipy.elasticity import invariants, full_3x3_to_Voigt_6_strain, \
 from matscipy.fracture_mechanics.energy_release import J_integral
 from matscipy.io import savetbl
 
-from atomistica.analysis import voropp
+#from atomistica.analysis import voropp
 
 ###
 
@@ -109,6 +109,7 @@ J_int = []
 last_a = None
 for fn in fns:
     a = ase.io.read(fn)
+    print(fn, a.arrays.keys())
 
     _tip_x, _tip_y, _tip_z = a.info['fitted_crack_tip']
     tip_x += [ _tip_x ]
