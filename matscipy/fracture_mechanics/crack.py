@@ -1474,3 +1474,27 @@ class ConstantStrainRate(object):
         return ConstantStrainRate(self.orig_height,
                                   self.delta_strain,
                                   self.mask)
+
+    def apply_strain(self, atoms, rigid_constraints=False):
+        """
+        Applies a constant strain to the system.
+
+        Parameters
+        ----------
+        atoms : ASE.atoms
+            Atomic configuration.
+        rigid_constraints : boolean
+            Apply (or not apply) strain to every atom.
+            i.e. allow constrainted atoms to move during strain application
+        """
+
+        if rigid_constraints == False:
+            initial_constraints = atoms.constraints
+            atoms.constraints = None
+
+        newpos = atoms.get_positions()
+        self.adjust_positions(newpos)
+        atoms.set_positions(newpos)
+
+        if rigid_constraints == False:
+            atoms.constraints = initial_constraints
