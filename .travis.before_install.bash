@@ -17,3 +17,6 @@ elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
   source venv/bin/activate
 fi
 pip install numpy
+if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+  pip install atomistica
+fi
