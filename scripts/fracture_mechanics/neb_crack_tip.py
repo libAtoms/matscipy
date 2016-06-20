@@ -26,6 +26,8 @@
 # Code imports the file 'params.py' from current working directory. params.py
 # contains simulation parameters. Some parameters can be omitted, see below.
 
+from __future__ import print_function
+
 import os
 import sys
 
@@ -34,7 +36,7 @@ import numpy as np
 import ase
 import ase.constraints
 import ase.io
-import ase.optimize.precon
+#import ase.optimize.precon
 
 from ase.neb import NEB
 
@@ -167,7 +169,7 @@ for image in neb.images:
     # Get stored potential energy.
     epot_cluster += [ image.get_potential_energy() ]
 
-    forces = image.get_forces()
+    forces = image.get_forces(apply_constraint=False)
     df = forces[bond1, :] - forces[bond2, :]
     bond_force += [ 0.5 * np.dot(df, dr)/np.sqrt(np.dot(dr, dr)) ]
 
@@ -200,19 +202,19 @@ for image in neb.images:
     last_tip_y = fit_y
 
 epot_cluster = np.array(epot_cluster)-epot_cluster[0]
-print 'epot_cluster', epot_cluster
+print('epot_cluster', epot_cluster)
 
 work = np.cumsum(work)
-print 'work =', work
+print('work =', work)
 
 tip_x = np.array(tip_x)
 tip_y = np.array(tip_y)
 
 # Integrate bond force potential energy
 epot = -cumtrapz(bond_force, bond_length, initial=0.0)
-print 'epot =', epot
+print('epot =', epot)
 
-print 'epot_cluster + work', epot_cluster + work
+print('epot_cluster + work', epot_cluster + work)
 
 savetbl('{}_eval.out'.format(basename),
         bond_length=bond_length,
