@@ -16,3 +16,4 @@ elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
   virtualenv -p $PYTHON venv
   source venv/bin/activate
 fi
+pip install numpy
