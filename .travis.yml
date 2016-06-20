@@ -43,3 +43,9 @@ notifications:
     - adrien.gola@kit.edu
     - richard.jana@kit.edu
     - p.patel@warwick.ac.uk
+addons:
+  apt:
+    packages:
+    - gfortran
+    - liblapack-dev
+    - python-numpy
