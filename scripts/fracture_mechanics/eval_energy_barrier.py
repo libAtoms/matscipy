@@ -129,17 +129,20 @@ for fn in fns:
     epot_cluster += [ a.get_potential_energy() ]
 
     # Stored Forces on bond.
+    #a.set_calculator(params.calc)
     forces = a.get_forces()
     df = forces[bond1, :] - forces[bond2, :]
     bond_force += [ 0.5 * np.dot(df, dr)/np.sqrt(np.dot(dr, dr)) ]
     #bond_force = a.info['force']
-    assert abs(bond_force[-1]-a.info['force']) < 1e-6
+    #print bond_force[-1], a.info['force']
+    assert abs(bond_force[-1]-a.info['force']) < 1e-2
 
     # Work due to moving boundary.
     if last_a is None:
         work += [ 0.0 ]
     else:
-        last_forces = last_a.get_forces()
+        #last_forces = last_a.get_array('forces')
+        last_forces = last_a.get_forces() #(apply_constraint=True)
         # This is the trapezoidal rule.
         work += [ np.sum(0.5 * (forces[g==0,:]+last_forces[g==0,:]) *
                          (a.positions[g==0,:]-last_a.positions[g==0,:])
@@ -203,6 +206,8 @@ print 'tip_x =', tip_x
 epot = -cumtrapz(bond_force, bond_length, initial=0.0)
 
 print 'epot =', epot
+
+print 'epot_cluster + work - epot', epot_cluster + work - epot
 
 savetbl('{}_eval.out'.format(prefix),
         bond_length=bond_length,

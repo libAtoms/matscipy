@@ -38,6 +38,7 @@ from neighbours import *
 from ring_statistics import *
 from spatial_correlation_function import *
 from test_io import *
+from crack_tests import *
 
 try:
     from scipy.interpolate import InterpolatedUnivariateSpline
