@@ -124,7 +124,10 @@ dynamics.attach(check_if_crack_advanced, 1, atoms)
 
 # Save frames to the trajectory every `traj_interval` time steps
 trajectory = NetCDFTrajectory(params.traj_file, mode='w')
-dynamics.attach(trajectory.write, params.traj_interval)
+def write_frame(atoms):
+    trajectory.write(atoms)
+
+dynamics.attach(write_frame, params.traj_interval, atoms)
 
 # Start running!
 dynamics.run(params.nsteps)
