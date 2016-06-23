@@ -73,7 +73,7 @@ print('Fixed %d atoms\n' % fixed_mask.sum())
 strain_atoms = ConstantStrainRate(orig_height,
                                   params.strain_rate*params.timestep)
 
-atoms.set_constraint([fix_atoms, strain_atoms])
+atoms.set_constraint(fix_atoms)
 
 atoms.set_calculator(params.calc)
 
@@ -90,7 +90,7 @@ dynamics = VelocityVerlet(atoms, params.timestep)
 def printstatus():
     if dynamics.nsteps == 1:
         print """
-State      Time/fs    Temp/K     Strain      G/(J/m^2)  CrackPos/A D(CrackPos)/A 
+State      Time/fs    Temp/K     Strain      G/(J/m^2)  CrackPos/A D(CrackPos)/A
 ---------------------------------------------------------------------------------"""
 
     log_format = ('%(label)-4s%(time)12.1f%(temperature)12.6f'+
@@ -102,7 +102,7 @@ State      Time/fs    Temp/K     Strain      G/(J/m^2)  CrackPos/A D(CrackPos)/A
                                  (1.5*units.kB*len(atoms)))
     atoms.info['strain'] = get_strain(atoms)
     atoms.info['G'] = get_energy_release_rate(atoms)/(units.J/units.m**2)
-    
+
     crack_pos = find_tip_stress_field(atoms)
     atoms.info['crack_pos_x'] = crack_pos[0]
     atoms.info['d_crack_pos_x'] = crack_pos[0] - orig_crack_pos[0]
@@ -112,18 +112,15 @@ State      Time/fs    Temp/K     Strain      G/(J/m^2)  CrackPos/A D(CrackPos)/A
 
 dynamics.attach(printstatus)
 
-# Check if the crack has advanced, and stop incrementing the strain if it has
-def check_if_cracked(atoms):
+# Check if the crack has advanced enough and apply strain if it has not
+def check_if_crack_advanced(atoms):
     crack_pos = find_tip_stress_field(atoms)
 
-    # stop straining if crack has advanced more than tip_move_tol
-    if (not atoms.info['is_cracked'] and
-        (crack_pos[0] - orig_crack_pos[0]) > params.tip_move_tol):
-        atoms.info['is_cracked'] = True
-        del atoms.constraints[atoms.constraints.index(strain_atoms)]
+    # strain if crack has not advanced more than tip_move_tol
+    if crack_pos[0] - orig_crack_pos[0] < params.tip_move_tol:
+        strain_atoms.apply_strain(atoms)
 
-
-dynamics.attach(check_if_cracked, 1, atoms)
+dynamics.attach(check_if_crack_advanced, 1, atoms)
 
 # Save frames to the trajectory every `traj_interval` time steps
 trajectory = NetCDFTrajectory(params.traj_file, mode='w')

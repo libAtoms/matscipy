@@ -61,7 +61,7 @@ if hasattr(params, 'relax_bulk') and params.relax_bulk:
     print('Minimising bulk unit cell...')
     opt = FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]))
     opt.run(fmax=params.bulk_fmax)
-    
+
 a0 = a.cell[0, 0]
 print('Lattice constant %.3f A\n' % a0)
 
@@ -248,7 +248,6 @@ print 'Found crack tip at position %s' % crack_pos
 crack_slab.info['strain'] = strain
 crack_slab.info['G'] = params.initial_G
 crack_slab.info['CrackPos'] = crack_pos
-crack_slab.info['is_cracked'] = False
 
 # ******** Save output file **********
 
