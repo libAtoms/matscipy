@@ -88,8 +88,7 @@ def loadtbl(fn, usecols=None, fromfile=False):
         raise RuntimeError("No header found in file '{}'".format(fn))
     
     sep_i = [x.find(':') for x in column_labels]
-    column_labels = map(lambda s,i: s[i+1:] if i >= 0 else s, column_labels,
-                        sep_i)
+    column_labels = [s[i+1:] if i >= 0 else s for s, i in zip(column_labels, sep_i)]
 
     if fromfile:
         f = open(fn)
