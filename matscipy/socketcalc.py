@@ -811,6 +811,11 @@ class VaspClient(QMClient):
 
     def write_input_files(self, at, label):
         global _chdir_lock
+        # For LOTF Simulations active number of quantum 
+        # atoms vary and must wait to this stage in order for
+        # magnetic moments to be set properly. If magnetic moments
+        # not set defaults to 0.
+        self.vasp_args['MAGMOM'] = at.get_initial_magnetic_moments()
         vasp = Vasp(**self.vasp_args)
         vasp.initialize(at)
         # chdir not thread safe, so acquire global lock before using it
