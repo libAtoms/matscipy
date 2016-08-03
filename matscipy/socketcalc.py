@@ -941,15 +941,17 @@ class SocketCalculator(Calculator):
     default_parameters = {}
     name = 'SocketCalculator'
 
-    def __init__(self, client, ip=None, atoms=None, port=0, logger=screen):
+    def __init__(self, client, ip=None, atoms=None, port=0, logger=screen, bgq=False):
         Calculator.__init__(self)
 
         self.client = client
         if ip is None:
             ip = '127.0.0.1' # default to localhost
         self.logger = logger
+        self.bgq=bgq
         self.server = AtomsServerSync((ip, port), AtomsRequestHandler,
-                                      [self.client], logger=self.logger)
+                                      [self.client], logger=self.logger,
+                                      bgq=self.bgq)
         self.label = 1
         self.atoms = atoms
 
