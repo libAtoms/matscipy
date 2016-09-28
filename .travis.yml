@@ -43,6 +43,7 @@ notifications:
     - adrien.gola@kit.edu
     - richard.jana@kit.edu
     - p.patel@warwick.ac.uk
+    - andreas.klemenz@iwm.fraunhofer.de
 addons:
   apt:
     packages:
