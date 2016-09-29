@@ -49,4 +49,5 @@ addons:
     packages:
     - gfortran
     - liblapack-dev
+    - libopenblas-dev
     - python-numpy
