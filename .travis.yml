@@ -31,7 +31,7 @@ matrix:
 before_install:
   - source .travis.before_install.bash
 install:
-  - "pip install -r requirements.txt"
+  - "pip install --user -r requirements.txt"
   - "python setup.py install"
 before_script:
   - source .travis.before_script.bash
