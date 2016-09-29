@@ -18,5 +18,5 @@ elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
 fi
 pip install numpy
 if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-  pip install atomistica
+  pip install --upgrade atomistica
 fi
