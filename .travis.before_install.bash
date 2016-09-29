@@ -16,8 +16,7 @@ elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
   virtualenv -p $PYTHON venv
   source venv/bin/activate
 fi
-pip install numpy
+pip install --upgrade numpy
 if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-  pip install --upgrade numpy
   pip install --upgrade atomistica
 fi
