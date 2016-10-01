@@ -1,7 +1,6 @@
 # Travis auto-virtualenv isn't supported on OS X
 language: generic
 sudo: required
-dist: trusty
 matrix:
   include:
     - python: 2.6
