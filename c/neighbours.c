@@ -206,7 +206,15 @@ py_neighbour_list(PyObject *self, PyObject *args)
     int n3 = max((int) floor(len3/cutoff), 1);
 
     /* Avoid overflow in total number of cells */
+    bool warned = false;
     while (((double)n1)*n2*n3 > INT_MAX) {
+      if (!warned) {
+        PyErr_WarnEx(NULL, "Ratio of simulation cell size to cutoff is very "
+                     "large; reducing number of bins for neighbour list "
+                     "search, but this may be slow. Are you using a cell with "
+                     "lots of vacuum?", 1);
+        warned = true;
+      }
       n1 /= 2; if (n1 <= 0) n1 = 1;
       n2 /= 2; if (n2 <= 0) n2 = 1;
       n3 /= 2; if (n3 <= 0) n3 = 1;
