@@ -26,6 +26,7 @@
 #define NO_IMPORT_ARRAY
 #include <numpy/arrayobject.h>
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -142,6 +143,11 @@ py_neighbour_list(PyObject *self, PyObject *args)
         }
         cutoffs = PyArray_DATA((PyArrayObject *) py_cutoffs);
         cutoffs_sq = malloc(ncutoffs*ncutoffs*sizeof(double));
+        if (!cutoffs_sq) {
+            PyErr_SetString(PyExc_RuntimeError, "Failed to allocate cutoffs_sq "
+                                                "array.");
+            goto fail;
+        }
         cutoff = 0.0;
         for (i = 0; i < ncutoffs*ncutoffs; i++) {
             cutoff = max(cutoff, cutoffs[i]);
@@ -199,6 +205,13 @@ py_neighbour_list(PyObject *self, PyObject *args)
     int n2 = max((int) floor(len2/cutoff), 1);
     int n3 = max((int) floor(len3/cutoff), 1);
 
+    /* Avoid overflow in total number of cells */
+    while (((double)n1)*n2*n3 > INT_MAX) {
+      n1 /= 2; if (n1 <= 0) n1 = 1;
+      n2 /= 2; if (n2 <= 0) n2 = 1;
+      n3 /= 2; if (n3 <= 0) n3 = 1;
+    }
+
     assert(n1 > 0);
     assert(n2 > 0);
     assert(n3 > 0);
@@ -212,9 +225,21 @@ py_neighbour_list(PyObject *self, PyObject *args)
     /* Sort particles into bins */
     int ncells = n1*n2*n3;
     seed = (int *) malloc(ncells*sizeof(int));
+    if (!seed) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to allocate seed array.");
+        goto fail;
+    }
     last = (int *) malloc(ncells*sizeof(int));
+    if (!last) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to allocate last array.");
+        goto fail;
+    }
     for (i = 0; i < ncells; i++)  seed[i] = -1;
     next = (int *) malloc(nat*sizeof(int));
+    if (!next) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to allocate next array.");
+        goto fail;
+    }
     for (i = 0; i < nat; i++) {
         /* Get cell index */
         int c1, c2, c3;
