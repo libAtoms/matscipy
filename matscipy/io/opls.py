@@ -20,6 +20,7 @@
 
 import time
 import sys
+import distutils.version
 
 import numpy as np
 import ase
@@ -31,6 +32,11 @@ import matscipy.neighbours
 
 import matscipy.opls
 
+try:
+    import ase.version
+    ase_version_str = ase.version.version
+except:
+    ase_version_str = ase.__version__
 
 
 def read_extended_xyz(fileobj):
@@ -173,7 +179,11 @@ def write_lammps_atoms(prefix, atoms):
         fileobj.write(str(len(dtypes)) + ' dihedral types\n')
 
     # cell
-    p = ase.calculators.lammpsrun.prism(atoms.get_cell())
+    if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.11.0'):
+        p = ase.calculators.lammpsrun.Prism(atoms.get_cell())
+    else:
+        p = ase.calculators.lammpsrun.prism(atoms.get_cell())
+
     xhi, yhi, zhi, xy, xz, yz = p.get_lammps_prism_str()
     fileobj.write('\n0.0 %s  xlo xhi\n' % xhi)
     fileobj.write('0.0 %s  ylo yhi\n' % yhi)

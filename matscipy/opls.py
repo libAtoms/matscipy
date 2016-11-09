@@ -21,8 +21,6 @@
 import time
 import numpy as np
 
-from ase.calculators.lammpsrun import prism
-
 import ase
 import ase.data
 import ase.io
