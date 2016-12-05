@@ -6,7 +6,7 @@ import numpy as np
 
 import ase.io
 
-from matscipy.fracture_mechanics.clusters import diamond_110_110
+from matscipy.fracture_mechanics.clusters import diamond, set_groups
 
 import atomistica
 
@@ -28,6 +28,7 @@ n               = [ 4, 6, 1 ]
 crack_surface   = [ 1,-1, 0 ]
 crack_front     = [ 1, 1, 0 ]
 crack_tip       = [ 41, 56 ]
+skin_x, skin_y = 1, 1
 
 vacuum          = 6.0
 
@@ -42,7 +43,9 @@ tip_dz          = np.zeros_like(k1)
 fmax            = 0.05
 
 # Setup crack system
-cryst = diamond_110_110(el, a0, n, crack_surface, crack_front)
+cryst = diamond(el, a0, n, crack_surface, crack_front)
+set_groups(cryst, n, skin_x, skin_y)
+
 ase.io.write('cryst.cfg', cryst)
 
 # Compute crack tip position
