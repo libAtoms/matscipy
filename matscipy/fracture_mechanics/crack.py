@@ -32,7 +32,6 @@ except ImportError:
     warnings.warn('Warning: no scipy')
 
 import ase.units as units
-from ase.calculators.neighborlist import NeighborList
 
 from matscipy.atomic_strain import atomic_strain
 from matscipy.elasticity import (rotate_elastic_constants,
@@ -1165,12 +1164,9 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     """
     Find position of tip in crack cluster from coordination
     """
-    nl = NeighborList([bondlength/2.0]*len(a),
-                      skin=0.0,
-                      self_interaction=False,
-                      bothways=True)
-    nl.update(a)
-    nn = np.array([len(nl.get_neighbors(i)[0]) for i in range(len(a))])
+    i, j = neighbour_list("ij", a, bondlength)
+    nn = np.bincount(i, minlength=len(a))
+
     a.set_array('n_neighb', nn)
     g = a.get_array('groups')
 
