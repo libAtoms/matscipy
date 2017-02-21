@@ -93,7 +93,11 @@ if compute_J_integral:
 
 ###
 
-prefix = sys.argv[1]
+try:
+    prefix = sys.argv[1]
+except:
+    prefix = 'energy_barrier'
+
 fns = sorted(glob.glob('%s_????.xyz' % prefix))
 if len(fns) == 0:
     raise RuntimeError("Could not find files with prefix '{}'.".format(prefix))
@@ -144,6 +148,9 @@ for fn in fns:
         #last_forces = last_a.get_array('forces')
         last_forces = last_a.get_forces() #(apply_constraint=True)
         # This is the trapezoidal rule.
+        #print('MAX force', np.abs(forces[g==0,:]).max())
+        #print('MAX last force', np.abs(last_forces[g==0,:]).max())
+        #print('MAX d force', np.abs(forces[g==0,:] + last_forces[g==0,:]).max())
         work += [ np.sum(0.5 * (forces[g==0,:]+last_forces[g==0,:]) *
                          (a.positions[g==0,:]-last_a.positions[g==0,:])
                           ) ]
