@@ -26,17 +26,21 @@
 # Code imports the file 'params.py' from current working directory. params.py
 # contains simulation parameters. Some parameters can be omitted, see below.
 
+from __future__ import division
+from math import sqrt
+
 import os
 import sys
 
 import numpy as np
 
 import ase
-import ase.constraints
+from ase.constraints import FixConstraint
 import ase.io
 import ase.optimize
 from ase.data import atomic_numbers
 from ase.units import GPa
+from ase.geometry import find_mic
 
 import matscipy.fracture_mechanics.crack as crack
 from matscipy import parameter
@@ -50,9 +54,64 @@ import sys
 sys.path += ['.', '..']
 import params
 
+class FixBondLength(FixConstraint):
+    """Constraint object for fixing a bond length."""
+
+    removed_dof = 1
+
+    def __init__(self, a1, a2):
+        """Fix distance between atoms with indices a1 and a2. If mic is
+        True, follows the minimum image convention to keep constant the
+        shortest distance between a1 and a2 in any periodic direction.
+        atoms only needs to be supplied if mic=True.
+        """
+        self.indices = [a1, a2]
+        self.constraint_force = None
+
+    def adjust_positions(self, atoms, new):
+        p1, p2 = atoms.positions[self.indices]
+        d, p = find_mic(np.array([p2 - p1]), atoms._cell, atoms._pbc)
+        q1, q2 = new[self.indices]
+        d, q = find_mic(np.array([q2 - q1]), atoms._cell, atoms._pbc)
+        d *= 0.5 * (p - q) / q
+        new[self.indices] = (q1 - d[0], q2 + d[0])
+
+    def adjust_forces(self, atoms, forces):
+        d = np.subtract.reduce(atoms.positions[self.indices])
+        d, p = find_mic(np.array([d]), atoms._cell, atoms._pbc)
+        d = d[0]
+        d *= 0.5 * np.dot(np.subtract.reduce(forces[self.indices]), d) / p**2
+        self.constraint_force = d
+        forces[self.indices] += (-d, d)
+
+    def index_shuffle(self, atoms, ind):
+        """Shuffle the indices of the two atoms in this constraint"""
+        newa = [-1, -1]  # Signal error
+        for new, old in slice2enlist(ind, len(atoms)):
+            for i, a in enumerate(self.indices):
+                if old == a:
+                    newa[i] = new
+        if newa[0] == -1 or newa[1] == -1:
+            raise IndexError('Constraint not part of slice')
+        self.indices = newa
+
+    def get_constraint_force(self):
+        """Return the (scalar) force required to maintain the constraint"""
+        return self.constraint_force
+
+    def get_indices(self):
+        return self.indices
+
+    def __repr__(self):
+        return 'FixBondLength(%d, %d)' % tuple(self.indices)
+
+    def todict(self):
+        return {'name': 'FixBondLength',
+                'kwargs': {'a1': self.indices[0], 'a2': self.indices[1]}}
+
 ###
 
-Optimizer = ase.optimize.FIRE
+Optimizer = ase.optimize.LBFGS
 
 # Atom types used for outputting the crack tip position.
 ACTUAL_CRACK_TIP = 'Au'
@@ -138,7 +197,7 @@ for i, bond_length in enumerate(params.bond_lengths):
 
     a.set_constraint(None)
     a.set_distance(bond1, bond2, bond_length)
-    bond_length_constraint = ase.constraints.FixBondLength(bond1, bond2)
+    bond_length_constraint = FixBondLength(bond1, bond2)
 
     # Deformation gradient residual needs full Atoms object and therefore
     # special treatment here.
@@ -206,56 +265,56 @@ for i, bond_length in enumerate(params.bond_lengths):
             logger.pr('- New crack tip (after mixing) is at {:3.2f} {:3.2f} '
                      '(= {:3.2e} {:3.2e} from the former position).'.format(tip_x, tip_y, tip_x-old_x, tip_y-old_y))
             converged = np.asscalar(abs(dtip_x) < tip_tol and abs(dtip_y) < tip_tol)
-        else:
-            a.set_constraint([ase.constraints.FixAtoms(mask=boundary_mask),
-                              bond_length_constraint])
-            logger.pr('Optimizing positions...')
-            opt = Optimizer(a, logfile=log_file)
-            if traj_file:
-                opt.attach(traj_file.write)
-            opt.run(fmax=fmax)
-            logger.pr('...done. Converged within {0} steps.' \
-                     .format(opt.get_number_of_steps()))
-
-        # Store forces.
-        a.set_constraint(None)
-        a.set_array('forces', a.get_forces())
-
-        # Make a copy of the configuration.
-        b = a.copy()
-
-        # Fit crack tip (again), and get residuals.
-        fit_x, fit_y, residuals = \
-            crk.crack_tip_position(a.positions[:len(cryst),0],
-                                   a.positions[:len(cryst),1],
-                                   cryst.positions[:,0],
-                                   cryst.positions[:,1],
-                                   tip_x, tip_y, params.k1*k1g,
-                                   mask=mask,
-                                   residual_func=residual_func,
-                                   return_residuals=True)
-
-        logger.pr('Measured crack tip at %f %f' % (fit_x, fit_y))
-        #b.set_array('residuals', residuals)
-
-        # The target crack tip is marked by a gold atom.
-        b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, tip_y, b.cell.diagonal()[2]/2))
-        b.info['actual_crack_tip'] = (tip_x, tip_y, b.cell.diagonal()[2]/2)
-
-        # The fitted crack tip is marked by a silver atom.
-        b += ase.Atom(FITTED_CRACK_TIP, (fit_x, fit_y, b.cell.diagonal()[2]/2))
-        b.info['fitted_crack_tip'] = (fit_x, fit_y, b.cell.diagonal()[2]/2)
-
-        bond_dir = a[bond1].position - a[bond2].position
-        bond_dir /= np.linalg.norm(bond_dir)
-        force = np.dot(bond_length_constraint.get_constraint_force(), bond_dir)
-
-        b.info['bond_length'] = bond_length
-        b.info['force'] = force
-        b.info['energy'] = a.get_potential_energy()
-        b.info['cell_origin'] = [0, 0, 0]
-        ase.io.write(xyz_file, b, format='extxyz')
-
-        log_file.close()
+    else:
+        a.set_constraint([ase.constraints.FixAtoms(mask=boundary_mask),
+                          bond_length_constraint])
+        logger.pr('Optimizing positions...')
+        opt = Optimizer(a, logfile=log_file)
         if traj_file:
-            traj_file.close()
+            opt.attach(traj_file.write)
+        opt.run(fmax=fmax)
+        logger.pr('...done. Converged within {0} steps.' \
+                 .format(opt.get_number_of_steps()))
+
+    # Store forces.
+    a.set_constraint(None)
+    a.set_array('forces', a.get_forces())
+
+    # Make a copy of the configuration.
+    b = a.copy()
+
+    # Fit crack tip (again), and get residuals.
+    fit_x, fit_y, residuals = \
+        crk.crack_tip_position(a.positions[:len(cryst),0],
+                               a.positions[:len(cryst),1],
+                               cryst.positions[:,0],
+                               cryst.positions[:,1],
+                               tip_x, tip_y, params.k1*k1g,
+                               mask=mask,
+                               residual_func=residual_func,
+                               return_residuals=True)
+
+    logger.pr('Measured crack tip at %f %f' % (fit_x, fit_y))
+    #b.set_array('residuals', residuals)
+
+    # The target crack tip is marked by a gold atom.
+    b += ase.Atom(ACTUAL_CRACK_TIP, (tip_x, tip_y, b.cell.diagonal()[2]/2))
+    b.info['actual_crack_tip'] = (tip_x, tip_y, b.cell.diagonal()[2]/2)
+
+    # The fitted crack tip is marked by a silver atom.
+    b += ase.Atom(FITTED_CRACK_TIP, (fit_x, fit_y, b.cell.diagonal()[2]/2))
+    b.info['fitted_crack_tip'] = (fit_x, fit_y, b.cell.diagonal()[2]/2)
+
+    bond_dir = a[bond1].position - a[bond2].position
+    bond_dir /= np.linalg.norm(bond_dir)
+    force = np.dot(bond_length_constraint.get_constraint_force(), bond_dir)
+
+    b.info['bond_length'] = bond_length
+    b.info['force'] = force
+    b.info['energy'] = a.get_potential_energy()
+    b.info['cell_origin'] = [0, 0, 0]
+    ase.io.write(xyz_file, b, format='extxyz')
+
+    log_file.close()
+    if traj_file:
+        traj_file.close()
