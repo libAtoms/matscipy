@@ -112,6 +112,7 @@ class FixBondLength(FixConstraint):
 ###
 
 Optimizer = ase.optimize.LBFGS
+Optimizer_steps_limit = 1000
 
 # Atom types used for outputting the crack tip position.
 ACTUAL_CRACK_TIP = 'Au'
@@ -242,7 +243,7 @@ for i, bond_length in enumerate(params.bond_lengths):
             opt = Optimizer(a, logfile=log_file)
             if traj_file:
                 opt.attach(traj_file.write)
-            opt.run(fmax=fmax)
+            opt.run(fmax=fmax, steps=Optimizer_steps_limit)
             logger.pr('...done. Converged within {0} steps.' \
                      .format(opt.get_number_of_steps()))
 
@@ -272,7 +273,7 @@ for i, bond_length in enumerate(params.bond_lengths):
         opt = Optimizer(a, logfile=log_file)
         if traj_file:
             opt.attach(traj_file.write)
-        opt.run(fmax=fmax)
+        opt.run(fmax=fmax,  steps=Optimizer_steps_limit)
         logger.pr('...done. Converged within {0} steps.' \
                  .format(opt.get_number_of_steps()))
 
