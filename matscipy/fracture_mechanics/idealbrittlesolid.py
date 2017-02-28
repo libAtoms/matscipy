@@ -77,7 +77,7 @@ class IdealBrittleSolid(Calculator):
             e = 0.5*de # half goes to each end of spring
             f = (k*(r - a)*dr_hat.T).T + beta*dv
 
-            energies[:] = np.bincount(i, e)
+            energies[:] = np.bincount(i, e, minlength=len(atoms))
             for kk in range(3):
                 forces[:, kk] = np.bincount(i, weights=f[:, kk],
                                             minlength=len(atoms))
