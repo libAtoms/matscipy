@@ -19,7 +19,38 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from __future__ import absolute_import
+"""
+Run calculation on a supercell of the atomic structure.
+"""
 
-from .eam import EAM
-from .supercell_calculator import SupercellCalculator
+import numpy as np
+
+import ase
+from ase.calculators.calculator import Calculator
+
+###
+
+class SupercellCalculator(Calculator):
+    implemented_properties = ['energy', 'stress', 'forces']
+    default_parameters = {}
+    name = 'EAM'
+
+    def __init__(self, calc, supercell):
+        Calculator.__init__(self)
+        self.calc = calc
+        self.supercell = supercell
+
+    def calculate(self, atoms, properties, system_changes):
+        Calculator.calculate(self, atoms, properties, system_changes)
+
+        atoms = self.atoms.copy()
+        atoms *= self.supercell
+        atoms.set_calculator(self.calc)
+
+        energy = atoms.get_potential_energy()
+        stress = atoms.get_stress()
+        forces = atoms.get_forces()
+
+        self.results = {'energy': energy/np.prod(self.supercell),
+                        'stress': stress,
+                        'forces': forces[:len(self.atoms)]}

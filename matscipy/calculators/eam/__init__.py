@@ -19,5 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from matscipy.calculators.eam.calculator import *
-from matscipy.calculators.eam.io import *
+from __future__ import absolute_import
+
+from .calculator import EAM
+from .io import mix_eam, read_eam, write_eam
