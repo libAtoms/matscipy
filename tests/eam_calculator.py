@@ -30,7 +30,6 @@ import numpy as np
 from numpy.linalg import norm
 
 import ase.io as io
-from ase.calculators.test import numeric_force
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
@@ -44,46 +43,10 @@ from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
 
 ###
 
-def numeric_stress(atoms, d=1e-6):
-    """Evaluate stress tensor using finite differences.
-
-    This will trigger 18 calls to get_potential_energy(), with appropriate
-    cell deformation.
-    """
-    stress = np.zeros([3, 3])
-    cell0 = atoms.get_cell().copy()
-
-    for i in range(3):
-        for j in range(3):
-            cell = cell0.copy()
-            eps0 = np.eye(3)
-            eps = eps0.copy()
-
-            eps[i, j] = eps0[i, j]-d
-            cell = np.dot(cell0, eps)
-            atoms.set_cell(cell, scale_atoms=True)
-            e1 = atoms.get_potential_energy()
-
-            eps[i, j] = eps0[i, j]+d
-            cell = np.dot(cell0, eps)
-            atoms.set_cell(cell, scale_atoms=True)
-            e2 = atoms.get_potential_energy()
-
-            stress[i, j] = (e2-e1)/(2*d)
-
-    atoms.set_cell(cell0, scale_atoms=True)
-
-    return np.array([stress[0,0], stress[1,1], stress[2,2],
-                     (stress[1,2]+stress[2,1])/2,
-                     (stress[0,2]+stress[2,0])/2,
-                     (stress[0,1]+stress[1,0])/2])/atoms.get_volume()
-
-###
-
 class TestEAMCalculator(matscipytest.MatSciPyTestCase):
 
     disp = 1e-6
-    tol = 1e-6
+    tol = 2e-6
 
     def test_forces(self):
         for calc in [EAM('Au-Grochola-JCP05.eam.alloy')]:
@@ -91,25 +54,21 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
             a.center(vacuum=10.0)
             a.set_calculator(calc)
             f = a.get_forces()
-            random.seed()
-            for dummy in range(10):
-                i = random.randrange(len(a))
-                d = random.randrange(3)
-                self.assertTrue((numeric_force(a, i, d, self.disp)-f[i, d]) <
-                                self.tol)
+            fn = calc.calculate_numerical_forces(a)
+            self.assertArrayAlmostEqual(f, fn, tol=self.tol)
 
     def test_stress(self):
         a = FaceCenteredCubic('Au', size=[2,2,2])
         calc = EAM('Au-Grochola-JCP05.eam.alloy')
         a.set_calculator(calc)
-        self.assertArrayAlmostEqual(a.get_stress(), numeric_stress(a))
+        self.assertArrayAlmostEqual(a.get_stress(), calc.calculate_numerical_stress(a), tol=self.tol)
 
         sx, sy, sz = a.cell.diagonal()
         a.set_cell([sx, 0.9*sy, 1.2*sz], scale_atoms=True)
-        self.assertArrayAlmostEqual(a.get_stress(), numeric_stress(a))
+        self.assertArrayAlmostEqual(a.get_stress(), calc.calculate_numerical_stress(a), tol=self.tol)
 
         a.set_cell([[sx, 0.1*sx, 0], [0, 0.9*sy, 0], [0, -0.1*sy, 1.2*sz]], scale_atoms=True)
-        self.assertArrayAlmostEqual(a.get_stress(), numeric_stress(a))
+        self.assertArrayAlmostEqual(a.get_stress(), calc.calculate_numerical_stress(a), tol=self.tol)
 
     def test_Grochola(self):
         a = FaceCenteredCubic('Au', size=[2,2,2])
@@ -200,7 +159,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         a = L1_2(['Zr', 'Cu'], size=[2,2,2], latticeconstant=4.0)
         a.set_calculator(calc)
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-        self.assertAlmostEqual(a.cell.diagonal().mean()/2, 3.935, 3)
+        self.assertAlmostEqual(a.cell.diagonal().mean()/2, 3.936, 3)
 
         # CuZr
         a = B2(['Zr', 'Cu'], size=[2,2,2], latticeconstant=3.3)
