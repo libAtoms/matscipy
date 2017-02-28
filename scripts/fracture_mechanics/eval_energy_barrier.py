@@ -231,15 +231,15 @@ i = 1
 while epot[i] < epot[i-1]:
     i += 1
 print 'i =', i
-c, b, a = np.polyfit(bond_length[i-3:i+2]-bond_length[i-1], epot[i-3:i+2], 2)
+c, b, a = np.polyfit(bond_length[i-2:i+2]-bond_length[i-1], epot[i-2:i+2], 2)
 print 'a, b, c =', a, b, c
 min_bond_length = -b/(2*c)
 print 'min_bond_length =', min_bond_length+bond_length[i-1], ', delta(min_bond_length) =', min_bond_length
 min_epot = a+b*min_bond_length+c*min_bond_length**2
 print 'min_epot =', min_epot, ', epot[i-1] =', epot[i-1]
-c, b, a = np.polyfit(bond_length[i-3:i+2]-bond_length[i-1], tip_x[i-3:i+2], 2)
+c, b, a = np.polyfit(bond_length[i-2:i+2]-bond_length[i-1], tip_x[i-2:i+2], 2)
 min_tip_x = a+b*min_bond_length+c*min_bond_length**2
-c, b, a = np.polyfit(bond_length[i-3:i+2]-bond_length[i-1], tip_y[i-3:i+2], 2)
+c, b, a = np.polyfit(bond_length[i-2:i+2]-bond_length[i-1], tip_y[i-2:i+2], 2)
 min_tip_y = a+b*min_bond_length+c*min_bond_length**2
 
 min_bond_length += bond_length[i-1]
