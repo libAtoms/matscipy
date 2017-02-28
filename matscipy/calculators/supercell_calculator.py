@@ -44,6 +44,7 @@ class SupercellCalculator(Calculator):
         Calculator.calculate(self, atoms, properties, system_changes)
 
         atoms = self.atoms.copy()
+        atoms.set_constraint(None)
         atoms *= self.supercell
         atoms.set_calculator(self.calc)
 
