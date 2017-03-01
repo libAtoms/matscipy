@@ -104,7 +104,7 @@ def setup_crack(logger=screen):
         parameter('bond', crack.find_tip_coordination(a, bondlength=bondlength, bulk_nn=bulk_nn))
 
     if parameter('center_crack_tip_on_bond', False):
-        tip_x, tip_z, dummy = (a.positions[bond1]+a.positions[bond2])/2
+        tip_x, tip_y, dummy = (a.positions[bond1]+a.positions[bond2])/2
 
     # Hydrogenate?
     coord = np.bincount(neighbour_list('i', a, bondlength), minlength=len(a))
