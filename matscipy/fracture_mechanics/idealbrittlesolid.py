@@ -28,7 +28,7 @@ def triangular_lattice_slab(a, n, m):
     # we use unit masses
     a.set_masses([1]*len(a))
     return a * (n, m/2, 1)
-                    
+
 
 class IdealBrittleSolid(Calculator):
     """
@@ -37,8 +37,8 @@ class IdealBrittleSolid(Calculator):
     Described in Marder, Int. J. Fract. 130, 517-555 (2004)
     """
 
-    implemented_properties = ['energy', 'energies', 'forces']
-    
+    implemented_properties = ['energy', 'energies', 'stress', 'forces']
+
     default_parameters = {'a': 1.0, # lattice constant
                           'rc': 1.01, # cutoff
                           'k': 1.0, # spring constant
@@ -67,7 +67,7 @@ class IdealBrittleSolid(Calculator):
         energies = np.zeros(len(atoms))
         forces = np.zeros((len(atoms), 3))
         velocities = (atoms.get_momenta().T/atoms.get_masses()).T
-                
+
         i, j, dr, r = neighbour_list('ijDd', atoms, rc)
         if len(i) > 0:
             dr_hat = (dr.T/r).T
@@ -77,41 +77,53 @@ class IdealBrittleSolid(Calculator):
             e = 0.5*de # half goes to each end of spring
             f = (k*(r - a)*dr_hat.T).T + beta*dv
 
-            energies[:] = np.bincount(i, e)            
+            energies[:] = np.bincount(i, e, minlength=len(atoms))
             for kk in range(3):
-                forces[:, kk] = np.bincount(i, weights=f[:, kk])
+                forces[:, kk] = np.bincount(i, weights=f[:, kk],
+                                            minlength=len(atoms))
 
         energy = energies.sum()
-            
+
         # add energy 0.5*k*(rc - a)**2 for each broken bond
         if len(i) < self.crystal_bonds:
             de = 0.5*k*(rc - a)**2
             energy += 0.5*de*(self.crystal_bonds - len(i))
 
+        # Virial
+        virial = np.zeros(6)
+        if len(i) > 0:
+            virial = 0.5*np.array([dr[:,0]*f[:,0],               # xx
+                                   dr[:,1]*f[:,1],               # yy
+                                   dr[:,2]*f[:,2],               # zz
+                                   dr[:,1]*f[:,2],               # yz
+                                   dr[:,0]*f[:,2],               # xz
+                                   dr[:,0]*f[:,1]]).sum(axis=1)  # xy
+
         # Stokes dissipation
         if 'stokes' in atoms.arrays:
             b = atoms.get_array('stokes')
             forces -= (velocities.T*b).T
-        
+
         self.results = {'energy':   energy,
-                        'forces':   forces}
+                        'forces':   forces,
+                        'stress':   virial/atoms.get_volume()}
 
 
     def get_wave_speeds(self, atoms):
         """
         Return longitudinal, shear and Rayleigh wave speeds
         """
-        
+
         k = self.parameters['k']
         a = self.parameters['a']
         m = atoms.get_masses()[0]
-        
+
         ka2_over_m = np.sqrt(k*a**2/m)
-        
+
         c_l = np.sqrt(9./8.*ka2_over_m)
         c_s = np.sqrt(3./8.*ka2_over_m)
         c_R = 0.563*ka2_over_m
-        
+
         return c_l, c_s, c_R
 
 
@@ -121,7 +133,7 @@ class IdealBrittleSolid(Calculator):
         """
         k = self.parameters['k']
         a = self.parameters['a']
-        
+
         lam = np.sqrt(3.0)/2.0*k/a
         mu = lam
         return lam, mu
@@ -130,28 +142,28 @@ class IdealBrittleSolid(Calculator):
     def get_youngs_modulus(self):
         k = self.parameters['k']
         a = self.parameters['a']
-        
+
         return 5.0*sqrt(3.0)/4.0*k/a
 
 
     def get_poisson_ratio(self):
         return 0.25
 
-    
+
 def find_crack_tip(atoms, dt=None, store=True, results=None):
     """
     Return atom at the crack tip and its x-coordinate
-    
+
     Crack tip is defined to be location of rightmost atom
     whose nearest neighbour is at distance > 2.5*a
     """
     calc = atoms.get_calculator()
     a = calc.parameters['a']
     rc = calc.parameters['rc']
-    
+
     i = neighbour_list('i', atoms, rc)
     nn = np.bincount(i) # number of nearest neighbours, equal to 6 in bulk
-    
+
     x = atoms.positions[:, 0]
     y = atoms.positions[:, 1]
 
@@ -167,11 +179,11 @@ def find_crack_tip(atoms, dt=None, store=True, results=None):
         tip_max_x = old_tip_x + 10.0*cR*dt # FIXME definition of cR seems wrong, shouldn't need factor of 10 here...
     else:
         tip_max_x = left + 0.8*width
-    
+
     broken = ((nn != 6) &
               (x > left + 0.2*width) & (x < tip_max_x) &
               (y > bottom + 0.1*height) & (y < bottom + 0.9*height))
-        
+
     index = atoms.positions[broken, 0].argmax()
     tip_atom = broken.nonzero()[0][index]
     tip_x = atoms.positions[tip_atom, 0]
@@ -186,7 +198,7 @@ def find_crack_tip(atoms, dt=None, store=True, results=None):
 
     if results is not None:
         results.append(tip_x)
-    
+
     return (tip_atom, tip_x, broken)
 
 
@@ -204,7 +216,7 @@ def set_initial_velocities(c):
     cl, ct, cR = calc.get_wave_speeds(c)
     v0 = cl/10.
 
-    v = np.zeros((len(c), 3))      
+    v = np.zeros((len(c), 3))
     v[upper, 1] = +v0
     v[lower, 1] = -v0
     c.set_velocities(v)
@@ -219,7 +231,7 @@ def set_constraints(c, a, delta_strain=None):
     bottom = c.positions[:, 1].min()
     left = c.positions[:, 0].min()
     right = c.positions[:, 0].max()
-    
+
     fixed_mask = ((abs(c.positions[:, 1] - top) < 0.5*a) |
                   (abs(c.positions[:, 1] - bottom) < 0.5*a))
     fix_atoms = FixAtoms(mask=fixed_mask)
@@ -250,7 +262,7 @@ def set_constraints(c, a, delta_strain=None):
         c.new_array('stokes', stokes)
     print('Applying Stokes damping to %d atoms' % (stokes != 0.0).sum())
 
-    
+
 
 
 def extend_strip(atoms, a, N, M, vacuum):
@@ -264,14 +276,14 @@ def extend_strip(atoms, a, N, M, vacuum):
         return False
 
     print('tip_x (%.2f) > left + 0.75*width (%.2f)' % (tip_x, left + 0.75*width))
-    
+
     # extra material for pasting onto end
-    a = atoms.get_calculator().parameters['a']    
+    a = atoms.get_calculator().parameters['a']
     extra = triangular_lattice_slab(a, M, N)
 
     # apply uniform strain and append to slab
     strain = get_strain(atoms)
-    
+
     extra.center(vacuum, axis=1)
     fix = atoms.get_array('fix')
     extra.positions[:, 0] += atoms.positions[fix, 0].max() + a/2.0
@@ -287,5 +299,3 @@ def extend_strip(atoms, a, N, M, vacuum):
     del atoms[discard]
 
     return True
-
-    

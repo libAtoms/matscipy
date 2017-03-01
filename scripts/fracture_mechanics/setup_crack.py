@@ -14,13 +14,13 @@ from matscipy.neighbours import neighbour_list
 
 def setup_crack(logger=screen):
     calc = parameter('calc')
-    
+
     cryst = parameter('cryst').copy()
     cryst.set_pbc(True)
-    
+
     # Double check elastic constants. We're just assuming this is really a periodic
     # system. (True if it comes out of the cluster routines.)
-    
+
     compute_elastic_constants = parameter('compute_elastic_constants', False)
     elastic_fmax = parameter('elastic_fmax', 0.01)
     elastic_symmetry = parameter('elastic_symmetry', 'triclinic')
@@ -37,7 +37,7 @@ def setup_crack(logger=screen):
         log_file.close()
         logger.pr('Measured elastic constants (in GPa):')
         logger.pr(np.round(C*10/GPa)/10)
-    
+
         crk = crack.CubicCrystalCrack(parameter('crack_surface'),
                                       parameter('crack_front'),
                                       Crot=C/GPa)
@@ -46,32 +46,33 @@ def setup_crack(logger=screen):
             crk = crack.CubicCrystalCrack(parameter('crack_surface'),
                                           parameter('crack_front'),
                                           C=parameter('C'))
-        else:    
+        else:
             crk = crack.CubicCrystalCrack(parameter('crack_surface'),
                                           parameter('crack_front'),
                                           parameter('C11'), parameter('C12'),
                                           parameter('C44'))
-    
-    
+
+
     logger.pr('Elastic constants used for boundary condition (in GPa):')
     logger.pr(np.round(crk.C*10)/10)
-           
+
     # Get Griffith's k1.
     k1g = crk.k1g(parameter('surface_energy'))
     logger.pr('Griffith k1 = %f' % k1g)
-    
+
     # Apply initial strain field.
     tip_x = parameter('tip_x', cryst.cell.diagonal()[0]/2)
     tip_y = parameter('tip_y', cryst.cell.diagonal()[1]/2)
-    
+
     bondlength = parameter('bondlength', 2.7)
-    
+    bulk_nn = parameter('bulk_nn', 4)
+
     a = cryst.copy()
     a.set_pbc([False, False, True])
-    
+
     hydrogenate_flag = parameter('hydrogenate', False)
     hydrogenate_crack_face_flag = parameter('hydrogenate_crack_face', True)
-    
+
     if hydrogenate_flag and not hydrogenate_crack_face_flag:
         # Get surface atoms of cluster with crack
         a = hydrogenate(cryst, bondlength, parameter('XH_bondlength'), b=a)
@@ -79,7 +80,7 @@ def setup_crack(logger=screen):
         g[a.numbers==1] = -1
         a.set_array('groups', g)
         cryst = a.copy()
-    
+
     k1 = parameter('k1')
     try:
       k1 = k1[0]
@@ -89,7 +90,7 @@ def setup_crack(logger=screen):
                                tip_x, tip_y, k1*k1g)
     a.positions[:len(cryst),0] += ux
     a.positions[:len(cryst),1] += uy
-       
+
     # Center notched configuration in simulation cell and ensure enough vacuum.
     oldr = a[0].position.copy()
     vacuum = parameter('vacuum')
@@ -97,18 +98,18 @@ def setup_crack(logger=screen):
     a.center(vacuum=vacuum, axis=1)
     tip_x += a[0].x - oldr[0]
     tip_y += a[0].y - oldr[1]
-    
+
     # Choose which bond to break.
     bond1, bond2 = \
-        parameter('bond', crack.find_tip_coordination(a, bondlength=bondlength))
+        parameter('bond', crack.find_tip_coordination(a, bondlength=bondlength, bulk_nn=bulk_nn))
 
     if parameter('center_crack_tip_on_bond', False):
-        tip_x, tip_z, dummy = (a.positions[bond1]+a.positions[bond2])/2
-    
+        tip_x, tip_y, dummy = (a.positions[bond1]+a.positions[bond2])/2
+
     # Hydrogenate?
     coord = np.bincount(neighbour_list('i', a, bondlength), minlength=len(a))
     a.set_array('coord', coord)
-    
+
     if parameter('optimize_full_crack_face', False):
         g = a.get_array('groups')
         gcryst = cryst.get_array('groups')
@@ -117,7 +118,7 @@ def setup_crack(logger=screen):
         gcryst[coord!=4] = -1
         a.set_array('groups', g)
         cryst.set_array('groups', gcryst)
-    
+
     if hydrogenate_flag and hydrogenate_crack_face_flag:
         # Get surface atoms of cluster with crack
         exclude = np.logical_and(a.get_array('groups')==1, coord!=4)
@@ -130,26 +131,26 @@ def setup_crack(logger=screen):
         basename = parameter('basename', 'energy_barrier')
         ase.io.write('{0}_hydrogenated.xyz'.format(basename), a,
                      format='extxyz')
-    
+
     # Move reference crystal by same amount
     cryst.set_cell(a.cell)
     cryst.set_pbc([False, False, True])
     cryst.translate(a[0].position - oldr)
-    
+
     # Groups mark the fixed region and the region use for fitting the crack tip.
     g = a.get_array('groups')
     gcryst = cryst.get_array('groups')
-    
+
     logger.pr('Opening bond {0}--{1}, initial bond length {2}'.
           format(bond1, bond2, a.get_distance(bond1, bond2, mic=True)))
-    
+
     # centre vertically on the opening bond
     if parameter('center_cell_on_bond', True):
-      a.translate([0., a.cell[1,1]/2.0 - 
-                      (a.positions[bond1, 1] + 
+      a.translate([0., a.cell[1,1]/2.0 -
+                      (a.positions[bond1, 1] +
                        a.positions[bond2, 1])/2.0, 0.])
 
     a.info['bond1'] = bond1
     a.info['bond2'] = bond2
-    
+
     return a, cryst, crk, k1g, tip_x, tip_y, bond1, bond2, g==0, gcryst==0, g==1
