@@ -27,7 +27,7 @@ def triangular_lattice_slab(a, n, m):
               pbc=[True, True, True])
     # we use unit masses
     a.set_masses([1]*len(a))
-    return a * (n, m//2, 1)
+    return a * (n, m, 1)
 
 
 def find_triangles_2d(a, cutoff, minangle=30*np.pi/180, maxangle=120*np.pi/180,
