@@ -27,7 +27,7 @@ def triangular_lattice_slab(a, n, m):
               pbc=[True, True, True])
     # we use unit masses
     a.set_masses([1]*len(a))
-    return a * (n, m//2, 1)
+    return a * (n, m, 1)
 
 
 class IdealBrittleSolid(Calculator):
