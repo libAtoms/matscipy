@@ -33,6 +33,7 @@ from full_to_Voigt import *
 from greens_function import *
 from Hertz import *
 from hydrogenate import *
+from idealbrittlesolid import *
 from invariants import *
 from neighbours import *
 from ring_statistics import *
