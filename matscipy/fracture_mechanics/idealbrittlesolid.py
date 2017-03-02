@@ -177,7 +177,7 @@ class IdealBrittleSolid(Calculator):
         k = self.parameters['k']
         a = self.parameters['a']
 
-        return 5.0*sqrt(3.0)/4.0*k/a
+        return 5.0*np.sqrt(3.0)/4.0*k/a
 
 
     def get_poisson_ratio(self):
