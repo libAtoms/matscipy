@@ -30,6 +30,41 @@ def triangular_lattice_slab(a, n, m):
     return a * (n, m//2, 1)
 
 
+def find_triangles_2d(a, cutoff, minangle=30*np.pi/180, maxangle=120*np.pi/180,
+                      xdim=0, ydim=1):
+    """
+    Return a list of all triangles of a triangular lattice sitting in the x-y
+    plane.
+    """
+    # Contains atom indices that border the triangle
+    corner1 = []
+    corner2 = []
+    corner3 = []
+    # Find triangles
+    i, j, D = neighbour_list('ijD', a, cutoff)
+    coord = np.bincount(i)
+    for k in range(len(a)):
+        firstn = np.searchsorted(i, k, side='left')
+        lastn = np.searchsorted(i, k, side='right')
+        # Sort six neighbors by angle
+        angles = np.arctan2(D[firstn:lastn, xdim], D[firstn:lastn, ydim])
+        s = np.argsort(angles)
+        # Only pick triangles with angles between min and max angle
+        a = (angles[np.roll(s, -1)]-angles[s]) % (2*np.pi)
+        m = (a > minangle) & (a < maxangle)
+        # Add corners of triangle to lists
+        corner1 += list(np.array([k]*(lastn-firstn))[m])
+        corner2 += list(j[firstn:lastn][s][m])
+        corner3 += list(j[firstn:lastn][np.roll(s, -1)][m])
+    # Remove duplicate triangles
+    corner1 = np.array(corner1)
+    corner2 = np.array(corner2)
+    corner3 = np.array(corner3)
+    uniqueid = corner3+len(a)*(corner2+len(a)*corner1)
+    _, s = np.unique(uniqueid, return_index=True)
+    return corner1[s], corner2[s], corner3[s]
+
+
 class IdealBrittleSolid(Calculator):
     """
     Implementation of force field for an ideal brittle solid
