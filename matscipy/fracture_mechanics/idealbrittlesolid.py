@@ -5,7 +5,7 @@ import numpy as np
 from ase.atoms import Atoms
 from ase.calculators.calculator import Calculator
 from ase.constraints import FixAtoms
-from ase.lattice.spacegroup.cell import cellpar_to_cell
+from ase.geometry import cellpar_to_cell
 
 from matscipy.neighbours import neighbour_list
 from matscipy.fracture_mechanics.crack import (ConstantStrainRate,
