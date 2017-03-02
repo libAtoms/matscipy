@@ -13,6 +13,7 @@ import matscipy.fracture_mechanics.crack as crack
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.fracture_mechanics.crack import ConstantStrainRate
 from matscipy.fracture_mechanics.clusters import diamond, set_groups
+from matscipy.neighbours import neighbour_list
 
 try:
     import atomistica
@@ -107,8 +108,11 @@ if have_atomistica:
             #print(np.round(C*10/units.GPa)/10)
 
             bondlengths = []
-            for i, n in enumerate([[6, 5, 1], [11, 9, 1], [21, 19, 1],
-                                   [41, 39, 1]]):
+            refcell = None
+            reftip_x = None
+            reftip_y = None
+            #[41, 39, 1], 
+            for i, n in enumerate([[21, 19, 1], [11, 9, 1], [6, 5, 1]]):
                 #print(n)
                 cryst = diamond(el, a0, n, crack_surface, crack_front)
                 set_groups(cryst, n, skin_x, skin_y)
@@ -139,10 +143,22 @@ if have_atomistica:
 
                 # Center notched configuration in simulation cell and ensure enough vacuum.
                 oldr = a[0].position.copy()
-                a.center(vacuum=10.0, axis=0)
-                a.center(vacuum=10.0, axis=1)
-                tip_x += a[0].x - oldr[0]
-                tip_y += a[0].y - oldr[1]
+                if refcell is None:
+                    a.center(vacuum=10.0, axis=0)
+                    a.center(vacuum=10.0, axis=1)
+                    refcell = a.cell.copy()
+                    tip_x += a[0].x - oldr[0]
+                    tip_y += a[0].y - oldr[1]
+                    reftip_x = tip_x
+                    reftip_y = tip_y
+                else:
+                    a.set_cell(refcell)
+
+                # Shift tip position so all systems are exactly centered at the same spot
+                a.positions[:, 0] += reftip_x - tip_x
+                a.positions[:, 1] += reftip_y - tip_y
+
+                refpositions = a.positions.copy()
 
                 # Move reference crystal by same amount
                 cryst.set_cell(a.cell)
@@ -159,13 +175,32 @@ if have_atomistica:
 
                 a.set_calculator(calc)
                 a.set_constraint(FixAtoms(mask=g==0))
-                FIRE(a, logfile=None).run(fmax=1e-3)
+                FIRE(a, logfile=None).run(fmax=1e-6)
+
+                dpos = np.sqrt(((a.positions[:, 0]-refpositions[:, 0])/ux)**2 + ((a.positions[:, 1]-refpositions[:, 1])/uy)**2)
+                a.set_array('dpos', dpos)
+
+                distance_from_tip = np.sqrt((a.positions[:, 0]-reftip_x)**2 + (a.positions[:, 1]-reftip_y)**2)
 
                 ase.io.write('crack_{}.xyz'.format(i), a)
+
+                # Compute average bond length per atom
+                neighi, neighj, neighd = neighbour_list('ijd', a, cutoff=bondlength*1.2)
+                coord = np.bincount(neighi)
+                assert coord.max() == 4
+
+                np.savetxt('dpos_{}.out'.format(i), np.transpose([distance_from_tip[coord==4], dpos[coord==4]]))
+
+                # Compute distances from tipcenter
+                neighdist = np.sqrt(((a.positions[neighi,0]+a.positions[neighj,0])/2-reftip_x)**2 +
+                                    ((a.positions[neighi,1]+a.positions[neighj,1])/2-reftip_y)**2)
+
+                np.savetxt('bl_{}.out'.format(i), np.transpose([neighdist, neighd]))
+
                 bondlengths += [a.get_distance(bond1, bond2)]
             print(bondlengths, np.diff(bondlengths), bondlengths/bondlengths[-1]-1)
-            assert np.all(np.diff(bondlengths) < 0)
-            assert np.max(bondlengths/bondlengths[-1]-1) < 0.01
+            assert np.all(np.diff(bondlengths) > 0)
+            assert np.max(bondlengths/bondlengths[0]-1) < 0.01
 
 
 if __name__ == '__main__':
