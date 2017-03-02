@@ -58,7 +58,6 @@ def find_triangles_2d(atoms, cutoff, minangle=30*np.pi/180, maxangle=120*np.pi/1
         corner3 += list(j[firstn:lastn][np.roll(s, -1)][m])
     # Sort corners
     corner1, corner2, corner3 = np.sort([corner1, corner2, corner3], axis=0)
-    print(corner1.min(), corner1.max(), corner3.max(), len(atoms))
     # Remove duplicate triangles
     uniqueid = corner3+len(atoms)*(corner2+len(atoms)*corner1)
     _, s = np.unique(uniqueid, return_index=True)
