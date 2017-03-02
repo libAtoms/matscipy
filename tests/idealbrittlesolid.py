@@ -41,8 +41,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
     def test_two_triangles(self):
         a = ase.Atoms('4Xe', [[0,0,0], [1,0,0], [1,1,0], [0,1,0]])
         c1, c2, c3 = find_triangles_2d(a, 1.1)
-        t = [sorted(x) for x in np.transpose([c1, c2, c3])]
-        self.assertArrayAlmostEqual(t, [[0,1,2], [0,1,3], [1,2,3], [0,2,3]])
+        self.assertArrayAlmostEqual(np.transpose([c1, c2, c3]), [[0,1,2], [0,1,3], [0,2,3], [1,2,3]])
 
 ###
 
