@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import division, print_function
 
 import numpy as np
 
@@ -27,7 +27,7 @@ def triangular_lattice_slab(a, n, m):
               pbc=[True, True, True])
     # we use unit masses
     a.set_masses([1]*len(a))
-    return a * (n, m/2, 1)
+    return a * (n, m//2, 1)
 
 
 class IdealBrittleSolid(Calculator):
