@@ -34,16 +34,13 @@ from ase.optimize import FIRE
 from ase.lattice.cubic import FaceCenteredCubic, SimpleCubic
 
 import matscipy.fracture_mechanics.clusters as clusters
+from matscipy.neighbours import neighbour_list
 from matscipy.elasticity import measure_triclinic_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_cubic
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack
 from matscipy.fracture_mechanics.crack import \
     isotropic_modeI_crack_tip_displacement_field
-
-try:
-    import atomistica
-except:
-    atomistica = None
+from matscipy.fracture_mechanics.idealbrittlesolid import IdealBrittleSolid
 
 ###
 
@@ -67,13 +64,13 @@ class TestCubicCrystalCrack(unittest.TestCase):
         #kappa = 4./(1+nu)-1
 
         crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
-   
+
         #r = np.random.random(10)*10
         #theta = np.random.random(10)*2*math.pi
 
         theta = np.linspace(0.0, math.pi, 101)
         r = 1.0*np.ones_like(theta)
-        
+
         k = crack.crack.k1g(1.0)
 
         u, v = crack.crack.displacements(r, theta, k)
@@ -90,17 +87,15 @@ class TestCubicCrystalCrack(unittest.TestCase):
         continuum solution.
         """
 
-        if not atomistica:
-            print('Atomistica not available. Skipping test.')
-            return
-
         for nx in [ 8, 16, 32, 64 ]:
             for calc, a, C11, C12, C44, surface_energy, bulk_coordination in [
                 #( atomistica.DoubleHarmonic(k1=1.0, r1=1.0, k2=1.0,
                 #                            r2=math.sqrt(2), cutoff=1.6),
                 #  clusters.sc('He', 1.0, [nx,nx,1], [1,0,0], [0,1,0]),
                 #  3, 1, 1, 0.05, 6 ),
-                ( atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=True),
+                (
+                  #atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=True),
+                  IdealBrittleSolid(k=1.0, a=1.0, rc=1.3),
                   clusters.fcc('He', math.sqrt(2.0), [nx,nx,1], [1,0,0],
                                [0,1,0]),
                   math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.05, 12)
@@ -127,20 +122,20 @@ class TestCubicCrystalCrack(unittest.TestCase):
                 g = a.get_array('groups')
                 a.set_constraint(FixAtoms(mask=g==0))
 
-                #ase.io.write('initial_{}.xyz'.format(nx), a, format='extxyz')
+                #ase.io.write('initial_{}.xyz'.format(nx), a, format='extxyz', write_results=False)
 
                 x1, y1, z1 = a.positions.copy().T
                 FIRE(a, logfile=None).run(fmax=1e-3)
                 x2, y2, z2 = a.positions.T
 
                 # Get coordination numbers and find properly coordinated atoms
-                coord = calc.nl.get_coordination_numbers(calc.particles, 1.1)
+                i = neighbour_list("i", a, 1.1)
+                coord = np.bincount(i, minlength=len(a))
                 mask=coord == bulk_coordination
 
                 residual = np.sqrt(((x2-x1)/u)**2 + ((y2-y1)/v)**2)
-                
-                #a.set_array('residual', residual)
-                #ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz')
+                a.set_array('residual', residual)
+                #ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz', write_results=False)
 
                 #print(np.max(residual[mask]))
                 self.assertTrue(np.max(residual[mask]) < 0.2)
