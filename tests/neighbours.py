@@ -40,12 +40,13 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_neighbour_list(self):
         a = io.read('aC.cfg')
-        j, dr, i, abs_dr = neighbour_list("jDid", a, 1.85)
+        j, dr, i, abs_dr, shift = neighbour_list("jDidS", a, 1.85)
 
         self.assertTrue((np.bincount(i) == np.bincount(j)).all())
 
         r = a.get_positions()
         dr_direct = mic(r[j]-r[i], a.cell)
+        self.assertArrayAlmostEqual(r[j]-r[i]+shift.dot(a.cell), dr_direct)
 
         abs_dr_from_dr = np.sqrt(np.sum(dr*dr, axis=1))
         abs_dr_direct = np.sqrt(np.sum(dr_direct*dr_direct, axis=1))
