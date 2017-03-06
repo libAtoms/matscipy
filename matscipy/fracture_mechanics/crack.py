@@ -236,7 +236,7 @@ class RectilinearAnisotropicCrack:
 
         sig_x  = f*(h1*(self.mu2/h2 - self.mu1/h3)).real
         sig_y  = f*(self.inv_mu1_mu2*(self.mu1/h2 - self.mu2/h3)).real
-        sig_xy = f*(h1*(1/h2 - 1/h3)).real
+        sig_xy = f*(h1*(1/h3 - 1/h2)).real
 
         return sig_x, sig_y, sig_xy
 
