@@ -74,14 +74,17 @@ def neighbour_list(quantities, a, cutoff, *args):
             'd' : absolute distance
             'D' : distance vector
             'S' : shift vector (number of cell boundaries crossed by the bond
-                  between atom i and j)
+                  between atom i and j). With the shift vector S, the
+                  distances d between can be computed as:
+                  D = a.positions[j]-a.positions[i]+S.dot(a.cell)
     a : ase.Atoms
         Atomic configuration.
     cutoff : float or array_like
-        Cutoff for neighbour search. If array is given, then different cutoffs
-        will be used for individual bonds.
+        Cutoff for neighbour search. If square array is given, then different
+        cutoffs will be used for individual bonds. Square array contains
+        pair-wise cutoffs for a given species, given by the *numbers* parameter.
     numbers : array_like, optional
-        Atomic numbers of similar identifiers for elements. Used for cutoff
+        Atomic numbers or similar identifiers for elements. Used for cutoff
         lookup.
 
     Returns
