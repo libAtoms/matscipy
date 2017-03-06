@@ -49,9 +49,22 @@ from matscipy.fracture_mechanics.idealbrittlesolid import IdealBrittleSolid
 class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
 
     delta = 1e-6
-    #             C11, C12, C44, surface energy
-    materials = [(1.0, 0.5, 0.3, 1.0),
-                 (1.0, 0.5, 0.3, 10.0)]
+
+    def setUp(self):
+        E = 100
+        nu = 0.3
+
+        K = E/(3.*(1-2*nu))
+        C44 = E/(2.*(1+nu))
+        C11 = K+4.*C44/3.
+        C12 = K-2.*C44/3.
+
+        #             C11, C12, C44, surface energy, k1
+        #self.materials = [(1.0, 0.5, 0.3, 1.0, 1.0),
+        #                  (1.0, 0.5, 0.3, 10.0, 1.0),
+        #                  (C11, C12, C44, 1.0, 1.0)]
+
+        self.materials = [(C11, C12, C44, 1.0, 1.0)]
 
     def test_isotropic_near_field_solution(self):
         """
@@ -74,7 +87,7 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
         #theta = np.random.random(10)*2*math.pi
 
         theta = np.linspace(0.0, math.pi, 101)
-        r = 1.0*np.ones_like(theta)
+        r = np.linspace(0.5, 10.0, 101)
 
         k = crack.crack.k1g(1.0)
 
@@ -82,8 +95,8 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
         ref_u, ref_v = isotropic_modeI_crack_tip_displacement_field(k, C44, nu,
                                                                     r, theta)
 
-        self.assertTrue(np.all(np.abs(u-ref_u) < 1e-6))
-        self.assertTrue(np.all(np.abs(v-ref_v) < 1e-6))
+        self.assertArrayAlmostEqual(u, ref_u)
+        self.assertArrayAlmostEqual(v, ref_v)
 
     def test_anisotropic_near_field_solution(self):
         """
@@ -146,9 +159,9 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 self.assertTrue(np.max(residual[mask]) < 0.2)
 
     def test_consistency_of_deformation_gradient_and_stress(self):
-        for C11, C12, C44, surface_energy in self.materials:
+        for C11, C12, C44, surface_energy, k1 in self.materials:
             crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
-            k = crack.k1g(surface_energy)
+            k = crack.k1g(surface_energy)*k1
             for i in range(10):
                 x = np.random.uniform(-10, 10)
                 y = np.random.uniform(-10, 10)
@@ -171,13 +184,13 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 self.assertAlmostEqual(eps[0, 1], eps_xy)
 
     def test_consistency_of_deformation_gradient_and_displacement(self):
-        eps = 1e-6
-        for C11, C12, C44, surface_energy in self.materials:
+        eps = 1e-3
+        for C11, C12, C44, surface_energy, k1 in self.materials:
             crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
-            k = crack.k1g(surface_energy)
+            k = crack.k1g(surface_energy)*k1
             for i in range(10):
-                x = np.random.uniform(-10, 10)
-                y = np.random.uniform(-10, 10)
+                x = i+1
+                y = i+1
                 F = crack.deformation_gradient(x, y, 0, 0, k)
                 # Finite difference approximation of deformation gradient
                 u, v = crack.displacements(x, y, 0, 0, k)
@@ -192,7 +205,76 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 du_dx += np.ones_like(du_dx)
                 dv_dy += np.ones_like(dv_dy)
                 F_num = np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
-                self.assertArrayAlmostEqual(F, F_num)
+                self.assertArrayAlmostEqual(F, F_num, tol=1e-5)
+
+    def test_J_integral(self):
+        for C11, C12, C44, surface_energy, k1 in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)*k1
+
+            def polar_path(theta, r):
+                nx = np.cos(theta)
+                ny = np.sin(theta)
+                n = np.transpose([nx, ny])
+                return r*n, n, r
+
+            def elliptic_path(theta, r):
+                rx, ry = r
+                x = rx*np.cos(theta)
+                y = ry*np.sin(theta)
+                nx = ry*np.cos(theta)
+                ny = rx*np.sin(theta)
+                ln = np.sqrt(nx**2+ny**2)
+                nx /= ln
+                ny /= ln
+                ds = np.sqrt((rx*np.sin(theta))**2 + (ry*np.cos(theta))**2)
+                return np.transpose([x, y]), np.transpose([nx, ny]), ds
+
+            def rectangular_path(t, r):
+                x = -r*np.ones_like(t)
+                y = r*(t-8)
+                nx = -np.ones_like(t)
+                ny = np.zeros_like(t)
+                x = np.where(t < 7, r*(6-t), x)
+                y = np.where(t < 7, -r*np.ones_like(t), y)
+                nx = np.where(t < 7, np.zeros_like(t), nx)
+                ny = np.where(t < 7, -np.ones_like(t), ny)
+                x = np.where(t < 5, r*np.ones_like(t), x)
+                y = np.where(t < 5, r*(4-t), y)
+                nx = np.where(t < 5, np.ones_like(t), nx)
+                ny = np.where(t < 5, np.zeros_like(t), ny)
+                x = np.where(t < 3, r*(t-2), x)
+                y = np.where(t < 3, r*np.ones_like(t), y)
+                nx = np.where(t < 3, np.zeros_like(t), nx)
+                ny = np.where(t < 3, np.ones_like(t), ny)
+                x = np.where(t < 1, -r*np.ones_like(t), x)
+                y = np.where(t < 1, r*t, y)
+                nx = np.where(t < 1, -np.ones_like(t), nx)
+                ny = np.where(t < 1, np.zeros_like(t), ny)
+                return np.transpose([x, y]), np.transpose([nx, ny]), r
+
+            def J(t, r, path_func=polar_path):
+                pos, n, ds = path_func(t, r)
+                x, y = pos.T
+                nx, ny = n.T
+                # Stress tensor
+                sxx, syy, sxy = crack.stresses(x, y, 0, 0, k)
+                s = np.array([[sxx, sxy], [sxy, syy]]).T
+                # Deformation gradient and strain tensor
+                F = crack.deformation_gradient(x, y, 0, 0, k)
+                eps = (F+F.swapaxes(1, 2))/2
+                # Strain energy density
+                W = (s*eps).sum(axis=2).sum(axis=1)/2
+                retval = (W*ny - np.einsum('...j,...jk,...k->...', n, s, F[..., 0, :]))*ds
+                return retval
+
+            eps = 1e-6
+            for r in [1, 10, 100]:
+                print('r = ', r)
+                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps, args=(r, polar_path))
+                print('polar: J =', J_val, J_err)
+                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps, args=((3*r, r), elliptic_path), maxiter=1000)
+                print('elliptic: J =', J_val, J_err)
 
 ###
 
