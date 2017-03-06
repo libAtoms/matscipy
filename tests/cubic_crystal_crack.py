@@ -270,10 +270,11 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 s = np.array([[sxx, sxy], [sxy, syy]]).T
                 # Deformation gradient and strain tensor
                 F = crack.deformation_gradient(x, y, 0, 0, k)
-                eps = (F+F.swapaxes(1, 2))/2
+                eps = (F+F.swapaxes(1, 2))/2 - np.identity(2).reshape(1, 2, 2)
                 # Strain energy density
                 W = (s*eps).sum(axis=2).sum(axis=1)/2
-                retval = (W*ny - np.einsum('...j,...jk,...k->...', n, s, F[..., 0, :]))*ds
+                # Note dy == nx*ds
+                retval = (W*nx - np.einsum('...j,...jk,...k->...', n, s, F[..., 0, :]))*ds
                 return retval
 
             eps = 1e-6
@@ -281,8 +282,10 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 print('r = ', r)
                 J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps, args=(r, polar_path))
                 print('polar: J =', J_val, J_err)
-                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps, args=((3*r, r), elliptic_path), maxiter=1000)
+                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps, args=((3*r, r), elliptic_path), maxiter=200)
                 print('elliptic: J =', J_val, J_err)
+                #J_val, J_err = quadrature(J, eps, 8-eps, args=(r, rectangular_path))
+                #print('rectangular: J =', J_val, J_err)
 
 ###
 
