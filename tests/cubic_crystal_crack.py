@@ -27,7 +27,10 @@ import math
 import unittest
 
 import numpy as np
-from scipy.integrate import quadrature
+try:
+    from scipy.integrate import quadrature
+except:
+    quadrature = None
 
 import ase.io
 from ase.constraints import FixAtoms
@@ -208,6 +211,10 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 self.assertArrayAlmostEqual(F, F_num, tol=1e-5)
 
     def test_J_integral(self):
+        if quadrature is None:
+            print('No scipy.integrate.quadrature. Skipping J-integral test.')
+            return
+
         for C11, C12, C44, surface_energy, k1 in self.materials:
             crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
             k = crack.k1g(surface_energy)*k1
@@ -254,6 +261,7 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 return np.transpose([x, y]), np.transpose([nx, ny]), r
 
             def J(t, r, path_func=polar_path):
+                # Position, normal to path, length
                 pos, n, ds = path_func(t, r)
                 x, y = pos.T
                 nx, ny = n.T
