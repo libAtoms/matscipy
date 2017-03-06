@@ -63,11 +63,11 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
         C12 = K-2.*C44/3.
 
         #             C11, C12, C44, surface energy, k1
-        #self.materials = [(1.0, 0.5, 0.3, 1.0, 1.0),
-        #                  (1.0, 0.5, 0.3, 10.0, 1.0),
-        #                  (C11, C12, C44, 1.0, 1.0)]
+        self.materials = [(1.0, 0.5, 0.3, 1.0, 1.0),
+                          (1.0, 0.7, 0.3, 1.3, 1.0),
+                          (C11, C12, C44, 1.77, 1.0)]
 
-        self.materials = [(C11, C12, C44, 1.0, 1.0)]
+        #self.materials = [(C11, C12, C44, 1.0, 1.0)]
 
     def test_isotropic_near_field_solution(self):
         """
@@ -219,13 +219,13 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
             crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
             k = crack.k1g(surface_energy)*k1
 
-            def polar_path(theta, r):
+            def polar_path(theta, r=1, x0=0, y0=0):
                 nx = np.cos(theta)
                 ny = np.sin(theta)
                 n = np.transpose([nx, ny])
-                return r*n, n, r
+                return r*n-np.array([x0, y0]), n, r
 
-            def elliptic_path(theta, r):
+            def elliptic_path(theta, r=1, x0=0, y0=0):
                 rx, ry = r
                 x = rx*np.cos(theta)
                 y = ry*np.sin(theta)
@@ -235,7 +235,7 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 nx /= ln
                 ny /= ln
                 ds = np.sqrt((rx*np.sin(theta))**2 + (ry*np.cos(theta))**2)
-                return np.transpose([x, y]), np.transpose([nx, ny]), ds
+                return np.transpose([x-x0, y-y0]), np.transpose([nx, ny]), ds
 
             def rectangular_path(t, r):
                 x = -r*np.ones_like(t)
@@ -260,9 +260,9 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 ny = np.where(t < 1, np.zeros_like(t), ny)
                 return np.transpose([x, y]), np.transpose([nx, ny]), r
 
-            def J(t, r, path_func=polar_path):
+            def J(t, path_func=polar_path):
                 # Position, normal to path, length
-                pos, n, ds = path_func(t, r)
+                pos, n, ds = path_func(t)
                 x, y = pos.T
                 nx, ny = n.T
                 # Stress tensor
@@ -279,13 +279,23 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
 
             eps = 1e-6
             for r in [1, 10, 100]:
-                print('r = ', r)
-                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps, args=(r, polar_path))
-                print('polar: J =', J_val, J_err)
-                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps, args=((3*r, r), elliptic_path), maxiter=200)
-                print('elliptic: J =', J_val, J_err)
+                # Polar path
+                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps,
+                                          args=(lambda t: polar_path(t, r)), )
+                self.assertAlmostEqual(J_val, 2*surface_energy, places=2)
+                # Elliptic path
+                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps,
+                                          args=(lambda t: elliptic_path(t, (3*r, r)), ),
+                                          maxiter=200)
+                self.assertAlmostEqual(J_val, 2*surface_energy, places=2)
+                # Elliptic path, shifted in x and y directions off-center
+                J_val, J_err = quadrature(J, -np.pi+eps, np.pi-eps,
+                                          args=(lambda t: elliptic_path(t, (r, 1.5*r), 0, 0.5), ),
+                                          maxiter=200)
+                self.assertAlmostEqual(J_val, 2*surface_energy, places=2)
                 #J_val, J_err = quadrature(J, eps, 8-eps, args=(r, rectangular_path))
                 #print('rectangular: J =', J_val, J_err)
+                #self.assertAlmostEqual(J_val, surface_energy, places=2)
 
 ###
 
