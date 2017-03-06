@@ -36,16 +36,13 @@ from ase.lattice.cubic import FaceCenteredCubic, SimpleCubic
 
 import matscipytest
 import matscipy.fracture_mechanics.clusters as clusters
+from matscipy.neighbours import neighbour_list
 from matscipy.elasticity import measure_triclinic_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_cubic
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack
 from matscipy.fracture_mechanics.crack import \
     isotropic_modeI_crack_tip_displacement_field
-
-try:
-    import atomistica
-except:
-    atomistica = None
+from matscipy.fracture_mechanics.idealbrittlesolid import IdealBrittleSolid
 
 ###
 
@@ -88,16 +85,11 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
         self.assertTrue(np.all(np.abs(u-ref_u) < 1e-6))
         self.assertTrue(np.all(np.abs(v-ref_v) < 1e-6))
 
-
     def test_anisotropic_near_field_solution(self):
         """
         Run an atomistic calculation of a harmonic solid and compare to
         continuum solution.
         """
-
-        if not atomistica:
-            print('Atomistica not available. Skipping test.')
-            return
 
         for nx in [ 8, 16, 32, 64 ]:
             for calc, a, C11, C12, C44, surface_energy, bulk_coordination in [
@@ -105,7 +97,9 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 #                            r2=math.sqrt(2), cutoff=1.6),
                 #  clusters.sc('He', 1.0, [nx,nx,1], [1,0,0], [0,1,0]),
                 #  3, 1, 1, 0.05, 6 ),
-                ( atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=True),
+                (
+                  #atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=True),
+                  IdealBrittleSolid(k=1.0, a=1.0, rc=1.3),
                   clusters.fcc('He', math.sqrt(2.0), [nx,nx,1], [1,0,0],
                                [0,1,0]),
                   math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.05, 12)
@@ -132,14 +126,15 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 g = a.get_array('groups')
                 a.set_constraint(FixAtoms(mask=g==0))
 
-                #ase.io.write('initial_{}.xyz'.format(nx), a, format='extxyz')
+                #ase.io.write('initial_{}.xyz'.format(nx), a, format='extxyz', write_results=False)
 
                 x1, y1, z1 = a.positions.copy().T
                 FIRE(a, logfile=None).run(fmax=1e-3)
                 x2, y2, z2 = a.positions.T
 
                 # Get coordination numbers and find properly coordinated atoms
-                coord = calc.nl.get_coordination_numbers(calc.particles, 1.1)
+                i = neighbour_list("i", a, 1.1)
+                coord = np.bincount(i, minlength=len(a))
                 mask=coord == bulk_coordination
 
                 residual = np.sqrt(((x2-x1)/u)**2 + ((y2-y1)/v)**2)
