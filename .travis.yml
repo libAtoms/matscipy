@@ -1,5 +1,6 @@
 # Travis auto-virtualenv isn't supported on OS X
 language: generic
+dist: trusty
 sudo: required
 matrix:
   include:
