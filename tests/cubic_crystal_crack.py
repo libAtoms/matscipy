@@ -210,6 +210,26 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 F_num = np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
                 self.assertArrayAlmostEqual(F, F_num, tol=1e-5)
 
+    def test_elastostatics(self):
+        eps = 1e-3
+        for C11, C12, C44, surface_energy, k1 in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)*k1
+            for i in range(10):
+                x = i+1
+                y = i+1
+                # Finite difference approximation of the stress divergence
+                sxx0x, syy0x, sxy0x = crack.stresses(x-eps, y, 0, 0, k)
+                sxx0y, syy0y, sxy0y = crack.stresses(x, y-eps, 0, 0, k)
+                sxx1x, syy1x, sxy1x = crack.stresses(x+eps, y, 0, 0, k)
+                sxx1y, syy1y, sxy1y = crack.stresses(x, y+eps, 0, 0, k)
+                divsx = (sxx1x-sxx0x)/(2*eps) + (sxy1y-sxy0y)/(2*eps)
+                divsy = (sxy1x-sxy0x)/(2*eps) + (syy1y-syy0y)/(2*eps)
+                # Check that divergence of stress is zero (elastostatic
+                # equilibrium)
+                self.assertAlmostEqual(divsx, 0.0, places=4)
+                self.assertAlmostEqual(divsy, 0.0, places=4)
+
     def test_J_integral(self):
         if quadrature is None:
             print('No scipy.integrate.quadrature. Skipping J-integral test.')
