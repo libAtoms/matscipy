@@ -27,12 +27,14 @@ import math
 import unittest
 
 import numpy as np
+from scipy.integrate import quadrature
 
 import ase.io
 from ase.constraints import FixAtoms
 from ase.optimize import FIRE
 from ase.lattice.cubic import FaceCenteredCubic, SimpleCubic
 
+import matscipytest
 import matscipy.fracture_mechanics.clusters as clusters
 from matscipy.elasticity import measure_triclinic_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_cubic
@@ -47,9 +49,12 @@ except:
 
 ###
 
-class TestCubicCrystalCrack(unittest.TestCase):
+class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
 
     delta = 1e-6
+    #             C11, C12, C44, surface energy
+    materials = [(1.0, 0.5, 0.3, 1.0),
+                 (1.0, 0.5, 0.3, 10.0)]
 
     def test_isotropic_near_field_solution(self):
         """
@@ -67,13 +72,13 @@ class TestCubicCrystalCrack(unittest.TestCase):
         #kappa = 4./(1+nu)-1
 
         crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
-   
+
         #r = np.random.random(10)*10
         #theta = np.random.random(10)*2*math.pi
 
         theta = np.linspace(0.0, math.pi, 101)
         r = 1.0*np.ones_like(theta)
-        
+
         k = crack.crack.k1g(1.0)
 
         u, v = crack.crack.displacements(r, theta, k)
@@ -138,12 +143,61 @@ class TestCubicCrystalCrack(unittest.TestCase):
                 mask=coord == bulk_coordination
 
                 residual = np.sqrt(((x2-x1)/u)**2 + ((y2-y1)/v)**2)
-                
+
                 #a.set_array('residual', residual)
                 #ase.io.write('final_{}.xyz'.format(nx), a, format='extxyz')
 
                 #print(np.max(residual[mask]))
                 self.assertTrue(np.max(residual[mask]) < 0.2)
+
+    def test_consistency_of_deformation_gradient_and_stress(self):
+        for C11, C12, C44, surface_energy in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)
+            for i in range(10):
+                x = np.random.uniform(-10, 10)
+                y = np.random.uniform(-10, 10)
+                F = crack.deformation_gradient(x, y, 0, 0, k)
+                eps = (F+F.T)/2-np.eye(2)
+                sig_x, sig_y, sig_xy = crack.stresses(x, y, 0, 0, k)
+                eps_xx = crack.crack.a11*sig_x + \
+                         crack.crack.a12*sig_y + \
+                         crack.crack.a16*sig_xy
+                eps_yy = crack.crack.a12*sig_x + \
+                         crack.crack.a22*sig_y + \
+                         crack.crack.a26*sig_xy
+                # Factor 1/2 because elastic constants and matrix product are
+                # expressed in Voigt notation.
+                eps_xy = (crack.crack.a16*sig_x + \
+                          crack.crack.a26*sig_y + \
+                          crack.crack.a66*sig_xy)/2
+                self.assertAlmostEqual(eps[0, 0], eps_xx)
+                self.assertAlmostEqual(eps[1, 1], eps_yy)
+                self.assertAlmostEqual(eps[0, 1], eps_xy)
+
+    def test_consistency_of_deformation_gradient_and_displacement(self):
+        eps = 1e-6
+        for C11, C12, C44, surface_energy in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)
+            for i in range(10):
+                x = np.random.uniform(-10, 10)
+                y = np.random.uniform(-10, 10)
+                F = crack.deformation_gradient(x, y, 0, 0, k)
+                # Finite difference approximation of deformation gradient
+                u, v = crack.displacements(x, y, 0, 0, k)
+                ux0, vx0 = crack.displacements(x-eps, y, 0, 0, k)
+                uy0, vy0 = crack.displacements(x, y-eps, 0, 0, k)
+                ux1, vx1 = crack.displacements(x+eps, y, 0, 0, k)
+                uy1, vy1 = crack.displacements(x, y+eps, 0, 0, k)
+                du_dx = (ux1-ux0)/(2*eps)
+                du_dy = (uy1-uy0)/(2*eps)
+                dv_dx = (vx1-vx0)/(2*eps)
+                dv_dy = (vy1-vy0)/(2*eps)
+                du_dx += np.ones_like(du_dx)
+                dv_dy += np.ones_like(dv_dy)
+                F_num = np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
+                self.assertArrayAlmostEqual(F, F_num)
 
 ###
 
