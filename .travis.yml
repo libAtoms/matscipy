@@ -45,3 +45,4 @@ addons:
     - liblapack-dev
     - libopenblas-dev
     - python-numpy
+    - python-scipy
