@@ -33,6 +33,7 @@ from ase.structure import molecule
 
 import matscipytest
 from matscipy.neighbours import mic, neighbour_list, first_neighbours
+from matscipy.fracture_mechanics.idealbrittlesolid import triangular_lattice_slab
 
 ###
 
@@ -55,6 +56,12 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertTrue(np.all(np.abs(abs_dr-abs_dr_direct) < 1e-12))
 
         self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
+
+    def test_neighbour_list_triangular(self):
+        a = triangular_lattice_slab(1.0, 2, 2)
+        i, j, D, S = neighbour_list('ijDS', a, 1.2)
+        D2 = a.positions[j] - a.positions[i] + S.dot(a.cell)
+        self.assertArrayAlmostEqual(D, D2)
 
     def test_small_cell(self):
         a = ase.Atoms('C', positions=[[0.5, 0.5, 0.5]], cell=[1, 1, 1],
