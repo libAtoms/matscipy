@@ -227,8 +227,8 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 divsy = (sxy1x-sxy0x)/(2*eps) + (syy1y-syy0y)/(2*eps)
                 # Check that divergence of stress is zero (elastostatic
                 # equilibrium)
-                self.assertAlmostEqual(divsx, 0.0, places=4)
-                self.assertAlmostEqual(divsy, 0.0, places=4)
+                self.assertAlmostEqual(divsx, 0.0, places=3)
+                self.assertAlmostEqual(divsy, 0.0, places=3)
 
     def test_J_integral(self):
         if quadrature is None:
