@@ -130,7 +130,7 @@ class IdealBrittleSolid(Calculator):
 
             de = 0.5*k*(((u[j] - u[i])*dr_hat).sum(axis=-1))**2 # spring energies
             e = 0.5*de # half goes to each end of spring
-            f = (k*(u[j] - u[i])*dr_hat).sum(axis=-1).reshape(-1, 1)*dr_hat + beta*dv
+            f = ((k*(u[j] - u[i])*dr_hat).sum(axis=-1)*dr_hat.T).T + beta*dv
 
         energies[:] = np.bincount(i, e, minlength=len(atoms))
         for kk in range(3):
