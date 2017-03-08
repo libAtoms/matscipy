@@ -77,7 +77,8 @@ class IdealBrittleSolid(Calculator):
                           'rc': 1.01, # cutoff
                           'k': 1.0, # spring constant
                           'beta': 0.01, # Kelvin dissipation
-                          'b': 0.01 # Stokes dissipation
+                          'b': 0.01, # Stokes dissipation
+                          'linear': False # Linearized response
                           }
 
     def __init__(self, *args, **kwargs):
@@ -97,13 +98,14 @@ class IdealBrittleSolid(Calculator):
         rc = self.parameters['rc']
         k = self.parameters['k']
         beta = self.parameters['beta']
+        linear = self.parameters['linear']
 
         energies = np.zeros(len(atoms))
         forces = np.zeros((len(atoms), 3))
         velocities = (atoms.get_momenta().T/atoms.get_masses()).T
 
-        i, j, dr, r = neighbour_list('ijDd', atoms, rc)
-        if len(i) > 0:
+        if not linear:
+            i, j, dr, r = neighbour_list('ijDd', atoms, rc)
             dr_hat = (dr.T/r).T
             dv = velocities[j] - velocities[i]
 
@@ -111,27 +113,36 @@ class IdealBrittleSolid(Calculator):
             e = 0.5*de # half goes to each end of spring
             f = (k*(r - a)*dr_hat.T).T + beta*dv
 
-            energies[:] = np.bincount(i, e, minlength=len(atoms))
-            for kk in range(3):
-                forces[:, kk] = np.bincount(i, weights=f[:, kk],
-                                            minlength=len(atoms))
+        else:
+            # Linearized response
+            i, j, D, S = neighbour_list('ijDS', atoms, rc)
+
+            # Displacements
+            u = atoms.positions - self.crystal.positions
+            # Bond vector taken from reference configuration
+            #dr = self.crystal.positions[j] - self.crystal.positions[i] + \
+            #    S.dot(self.crystal.cell)
+            dr = self.crystal.positions[j] - self.crystal.positions[i] + S.dot(self.crystal.cell)
+            r = np.sqrt((dr*dr).sum(axis=-1))
+
+            dr_hat = (dr.T/r).T
+            dv = velocities[j] - velocities[i]
+
+            de = 0.5*k*(((u[j] - u[i])*dr_hat).sum(axis=-1))**2 # spring energies
+            e = 0.5*de # half goes to each end of spring
+            f = (k*(u[j] - u[i])*dr_hat).sum(axis=-1).reshape(-1, 1)*dr_hat + beta*dv
+
+        energies[:] = np.bincount(i, e, minlength=len(atoms))
+        for kk in range(3):
+            forces[:, kk] = np.bincount(i, weights=f[:, kk],
+                                        minlength=len(atoms))
 
         energy = energies.sum()
 
         # add energy 0.5*k*(rc - a)**2 for each broken bond
-        if len(i) < self.crystal_bonds:
+        if not linear and len(i) < self.crystal_bonds:
             de = 0.5*k*(rc - a)**2
             energy += 0.5*de*(self.crystal_bonds - len(i))
-
-        # Virial
-        virial = np.zeros(6)
-        if len(i) > 0:
-            virial = 0.5*np.array([dr[:,0]*f[:,0],               # xx
-                                   dr[:,1]*f[:,1],               # yy
-                                   dr[:,2]*f[:,2],               # zz
-                                   dr[:,1]*f[:,2],               # yz
-                                   dr[:,0]*f[:,2],               # xz
-                                   dr[:,0]*f[:,1]]).sum(axis=1)  # xy
 
         # Stokes dissipation
         if 'stokes' in atoms.arrays:
@@ -139,8 +150,20 @@ class IdealBrittleSolid(Calculator):
             forces -= (velocities.T*b).T
 
         self.results = {'energy':   energy,
-                        'forces':   forces,
-                        'stress':   virial/atoms.get_volume()}
+                        'energies': energies,
+                        'forces':   forces}
+
+        # Virial
+        if not linear:
+            virial = np.zeros(6)
+            if len(i) > 0:
+                virial = 0.5*np.array([dr[:,0]*f[:,0],               # xx
+                                       dr[:,1]*f[:,1],               # yy
+                                       dr[:,2]*f[:,2],               # zz
+                                       dr[:,1]*f[:,2],               # yz
+                                       dr[:,0]*f[:,2],               # xz
+                                       dr[:,0]*f[:,1]]).sum(axis=1)  # xy
+            self.results['stress'] = virial/atoms.get_volume()
 
 
     def get_wave_speeds(self, atoms):

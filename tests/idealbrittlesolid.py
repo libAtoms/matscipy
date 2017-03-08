@@ -32,14 +32,41 @@ from ase.lattice import bulk
 from ase.structure import molecule
 
 import matscipytest
-from matscipy.fracture_mechanics.idealbrittlesolid import find_triangles_2d
+from matscipy.fracture_mechanics.idealbrittlesolid import (find_triangles_2d,
+                                                           IdealBrittleSolid,
+                                                           triangular_lattice_slab)
 
 ###
 
 class TestNeighbours(matscipytest.MatSciPyTestCase):
 
+    tol = 1e-6
+
+    def test_forces_and_virial(self):
+        a = triangular_lattice_slab(1.0, 2, 2)
+        calc = IdealBrittleSolid(rc=1.2, beta=0.0)
+        a.set_calculator(calc)
+        a.rattle(0.1)
+        f = a.get_forces()
+        fn = calc.calculate_numerical_forces(a)
+        self.assertArrayAlmostEqual(f, fn, tol=self.tol)
+        self.assertArrayAlmostEqual(a.get_stress(),
+                                    calc.calculate_numerical_stress(a),
+                                    tol=self.tol)
+
+    def test_forces_linear(self):
+        a = triangular_lattice_slab(1.0, 1, 1)
+        calc = IdealBrittleSolid(rc=1.2, beta=0.0, linear=True)
+        calc.set_reference_crystal(a)
+        a.set_calculator(calc)
+        a.rattle(0.01)
+        f = a.get_forces()
+        fn = calc.calculate_numerical_forces(a)
+        self.assertArrayAlmostEqual(f, fn, tol=self.tol)
+
     def test_two_triangles(self):
         a = ase.Atoms('4Xe', [[0,0,0], [1,0,0], [1,1,0], [0,1,0]])
+        a.center(vacuum=10)
         c1, c2, c3 = find_triangles_2d(a, 1.1)
         self.assertArrayAlmostEqual(np.transpose([c1, c2, c3]), [[0,1,2], [0,1,3], [0,2,3], [1,2,3]])
 
