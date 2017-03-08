@@ -40,43 +40,47 @@ from matscipy.fracture_mechanics.idealbrittlesolid import triangular_lattice_sla
 class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_neighbour_list(self):
-        a = io.read('aC.cfg')
-        j, dr, i, abs_dr, shift = neighbour_list("jDidS", a, 1.85)
+        for pbc in [True, False, [True, False, True]]:
+            a = io.read('aC.cfg')
+            a.set_pbc(pbc)
+            j, dr, i, abs_dr, shift = neighbour_list("jDidS", a, 1.85)
 
-        self.assertTrue((np.bincount(i) == np.bincount(j)).all())
+            self.assertTrue((np.bincount(i) == np.bincount(j)).all())
 
-        r = a.get_positions()
-        dr_direct = mic(r[j]-r[i], a.cell)
-        self.assertArrayAlmostEqual(r[j]-r[i]+shift.dot(a.cell), dr_direct)
+            r = a.get_positions()
+            dr_direct = mic(r[j]-r[i], a.cell)
+            self.assertArrayAlmostEqual(r[j]-r[i]+shift.dot(a.cell), dr_direct)
 
-        abs_dr_from_dr = np.sqrt(np.sum(dr*dr, axis=1))
-        abs_dr_direct = np.sqrt(np.sum(dr_direct*dr_direct, axis=1))
+            abs_dr_from_dr = np.sqrt(np.sum(dr*dr, axis=1))
+            abs_dr_direct = np.sqrt(np.sum(dr_direct*dr_direct, axis=1))
 
-        self.assertTrue(np.all(np.abs(abs_dr-abs_dr_from_dr) < 1e-12))
-        self.assertTrue(np.all(np.abs(abs_dr-abs_dr_direct) < 1e-12))
+            self.assertTrue(np.all(np.abs(abs_dr-abs_dr_from_dr) < 1e-12))
+            self.assertTrue(np.all(np.abs(abs_dr-abs_dr_direct) < 1e-12))
 
-        self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
+            self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
 
     def test_neighbour_list_atoms_outside_box(self):
-        a = io.read('aC.cfg')
-        a.positions[100, :] += a.cell[0, :]
-        a.positions[200, :] += a.cell[1, :]
-        a.positions[300, :] += a.cell[2, :]
-        j, dr, i, abs_dr, shift = neighbour_list("jDidS", a, 1.85)
+        for pbc in [True, False, [True, False, True]]:
+            a = io.read('aC.cfg')
+            a.set_pbc(pbc)
+            a.positions[100, :] += a.cell[0, :]
+            a.positions[200, :] += a.cell[1, :]
+            a.positions[300, :] += a.cell[2, :]
+            j, dr, i, abs_dr, shift = neighbour_list("jDidS", a, 1.85)
 
-        self.assertTrue((np.bincount(i) == np.bincount(j)).all())
+            self.assertTrue((np.bincount(i) == np.bincount(j)).all())
 
-        r = a.get_positions()
-        dr_direct = mic(r[j]-r[i], a.cell)
-        self.assertArrayAlmostEqual(r[j]-r[i]+shift.dot(a.cell), dr_direct)
+            r = a.get_positions()
+            dr_direct = mic(r[j]-r[i], a.cell)
+            self.assertArrayAlmostEqual(r[j]-r[i]+shift.dot(a.cell), dr_direct)
 
-        abs_dr_from_dr = np.sqrt(np.sum(dr*dr, axis=1))
-        abs_dr_direct = np.sqrt(np.sum(dr_direct*dr_direct, axis=1))
+            abs_dr_from_dr = np.sqrt(np.sum(dr*dr, axis=1))
+            abs_dr_direct = np.sqrt(np.sum(dr_direct*dr_direct, axis=1))
 
-        self.assertTrue(np.all(np.abs(abs_dr-abs_dr_from_dr) < 1e-12))
-        self.assertTrue(np.all(np.abs(abs_dr-abs_dr_direct) < 1e-12))
+            self.assertTrue(np.all(np.abs(abs_dr-abs_dr_from_dr) < 1e-12))
+            self.assertTrue(np.all(np.abs(abs_dr-abs_dr_direct) < 1e-12))
 
-        self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
+            self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
 
     def test_neighbour_list_triangular(self):
         a = triangular_lattice_slab(1.0, 2, 2)
