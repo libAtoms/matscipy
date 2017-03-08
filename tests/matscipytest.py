@@ -86,7 +86,7 @@ class MatSciPyTestCase(unittest.TestCase):
             self.fail('Not a number (NaN) found in array')
 
         if a.dtype.kind != 'f':
-            self.assert_((a == b).all())
+            self.assertTrue((a == b).all())
         else:
             absdiff = abs(a-b)
             if absdiff.max() > tol:
