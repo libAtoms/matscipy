@@ -36,6 +36,7 @@
  * Some cell index algebra
  */
 
+/* Map i back to the interval [0,n) by shifting by integer multiples of n */
 int
 bin_wrap(int i, int n)
 {
@@ -44,6 +45,8 @@ bin_wrap(int i, int n)
     return i;
 }
 
+/* Map i back to the interval [0,n) by assigning edge value if outside
+   interval */
 int
 bin_trunc(int i, int n)
 {
@@ -52,6 +55,7 @@ bin_trunc(int i, int n)
     return i;
 }
 
+/* Map particle position to a cell index */
 void
 position_to_cell_index(double *inv_cell, double *ri, int n1, int n2, int n3,
                        int *c1, int *c2, int *c3)
@@ -343,13 +347,14 @@ py_neighbour_list(PyObject *self, PyObject *args)
     for (i = 0; i < nat; i++) {
         double *ri = &r[3*i];
 
-        int ci1, ci2, ci3;
-        position_to_cell_index(inv_cell, ri, n1, n2, n3, &ci1, &ci2, &ci3);
+        int ci01, ci02, ci03;
+        position_to_cell_index(inv_cell, ri, n1, n2, n3, &ci01, &ci02, &ci03);
 
         /* Truncate if non-periodic and outside of simulation domain */
-        if (!pbc[0])  ci1 = bin_trunc(ci1, n1);
-        if (!pbc[1])  ci2 = bin_trunc(ci2, n2);
-        if (!pbc[2])  ci3 = bin_trunc(ci3, n3);
+        int ci1, ci2, ci3;
+        if (!pbc[0])  ci1 = bin_trunc(ci01, n1);  else  ci1 = ci01;
+        if (!pbc[1])  ci2 = bin_trunc(ci02, n2);  else  ci2 = ci02;
+        if (!pbc[2])  ci3 = bin_trunc(ci03, n3);  else  ci3 = ci03;
 
         /* dri is the position relative to the lower left corner of the bin */
         double dri[3];
@@ -358,9 +363,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
         dri[2] = ri[2] - ci1*bin1[2] - ci2*bin2[2] - ci3*bin3[2];
 
         /* Apply periodic boundary conditions */
-        if (pbc[0])  ci1 = bin_wrap(ci1, n1);  else  ci1 = bin_trunc(ci1, n1);
-        if (pbc[1])  ci2 = bin_wrap(ci2, n2);  else  ci2 = bin_trunc(ci2, n2);
-        if (pbc[2])  ci3 = bin_wrap(ci3, n3);  else  ci3 = bin_trunc(ci3, n3);
+        if (pbc[0])  ci1 = bin_wrap(ci01, n1);  else  ci1 = bin_trunc(ci01, n1);
+        if (pbc[1])  ci2 = bin_wrap(ci02, n2);  else  ci2 = bin_trunc(ci02, n2);
+        if (pbc[2])  ci3 = bin_wrap(ci03, n3);  else  ci3 = bin_trunc(ci03, n3);
 
         /* Loop over neighbouring bins */
         int x, y, z;
@@ -499,9 +504,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                     if (py_absdist)
                                         absdist[nneigh] = sqrt(abs_dr_sq);
                                     if (py_shift) {
-                                        shift[3*nneigh+0] = (ci1 - cj1 + x)/n1;
-                                        shift[3*nneigh+1] = (ci2 - cj2 + y)/n2;
-                                        shift[3*nneigh+2] = (ci3 - cj3 + z)/n3;
+                                        shift[3*nneigh+0] = (ci01 - cj1 + x)/n1;
+                                        shift[3*nneigh+1] = (ci02 - cj2 + y)/n2;
+                                        shift[3*nneigh+2] = (ci03 - cj3 + z)/n3;
                                     }
 
                                     nneigh++;
