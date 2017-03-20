@@ -93,6 +93,34 @@ def neighbour_list(quantities, a, cutoff, *args):
         Tuple with arrays for each quantity specified above. Indices in `i`
         are returned in ascending order 0..len(a), but the order of (i,j)
         pairs is not guaranteed.
+
+    Examples
+    --------
+    Examples assume Atoms object *a* and numpy imported as *np*.
+    1. Coordination counting:
+        i = neighbour_list('i', a, 1.85)
+        coord = np.bincount(i)
+
+    2. Coordination counting with different cutoffs for each pair of species
+       (Assumes that species are Carbon=6 and Hydrogen=1)
+        i = neighbour_list('i', a, [[1.1, 1.3], [1.3, 1.85]], (a.numbers-1)//5)
+        coord = np.bincount(i)
+
+    3. Pair distribution function:
+        d = neighbour_list('d', a, 10.00)
+        h, bin_edges = np.histogram(d, bins=100)
+        pdf = h/(4*np.pi/3*(bin_edges[1:]**3 - bin_edges[:-1]**3)) * a.get_volume()/len(a)
+
+    4. Pair potential:
+        i, j, d, D = neighbour_list('ijdD', a, 5.0)
+        energy = (-C/d**6).sum() * (D/d).reshape(-1, 1)
+        pair_forces = 6*C/d**5
+        forces_x = np.bincount(j, weights=pair_forces[:, 0], minlength=len(a)) - \
+                   np.bincount(i, weights=pair_forces[:, 0], minlength=len(a))
+        forces_y = np.bincount(j, weights=pair_forces[:, 1], minlength=len(a)) - \
+                   np.bincount(i, weights=pair_forces[:, 1], minlength=len(a))
+        forces_z = np.bincount(j, weights=pair_forces[:, 2], minlength=len(a)) - \
+                   np.bincount(i, weights=pair_forces[:, 2], minlength=len(a))
     """
 
     return _matscipy.neighbour_list(quantities, a.cell,
