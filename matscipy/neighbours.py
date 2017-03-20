@@ -113,8 +113,8 @@ def neighbour_list(quantities, a, cutoff, *args):
 
     4. Pair potential:
         i, j, d, D = neighbour_list('ijdD', a, 5.0)
-        energy = (-C/d**6).sum() * (D/d).reshape(-1, 1)
-        pair_forces = 6*C/d**5
+        energy = (-C/d**6).sum()
+        pair_forces = (6*C/d**5  * (D/d).T).T
         forces_x = np.bincount(j, weights=pair_forces[:, 0], minlength=len(a)) - \
                    np.bincount(i, weights=pair_forces[:, 0], minlength=len(a))
         forces_y = np.bincount(j, weights=pair_forces[:, 1], minlength=len(a)) - \
