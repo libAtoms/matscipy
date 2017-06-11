@@ -113,7 +113,12 @@ py_angle_distribution(PyObject *self, PyObject *args)
       }
     } /* n < cutoff_sq */
   }
-
+  /* add angles of last element */
+  int bin;
+  for (bin = 0; bin < nbins; bin++) {
+    h[bin] += tmp[bin];
+  }
+  
   Py_DECREF(tmp_arr);
 
   return h_arr;

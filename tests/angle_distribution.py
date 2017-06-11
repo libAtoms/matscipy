@@ -55,14 +55,26 @@ class TestAngleDistribution(matscipytest.MatSciPyTestCase):
                                            2, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         #                                  ^ 90 degrees
 
-    def test_two_angles(self):
+
+    def test_single_angle_reversed_order(self):
+        a = ase.Atoms('CCC', positions=[[0.5, 0.5, 0.5], [0.5, 1.0, 1.0],
+                                       [0.5, 0.5, 1.0]],
+                      cell=[2, 2, 2], pbc=True)
+        i, j, dr = neighbour_list("ijD", a, 0.6)
+        hist = angle_distribution(i, j, dr, 20, 0.6)
+        #                                                 v 45 degrees
+        self.assertArrayAlmostEqual(hist, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                           2, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        #                                  ^ 90 degrees
+
+    def test_three_angles(self):
         a = ase.Atoms('CCC', positions=[[0.5, 0.5, 0.5], [0.5, 0.5, 1.0],
                                        [0.5, 1.0, 1.0]],
                       cell=[2, 2, 2], pbc=True)
         i, j, dr = neighbour_list("ijD", a, 1.1)
         hist = angle_distribution(i, j, dr, 20)
         #                                                 v 45 degrees
-        self.assertArrayAlmostEqual(hist, [0, 0, 0, 0, 0, 2, 0, 0, 0, 0,
+        self.assertArrayAlmostEqual(hist, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0,
                                            2, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         #                                  ^ 90 degrees
 ###
