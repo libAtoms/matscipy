@@ -39,6 +39,8 @@ notifications:
     - richard.jana@kit.edu
     - p.patel@warwick.ac.uk
     - andreas.klemenz@iwm.fraunhofer.de
+    - thomas.reichenbach@iwm.fraunhofer.de
+    - gianpietro.moras@iwm.fraunhofer.de
 addons:
   apt:
     packages:
