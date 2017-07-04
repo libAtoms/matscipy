@@ -31,7 +31,6 @@ matrix:
 before_install:
   - source .travis.before_install.bash
 install:
-  - "pip install ase==3.13.0"
   - "python setup.py install"
 before_script:
   - source .travis.before_script.bash
