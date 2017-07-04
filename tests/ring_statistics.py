@@ -25,9 +25,9 @@ import unittest
 
 import numpy as np
 
+import ase.build
 import ase.io
 import ase.lattice.hexagonal
-import ase.structure
 
 import matscipytest
 from matscipy.neighbours import neighbour_list
@@ -39,7 +39,7 @@ from _matscipy import distances_on_graph, find_sp_rings
 class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_single_ring(self):
-        a = ase.structure.molecule('C6H6')
+        a = ase.build.molecule('C6H6')
         a = a[a.numbers==6]
         a.center(vacuum=5)
 
@@ -59,7 +59,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(r, [0,0,0,0,0,0,1])
 
     def test_two_rings(self):
-        a = ase.structure.molecule('C6H6')
+        a = ase.build.molecule('C6H6')
         a = a[a.numbers==6]
         a.center(vacuum=10)
         b = a.copy()

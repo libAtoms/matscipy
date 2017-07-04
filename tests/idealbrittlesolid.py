@@ -28,8 +28,8 @@ import numpy as np
 import ase
 import ase.io as io
 import ase.lattice.hexagonal
+from ase.build import molecule
 from ase.lattice import bulk
-from ase.structure import molecule
 
 import matscipytest
 from matscipy.fracture_mechanics.idealbrittlesolid import (find_triangles_2d,

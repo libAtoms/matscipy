@@ -28,8 +28,8 @@ import numpy as np
 import ase
 import ase.io as io
 import ase.lattice.hexagonal
+from ase.build import molecule
 from ase.lattice import bulk
-from ase.structure import molecule
 
 import matscipytest
 from matscipy.neighbours import mic, neighbour_list, first_neighbours
