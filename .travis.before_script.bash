@@ -7,3 +7,5 @@ elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
   # noop?
   pip install setuptools
 fi
+# List current pip configuration for debugging
+pip list
