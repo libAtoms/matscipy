@@ -199,8 +199,12 @@ def write_lammps_atoms(prefix, atoms):
     else:
         molid = [1] * len(atoms)
 
-    for i, r in enumerate(map(p.pos_to_lammps_str,
-                              atoms.get_positions())):
+    if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.13.0'):
+        positions_lammps_str = p.positions_to_lammps_strs(atoms.get_positions())
+    else:
+        positions_lammps_str = map(p.pos_to_lammps_str, atoms.get_positions())
+
+    for i, r in enumerate(positions_lammps_str):
         q = atoms.atom_data[types[tags[i]]][2]
         fileobj.write('%6d %3d %3d %s %s %s %s' % ((i + 1, molid[i],
                                                     tags[i] + 1, 
