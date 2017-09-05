@@ -198,6 +198,23 @@ class OPLSStructure(ase.Atoms):
                 tags[types == type] = it
             self.set_tags(tags)
 
+        self._combinations = {}
+        self._combinations[0] = []
+        self._combinations[1] = []
+        self._combinations[2] = [(0, 1)]
+        self._combinations[3] = [(0, 1), (0, 2), (1, 2)]
+        self._combinations[4] = [(0, 1), (0, 2), (1, 2), (0, 3), (1, 3), (2, 3)]
+        self._combinations[5] = [(0, 1), (0, 2), (1, 2), (0, 3), (1, 3), (2, 3), (0, 4), (1, 4), (2, 4), (3, 4)]
+        self._combinations[6] = [(0, 1), (0, 2), (1, 2), (0, 3), (1, 3), (2, 3), (0, 4), (1, 4), (2, 4), (3, 4), (0, 5), (1, 5), (2, 5), (3, 5), (4, 5)]
+        self._combinations[7] = [(0, 1), (0, 2), (1, 2), (0, 3), (1, 3), (2, 3), (0, 4), (1, 4), (2, 4), (3, 4), (0, 5), (1, 5), (2, 5), (3, 5), (4, 5), (0, 6), (1, 6), (2, 6), (3, 6), (4, 6), (5, 6)]
+        self._combinations[8] = [(0, 1), (0, 2), (1, 2), (0, 3), (1, 3), (2, 3), (0, 4), (1, 4), (2, 4), (3, 4), (0, 5), (1, 5), (2, 5), (3, 5), (4, 5), (0, 6), (1, 6), (2, 6), (3, 6), (4, 6), (5, 6), (0, 7), (1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7)]
+
+    def _get_combinations(self, n):
+        r = range(n)
+        i = np.tile(r,n)
+        j = np.repeat(r,n)
+        return zip(i[i < j], j[i < j])
+
     def append(self, atom):
         """Append atom to end."""
         self.extend(ase.Atoms([atom]))
@@ -340,14 +357,20 @@ class OPLSStructure(ase.Atoms):
         angles_undef = AnglesData()
         angles_undef_lists = {}
 
-        for i,j in zip(ibond, jbond):
+        for i in range(len(self)):
             iname = types[tags[i]]
-            jname = types[tags[j]]
 
-            kbond = jbond[ibond == i]
-            kbond = kbond[kbond > j]
+            ineigh = jbond[ibond == i]
+            n_ineigh = np.shape(ineigh)[0]
 
-            for k in kbond:
+            if n_ineigh not in self._combinations.keys():
+                self._combinations[n_ineigh] = self._get_combinations(n_ineigh)
+
+            for nj,nk in self._combinations[len(ineigh)]:
+                j = ineigh[nj]
+                k = ineigh[nk]
+
+                jname = types[tags[j]]
                 kname = types[tags[k]]
                 name = self.angles.get_name(jname, iname, kname)
 
