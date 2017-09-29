@@ -29,7 +29,7 @@ lopt =  {
         }
 
 version = versioneer.get_version()
-_version_short = re.findall('\d+\.\d+\.\d+', VERSION)
+_version_short = re.findall('\d+\.\d+\.\d+', version)
 if len(_version_short) > 0:
     version_short = _version_short[0]
 
