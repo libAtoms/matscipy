@@ -32,6 +32,7 @@ version = versioneer.get_version()
 _version_short = re.findall('\d+\.\d+\.\d+', version)
 if len(_version_short) > 0:
     version_short = _version_short[0]
+download_url = "https://github.com/libAtoms/matscipy/archive/%s.tar.gz" % version_short
 
 scripts = []
 
@@ -262,6 +263,6 @@ setup(name='matscipy',
              'c/matscipymodule.c'],
             )
         ],
-      download_url="https://github.com/libAtoms/matscipy/archive/%s.tar.gz" % _version_short,
+      download_url=download_url,
       url="https://github.com/libAtoms/matscipy"
       )
