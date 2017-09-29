@@ -12,6 +12,8 @@ from numpy.distutils.misc_util import filter_sources, has_f_sources, \
      get_numpy_include_dirs, is_sequence, get_build_architecture, \
      msvc_version
 
+import versioneer
+
 # custom compilation options for various compilers
 # entry with key None gives default vaalues always used
 copt =  {
@@ -25,8 +27,7 @@ cxxopt = {
 lopt =  {
         }
 
-version = (os.popen('git config --get remote.origin.url').read() + ',' +
-           os.popen('git describe --always --tags --dirty').read())
+version = versioneer.get_version()
 
 scripts = []
 
@@ -236,6 +237,7 @@ class build_ext_subclass(build_ext):
 
 setup(name='matscipy',
       version=version,
+      cmdclass=versioneer.get_cmdclass(),
       description='Generic Python Materials Science tools',
       maintainer='James Kermode & Lars Pastewka',
       maintainer_email='james.kermode@gmail.com',
@@ -256,5 +258,4 @@ setup(name='matscipy',
              'c/matscipymodule.c'],
             )
         ],
-      cmdclass = {'build_ext': build_ext_subclass }
       )
