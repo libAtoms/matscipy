@@ -78,3 +78,7 @@ def parameter(name, default=None, logger=screen):
         else:
             raise
     return value
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
