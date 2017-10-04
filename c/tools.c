@@ -72,7 +72,7 @@ resize_array(PyObject *py_arr, npy_intp newsize)
     }
 
     int i, ndim = PyArray_NDIM((PyArrayObject *) py_arr);
-    npy_intp *dims = malloc(ndim*sizeof(npy_intp);
+    npy_intp *dims = malloc(ndim*sizeof(npy_intp));
     for (i = 0; i < ndim; i++)  dims[i] = PyArray_DIM((PyArrayObject *) py_arr,
                                                       i);
     dims[0] = newsize;
