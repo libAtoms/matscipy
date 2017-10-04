@@ -240,9 +240,11 @@ class build_ext_subclass(build_ext):
                build_temp=self.build_temp,**kws)
 
 
+cmdclass = versioneer.get_cmdclass()
+cmdclass.update({'build_ext': build_ext_subclass})
 setup(name='matscipy',
       version=version,
-      cmdclass=versioneer.get_cmdclass(),
+      cmdclass=cmdclass,
       description='Generic Python Materials Science tools',
       maintainer='James Kermode & Lars Pastewka',
       maintainer_email='james.kermode@gmail.com',
