@@ -22,7 +22,7 @@
 """
 Compute deformation gradient tensor and D^2_min measure for non-affine
 displacements.
-See: Falk, Langer, Phys. Rev. B 57, 7192 (1998)
+See: Falk, Langer, Phys. Rev. E 57, 7192 (1998)
 """
 
 import numpy as np
