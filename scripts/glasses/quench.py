@@ -149,4 +149,3 @@ for _density in densities:
         write(quench_final_fn, a)
 
     open('DONE_%2.1f' % density, 'w')
-
