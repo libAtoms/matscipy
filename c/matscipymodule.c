@@ -23,12 +23,14 @@
 
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
+#define NPY_NO_DEPRECATED_API NPY_1_5_API_VERSION
 #include <numpy/arrayobject.h>
 
 #include <stdbool.h>
 #include <stddef.h>
 
 #include "angle_distribution.h"
+#include "atomic_strain.h"
 #include "islands.h"
 #include "neighbours.h"
 #include "ring_statistics.h"
@@ -42,6 +44,8 @@
 static PyMethodDef module_methods[] = {
     { "angle_distribution", (PyCFunction) py_angle_distribution, METH_VARARGS,
       "Compute a bond angle distribution from a neighbour list." },
+    { "atomic_strain", (PyCFunction) py_atomic_strain, METH_VARARGS,
+      "Falk & Langer atomic strain analyis." },
     { "distances_on_graph", (PyCFunction) py_distances_on_graph, METH_VARARGS,
       "Compute a map of distances on a graph." },
     { "find_sp_rings", (PyCFunction) py_find_sp_rings, METH_VARARGS,
