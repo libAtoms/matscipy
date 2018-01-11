@@ -252,7 +252,11 @@ setup(name='matscipy',
       package_dir={'matscipy': 'matscipy'},
       packages=['matscipy', 'matscipy.fracture_mechanics',
                 'matscipy.contact_mechanics', 'matscipy.calculators',
-                'matscipy.calculators.eam','matscipy.io','matscipy.tool'],
+                'matscipy.calculators.eam','matscipy.io','matscipy.tool',
+                'matscipy.calculators.hades',
+                'matscipy.calculators.hades.mcfmParallel',
+                'matscipy.calculators.hades.neighbour_list',
+                'matscipy.calculators.hades.qmClusterModules'],
       scripts=scripts,
       ext_modules=[
         Extension(
