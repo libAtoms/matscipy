@@ -1,7 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
 
-class Cluster_data(object):
+
+class ClusterData(object):
     """Class for storing cluster data
 
     Attributes
@@ -22,10 +23,10 @@ class Cluster_data(object):
     def __init__(self, nAtoms, mark=None, qm_list=None, forces=None):
         if len(mark) != nAtoms:
             raise ValueError(
-                "mark length not compatible with atoms length in this Cluster_data object")
+                "mark length not compatible with atoms length in this ClusterData object")
         if np.shape(forces) != (nAtoms, 3):
             raise ValueError(
-                "forces shape not compatible with atoms length in this Cluster_data object")
+                "forces shape not compatible with atoms length in this ClusterData object")
 
         self.forces = forces
         self.mark = mark

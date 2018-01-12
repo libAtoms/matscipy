@@ -1,10 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
 
-from .qm_cluster_object import QMClusterObject
+from .base_qm_cluster_tool import BaseQMClusterTool
 
 
-class QMFlaggingModule(QMClusterObject):
+class QMFlaggingTool(BaseQMClusterTool):
     """This class is responsible for flagging atoms
     that move out of their equilibrium"""
 
@@ -38,7 +38,7 @@ class QMFlaggingModule(QMClusterObject):
 
         """
         # Initialize the QMClusterObject with a mediator
-        super(QMFlaggingModule, self).__init__(mediator)
+        super(QMFlaggingTool, self).__init__(mediator)
 
         try:
             self.qm_flag_potential_energies = qm_flag_potential_energies
@@ -55,51 +55,6 @@ class QMFlaggingModule(QMClusterObject):
         self.old_energized_list = []
 
         self.verbose = 0
-
-    def _exponential_moving_average(self, oldset, newset=None, ema_parameter=0.1):
-        """Apply the exponential moving average to the given array
-
-        Parameters
-        ----------
-        oldset : array
-            old values
-        newset : array
-            new data set
-        ema_parameter : float
-            parameter lambda
-        """
-        if newset is None:
-            pass
-        else:
-            oldset *= (1 - ema_parameter)
-            oldset += ema_parameter * newset
-
-    def _update_avg_property_per_atom(self, atoms, data_array, property_str):
-        """Update the per atom property using running avarages
-        and store it in atoms.properties[property_str]
-
-        Parameters
-        ----------
-        atoms : ase.Atoms
-            structure that need updated values
-        data_array : array
-            data that need to be attached to atoms
-        property_str : str
-            key for structure properties dictionary
-        """
-
-        # Abbreviations
-        # ppa - (property per atom
-        # appa - average property per atom
-
-        ppa = data_array
-
-        # ------ Get average ppa
-        if (property_str in atoms.arrays):
-            self._exponential_moving_average(atoms.arrays[property_str],
-                                             ppa, self.ema_parameter)
-        else:
-            atoms.arrays[property_str] = ppa.copy()
 
     def get_energized_list(self, atoms, data_array, property_str, hysteretic_tolerance):
         """Produce a list of atoms that are ot be flagged as a QM region
@@ -127,7 +82,7 @@ class QMFlaggingModule(QMClusterObject):
         """
 
         # ------ Update EPA
-        self._update_avg_property_per_atom(atoms, data_array, property_str)
+        update_avg_property_per_atom(atoms, data_array, property_str, self.ema_parameter)
 
         avg_property_per_atom = atoms.arrays[property_str]
 
@@ -294,3 +249,52 @@ class QMFlaggingModule(QMClusterObject):
         self.qm_atoms_list = list(map(list, self.qm_atoms_list))
         return self.qm_atoms_list
         # print "QM cluster", self.qm_atoms_list
+
+
+def exponential_moving_average(oldset, newset=None, ema_parameter=0.1):
+    """Apply the exponential moving average to the given array
+
+    Parameters
+    ----------
+    oldset : array
+        old values
+    newset : array
+        new data set
+    ema_parameter : float
+        parameter lambda
+    """
+    if newset is None:
+        pass
+    else:
+        oldset *= (1 - ema_parameter)
+        oldset += ema_parameter * newset
+
+
+def update_avg_property_per_atom(atoms, data_array, property_str, ema_parameter):
+    """Update the per atom property using running avarages
+    and store it in atoms.properties[property_str]
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+        structure that need updated values
+    data_array : array
+        data that need to be attached to atoms
+    property_str : str
+        key for structure properties dictionary
+    ema_parameter : float
+        Coefficient for the Exponential Moving Average
+    """
+
+    # Abbreviations
+    # ppa - (property per atom
+    # appa - average property per atom
+
+    ppa = data_array
+
+    # ------ Get average ppa
+    if (property_str in atoms.arrays):
+        exponential_moving_average(atoms.arrays[property_str],
+                                   ppa, ema_parameter)
+    else:
+        atoms.arrays[property_str] = ppa.copy()

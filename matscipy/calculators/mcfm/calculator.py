@@ -2,8 +2,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 
 from ase.calculators.calculator import Calculator
-from .mcfmParallel import mcfmParallelControl as mcfmParallelControl
-from .cluster_data import Cluster_data
+from .mcfm_parallel import mcfm_parallel_control as mcfm_parallel_control
+from .cluster_data import ClusterData
 import ase.io
 
 
@@ -151,6 +151,7 @@ class MultiClusterForceMixingPotential(Calculator):
             Must provide an atoms object
         """
 
+        super().calculate(atoms=atoms, properties=properties, system_changes=system_changes)
         # Check for atoms and if present wrap them to their cell
         if atoms is None:
             raise AttributeError("No atoms object provided")
@@ -182,9 +183,9 @@ class MultiClusterForceMixingPotential(Calculator):
         cluster_data_list = np.empty(len(self.cluster_list), dtype=object)
         if (len(cluster_data_list) > 0):
             if (self.doParallel):
-                mcfmParallelControl.get_cluster_data(atoms=atoms,
-                                                     clusterData=cluster_data_list,
-                                                     mcfm_pot=self)
+                mcfm_parallel_control.get_cluster_data(atoms=atoms,
+                                                       clusterData=cluster_data_list,
+                                                       mcfm_pot=self)
             else:
                 for i, cluster in enumerate(self.cluster_list):
                     # Evaluate qm cluster
@@ -353,7 +354,7 @@ class MultiClusterForceMixingPotential(Calculator):
             full_qm_forces[orig_index, :] = qm_forces_array[i, :]
             mark[orig_index] = atomic_cluster.arrays["cluster_mark"][i]
 
-        cluster_data = Cluster_data(len(atoms), mark, cluster, full_qm_forces)
+        cluster_data = ClusterData(len(atoms), mark, cluster, full_qm_forces)
 
         # Try to add additional details to the cluster data
         qm_charges = np.zeros(len(atoms))
@@ -390,7 +391,7 @@ class MultiClusterForceMixingPotential(Calculator):
             atoms object
         forces : np.array
             atomic forces
-        cluster_data_list : list of hades.Cluster_data
+        cluster_data_list : list of hades.ClusterData
             information about the clusters
 
         Returns
@@ -451,7 +452,7 @@ class MultiClusterForceMixingPotential(Calculator):
             atoms object
         full_qm_atoms_mask : list
             list of all qm atoms
-        cluster_data_list : list of hades.Cluster_data
+        cluster_data_list : list of hades.ClusterData
             information about the clusters
         """
 

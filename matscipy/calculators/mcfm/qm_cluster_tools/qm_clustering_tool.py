@@ -1,11 +1,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
 
-from .qm_cluster_object import QMClusterObject
+from .base_qm_cluster_tool import BaseQMClusterTool
 from ase import Atom
 
 
-class QMClusteringModule(QMClusterObject):
+class QMClusteringTool(BaseQMClusterTool):
     """This class is responsible for carving and hydrogenating
     a qm cluster"""
 
@@ -21,7 +21,7 @@ class QMClusteringModule(QMClusterObject):
             list of doubly bonded atoms, needed for double hydrogenation.
         """
         # Initialize the QMClusterObject with a mediator
-        super(QMClusteringModule, self).__init__(mediator)
+        super(QMClusteringTool, self).__init__(mediator)
 
         self.double_bonded_atoms_list = double_bonded_atoms_list
 

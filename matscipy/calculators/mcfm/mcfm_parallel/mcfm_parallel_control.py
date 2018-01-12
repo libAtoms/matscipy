@@ -4,7 +4,7 @@ import numpy as np
 import os
 import time
 import multiprocessing as mp
-from . import mcfmParallelWorker as mpw
+from . import mcfm_parallel_worker as mpw
 
 
 def get_cluster_data(atoms=None,

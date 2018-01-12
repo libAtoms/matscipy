@@ -1,8 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
 
-from .qmClusterModules.qm_flagging_module import QMFlaggingModule
-from .qmClusterModules.qm_clustering_module import QMClusteringModule
+from .qm_cluster_tools.qm_flagging_tool import QMFlaggingTool
+from .qm_cluster_tools.qm_clustering_tool import QMClusteringTool
 
 
 class QMcluster(object):
@@ -17,9 +17,9 @@ class QMcluster(object):
 
     Attributes
     ----------
-    clustering_module : hades.qmClusterModule.QMClusteringModule
+    clustering_module : hades.qmClusterModule.QMClusteringTool
         module responsible for carving a qm cluster
-    flagging_module : hades.qmClusterModule.QMFlaggingModule
+    flagging_module : hades.qmClusterModule.QMFlaggingTool
         module responsible for flagging atoms
     neighbour_list : hades.NeighborListBase
         object holding the neighbour list
@@ -57,14 +57,14 @@ class QMcluster(object):
         self.neighbour_list = neighbour_list
 
     def attach_flagging_module(self, **kwargs):
-        """Initialize and attach hades.QMFlaggingModule
+        """Initialize and attach hades.QMFlaggingTool
         The function calls the class initializer with given parameters"""
-        self.flagging_module = QMFlaggingModule(mediator=self, **kwargs)
+        self.flagging_module = QMFlaggingTool(mediator=self, **kwargs)
 
     def attach_clustering_module(self, **kwargs):
-        """Initialize and attach hades.QMClusteringModule
+        """Initialize and attach hades.QMClusteringTool
         The function calls the class initializer with given parameters"""
-        self.clustering_module = QMClusteringModule(mediator=self, **kwargs)
+        self.clustering_module = QMClusteringTool(mediator=self, **kwargs)
 
     def reset_energized_list(self):
         """Reset old_energized_atoms list in flaggingModule to facilitate

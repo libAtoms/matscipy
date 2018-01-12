@@ -5,7 +5,7 @@ import random
 import timeit
 import os
 import ase.io
-from ..cluster_data import Cluster_data
+from ..cluster_data import ClusterData
 
 
 random.seed(123)
@@ -79,7 +79,7 @@ def worker_populate_cluster_data(rank, size,
         full_qm_forces[orig_index, :] = qm_forces_array[i, :]
         mark[orig_index] = atomic_cluster.arrays["cluster_mark"][i]
 
-    cluster_data = Cluster_data(nAtoms, mark, clusterIndexes, full_qm_forces)
+    cluster_data = ClusterData(nAtoms, mark, clusterIndexes, full_qm_forces)
     # Try to add additional details to the cluster data
     cluster_data.nClusterAtoms = len(atomic_cluster)
     qm_charges = np.zeros(nAtoms) - 10

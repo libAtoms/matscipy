@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 
 
-class QMClusterObject(object):
+class BaseQMClusterTool(object):
     """Class that hold all the functions common to
     qm clustering objects"""
 
