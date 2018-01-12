@@ -1,11 +1,11 @@
-import numpy as np
 from __future__ import absolute_import, division, print_function, unicode_literals
+import numpy as np
 
 import random
 import timeit
 import os
 import ase.io
-from hades.cluster_data import Cluster_data
+from ..cluster_data import Cluster_data
 
 
 random.seed(123)

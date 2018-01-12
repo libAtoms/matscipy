@@ -1,7 +1,7 @@
 """Set up a multi cluster force mixing potential with a sensible set of defaults"""
 
-import numpy as np
 from __future__ import absolute_import, division, print_function, unicode_literals
+import numpy as np
 
 from .neighbour_list.neighbour_list import NeighborListHysteretic
 from .qm_cluster import QMcluster

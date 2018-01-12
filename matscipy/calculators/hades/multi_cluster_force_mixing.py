@@ -1,9 +1,9 @@
-import numpy as np
 from __future__ import absolute_import, division, print_function, unicode_literals
+import numpy as np
 
 from ase.calculators.calculator import Calculator
 from .mcfmParallel import mcfmParallelControl as mcfmParallelControl
-from hades.cluster_data import Cluster_data
+from .cluster_data import Cluster_data
 import ase.io
 
 
