@@ -28,8 +28,7 @@ import numpy as np
 import ase
 import ase.io as io
 import ase.lattice.hexagonal
-from ase.build import molecule
-from ase.lattice import bulk
+from ase.build import bulk, molecule
 
 import matscipytest
 from matscipy.neighbours import mic, neighbour_list, first_neighbours
@@ -154,20 +153,16 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         i = neighbour_list("i", a, 1.85)
         self.assertArrayAlmostEqual(np.bincount(i), [2,3,1,1,1])
 
-        cutoffs = np.zeros([9, 9])
-        cutoffs[1, 6] = cutoffs[6, 1] = 1.2
-        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        cutoffs = {(1, 6): 1.2}
+        i = neighbour_list("i", a, cutoffs)
         self.assertArrayAlmostEqual(np.bincount(i), [0,1,0,0,1])
 
-        cutoffs = np.zeros([9, 9])
-        cutoffs[6, 8] = cutoffs[8, 6] = 1.4
-        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        cutoffs = {(6, 8): 1.4}
+        i = neighbour_list("i", a, cutoffs)
         self.assertArrayAlmostEqual(np.bincount(i), [1,2,1])
 
-        cutoffs = np.zeros([9, 9])
-        cutoffs[1, 6] = cutoffs[6, 1] = 1.2
-        cutoffs[6, 8] = cutoffs[8, 6] = 1.4
-        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        cutoffs = {('H', 'C'): 1.2, (6, 8): 1.4}
+        i = neighbour_list("i", a, cutoffs)
         self.assertArrayAlmostEqual(np.bincount(i), [1,3,1,0,1])
 
     def test_noncubic(self):
