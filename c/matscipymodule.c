@@ -30,7 +30,6 @@
 #include <stddef.h>
 
 #include "angle_distribution.h"
-#include "atomic_strain.h"
 #include "islands.h"
 #include "neighbours.h"
 #include "ring_statistics.h"
