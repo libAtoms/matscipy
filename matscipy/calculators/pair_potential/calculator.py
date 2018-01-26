@@ -29,14 +29,16 @@ import os
 
 import sys
 
-from scipy.sparse import csr_matrix
+import time
+
+from scipy.sparse import bsr_matrix
 
 import numpy as np
 
 import ase
 from ase.calculators.calculator import Calculator
 
-from matscipy.neighbours import neighbour_list
+from matscipy.neighbours import neighbour_list, first_neighbours
 
 ###
 
@@ -51,9 +53,9 @@ def get_dynamical_matrix(f, atoms):
 
     nat = len(atoms)
     atnums = atoms.numbers
-    atnums_in_system = set(atnums)
 
     i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+    first_i = first_neighbours(nat, i_n)
 
     e_n = np.zeros_like(abs_dr_n)
     de_n = np.zeros_like(abs_dr_n)
@@ -77,39 +79,22 @@ def get_dynamical_matrix(f, atoms):
             de_n[mask] = df[pair](abs_dr_n[mask]) 
             dde_n[mask] = df2[pair](abs_dr_n[mask])
 
-    de_n = de_n.reshape(-1,1)
-    dde_n = dde_n.reshape(-1,1)
 
-    D_mn = csr_matrix((3*nat,3*nat),dtype=np.float64)
+    e_nc = (dr_nc.T/abs_dr_n).T
+    D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+    D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
 
-    # Off diagonal
-    for index, i in enumerate(i_n):
-        eij_c = dr_nc[index]/abs_dr_n[index]
-        dpara_nn = np.array(-dde_n[index] * np.outer(eij_c, eij_c))
-        dortho_nn = np.array(-de_n[index]/(abs_dr_n[index]) * (np.eye(3, dtype=float) - np.outer(eij_c, eij_c)))
+    D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat,3*nat))
 
-        row_n = np.array([3*i, 3*i, 3*i, 3*i+1, 3*i+1, 3*i+1, 3*i+2, 3*i+2, 3*i+2])
-        col_n = np.array([3*j_n[index], 3*j_n[index]+1, 3*j_n[index]+2, 3*j_n[index], 3*j_n[index]+1, 3*j_n[index]+2, 3*j_n[index], 3*j_n[index]+1, 3*j_n[index]+2])
-        D_mn = D_mn + csr_matrix(((dpara_nn + dortho_nn).flatten(),(row_n,col_n)),shape=(3*nat,3*nat))
+    Ddiag_icc = np.empty((nat,3,3))
+    for x in range(3):
+        for y in range(3):
+            Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
 
-    #Main diagonal
-    for i in range(len(set(i_n))):
-        mask = i_n == i
-        e_nc = dr_nc[mask]/abs_dr_n[mask][:,None]
-        k_nc = dde_n[mask]
-        f_n = de_n[mask]/abs_dr_n[mask][:,None]
-        curdata_nn = np.zeros((3,3))
+    D += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
+    #print(np.sum(np.abs(D.toarray()-D.toarray().T)))
 
-        for j in range(len(e_nc)):
-            dpara_nn = k_nc[j] * np.outer(e_nc[j], e_nc[j])
-            dortho_nn = np.array(-f_n[j] * (np.eye(3, dtype=float) - np.outer(e_nc[j], e_nc[j])))
-            curdata_nn += dpara_nn - dortho_nn
-            
-        row_n = np.array([3*i, 3*i, 3*i, 3*i+1, 3*i+1, 3*i+1, 3*i+2, 3*i+2, 3*i+2])
-        col_n = np.array([3*i, 3*i+1, 3*i+2, 3*i, 3*i+1, 3*i+2, 3*i, 3*i+1, 3*i+2])
-        D_mn = D_mn + csr_matrix((curdata_nn.flatten(),(row_n,col_n)),shape=(3*nat,3*nat))
-
-    return D_mn
+    return D
 ### 
 
 class LennardJonesCut():
@@ -223,7 +208,6 @@ class PairPotential(Calculator):
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
         for params, pair in enumerate(self.dict):
-            print("params, pair:", params, pair)
             if pair[0] == pair[1]:
                 mask1 = atnums[i_n] == pair[0]
                 mask2 = atnums[j_n] == pair[0]

@@ -22,4 +22,5 @@
 from __future__ import absolute_import
 
 from .eam import EAM
+from .pair_potential import PairPotential
 from .supercell_calculator import SupercellCalculator
