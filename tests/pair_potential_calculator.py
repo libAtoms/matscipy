@@ -25,6 +25,7 @@ from __future__ import print_function
 
 import random
 import unittest
+import sys
 
 import numpy as np
 from numpy.linalg import norm
@@ -38,20 +39,20 @@ from ase.optimize import FIRE
 from ase.units import GPa
 
 import matscipytest
-from matscipy.calculators.pair_potential import PairPotential
+from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut
 from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
 
 ###
 
 class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
-    disp = 1e-6
-    tol = 2e-6
+    disp = 1e-8
+    tol = 7e-3
 
     def test_forces(self):
-        for calc in [EAM('Au-Grochola-JCP05.eam.alloy')]:
-            a = io.read('Au_923.xyz')
-            a.center(vacuum=10.0)
+        for calc in [PairPotential({(1,1): LennardJonesCut(1, 1, 3), (1,2): LennardJonesCut(1.5, 0.8, 2.4), (2, 2): LennardJonesCut(0.5, 0.88, 2.64 )})]:
+            a = io.read('KA_108.xyz')
+            a.center(vacuum=20.0)
             a.set_calculator(calc)
             f = a.get_forces()
             fn = calc.calculate_numerical_forces(a)
