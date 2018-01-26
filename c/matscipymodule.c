@@ -43,8 +43,6 @@
 static PyMethodDef module_methods[] = {
     { "angle_distribution", (PyCFunction) py_angle_distribution, METH_VARARGS,
       "Compute a bond angle distribution from a neighbour list." },
-    { "atomic_strain", (PyCFunction) py_atomic_strain, METH_VARARGS,
-      "Falk & Langer atomic strain analyis." },
     { "distances_on_graph", (PyCFunction) py_distances_on_graph, METH_VARARGS,
       "Compute a map of distances on a graph." },
     { "find_sp_rings", (PyCFunction) py_find_sp_rings, METH_VARARGS,
