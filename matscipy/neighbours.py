@@ -23,6 +23,8 @@ import itertools
 
 import numpy as np
 
+from ase.data import atomic_numbers
+
 import _matscipy
 from _matscipy import first_neighbours
 
@@ -59,7 +61,7 @@ def mic(dr, cell, pbc=None):
     return dr - np.dot(dri, cell)
 
 
-def neighbour_list(quantities, a, cutoff, *args):
+def neighbour_list(quantities, a, cutoff):
     """
     Compute a neighbour list for an atomic configuration.
 
@@ -79,13 +81,11 @@ def neighbour_list(quantities, a, cutoff, *args):
                   D = a.positions[j]-a.positions[i]+S.dot(a.cell)
     a : ase.Atoms
         Atomic configuration.
-    cutoff : float or array_like
-        Cutoff for neighbour search. If square array is given, then different
-        cutoffs will be used for individual bonds. Square array contains
-        pair-wise cutoffs for a given species, given by the *numbers* parameter.
-    numbers : array_like, optional
-        Atomic numbers or similar identifiers for elements. Used for cutoff
-        lookup.
+    cutoff : float or dict
+        Cutoff for neighbour search. If single float is given, a global cutoff
+        is used for all elements. A dictionary specifies cutoff for element
+        pairs. Specification accepts element numbers of symbols.
+        Example: {(1, 6): 1.1, (1, 1): 1.0, ('C', 'C'): 1.85}
 
     Returns
     -------
@@ -102,8 +102,8 @@ def neighbour_list(quantities, a, cutoff, *args):
         coord = np.bincount(i)
 
     2. Coordination counting with different cutoffs for each pair of species
-       (Assumes that species are Carbon=6 and Hydrogen=1)
-        i = neighbour_list('i', a, [[1.1, 1.3], [1.3, 1.85]], (a.numbers-1)//5)
+        i = neighbour_list('i', a,
+                           {('H', 'H'): 1.1, ('C', 'H'): 1.3, ('C', 'C'): 1.85})
         coord = np.bincount(i)
 
     3. Pair distribution function:
@@ -123,7 +123,25 @@ def neighbour_list(quantities, a, cutoff, *args):
                    np.bincount(i, weights=pair_forces[:, 2], minlength=len(a))
     """
 
+    if isinstance(cutoff, dict):
+        maxel = np.max(a.numbers)
+        _cutoff = np.zeros([maxel+1, maxel+1], dtype=float)
+        for (el1, el2), c in cutoff.items():
+            try:
+                el1 = atomic_numbers[el1]
+            except:
+                pass
+            try:
+                el2 = atomic_numbers[el2]
+            except:
+                pass
+            if el1 < maxel+1 and el2 < maxel+1:
+                _cutoff[el1, el2] = c
+                _cutoff[el2, el1] = c
+    else:
+        _cutoff = cutoff
+
     return _matscipy.neighbour_list(quantities, a.cell,
                                     np.linalg.inv(a.cell.T), a.pbc,
-                                    a.positions, cutoff, *args)
-
+                                    a.positions, _cutoff,
+                                    a.numbers.astype(np.int32))
