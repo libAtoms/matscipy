@@ -40,6 +40,7 @@ from ring_statistics import *
 from spatial_correlation_function import *
 from test_io import *
 from crack_tests import *
+from mcfm_test import *
 
 try:
     from scipy.interpolate import InterpolatedUnivariateSpline
