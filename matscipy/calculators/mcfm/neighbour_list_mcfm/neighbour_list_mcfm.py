@@ -32,8 +32,12 @@ class NeighbourListMCFM(NeighbourListBase):
 
         self.cutoffs = cutoffs.copy()
         self.cutoffs_hysteretic = cutoffs.copy()
-        for key in self.cutoffs_hysteretic:
-            self.cutoffs_hysteretic[key] *= hysteretic_break_factor
+        if hysteretic_break_factor > 1:
+            self.do_hysteretic = True
+            for key in self.cutoffs_hysteretic:
+                self.cutoffs_hysteretic[key] *= hysteretic_break_factor
+        else:
+            self.do_hysteretic = False
 
         self.skin = skin
         self.nupdates = 0
@@ -86,20 +90,23 @@ class NeighbourListMCFM(NeighbourListBase):
         self.cell = atoms.get_cell()
 
         shorti, shortj = mspy_nl("ij", atoms, self.cutoffs)
-        longi, longj = mspy_nl("ij", atoms, self.cutoffs_hysteretic)
 
         new_neighbours = [[] for idx in range(len(atoms))]
         for idx in range(len(shorti)):
             new_neighbours[shorti[idx]].append(shortj[idx])
 
-        for idx in range(len(longi)):
-            # Split for profiling
-            previously_connected = longj[idx] in self.old_neighbours[longi[idx]]
-            not_added = longj[idx] not in new_neighbours[longi[idx]]
-            if previously_connected and not_added:
-                new_neighbours[longi[idx]].append(longj[idx])
+        if self.do_hysteretic:
+            longi, longj = mspy_nl("ij", atoms, self.cutoffs_hysteretic)
 
-        self.old_neighbours = new_neighbours
+            for idx in range(len(longi)):
+                # Split for profiling
+                previously_connected = longj[idx] in self.old_neighbours[longi[idx]]
+                not_added = longj[idx] not in new_neighbours[longi[idx]]
+                if previously_connected and not_added:
+                    new_neighbours[longi[idx]].append(longj[idx])
+
+            self.old_neighbours = new_neighbours
+
         for idx in range(len(new_neighbours)):
             self.neighbours[idx] = np.asarray(list(new_neighbours[idx]))
 
