@@ -255,7 +255,7 @@ setup(name='matscipy',
                 'matscipy.calculators.eam','matscipy.io','matscipy.tool',
                 'matscipy.calculators.mcfm',
                 'matscipy.calculators.mcfm.mcfm_parallel',
-                'matscipy.calculators.mcfm.neighbour_list',
+                'matscipy.calculators.mcfm.neighbour_list_mcfm',
                 'matscipy.calculators.mcfm.qm_cluster_tools'],
       scripts=scripts,
       ext_modules=[
