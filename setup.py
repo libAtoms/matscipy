@@ -256,7 +256,8 @@ setup(name='matscipy',
                 'matscipy.calculators.mcfm',
                 'matscipy.calculators.mcfm.mcfm_parallel',
                 'matscipy.calculators.mcfm.neighbour_list_mcfm',
-                'matscipy.calculators.mcfm.qm_cluster_tools'],
+                'matscipy.calculators.mcfm.qm_cluster_tools',
+                'matscipy.calculators.pair_potential'],
       scripts=scripts,
       ext_modules=[
         Extension(
