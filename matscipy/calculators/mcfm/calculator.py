@@ -93,8 +93,8 @@ class MultiClusterForceMixingPotential(Calculator):
         self.long_range_weight = 0.0
         self.doParallel = True
 
-        # Flag for TB debugging
-        self.debug_tight_binding = False
+        # Flag for QM debugging
+        self.debug_qm_calculator = False
 
         # Set the cluster carving object
         self.qm_cluster = qm_cluster
@@ -151,7 +151,7 @@ class MultiClusterForceMixingPotential(Calculator):
             Must provide an atoms object
         """
 
-        super().calculate(atoms=atoms, properties=properties, system_changes=system_changes)
+        Calculator.calculate(self, atoms=atoms, properties=properties, system_changes=system_changes)
         # Check for atoms and if present wrap them to their cell
         if atoms is None:
             raise AttributeError("No atoms object provided")
@@ -358,7 +358,7 @@ class MultiClusterForceMixingPotential(Calculator):
 
         # Try to add additional details to the cluster data
         qm_charges = np.zeros(len(atoms))
-        if (self.debug_tight_binding):
+        if (self.debug_qm_calculator):
             try:
                 # print('eigenvalues cluster:')
                 # self.qm_calculator.print_eigenvalues(scope=15, offset=0)

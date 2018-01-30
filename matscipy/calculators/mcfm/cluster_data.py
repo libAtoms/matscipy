@@ -32,3 +32,6 @@ class ClusterData(object):
         self.mark = mark
         self.qm_list = qm_list
         self.nClusterAtoms = None
+
+    def __str__(self):
+        return str(self.mark)

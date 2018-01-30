@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 
 
-class NeighborListBase(object):
+class NeighbourListBase(object):
     """Interface for the neighbour list.
     HADES module can use any neighbour list object as long
     as it provides the implementation of the two routines below.

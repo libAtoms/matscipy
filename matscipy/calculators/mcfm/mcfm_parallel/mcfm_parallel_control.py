@@ -67,7 +67,7 @@ def get_cluster_data(atoms=None,
             nProcPerCluster[i] += 1
             leftoverProcs -= 1
 
-    if (mcfm_pot.debug_tight_binding):
+    if (mcfm_pot.debug_qm_calculator):
         print(fractionWorkloadPerCluster, nProcPerCluster, ":parallelTime")
 
     # Set up the Manager
@@ -86,13 +86,13 @@ def get_cluster_data(atoms=None,
                                    nAtoms=len(atoms),
                                    qmCalculator=mcfm_pot.qm_calculator,
                                    sharedList=sharedList,
-                                   debugTightBinding=mcfm_pot.debug_tight_binding))
+                                   debug_qm_calculator=mcfm_pot.debug_qm_calculator))
         processes.append(p)
 
     # Run processes
     for p in processes:
         p.start()
-        # Each calculation takes between 1 and 100s so the wait shouldnt affect the performance,
+        # Each QM calculation takes between 1 and 100s so the wait shouldnt affect the performance,
         # It helps prevent any I/O clashes when setting up the simulations
         time.sleep(1e-3)
 

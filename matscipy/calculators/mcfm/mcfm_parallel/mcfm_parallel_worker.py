@@ -18,7 +18,7 @@ def worker_populate_cluster_data(rank, size,
                                  nAtoms=None,
                                  qmCalculator=None,
                                  sharedList=None,
-                                 debugTightBinding=False):
+                                 debug_qm_calculator=False):
     """Function to calcuate total energy with TB
 
     Parameters
@@ -39,7 +39,7 @@ def worker_populate_cluster_data(rank, size,
         calculator to be used for the evaluation
     sharedList : list
         mp shared list used ot store output data
-    debugTightBinding : bool
+    debug_qm_calculator : bool
         run the simulation in debug mode
     """
 
@@ -60,17 +60,17 @@ def worker_populate_cluster_data(rank, size,
     mark = np.zeros(nAtoms, dtype=int)
     full_qm_forces = np.zeros((nAtoms, 3))
 
-    if (debugTightBinding):
+    if (debug_qm_calculator):
         ase.io.write("cluster_ext_" + str(rank) + ".xyz", atomic_cluster, format="extxyz")
 
     # ------ Run the calculation
-    if (debugTightBinding):
+    if (debug_qm_calculator):
         print("Starting evaluation of cluster %d :parallelTime" %
               (rank))
     t0 = timeit.default_timer()
     qm_forces_array = qmCalculator.get_forces(atomic_cluster)
     t1 = timeit.default_timer()
-    if (debugTightBinding):
+    if (debug_qm_calculator):
         print("Time taken for cluster %d: %.7e  w %d atoms :parallelTime" %
               (rank, (t1 - t0), len(atomic_cluster)))
 
@@ -92,7 +92,7 @@ def worker_populate_cluster_data(rank, size,
     cluster_data.qm_charges = qm_charges
     sharedList[rank] = cluster_data
 
-    if (debugTightBinding):
+    if (debug_qm_calculator):
         try:
             atomic_cluster.arrays["qm_charges"] = qmCalculator.results["charges"].copy()
             atomic_cluster.arrays["qm_forces"] = qmCalculator.results["forces"].copy()
