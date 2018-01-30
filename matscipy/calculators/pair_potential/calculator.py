@@ -92,7 +92,6 @@ def get_dynamical_matrix(f, atoms):
             Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
 
     D += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
-    #print(np.sum(np.abs(D.toarray()-D.toarray().T)))
 
     return D
 ### 
