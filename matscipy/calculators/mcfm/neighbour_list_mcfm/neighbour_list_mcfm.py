@@ -89,14 +89,14 @@ class NeighbourListMCFM(NeighbourListBase):
         self.pbc = atoms.get_pbc()
         self.cell = atoms.get_cell()
 
-        shorti, shortj = mspy_nl("ij", atoms, self.cutoffs)
+        shorti, shortj = mspy_nl(str("ij"), atoms, self.cutoffs)
 
         new_neighbours = [[] for idx in range(len(atoms))]
         for idx in range(len(shorti)):
             new_neighbours[shorti[idx]].append(shortj[idx])
 
         if self.do_hysteretic:
-            longi, longj = mspy_nl("ij", atoms, self.cutoffs_hysteretic)
+            longi, longj = mspy_nl(str("ij"), atoms, self.cutoffs_hysteretic)
 
             for idx in range(len(longi)):
                 # Split for profiling
