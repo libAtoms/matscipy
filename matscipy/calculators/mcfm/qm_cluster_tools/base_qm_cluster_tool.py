@@ -12,7 +12,7 @@ class BaseQMClusterTool(object):
 
         Parameters
         ----------
-        mediator : hades.QMcluster
+        mediator : matscipy.calculators.mcfm.QMCluster
             class responsible for managing the QM clusters in the simulation
         """
         self.mediator = mediator

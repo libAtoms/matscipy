@@ -18,7 +18,7 @@ def get_cluster_data(atoms=None,
         atoms object representing the structure
     clusterData : list
         List of empty objects to be filled with clusterData instances
-    mcfm_pot : hades.MultiClusterForceMixing
+    mcfm_pot : matscipy.calculators.mcfm.MultiClusterForceMixing
         qmmm potential
     """
     # number of porcessors

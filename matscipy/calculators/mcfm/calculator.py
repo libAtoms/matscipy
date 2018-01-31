@@ -39,7 +39,7 @@ class MultiClusterForceMixingPotential(Calculator):
             classical calculator
         qm_calculator : ASE.calculator
             qm calculator
-        qm_cluster : HADES.qm_cluster
+        qm_cluster : matscipy.calculators.mcfm.qm_cluster
             flagging/cluster carving utility
         forced_qm_list : list
             add this list to enforce a set of atoms for qm treatment
@@ -391,7 +391,7 @@ class MultiClusterForceMixingPotential(Calculator):
             atoms object
         forces : np.array
             atomic forces
-        cluster_data_list : list of hades.ClusterData
+        cluster_data_list : list of matscipy.calculators.mcfm.ClusterData
             information about the clusters
 
         Returns
@@ -452,7 +452,7 @@ class MultiClusterForceMixingPotential(Calculator):
             atoms object
         full_qm_atoms_mask : list
             list of all qm atoms
-        cluster_data_list : list of hades.ClusterData
+        cluster_data_list : list of matscipy.calculators.mcfm.ClusterData
             information about the clusters
         """
 

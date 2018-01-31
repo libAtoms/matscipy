@@ -4,7 +4,7 @@ import numpy as np
 
 class NeighbourListBase(object):
     """Interface for the neighbour list.
-    HADES module can use any neighbour list object as long
+    mcfm module can use any neighbour list object as long
     as it provides the implementation of the two routines below.
     """
 

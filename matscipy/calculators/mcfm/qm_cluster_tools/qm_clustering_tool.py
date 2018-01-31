@@ -15,7 +15,7 @@ class QMClusteringTool(BaseQMClusterTool):
 
         Parameters
         ----------
-        mediator : hades.QMcluster
+        mediator : matscipy.calculators.mcfm.QMCluster
             class responsible for managing the QM clusters in the simulation
         double_bonded_atoms_list : list
             list of doubly bonded atoms, needed for double hydrogenation.

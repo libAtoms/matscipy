@@ -5,7 +5,7 @@ from .qm_cluster_tools.qm_flagging_tool import QMFlaggingTool
 from .qm_cluster_tools.qm_clustering_tool import QMClusteringTool
 
 
-class QMcluster(object):
+class QMCluster(object):
     """This is a class responsible for managing the QM clusters in the simulation.
 
     It acts as a mediator between
@@ -17,11 +17,11 @@ class QMcluster(object):
 
     Attributes
     ----------
-    clustering_module : hades.qmClusterModule.QMClusteringTool
+    clustering_module : matscipy.calculators.mcfm.qmClusterModule.QMClusteringTool
         module responsible for carving a qm cluster
-    flagging_module : hades.qmClusterModule.QMFlaggingTool
+    flagging_module : matscipy.calculators.mcfm.qmClusterModule.QMFlaggingTool
         module responsible for flagging atoms
-    neighbour_list : hades.NeighborListBase
+    neighbour_list : matscipy.calculators.mcfm.neighbour_list_mcfm.NeighborListBase
         object holding the neighbour list
     verbose : int
         Set verbosity level
@@ -57,12 +57,12 @@ class QMcluster(object):
         self.neighbour_list = neighbour_list
 
     def attach_flagging_module(self, **kwargs):
-        """Initialize and attach hades.QMFlaggingTool
+        """Initialize and attach matscipy.calculators.mcfm.QMFlaggingTool
         The function calls the class initializer with given parameters"""
         self.flagging_module = QMFlaggingTool(mediator=self, **kwargs)
 
     def attach_clustering_module(self, **kwargs):
-        """Initialize and attach hades.QMClusteringTool
+        """Initialize and attach matscipy.calculators.mcfm.QMClusteringTool
         The function calls the class initializer with given parameters"""
         self.clustering_module = QMClusteringTool(mediator=self, **kwargs)
 

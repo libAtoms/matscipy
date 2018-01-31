@@ -16,7 +16,7 @@ class QMFlaggingTool(BaseQMClusterTool):
 
         Parameters
         ----------
-        mediator : hades.QMcluster
+        mediator : matscipy.calculators.mcfm.QMCluster
             class responsible for managing the QM clusters in the simulation
         qm_flag_potential_energies : np.array
             threshholds for flagging indivual atoms.

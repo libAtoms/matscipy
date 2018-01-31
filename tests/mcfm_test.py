@@ -6,7 +6,7 @@ from math import exp, sqrt
 from ase.calculators.calculator import Calculator
 
 from matscipy.calculators.mcfm.neighbour_list_mcfm.neighbour_list_mcfm import NeighbourListMCFM
-from matscipy.calculators.mcfm.qm_cluster import QMcluster
+from matscipy.calculators.mcfm.qm_cluster import QMCluster
 from matscipy.calculators.mcfm.calculator import MultiClusterForceMixingPotential
 
 import unittest
@@ -167,7 +167,7 @@ def create_mcfm_potential(atoms,
     qm_flag_potential_energies = np.ones((len(atoms), 2), dtype=float) * 100
     atoms.arrays["qm_flag_potential_energies[in_out]"] = qm_flag_potential_energies.copy()
 
-    qm_cluster = QMcluster(special_atoms_list=special_atoms_list,
+    qm_cluster = QMCluster(special_atoms_list=special_atoms_list,
                            verbose=0)
 
     qm_cluster.attach_neighbour_list(neighbour_list)
@@ -236,7 +236,7 @@ class TestMCFM(matscipytest.MatSciPyTestCase):
         clusters = self.mcfm_pot.cluster_list
         cluster_marks = self.mcfm_pot.cluster_data_list[0].mark
 
-        self.assertTrue(np.all(cluster_marks == clustering_marks_check))
+        self.assertTrue(list(cluster_marks) == list(clustering_marks_check))
         for idx in range(len(clusters)):
             self.assertTrue(clusters[idx] == clustering_ckeck[idx])
 

@@ -6,7 +6,7 @@ import ase.io
 from utilities import MorsePotentialPerAtom
 
 from matscipy.calculators.mcfm.neighbour_list_mcfm.neighbour_list_mcfm import NeighbourListMCFM
-from matscipy.calculators.mcfm.qm_cluster import QMcluster
+from matscipy.calculators.mcfm.qm_cluster import QMCluster
 from matscipy.calculators.mcfm.calculator import MultiClusterForceMixingPotential
 
 
@@ -82,7 +82,7 @@ def create_mcfm_potential(atoms,
     qm_flag_potential_energies = np.ones((len(atoms), 2), dtype=float) * 100
     atoms.arrays["qm_flag_potential_energies[in_out]"] = qm_flag_potential_energies.copy()
 
-    qm_cluster = QMcluster(special_atoms_list=special_atoms_list,
+    qm_cluster = QMCluster(special_atoms_list=special_atoms_list,
                            verbose=0)
 
     qm_cluster.attach_neighbour_list(neighbour_list)
