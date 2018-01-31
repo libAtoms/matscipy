@@ -238,7 +238,7 @@ class TestMCFM(matscipytest.MatSciPyTestCase):
 
         self.assertTrue(list(cluster_marks) == list(clustering_marks_check))
         for idx in range(len(clusters)):
-            self.assertTrue(clusters[idx] == clustering_ckeck[idx])
+            self.assertTrue(clusters[idx].sort() == clustering_ckeck[idx].sort())
 
     def test_forces(self):
         self.prepare_data()
