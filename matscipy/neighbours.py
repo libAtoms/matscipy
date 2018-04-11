@@ -63,7 +63,13 @@ def mic(dr, cell, pbc=None):
 
 def neighbour_list(quantities, a, cutoff):
     """
-    Compute a neighbour list for an atomic configuration.
+    Compute a neighbor list for an atomic configuration. Atoms outside periodic
+    boundaries are mapped into the box. Atoms outside nonperiodic boundaries
+    are included in the neighbor list but complexity of neighbor list search
+    for those can become n^2.
+
+    The neighbor list is sorted by first atom index 'i', but not by second 
+    atom index 'j'.
 
     Parameters
     ----------
@@ -77,15 +83,19 @@ def neighbour_list(quantities, a, cutoff):
             'D' : distance vector
             'S' : shift vector (number of cell boundaries crossed by the bond
                   between atom i and j). With the shift vector S, the
-                  distances d between can be computed as:
+                  distances D between atoms can be computed from:
                   D = a.positions[j]-a.positions[i]+S.dot(a.cell)
     a : ase.Atoms
         Atomic configuration.
     cutoff : float or dict
-        Cutoff for neighbour search. If single float is given, a global cutoff
-        is used for all elements. A dictionary specifies cutoff for element
-        pairs. Specification accepts element numbers of symbols.
-        Example: {(1, 6): 1.1, (1, 1): 1.0, ('C', 'C'): 1.85}
+        Cutoff for neighbor search. It can be
+            - A single float: This is a global cutoff for all elements.
+            - A dictionary: This specifies cutoff values for element
+              pairs. Specification accepts element numbers of symbols.
+              Example: {(1, 6): 1.1, (1, 1): 1.0, ('C', 'C'): 1.85}
+            - A list/array with a per atom value: This specifies the radius of
+              an atomic sphere for each atoms. If spheres overlap, atoms are
+              within each others neighborhood.
 
     Returns
     -------
@@ -98,21 +108,21 @@ def neighbour_list(quantities, a, cutoff):
     --------
     Examples assume Atoms object *a* and numpy imported as *np*.
     1. Coordination counting:
-        i = neighbour_list('i', a, 1.85)
+        i = neighbor_list('i', a, 1.85)
         coord = np.bincount(i)
 
     2. Coordination counting with different cutoffs for each pair of species
-        i = neighbour_list('i', a,
+        i = neighbor_list('i', a,
                            {('H', 'H'): 1.1, ('C', 'H'): 1.3, ('C', 'C'): 1.85})
         coord = np.bincount(i)
 
     3. Pair distribution function:
-        d = neighbour_list('d', a, 10.00)
+        d = neighbor_list('d', a, 10.00)
         h, bin_edges = np.histogram(d, bins=100)
         pdf = h/(4*np.pi/3*(bin_edges[1:]**3 - bin_edges[:-1]**3)) * a.get_volume()/len(a)
 
     4. Pair potential:
-        i, j, d, D = neighbour_list('ijdD', a, 5.0)
+        i, j, d, D = neighbor_list('ijdD', a, 5.0)
         energy = (-C/d**6).sum()
         pair_forces = (6*C/d**5  * (D/d).T).T
         forces_x = np.bincount(j, weights=pair_forces[:, 0], minlength=len(a)) - \
@@ -121,6 +131,25 @@ def neighbour_list(quantities, a, cutoff):
                    np.bincount(i, weights=pair_forces[:, 1], minlength=len(a))
         forces_z = np.bincount(j, weights=pair_forces[:, 2], minlength=len(a)) - \
                    np.bincount(i, weights=pair_forces[:, 2], minlength=len(a))
+
+    5. Dynamical matrix for a pair potential stored in a block sparse format:
+        from scipy.sparse import bsr_matrix
+        i, j, dr, abs_dr = neighbor_list('ijDd', atoms)
+        energy = (dr.T / abs_dr).T
+        dynmat = -(dde * (energy.reshape(-1, 3, 1) * energy.reshape(-1, 1, 3)).T).T \
+                 -(de / abs_dr * (np.eye(3, dtype=energy.dtype) - \
+                   (energy.reshape(-1, 3, 1) * energy.reshape(-1, 1, 3))).T).T
+        dynmat_bsr = bsr_matrix((dynmat, j, first_i), shape=(3*len(a), 3*len(a)))
+
+        dynmat_diag = np.empty((len(a), 3, 3))
+        for x in range(3):
+            for y in range(3):
+                dynmat_diag[:, x, y] = -np.bincount(i, weights=dynmat[:, x, y])
+
+        dynmat_bsr += bsr_matrix((dynmat_diag, np.arange(len(a)),
+                                  np.arange(len(a) + 1)),
+                                 shape=(3 * len(a), 3 * len(a)))
+
     """
 
     if isinstance(cutoff, dict):

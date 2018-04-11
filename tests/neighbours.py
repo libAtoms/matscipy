@@ -171,6 +171,43 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(np.bincount(i), [12])
         self.assertArrayAlmostEqual(d, [2.86378246]*12)
 
+    def test_out_of_bounds(self):
+        nat = 10
+        atoms = ase.Atoms(numbers=range(nat),
+                          cell=[(0.2, 1.2, 1.4),
+                                (1.4, 0.1, 1.6),
+                                (1.3, 2.0, -0.1)])
+        atoms.set_scaled_positions(3 * np.random.random((nat, 3)) - 1)
+        
+        for p1 in range(2):
+            for p2 in range(2):
+                for p3 in range(2):
+                    atoms.set_pbc((p1, p2, p3))
+                    i, j, d, D, S = neighbour_list("ijdDS", atoms, atoms.numbers * 0.2 + 0.5)
+                    c = np.bincount(i)
+                    atoms2 = atoms.repeat((p1 + 1, p2 + 1, p3 + 1))
+                    i2, j2, d2, D2, S2 = neighbour_list("ijdDS", atoms2, atoms2.numbers * 0.2 + 0.5)
+                    c2 = np.bincount(i2)
+                    c2.shape = (-1, nat)
+                    dd = d.sum() * (p1 + 1) * (p2 + 1) * (p3 + 1) - d2.sum()
+                    dr = np.linalg.solve(atoms.cell.T, (atoms.positions[1]-atoms.positions[0]).T).T+np.array([0,0,3])
+                    self.assertTrue(abs(dd) < 1e-10)
+                    self.assertTrue(not (c2 - c).any())
+
+    def test_wrong_number_of_cutoffs(self):
+        nat = 10
+        atoms = ase.Atoms(numbers=range(nat),
+                          cell=[(0.2, 1.2, 1.4),
+                                (1.4, 0.1, 1.6),
+                                (1.3, 2.0, -0.1)])
+        atoms.set_scaled_positions(3 * np.random.random((nat, 3)) - 1)
+        exception_thrown = False
+        try:
+            i, j, d, D, S = neighbour_list("ijdDS", atoms, np.ones(len(atoms)-1))
+        except TypeError:
+            exception_thrown = True
+        self.assertTrue(exception_thrown)
+
 ###
 
 if __name__ == '__main__':
