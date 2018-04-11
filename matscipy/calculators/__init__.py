@@ -22,5 +22,8 @@
 from __future__ import absolute_import
 
 from .eam import EAM
+<<<<<<< HEAD
 from .pair_potential import PairPotential
+=======
+>>>>>>> e19c7411585cc84bf6b1206107ad6682eb3df927
 from .supercell_calculator import SupercellCalculator
