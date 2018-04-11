@@ -253,11 +253,11 @@ setup(name='matscipy',
       packages=['matscipy', 'matscipy.fracture_mechanics',
                 'matscipy.contact_mechanics', 'matscipy.calculators',
                 'matscipy.calculators.eam','matscipy.io','matscipy.tool',
+                'matscipy.calculators.pair_potential',
                 'matscipy.calculators.mcfm',
                 'matscipy.calculators.mcfm.mcfm_parallel',
                 'matscipy.calculators.mcfm.neighbour_list_mcfm',
-                'matscipy.calculators.mcfm.qm_cluster_tools',
-                'matscipy.calculators.pair_potential'],
+                'matscipy.calculators.mcfm.qm_cluster_tools'],
       scripts=scripts,
       ext_modules=[
         Extension(
