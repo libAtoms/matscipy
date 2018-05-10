@@ -101,7 +101,7 @@ for _density in densities:
             # Relax with the quick potential
             a.set_atomic_numbers([6]*len(a))
             a.set_calculator(quick_calc)
-            FIRE(a).run(fmax=1.0, steps=10000)
+            FIRE(a, downhill_check=True).run(fmax=1.0, steps=10000)
             a.set_atomic_numbers(n)
             write(initial_fn, a)
         else:
