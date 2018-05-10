@@ -1,6 +1,12 @@
 Change log
 ==========
 
+v0.2.0 (10May18)
+----------------
+
+- QM/MM calculator.
+- Neighbor list now accepts dictionary that describes cutoff distances.
+
 v0.1.4 (4Oct17)
 ---------------
 
