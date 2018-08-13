@@ -24,7 +24,7 @@ script:
   - "cd tests ; python run_tests.py"
 notifications:
   email:
-    - lars.pastewka@kit.edu
+    - lars.pastewka@imtek.uni-freiburg.de
     - j.r.kermode@warwick.ac.uk
     - adrien.gola@kit.edu
     - richard.jana@kit.edu
