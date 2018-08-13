@@ -68,7 +68,7 @@ def max_rad(cell_vectors):
 
 def spatial_correlation_function(atoms, values, length_cutoff=None,
                                  output_gridsize=None, FFT_cutoff=None,
-                                 approx_FFT_gridsize=None, dim=None
+                                 approx_FFT_gridsize=None, dim=None,
                                  delta='simple', norm=False):
     # Make sure values are floats
     values = np.asarray(values, dtype=float)
