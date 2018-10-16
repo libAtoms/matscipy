@@ -20,7 +20,9 @@
 # ======================================================================
 
 '''
-Compute the spatial correlation of a given function. Distances larger than a cut-off are calculated by fourier transformation, while shorter distances are calculated directly.
+Compute the spatial correlation of a given function. Distances larger
+than a cut-off are calculated by fourier transformation, while shorter
+distances are calculated directly.
 coords.shape=(n_atoms,3)
 cell_vectors=[[x1,y1,z1],[x2,y2,z2],[x3,y3,z3]]
 
@@ -30,7 +32,8 @@ options:
     b: along only one dimension, ignoring other components: 0..2
 #2)mode to assign the atomic values to the FFT grid points [delta=]
     a: assign value to the nearest grid point: simple (default)
-    b: assign value to the 8 nearest grid points, distributed proportional to their distance: else
+    b: assign value to the 8 nearest grid points, distributed
+        proportional to their distance: else
 #3)nomalisation by variance of values [norm=]
     a: off: False (default)
     b: on: True
@@ -63,7 +66,10 @@ def max_rad(cell_vectors):
     return r.min()
 
 
-def spatial_correlation_function(atoms, values, length_cutoff=None, output_gridsize=None, FFT_cutoff=None, approx_FFT_gridsize=None, dim=None, delta='simple', norm=False):
+def spatial_correlation_function(atoms, values, length_cutoff=None,
+                                 output_gridsize=None, FFT_cutoff=None,
+                                 approx_FFT_gridsize=None, dim=None,
+                                 delta='simple', norm=False):
     # Make sure values are floats
     values = np.asarray(values, dtype=float)
 
@@ -84,14 +90,17 @@ def spatial_correlation_function(atoms, values, length_cutoff=None, output_grids
     if approx_FFT_gridsize is None:
         approx_FFT_gridsize = 1.0
 
-    n_lattice_points = np.array(np.ceil(cell_vectors.diagonal()/approx_FFT_gridsize), dtype=int)
+    n_lattice_points = np.array(np.ceil(cell_vectors.diagonal()
+                                        /approx_FFT_gridsize),
+                                dtype=int)
     FFT_gridsize = cell_vectors.diagonal()/n_lattice_points
 
     if delta == 'simple':
         # calc lattice values (add to nearest lattice point)
         Q = np.zeros(shape=(n_lattice_points))
         for _abc, _q in zip(abc, values):
-            x,y,z = np.array(_abc*n_lattice_points, dtype=int) % n_lattice_points
+            x,y,z = np.array(_abc*n_lattice_points, dtype=int) \
+                             %n_lattice_points
             Q[x,y,z] += _q
     else:
         # proportional distribution on 8 neightbor points
@@ -99,49 +108,67 @@ def spatial_correlation_function(atoms, values, length_cutoff=None, output_grids
         a1, a2, a3 = cell_vectors.T
         for _abc, _q in zip(abc, q):
             x,y,z = _abc*(n_lattice_points-1)
-            aes = np.array([np.floor(x),np.ceil(x)]).reshape(-1, 1, 1, 1)/(n_lattice_points[0]-1)
-            bes = np.array([np.floor(y),np.ceil(y)]).reshape( 1,-1, 1, 1)/(n_lattice_points[1]-1)
-            ces = np.array([np.floor(z),np.ceil(z)]).reshape( 1, 1,-1, 1)/(n_lattice_points[2]-1)
-            octo = (aes*a1.reshape(1,1,1,-1) + bes*a2.reshape(1,1,1,-1) + ces*a3.reshape(1,1,1,-1))-cartesianN(_abc,cell_vectors).reshape(1,1,1,-1)
+            aes = np.array([np.floor(x),np.ceil(x)] \
+                          ).reshape(-1, 1, 1, 1)/(n_lattice_points[0]-1)
+            bes = np.array([np.floor(y),np.ceil(y)] \
+                          ).reshape( 1,-1, 1, 1)/(n_lattice_points[1]-1)
+            ces = np.array([np.floor(z),np.ceil(z)] \
+                          ).reshape( 1, 1,-1, 1)/(n_lattice_points[2]-1)
+            octo = (aes*a1.reshape(1,1,1,-1) \
+                    +bes*a2.reshape(1,1,1,-1) \
+                    +ces*a3.reshape(1,1,1,-1)) \
+                    -cartesianN(_abc,cell_vectors).reshape(1,1,1,-1)
             octo = 1./(np.sqrt((octo**2).sum(axis=3)))
-            Q[np.floor(x):np.ceil(x)+1,np.floor(y):np.ceil(y)+1,np.floor(z):np.ceil(z)+1] += octo/octo.sum()*_q
+            Q[np.floor(x):np.ceil(x)+1,np.floor(y):np.ceil(y)+1,
+              np.floor(z):np.ceil(z)+1] += octo/octo.sum()*_q
 
     # FFT
     Q_schlange = np.fft.fftn(Q)
     C_schlange = Q_schlange*Q_schlange.conjugate()
-    C = np.fft.ifftn(C_schlange)*n_lattice_points.prod()/n_atoms/n_atoms
+    C = np.fft.ifftn(C_schlange)*n_lattice_points.prod() \
+        /n_atoms/n_atoms
     C = np.fft.ifftshift(C)
 
     if dim is None:
-        # distance mapping (for floor/ceil convention see *i*fftshift definition)
+        # distance mapping (for floor/ceil convention see *i*fftshift
+        # definition)
         a = np.reshape(np.arange(-floor(n_lattice_points[0]/2.),
-                       ceil(n_lattice_points[0]/2.),1)/n_lattice_points[0],(-1, 1, 1, 1))
+                       ceil(n_lattice_points[0]/2.),1)
+                       /n_lattice_points[0],(-1, 1, 1, 1))
         b = np.reshape(np.arange(-floor(n_lattice_points[1]/2.),
-                       ceil(n_lattice_points[1]/2.),1)/n_lattice_points[1],( 1,-1, 1, 1))
+                       ceil(n_lattice_points[1]/2.),1)
+                       /n_lattice_points[1],( 1,-1, 1, 1))
         c = np.reshape(np.arange(-floor(n_lattice_points[2]/2.),
-                       ceil(n_lattice_points[2]/2.),1)/n_lattice_points[2],( 1, 1,-1, 1))
+                       ceil(n_lattice_points[2]/2.),1)
+                       /n_lattice_points[2],( 1, 1,-1, 1))
         a1, a2, a3 = cell_vectors.T
 
-        r = a*a1.reshape(1,1,1,-1)+b*a2.reshape(1,1,1,-1)+c*a3.reshape(1,1,1,-1)
+        r = a*a1.reshape(1,1,1,-1)+b*a2.reshape(1,1,1,-1) \
+            +c*a3.reshape(1,1,1,-1)
         dist = np.sqrt((r**2).sum(axis=3))
     elif 0 <= dim <3:
         # directional SCFs
         # for floor/ceil convention see *i*fftshift definition
         a = np.reshape(np.arange(-floor(n_lattice_points[0]/2.),
-                       ceil(n_lattice_points[0]/2.),1)/n_lattice_points[0],(-1, 1, 1, 1))
+                                 ceil(n_lattice_points[0]/2.),1)
+                       /n_lattice_points[0],(-1, 1, 1, 1))
         b = np.reshape(np.arange(-floor(n_lattice_points[1]/2.),
-                       ceil(n_lattice_points[1]/2.),1)/n_lattice_points[1],( 1,-1, 1, 1))
+                                 ceil(n_lattice_points[1]/2.),1)
+                       /n_lattice_points[1],( 1,-1, 1, 1))
         c = np.reshape(np.arange(-floor(n_lattice_points[2]/2.),
-                       ceil(n_lattice_points[2]/2.),1)/n_lattice_points[2],( 1, 1,-1, 1))
+                                 ceil(n_lattice_points[2]/2.),1)
+                       /n_lattice_points[2],( 1, 1,-1, 1))
         a1, a2, a3 = cell_vectors.T
-        r = a*a1.reshape(1,1,1,-1) + b*a2.reshape(1,1,1,-1) + c*a3.reshape(1,1,1,-1)
+        r = a*a1.reshape(1,1,1,-1) +b*a2.reshape(1,1,1,-1) \
+            +c*a3.reshape(1,1,1,-1)
         dist = np.abs(r[:,:,:,dim])  # use indices to access directions
     else:
         print('invalid correlation direction: '+str(dim))
         sys.exit()
 
     nbins = int(length_cutoff/output_gridsize)
-    bins = np.arange(0, length_cutoff+length_cutoff/nbins, length_cutoff/nbins)
+    bins = np.arange(0, length_cutoff+length_cutoff/nbins,
+                     length_cutoff/nbins)
     SCF, edges = np.histogram(np.ravel(dist), bins=bins,
                               weights=np.ravel(np.real(C)))
     n, edges = np.histogram(np.reshape(dist,(-1,1)), bins=bins)
@@ -158,7 +185,8 @@ def spatial_correlation_function(atoms, values, length_cutoff=None, output_grids
 
 
 
-def spatial_correlation_function_near(atoms, values, gridsize=None, cutoff=None, norm=False):
+def spatial_correlation_function_near(atoms, values, gridsize=None,
+                                      cutoff=None, norm=False):
     if gridsize is None:
         gridsize = 0.1
 
@@ -169,7 +197,8 @@ def spatial_correlation_function_near(atoms, values, gridsize=None, cutoff=None,
     nbins = int(cutoff/gridsize)+1
     index1,index2,dist = neighbour_list('ijd', atoms, cutoff=cutoff)
     SCF_near, edges = np.histogram(dist, bins=bins,
-                                   weights=values[index1]*values[index2])
+                                   weights=values[index1]
+                                   *values[index2])
     slice_volume = 4*np.pi/3 * (edges[1:]**3-edges[:-1]**3)
     SCF_near *= atoms.get_volume()/n_atoms**2 / slice_volume
     if norm:

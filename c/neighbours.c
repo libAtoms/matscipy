@@ -24,6 +24,7 @@
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
 #define NO_IMPORT_ARRAY
+#define NPY_NO_DEPRECATED_API NPY_1_5_API_VERSION
 #include <numpy/arrayobject.h>
 
 #include <limits.h>
@@ -127,42 +128,57 @@ py_neighbour_list(PyObject *self, PyObject *args)
         if (!py_types) return NULL;
     }
 
+    /* FIXME! Check array shapes. */
+    npy_intp nat = PyArray_DIM((PyArrayObject *) py_r, 0);
+
+    npy_intp ncutoffdims = 0;
     npy_intp ncutoffs = 1;
     npy_double *cutoffs = NULL;
     double *cutoffs_sq = NULL;
     if (PyFloat_Check(py_cutoffs)) {
         cutoff = PyFloat_AsDouble(py_cutoffs);
+        py_cutoffs = NULL;
     }
     else {
         int i;
 
         /* This must be an array of cutoffs */
-        py_cutoffs = PyArray_FROMANY(py_cutoffs, NPY_DOUBLE, 2, 2,
+        py_cutoffs = PyArray_FROMANY(py_cutoffs, NPY_DOUBLE, 1, 2,
                                      NPY_C_CONTIGUOUS);
         if (!py_cutoffs) return NULL;
+        ncutoffdims = PyArray_NDIM((PyArrayObject *) py_cutoffs);
         ncutoffs = PyArray_DIM((PyArrayObject *) py_cutoffs, 0);
-        if (PyArray_DIM((PyArrayObject *) py_cutoffs, 1) != ncutoffs) {
-            PyErr_SetString(PyExc_TypeError, "Cutoff array must be square.");
-            goto fail;
-        }
         cutoffs = PyArray_DATA((PyArrayObject *) py_cutoffs);
-        cutoffs_sq = malloc(ncutoffs*ncutoffs*sizeof(double));
-        if (!cutoffs_sq) {
-            PyErr_SetString(PyExc_RuntimeError, "Failed to allocate cutoffs_sq "
-                                                "array.");
-            goto fail;
-        }
         cutoff = 0.0;
-        for (i = 0; i < ncutoffs*ncutoffs; i++) {
-            cutoff = max(cutoff, cutoffs[i]);
-            cutoffs_sq[i] = cutoffs[i]*cutoffs[i];
+        if (ncutoffdims == 1) {
+            if (ncutoffs != nat) {
+                PyErr_SetString(PyExc_TypeError, "One-dimensional cutoff array "
+                                "must have length that corresponds to position "
+                                "array.");
+                goto fail;
+            }
+            for (i = 0; i < nat; i++) {
+                cutoff = max(cutoff, 2*cutoffs[i]);
+            }
         }
-
-        Py_DECREF(py_cutoffs);
+        else {
+            if (PyArray_DIM((PyArrayObject *) py_cutoffs, 1) != ncutoffs) {
+                PyErr_SetString(PyExc_TypeError, "Two-dimensional cutoff array "
+                                "must be square.");
+                goto fail;
+            }
+            cutoffs_sq = malloc(ncutoffs*ncutoffs*sizeof(double));
+            if (!cutoffs_sq) {
+                PyErr_SetString(PyExc_RuntimeError, "Failed to allocate "
+                                                    "cutoffs_sq array.");
+                goto fail;
+            }
+            for (i = 0; i < ncutoffs*ncutoffs; i++) {
+                cutoff = max(cutoff, cutoffs[i]);
+                cutoffs_sq[i] = cutoffs[i]*cutoffs[i];
+            }
+        }
     }
-
-    /* FIXME! Check array shapes. */
-    npy_intp nat = PyArray_DIM((PyArrayObject *) py_r, 0);
 
     if (py_types && PyArray_DIM((PyArrayObject *) py_types, 0) != nat) {
        PyErr_SetString(PyExc_TypeError, "Position and type arrays must have "
@@ -455,7 +471,12 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
                             if (abs_dr_sq < cutoff_sq) {
                                 bool inside_cutoff = true;
-                                if (cutoffs && types) {
+                                if (ncutoffdims == 1) {
+                                    double c_sq = cutoffs[i]+cutoffs[j];
+                                    c_sq *= c_sq;
+                                    inside_cutoff = abs_dr_sq < c_sq;
+                                }
+                                else if (ncutoffdims == 2 && types) {
                                     if (types[i] < ncutoffs &&
                                         types[j] < ncutoffs){
                                         double c_sq =
@@ -573,6 +594,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     }
 
     /* Final cleanup */
+    Py_XDECREF(py_cutoffs);
     Py_DECREF(py_cell);
     Py_DECREF(py_inv_cell);
     Py_DECREF(py_pbc);
@@ -583,6 +605,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
     fail:
     /* Cleanup. Sorry for the goto. */
+    Py_XDECREF(py_cutoffs);
     Py_DECREF(py_cell);
     Py_DECREF(py_inv_cell);
     Py_DECREF(py_pbc);

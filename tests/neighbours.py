@@ -28,8 +28,7 @@ import numpy as np
 import ase
 import ase.io as io
 import ase.lattice.hexagonal
-from ase.build import molecule
-from ase.lattice import bulk
+from ase.build import bulk, molecule
 
 import matscipytest
 from matscipy.neighbours import mic, neighbour_list, first_neighbours
@@ -154,20 +153,16 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         i = neighbour_list("i", a, 1.85)
         self.assertArrayAlmostEqual(np.bincount(i), [2,3,1,1,1])
 
-        cutoffs = np.zeros([9, 9])
-        cutoffs[1, 6] = cutoffs[6, 1] = 1.2
-        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        cutoffs = {(1, 6): 1.2}
+        i = neighbour_list("i", a, cutoffs)
         self.assertArrayAlmostEqual(np.bincount(i), [0,1,0,0,1])
 
-        cutoffs = np.zeros([9, 9])
-        cutoffs[6, 8] = cutoffs[8, 6] = 1.4
-        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        cutoffs = {(6, 8): 1.4}
+        i = neighbour_list("i", a, cutoffs)
         self.assertArrayAlmostEqual(np.bincount(i), [1,2,1])
 
-        cutoffs = np.zeros([9, 9])
-        cutoffs[1, 6] = cutoffs[6, 1] = 1.2
-        cutoffs[6, 8] = cutoffs[8, 6] = 1.4
-        i = neighbour_list("i", a, cutoffs, np.array(a.numbers, dtype=np.int32))
+        cutoffs = {('H', 'C'): 1.2, (6, 8): 1.4}
+        i = neighbour_list("i", a, cutoffs)
         self.assertArrayAlmostEqual(np.bincount(i), [1,3,1,0,1])
 
     def test_noncubic(self):
@@ -175,6 +170,43 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         i, j, d = neighbour_list("ijd", a, 3.1)
         self.assertArrayAlmostEqual(np.bincount(i), [12])
         self.assertArrayAlmostEqual(d, [2.86378246]*12)
+
+    def test_out_of_bounds(self):
+        nat = 10
+        atoms = ase.Atoms(numbers=range(nat),
+                          cell=[(0.2, 1.2, 1.4),
+                                (1.4, 0.1, 1.6),
+                                (1.3, 2.0, -0.1)])
+        atoms.set_scaled_positions(3 * np.random.random((nat, 3)) - 1)
+        
+        for p1 in range(2):
+            for p2 in range(2):
+                for p3 in range(2):
+                    atoms.set_pbc((p1, p2, p3))
+                    i, j, d, D, S = neighbour_list("ijdDS", atoms, atoms.numbers * 0.2 + 0.5)
+                    c = np.bincount(i)
+                    atoms2 = atoms.repeat((p1 + 1, p2 + 1, p3 + 1))
+                    i2, j2, d2, D2, S2 = neighbour_list("ijdDS", atoms2, atoms2.numbers * 0.2 + 0.5)
+                    c2 = np.bincount(i2)
+                    c2.shape = (-1, nat)
+                    dd = d.sum() * (p1 + 1) * (p2 + 1) * (p3 + 1) - d2.sum()
+                    dr = np.linalg.solve(atoms.cell.T, (atoms.positions[1]-atoms.positions[0]).T).T+np.array([0,0,3])
+                    self.assertTrue(abs(dd) < 1e-10)
+                    self.assertTrue(not (c2 - c).any())
+
+    def test_wrong_number_of_cutoffs(self):
+        nat = 10
+        atoms = ase.Atoms(numbers=range(nat),
+                          cell=[(0.2, 1.2, 1.4),
+                                (1.4, 0.1, 1.6),
+                                (1.3, 2.0, -0.1)])
+        atoms.set_scaled_positions(3 * np.random.random((nat, 3)) - 1)
+        exception_thrown = False
+        try:
+            i, j, d, D, S = neighbour_list("ijdDS", atoms, np.ones(len(atoms)-1))
+        except TypeError:
+            exception_thrown = True
+        self.assertTrue(exception_thrown)
 
 ###
 

@@ -69,7 +69,7 @@ def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
         third_dir = -third_dir
     directions = [ third_dir, crack_surface, crack_front ]
     unitcell = lattice(el, latticeconstant=a0, size=[1, 1, 1], 
-                       directions=directions)
+                       directions=directions  )
     if shift is not None:
         unitcell.translate(np.dot(shift, unitcell.cell))
 

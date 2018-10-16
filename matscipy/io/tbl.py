@@ -28,10 +28,10 @@ import numpy as np
 def savetbl(fn, **kwargs):
     """
     Save tabulated data and write column header strings.
-    
+
     Example:
         savetbl('file.dat', time=time, strain=strain, energy=energy)
-    
+
     Parameters
     ----------
     fn : str
@@ -47,7 +47,7 @@ def savetbl(fn, **kwargs):
     np.savetxt(fn, data, header=header)
 
 
-def loadtbl(fn, usecols=None, fromfile=False):
+def loadtbl(fn, usecols=None, converters=None, fromfile=False, **kwargs):
     """
     Load tabulated data from column header strings.
 
@@ -56,9 +56,9 @@ def loadtbl(fn, usecols=None, fromfile=False):
         1.0 0.01 283
         2.0 0.02 398
         ...
-       
+
         strain, energy = loadtbl('file.dat', usecols=['strain', 'energy'])
-    
+
     Parameters
     ----------
     fn : str
@@ -68,7 +68,7 @@ def loadtbl(fn, usecols=None, fromfile=False):
     fromfile : bool
         Use numpy.fromfile instead of numpy.loadtxt if set to True. Can be
         faster in some circumstances.
-        
+
     Returns
     -------
     data : tuple of arrays
@@ -83,26 +83,33 @@ def loadtbl(fn, usecols=None, fromfile=False):
         line = line[1:].strip()
         column_labels = [s.strip() for s in re.split('[\s,]+', line)]
         line = f.readline()
-    f.close()
     if column_labels is None:
+        f.close()
         raise RuntimeError("No header found in file '{}'".format(fn))
-    
+
     sep_i = [x.find(':') for x in column_labels]
-    column_labels = [s[i+1:] if i >= 0 else s for s, i in zip(column_labels, sep_i)]
+    column_labels = [s[i+1:] if i >= 0 else s for s, i
+                     in zip(column_labels, sep_i)]
 
     if fromfile:
-        f = open(fn)
-        f.readline()
         data = np.fromfile(f, sep=' ')
+        f.close()
         data.shape = (-1, len(column_labels))
         if usecols is None:
             return dict((s, d) for s, d in zip(column_labels, data.T))
         else:
             return [data[:, column_labels.index(s)] for s in usecols]
     else:
+        f.close()
+        converters_i = None
+        if converters is not None:
+            converters_i = {column_labels.index(s): c for s, c
+                            in converters.items()}
         if usecols is None:
-            data = np.loadtxt(fn, unpack=True)
+            data = np.loadtxt(fn, converters=converters_i, unpack=True,
+                              **kwargs)
             return dict((s, d) for s, d in zip(column_labels, data))
         else:
-            column_i = [ column_labels.index(s) for s in usecols ]
-            return np.loadtxt(fn, usecols=column_i, unpack=True)
+            column_i = [column_labels.index(s) for s in usecols]
+            return np.loadtxt(fn, usecols=column_i, converters=converters_i,
+                              unpack=True, **kwargs)

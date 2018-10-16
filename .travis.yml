@@ -4,11 +4,6 @@ dist: trusty
 sudo: required
 matrix:
   include:
-    - python: 2.6
-      language: python
-      python: "2.6"
-      os: linux
-      env: PYTHON=/usr/bin/python2.6
     - python: 2.7
       language: python
       python: "2.7"
@@ -19,15 +14,6 @@ matrix:
       python: "3.4"
       os: linux
       env: PYTHON=/usr/bin/python3.4
-    - python: 2    
-      os: osx   
-      env: PYTHON=/usr/bin/python CC=clang CXX=clang++    
-    - python: 2       
-      os: osx       
-      env: PYTHON=/usr/local/bin/python CC=/usr/local/bin/gcc-4.9 CXX=/usr/local/bin/g++-4.9    
-    - python: 3       
-      os: osx       
-      env: PYTHON=/usr/local/bin/python3 CC=/usr/local/bin/gcc-4.9 CXX=/usr/local/bin/g++-4.9   
 before_install:
   - source .travis.before_install.bash
 install:
@@ -38,7 +24,7 @@ script:
   - "cd tests ; python run_tests.py"
 notifications:
   email:
-    - lars.pastewka@kit.edu
+    - lars.pastewka@imtek.uni-freiburg.de
     - j.r.kermode@warwick.ac.uk
     - adrien.gola@kit.edu
     - richard.jana@kit.edu
