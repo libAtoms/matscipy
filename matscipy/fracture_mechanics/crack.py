@@ -1456,10 +1456,10 @@ class ConstantStrainRate(object):
             mask = Ellipsis
         self.mask = mask
 
-    def adjust_forces(self, positions, forces):
+    def adjust_forces(self, atoms, forces):
         pass
 
-    def adjust_positions(self, newpos):
+    def adjust_positions(self, atoms, newpos):
         current_height = newpos[:, 1].max() - newpos[:, 1].min()
         current_strain = current_height / self.orig_height - 1.0
         new_strain = current_strain + self.delta_strain
@@ -1489,7 +1489,7 @@ class ConstantStrainRate(object):
             atoms.constraints = None
 
         newpos = atoms.get_positions()
-        self.adjust_positions(newpos)
+        self.adjust_positions(atoms, newpos)
         atoms.set_positions(newpos)
 
         if rigid_constraints == False:

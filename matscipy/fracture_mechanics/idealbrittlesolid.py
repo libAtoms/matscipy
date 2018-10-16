@@ -282,7 +282,7 @@ def set_initial_velocities(c):
     return (upper, lower, v0)
 
 
-def set_constraints(c, a, delta_strain=None):
+def set_constraints(c, a):
     # fix atoms in the top and bottom rows
     top = c.positions[:, 1].max()
     bottom = c.positions[:, 1].min()
@@ -299,13 +299,6 @@ def set_constraints(c, a, delta_strain=None):
         c.new_array('fix', fixed_mask)
     print('Fixed %d atoms' % fixed_mask.sum())
     c.set_constraint(fix_atoms)
-
-    # constant strain rate
-    if delta_strain is not None:
-        orig_height = c.info['OrigHeight']
-        strain_atoms = ConstantStrainRate(orig_height,
-                                          delta_strain)
-        c.set_constraint([fix_atoms, strain_atoms])
 
     # Stokes damping regions at left and right of slab
     stokes = np.zeros(len(c))

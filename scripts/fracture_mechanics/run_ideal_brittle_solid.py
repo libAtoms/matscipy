@@ -17,8 +17,9 @@ from matscipy.fracture_mechanics.idealbrittlesolid import (IdealBrittleSolid,
                                                            set_initial_velocities,
                                                            set_constraints,
                                                            extend_strip)
-                                                           
-from matscipy.fracture_mechanics.crack import thin_strip_displacement_y
+
+from matscipy.fracture_mechanics.crack import (thin_strip_displacement_y,
+                                               ConstantStrainRate)
 
 sys.path.insert(0, '.')
 import params
@@ -56,7 +57,7 @@ print 'l=', l, 'h=', h
 b = crystal.copy()
 b.set_calculator(calc)
 shift = calc.parameters['rc']*2
-y = crystal.positions[:, 1]    
+y = crystal.positions[:, 1]
 b.positions[y > h/2, 1] += shift
 b.cell[1, 1] += shift
 e1 = b.get_potential_energy()
@@ -88,7 +89,7 @@ print 'Griffith strain', eps_G
 
 c = crystal.copy()
 c.info['E_G'] = E_G
-c.info['eps_G'] = eps_G    
+c.info['eps_G'] = eps_G
 
 # open up the cell along x and y by introducing some vaccum
 orig_cell_width = c.cell[0, 0]
@@ -124,7 +125,7 @@ delta_strain = params.strain_rate*params.dt
 
 # fix top and bottom rows, and setup Stokes damping mask
 # initial use constant strain
-set_constraints(c, params.a, delta_strain=None)
+set_constraints(c, params.a)
 
 # apply initial displacment field
 c.positions[:, 1] += thin_strip_displacement_y(
@@ -149,7 +150,7 @@ c.set_calculator(calc)
 ase.io.write('crack_3.xyz', c, format='extxyz')
 
 dyn = VelocityVerlet(c, params.dt, logfile=None)
-set_initial_velocities(dyn.atoms)    
+set_initial_velocities(dyn.atoms)
 
 crack_pos = []
 traj = NetCDFTrajectory('traj.nc', 'w', c)
@@ -161,15 +162,19 @@ dyn.attach(find_crack_tip, 10, dyn.atoms,
 for i in range(20):
     dyn.run(100)
     if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
-        set_constraints(dyn.atoms, params.a, delta_strain=None)
+        set_constraints(dyn.atoms, params.a)
 
 # start decreasing strain
-set_constraints(dyn.atoms, params.a, delta_strain=delta_strain)
+#set_constraints(dyn.atoms, params.a, delta_strain=delta_strain)
+
+strain_atoms = ConstantStrainRate(dyn.atoms.info['OrigHeight'],
+                                  delta_strain)
+dyn.attach(strain_atoms.apply_strain, 1, dyn.atoms)
 
 for i in range(1000):
     dyn.run(100)
     if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
-        set_constraints(dyn.atoms, params.a, delta_strain)
+        set_constraints(dyn.atoms, params.a)
 
 traj.close()
 
