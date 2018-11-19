@@ -51,6 +51,15 @@ else:
     from eam_calculator import *
     from rotation_of_elastic_constants import *
 
+
+try:
+    from scipy.optimize import minimize
+except:
+    print('No scipy.optimize.minimise, skipping '
+          'dislocation test.')
+else:
+    from test_dislocation import *
+
 ###
 
 unittest.main()
