@@ -42,7 +42,7 @@ from matscipy.neighbours import neighbour_list, first_neighbours
 
 ###
 
-def dynamical_matrix(f, atoms, ):
+def dynamical_matrix(f, atoms, format="dense"):
     """
     Calculate the dynamical matrix for a pair potential
     """
@@ -79,21 +79,20 @@ def dynamical_matrix(f, atoms, ):
             de_n[mask] = df[pair](abs_dr_n[mask]) 
             dde_n[mask] = df2[pair](abs_dr_n[mask])
 
+    if format == "sparse":
+        e_nc = (dr_nc.T/abs_dr_n).T
+        D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+        D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
 
-    e_nc = (dr_nc.T/abs_dr_n).T
-    D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-    D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+        D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat,3*nat))
 
-    D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat,3*nat))
+        Ddiag_icc = np.empty((nat,3,3))
+        for x in range(3):
+            for y in range(3):
+                Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
 
-    Ddiag_icc = np.empty((nat,3,3))
-    for x in range(3):
-        for y in range(3):
-            Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
-
-    D += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
-
-    return D
+        D += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
+        return D
 ### 
 
 class LennardJonesCut():
