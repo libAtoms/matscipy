@@ -42,7 +42,7 @@ from matscipy.neighbours import neighbour_list, first_neighbours
 
 ###
 
-def get_dynamical_matrix(f, atoms):
+def dynamical_matrix(f, atoms, ):
     """
     Calculate the dynamical matrix for a pair potential
     """
