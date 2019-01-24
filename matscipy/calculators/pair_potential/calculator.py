@@ -79,6 +79,7 @@ def dynamical_matrix(f, atoms, format="dense"):
             de_n[mask] = df[pair](abs_dr_n[mask]) 
             dde_n[mask] = df2[pair](abs_dr_n[mask])
 
+    # Sparse BSR-matrix
     if format == "sparse":
         e_nc = (dr_nc.T/abs_dr_n).T
         D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
@@ -93,6 +94,13 @@ def dynamical_matrix(f, atoms, format="dense"):
 
         D += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
         return D
+
+    # Dense matrix format 
+    if format == "dense":
+        e_nc = (dr_nc.T/abs_dr_n).T
+        D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+        D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+
 ### 
 
 class LennardJonesCut():
