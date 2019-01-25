@@ -108,7 +108,7 @@ def hessian_matrix(f, atoms, H_format="dense"):
 
         D = np.zeros((3*nat,3*nat))
         for atom in range(len(i_n)):
-            D[D_ncc.shape[1]*i_n[atom]:D_ncc.shape[1]*i_n+D_ncc.shape[1],D_ncc.shape[2]*j_n:D_ncc.shape[2]*j_n+D_ncc.shape[2]] = D[atom]
+            D[D_ncc.shape[1]*i_n[atom]:D_ncc.shape[1]*i_n[atom]+D_ncc.shape[1],D_ncc.shape[2]*j_n[atom]:D_ncc.shape[2]*j_n[atom]+D_ncc.shape[2]] = D[atom]
 
         Ddiag_icc = np.empty((nat,3,3))
         for x in range(3):
