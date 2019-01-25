@@ -105,6 +105,19 @@ def dynamical_matrix(f, atoms, format="dense"):
         for atom in range(len(i_n)):
             D[D_ncc.shape[1]*i_n[atom]:D_ncc.shape[1]*i_n+D_ncc.shape[1],D_ncc.shape[2]*j_n:D_ncc.shape[2]*j_n+D_ncc.shape[2]] = D[atom]
 
+        Ddiag_icc = np.empty((nat,3,3))
+        for x in range(3):
+            for y in range(3):
+                Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
+
+        Ddiag_ncc = np.zeros((3*nat,3*nat))
+        for atom in range(nat):
+            Ddiag_ncc[Ddiag_icc.shape[1]*atom:Ddiag_icc.shape[1]*atom+Ddiag_icc.shape[1],Ddiag_icc.shape[2]*atom:Ddiag_icc.shape[2]*atom+Ddiag_icc.shape[2]] = Ddiag_icc[atom]
+
+        D += Ddiag_ncc
+        return D   
+
+
 ### 
 
 class LennardJonesCut():
