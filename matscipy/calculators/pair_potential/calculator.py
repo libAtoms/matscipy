@@ -94,40 +94,40 @@ def hessian_matrix(f, atoms, H_format="dense"):
     # Sparse BSR-matrix
     if H_format == "sparse":
         e_nc = (dr_nc.T/abs_dr_n).T
-        D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-        D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+        H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+        H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
 
-        D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat,3*nat))
+        H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat,3*nat))
 
-        Ddiag_icc = np.empty((nat,3,3))
+        Hdiag_icc = np.empty((nat,3,3))
         for x in range(3):
             for y in range(3):
-                Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
+                Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
 
-        D += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
-        return D
+        H += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
+        return H
 
     # Dense matrix format 
     if H_format == "dense":
         e_nc = (dr_nc.T/abs_dr_n).T
-        D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-        D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+        H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+        H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
 
-        D = np.zeros((3*nat,3*nat))
+        H = np.zeros((3*nat,3*nat))
         for atom in range(len(i_n)):
-            D[D_ncc.shape[1]*i_n[atom]:D_ncc.shape[1]*i_n[atom]+D_ncc.shape[1],D_ncc.shape[2]*j_n[atom]:D_ncc.shape[2]*j_n[atom]+D_ncc.shape[2]] = D_ncc[atom]
+            H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1],H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]+H_ncc.shape[2]] = H_ncc[atom]
 
-        Ddiag_icc = np.empty((nat,3,3))
+        Hdiag_icc = np.empty((nat,3,3))
         for x in range(3):
             for y in range(3):
-                Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
+                Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
 
-        Ddiag_ncc = np.zeros((3*nat,3*nat))
+        Hdiag_ncc = np.zeros((3*nat,3*nat))
         for atom in range(nat):
-            Ddiag_ncc[Ddiag_icc.shape[1]*atom:Ddiag_icc.shape[1]*atom+Ddiag_icc.shape[1],Ddiag_icc.shape[2]*atom:Ddiag_icc.shape[2]*atom+Ddiag_icc.shape[2]] = Ddiag_icc[atom]
+            Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1],Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom+Hdiag_icc.shape[2]] = Hdiag_icc[atom]
 
-        D += Ddiag_ncc
-        return D   
+        H += Hdiag_ncc
+        return H   
 
 
 ### 
