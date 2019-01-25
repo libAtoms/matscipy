@@ -166,11 +166,25 @@ class LennardJonesLinear()
 
 ###
 
-class LennardJones
+class FeneLJlinear()
+    """
+    Finite extensible nonlinear elastic(FENE) potential for a bead-spring polymer model.
+    For the Lennard-Jones interaction a LJ-linear potential is used.
+    This ensures a continous potential and force at the cutoff
+    """
 
 
 ###
 
+class FeneLJCut()
+    """
+    Finite extensible nonlinear elastic(FENE) potential for a bead-spring polymer model.
+    For the Lennard-Jones interaction a LJ-cut potential is used.
+    This ensures a continous potential at the cutoff.
+    """
+
+
+###
 
 class PairPotential(Calculator):
     implemented_properties = ['energy', 'stress', 'forces', "hessian"]
