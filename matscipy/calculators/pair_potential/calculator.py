@@ -104,7 +104,7 @@ def hessian_matrix(f, atoms, H_format="dense"):
             for y in range(3):
                 Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
 
-        H += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
+        H += bsr_matrix((Hdiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
         return H
 
     # Dense matrix format 
