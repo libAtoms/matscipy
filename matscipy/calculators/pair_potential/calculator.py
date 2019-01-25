@@ -123,6 +123,51 @@ class LennardJonesQuadratic():
         else:
             raise ValueError("Don't know how to compute {}-th derivative.".format(n))
 
+###
+class LennardJonesLinear()
+    """
+    Function form of a 12-6 Lennard-Jones potential with a soft cutoff
+    The energy and the force are shifted at the cutoff.
+    """
+
+    def __init__(self, epsilon, sigma, cutoff):
+        self.epsilon = epsilon
+        self.sigma = sigma 
+        self.cutoff = cutoff 
+        self.offset_energy = (sigma/cutoff)**12 -(sigma/cutoff)**6
+        self.offset_force = 6/cutoff * (-2 * (sigma/cutoff)**12 + (sigma/cutoff)**6)
+
+    def get_cutoff():
+        return self.cutoff
+
+    def __call__(self, r):
+        """
+        Return function value (potential energy).
+        """
+        r6 = (self.sigma / r)**6
+        return 4 * self.epsilon * ((r6 - 1) * r6 - self.offset_energy - (r - self.cutoff) * self.offset_force)
+
+    def first_derivative(self, r):
+        r6 = (self.sigma / r)**6
+        return 4 * self.epsilon * ((6/r) * (-2 * r6 + 1 ) * r6 - self.offset_force)
+
+    def second_derivative(self, r):
+        r6 = (self.sigma / r)**6
+        return 4 * self.epsilon * ((1/r**2) * (156 * r6 - 42) * r6)
+
+    def derivative(self, n=1):
+        if n == 1:
+            return self.first_derivative
+        elif n == 2:
+            return self.second_derivative
+        else:
+            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
+
+
+###
+
+class LennardJones
+
 
 ###
 
