@@ -42,7 +42,14 @@ from matscipy.neighbours import neighbour_list, first_neighbours
 
 def hessian_matrix(f, atoms, H_format="dense"):
     """
-    Calculate the dynamical matrix for a pair potential
+    Calculate the Hessian matrix for a pair potential
+
+    Parameters
+    ----------
+    atoms: ase.Atoms
+        Atomic configuration in a local minima 
+    H_format: "dense" or "sparse"
+        Output format of the hessian matrix      
     """
     if H_format == "sparse":
         try:
