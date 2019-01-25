@@ -128,7 +128,7 @@ class LennardJonesQuadratic():
 
 
 class PairPotential(Calculator):
-    implemented_properties = ['energy', 'stress', 'forces']
+    implemented_properties = ['energy', 'stress', 'forces', "hessian"]
     default_parameters = {}
     name = 'PairPotential'
 
@@ -196,7 +196,7 @@ class PairPotential(Calculator):
 
     ###
 
-    def hessian_matrix(self, atoms, H_format="dense"):
+    def hessian_matrix(f, atoms, H_format="dense"):
         """
         Calculate the Hessian matrix for a pair potential
 
@@ -207,6 +207,7 @@ class PairPotential(Calculator):
         H_format: "dense" or "sparse"
             Output format of the hessian matrix      
         """
+
         if H_format == "sparse":
             try:
                 from scipy.sparse import bsr_matrix
@@ -263,6 +264,7 @@ class PairPotential(Calculator):
             H += bsr_matrix((Hdiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
             return H
 
+
         # Dense matrix format 
         if H_format == "dense":
             e_nc = (dr_nc.T/abs_dr_n).T
@@ -283,4 +285,5 @@ class PairPotential(Calculator):
                 Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1],Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom+Hdiag_icc.shape[2]] = Hdiag_icc[atom]
 
             H += Hdiag_ncc
-            return H   
+
+            return H
