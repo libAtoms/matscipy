@@ -31,8 +31,6 @@ import sys
 
 import time
 
-from scipy.sparse import bsr_matrix
-
 import numpy as np
 
 import ase
@@ -42,10 +40,17 @@ from matscipy.neighbours import neighbour_list, first_neighbours
 
 ###
 
-def dynamical_matrix(f, atoms, format="dense"):
+def hessian_matrix(f, atoms, H_format="dense"):
     """
     Calculate the dynamical matrix for a pair potential
     """
+    if H_format == "sparse":
+        try:
+            from scipy.sparse import bsr_matrix
+        except:
+            print("Changing format to dense since scipy.sparse could not be loaded!")
+            H_format = "dense"
+
 
     dict = {x: obj.get_cutoff() for x,obj in f.items()}
     df = {x: obj.derivative(1) for x,obj in f.items()}
@@ -80,7 +85,7 @@ def dynamical_matrix(f, atoms, format="dense"):
             dde_n[mask] = df2[pair](abs_dr_n[mask])
 
     # Sparse BSR-matrix
-    if format == "sparse":
+    if H_format == "sparse":
         e_nc = (dr_nc.T/abs_dr_n).T
         D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
         D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
@@ -96,7 +101,7 @@ def dynamical_matrix(f, atoms, format="dense"):
         return D
 
     # Dense matrix format 
-    if format == "dense":
+    if H_format == "dense":
         e_nc = (dr_nc.T/abs_dr_n).T
         D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
         D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
