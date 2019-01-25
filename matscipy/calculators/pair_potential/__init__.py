@@ -21,4 +21,4 @@
 
 from __future__ import absolute_import
 
-from .calculator import LennardJonesCut, LennardJonesQuadratic, PairPotential, hessian_matrix
+from .calculator import LennardJonesCut, LennardJonesQuadratic, PairPotential

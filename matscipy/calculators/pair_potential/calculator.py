@@ -38,97 +38,6 @@ from ase.calculators.calculator import Calculator
 
 from matscipy.neighbours import neighbour_list, first_neighbours
 
-###
-
-def hessian_matrix(f, atoms, H_format="dense"):
-    """
-    Calculate the Hessian matrix for a pair potential
-
-    Parameters
-    ----------
-    atoms: ase.Atoms
-        Atomic configuration in a local minima 
-    H_format: "dense" or "sparse"
-        Output format of the hessian matrix      
-    """
-    if H_format == "sparse":
-        try:
-            from scipy.sparse import bsr_matrix
-        except:
-            print("Changing format to dense since scipy.sparse could not be loaded!")
-            H_format = "dense"
-
-
-    dict = {x: obj.get_cutoff() for x,obj in f.items()}
-    df = {x: obj.derivative(1) for x,obj in f.items()}
-    df2 = {x: obj.derivative(2) for x,obj in f.items()}
-
-    nat = len(atoms)
-    atnums = atoms.numbers
-
-    i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-    first_i = first_neighbours(nat, i_n)
-
-    e_n = np.zeros_like(abs_dr_n)
-    de_n = np.zeros_like(abs_dr_n)
-    dde_n = np.zeros_like(abs_dr_n)
-    for params, pair in enumerate(dict):
-        if pair[0] == pair[1]:
-            mask1 = atnums[i_n] == pair[0]
-            mask2 = atnums[j_n] == pair[0]
-            mask = np.logical_and(mask1, mask2)
-
-            e_n[mask] = f[pair](abs_dr_n[mask])
-            de_n[mask] = df[pair](abs_dr_n[mask])
-            dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-        if pair[0] != pair[1]:
-            mask1 = np.logical_and(atnums[i_n] == pair[0], atnums[j_n] == pair[1])
-            mask2 = np.logical_and(atnums[i_n] == pair[1], atnums[j_n] == pair[0])
-            mask = np.logical_or(mask1, mask2)
-
-            e_n[mask] = f[pair](abs_dr_n[mask])
-            de_n[mask] = df[pair](abs_dr_n[mask]) 
-            dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-    # Sparse BSR-matrix
-    if H_format == "sparse":
-        e_nc = (dr_nc.T/abs_dr_n).T
-        H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-        H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
-
-        H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat,3*nat))
-
-        Hdiag_icc = np.empty((nat,3,3))
-        for x in range(3):
-            for y in range(3):
-                Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
-
-        H += bsr_matrix((Hdiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
-        return H
-
-    # Dense matrix format 
-    if H_format == "dense":
-        e_nc = (dr_nc.T/abs_dr_n).T
-        H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-        H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
-
-        H = np.zeros((3*nat,3*nat))
-        for atom in range(len(i_n)):
-            H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1],H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]+H_ncc.shape[2]] = H_ncc[atom]
-
-        Hdiag_icc = np.empty((nat,3,3))
-        for x in range(3):
-            for y in range(3):
-                Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
-
-        Hdiag_ncc = np.zeros((3*nat,3*nat))
-        for atom in range(nat):
-            Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1],Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom+Hdiag_icc.shape[2]] = Hdiag_icc[atom]
-
-        H += Hdiag_ncc
-        return H   
-
 
 ### 
 
@@ -284,3 +193,94 @@ class PairPotential(Calculator):
         self.results = {'energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
                         'forces': np.transpose([fx_i, fy_i, fz_i])}
+
+    ###
+
+    def hessian_matrix(self, atoms, H_format="dense"):
+        """
+        Calculate the Hessian matrix for a pair potential
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local minima 
+        H_format: "dense" or "sparse"
+            Output format of the hessian matrix      
+        """
+        if H_format == "sparse":
+            try:
+                from scipy.sparse import bsr_matrix
+            except:
+                print("Changing format to dense since scipy.sparse could not be loaded!")
+                H_format = "dense"
+
+
+        dict = {x: obj.get_cutoff() for x,obj in f.items()}
+        df = {x: obj.derivative(1) for x,obj in f.items()}
+        df2 = {x: obj.derivative(2) for x,obj in f.items()}
+
+        nat = len(atoms)
+        atnums = atoms.numbers
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+        first_i = first_neighbours(nat, i_n)
+
+        e_n = np.zeros_like(abs_dr_n)
+        de_n = np.zeros_like(abs_dr_n)
+        dde_n = np.zeros_like(abs_dr_n)
+        for params, pair in enumerate(dict):
+            if pair[0] == pair[1]:
+                mask1 = atnums[i_n] == pair[0]
+                mask2 = atnums[j_n] == pair[0]
+                mask = np.logical_and(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+            if pair[0] != pair[1]:
+                mask1 = np.logical_and(atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                mask2 = np.logical_and(atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                mask = np.logical_or(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask]) 
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+        # Sparse BSR-matrix
+        if H_format == "sparse":
+            e_nc = (dr_nc.T/abs_dr_n).T
+            H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+
+            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat,3*nat))
+
+            Hdiag_icc = np.empty((nat,3,3))
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
+
+            H += bsr_matrix((Hdiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
+            return H
+
+        # Dense matrix format 
+        if H_format == "dense":
+            e_nc = (dr_nc.T/abs_dr_n).T
+            H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+
+            H = np.zeros((3*nat,3*nat))
+            for atom in range(len(i_n)):
+                H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1],H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]+H_ncc.shape[2]] = H_ncc[atom]
+
+            Hdiag_icc = np.empty((nat,3,3))
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
+
+            Hdiag_ncc = np.zeros((3*nat,3*nat))
+            for atom in range(nat):
+                Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1],Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom+Hdiag_icc.shape[2]] = Hdiag_icc[atom]
+
+            H += Hdiag_ncc
+            return H   
