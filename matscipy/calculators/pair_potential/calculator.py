@@ -186,6 +186,14 @@ class FeneLJCut()
 
 ###
 
+class LennardJones84()
+    """
+    Function form of a 8-4 Lennard-Jones potential, used to model the structure of a CuZr.
+    """
+
+
+###
+
 class PairPotential(Calculator):
     implemented_properties = ['energy', 'stress', 'forces', "hessian"]
     default_parameters = {}
