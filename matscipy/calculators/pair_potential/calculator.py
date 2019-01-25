@@ -101,6 +101,10 @@ def dynamical_matrix(f, atoms, format="dense"):
         D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
         D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
 
+        D = np.zeros((3*nat,3*nat))
+        for atom in range(len(i_n)):
+            D[D_ncc.shape[1]*i_n[atom]:D_ncc.shape[1]*i_n+D_ncc.shape[1],D_ncc.shape[2]*j_n:D_ncc.shape[2]*j_n+D_ncc.shape[2]] = D[atom]
+
 ### 
 
 class LennardJonesCut():
