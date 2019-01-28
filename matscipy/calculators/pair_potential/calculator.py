@@ -182,6 +182,41 @@ class FeneLJCut()
     For the Lennard-Jones interaction a LJ-cut potential is used.
     This ensures a continous potential at the cutoff.
     """
+    def __init__(self, K, R0, epsilon, sigma):
+        self.K = K
+        self.R0 = R0
+        self.epsilon = epsilon
+        self.sigma = sigma 
+
+    def __call__(self, r):
+        """
+        Return function value (potential energy).
+        """
+        r6 = (self.sigma / r)**6
+        bond = -0.5 * self.K * self.R0**2 * np.log(1 - (r / self.R0)**2)
+        lj = 4 * self.epsilon * (r6 - 1) * r6 + self.epsilon
+        return bond + lj
+
+    def first_derivative(self, r):
+        r6 = (self.sigma / r)**6
+        bond = self.K * r / (1 - (r / self.R0)**2) 
+        lj = -24 * self.epsilon * (2 * r6 / r - 1 / r) * r6 
+        return bond + lj 
+
+    def second_derivative(self, r):
+        r6 = (self.sigma / r)**6
+        invLength = 1 / (1 - (r / self.R0)**2)
+        bond = K * invLength + 2 * K * r**2 * invLength**2 / self.R0**2
+        lj = 4 * self.epsilon * ((1/r**2) * (156 * r6 - 42) * r6)
+        return bond + lj 
+
+    def derivative(self, n=1):
+        if n == 1:
+            return self.first_derivative
+        elif n == 2:
+            return self.second_derivative
+        else:
+            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
 
 
 ###
@@ -304,9 +339,11 @@ class PairPotential(Calculator):
         Parameters
         ----------
         atoms: ase.Atoms
-            Atomic configuration in a local minima 
+            Atomic configuration in a local or global minima.
+
         H_format: "dense" or "sparse"
-            Output format of the hessian matrix      
+            Output format of the hessian matrix. 
+            The format "sparse" is only possible if matscipy was build with scipy.
         """
 
         if H_format == "sparse":
