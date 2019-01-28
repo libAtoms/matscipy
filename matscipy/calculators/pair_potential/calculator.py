@@ -208,8 +208,24 @@ class LennardJones84()
         Return function value (potential energy).
         """
         r4 = (1 / r)**4
-        return (self.C2 / r4 - self.C1 ) * r4 + self.C3 * r + self.C4 
+        return (self.C2 * r4 - self.C1) * r4 + self.C3 * r + self.C4 
 
+    def first_derivative(self, r):
+        r4 = (1 / r)**4
+        return (-8 * self.C2 * r4 / r  + 4 * self.C1 / r) * r4 + self.C3  
+
+    def second_derivative(self, r):
+        r4 = (1 / r)**4
+        return (72 * self.C2 * r4 / r**2 - 20 * self.C1 / r**2) * r4 
+
+    def derivative(self, n=1):
+        if n == 1:
+            return self.first_derivative
+        elif n == 2:
+            return self.second_derivative
+        else:
+            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
+ 
 ###
 
 class PairPotential(Calculator):
