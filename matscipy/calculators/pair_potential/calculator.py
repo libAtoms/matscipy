@@ -189,8 +189,26 @@ class FeneLJCut()
 class LennardJones84()
     """
     Function form of a 8-4 Lennard-Jones potential, used to model the structure of a CuZr.
+    Kobayashi, Shinji et. al. "Computer simulation of atomic structure of Cu57Zr43 amorphous alloy." 
+    Journal of the Physical Society of Japan 48.4 (1980): 1147-1152.
     """
 
+    def __init__(self, C1, C2, C3, C4, cutoff):
+        self.C1 = C1
+        self.C2 = C2
+        self.C3 = C3
+        self.C4 = C4
+        self.cutoff = cutoff
+
+    def get_cutoff():
+        return self.cutoff
+
+    def __call__(self, r):
+        """
+        Return function value (potential energy).
+        """
+        r4 = (1 / r)**4
+        return (self.C2 / r4 - self.C1 ) * r4 + self.C3 * r + self.C4 
 
 ###
 
