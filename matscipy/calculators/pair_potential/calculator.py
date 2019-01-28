@@ -124,7 +124,7 @@ class LennardJonesQuadratic():
             raise ValueError("Don't know how to compute {}-th derivative.".format(n))
 
 ###
-class LennardJonesLinear()
+class LennardJonesLinear():
     """
     Function form of a 12-6 Lennard-Jones potential with a soft cutoff
     The energy and the force are shifted at the cutoff.
@@ -166,7 +166,7 @@ class LennardJonesLinear()
 
 ###
 
-class FeneLJlinear()
+class FeneLJlinear():
     """
     Finite extensible nonlinear elastic(FENE) potential for a bead-spring polymer model.
     For the Lennard-Jones interaction a LJ-linear potential is used.
@@ -210,7 +210,7 @@ class FeneLJlinear()
 
 ###
 
-class FeneLJCut()
+class FeneLJCut():
     """
     Finite extensible nonlinear elastic(FENE) potential for a bead-spring polymer model.
     For the Lennard-Jones interaction a LJ-cut potential is used.
@@ -255,13 +255,12 @@ class FeneLJCut()
 
 ###
 
-class LennardJones84()
+class LennardJones84():
     """
     Function form of a 8-4 Lennard-Jones potential, used to model the structure of a CuZr.
     Kobayashi, Shinji et. al. "Computer simulation of atomic structure of Cu57Zr43 amorphous alloy." 
     Journal of the Physical Society of Japan 48.4 (1980): 1147-1152.
     """
-
     def __init__(self, C1, C2, C3, C4, cutoff):
         self.C1 = C1
         self.C2 = C2
