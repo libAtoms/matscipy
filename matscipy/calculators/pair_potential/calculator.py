@@ -321,9 +321,12 @@ class PairPotential(Calculator):
 
     ###
 
-    def hessian_matrix(self, atoms, H_format="dense"):
+    def calculate_hessian_matrix(self, atoms, H_format="dense"):
         """
-        Calculate the Hessian matrix for a pair potential
+        Calculate the Hessian matrix for a pair potential.
+        For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix 
+        with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of shape (d,d), which
+        are the mixed second derivatives. 
 
         Parameters
         ----------
