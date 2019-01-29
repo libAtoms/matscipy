@@ -321,7 +321,7 @@ class PairPotential(Calculator):
 
     ###
 
-    def hessian_matrix(f, atoms, H_format="dense"):
+    def hessian_matrix(self, atoms, H_format="dense"):
         """
         Calculate the Hessian matrix for a pair potential
 
@@ -342,10 +342,10 @@ class PairPotential(Calculator):
                 print("Changing format to dense since scipy.sparse could not be loaded!")
                 H_format = "dense"
 
-
-        dict = {x: obj.get_cutoff() for x,obj in f.items()}
-        df = {x: obj.derivative(1) for x,obj in f.items()}
-        df2 = {x: obj.derivative(2) for x,obj in f.items()}
+        f = self.f
+        dict = self.dict
+        df = self.df
+        df2 = self.df2
 
         nat = len(atoms)
         atnums = atoms.numbers
