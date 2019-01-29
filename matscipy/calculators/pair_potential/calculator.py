@@ -166,55 +166,11 @@ class LennardJonesLinear():
 
 ###
 
-class FeneLJlinear():
-    """
-    Finite extensible nonlinear elastic(FENE) potential for a bead-spring polymer model.
-    For the Lennard-Jones interaction a LJ-linear potential is used.
-    This ensures a continous potential and force at the cutoff
-    """
-    def __init__(self, K, R0, epsilon, sigma):
-        self.K = K
-        self.R0 = R0
-        self.epsilon = epsilon
-        self.sigma = sigma 
-        self.offset_force = 24 * epsilon * (-2 / (2**(13/6) * sigma) + 1 / (2**(7/6) * sigma))
-
-    def __call__(self, r):
-        """
-        Return function value (potential energy).
-        """
-        r6 = (self.sigma / r)**6
-        bond = -0.5 * self.K * self.R0**2 * np.log(1 - (r / self.R0)**2)
-        lj = 4 * self.epsilon * (r6 - 1) * r6 + self.epsilon - (r - 2**(1/6) * self.sigma) * self.offset_force
-        return bond + lj
-
-    def first_derivative(self, r):
-        r6 = (self.sigma / r)**6
-        bond = self.K * r / (1 - (r / self.R0)**2) 
-        lj = -24 * self.epsilon * (2 * r6 / r - 1 / r) * r6  - self.offset_force
-
-    def second_derivative(self, r):
-        r6 = (self.sigma / r)**6
-        invLength = 1 / (1 - (r / self.R0)**2)
-        bond = K * invLength + 2 * K * r**2 * invLength**2 / self.R0**2
-        lj = 4 * self.epsilon * ((1/r**2) * (156 * r6 - 42) * r6)
-        return bond + lj 
-
-    def derivative(self, n=1):
-        if n == 1:
-            return self.first_derivative
-        elif n == 2:
-            return self.second_derivative
-        else:
-            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
-
-###
-
 class FeneLJCut():
     """
     Finite extensible nonlinear elastic(FENE) potential for a bead-spring polymer model.
-    For the Lennard-Jones interaction a LJ-cut potential is used.
-    This ensures a continous potential at the cutoff.
+    For the Lennard-Jones interaction a LJ-cut potential is used. Due to choice of the cutoff (rc=2^(1/6) sigma) 
+    it ensures a continous potential and force at the cutoff. 
     """
     def __init__(self, K, R0, epsilon, sigma):
         self.K = K
