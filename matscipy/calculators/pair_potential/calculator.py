@@ -58,7 +58,7 @@ class LennardJonesCut():
         Return function value (potential energy).
         """
         r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((r6 - 1) * r6 - self.offset)
+        return 4 * self.epsilon * ((r6-1) * r6 - self.offset)
 
     def get_cutoff(self):
         return self.cutoff
@@ -66,12 +66,12 @@ class LennardJonesCut():
     def first_derivative(self, r):
         r = (self.sigma / r)
         r6 = r**6
-        return -24 * self.epsilon / self.sigma * (2 * r6 - 1) * r6 * r
+        return -24 * self.epsilon / self.sigma * (2*r6-1) * r6 * r
 
     def second_derivative(self, r):
         r2 = (self.sigma / r)**2
         r6 = r2**3
-        return 24 * self.epsilon/self.sigma**2 * (26 * r6 - 7) * r6 * r2
+        return 24 * self.epsilon/self.sigma**2 * (26*r6-7) * r6 * r2
 
     def derivative(self, n=1):
         if n == 1:
@@ -94,8 +94,8 @@ class LennardJonesQuadratic():
         self.sigma = sigma 
         self.cutoff = cutoff 
         self.offset_energy = (sigma/cutoff)**12 -(sigma/cutoff)**6
-        self.offset_force = 6/cutoff * (-2 * (sigma/cutoff)**12 + (sigma/cutoff)**6)
-        self.offset_dforce = (1/cutoff**2) * (156 * (sigma/cutoff)**12 - 42 * (sigma/cutoff)**6)
+        self.offset_force = 6/cutoff * (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
+        self.offset_dforce = (1/cutoff**2) * (156*(sigma/cutoff)**12-42*(sigma/cutoff)**6)
     
     def get_cutoff(self):
         return self.cutoff
@@ -105,15 +105,15 @@ class LennardJonesQuadratic():
         Return function value (potential energy).
         """
         r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((r6 - 1) * r6 - self.offset_energy - (r - self.cutoff) * self.offset_force - ((r - self.cutoff)**2 /2) * self.offset_dforce)
+        return 4 * self.epsilon * ((r6-1)*r6-self.offset_energy - (r-self.cutoff) * self.offset_force - ((r- self.cutoff)**2/2) * self.offset_dforce)
 
     def first_derivative(self, r):
         r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((6/r) * (-2 * r6 + 1 ) * r6 - self.offset_force - (r - self.cutoff) * self.offset_dforce)
+        return 4 * self.epsilon * ((6/r) * (-2*r6+1) * r6 - self.offset_force - (r-self.cutoff) * self.offset_dforce)
 
     def second_derivative(self, r):
         r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((1/r**2) * (156 * r6 - 42) * r6 - self.offset_dforce)
+        return 4 * self.epsilon * ((1/r**2) * (156*r6-42) * r6 - self.offset_dforce)
 
     def derivative(self, n=1):
         if n == 1:
@@ -135,7 +135,7 @@ class LennardJonesLinear():
         self.sigma = sigma 
         self.cutoff = cutoff 
         self.offset_energy = (sigma/cutoff)**12 -(sigma/cutoff)**6
-        self.offset_force = 6/cutoff * (-2 * (sigma/cutoff)**12 + (sigma/cutoff)**6)
+        self.offset_force = 6/cutoff * (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
 
     def get_cutoff():
         return self.cutoff
@@ -145,15 +145,15 @@ class LennardJonesLinear():
         Return function value (potential energy).
         """
         r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((r6 - 1) * r6 - self.offset_energy - (r - self.cutoff) * self.offset_force)
+        return 4 * self.epsilon * ((r6-1) * r6 - self.offset_energy - (r-self.cutoff) * self.offset_force)
 
     def first_derivative(self, r):
         r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((6/r) * (-2 * r6 + 1 ) * r6 - self.offset_force)
+        return 4 * self.epsilon * ((6/r) * (-2*r6+1) * r6 - self.offset_force)
 
     def second_derivative(self, r):
         r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((1/r**2) * (156 * r6 - 42) * r6)
+        return 4 * self.epsilon * ((1/r**2) * (156*r6-42) * r6)
 
     def derivative(self, n=1):
         if n == 1:
@@ -182,22 +182,22 @@ class FeneLJCut():
         """
         Return function value (potential energy).
         """
-        r6 = (self.sigma / r)**6
-        bond = -0.5 * self.K * self.R0**2 * np.log(1 - (r / self.R0)**2)
-        lj = 4 * self.epsilon * (r6 - 1) * r6 + self.epsilon
+        r6 = (self.sigma/r)**6
+        bond = -0.5 * self.K * self.R0**2 * np.log(1-(r/self.R0)**2)
+        lj = 4 * self.epsilon * (r6-1) * r6 + self.epsilon
         return bond + lj
 
     def first_derivative(self, r):
-        r6 = (self.sigma / r)**6
-        bond = self.K * r / (1 - (r / self.R0)**2) 
-        lj = -24 * self.epsilon * (2 * r6 / r - 1 / r) * r6 
+        r6 = (self.sigma/r)**6
+        bond = self.K * r / (1-(r/self.R0)**2) 
+        lj = -24 * self.epsilon * (2*r6/r-1/r) * r6 
         return bond + lj 
 
     def second_derivative(self, r):
-        r6 = (self.sigma / r)**6
-        invLength = 1 / (1 - (r / self.R0)**2)
+        r6 = (self.sigma/r)**6
+        invLength = 1 / (1-(r/self.R0)**2)
         bond = K * invLength + 2 * K * r**2 * invLength**2 / self.R0**2
-        lj = 4 * self.epsilon * ((1/r**2) * (156 * r6 - 42) * r6)
+        lj = 4 * self.epsilon * ((1/r**2) * (156*r6-42) * r6)
         return bond + lj 
 
     def derivative(self, n=1):
@@ -232,11 +232,11 @@ class LennardJones84():
         Return function value (potential energy).
         """
         r4 = (1 / r)**4
-        return (self.C2 * r4 - self.C1) * r4 + self.C3 * r + self.C4 
+        return (self.C2*r4-self.C1) * r4 + self.C3 * r + self.C4 
 
     def first_derivative(self, r):
         r4 = (1 / r)**4
-        return (-8 * self.C2 * r4 / r  + 4 * self.C1 / r) * r4 + self.C3  
+        return (-8 * self.C2*r4/r+4*self.C1/r) * r4 + self.C3  
 
     def second_derivative(self, r):
         r4 = (1 / r)**4
@@ -326,7 +326,8 @@ class PairPotential(Calculator):
         Calculate the Hessian matrix for a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix 
         with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of shape (d,d), which
-        are the mixed second derivatives. 
+        are the mixed second derivatives. The result of the derivation for a pair potential can be found in:
+        L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Ev. B 86, 075459 (2012)
 
         Parameters
         ----------
@@ -403,7 +404,8 @@ class PairPotential(Calculator):
 
             H = np.zeros((3*nat,3*nat))
             for atom in range(len(i_n)):
-                H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1],H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]+H_ncc.shape[2]] = H_ncc[atom]
+                H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1],H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
+                +H_ncc.shape[2]] = H_ncc[atom]
 
             Hdiag_icc = np.empty((nat,3,3))
             for x in range(3):
@@ -412,7 +414,8 @@ class PairPotential(Calculator):
 
             Hdiag_ncc = np.zeros((3*nat,3*nat))
             for atom in range(nat):
-                Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1],Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom+Hdiag_icc.shape[2]] = Hdiag_icc[atom]
+                Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1],Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom
+                +Hdiag_icc.shape[2]] = Hdiag_icc[atom]
 
             H += Hdiag_ncc
 
