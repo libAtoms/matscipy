@@ -32,6 +32,8 @@ version = versioneer.get_version()
 _version_short = re.findall('\d+\.\d+\.\d+', version)
 if len(_version_short) > 0:
     version_short = _version_short[0]
+else:
+    version_short = 'master'
 download_url = "https://github.com/libAtoms/matscipy/archive/%s.tar.gz" % version_short
 
 scripts = []
