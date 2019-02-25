@@ -39,7 +39,7 @@ from ase.calculators.calculator import Calculator
 from matscipy.neighbours import neighbour_list, first_neighbours
 
 
-### 
+###
 
 class LennardJonesCut():
     """
@@ -49,9 +49,9 @@ class LennardJonesCut():
 
     def __init__(self, epsilon, sigma, cutoff):
         self.epsilon = epsilon
-        self.sigma = sigma 
+        self.sigma = sigma
         self.cutoff = cutoff
-        self.offset = (sigma/cutoff)**12 -(sigma/cutoff)**6
+        self.offset = (sigma/cutoff)**12 - (sigma/cutoff)**6
 
     def __call__(self, r):
         """
@@ -79,9 +79,11 @@ class LennardJonesCut():
         elif n == 2:
             return self.second_derivative
         else:
-            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
+            raise ValueError(
+                "Don't know how to compute {}-th derivative.".format(n))
 
 ###
+
 
 class LennardJonesQuadratic():
     """
@@ -91,12 +93,14 @@ class LennardJonesQuadratic():
 
     def __init__(self, epsilon, sigma, cutoff):
         self.epsilon = epsilon
-        self.sigma = sigma 
-        self.cutoff = cutoff 
-        self.offset_energy = (sigma/cutoff)**12 -(sigma/cutoff)**6
-        self.offset_force = 6/cutoff * (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
-        self.offset_dforce = (1/cutoff**2) * (156*(sigma/cutoff)**12-42*(sigma/cutoff)**6)
-    
+        self.sigma = sigma
+        self.cutoff = cutoff
+        self.offset_energy = (sigma/cutoff)**12 - (sigma/cutoff)**6
+        self.offset_force = 6/cutoff * \
+            (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
+        self.offset_dforce = (1/cutoff**2) * \
+            (156*(sigma/cutoff)**12-42*(sigma/cutoff)**6)
+
     def get_cutoff(self):
         return self.cutoff
 
@@ -105,7 +109,7 @@ class LennardJonesQuadratic():
         Return function value (potential energy).
         """
         r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((r6-1)*r6-self.offset_energy - (r-self.cutoff) * self.offset_force - ((r- self.cutoff)**2/2) * self.offset_dforce)
+        return 4 * self.epsilon * ((r6-1)*r6-self.offset_energy - (r-self.cutoff) * self.offset_force - ((r - self.cutoff)**2/2) * self.offset_dforce)
 
     def first_derivative(self, r):
         r6 = (self.sigma / r)**6
@@ -121,9 +125,12 @@ class LennardJonesQuadratic():
         elif n == 2:
             return self.second_derivative
         else:
-            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
+            raise ValueError(
+                "Don't know how to compute {}-th derivative.".format(n))
 
 ###
+
+
 class LennardJonesLinear():
     """
     Function form of a 12-6 Lennard-Jones potential with a soft cutoff
@@ -132,10 +139,11 @@ class LennardJonesLinear():
 
     def __init__(self, epsilon, sigma, cutoff):
         self.epsilon = epsilon
-        self.sigma = sigma 
-        self.cutoff = cutoff 
-        self.offset_energy = (sigma/cutoff)**12 -(sigma/cutoff)**6
-        self.offset_force = 6/cutoff * (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
+        self.sigma = sigma
+        self.cutoff = cutoff
+        self.offset_energy = (sigma/cutoff)**12 - (sigma/cutoff)**6
+        self.offset_force = 6/cutoff * \
+            (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
 
     def get_cutoff():
         return self.cutoff
@@ -161,7 +169,8 @@ class LennardJonesLinear():
         elif n == 2:
             return self.second_derivative
         else:
-            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
+            raise ValueError(
+                "Don't know how to compute {}-th derivative.".format(n))
 
 
 ###
@@ -172,11 +181,12 @@ class FeneLJCut():
     For the Lennard-Jones interaction a LJ-cut potential is used. Due to choice of the cutoff (rc=2^(1/6) sigma) 
     it ensures a continous potential and force at the cutoff. 
     """
+
     def __init__(self, K, R0, epsilon, sigma):
         self.K = K
         self.R0 = R0
         self.epsilon = epsilon
-        self.sigma = sigma 
+        self.sigma = sigma
 
     def __call__(self, r):
         """
@@ -189,16 +199,16 @@ class FeneLJCut():
 
     def first_derivative(self, r):
         r6 = (self.sigma/r)**6
-        bond = self.K * r / (1-(r/self.R0)**2) 
-        lj = -24 * self.epsilon * (2*r6/r-1/r) * r6 
-        return bond + lj 
+        bond = self.K * r / (1-(r/self.R0)**2)
+        lj = -24 * self.epsilon * (2*r6/r-1/r) * r6
+        return bond + lj
 
     def second_derivative(self, r):
         r6 = (self.sigma/r)**6
         invLength = 1 / (1-(r/self.R0)**2)
         bond = K * invLength + 2 * K * r**2 * invLength**2 / self.R0**2
         lj = 4 * self.epsilon * ((1/r**2) * (156*r6-42) * r6)
-        return bond + lj 
+        return bond + lj
 
     def derivative(self, n=1):
         if n == 1:
@@ -206,7 +216,8 @@ class FeneLJCut():
         elif n == 2:
             return self.second_derivative
         else:
-            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
+            raise ValueError(
+                "Don't know how to compute {}-th derivative.".format(n))
 
 
 ###
@@ -217,6 +228,7 @@ class LennardJones84():
     Kobayashi, Shinji et. al. "Computer simulation of atomic structure of Cu57Zr43 amorphous alloy." 
     Journal of the Physical Society of Japan 48.4 (1980): 1147-1152.
     """
+
     def __init__(self, C1, C2, C3, C4, cutoff):
         self.C1 = C1
         self.C2 = C2
@@ -232,15 +244,15 @@ class LennardJones84():
         Return function value (potential energy).
         """
         r4 = (1 / r)**4
-        return (self.C2*r4-self.C1) * r4 + self.C3 * r + self.C4 
+        return (self.C2*r4-self.C1) * r4 + self.C3 * r + self.C4
 
     def first_derivative(self, r):
         r4 = (1 / r)**4
-        return (-8 * self.C2*r4/r+4*self.C1/r) * r4 + self.C3  
+        return (-8 * self.C2*r4/r+4*self.C1/r) * r4 + self.C3
 
     def second_derivative(self, r):
         r4 = (1 / r)**4
-        return (72 * self.C2 * r4 / r**2 - 20 * self.C1 / r**2) * r4 
+        return (72 * self.C2 * r4 / r**2 - 20 * self.C1 / r**2) * r4
 
     def derivative(self, n=1):
         if n == 1:
@@ -248,9 +260,11 @@ class LennardJones84():
         elif n == 2:
             return self.second_derivative
         else:
-            raise ValueError("Don't know how to compute {}-th derivative.".format(n))
- 
+            raise ValueError(
+                "Don't know how to compute {}-th derivative.".format(n))
+
 ###
+
 
 class PairPotential(Calculator):
     implemented_properties = ['energy', 'stress', 'forces', "hessian"]
@@ -261,9 +275,9 @@ class PairPotential(Calculator):
         Calculator.__init__(self)
         self.f = f
 
-        self.dict = {x: obj.get_cutoff() for x,obj in f.items()}
-        self.df = {x: obj.derivative(1) for x,obj in f.items()}
-        self.df2 = {x: obj.derivative(2) for x,obj in f.items()}
+        self.dict = {x: obj.get_cutoff() for x, obj in f.items()}
+        self.df = {x: obj.derivative(1) for x, obj in f.items()}
+        self.df2 = {x: obj.derivative(2) for x, obj in f.items()}
 
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
@@ -272,7 +286,8 @@ class PairPotential(Calculator):
         atnums = self.atoms.numbers
         atnums_in_system = set(atnums)
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', self.atoms, self.dict)
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list(
+            'ijDd', self.atoms, self.dict)
 
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
@@ -286,34 +301,35 @@ class PairPotential(Calculator):
                 de_n[mask] = self.df[pair](abs_dr_n[mask])
 
             if pair[0] != pair[1]:
-                mask1 = np.logical_and(atnums[i_n] == pair[0], atnums[j_n] == pair[1])
-                mask2 = np.logical_and(atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                mask1 = np.logical_and(
+                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                mask2 = np.logical_and(
+                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
                 e_n[mask] = self.f[pair](abs_dr_n[mask])
-                de_n[mask] = self.df[pair](abs_dr_n[mask]) 
+                de_n[mask] = self.df[pair](abs_dr_n[mask])
 
         epot = 0.5*np.sum(e_n)
 
         # Forces
-        df_nc = -0.5*de_n.reshape(-1,1)*dr_nc/abs_dr_n.reshape(-1,1)
+        df_nc = -0.5*de_n.reshape(-1, 1)*dr_nc/abs_dr_n.reshape(-1, 1)
 
         # Sum for each atom
-        fx_i = np.bincount(j_n, weights=df_nc[:,0], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:,0], minlength=nat)
-        fy_i = np.bincount(j_n, weights=df_nc[:,1], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:,1], minlength=nat)
-        fz_i = np.bincount(j_n, weights=df_nc[:,2], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:,2], minlength=nat)
+        fx_i = np.bincount(j_n, weights=df_nc[:, 0], minlength=nat) - \
+            np.bincount(i_n, weights=df_nc[:, 0], minlength=nat)
+        fy_i = np.bincount(j_n, weights=df_nc[:, 1], minlength=nat) - \
+            np.bincount(i_n, weights=df_nc[:, 1], minlength=nat)
+        fz_i = np.bincount(j_n, weights=df_nc[:, 2], minlength=nat) - \
+            np.bincount(i_n, weights=df_nc[:, 2], minlength=nat)
 
         # Virial
-        virial_v = -np.array([dr_nc[:,0]*df_nc[:,0],               # xx
-                              dr_nc[:,1]*df_nc[:,1],               # yy
-                              dr_nc[:,2]*df_nc[:,2],               # zz
-                              dr_nc[:,1]*df_nc[:,2],               # yz
-                              dr_nc[:,0]*df_nc[:,2],               # xz
-                              dr_nc[:,0]*df_nc[:,1]]).sum(axis=1)  # xy
-
+        virial_v = -np.array([dr_nc[:, 0]*df_nc[:, 0],               # xx
+                              dr_nc[:, 1]*df_nc[:, 1],               # yy
+                              dr_nc[:, 2]*df_nc[:, 2],               # zz
+                              dr_nc[:, 1]*df_nc[:, 2],               # yz
+                              dr_nc[:, 0]*df_nc[:, 2],               # xz
+                              dr_nc[:, 0]*df_nc[:, 1]]).sum(axis=1)  # xy
 
         self.results = {'energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
@@ -371,51 +387,59 @@ class PairPotential(Calculator):
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
 
             if pair[0] != pair[1]:
-                mask1 = np.logical_and(atnums[i_n] == pair[0], atnums[j_n] == pair[1])
-                mask2 = np.logical_and(atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                mask1 = np.logical_and(
+                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                mask2 = np.logical_and(
+                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
                 e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask]) 
+                de_n[mask] = df[pair](abs_dr_n[mask])
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
 
         # Sparse BSR-matrix
         if H_format == "sparse":
             e_nc = (dr_nc.T/abs_dr_n).T
-            H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+            H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
+                               * e_nc.reshape(-1, 1, 3)).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
+                                        (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat,3*nat))
+            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
-            Hdiag_icc = np.empty((nat,3,3))
+            Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
                 for y in range(3):
-                    Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
+                    Hdiag_icc[:, x, y] = - \
+                        np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            H += bsr_matrix((Hdiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
+            H += bsr_matrix((Hdiag_icc, np.arange(nat),
+                             np.arange(nat+1)), shape=(3*nat, 3*nat))
             return H
 
-
-        # Dense matrix format 
+        # Dense matrix format
         if H_format == "dense":
             e_nc = (dr_nc.T/abs_dr_n).T
-            H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+            H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
+                               * e_nc.reshape(-1, 1, 3)).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
+                                        (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-            H = np.zeros((3*nat,3*nat))
+            H = np.zeros((3*nat, 3*nat))
             for atom in range(len(i_n)):
-                H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1],H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
-                +H_ncc.shape[2]] = H_ncc[atom]
+                H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1], H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
+                  + H_ncc.shape[2]] = H_ncc[atom]
 
-            Hdiag_icc = np.empty((nat,3,3))
+            Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
                 for y in range(3):
-                    Hdiag_icc[:,x,y] = -np.bincount(i_n, weights = H_ncc[:,x,y])
+                    Hdiag_icc[:, x, y] = - \
+                        np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            Hdiag_ncc = np.zeros((3*nat,3*nat))
+            Hdiag_ncc = np.zeros((3*nat, 3*nat))
             for atom in range(nat):
-                Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1],Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom
-                +Hdiag_icc.shape[2]] = Hdiag_icc[atom]
+                Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1], Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom
+                          + Hdiag_icc.shape[2]] = Hdiag_icc[atom]
 
             H += Hdiag_ncc
 
