@@ -359,7 +359,8 @@ class PairPotential(Calculator):
             try:
                 from scipy.sparse import bsr_matrix
             except ImportError:
-                raise ImportError("Import error: Can not output the heassian matrix since scipy.sparse could not be loaded!")
+                raise ImportError(
+                    "Import error: Can not output the heassian matrix since scipy.sparse could not be loaded!")
 
         f = self.f
         dict = self.dict
@@ -417,7 +418,7 @@ class PairPotential(Calculator):
             return H
 
         # Dense matrix format
-        if H_format == "dense":
+        elif H_format == "dense":
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
