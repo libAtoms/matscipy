@@ -37,34 +37,50 @@ from ase.lattice.cubic import FaceCenteredCubic
 from ase.lattice.hexagonal import HexagonalClosedPacked
 from ase.optimize import FIRE
 from ase.units import GPa
+from ase.phonons import Phonons
 
 import matscipytest
-from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut, LennardJonesQuadratic, get_dynamical_matrix
+from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut, LennardJonesQuadratic
+import matscipy.calculators.pair_potential as calculator
 from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
 
 ###
 
 class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
-    disp = 1e-8
-    tol = 8e-3
-
+    disp = 1e-6
+    tol = 1e-4
+    
     def test_forces(self):
-        for calc in [PairPotential({(1,1): LennardJonesCut(1, 1, 3), (1,2): LennardJonesCut(1.5, 0.8, 2.4), (2, 2): LennardJonesCut(0.5, 0.88, 2.64 )})]:
-            a = io.read('KA_108.xyz')
-            a.center(vacuum=20.0)
+        for calc in [PairPotential({(1,1): LennardJonesQuadratic(1, 1, 3), (1,2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64 )})]:
+            a = io.read('KA256.xyz')
+            a.center(vacuum=5.0)
             a.set_calculator(calc)
             f = a.get_forces()
-            fn = calc.calculate_numerical_forces(a)
+            fn = calc.calculate_numerical_forces(a,d=0.0001)
             self.assertArrayAlmostEqual(f, fn, tol=self.tol)
-
+    
     def test_symmetry(self):
-        for calc in [PairPotential({(1,1): LennardJonesCut(1, 1, 3), (1,2): LennardJonesCut(1.5, 0.8, 2.4), (2, 2): LennardJonesCut(0.5, 0.88, 2.64 )})]:
-            a = io.read('KA_108.xyz')
-            a.center(vacuum=20.0)
-            a.set_calculator(calc)
-            D = get_dynamical_matrix({(1,1): LennardJonesCut(1, 1, 3), (1,2): LennardJonesCut(1.5, 0.8, 2.4), (2, 2): LennardJonesCut(0.5, 0.88, 2.64 )}, a)
-            self.assertArrayAlmostEqual(np.sum(np.abs(D.toarray()-D.toarray().T)), 0, tol = 0)
+        for calc in [{(1,1): LennardJonesQuadratic(1, 1, 3), (1,2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64 )}]:
+            a = io.read('KA256_Min.xyz')
+            a.center(vacuum=5.0)
+            b = calculator.PairPotential(calc,"dense")
+            H = b.hessian_matrix(a)
+            self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol = 0)
+    
+    def test_hessian(self):
+        for calc in [{(1,1): LennardJonesQuadratic(1, 1, 3), (1,2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64 )}]:
+            atoms = io.read("KA256_Min.xyz")
+            atoms.center(vacuum=5.0)
+            b = calculator.PairPotential(calc)
+            H_analytical = b.hessian_matrix(atoms, "dense")
+            # Numerical 
+            ph = Phonons(atoms,b,supercell=(1, 1, 1),delta=0.01)
+            ph.run()
+            ph.read(acoustic=False)
+            ph.clean()
+            H_numerical = ph.get_force_constant()
+    
 ###
 
 if __name__ == '__main__':
