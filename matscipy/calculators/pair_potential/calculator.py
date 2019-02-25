@@ -358,9 +358,8 @@ class PairPotential(Calculator):
         if H_format == "sparse":
             try:
                 from scipy.sparse import bsr_matrix
-            except:
-                print("Changing format to dense since scipy.sparse could not be loaded!")
-                H_format = "dense"
+            except ImportError:
+                raise ImportError("Import error: Can not output the heassian matrix since scipy.sparse could not be loaded!")
 
         f = self.f
         dict = self.dict
