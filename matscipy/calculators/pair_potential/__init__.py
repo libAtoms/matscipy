@@ -2,8 +2,8 @@
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
 #
-# Copyright (2014-2017) James Kermode, Warwick University
-#                       Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright (2014-2018) James Kermode, King's College London
+#                       Lars Pastewka, University of Freiburg
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,4 @@
 
 from __future__ import absolute_import
 
-from .eam import EAM
-from .pair_potential import PairPotential
-from .supercell_calculator import SupercellCalculator
+from .calculator import LennardJonesCut, LennardJonesQuadratic, LennardJonesLinear, FeneLJCut, LennardJones84, PairPotential
