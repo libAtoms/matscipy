@@ -65,7 +65,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             a = io.read('KA256_Min.xyz')
             a.center(vacuum=5.0)
             b = calculator.PairPotential(calc)
-            H = b.hessian_matrix(a, "dense")
+            H = b.calculate_hessian_matrix(a, "dense")
             self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol = 0)
     
     def test_hessian(self):
@@ -73,7 +73,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms = io.read("KA256_Min.xyz")
             atoms.center(vacuum=5.0)
             b = calculator.PairPotential(calc)
-            H_analytical = b.hessian_matrix(atoms, "dense")
+            H_analytical = b.calculate_hessian_matrix(atoms, "dense")
             # Numerical 
             ph = Phonons(atoms,b,supercell=(1, 1, 1),delta=0.01)
             ph.run()
