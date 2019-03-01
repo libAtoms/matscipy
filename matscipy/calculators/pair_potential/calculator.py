@@ -360,7 +360,7 @@ class PairPotential(Calculator):
                 from scipy.sparse import bsr_matrix
             except ImportError:
                 raise ImportError(
-                    "Import error: Can not output the heassian matrix since scipy.sparse could not be loaded!")
+                    "Import error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
 
         f = self.f
         dict = self.dict
