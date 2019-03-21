@@ -178,8 +178,8 @@ class LennardJonesLinear():
 class FeneLJCut():
     """
     Finite extensible nonlinear elastic(FENE) potential for a bead-spring polymer model.
-    For the Lennard-Jones interaction a LJ-cut potential is used. Due to choice of the cutoff (rc=2^(1/6) sigma) 
-    it ensures a continous potential and force at the cutoff. 
+    For the Lennard-Jones interaction a LJ-cut potential is used. Due to choice of the cutoff (rc=2^(1/6) sigma)
+    it ensures a continous potential and force at the cutoff.
     """
 
     def __init__(self, K, R0, epsilon, sigma):
@@ -225,7 +225,7 @@ class FeneLJCut():
 class LennardJones84():
     """
     Function form of a 8-4 Lennard-Jones potential, used to model the structure of a CuZr.
-    Kobayashi, Shinji et. al. "Computer simulation of atomic structure of Cu57Zr43 amorphous alloy." 
+    Kobayashi, Shinji et. al. "Computer simulation of atomic structure of Cu57Zr43 amorphous alloy."
     Journal of the Physical Society of Japan 48.4 (1980): 1147-1152.
     """
 
@@ -340,7 +340,7 @@ class PairPotential(Calculator):
     def calculate_hessian_matrix(self, atoms, H_format="dense", limits=None):
         """
         Calculate the Hessian matrix for a pair potential.
-        For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix 
+        For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
         with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of shape (d,d), which
         are the mixed second derivatives. The result of the derivation for a pair potential can be found in:
         L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Ev. B 86, 075459 (2012)
@@ -351,7 +351,7 @@ class PairPotential(Calculator):
             Atomic configuration in a local or global minima.
 
         H_format: "dense" or "sparse"
-            Output format of the hessian matrix. 
+            Output format of the hessian matrix.
             The format "sparse" is only possible if matscipy was build with scipy.
         """
 
@@ -400,6 +400,10 @@ class PairPotential(Calculator):
 
         # If limits are given for the atom indices, extract the corresponding data
         if limits != None:
+        	if limits[1] < limits[0]:
+        		raise ValueError(
+        		    "Value error: The upper atom id cannot be smaller than the lower atom id.")
+        		
             mask = np.logical_and(i_n >= limits[0], i_n <= limits[1])
             i_n = i_n[mask]
             j_n = j_n[mask]
