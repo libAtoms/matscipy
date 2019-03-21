@@ -39,7 +39,7 @@ from ase.calculators.calculator import Calculator
 from matscipy.neighbours import neighbour_list, first_neighbours
 
 
-###
+####
 
 class LennardJonesCut():
     """
