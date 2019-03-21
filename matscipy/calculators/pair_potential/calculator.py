@@ -337,7 +337,7 @@ class PairPotential(Calculator):
 
     ###
 
-    def calculate_hessian_matrix(self, atoms, H_format="dense"):
+    def calculate_hessian_matrix(self, atoms, H_format="dense", limits=None):
         """
         Calculate the Hessian matrix for a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix 
@@ -368,6 +368,7 @@ class PairPotential(Calculator):
         df2 = self.df2
 
         nat = len(atoms)
+        nat1 = len(atoms)
         atnums = atoms.numbers
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
@@ -397,6 +398,18 @@ class PairPotential(Calculator):
                 de_n[mask] = df[pair](abs_dr_n[mask])
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
 
+        # If limits are given for the atom indices, extract the corresponding data
+        if limits != None:
+            mask = np.logical_and(i_n >= limits[0], i_n <= limits[1])
+            i_n = i_n[mask]
+            j_n = j_n[mask]
+            dr_nc = dr_nc[mask]
+            abs_dr_n = abs_dr_n[mask]
+            e_n = e_n[mask]
+            de_n = de_n[mask]
+            dde_n = dde_n[mask]
+            nat1 = limits[1] - limits[0] + 1
+
         # Sparse BSR-matrix
         if H_format == "sparse":
             e_nc = (dr_nc.T/abs_dr_n).T
@@ -405,7 +418,7 @@ class PairPotential(Calculator):
             H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
                                         (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
+           	H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
             Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
