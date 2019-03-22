@@ -353,6 +353,10 @@ class PairPotential(Calculator):
         H_format: "dense" or "sparse"
             Output format of the hessian matrix.
             The format "sparse" is only possible if matscipy was build with scipy.
+        limits: list [atomID_low, atomID_up]
+                Calculate the hessian matrix only for the given atom IDs. 
+                If limits=[5,10] the hessian matrix is computed for atom IDs 5,6,7,8,9.
+                The hessian matrix will have the shape dim((3*5),(3*N)) where N is the number of atoms.
         """
 
         if H_format == "sparse":
