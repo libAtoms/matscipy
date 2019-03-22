@@ -460,7 +460,7 @@ class PairPotential(Calculator):
 
             H = np.zeros((3*nat1, 3*nat))
             for atom in range(len(i_n)):
-                H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1], H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
+                H[H_ncc.shape[1]*i_n1[atom]:H_ncc.shape[1]*i_n1[atom]+H_ncc.shape[1], H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
                   + H_ncc.shape[2]] = H_ncc[atom]
 
             Hdiag_icc = np.empty((nat1, 3, 3))
@@ -470,7 +470,7 @@ class PairPotential(Calculator):
                         np.bincount(i_n1, weights=H_ncc[:, x, y])
 
             Hdiag_ncc = np.zeros((3*nat1, 3*nat))
-            for atom in range(nat):
+            for atom in range(nat1):
                 Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1], Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom
                           + Hdiag_icc.shape[2]] = Hdiag_icc[atom]
 
