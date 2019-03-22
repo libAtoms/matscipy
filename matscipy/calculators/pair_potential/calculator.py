@@ -420,24 +420,28 @@ class PairPotential(Calculator):
                 dde_n = dde_n[mask]
                 nat1 = limits[1] - limits[0]
 
+                print(i_n[-1])
+                print(j_n[:10])
+                print(nat1)
                 #
                 first_i = [0] * (nat1+1)
-                j = 0
-                for k in range(len(i_n)):
+                j = 1
+                for k in range(1,len(i_n)):
                     if i_n[k] != i_n[k-1]:
                         first_i[j] = k
                         j = j+1
                 first_i[-1] = len(i_n)
-                print(first_i)
+
 
         # Sparse BSR-matrix
         if H_format == "sparse":
+            print(first_i)
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
             H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
                                         (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
-
+            print(H_ncc.shape)
             H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
 
             Hdiag_icc = np.empty((nat1, 3, 3))
