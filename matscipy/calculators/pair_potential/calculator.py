@@ -372,6 +372,7 @@ class PairPotential(Calculator):
         atnums = atoms.numbers
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+        i_n1 = i_n
         first_i = first_neighbours(nat, i_n)
 
         e_n = np.zeros_like(abs_dr_n)
@@ -400,19 +401,30 @@ class PairPotential(Calculator):
 
         # If limits are given for the atom indices, extract the corresponding data
         if limits != None:
-        	if limits[1] < limits[0]:
-        		raise ValueError(
-        		    "Value error: The upper atom id cannot be smaller than the lower atom id.")
-        		
-            mask = np.logical_and(i_n >= limits[0], i_n <= limits[1])
-            i_n = i_n[mask]
-            j_n = j_n[mask]
-            dr_nc = dr_nc[mask]
-            abs_dr_n = abs_dr_n[mask]
-            e_n = e_n[mask]
-            de_n = de_n[mask]
-            dde_n = dde_n[mask]
-            nat1 = limits[1] - limits[0] + 1
+            if limits[1] < limits[0]:
+                raise ValueError(
+                    "Value error: The upper atom id cannot be smaller than the lower atom id.")
+            else:
+                mask = np.logical_and(i_n >= limits[0], i_n < limits[1])
+                i_n = i_n[mask]
+                i_n1 = i_n - i_n[0]
+                j_n = j_n[mask]
+                dr_nc = dr_nc[mask]
+                abs_dr_n = abs_dr_n[mask]
+                e_n = e_n[mask]
+                de_n = de_n[mask]
+                dde_n = dde_n[mask]
+                nat1 = limits[1] - limits[0]
+
+                #
+                first_i = [0] * (nat1+1)
+                j = 0
+                for k in range(len(i_n)):
+                    if i_n[k] != i_n[k-1]:
+                        first_i[j] = k
+                        j = j+1
+                first_i[-1] = len(i_n)
+                print(first_i)
 
         # Sparse BSR-matrix
         if H_format == "sparse":
@@ -422,13 +434,13 @@ class PairPotential(Calculator):
             H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
                                         (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-           	H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
+            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
 
             Hdiag_icc = np.empty((nat1, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_ncc[:, x, y])
+                        np.bincount(i_n1, weights=H_ncc[:, x, y])
 
             H += bsr_matrix((Hdiag_icc, np.arange(nat1),
                              np.arange(nat1+1)), shape=(3*nat1, 3*nat))
@@ -451,7 +463,7 @@ class PairPotential(Calculator):
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_ncc[:, x, y])
+                        np.bincount(i_n1, weights=H_ncc[:, x, y])
 
             Hdiag_ncc = np.zeros((3*nat1, 3*nat))
             for atom in range(nat):
