@@ -404,7 +404,7 @@ class PairPotential(Calculator):
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
 
         # If limits are given for the atom indices, extract the corresponding data
-        if limits != None:
+        if limits != None and H_format == "sparse":
             if limits[1] < limits[0]:
                 raise ValueError(
                     "Value error: The upper atom id cannot be smaller than the lower atom id.")
@@ -420,38 +420,54 @@ class PairPotential(Calculator):
                 dde_n = dde_n[mask]
                 nat1 = limits[1] - limits[0]
 
-                print(i_n[-1])
-                print(j_n[:10])
-                print(nat1)
-                #
-                first_i = [0] * (nat1+1)
-                j = 1
-                for k in range(1,len(i_n)):
-                    if i_n[k] != i_n[k-1]:
-                        first_i[j] = k
-                        j = j+1
-                first_i[-1] = len(i_n)
+                # Off-diagonal elements
+                e_nc = (dr_nc.T/abs_dr_n).T
+                H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
+                                   * e_nc.reshape(-1, 1, 3)).T).T
+                H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
+                                            (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
+                # Columns and rows
+                rows = np.arange(3*limits[0], 3*limits[1])
+                cols = np.repeat(j_n*3, 3)
+                print(rows[:50])
+                print(j_n[:50])
+                print(cols[:50])
+
+                j = 0
+                for i in range(len(cols)):
+                    if j == 0:
+                        j = j + 1
+                    elif j == 1:
+                        cols[i] = cols[i] + 1
+                        j = j + 1
+                    elif j == 2:
+                        cols[i] = cols[i] + 2
+                        j = 0
+
+                print(cols[:50])
+
+                
+                sys.exit(2)
 
         # Sparse BSR-matrix
         if H_format == "sparse":
-            print(first_i)
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
             H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
                                         (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
-            print(H_ncc.shape)
-            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
 
-            Hdiag_icc = np.empty((nat1, 3, 3))
+            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
+
+            Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n1, weights=H_ncc[:, x, y])
+                        np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            H += bsr_matrix((Hdiag_icc, np.arange(nat1),
-                             np.arange(nat1+1)), shape=(3*nat1, 3*nat))
+            H += bsr_matrix((Hdiag_icc, np.arange(nat),
+                             np.arange(nat+1)), shape=(3*nat, 3*nat))
             return H
 
         # Dense matrix format
@@ -462,19 +478,19 @@ class PairPotential(Calculator):
             H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
                                         (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-            H = np.zeros((3*nat1, 3*nat))
+            H = np.zeros((3*nat, 3*nat))
             for atom in range(len(i_n)):
-                H[H_ncc.shape[1]*i_n1[atom]:H_ncc.shape[1]*i_n1[atom]+H_ncc.shape[1], H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
+                H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1], H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
                   + H_ncc.shape[2]] = H_ncc[atom]
 
-            Hdiag_icc = np.empty((nat1, 3, 3))
+            Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n1, weights=H_ncc[:, x, y])
+                        np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            Hdiag_ncc = np.zeros((3*nat1, 3*nat))
-            for atom in range(nat1):
+            Hdiag_ncc = np.zeros((3*nat, 3*nat))
+            for atom in range(nat):
                 Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1], Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom
                           + Hdiag_icc.shape[2]] = Hdiag_icc[atom]
 
