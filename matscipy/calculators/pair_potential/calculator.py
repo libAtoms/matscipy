@@ -361,7 +361,7 @@ class PairPotential(Calculator):
 
         if H_format == "sparse":
             try:
-                from scipy.sparse import bsr_matrix
+                from scipy.sparse import bsr_matrix, vstack, hstack
             except ImportError:
                 raise ImportError(
                     "Import error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
@@ -418,37 +418,66 @@ class PairPotential(Calculator):
                 e_n = e_n[mask]
                 de_n = de_n[mask]
                 dde_n = dde_n[mask]
+                # Number of atomic indices to be considered
                 nat1 = limits[1] - limits[0]
 
-                # Off-diagonal elements
+                first_i = [0] * (nat1+1)
+                ids, count_i = np.unique(i_n, return_counts=True)
+                print("IDs: ", ids)
+                print("First_i: ", count_i)
+
+                j = 1
+                for k in range(1, len(i_n)):
+                    if i_n[k] != i_n[k-1]:
+                        first_i[j] = k
+                        j = j+1
+                first_i[-1] = len(i_n)
+
+                print(first_i)
+
+                # Off-diagonal elements of the Hessian matrix
                 e_nc = (dr_nc.T/abs_dr_n).T
                 H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                    * e_nc.reshape(-1, 1, 3)).T).T
                 H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
                                             (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-                # Columns and rows
-                rows = np.arange(3*limits[0], 3*limits[1])
-                cols = np.repeat(j_n*3, 3)
-                print(rows[:50])
                 print(j_n[:50])
-                print(cols[:50])
+                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
+                # Stack matrix in order to obtain the correct shape
+                H = vstack([bsr_matrix((limits[0]*3, 3*nat)), H,
+                            bsr_matrix((3*nat - limits[1]*3, 3*nat))])
+                print(H)
+                print(H.shape)
 
-                j = 0
-                for i in range(len(cols)):
-                    if j == 0:
-                        j = j + 1
-                    elif j == 1:
-                        cols[i] = cols[i] + 1
-                        j = j + 1
-                    elif j == 2:
-                        cols[i] = cols[i] + 2
-                        j = 0
 
-                print(cols[:50])
 
-                
+                Hdiag_icc = np.empty((nat1, 3, 3))
+                for x in range(3):
+                    for y in range(3):
+                        Hdiag_icc[:, x, y] = - \
+                            np.bincount(i_n1, weights=H_ncc[:, x, y])
+
+                print("Hdiag.shape: ", Hdiag_icc.shape)
+
+
+
+
+                Hdiag_ncc = bsr_matrix((Hdiag_icc, np.arange(limits[0],limits[1]),
+                                 np.arange(nat1+1)), shape=(3*nat1, 3*nat))
+                print("Hdiag_ncc.shape: ", Hdiag_ncc.shape)
+                print("Hdiag_ncc: ", Hdiag_ncc)
+                print("-----------")
+
+
+
+
+                H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_ncc,
+                            bsr_matrix((3*nat - limits[1]*3, 3*nat))])
+                print("H: ", H)
+                print(H.shape)
                 sys.exit(2)
+
 
         # Sparse BSR-matrix
         if H_format == "sparse":
