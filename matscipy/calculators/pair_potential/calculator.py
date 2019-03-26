@@ -353,7 +353,7 @@ class PairPotential(Calculator):
         H_format: "dense" or "sparse"
             Output format of the hessian matrix.
             The format "sparse" is only possible if matscipy was build with scipy.
-            
+
         limits: list [atomID_low, atomID_up]
                 Calculate the hessian matrix only for the given atom IDs. 
                 If limits=[5,10] the hessian matrix is computed for atom IDs 5,6,7,8,9.
@@ -419,22 +419,17 @@ class PairPotential(Calculator):
                 e_n = e_n[mask]
                 de_n = de_n[mask]
                 dde_n = dde_n[mask]
-                # Number of atomic indices to be considered
                 nat1 = limits[1] - limits[0]
 
+                # 
                 first_i = [0] * (nat1+1)
                 ids, count_i = np.unique(i_n, return_counts=True)
-                print("IDs: ", ids)
-                print("First_i: ", count_i)
-
                 j = 1
                 for k in range(1, len(i_n)):
                     if i_n[k] != i_n[k-1]:
                         first_i[j] = k
                         j = j+1
                 first_i[-1] = len(i_n)
-
-                print(first_i)
 
                 # Off-diagonal elements of the Hessian matrix
                 e_nc = (dr_nc.T/abs_dr_n).T
@@ -443,45 +438,30 @@ class PairPotential(Calculator):
                 H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
                                             (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-                print(j_n[:50])
-                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
-                # Stack matrix in order to obtain the correct shape
-                H = vstack([bsr_matrix((limits[0]*3, 3*nat)), H,
+                H_nat1cc = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
+
+                # Stack matrices in order to obtain correct shape of (3*nat, 3*nat)
+                H = vstack([bsr_matrix((limits[0]*3, 3*nat)), H_nat1cc,
                             bsr_matrix((3*nat - limits[1]*3, 3*nat))])
-                print(H)
-                print(H.shape)
 
-
-
+                # Diagonal elements of the Hessian matrix 
                 Hdiag_icc = np.empty((nat1, 3, 3))
                 for x in range(3):
                     for y in range(3):
                         Hdiag_icc[:, x, y] = - \
                             np.bincount(i_n1, weights=H_ncc[:, x, y])
 
-                print("Hdiag.shape: ", Hdiag_icc.shape)
+                Hdiag_nat1cc = bsr_matrix((Hdiag_icc, np.arange(limits[0], limits[1]),
+                                        np.arange(nat1+1)), shape=(3*nat1, 3*nat))
+        
+                # Add off-diagonal and diagonal elements 
+                H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_nat1cc,
+                             bsr_matrix((3*nat - limits[1]*3, 3*nat))])
 
-
-
-
-                Hdiag_ncc = bsr_matrix((Hdiag_icc, np.arange(limits[0],limits[1]),
-                                 np.arange(nat1+1)), shape=(3*nat1, 3*nat))
-                print("Hdiag_ncc.shape: ", Hdiag_ncc.shape)
-                print("Hdiag_ncc: ", Hdiag_ncc)
-                print("-----------")
-
-
-
-
-                H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_ncc,
-                            bsr_matrix((3*nat - limits[1]*3, 3*nat))])
-                print("H: ", H)
-                print(H.shape)
-                sys.exit(2)
-
+                return H 
 
         # Sparse BSR-matrix
-        elif limits = None and H_format == "sparse":
+        elif limits == None and H_format == "sparse":
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
@@ -501,7 +481,7 @@ class PairPotential(Calculator):
             return H
 
         # Dense matrix format
-        elif limits = None and H_format == "dense":
+        elif limits == None and H_format == "dense":
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
