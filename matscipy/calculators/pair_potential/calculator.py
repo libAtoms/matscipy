@@ -462,7 +462,7 @@ class PairPotential(Calculator):
 
                     return H
 
-                if H_format == "dense":
+                elif H_format == "dense":
                     # Implement
 
         # Sparse BSR-matrix
