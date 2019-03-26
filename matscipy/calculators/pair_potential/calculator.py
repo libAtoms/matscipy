@@ -480,7 +480,7 @@ class PairPotential(Calculator):
 
 
         # Sparse BSR-matrix
-        if H_format == "sparse":
+        elif limits = None and H_format == "sparse":
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
@@ -500,7 +500,7 @@ class PairPotential(Calculator):
             return H
 
         # Dense matrix format
-        elif H_format == "dense":
+        elif limits = None and H_format == "dense":
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
