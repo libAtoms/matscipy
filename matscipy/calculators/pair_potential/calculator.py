@@ -405,7 +405,7 @@ class PairPotential(Calculator):
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
 
         # If limits are given for the atom indices, extract the corresponding data
-        if limits != None and H_format == "sparse":
+        if limits != None:
             if limits[1] < limits[0]:
                 raise ValueError(
                     "Value error: The upper atom id cannot be smaller than the lower atom id.")
@@ -421,7 +421,7 @@ class PairPotential(Calculator):
                 dde_n = dde_n[mask]
                 nat1 = limits[1] - limits[0]
 
-                # 
+                #
                 first_i = [0] * (nat1+1)
                 ids, count_i = np.unique(i_n, return_counts=True)
                 j = 1
@@ -431,34 +431,39 @@ class PairPotential(Calculator):
                         j = j+1
                 first_i[-1] = len(i_n)
 
-                # Off-diagonal elements of the Hessian matrix
-                e_nc = (dr_nc.T/abs_dr_n).T
-                H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                                   * e_nc.reshape(-1, 1, 3)).T).T
-                H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
-                                            (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+                if H_format == "sparse":
+                    # Off-diagonal elements of the Hessian matrix
+                    e_nc = (dr_nc.T/abs_dr_n).T
+                    H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
+                                       * e_nc.reshape(-1, 1, 3)).T).T
+                    H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
+                                                (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-                H_nat1cc = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
+                    H_nat1cc = bsr_matrix(
+                        (H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
 
-                # Stack matrices in order to obtain correct shape of (3*nat, 3*nat)
-                H = vstack([bsr_matrix((limits[0]*3, 3*nat)), H_nat1cc,
-                            bsr_matrix((3*nat - limits[1]*3, 3*nat))])
+                    # Stack matrices in order to obtain correct shape of (3*nat, 3*nat)
+                    H = vstack([bsr_matrix((limits[0]*3, 3*nat)), H_nat1cc,
+                                bsr_matrix((3*nat - limits[1]*3, 3*nat))])
 
-                # Diagonal elements of the Hessian matrix 
-                Hdiag_icc = np.empty((nat1, 3, 3))
-                for x in range(3):
-                    for y in range(3):
-                        Hdiag_icc[:, x, y] = - \
-                            np.bincount(i_n1, weights=H_ncc[:, x, y])
+                    # Diagonal elements of the Hessian matrix
+                    Hdiag_icc = np.empty((nat1, 3, 3))
+                    for x in range(3):
+                        for y in range(3):
+                            Hdiag_icc[:, x, y] = - \
+                                np.bincount(i_n1, weights=H_ncc[:, x, y])
 
-                Hdiag_nat1cc = bsr_matrix((Hdiag_icc, np.arange(limits[0], limits[1]),
-                                        np.arange(nat1+1)), shape=(3*nat1, 3*nat))
-        
-                # Add off-diagonal and diagonal elements 
-                H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_nat1cc,
-                             bsr_matrix((3*nat - limits[1]*3, 3*nat))])
+                    Hdiag_nat1cc = bsr_matrix((Hdiag_icc, np.arange(limits[0], limits[1]),
+                                               np.arange(nat1+1)), shape=(3*nat1, 3*nat))
 
-                return H 
+                    # Add off-diagonal and diagonal elements
+                    H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_nat1cc,
+                                 bsr_matrix((3*nat - limits[1]*3, 3*nat))])
+
+                    return H
+
+                if H_format == "dense":
+                    # Implement
 
         # Sparse BSR-matrix
         elif limits == None and H_format == "sparse":
