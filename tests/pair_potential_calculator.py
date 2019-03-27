@@ -60,7 +60,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             fn = calc.calculate_numerical_forces(a, d=0.0001)
             self.assertArrayAlmostEqual(f, fn, tol=self.tol)
 
-    def test_symmetry(self):
+    def test_symmetry_dense(self):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
             a = io.read('KA256_Min.xyz')
             a.center(vacuum=5.0)
@@ -81,6 +81,18 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             ph.clean()
             H_numerical = ph.get_force_constant()[0, :, :]
             self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=0.03)
+
+    def test_hessian_split(self)
+    for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
+            atoms = io.read("KA256_Min.xyz")
+            atoms.center(vacuum=5.0)
+            b = calculator.PairPotential(calc)
+            H_full = b.calculate_hessian_matrix(atoms, "dense")
+            H_0to128 = b.calculate_hessian_matrix(atoms, "dense", limits=[0,128])
+            H_128to256 = b.calculate_hessian_matrix(atoms, "dense", limits=[0,256])
+            self.assertArrayAlmostEqual(np.sum(np.sum(H_full-H_0to128-H_128to256,axis=1)), 0, tol=0)
+
+
 ###
 
 

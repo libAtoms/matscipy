@@ -474,7 +474,7 @@ class PairPotential(Calculator):
                     H = np.zeros((3*nat, 3*nat))
                     for atom in range(len(i_n)):
                         H[3*i_n[atom]:3*i_n[atom]+3,
-                          3*j_n[atom]:3*j_n[atom]+ 3] += H_ncc[atom]
+                          3*j_n[atom]:3*j_n[atom] + 3] += H_ncc[atom]
 
                     # Diagonal elements of the Hessian matrix
                     Hdiag_icc = np.empty((nat1, 3, 3))
