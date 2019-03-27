@@ -379,11 +379,9 @@ class PairPotential(Calculator):
         df2 = self.df2
 
         nat = len(atoms)
-        nat1 = len(atoms)
         atnums = atoms.numbers
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-        i_n1 = i_n
         first_i = first_neighbours(nat, i_n)
 
         e_n = np.zeros_like(abs_dr_n)
@@ -475,8 +473,8 @@ class PairPotential(Calculator):
 
                     H = np.zeros((3*nat, 3*nat))
                     for atom in range(len(i_n)):
-                        H[3*i_n[atom]:3*i_n[atom]+3, 3*j_n[atom]:3*j_n[atom]
-                            + 3] += H_ncc[atom]
+                        H[3*i_n[atom]:3*i_n[atom]+3,
+                          3*j_n[atom]:3*j_n[atom]+ 3] += H_ncc[atom]
 
                     # Diagonal elements of the Hessian matrix
                     Hdiag_icc = np.empty((nat1, 3, 3))
@@ -526,7 +524,7 @@ class PairPotential(Calculator):
             H = np.zeros((3*nat, 3*nat))
             for atom in range(len(i_n)):
                 H[3*i_n[atom]:3*i_n[atom]+3,
-                  3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom, :, :]
+                  3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
 
             Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
@@ -537,7 +535,7 @@ class PairPotential(Calculator):
             Hdiag_ncc = np.zeros((3*nat, 3*nat))
             for atom in range(nat):
                 Hdiag_ncc[3*atom:3*atom+3,
-                          3*atom:3*atom+3] += Hdiag_icc[atom, :, :]
+                          3*atom:3*atom+3] += Hdiag_icc[atom]
 
             H += Hdiag_ncc
 
