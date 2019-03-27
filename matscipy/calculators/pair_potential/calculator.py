@@ -343,7 +343,7 @@ class PairPotential(Calculator):
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
         with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of shape (d,d), which
         are the mixed second derivatives. The result of the derivation for a pair potential can be found in:
-        L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Ev. B 86, 075459 (2012)
+        L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Ev. B 86, 075459 (2012).
 
         Parameters
         ----------
@@ -359,6 +359,11 @@ class PairPotential(Calculator):
             If limits=[5,10] the Hessian matrix is computed for atom IDs 5,6,7,8,9 only.
             The Hessian matrix will have the full shape dim(3*N,3*N) where N is the number of atoms. 
             This ensures correct indexing of the data. 
+
+        Restrictions
+        ----------
+        This method is currently only implemented for three dimensional systems
+
         """
 
         if H_format == "sparse":
@@ -470,8 +475,8 @@ class PairPotential(Calculator):
 
                     H = np.zeros((3*nat, 3*nat))
                     for atom in range(len(i_n)):
-                        H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1], H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
-                            + H_ncc.shape[2]] = H_ncc[atom]
+                        H[3*i_n[atom]:3*i_n[atom]+3, 3*j_n[atom]:3*j_n[atom]
+                            + 3] += H_ncc[atom]
 
                     # Diagonal elements of the Hessian matrix
                     Hdiag_icc = np.empty((nat1, 3, 3))
@@ -482,8 +487,8 @@ class PairPotential(Calculator):
 
                     Hdiag_ncc = np.zeros((3*nat, 3*nat))
                     for atom in range(nat1):
-                        Hdiag_ncc[Hdiag_icc.shape[1]*(atom+limits[0]):Hdiag_icc.shape[1]*(atom+limits[0])+Hdiag_icc.shape[1], Hdiag_icc.shape[2]*(atom+limits[0]):Hdiag_icc.shape[2]*(atom+limits[0])
-                                  + Hdiag_icc.shape[2]] = Hdiag_icc[atom]
+                        Hdiag_ncc[3*(atom+limits[0]):3*(atom+limits[0])+3,
+                                  3*(atom+limits[0]):3*(atom+limits[0])+3] += Hdiag_icc[atom]
 
                     # Compute full Hessian matrix
                     H += Hdiag_ncc
@@ -491,7 +496,7 @@ class PairPotential(Calculator):
                     return H
 
         # Sparse BSR-matrix
-        elif limits == None and H_format == "sparse":
+        elif H_format == "sparse":
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
@@ -511,7 +516,7 @@ class PairPotential(Calculator):
             return H
 
         # Dense matrix format
-        elif limits == None and H_format == "dense":
+        elif H_format == "dense":
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
@@ -520,8 +525,8 @@ class PairPotential(Calculator):
 
             H = np.zeros((3*nat, 3*nat))
             for atom in range(len(i_n)):
-                H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1], H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
-                  + H_ncc.shape[2]] = H_ncc[atom]
+                H[3*i_n[atom]:3*i_n[atom]+3,
+                  3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom, :, :]
 
             Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
@@ -531,8 +536,8 @@ class PairPotential(Calculator):
 
             Hdiag_ncc = np.zeros((3*nat, 3*nat))
             for atom in range(nat):
-                Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1], Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom
-                          + Hdiag_icc.shape[2]] = Hdiag_icc[atom]
+                Hdiag_ncc[3*atom:3*atom+3,
+                          3*atom:3*atom+3] += Hdiag_icc[atom, :, :]
 
             H += Hdiag_ncc
 
