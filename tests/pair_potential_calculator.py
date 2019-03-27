@@ -88,7 +88,8 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         atoms.center(vacuum=5.0)
         b = calculator.PairPotential(calc)
         H_full = b.calculate_hessian_matrix(atoms, "dense")
-        H_0to128 = b.calculate_hessian_matrix(atoms, "dense", limits=[0, 128])
+        H_0to128 = b.calculate_hessian_matrix(
+            atoms, "dense", limits=[0, 128])
         H_128to256 = b.calculate_hessian_matrix(
             atoms, "dense", limits=[0, 256])
         self.assertArrayAlmostEqual(
