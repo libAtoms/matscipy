@@ -437,11 +437,11 @@ class PairPotential(Calculator):
                     H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
                                                 (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-                    H_nat1cc = bsr_matrix(
+                    H_nat1nat = bsr_matrix(
                         (H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
 
-                    # Stack matrices in order to obtain correct shape of (3*nat, 3*nat)
-                    H = vstack([bsr_matrix((limits[0]*3, 3*nat)), H_nat1cc,
+                    # Stack matrices in order to obtain full shape (3*nat, 3*nat)
+                    H = vstack([bsr_matrix((limits[0]*3, 3*nat)), H_nat1nat,
                                 bsr_matrix((3*nat - limits[1]*3, 3*nat))])
 
                     # Diagonal elements of the Hessian matrix
@@ -451,11 +451,11 @@ class PairPotential(Calculator):
                             Hdiag_icc[:, x, y] = - \
                                 np.bincount(i_n1, weights=H_ncc[:, x, y])
 
-                    Hdiag_nat1cc = bsr_matrix((Hdiag_icc, np.arange(limits[0], limits[1]),
+                    Hdiag_nat1nat = bsr_matrix((Hdiag_icc, np.arange(limits[0], limits[1]),
                                                np.arange(nat1+1)), shape=(3*nat1, 3*nat))
 
-                    # Add off-diagonal and diagonal elements
-                    H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_nat1cc,
+                    # Compute full Hessian matrix 
+                    H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_nat1nat,
                                  bsr_matrix((3*nat - limits[1]*3, 3*nat))])
 
                     return H
