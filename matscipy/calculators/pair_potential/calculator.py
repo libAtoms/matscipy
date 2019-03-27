@@ -356,8 +356,9 @@ class PairPotential(Calculator):
 
         limits: list [atomID_low, atomID_up]
             Calculate the Hessian matrix only for the given atom IDs. 
-            If limits=[5,10] the Hessian matrix is computed for atom IDs 5,6,7,8,9.
-            The Hessian matrix will have the full shape dim(3*N,3*N) where N is the number of atoms.
+            If limits=[5,10] the Hessian matrix is computed for atom IDs 5,6,7,8,9 only.
+            The Hessian matrix will have the full shape dim(3*N,3*N) where N is the number of atoms. 
+            This ensures correct indexing of the data. 
         """
 
         if H_format == "sparse":
@@ -404,7 +405,6 @@ class PairPotential(Calculator):
                 de_n[mask] = df[pair](abs_dr_n[mask])
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
 
-        # If limits are given for the atom indices, extract the corresponding data
         if limits != None:
             if limits[1] < limits[0]:
                 raise ValueError(
@@ -421,9 +421,7 @@ class PairPotential(Calculator):
                 dde_n = dde_n[mask]
                 nat1 = limits[1] - limits[0]
 
-                #
                 first_i = [0] * (nat1+1)
-                ids, count_i = np.unique(i_n, return_counts=True)
                 j = 1
                 for k in range(1, len(i_n)):
                     if i_n[k] != i_n[k-1]:
