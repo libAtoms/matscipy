@@ -452,9 +452,9 @@ class PairPotential(Calculator):
                                 np.bincount(i_n1, weights=H_ncc[:, x, y])
 
                     Hdiag_nat1nat = bsr_matrix((Hdiag_icc, np.arange(limits[0], limits[1]),
-                                               np.arange(nat1+1)), shape=(3*nat1, 3*nat))
+                                                np.arange(nat1+1)), shape=(3*nat1, 3*nat))
 
-                    # Compute full Hessian matrix 
+                    # Compute full Hessian matrix
                     H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_nat1nat,
                                  bsr_matrix((3*nat - limits[1]*3, 3*nat))])
 
@@ -469,11 +469,11 @@ class PairPotential(Calculator):
                                                 (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
                     H = np.zeros((3*nat, 3*nat))
-
                     for atom in range(len(i_n)):
                         H[H_ncc.shape[1]*i_n[atom]:H_ncc.shape[1]*i_n[atom]+H_ncc.shape[1], H_ncc.shape[2]*j_n[atom]:H_ncc.shape[2]*j_n[atom]
                             + H_ncc.shape[2]] = H_ncc[atom]
 
+                    # Diagonal elements of the Hessian matrix
                     Hdiag_icc = np.empty((nat1, 3, 3))
                     for x in range(3):
                         for y in range(3):
@@ -482,9 +482,10 @@ class PairPotential(Calculator):
 
                     Hdiag_ncc = np.zeros((3*nat, 3*nat))
                     for atom in range(nat1):
-                        Hdiag_ncc[Hdiag_icc.shape[1]*atom:Hdiag_icc.shape[1]*atom+Hdiag_icc.shape[1], Hdiag_icc.shape[2]*atom:Hdiag_icc.shape[2]*atom
+                        Hdiag_ncc[Hdiag_icc.shape[1]*(atom+limits[0]):Hdiag_icc.shape[1]*(atom+limits[0])+Hdiag_icc.shape[1], Hdiag_icc.shape[2]*(atom+limits[0]):Hdiag_icc.shape[2]*(atom+limits[0])
                                   + Hdiag_icc.shape[2]] = Hdiag_icc[atom]
 
+                    # Compute full Hessian matrix
                     H += Hdiag_ncc
 
                     return H
