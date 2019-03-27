@@ -424,7 +424,7 @@ class PairPotential(Calculator):
                 dde_n = dde_n[mask]
                 nat1 = limits[1] - limits[0]
 
-                first_i = [0] * (nat1+1)
+                first_i = [0] * (nat1 + 1)
                 j = 1
                 for k in range(1, len(i_n)):
                     if i_n[k] != i_n[k-1]:
@@ -434,11 +434,11 @@ class PairPotential(Calculator):
 
                 if H_format == "sparse":
                     # Off-diagonal elements of the Hessian matrix
-                    e_nc = (dr_nc.T/abs_dr_n).T
+                    e_nc = (dr_nc.T / abs_dr_n).T
                     H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                        * e_nc.reshape(-1, 1, 3)).T).T
-                    H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
-                                                (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+                    H_ncc += -(de_n / abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
+                                                  - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
                     H_nat1nat = bsr_matrix(
                         (H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
@@ -465,16 +465,16 @@ class PairPotential(Calculator):
 
                 elif H_format == "dense":
                     # Off-diagonal elements of the Hessian matrix
-                    e_nc = (dr_nc.T/abs_dr_n).T
-                    H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                                       * e_nc.reshape(-1, 1, 3)).T).T
-                    H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
-                                                (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+                    e_nc = (dr_nc.T / abs_dr_n).T
+                    H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1) *
+                                       e_nc.reshape(-1, 1, 3)).T).T
+                    H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
+                                                - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
                     H = np.zeros((3*nat, 3*nat))
                     for atom in range(len(i_n)):
                         H[3*i_n[atom]:3*i_n[atom]+3,
-                          3*j_n[atom]:3*j_n[atom] + 3] += H_ncc[atom]
+                          3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
 
                     # Diagonal elements of the Hessian matrix
                     Hdiag_icc = np.empty((nat1, 3, 3))
@@ -498,8 +498,8 @@ class PairPotential(Calculator):
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
-                                        (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
+                                        - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
             H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
@@ -518,8 +518,8 @@ class PairPotential(Calculator):
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
-                                        (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
+                                        - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
             H = np.zeros((3*nat, 3*nat))
             for atom in range(len(i_n)):
