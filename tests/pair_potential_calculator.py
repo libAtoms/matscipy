@@ -68,6 +68,15 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             H = b.calculate_hessian_matrix(a, "dense")
             self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
 
+    def test_symmetry_sparse(self):
+        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
+            a = io.read('KA256_Min.xyz')
+            a.center(vacuum=5.0)
+            b = calculator.PairPotential(calc)
+            H = b.calculate_hessian_matrix(a, "sparse")
+            H = H.todense()
+            self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
+
     def test_hessian(self):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
             atoms = io.read("KA256_Min.xyz")
