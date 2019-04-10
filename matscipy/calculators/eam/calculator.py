@@ -35,8 +35,9 @@ try:
 except:
     InterpolatedUnivariateSpline = None
 
+from scipy.sparse import bsr_matrix
 from matscipy.calculators.eam.io import read_eam
-from matscipy.neighbours import neighbour_list
+from matscipy.neighbours import neighbour_list, first_neighbours
 
 ###
 
@@ -46,11 +47,11 @@ def _make_splines(dx, y):
     else:
         return InterpolatedUnivariateSpline(np.arange(len(y))*dx, y)
 
-def _make_derivative(x):
+def _make_derivative(x, n=1):
     if type(x) == list:
-        return [_make_derivative(xx) for xx in x]
+        return [_make_derivative(xx, n=n) for xx in x]
     else:
-        return x.derivative()
+        return x.derivative(n=n)
 
 ###
 
@@ -88,6 +89,11 @@ class EAM(Calculator):
         self.dF = _make_derivative(self.F)
         self.df = _make_derivative(self.f)
         self.drep = _make_derivative(self.rep)
+        
+        # Second derivative of spline interpolation
+        self.ddF = _make_derivative(self.F, n=2)
+        self.ddf = _make_derivative(self.f, n=2)
+        self.ddrep = _make_derivative(self.rep, n=2)
 
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
@@ -156,7 +162,9 @@ class EAM(Calculator):
                 demb_i[mask] += dF(density_i[mask])
 
         # Forces
-        df_nc = -0.5*((demb_i[i_n]+demb_i[j_n])*df_n+drep_n).reshape(-1,1)*dr_nc/abs_dr_n.reshape(-1,1)
+        reverse = find_indices_of_reverse_pairs(i_n, j_n)
+        df_i_n = np.take(df_n, reverse)
+        df_nc = -0.5*((demb_i[i_n]*df_n+demb_i[j_n]*df_i_n)+drep_n).reshape(-1,1)*dr_nc/abs_dr_n.reshape(-1,1)
 
         # Sum for each atom
         fx_i = np.bincount(j_n, weights=df_nc[:,0], minlength=nat) - \
@@ -177,3 +185,446 @@ class EAM(Calculator):
         self.results = {'energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
                         'forces': np.transpose([fx_i, fy_i, fz_i])}
+
+#    @profile # uncomment for profiling with kernprof
+    def calculate_hessian_matrix(self, atoms):
+        r"""Compute the Hessian matrix
+
+        The Hessian matrix is the matrix of second derivatives 
+        of the potential energy :math:`\mathcal{V}_\mathrm{int}` 
+        with respect to coordinates, i.e.\
+
+        .. math:: 
+        
+            \frac{\partial^2 \mathcal{V}_\mathrm{int}}
+                 {\partial r_{\nu{}i}\partial r_{\mu{}j}},
+
+        where the indices :math:`\mu` and :math:`\nu` refer to atoms and
+        the indices :math:`i` and :math:`j` refer to the components of the
+        position vector :math:`r_\nu` along the three spatial directions.
+
+        The Hessian matrix has contributions from the pair potential
+        and the embedding energy, 
+
+        .. math::
+
+            \frac{\partial^2 \mathcal{V}_\mathrm{int}}{\partial r_{\nu{}i}\partial r_{\mu{}j}} = 
+            \frac{\partial^2 \mathcal{V}_\mathrm{pair}}{ \partial r_{\nu i} \partial r_{\mu j}} +
+            \frac{\partial^2 \mathcal{V}_\mathrm{embed}}{\partial r_{\nu i} \partial r_{\mu j}}. 	
+
+
+        The contribution from the pair potential is
+
+        .. math::
+
+            \frac{\partial^2 \mathcal{V}_\mathrm{pair}}{ \partial r_{\nu i} \partial r_{\mu j}} &= 
+            -\phi_{\nu\mu}'' \left(
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+            \frac{r_{\nu\mu j}}{r_{\nu\mu}} 
+            \right)
+            -\frac{\phi_{\nu\mu}'}{r_{\nu\mu}}\left(
+            \delta_{ij}-
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+            \frac{r_{\nu\mu j}}{r_{\nu\mu}} 
+            \right) \\ 
+            &+\delta_{\nu\mu}\sum_{\gamma\neq\nu}^{N}
+            \phi_{\nu\gamma}'' \left(
+            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
+            \frac{r_{\nu\gamma j}}{r_{\nu\gamma}} 
+            \right)
+            +\delta_{\nu\mu}\sum_{\gamma\neq\nu}^{N}\frac{\phi_{\nu\gamma}'}{r_{\nu\gamma}}\left(
+            \delta_{ij}-
+            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
+            \frac{r_{\nu\gamma j}}{r_{\nu\gamma}} 
+            \right).
+
+        The contribution of the embedding energy to the Hessian matrix is a sum of eight terms,
+        
+        .. math::
+
+            \frac{\mathcal{V}_\mathrm{embed}}{\partial r_{\mu j} \partial r_{\nu i}} 
+            	&= T_1 + T_2 + T_3 + T_4 + T_5 + T_6 + T_7 + T_8 \\ 
+            T_1 &= 
+            \delta_{\nu\mu}U_\nu''
+            \sum_{\gamma\neq\nu}^{N}g_{\nu\gamma}'\frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
+            \sum_{\gamma\neq\nu}^{N}g_{\nu\gamma}'\frac{r_{\nu\gamma j}}{r_{\nu\gamma}} \\
+            T_2 &= 
+            -u_\nu''g_{\nu\mu}' \frac{r_{\nu\mu j}}{r_{\nu\mu}} \sum_{\gamma\neq\nu}^{N} 
+            G_{\nu\gamma}' \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} \\
+            T_3 &=
+            +u_\mu''g_{\mu\nu}' \frac{r_{\nu\mu i}}{r_{\nu\mu}} \sum_{\gamma\neq\mu}^{N} 
+            G_{\mu\gamma}' \frac{r_{\mu\gamma j}}{r_{\mu\gamma}} \\
+            T_4 &= -\left(u_\mu'g_{\mu\nu}'' + u_\nu'g_{\nu\mu}''\right)
+            \left(
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+            \frac{r_{\nu\mu j}}{r_{\nu\mu}}
+            \right)\\
+            T_5 &= \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{N}
+            \left(U_\gamma'g_{\gamma\nu}'' + U_\nu'g_{\nu\gamma}''\right)
+            \left(
+            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
+            \frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
+            \right) \\
+            T_6 &= -\left(U_\mu'g_{\mu\nu}' + U_\nu'g_{\nu\mu}'\right) \frac{1}{r_{\nu\mu}}
+            \left(
+            \delta_{ij}- 
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+            \frac{r_{\nu\mu j}}{r_{\nu\mu}}
+            \right) \\
+            T_7 &= \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{N}
+            \left(U_\gamma'g_{\gamma\nu}' + U_\nu'g_{\nu\gamma}'\right) \frac{1}{r_{\nu\gamma}}
+            \left(\delta_{ij}-
+            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
+            \frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
+            \right) \\
+            T_8 &= \sum_{\substack{\gamma\neq\nu \\ \gamma \neq \mu}}^{N}
+            U_\gamma'' g_{\gamma\nu}'g_{\gamma\mu}' 
+            \frac{r_{\gamma\nu i}}{r_{\gamma\nu}}
+            \frac{r_{\gamma\mu j}}{r_{\gamma\mu}} 
+
+
+        Parameters
+        ----------
+        atoms : ase.Atoms
+
+        Returns
+        -------
+        D : numpy.matrix
+            Block Sparse Row matrix with the nonzero blocks
+
+        Notes
+        -----
+        Notation:
+         * :math:`N` Number of atoms 
+         * :math:`\mathcal{V}_\mathrm{int}`  Total potential energy 
+         * :math:`\mathcal{V}_\mathrm{pair}` Pair potential 
+         * :math:`\mathcal{V}_\mathrm{embed}` Embedding energy 
+         * :math:`r_{\nu{}i}`  Component :math:`i` of the position vector of atom :math:`\nu` 
+         * :math:`r_{\nu\mu{}i} = r_{\mu{}i}-r_{\nu{}i}` 
+         * :math:`r_{\nu\mu{}}` Norm of :math:`r_{\nu\mu{}i}`, i.e.\ :math:`\left(r_{\nu\mu{}1}^2+r_{\nu\mu{}2}^2+r_{\nu\mu{}3}^2\right)^{1/2}`
+         * :math:`\phi_{\nu\mu}(r_{\nu\mu{}})` Pair potential energy of atoms :math:`\nu` and :math:`\mu` 
+         * :math:`\rho_nu` Total electron density of atom :math:`\nu`  
+         * :math:`U_\nu(\rho_nu)` Embedding energy of atom :math:`\nu` 
+         * :math:`g_{\delta}\left(r_{\gamma\delta}\right) \equiv g_{\gamma\delta}` Contribution from atom :math:`\delta` to :math:`\rho_\gamma`
+        """
+
+        nat = len(atoms)
+        atnums = atoms.numbers
+
+        atnums_in_system = set(atnums)
+        for atnum in atnums_in_system:
+            if atnum not in atnums:
+                raise RuntimeError('Element with atomic number {} found, but '
+                                   'this atomic number has no EAM '
+                                   'parametrization'.format(atnum))
+
+        # i_n: index of the central atom
+        # j_n: index of the neighbor atom
+        # dr_nc: distance vector between the two
+        # abs_dr_n: norm of distance vector
+        # Variable name ending with _n indicate arrays that contain
+        # one element for each pair in the neighbor list. Names ending
+        # with _i indicate arrays containing one element for each atom.
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list(
+            'ijDd', atoms, self.cutoff
+        )
+        first_i = first_neighbours(nat, i_n)
+        # Make sure that the neighborlist does not contain the same pairs twice.
+        # Reoccuring entries may be due to small system size. In this case, the
+        # Hessian matrix will not be symmetric.
+        unique_pairs = set((i, j) for (i, j) in zip(i_n, j_n))
+        if len(unique_pairs) != len(i_n):
+            raise ValueError("neighborlist contains some pairs more than once") 
+        assert(np.all(i_n != j_n))
+
+        # Calculate the derivatives of the pair energy
+        drep_n = np.zeros_like(abs_dr_n)  # first derivative
+        ddrep_n = np.zeros_like(abs_dr_n) # second derivative
+        for atidx1, atnum1 in enumerate(self.atnums):
+            rep1 = self.rep[atidx1]
+            drep1 = self.drep[atidx1]
+            ddrep1 = self.ddrep[atidx1]
+            mask1 = atnums[i_n]==atnum1
+            if mask1.sum() > 0:
+                for atidx2, atnum2 in enumerate(self.atnums):
+                    rep = rep1[atidx2]
+                    drep = drep1[atidx2]
+                    ddrep = ddrep1[atidx2]
+                    mask = np.logical_and(mask1, atnums[j_n]==atnum2)
+                    if mask.sum() > 0:
+                        r = rep(abs_dr_n[mask])/abs_dr_n[mask]
+                        drep_n[mask] = (drep(abs_dr_n[mask])-r) / abs_dr_n[mask]
+                        ddrep_n[mask] = (ddrep(abs_dr_n[mask]) - 2.0 * drep_n[mask]) / abs_dr_n[mask]
+
+        # Calculate the total electron density at each atom, and the 
+        # derivatives of pairwise contributions
+        f_n = np.zeros_like(abs_dr_n)
+        df_n = np.zeros_like(abs_dr_n)  # first derivative
+        ddf_n = np.zeros_like(abs_dr_n) # second derivative
+        for atidx1, atnum1 in enumerate(self.atnums):
+            f1 = self.f[atidx1]     
+            df1 = self.df[atidx1]   
+            ddf1 = self.ddf[atidx1] 
+            mask1 = atnums[j_n]==atnum1
+            if mask1.sum() > 0:
+                if type(f1) == list:
+                    for atidx2, atnum2 in enumerate(self.atnums):
+                        f = f1[atidx2]
+                        df = df1[atidx2]
+                        ddf = ddf1[atidx2]
+                        mask = np.logical_and(mask1, atnums[i_n]==atnum2)
+                        if mask.sum() > 0:
+                            f_n[mask] = f(abs_dr_n[mask])
+                            df_n[mask] = df(abs_dr_n[mask])
+                            ddf_n[mask] = ddf(abs_dr_n[mask])
+                else:
+                    f_n[mask1] = f1(abs_dr_n[mask1])
+                    df_n[mask1] = df1(abs_dr_n[mask1])
+                    ddf_n[mask1] = ddf1(abs_dr_n[mask1])
+        # Accumulate density contributions
+        density_i = np.bincount(i_n, weights=f_n, minlength=nat)
+
+        # Calculate the derivatives of the embedding energy
+        demb_i = np.zeros(len(atoms))   # first derivative
+        ddemb_i = np.zeros(len(atoms))  # second derivative
+        for atidx, atnum in enumerate(self.atnums):
+            F = self.F[atidx]
+            dF = self.dF[atidx]
+            ddF = self.ddF[atidx]
+            mask = atnums==atnum
+            if mask.sum() > 0:
+                demb_i[mask] += dF(density_i[mask])
+                ddemb_i[mask] += ddF(density_i[mask])
+
+        symmetry_check = False # check symmetry of individual terms?
+        #------------------------------------------------------------------------ 
+        # Calculate pair contribution to the Hessian matrix
+        #------------------------------------------------------------------------ 
+        e_nc = (dr_nc.T / abs_dr_n).T # normalized distance vectors r_i^{\mu\nu}
+        outer_1 = e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3)
+        outer_2 = np.eye(3, dtype=e_nc.dtype) - outer_1
+        D_ncc = -(ddrep_n * outer_1.T).T
+        D_ncc += -(drep_n / abs_dr_n * outer_2.T).T
+        D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat, 3*nat))
+        Ddiag = np.empty((nat, 3, 3))
+        for x in range(3):
+            for y in range(3):
+                Ddiag[:, x, y] = -np.bincount(i_n, weights=D_ncc[:, x, y]) # summation
+        # put 3x3 blocks on diagonal (Kronecker Delta delta_{\mu\nu})
+        D += bsr_matrix((Ddiag, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+
+        #------------------------------------------------------------------------ 
+        # Calculate contribution of embedding term
+        #------------------------------------------------------------------------ 
+        # For each pair in the neighborlist, create arrays which store the 
+        # derivatives of the embedding energy of the corresponding atoms.
+        demb_i_n = np.take(demb_i, i_n)
+        demb_j_n = np.take(demb_i, j_n)
+        ddemb_i_n = np.take(ddemb_i, i_n)
+        ddemb_j_n = np.take(ddemb_i, j_n)
+
+        # Let r be an index into the neighbor list. df_n[r] contains the the
+        # contribution from atom j_n[r] to the derivative of the electron
+        # density of atom i_n[r]. We additionally need the contribution of
+        # i_n[r] to the derivative of j_n[r]. This value is also in df_n,
+        # but at a different position. reverse[r] gives the new index s
+        # where we find this value. The same indexing applies to ddf_n.
+        reverse = find_indices_of_reverse_pairs(i_n, j_n)
+        df_i_n = np.take(df_n, reverse)
+        ddf_i_n = np.take(ddf_n, reverse)
+        #we already have ddf_j_n = ddf_n 
+
+        # Term 1: 
+        # \delta_{\nu\mu}U_\nu''
+        # \sum_{\gamma\neq\nu}^{\natoms}g_{\nu\gamma}'\frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
+        # \sum_{\gamma\neq\nu}^{\natoms}g_{\nu\gamma}'\frac{r_{\nu\gamma j}}{r_{\nu\gamma}} 
+        # Likely zero in equilibrium because the sum is zero (appears in the force vector)
+        df_n_e_nc_outer_product = (df_n * e_nc.T).T
+        df_n_e_nc_i = np.empty((nat, 3), dtype=df_n.dtype)
+        for x in range(3):
+            df_n_e_nc_i[:, x] = np.bincount(i_n, weights=df_n_e_nc_outer_product[:, x], minlength=nat)
+        term_1 = bsr_matrix((
+                ((ddemb_i * df_n_e_nc_i.T).T).reshape(-1,3,1) * df_n_e_nc_i.reshape(-1,1,3),
+                np.arange(nat), np.arange(nat+1)
+            ), shape=(3*nat, 3*nat)
+        ) 
+        D += term_1
+        if symmetry_check: 
+            print("check term 1", np.linalg.norm(term_1.todense() - term_1.todense().T))
+
+        # Term 2: 
+        # -u_\nu''g_{\nu\mu}' \frac{r_{\nu\mu j}}{r_{\nu\mu}} \sum_{\gamma\neq\nu}^{\natoms} 
+        #      g_{\nu\gamma}' \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
+        # Likely zero in equilibrium because the sum is zero (appears in the force vector)
+        df_n_e_nc_j_n = np.take(df_n_e_nc_i, j_n, axis=0)
+        term_2 = bsr_matrix(
+            ( ((ddemb_j_n * df_i_n * e_nc.T).T).reshape(-1,3,1) * df_n_e_nc_j_n.reshape(-1,1,3),
+            j_n, first_i), shape=(3*nat, 3*nat)
+        )
+        D += term_2 
+        if symmetry_check: 
+            print("check term 2", np.linalg.norm(term_2.todense() - term_2.todense().T))
+
+        # Term 3: 
+        # +u_\mu''g_{\mu\nu}' \frac{r_{\nu\mu i}}{r_{\nu\mu}} \sum_{\gamma\neq\mu}^{\natoms} 
+        #      g_{\mu\gamma}' \frac{r_{\mu\gamma j}}{r_{\mu\gamma}} 
+        # Likely zero in equilibrium because the sum is zero (appears in the force vector)
+        df_n_e_nc_i_n = np.take(df_n_e_nc_i, i_n, axis=0)
+        term_3 = bsr_matrix(
+            (-((ddemb_i_n * df_n * df_n_e_nc_i_n.T).T).reshape(-1,3,1) * e_nc.reshape(-1,1,3),
+            j_n, first_i), shape=(3*nat, 3*nat)
+        )
+        D += term_3
+        if symmetry_check: 
+            print("check term 3", np.linalg.norm(term_3.todense() - term_3.todense().T))
+
+        # Term 4:
+        # -\left(u_\mu'g_{\mu\nu}'' + u_\nu'g_{\nu\mu}''\right)
+        # \left(
+        # \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+        # \frac{r_{\nu\mu j}}{r_{\nu\mu}}
+        # \right)
+        tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_1.T).T 
+        term_4 = bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
+        D += term_4 
+        if symmetry_check: 
+            print("check term 4", np.linalg.norm(term_4.todense() - term_4.todense().T))
+
+        # Term 5:
+        # \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{\natoms}
+        #\left(U_\gamma'g_{\gamma\nu}'' + U_\nu'g_{\nu\gamma}''\right)
+        #\left(
+        #\frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
+        #\frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
+        #\right)
+        tmp_1_summed = np.empty((nat, 3, 3), dtype=tmp_1.dtype)
+        for x in range(3):
+            for y in range(3):
+                tmp_1_summed[:, x, y] = -np.bincount(i_n, weights=tmp_1[:, x, y]) 
+        term_5 = bsr_matrix((tmp_1_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+        D += term_5
+        if symmetry_check: 
+            print("check term 5", np.linalg.norm(term_5.todense() - term_5.todense().T))
+
+        # Term 6:
+        # -\left(U_\mu'g_{\mu\nu}' + U_\nu'g_{\nu\mu}'\right) \frac{1}{r_{\nu\mu}}
+        #\left(
+        #\delta_{ij}- 
+        #\frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+        #\frac{r_{\nu\mu j}}{r_{\nu\mu}}
+        #\right)
+        tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * outer_2.T).T
+        term_6 = bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
+        D += term_6 
+        if symmetry_check: 
+            print("check term 6", np.linalg.norm(term_6.todense() - term_6.todense().T))
+
+        # Term 7:
+        # \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{\natoms}
+        #\left(U_\gamma'g_{\gamma\nu}' + U_\nu'g_{\nu\gamma}'\right) \frac{1}{r_{\nu\gamma}}
+        #\left(\delta_{ij}-
+        #\frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
+        #\frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
+        #\right)
+        tmp_2_summed = np.empty((nat, 3, 3), dtype=tmp_2.dtype)
+        for x in range(3):
+            for y in range(3):
+                tmp_2_summed[:, x, y] = -np.bincount(i_n, weights=tmp_2[:, x, y]) 
+        term_7 = bsr_matrix((tmp_2_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+        D += term_7 
+        if symmetry_check: 
+            print("check term 7", np.linalg.norm(term_7.todense() - term_7.todense().T))
+
+        #Term 8: 
+        #  \sum_{\substack{\gamma\neq\nu \\ \gamma \neq \mu}}^{\natoms}
+        #U_\gamma'' g_{\gamma\nu}'g_{\gamma\mu}' 
+        #\frac{r_{\gamma\nu i}}{r_{\gamma\nu}}
+        #\frac{r_{\gamma\mu j}}{r_{\gamma\mu}} 
+        #-----------------------------------------------------------------------
+        # This term requires knowledge of common neighbors of pairs of atoms.
+        # Construction of a common neighbor list in Python is likely a
+        # performance bottleneck; it should be implemented in C++ instead.
+        #-----------------------------------------------------------------------
+
+        # For each (i1, j2)-pair in the neighbor list, find all other
+        # pairs (i2, j) which share the same j. This includes (i1, j)
+        # itself. In this way, create a list with n blocks of rows, where
+        # n is the length of the neighbor list. All rows in a block have
+        # the same j. Each row corresponds to one triplet i1, j, i2.
+        # The number of rows in the block is equal to the total number
+        # of neighbors of j. This is the common neighbor list (cnl).
+        # Besides the block number and i1, j, i2, the cnl stores the
+        # index into the neighbor list where the pair i2-j can be found.
+        j_order = np.argsort(j_n)
+        i_n_2 = i_n[j_order]
+        j_n_2 = j_n[j_order]
+        first_j = first_neighbours(nat, j_n_2)
+        num_rows_per_j = first_j[j_n+1] - first_j[j_n]
+        total_num_rows = np.sum(num_rows_per_j)
+        # The common neighbor information could be stored as
+        # a 2D array. However, multiple 1D arrays are likely
+        # better for performance (fewer cache misses later).
+        cnl_block_number = np.empty(total_num_rows, dtype=i_n.dtype)
+        cnl_j1 = np.empty(total_num_rows, dtype=i_n.dtype)
+        cnl_j_order = np.empty(total_num_rows, dtype=i_n.dtype)
+        cnl_i1_i2 = np.empty((total_num_rows, 2), dtype=i_n.dtype)
+        block_start = np.r_[0, np.cumsum(num_rows_per_j)]
+        slice_for_j1 = {j1: slice(first_j[j1], first_j[j1+1]) for j1 in np.arange(nat)}
+        for block_number, (i1, j1) in enumerate(zip(i_n, j_n)):
+            slice1 = slice(block_start[block_number], block_start[block_number+1])
+            slice2 = slice_for_j1[j1] 
+            cnl_block_number[slice1] = block_number
+            cnl_j1[slice1] = j1 
+            cnl_j_order[slice1] = j_order[slice2]
+            cnl_i1_i2[slice1, 0] = i1
+            cnl_i1_i2[slice1, 1] = i_n_2[slice2]
+        # Determine bins for accumulation by bincount
+        unique_pairs_i1_i2, bincount_bins = np.unique(cnl_i1_i2, axis=0, return_inverse=True)
+        e_nu_cnl = np.take(e_nc, cnl_block_number, axis=0)
+        e_mu_cnl = np.take(e_nc, cnl_j_order, axis=0)
+        ddemb_cnl = np.take(ddemb_i, cnl_j1)
+        df_nu_cnl = np.take(df_i_n, cnl_block_number)
+        df_mu_cnl = np.take(df_i_n, cnl_j_order)
+        tmp_3 = ((ddemb_cnl * df_nu_cnl * df_mu_cnl * e_nu_cnl.T).T).reshape(-1, 3, 1) * e_mu_cnl.reshape(-1, 1, 3)
+        tmp_3_summed = np.empty((unique_pairs_i1_i2.shape[0], 3, 3), dtype=e_nc.dtype)
+        for x in range(3):
+            for y in range(3):
+                tmp_3_summed[:, x, y] = np.bincount(
+                        bincount_bins, weights=tmp_3[:, x, y], 
+                        minlength=unique_pairs_i1_i2.shape[0]
+                ) 
+        index_ptr = first_neighbours(nat, unique_pairs_i1_i2[:, 0])
+        term_8 = bsr_matrix((tmp_3_summed, unique_pairs_i1_i2[:, 1], index_ptr), shape=(3*nat, 3*nat))
+        if symmetry_check:
+            print("check term 8", np.linalg.norm(term_8.todense() - term_8.todense().T))
+        D += term_8
+        return D
+
+def find_indices_of_reverse_pairs(i_n, j_n):
+    """Find array position where reverse pair is stored.
+
+    For an array of atom identifiers, find the 
+    array of indices :code:`reverse`, such that 
+    :code:`i_n[x] = j_n[reverse[x]]` and
+    :code:`j_n[x] = i_n[reverse[x]]`
+
+    Parameters
+    ----------
+    i_n : numpy.ndarray
+       array of atom identifiers
+    j_n : numpy.ndarray
+       array of atom identifiers
+
+    Returns
+    -------
+    reverse : numpy.ndarray
+        array of indices into i_n and j_n
+    """
+    sorted_1 = np.lexsort(keys=(i_n, j_n))
+    sorted_2 = np.lexsort(keys=(j_n, i_n))
+    dummies2 = np.arange(i_n.size)[sorted_2]
+    dummies1 = np.arange(i_n.size)[sorted_1]
+    reverse  = np.empty(i_n.size, dtype=i_n.dtype)
+    reverse[dummies1] = dummies2
+    return reverse
+
