@@ -136,6 +136,42 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
         calculator = EAM('ZrCu.onecolumn.eam.alloy')
         self._test_hessian(atoms, calculator)
 
+    def test_dynamical_matrix(self):
+        """Test dynamical matrix construction
+
+        To obtain the dynamical matrix, one could either divide by
+        masses immediately when constructing the matrix, or one could
+        first form the complete Hessian and then divide by masses.
+        The former method is implemented.
+        """
+        atoms = io.read('CuZr_glass_460_atoms.gz')
+        atoms.pbc = [True, True, True]
+        calculator = EAM('ZrCu.onecolumn.eam.alloy')
+        dynamical_matrix = calculator.calculate_hessian_matrix(
+            atoms, divide_by_masses=True
+        )
+        # The second method requires a copy of Hessian, since
+        # sparse matrix does not properly support *= operator
+        hessian = calculator.calculate_hessian_matrix(atoms)
+        masses = atoms.get_masses()
+        mass_row = np.repeat(masses, np.diff(hessian.indptr))
+        mass_col = masses[hessian.indices]
+        inverse_mass = np.sqrt(mass_row * mass_col)**-1.0
+        blocks = (inverse_mass * np.ones((inverse_mass.size, 3, 3), dtype=inverse_mass.dtype).T).T
+        nat = len(atoms)
+        dynamical_matrix_ref = hessian.multiply(
+            bsr_matrix((blocks, hessian.indices, hessian.indptr), shape=(3*nat, 3*nat))
+        )
+        self.assertArrayAlmostEqual(
+            dynamical_matrix, dynamical_matrix.T, tol=self.hessian_tolerance
+        ) 
+        self.assertArrayAlmostEqual(
+            dynamical_matrix_ref, dynamical_matrix_ref.T, tol=self.hessian_tolerance
+        ) 
+        self.assertArrayAlmostEqual(
+            dynamical_matrix, dynamical_matrix_ref, tol=self.hessian_tolerance
+        ) 
+
     def _test_hessian(self, atoms, calculator):
         H_analytical = calculator.calculate_hessian_matrix(atoms)
         H_analytical = H_analytical.todense()

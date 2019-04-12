@@ -187,7 +187,7 @@ class EAM(Calculator):
                         'forces': np.transpose([fx_i, fy_i, fz_i])}
 
 #    @profile # uncomment for profiling with kernprof
-    def calculate_hessian_matrix(self, atoms):
+    def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
         r"""Compute the Hessian matrix
 
         The Hessian matrix is the matrix of second derivatives 
@@ -286,6 +286,8 @@ class EAM(Calculator):
         Parameters
         ----------
         atoms : ase.Atoms
+        divide_by_masses : bool
+            Divide block :math:`\nu\mu` by :math:`m_\num_\mu` to obtain the dynamical matrix
 
         Returns
         -------
@@ -306,6 +308,7 @@ class EAM(Calculator):
          * :math:`\rho_nu` Total electron density of atom :math:`\nu`  
          * :math:`U_\nu(\rho_nu)` Embedding energy of atom :math:`\nu` 
          * :math:`g_{\delta}\left(r_{\gamma\delta}\right) \equiv g_{\gamma\delta}` Contribution from atom :math:`\delta` to :math:`\rho_\gamma`
+         * :math:`m_\nu` mass of atom :math:`\nu`
         """
 
         nat = len(atoms)
@@ -336,6 +339,12 @@ class EAM(Calculator):
         if len(unique_pairs) != len(i_n):
             raise ValueError("neighborlist contains some pairs more than once") 
         assert(np.all(i_n != j_n))
+
+        if divide_by_masses: 
+            masses_i = atoms.get_masses().reshape(-1, 1, 1)
+            geom_mean_mass_n = np.sqrt(
+                np.take(masses_i, i_n) * np.take(masses_i, j_n)
+            ).reshape(-1, 1, 1)
 
         # Calculate the derivatives of the pair energy
         drep_n = np.zeros_like(abs_dr_n)  # first derivative
@@ -405,11 +414,19 @@ class EAM(Calculator):
         outer_2 = np.eye(3, dtype=e_nc.dtype) - outer_1
         D_ncc = -(ddrep_n * outer_1.T).T
         D_ncc += -(drep_n / abs_dr_n * outer_2.T).T
-        D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat, 3*nat))
+        if divide_by_masses:
+            D = bsr_matrix(
+                (D_ncc / geom_mean_mass_n, j_n, first_i), 
+                shape=(3*nat, 3*nat)
+            )
+        else:
+            D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat, 3*nat))
         Ddiag = np.empty((nat, 3, 3))
         for x in range(3):
             for y in range(3):
                 Ddiag[:, x, y] = -np.bincount(i_n, weights=D_ncc[:, x, y]) # summation
+        if divide_by_masses:
+            Ddiag /= masses_i
         # put 3x3 blocks on diagonal (Kronecker Delta delta_{\mu\nu})
         D += bsr_matrix((Ddiag, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
 
@@ -443,11 +460,10 @@ class EAM(Calculator):
         df_n_e_nc_i = np.empty((nat, 3), dtype=df_n.dtype)
         for x in range(3):
             df_n_e_nc_i[:, x] = np.bincount(i_n, weights=df_n_e_nc_outer_product[:, x], minlength=nat)
-        term_1 = bsr_matrix((
-                ((ddemb_i * df_n_e_nc_i.T).T).reshape(-1,3,1) * df_n_e_nc_i.reshape(-1,1,3),
-                np.arange(nat), np.arange(nat+1)
-            ), shape=(3*nat, 3*nat)
-        ) 
+        term_1_ncc = ((ddemb_i * df_n_e_nc_i.T).T).reshape(-1,3,1) * df_n_e_nc_i.reshape(-1,1,3)
+        if divide_by_masses:
+            term_1_ncc /= masses_i
+        term_1 = bsr_matrix((term_1_ncc, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat)) 
         D += term_1
         if symmetry_check: 
             print("check term 1", np.linalg.norm(term_1.todense() - term_1.todense().T))
@@ -457,10 +473,10 @@ class EAM(Calculator):
         #      g_{\nu\gamma}' \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
         # Likely zero in equilibrium because the sum is zero (appears in the force vector)
         df_n_e_nc_j_n = np.take(df_n_e_nc_i, j_n, axis=0)
-        term_2 = bsr_matrix(
-            ( ((ddemb_j_n * df_i_n * e_nc.T).T).reshape(-1,3,1) * df_n_e_nc_j_n.reshape(-1,1,3),
-            j_n, first_i), shape=(3*nat, 3*nat)
-        )
+        term_2_ncc = ((ddemb_j_n * df_i_n * e_nc.T).T).reshape(-1,3,1) * df_n_e_nc_j_n.reshape(-1,1,3)
+        if divide_by_masses:
+            term_2_ncc /= geom_mean_mass_n
+        term_2 = bsr_matrix((term_2_ncc, j_n, first_i), shape=(3*nat, 3*nat))
         D += term_2 
         if symmetry_check: 
             print("check term 2", np.linalg.norm(term_2.todense() - term_2.todense().T))
@@ -470,10 +486,10 @@ class EAM(Calculator):
         #      g_{\mu\gamma}' \frac{r_{\mu\gamma j}}{r_{\mu\gamma}} 
         # Likely zero in equilibrium because the sum is zero (appears in the force vector)
         df_n_e_nc_i_n = np.take(df_n_e_nc_i, i_n, axis=0)
-        term_3 = bsr_matrix(
-            (-((ddemb_i_n * df_n * df_n_e_nc_i_n.T).T).reshape(-1,3,1) * e_nc.reshape(-1,1,3),
-            j_n, first_i), shape=(3*nat, 3*nat)
-        )
+        term_3_ncc = -((ddemb_i_n * df_n * df_n_e_nc_i_n.T).T).reshape(-1,3,1) * e_nc.reshape(-1,1,3)
+        if divide_by_masses:
+            term_3_ncc /= geom_mean_mass_n
+        term_3 = bsr_matrix((term_3_ncc, j_n, first_i), shape=(3*nat, 3*nat))
         D += term_3
         if symmetry_check: 
             print("check term 3", np.linalg.norm(term_3.todense() - term_3.todense().T))
@@ -485,10 +501,9 @@ class EAM(Calculator):
         # \frac{r_{\nu\mu j}}{r_{\nu\mu}}
         # \right)
         tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_1.T).T 
-        term_4 = bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
-        D += term_4 
-        if symmetry_check: 
-            print("check term 4", np.linalg.norm(term_4.todense() - term_4.todense().T))
+        # We don't immediately add term 4 to the matrix, because it would have 
+        # to be normalized by the masses if divide_by_masses is true. However,
+        # for construction of term 5, we need term 4 without normalization
 
         # Term 5:
         # \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{\natoms}
@@ -501,10 +516,18 @@ class EAM(Calculator):
         for x in range(3):
             for y in range(3):
                 tmp_1_summed[:, x, y] = -np.bincount(i_n, weights=tmp_1[:, x, y]) 
+        if divide_by_masses:
+            tmp_1_summed /= masses_i
         term_5 = bsr_matrix((tmp_1_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
         D += term_5
         if symmetry_check: 
             print("check term 5", np.linalg.norm(term_5.todense() - term_5.todense().T))
+        if divide_by_masses:
+            tmp_1 /= geom_mean_mass_n
+        term_4 = bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
+        D += term_4 
+        if symmetry_check: 
+            print("check term 4", np.linalg.norm(term_4.todense() - term_4.todense().T))
 
         # Term 6:
         # -\left(U_\mu'g_{\mu\nu}' + U_\nu'g_{\nu\mu}'\right) \frac{1}{r_{\nu\mu}}
@@ -513,11 +536,9 @@ class EAM(Calculator):
         #\frac{r_{\nu\mu i}}{r_{\nu\mu}} 
         #\frac{r_{\nu\mu j}}{r_{\nu\mu}}
         #\right)
+        # Like term 4, which was needed to construct term 5, we don't add 
+        # term 6 immediately, because it is needed for construction of term 7
         tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * outer_2.T).T
-        term_6 = bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
-        D += term_6 
-        if symmetry_check: 
-            print("check term 6", np.linalg.norm(term_6.todense() - term_6.todense().T))
 
         # Term 7:
         # \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{\natoms}
@@ -530,10 +551,18 @@ class EAM(Calculator):
         for x in range(3):
             for y in range(3):
                 tmp_2_summed[:, x, y] = -np.bincount(i_n, weights=tmp_2[:, x, y]) 
+        if divide_by_masses:
+            tmp_2_summed /= masses_i
         term_7 = bsr_matrix((tmp_2_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
         D += term_7 
         if symmetry_check: 
             print("check term 7", np.linalg.norm(term_7.todense() - term_7.todense().T))
+        if divide_by_masses:
+            tmp_2 /= geom_mean_mass_n
+        term_6 = bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
+        D += term_6 
+        if symmetry_check: 
+            print("check term 6", np.linalg.norm(term_6.todense() - term_6.todense().T))
 
         #Term 8: 
         #  \sum_{\substack{\gamma\neq\nu \\ \gamma \neq \mu}}^{\natoms}
@@ -593,6 +622,11 @@ class EAM(Calculator):
                         bincount_bins, weights=tmp_3[:, x, y], 
                         minlength=unique_pairs_i1_i2.shape[0]
                 ) 
+        if divide_by_masses:
+            geom_mean_mass_i1_i2 = np.sqrt(
+                np.take(masses_i, unique_pairs_i1_i2[:, 0]) * np.take(masses_i, unique_pairs_i1_i2[:, 1])
+            )
+            tmp_3_summed /= geom_mean_mass_i1_i2[:, np.newaxis, np.newaxis]
         index_ptr = first_neighbours(nat, unique_pairs_i1_i2[:, 0])
         term_8 = bsr_matrix((tmp_3_summed, unique_pairs_i1_i2[:, 1], index_ptr), shape=(3*nat, 3*nat))
         if symmetry_check:
