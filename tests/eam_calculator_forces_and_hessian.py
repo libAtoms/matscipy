@@ -38,6 +38,7 @@ from ase.phonons import Phonons
 
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
+from scipy.sparse import bsr_matrix
 
 ###
 
@@ -162,6 +163,8 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
         dynamical_matrix_ref = hessian.multiply(
             bsr_matrix((blocks, hessian.indices, hessian.indptr), shape=(3*nat, 3*nat))
         )
+        dynamical_matrix = dynamical_matrix.todense()
+        dynamical_matrix_ref = dynamical_matrix_ref.todense()
         self.assertArrayAlmostEqual(
             dynamical_matrix, dynamical_matrix.T, tol=self.hessian_tolerance
         ) 
