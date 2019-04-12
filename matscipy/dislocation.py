@@ -1407,7 +1407,7 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
         disp2 = stroh.displacement(disloc.positions)
         res = np.abs(disp1 - disp2).max()
         disp1 = disp2
-        print 'disloc SCF', i, '|d1-d2|_inf =', res
+        print('disloc SCF', i, '|d1-d2|_inf =', res)
         i += 1
         if i > 10:
             raise RuntimeError('Self-consistency did \
