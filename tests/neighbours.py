@@ -208,6 +208,23 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
             exception_thrown = True
         self.assertTrue(exception_thrown)
 
+    def test_shrink_wrapped_direct_call(self):
+        a = io.read('aC.cfg')
+        r = a.positions
+        j, dr, i, abs_dr, shift = neighbour_list("jDidS", positions=r,
+                                                 cutoff=1.85)
+
+        self.assertTrue((np.bincount(i) == np.bincount(j)).all())
+
+        dr_direct = r[j]-r[i]
+        abs_dr_from_dr = np.sqrt(np.sum(dr*dr, axis=1))
+        abs_dr_direct = np.sqrt(np.sum(dr_direct*dr_direct, axis=1))
+
+        self.assertTrue(np.all(np.abs(abs_dr-abs_dr_from_dr) < 1e-12))
+        self.assertTrue(np.all(np.abs(abs_dr-abs_dr_direct) < 1e-12))
+
+        self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
+
 ###
 
 if __name__ == '__main__':

@@ -58,11 +58,14 @@ bin_trunc(int i, int n)
 
 /* Map particle position to a cell index */
 void
-position_to_cell_index(double *inv_cell, double *ri, int n1, int n2, int n3,
-                       int *c1, int *c2, int *c3)
+position_to_cell_index(double *cell_origin, double *inv_cell, double *ri,
+                       int n1, int n2, int n3, int *c1, int *c2, int *c3)
 {
-    double si[3];
-    mat_mul_vec(inv_cell, ri, si);
+    double dri[3], si[3];
+    for (int i = 0; i < 3; ++i) {
+        dri[i] = ri[i] - cell_origin[i];
+    }
+    mat_mul_vec(inv_cell, dri, si);
     *c1 = floor(si[0]*n1);
     *c2 = floor(si[1]*n2);
     *c3 = floor(si[2]*n3);
@@ -90,8 +93,8 @@ check_bound(int c, int n)
 PyObject *
 py_neighbour_list(PyObject *self, PyObject *args)
 {
-    PyObject *py_cell, *py_inv_cell, *py_pbc, *py_r, *py_quantities;
-    PyObject *py_cutoffs, *py_types = NULL;
+    PyObject *py_cell_origin, *py_cell, *py_inv_cell, *py_pbc, *py_r;
+    PyObject *py_quantities, *py_cutoffs, *py_types = NULL;
     double cutoff;
 
     /* Neighbour list */
@@ -102,17 +105,20 @@ py_neighbour_list(PyObject *self, PyObject *args)
     PyObject *py_absdist = NULL, *py_shift = NULL;
 
 #if PY_MAJOR_VERSION >= 3
-    if (!PyArg_ParseTuple(args, "O!OOOOO|O", &PyUnicode_Type, &py_quantities,
-                          &py_cell, &py_inv_cell, &py_pbc, &py_r, &py_cutoffs,
-                          &py_types))
+    if (!PyArg_ParseTuple(args, "O!OOOOOO|O", &PyUnicode_Type, &py_quantities,
+                          &py_cell_origin, &py_cell, &py_inv_cell, &py_pbc,
+                          &py_r, &py_cutoffs, &py_types))
 #else
-    if (!PyArg_ParseTuple(args, "O!OOOOO|O", &PyString_Type, &py_quantities,
-                          &py_cell, &py_inv_cell, &py_pbc, &py_r, &py_cutoffs,
-                          &py_types))
+    if (!PyArg_ParseTuple(args, "O!OOOOOO|O", &PyString_Type, &py_quantities,
+                          &py_cell_origin, &py_cell, &py_inv_cell, &py_pbc,
+                          &py_r, &py_cutoffs, &py_types))
 #endif
         return NULL;
 
     /* Make sure our arrays are contiguous */
+    py_cell_origin = PyArray_FROMANY(py_cell_origin, NPY_DOUBLE, 1, 1,
+                                     NPY_C_CONTIGUOUS);
+    if (!py_cell_origin) return NULL;
     py_cell = PyArray_FROMANY(py_cell, NPY_DOUBLE, 2, 2,
                               NPY_C_CONTIGUOUS);
     if (!py_cell) return NULL;
@@ -187,6 +193,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     }
 
     /* Get pointers to array data */
+    npy_double *cell_origin = PyArray_DATA((PyArrayObject *) py_cell_origin);
     npy_double *cell = PyArray_DATA((PyArrayObject *) py_cell);
     npy_double *cell1 = &cell[0], *cell2 = &cell[3], *cell3 = &cell[6];
     npy_double *inv_cell = PyArray_DATA((PyArrayObject *) py_inv_cell);
@@ -271,7 +278,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
     for (i = 0; i < nat; i++) {
         /* Get cell index */
         int c1, c2, c3;
-        position_to_cell_index(inv_cell, &r[3*i], n1, n2, n3, &c1, &c2, &c3);
+        position_to_cell_index(cell_origin, inv_cell, &r[3*i], n1, n2, n3,
+                               &c1, &c2, &c3);
 
         /* Periodic/non-periodic boundary conditions */
         if (pbc[0])  c1 = bin_wrap(c1, n1);  else  c1 = bin_trunc(c1, n1);
@@ -364,7 +372,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
         double *ri = &r[3*i];
 
         int ci01, ci02, ci03;
-        position_to_cell_index(inv_cell, ri, n1, n2, n3, &ci01, &ci02, &ci03);
+        position_to_cell_index(cell_origin, inv_cell, ri, n1, n2, n3,
+                               &ci01, &ci02, &ci03);
 
         /* Truncate if non-periodic and outside of simulation domain */
         int ci1, ci2, ci3;
@@ -442,7 +451,8 @@ py_neighbour_list(PyObject *self, PyObject *args)
                             double *rj = &r[3*j];
 
                             int cj1, cj2, cj3;
-                            position_to_cell_index(inv_cell, rj, n1, n2, n3,
+                            position_to_cell_index(cell_origin, inv_cell, rj,
+                                                   n1, n2, n3,
                                                    &cj1, &cj2, &cj3);
 
                             /* Truncate if non-periodic and outside of
@@ -595,6 +605,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
     /* Final cleanup */
     Py_XDECREF(py_cutoffs);
+    Py_DECREF(py_cell_origin);
     Py_DECREF(py_cell);
     Py_DECREF(py_inv_cell);
     Py_DECREF(py_pbc);
@@ -606,6 +617,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     fail:
     /* Cleanup. Sorry for the goto. */
     Py_XDECREF(py_cutoffs);
+    Py_DECREF(py_cell_origin);
     Py_DECREF(py_cell);
     Py_DECREF(py_inv_cell);
     Py_DECREF(py_pbc);

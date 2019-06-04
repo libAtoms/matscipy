@@ -61,15 +61,19 @@ def mic(dr, cell, pbc=None):
     return dr - np.dot(dri, cell)
 
 
-def neighbour_list(quantities, a, cutoff):
+def neighbour_list(quantities, atoms=None, cutoff=None, positions=None,
+                   cell=None, pbc=None, numbers=None, cell_origin=None):
     """
     Compute a neighbor list for an atomic configuration. Atoms outside periodic
     boundaries are mapped into the box. Atoms outside nonperiodic boundaries
-    are included in the neighbor list but complexity of neighbor list search
+    are included in the neighbor list but the complexity of neighbor list search
     for those can become n^2.
 
     The neighbor list is sorted by first atom index 'i', but not by second 
     atom index 'j'.
+
+    The neighbour list accepts either an ASE Atoms object or positions and cell
+    vectors individually.
 
     Parameters
     ----------
@@ -85,8 +89,8 @@ def neighbour_list(quantities, a, cutoff):
                   between atom i and j). With the shift vector S, the
                   distances D between atoms can be computed from:
                   D = a.positions[j]-a.positions[i]+S.dot(a.cell)
-    a : ase.Atoms
-        Atomic configuration.
+    atoms : ase.Atoms
+        Atomic configuration. (Default: None)
     cutoff : float or dict
         Cutoff for neighbor search. It can be
             - A single float: This is a global cutoff for all elements.
@@ -96,6 +100,15 @@ def neighbour_list(quantities, a, cutoff):
             - A list/array with a per atom value: This specifies the radius of
               an atomic sphere for each atoms. If spheres overlap, atoms are
               within each others neighborhood.
+    positions : array_like
+        Atomic positions. (Default: None)
+    cell : array_like
+        Cell vectors as a 3x3 matrix. (Default: Shrink wrapped cell)
+    pbc : array_like
+        3-vector containing periodic boundary conditions in all three
+        directions. (Default: Nonperiodic box)
+    numbers : array_like
+        Array containing the atomic numbers.
 
     Returns
     -------
@@ -168,8 +181,51 @@ e_nc = (dr_nc.T/abs_dr_n).T
     return D
     """
 
+    if cutoff is None:
+        raise ValueError('Please provide a value for the cutoff radius.')
+
+    if atoms is None:
+        if positions is None:
+            raise ValueError('You provided neither an ASE Atoms object nor '
+                             'a positions array.') 
+        if cell is None:
+            # Shrink wrapped cell
+            rmin = np.min(positions, axis=0)
+            rmax = np.max(positions, axis=0)
+            cell_origin = rmin
+            cell = np.diag(rmax - rmin)
+        if cell_origin is None:
+            cell_origin = np.zeros(3)
+        if pbc is None:
+            pbc = np.zeros(3, dtype=bool)
+        if numbers is None:
+            numbers = np.ones(len(positions), dtype=np.int32)
+    else:
+        if positions is not None:
+            raise ValueError('You cannot provide an ASE Atoms object and '
+                             'individual position atomic positions at the same '
+                             'time.')
+        positions = atoms.positions
+        if cell_origin is not None:
+            raise ValueError('You cannot provide an ASE Atoms object and '
+                             'a cell origin at the same time.')
+        cell_origin = np.zeros(3)
+        if cell is not None:
+            raise ValueError('You cannot provide an ASE Atoms object and '
+                             'cell vectors at the same time.')
+        cell = atoms.cell
+        if pbc is not None:
+            raise ValueError('You cannot provide an ASE Atoms object and '
+                             'separate periodicity information at the same '
+                             'time.')
+        pbc = atoms.pbc
+        if numbers is not None:
+            raise ValueError('You cannot provide an ASE Atoms object and '
+                             'separate atomic numbers at the same time.')
+        numbers = atoms.numbers.astype(np.int32)
+
     if isinstance(cutoff, dict):
-        maxel = np.max(a.numbers)
+        maxel = np.max(numbers)
         _cutoff = np.zeros([maxel+1, maxel+1], dtype=float)
         for (el1, el2), c in cutoff.items():
             try:
@@ -186,7 +242,6 @@ e_nc = (dr_nc.T/abs_dr_n).T
     else:
         _cutoff = cutoff
 
-    return _matscipy.neighbour_list(quantities, a.cell,
-                                    np.linalg.inv(a.cell.T), a.pbc,
-                                    a.positions, _cutoff,
-                                    a.numbers.astype(np.int32))
+    return _matscipy.neighbour_list(quantities, cell_origin, cell,
+                                    np.linalg.inv(cell.T), pbc, positions,
+                                    _cutoff, numbers)
