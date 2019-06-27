@@ -1,7 +1,7 @@
 matscipy
 ========
 
-This repository contains generic Python materials science tools build around the
+This repository contains generic Python materials science tools built around the
 [Atomic Simulation Environment (ASE)](https://wiki.fysik.dtu.dk/ase/).
 
 Build status
