@@ -61,8 +61,9 @@ void
 position_to_cell_index(double *cell_origin, double *inv_cell, double *ri,
                        int n1, int n2, int n3, int *c1, int *c2, int *c3)
 {
+    int i;
     double dri[3], si[3];
-    for (int i = 0; i < 3; ++i) {
+    for (i = 0; i < 3; i++) {
         dri[i] = ri[i] - cell_origin[i];
     }
     mat_mul_vec(inv_cell, dri, si);
