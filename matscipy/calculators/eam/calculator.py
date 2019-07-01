@@ -64,8 +64,8 @@ class EAM(Calculator):
         Calculator.__init__(self)
         if fn is not None:
             source, parameters, F, f, rep = read_eam(fn, kind=kind)
-            self.atnums = parameters.atomic_numbers
-            self.cutoff = parameters.cutoff
+            self._db_atomic_numbers = parameters.atomic_numbers
+            self._db_cutoff = parameters.cutoff
             dr = parameters.distance_grid_spacing
             dF = parameters.density_grid_spacing
 
@@ -74,50 +74,66 @@ class EAM(Calculator):
             self.f = _make_splines(dr, f)
             self.rep = _make_splines(dr, rep)
         else:
-            self.atnums = atomic_numbers
+            self._db_atomic_numbers = atomic_numbers
             self.F = F
             self.f = f
             self.rep = rep
-            self.cutoff = cutoff
+            self._db_cutoff = cutoff
 
-        self.atnum_to_index = -np.ones(np.max(self.atnums)+1, dtype=int)
-        self.atnum_to_index[self.atnums] = \
-            np.arange(len(self.atnums))
+        self.atnum_to_index = -np.ones(np.max(self._db_atomic_numbers)+1, dtype=int)
+        self.atnum_to_index[self._db_atomic_numbers] = \
+            np.arange(len(self._db_atomic_numbers))
 
         # Derivative of spline interpolation
         self.dF = _make_derivative(self.F)
         self.df = _make_derivative(self.f)
         self.drep = _make_derivative(self.rep)
 
-    def calculate(self, atoms, properties, system_changes):
-        Calculator.calculate(self, atoms, properties, system_changes)
+    def energy_virial_and_forces(self, atomic_numbers_i, i_n, j_n, dr_nc, abs_dr_n):
+        """
+        Compute the potential energy, the virial and the forces.
 
-        nat = len(self.atoms)
-        atnums = self.atoms.numbers
+        Parameters
+        ----------
+        atomic_numbers_i : array_like
+            Atomic number for each atom in the system
+        i_n, j_n : array_like
+            Neighbor pairs
+        dr_nc : array_like
+            Distance vectors between neighbors
+        abd_dr_n : array_like
+            Length of distance vectors between neighbors
 
-        atnums_in_system = set(atnums)
+        Returns
+        -------
+        epot : float
+            Potential energy
+        virial_v : array
+            Virial
+        forces_ic : array
+            Forces acting on each atom
+        """
+        nat = len(atomic_numbers_i)
+        atnums_in_system = set(atomic_numbers_i)
         for atnum in atnums_in_system:
-            if atnum not in self.atnums:
+            if atnum not in self._db_atomic_numbers:
                 raise RuntimeError('Element with atomic number {} found, but '
                                    'this atomic number has no EAM '
                                    'parametrization'.format(atnum))
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', self.atoms,
-                                                   self.cutoff)
-
         # Density
         f_n = np.zeros_like(abs_dr_n)
         df_n = np.zeros_like(abs_dr_n)
-        for atidx1, atnum1 in enumerate(self.atnums):
+        for atidx1, atnum1 in enumerate(self._db_atomic_numbers):
             f1 = self.f[atidx1]
             df1 = self.df[atidx1]
-            mask1 = atnums[j_n]==atnum1
+            mask1 = atomic_numbers_i[j_n]==atnum1
             if mask1.sum() > 0:
                 if type(f1) == list:
-                    for atidx2, atnum2 in enumerate(self.atnums):
+                    for atidx2, atnum2 in enumerate(self._db_atomic_numbers):
                         f = f1[atidx2]
                         df = df1[atidx2]
-                        mask = np.logical_and(mask1, atnums[i_n]==atnum2)
+                        mask = np.logical_and(mask1, atomic_numbers_i[i_n]==atnum2)
                         if mask.sum() > 0:
                             f_n[mask] = f(abs_dr_n[mask])
                             df_n[mask] = df(abs_dr_n[mask])
@@ -130,15 +146,15 @@ class EAM(Calculator):
         # Repulsion
         rep_n = np.zeros_like(abs_dr_n)
         drep_n = np.zeros_like(abs_dr_n)
-        for atidx1, atnum1 in enumerate(self.atnums):
+        for atidx1, atnum1 in enumerate(self._db_atomic_numbers):
             rep1 = self.rep[atidx1]
             drep1 = self.drep[atidx1]
-            mask1 = atnums[i_n]==atnum1
+            mask1 = atomic_numbers_i[i_n]==atnum1
             if mask1.sum() > 0:
-                for atidx2, atnum2 in enumerate(self.atnums):
+                for atidx2, atnum2 in enumerate(self._db_atomic_numbers):
                     rep = rep1[atidx2]
                     drep = drep1[atidx2]
-                    mask = np.logical_and(mask1, atnums[j_n]==atnum2)
+                    mask = np.logical_and(mask1, atomic_numbers_i[j_n]==atnum2)
                     if mask.sum() > 0:
                         r = rep(abs_dr_n[mask])/abs_dr_n[mask]
                         rep_n[mask] = r
@@ -146,11 +162,11 @@ class EAM(Calculator):
 
         # Energy
         epot = 0.5*np.sum(rep_n)
-        demb_i = np.zeros(len(self.atoms))
-        for atidx, atnum in enumerate(self.atnums):
+        demb_i = np.zeros(nat)
+        for atidx, atnum in enumerate(self._db_atomic_numbers):
             F = self.F[atidx]
             dF = self.dF[atidx]
-            mask = atnums==atnum
+            mask = atomic_numbers_i==atnum
             if mask.sum() > 0:
                 epot += np.sum(F(density_i[mask]))
                 demb_i[mask] += dF(density_i[mask])
@@ -174,6 +190,20 @@ class EAM(Calculator):
                               dr_nc[:,0]*df_nc[:,2],               # xz
                               dr_nc[:,0]*df_nc[:,1]]).sum(axis=1)  # xy
 
-        self.results = {'energy': epot,
+        return epot, virial_v, np.transpose([fx_i, fy_i, fz_i])
+
+    def calculate(self, atoms, properties, system_changes):
+        Calculator.calculate(self, atoms, properties, system_changes)
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', self.atoms,
+                                                   self._db_cutoff)
+
+        epot, virial_v, forces_ic = self.energy_virial_and_forces(self.atoms.numbers, i_n, j_n, dr_nc, abs_dr_n)
+
+        self.results = {'energy': epot, 'free_energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
-                        'forces': np.transpose([fx_i, fy_i, fz_i])}
+                        'forces': forces_ic}
+
+    @property
+    def cutoff(self):
+        return self._db_cutoff
