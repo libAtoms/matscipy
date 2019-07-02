@@ -179,6 +179,55 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         self.assertAlmostEqual(a.cell.diagonal().mean()/2, 3.237, 3)
 
+    def test_forces_CuZr_glass(self):
+        """Calculate interatomic forces in CuZr glass
+
+        Reference: tabulated forces from a calculation 
+        with Lammmps (git version patch_29Mar2019-2-g585403d65)
+
+        The forces can be re-calculated using the following
+        Lammps commands:
+            units metal
+            atom_style atomic
+            boundary p p p
+            read_data CuZr_glass_460_atoms.lammps.data.gz
+            pair_style eam/alloy
+            pair_coeff * * ZrCu.onecolumn.eam.alloy Zr Cu
+            # The initial configuration is in equilibrium
+            # and the remaining forces are small
+            # Swap atom types to bring system out of
+            # equilibrium and create nonzero forces
+            group originally_Zr type 1
+            group originally_Cu type 2
+            set group originally_Zr type 2
+            set group originally_Cu type 1
+            run 0
+            write_dump all custom &
+                CuZr_glass_460_atoms_forces.lammps.dump.gz &
+                id type x y z fx fy fz &
+                modify sort id format float "%.14g"
+        """
+        atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump")
+        old_atomic_numbers = atoms.get_atomic_numbers()
+        sel, = np.where(old_atomic_numbers == 1)
+        new_atomic_numbers = np.zeros_like(old_atomic_numbers)
+        new_atomic_numbers[sel] = 40 # Zr
+        sel, = np.where(old_atomic_numbers == 2)
+        new_atomic_numbers[sel] = 29 # Cu
+        atoms.set_atomic_numbers(new_atomic_numbers)
+        calculator = EAM('ZrCu.onecolumn.eam.alloy')
+        atoms.set_calculator(calculator)
+        atoms.pbc = [True, True, True]
+        forces = atoms.get_forces()
+        # Read tabulated forces and compare
+        with gzip.open("CuZr_glass_460_atoms_forces.lammps.dump.gz") as file:
+            for line in file:
+                if line.startswith(b"ITEM: ATOMS "): # ignore header
+                    break
+            dump = np.loadtxt(file)
+        forces_dump = dump[:, 5:8]
+        self.assertArrayAlmostEqual(forces, forces_dump, tol=1e-3) 
+
 ###
 
 if __name__ == '__main__':

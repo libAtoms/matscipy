@@ -81,7 +81,8 @@ def read_eam(eam_file,kind="eam/alloy"):
           contain the tabulated values of pair potential
           shape = (nb atoms,nb atoms, nb of data points)
     """
-    eam = open(eam_file,'r').readlines()
+    with open(eam_file, 'r') as file:
+        eam = file.readlines()
     if kind=="eam":
         # reading first comment line as source for eam potential data
         source = eam[0].strip()
@@ -190,6 +191,7 @@ def read_eam(eam_file,kind="eam/alloy"):
                     interaction+=1
             rep[i,i,:] = data[nb_atoms*(Nrho+Nr*nb_atoms)+interaction*Nr:nb_atoms*(Nrho+Nr*nb_atoms)+interaction*Nr+Nr]
             interaction+=1
+        eam.close()
         return source,parameters, F,f,rep
     else:
         print('Non supported eam file type')
