@@ -52,6 +52,34 @@ def _make_derivative(x):
     else:
         return x.derivative()
 
+def _find_indices_of_reverse_pairs(i_n, j_n):
+    """Find array position where reverse pair is stored.
+
+    For an array of atom identifiers, find the 
+    array of indices :code:`reverse`, such that 
+    :code:`i_n[x] = j_n[reverse[x]]` and
+    :code:`j_n[x] = i_n[reverse[x]]`
+
+    Parameters
+    ----------
+    i_n : array_like
+       array of atom identifiers
+    j_n : array_like
+       array of atom identifiers
+
+    Returns
+    -------
+    reverse : numpy.ndarray
+        array of indices into i_n and j_n
+    """
+    sorted_1 = np.lexsort(keys=(i_n, j_n))
+    sorted_2 = np.lexsort(keys=(j_n, i_n))
+    tmp2 = np.arange(i_n.size)[sorted_2]
+    tmp1 = np.arange(i_n.size)[sorted_1]
+    reverse  = np.empty(i_n.size, dtype=i_n.dtype)
+    reverse[tmp1] = tmp2
+    return reverse
+
 ###
 
 class EAM(Calculator):
@@ -172,7 +200,9 @@ class EAM(Calculator):
                 demb_i[mask] += dF(density_i[mask])
 
         # Forces
-        df_nc = -0.5*((demb_i[i_n]+demb_i[j_n])*df_n+drep_n).reshape(-1,1)*dr_nc/abs_dr_n.reshape(-1,1)
+        reverse = _find_indices_of_reverse_pairs(i_n, j_n)
+        df_i_n = np.take(df_n, reverse)
+        df_nc = -0.5*((demb_i[i_n]*df_n+demb_i[j_n]*df_i_n)+drep_n).reshape(-1,1)*dr_nc/abs_dr_n.reshape(-1,1)
 
         # Sum for each atom
         fx_i = np.bincount(j_n, weights=df_nc[:,0], minlength=nat) - \
