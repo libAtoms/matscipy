@@ -633,7 +633,7 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 
 
 def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
-                  print_info=True):
+                  hard_core=False, print_info=True):
     """Cost function for fitting analytical displacement field
        and detecting dislcoation core position. Uses `compare_configurations`
        function for the minisation of the core position.
@@ -653,6 +653,8 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         around the dislocation core position.
     elastic_param : list of float
         List containing alat, C11, C12, C44
+    hard_core : bool
+        type of the core True for hard
     print_info : bool
         Flag to switch print statement about the type of the comparison
 
@@ -682,6 +684,7 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
 
     center = (pos[0], pos[1], 0.0)
     u = stroh.displacement(bulk.positions - center)
+    u = -u if hard_core else u
 
     dislo_guess = bulk.copy()
     dislo_guess.positions += u
