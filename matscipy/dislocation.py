@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 # https://github.com/usnistgov/atomman
 import atomman as am
@@ -349,7 +350,6 @@ def show_NEB_configurations(images, bulk, xyscale=7,
 
     """
 
-    import matplotlib.pyplot as plt
     n_images = len(images)
     fig2 = plt.figure(figsize=(n_images * 4, 4))
 
@@ -371,7 +371,6 @@ def show_configuration(disloc, bulk, u, fixed_mask=None):
     shows the displacement fixed atoms
     '''
 
-    import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(16, 4))
 
     ax1 = fig.add_subplot(131)
