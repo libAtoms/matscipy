@@ -10,6 +10,7 @@ from matscipy.elasticity import fit_elastic_constants
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit convertion
 from ase.lattice.cubic import SimpleCubicFactory
+from ase.io import read
 
 from matscipy.neighbours import neighbour_list, mic
 
@@ -1435,3 +1436,65 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disloc.set_constraint(fix_atoms)
 
     return bulk, disloc, disp
+
+
+def read_dislo_QMMM(filename=None, image=None):
+
+    """Reads extended xyz file with QMMM configuration
+       Uses "region" for mapping of QM, MM and fixed atoms
+       Sets ase.constraints.FixAtoms constraint on fixed atoms
+
+    Parameters
+    ----------
+    filename : path to xyz file
+    image : image with "region" array to set up constraint and extract qm_mask
+
+    Returns
+    -------
+    dislo_QMMM : Output ase.Atoms object
+        Includes "region" array and FixAtoms constraint
+    qm_mask : array mask for QM atoms mapping
+    """
+
+    if filename is not None:
+        dislo_QMMM = read(filename)
+
+    elif image is not None:
+        dislo_QMMM = image
+
+    else:
+        raise RuntimeError("Please provide either path or image")
+
+    region = dislo_QMMM.get_array("region")
+    Nat = dislo_QMMM.get_number_of_atoms()
+
+    print("Total number of atoms in read configuration: {0:7}".format(Nat))
+
+    for region_type in np.unique(region):
+        print("{0:52d} {1}".format(np.count_nonzero(region == region_type),
+                                   region_type))
+
+    if len(dislo_QMMM.constraints) == 0:
+
+        print("Adding fixed atoms constraint")
+
+        fix_mask = region == "fixed"
+        fix_atoms = FixAtoms(mask=fix_mask)
+        dislo_QMMM.set_constraint(fix_atoms)
+
+    else:
+        print("Constraints list is not zero")
+
+    qm_mask = region == "QM"
+
+    qm_atoms = dislo_QMMM[qm_mask]
+    qm_atoms_types = np.array(qm_atoms.get_chemical_symbols())
+
+    print("QM region atoms: {0:3d}".format(np.count_nonzero(qm_mask)))
+
+    for qm_atom_type in np.unique(qm_atoms_types):
+
+        print("{0:20d} {1}".format(np.count_nonzero(qm_atoms_types == qm_atom_type),
+                                   qm_atom_type))
+
+    return dislo_QMMM, qm_mask
