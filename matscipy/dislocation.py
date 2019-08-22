@@ -473,7 +473,8 @@ def get_elastic_constants(pot_path=None,
     return alat, C11, C12, C44
 
 
-def make_barrier_configurations(pot_path=None, calculator=None,
+def make_barrier_configurations(elastic_param=None,
+                                pot_path=None, calculator=None,
                                 cylinder_r=10, hard_core=False):
     """ Creates the initial and final configurations for the NEB calculation
         The positions in FixedAtoms contrained region are average between
@@ -481,7 +482,7 @@ def make_barrier_configurations(pot_path=None, calculator=None,
 
     Parameters
     ----------
-    pot_path : sting
+    pot_path : string
         Path to the potential file.
     calculator : type
         Description of parameter `calculator`.
@@ -490,7 +491,7 @@ def make_barrier_configurations(pot_path=None, calculator=None,
                     dislocation  in angstrom.
     hard_core : bool
         Type of the core hard or soft.
-        If hard is chosen the displacment field is teversed.
+        If hard is chosen the displacment field is reversed.
 
     Returns
     -------
@@ -515,6 +516,10 @@ def make_barrier_configurations(pot_path=None, calculator=None,
     elif calculator is not None:
         alat, C11, C12, C44 = get_elastic_constants(calculator=calculator)
         cutoff = 5.0  # the value for trainig data for GAP from paper
+
+    elif elastic_param is not None:
+        alat, C11, C12, C44 = elastic_param
+        cutoff = 5.5
 
     cent_x = np.sqrt(6.0)*alat/3.0
     center = (cent_x, 0.0, 0.0)
