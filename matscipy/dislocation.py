@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 # https://github.com/usnistgov/atomman
 import atomman as am
@@ -9,6 +10,7 @@ from matscipy.elasticity import fit_elastic_constants
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit convertion
 from ase.lattice.cubic import SimpleCubicFactory
+from ase.io import read
 
 from matscipy.neighbours import neighbour_list, mic
 
@@ -349,7 +351,6 @@ def show_NEB_configurations(images, bulk, xyscale=7,
 
     """
 
-    import matplotlib.pyplot as plt
     n_images = len(images)
     fig2 = plt.figure(figsize=(n_images * 4, 4))
 
@@ -371,7 +372,6 @@ def show_configuration(disloc, bulk, u, fixed_mask=None):
     shows the displacement fixed atoms
     '''
 
-    import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(16, 4))
 
     ax1 = fig.add_subplot(131)
@@ -474,7 +474,8 @@ def get_elastic_constants(pot_path=None,
     return alat, C11, C12, C44
 
 
-def make_barrier_configurations(pot_path=None, calculator=None,
+def make_barrier_configurations(elastic_param=None,
+                                pot_path=None, calculator=None,
                                 cylinder_r=10, hard_core=False):
     """ Creates the initial and final configurations for the NEB calculation
         The positions in FixedAtoms contrained region are average between
@@ -482,7 +483,7 @@ def make_barrier_configurations(pot_path=None, calculator=None,
 
     Parameters
     ----------
-    pot_path : sting
+    pot_path : string
         Path to the potential file.
     calculator : type
         Description of parameter `calculator`.
@@ -491,7 +492,7 @@ def make_barrier_configurations(pot_path=None, calculator=None,
                     dislocation  in angstrom.
     hard_core : bool
         Type of the core hard or soft.
-        If hard is chosen the displacment field is teversed.
+        If hard is chosen the displacment field is reversed.
 
     Returns
     -------
@@ -516,6 +517,10 @@ def make_barrier_configurations(pot_path=None, calculator=None,
     elif calculator is not None:
         alat, C11, C12, C44 = get_elastic_constants(calculator=calculator)
         cutoff = 5.0  # the value for trainig data for GAP from paper
+
+    elif elastic_param is not None:
+        alat, C11, C12, C44 = elastic_param
+        cutoff = 5.5
 
     cent_x = np.sqrt(6.0)*alat/3.0
     center = (cent_x, 0.0, 0.0)
@@ -629,7 +634,7 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 
 
 def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
-                  print_info=True):
+                  hard_core=False, print_info=True):
     """Cost function for fitting analytical displacement field
        and detecting dislcoation core position. Uses `compare_configurations`
        function for the minisation of the core position.
@@ -649,6 +654,8 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         around the dislocation core position.
     elastic_param : list of float
         List containing alat, C11, C12, C44
+    hard_core : bool
+        type of the core True for hard
     print_info : bool
         Flag to switch print statement about the type of the comparison
 
@@ -678,6 +685,7 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
 
     center = (pos[0], pos[1], 0.0)
     u = stroh.displacement(bulk.positions - center)
+    u = -u if hard_core else u
 
     dislo_guess = bulk.copy()
     dislo_guess.positions += u
@@ -1428,3 +1436,65 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disloc.set_constraint(fix_atoms)
 
     return bulk, disloc, disp
+
+
+def read_dislo_QMMM(filename=None, image=None):
+
+    """Reads extended xyz file with QMMM configuration
+       Uses "region" for mapping of QM, MM and fixed atoms
+       Sets ase.constraints.FixAtoms constraint on fixed atoms
+
+    Parameters
+    ----------
+    filename : path to xyz file
+    image : image with "region" array to set up constraint and extract qm_mask
+
+    Returns
+    -------
+    dislo_QMMM : Output ase.Atoms object
+        Includes "region" array and FixAtoms constraint
+    qm_mask : array mask for QM atoms mapping
+    """
+
+    if filename is not None:
+        dislo_QMMM = read(filename)
+
+    elif image is not None:
+        dislo_QMMM = image
+
+    else:
+        raise RuntimeError("Please provide either path or image")
+
+    region = dislo_QMMM.get_array("region")
+    Nat = dislo_QMMM.get_number_of_atoms()
+
+    print("Total number of atoms in read configuration: {0:7}".format(Nat))
+
+    for region_type in np.unique(region):
+        print("{0:52d} {1}".format(np.count_nonzero(region == region_type),
+                                   region_type))
+
+    if len(dislo_QMMM.constraints) == 0:
+
+        print("Adding fixed atoms constraint")
+
+        fix_mask = region == "fixed"
+        fix_atoms = FixAtoms(mask=fix_mask)
+        dislo_QMMM.set_constraint(fix_atoms)
+
+    else:
+        print("Constraints list is not zero")
+
+    qm_mask = region == "QM"
+
+    qm_atoms = dislo_QMMM[qm_mask]
+    qm_atoms_types = np.array(qm_atoms.get_chemical_symbols())
+
+    print("QM region atoms: {0:3d}".format(np.count_nonzero(qm_mask)))
+
+    for qm_atom_type in np.unique(qm_atoms_types):
+
+        print("{0:20d} {1}".format(np.count_nonzero(qm_atoms_types == qm_atom_type),
+                                   qm_atom_type))
+
+    return dislo_QMMM, qm_mask
