@@ -952,7 +952,7 @@ class SocketCalculator(Calculator):
         self.server = AtomsServerSync((ip, port), AtomsRequestHandler,
                                       [self.client], logger=self.logger,
                                       bgq=self.bgq)
-        self.label = 1
+        self._label = 1
         self.atoms = atoms
 
     def calculate(self, atoms, properties, system_changes):
@@ -960,16 +960,16 @@ class SocketCalculator(Calculator):
         if system_changes: # if anything at all changed (could be made more fine-grained)
             self.logger.pr('calculation triggered with properties={0}, system_changes={1}'.format(properties,
                                                                                                   system_changes))
-            self.server.put(atoms, 0, self.label)
-            if self.label != 1:
+            self.server.put(atoms, 0, self._label)
+            if self._label != 1:
                 # send atoms over socket, unless first time
-                self.logger.pr('socket calculator sending Atoms label={0}'.format(self.label))
+                self.logger.pr('socket calculator sending Atoms label={0}'.format(self._label))
                 self.server.handle_request()
             # wait for results to be ready
-            self.logger.pr('socket calculator waiting for results label={0}'.format(self.label))
+            self.logger.pr('socket calculator waiting for results label={0}'.format(self._label))
             self.server.handle_request()
 
-            self.label += 1
+            self._label += 1
             [results] = self.server.get_results()
 
             # we always compute energy, forces and stresses, regardless of what was requested
