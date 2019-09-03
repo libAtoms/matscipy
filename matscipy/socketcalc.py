@@ -2,11 +2,11 @@ import os
 import shutil
 import subprocess
 import socket
-import SocketServer
-import StringIO
+import socketserver
+from io import StringIO
 import time
 import threading
-from Queue import Queue
+from queue import Queue
 
 import numpy as np
 
@@ -120,7 +120,7 @@ def unpack_xyz_str_to_results(data):
     label = at.info['label']
     return (label, at)
 
-class AtomsRequestHandler(SocketServer.StreamRequestHandler):
+class AtomsRequestHandler(socketserver.StreamRequestHandler):
     def handle(self):
         ip, port = self.client_address
         task = None
@@ -170,7 +170,7 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
             self.server.clients[client_id].start_or_restart(at, label, restart=True)
 
 
-class AtomsServerSync(SocketServer.TCPServer):
+class AtomsServerSync(socketserver.TCPServer):
     allow_reuse_address = True
 
     def __init__(self, server_address, RequestHandlerClass, clients,
@@ -183,7 +183,7 @@ class AtomsServerSync(SocketServer.TCPServer):
         self.bgq = bgq # If True, we're running on IBM Blue Gene/Q platform
         self.logger = logger
 
-        SocketServer.TCPServer.__init__(self,
+        socketserver.TCPServer.__init__(self,
                                         server_address,
                                         RequestHandlerClass,
                                         bind_and_activate)
@@ -203,7 +203,7 @@ class AtomsServerSync(SocketServer.TCPServer):
 
 
     def server_activate(self):
-        SocketServer.TCPServer.server_activate(self)
+        socketserver.TCPServer.server_activate(self)
         self.ip, self.port = self.server_address
         if self.bgq:
             # If we're on a Blue Gene, note that IP address returned
@@ -359,14 +359,14 @@ class AtomsServerSync(SocketServer.TCPServer):
         return results_atoms
 
 
-class AtomsServerAsync(AtomsServerSync, SocketServer.ThreadingMixIn):
+class AtomsServerAsync(AtomsServerSync, socketserver.ThreadingMixIn):
     """
     Asynchronous (threaded) version of AtomsServer
     """
 
     def shutdown(self):
         self.shutdown_clients()
-        return SocketServer.TCPServer.shutdown(self)
+        return socketserver.TCPServer.shutdown(self)
 
     def shutdown_clients(self):
         self.logger.pr('shutting down all clients')
