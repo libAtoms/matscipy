@@ -33,9 +33,9 @@ try:
       sock_f = atoms.get_forces()
       sock_s = atoms.get_stress()
 
-      print 'energy', sock_e
-      print 'forces', sock_f
-      print 'stress', sock_s
+      print('energy', sock_e)
+      print('forces', sock_f)
+      print('stress', sock_s)
 
       atoms.cell *= 2.0 # trigger a restart by changing cell
 
@@ -43,9 +43,9 @@ try:
       sock_f = atoms.get_forces()
       sock_s = atoms.get_stress()
 
-      print 'energy', sock_e
-      print 'forces', sock_f
-      print 'stress', sock_s
+      print('energy', sock_e)
+      print('forces', sock_f)
+      print('stress', sock_s)
 
       atoms.rattle() # small change in position, no restart
 
@@ -53,8 +53,8 @@ try:
       sock_f = atoms.get_forces()
       sock_s = atoms.get_stress()
 
-      print 'energy', sock_e
-      print 'forces', sock_f
-      print 'stress', sock_s
+      print('energy', sock_e)
+      print('forces', sock_f)
+      print('stress', sock_s)
 finally:
       sock_calc.shutdown()
