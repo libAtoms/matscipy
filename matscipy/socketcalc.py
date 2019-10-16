@@ -2,11 +2,11 @@ import os
 import shutil
 import subprocess
 import socket
-import SocketServer
-import StringIO
+import socketserver
+from io import StringIO
 import time
 import threading
-from Queue import Queue
+from queue import Queue
 
 import numpy as np
 
@@ -23,17 +23,17 @@ from ase.calculators.vasp import Vasp
 from ase.calculators.castep import Castep
 
 MSG_LEN_SIZE = 8
-MSG_END_MARKER = 'done.\n'
+MSG_END_MARKER = b'done.\n'
 MSG_END_MARKER_SIZE = len(MSG_END_MARKER)
 MSG_INT_SIZE = 6
 MSG_FLOAT_SIZE = 25
 MSG_FLOAT_FORMAT = '%25.16f'
 MSG_INT_FORMAT = '%6d'
 
-ATOMS_REQUESTS = {'A': 'REFTRAJ', 'X': 'XYZ'}
-RESULTS_REQUESTS = {'R': 'REFTRAJ', 'Y': 'XYZ'}
-ZERO_ATOMS_DATA = {'REFTRAJ': '     242     0\n     0\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n',
-                   'XYZ': '     2500\nlabel=0 cutoff_factor=1.20000000 nneightol=1.20000000 Lattice="0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000" Properties=species:S:1:pos:R:3:Z:I:1\n'}
+ATOMS_REQUESTS = {ord('A'): 'REFTRAJ', ord('X'): 'XYZ'}
+RESULTS_REQUESTS = {ord('R'): 'REFTRAJ', ord('Y'): 'XYZ'}
+ZERO_ATOMS_DATA = {'REFTRAJ': b'     242     0\n     0\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n       0.0000000000000000       0.0000000000000000       0.0000000000000000\n',
+                   'XYZ': b'     2500\nlabel=0 cutoff_factor=1.20000000 nneightol=1.20000000 Lattice="0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000       0.00000000" Properties=species:S:1:pos:R:3:Z:I:1\n'}
 CLIENT_TIMEOUT = 60
 MAX_POS_DIFF = 1.0   # angstrom
 MAX_CELL_DIFF = 1e-3 # angstrom
@@ -67,7 +67,7 @@ def pack_atoms_to_xyz_str(at, label):
     return data
 
 def unpack_reftraj_str_to_atoms(data):
-    lines = data.split('\n')
+    lines = data.split(b'\n')
     label = int(lines[0])
     n_atoms = int(lines[1])
     at = Atoms(symbols=[' ']*n_atoms, cell=np.eye(3))
@@ -97,7 +97,7 @@ def pack_results_to_reftraj_output_str(at):
     return data
 
 def unpack_reftraj_output_str_to_results(data):
-    lines = data.strip().split('\n')
+    lines = data.strip().split(b'\n')
     label = int(lines[0])
     natoms = int(lines[1])
     energy = float(lines[2])
@@ -120,7 +120,7 @@ def unpack_xyz_str_to_results(data):
     label = at.info['label']
     return (label, at)
 
-class AtomsRequestHandler(SocketServer.StreamRequestHandler):
+class AtomsRequestHandler(socketserver.StreamRequestHandler):
     def handle(self):
         ip, port = self.client_address
         task = None
@@ -133,7 +133,7 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
             raise RuntimeError('Unknown client ID %d outside of range 0 < ID < %d' %
                                (client_id, self.server.njobs-1))
 
-        self.server.logger.pr('"%s" request from %s:%d client %d' % (request, ip, port, client_id))
+        self.server.logger.pr('"%s" request from %s:%d client %d' % (chr(request), ip, port, client_id))
         #print 'input queue lengths ', ''.join(['%d:%d ' % (i,q.qsize()) for (i,q) in enumerate(input_qs)])
         #print 'output queue length %d' % output_q.qsize()
 
@@ -141,7 +141,7 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
             # client is ready for Atoms (in either REFTRAJ or XYZ format)
             data, fmt, label, at = self.server.input_qs[client_id].get()
             assert ATOMS_REQUESTS[request] == fmt
-            if data == 'shutdown' or data == 'restart':
+            if data == b'shutdown' or data == b'restart':
                 task = data
                 data = ZERO_ATOMS_DATA[fmt]
             self.wfile.write(data)
@@ -160,7 +160,7 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
         # say goodbye to this client
         self.wfile.write(MSG_END_MARKER)
 
-        if (request == 'A' or request == 'X') and task == 'restart':
+        if (request == ord('A') or request == ord('X')) and task == b'restart':
             # if we're restarting a client, get the next thing out of the queue
             # and re-initialise. Restart won't do anything until shutdown
             # of old client has completed.
@@ -170,7 +170,7 @@ class AtomsRequestHandler(SocketServer.StreamRequestHandler):
             self.server.clients[client_id].start_or_restart(at, label, restart=True)
 
 
-class AtomsServerSync(SocketServer.TCPServer):
+class AtomsServerSync(socketserver.TCPServer):
     allow_reuse_address = True
 
     def __init__(self, server_address, RequestHandlerClass, clients,
@@ -183,7 +183,7 @@ class AtomsServerSync(SocketServer.TCPServer):
         self.bgq = bgq # If True, we're running on IBM Blue Gene/Q platform
         self.logger = logger
 
-        SocketServer.TCPServer.__init__(self,
+        socketserver.TCPServer.__init__(self,
                                         server_address,
                                         RequestHandlerClass,
                                         bind_and_activate)
@@ -203,7 +203,7 @@ class AtomsServerSync(SocketServer.TCPServer):
 
 
     def server_activate(self):
-        SocketServer.TCPServer.server_activate(self)
+        socketserver.TCPServer.server_activate(self)
         self.ip, self.port = self.server_address
         if self.bgq:
             # If we're on a Blue Gene, note that IP address returned
@@ -359,14 +359,14 @@ class AtomsServerSync(SocketServer.TCPServer):
         return results_atoms
 
 
-class AtomsServerAsync(AtomsServerSync, SocketServer.ThreadingMixIn):
+class AtomsServerAsync(AtomsServerSync, socketserver.ThreadingMixIn):
     """
     Asynchronous (threaded) version of AtomsServer
     """
 
     def shutdown(self):
         self.shutdown_clients()
-        return SocketServer.TCPServer.shutdown(self)
+        return socketserver.TCPServer.shutdown(self)
 
     def shutdown_clients(self):
         self.logger.pr('shutting down all clients')
@@ -506,7 +506,7 @@ class Client(object):
             raise RuntimeError('client %d is already in the process of shutting down' % self.client_id)
 
         input_q = self.server.input_qs[self.client_id]
-        input_q.put(('shutdown', self.fmt, -1, None))
+        input_q.put((b'shutdown', self.fmt, -1, None))
 
         if block:
             self.wait_for_shutdown()
@@ -604,7 +604,7 @@ class Client(object):
             # put a shutdown command into the queue, ahead of this config.
             # once it gets completed, restart_client() will be called as below
             self.logger.pr('restart scheduled for client %d label %d' % (self.client_id, label))
-            self.server.input_qs[self.client_id].put(('restart', self.fmt, -1, None))
+            self.server.input_qs[self.client_id].put((b'restart', self.fmt, -1, None))
         if first_time:
             self.start_or_restart(at, label, restart=False)
 
@@ -952,7 +952,7 @@ class SocketCalculator(Calculator):
         self.server = AtomsServerSync((ip, port), AtomsRequestHandler,
                                       [self.client], logger=self.logger,
                                       bgq=self.bgq)
-        self.label = 1
+        self._label = 1
         self.atoms = atoms
 
     def calculate(self, atoms, properties, system_changes):
@@ -960,16 +960,16 @@ class SocketCalculator(Calculator):
         if system_changes: # if anything at all changed (could be made more fine-grained)
             self.logger.pr('calculation triggered with properties={0}, system_changes={1}'.format(properties,
                                                                                                   system_changes))
-            self.server.put(atoms, 0, self.label)
-            if self.label != 1:
+            self.server.put(atoms, 0, self._label)
+            if self._label != 1:
                 # send atoms over socket, unless first time
-                self.logger.pr('socket calculator sending Atoms label={0}'.format(self.label))
+                self.logger.pr('socket calculator sending Atoms label={0}'.format(self._label))
                 self.server.handle_request()
             # wait for results to be ready
-            self.logger.pr('socket calculator waiting for results label={0}'.format(self.label))
+            self.logger.pr('socket calculator waiting for results label={0}'.format(self._label))
             self.server.handle_request()
 
-            self.label += 1
+            self._label += 1
             [results] = self.server.get_results()
 
             # we always compute energy, forces and stresses, regardless of what was requested

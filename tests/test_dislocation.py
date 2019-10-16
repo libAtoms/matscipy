@@ -1,5 +1,5 @@
 import unittest
-import dislocation as sd
+import matscipy.dislocation as sd
 import numpy as np
 from scipy.optimize import minimize
 

@@ -20,6 +20,7 @@
 # ======================================================================
 
 import itertools
+import functools
 
 import numpy as np
 from numpy.linalg import norm, inv
@@ -112,7 +113,7 @@ class MillerIndex(np.ndarray):
         Returns an array of components (i,j,k) or (h,k,i,l)
         """
 
-        if not isinstance(s, basestring):
+        if not isinstance(s, str):
             raise TypeError("Can't parse from %r of type %r" % (s, type(s)))
 
         orig_s = s
@@ -151,7 +152,7 @@ class MillerIndex(np.ndarray):
         """
         Simplify by dividing through by greatest common denominator
         """
-        d = abs(reduce(gcd, self))
+        d = abs(functools.reduce(gcd, self))
         self[:] /= d
 
     def simplified(self):
