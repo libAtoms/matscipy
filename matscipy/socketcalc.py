@@ -902,7 +902,7 @@ class CastepClient(QMClient):
         # call the parent method first
         at = Client.postprocess(self, at, label)
         # restore original atom ordering
-        at = at[at.arrays['castep_sort_order'].tolist()]
+        at = at[np.sort(at.arrays['castep_sort_order'])] 
         return at
 
     def write_input_files(self, at, label):
