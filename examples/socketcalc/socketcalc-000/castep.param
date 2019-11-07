@@ -1,0 +1,12 @@
+#######################################################
+#CASTEP param file: castep.param
+#Created using the Atomic Simulation Environment (ASE)#
+#######################################################
+
+%BLOCK DEVEL_CODE
+SOCKET_IP=127.0.0.1
+SOCKET_PORT=58866
+SOCKET_CLIENT_ID=0
+SOCKET_LABEL=1
+%ENDBLOCK DEVEL_CODE
+

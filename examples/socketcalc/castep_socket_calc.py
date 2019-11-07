@@ -14,7 +14,7 @@ import ase.calculators.castep
 
 from matscipy.socketcalc import CastepClient, SocketCalculator
 
-from matscipy.socketcalc_old import CastepClient, SocketCalculator as CastepClient_old, SocketCalculator_old
+from matscipy.socketcalc_old import CastepClient as CastepClient_old, SocketCalculator as SocketCalculator_old
 
 if 'CASTEP_COMMAND' in os.environ:
       castep = os.environ['CASTEP_COMMAND']
@@ -30,10 +30,10 @@ pp: NL=T SW=T :endpp
 """)
 
 old_castep_client = CastepClient_old(client_id=0,
- 27                              exe=castep,
- 28                              devel_code="""PP=T
- 29 pp: NL=T SW=T :endpp
- 30 """)
+                                     exe=castep,
+                                     devel_code="""PP=T
+pp: NL=T SW=T :endpp
+""")
 
 
 
