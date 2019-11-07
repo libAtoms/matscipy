@@ -1,0 +1,5 @@
+2019/11/07
+
+I am still not sure where to put these two scripts. If I place them within
+the root 'scripts' folder, they are not installable, thus not on the path, and
+the 'tests/test_c2d.py' won't work anymore. Thus, I place them here for now.
