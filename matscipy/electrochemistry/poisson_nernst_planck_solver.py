@@ -556,7 +556,7 @@ class PoissonNernstPlanckSystem:
     def leftRobinBC(self,x,k,lam,x0=0):
         """Construct Robin (u + lam*dudx = u0 ) BC at left boundary"""
         nijk = x[(k+1)*self.Ni:(k+2)*self.Ni]
-        return nijk[0] + lam * ( -3.0*nijk[0] + 4.0*nijk[1] - nijk[2] ) - x0
+        return nijk[0] + lam * ( 3.0*nijk[0] - 4.0*nijk[1] + nijk[2] ) - x0
 
     def rightPotentialRobinBC(self,x,lam,u0=0):
         return self.rightRobinBC(x,-1,lam,u0)

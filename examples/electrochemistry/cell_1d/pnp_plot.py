@@ -1,3 +1,5 @@
+# positional args
+# datadir, figfile, param, param_label
 import os.path, re, sys
 import numpy as np
 from glob import glob
@@ -22,6 +24,22 @@ except NameError:
         figfile = sys.argv[2]
     except:
         figfile = 'fig.png'
+
+try:
+    param
+except NameError:
+    try:
+        param = sys.argv[3]
+    except:
+        param = 'c'
+
+try:
+    param_unit
+except NameError:
+    try:
+        param_label = sys.argv[4]
+    except:
+        param_label = 'c (\mathrm{mM})'
 
 try:
     glob_pattern
@@ -119,9 +137,11 @@ ax3.set_xlabel('z (nm)')
 ax3.set_ylabel('concentration (mM)')
 
 # ax1.axvline(x=pnp.lambda_D()*1e9, label='Debye Length', color='grey', linestyle=':')
-species_label = [r'$[\mathrm{Na}^+] (\mathrm{mM})$', r'$[\mathrm{Cl}^-] (\mathrm{mM})$']
+species_label = [
+    '$[\mathrm{Na}^+], ' + param_label + '$',
+    '$[\mathrm{Cl}^-], ' + param_label + '$']
 
-c_regex = re.compile(r'NaCl_c_(-?\d+(,\d+)*(\.\d+(e\d+)?)?)')
+c_regex = re.compile(r'{}_(-?\d+(,\d+)*(\.\d+(e\d+)?)?)'.format(param))
 
 c_graph_handles = [ [] for _ in range(M) ]
 for f, u_style, c_styles in zip(dat_files,u_cycler,zip(*c_cyclers)):
@@ -149,7 +169,7 @@ for f, u_style, c_styles in zip(dat_files,u_cycler,zip(*c_cyclers)):
 
 # legend placement
 # https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
-u_legend = ax1.legend(loc='center right', title='potential', bbox_to_anchor=(-0.2,0.5) )
+u_legend = ax1.legend(loc='center right', title='potential, ${}$'.format(param_label), bbox_to_anchor=(-0.2,0.5) )
 first_c_legend  = ax3.legend(handles=c_graph_handles[0], title=species_label[0], loc='upper left', bbox_to_anchor=(1.00, 1.02) )
 second_c_legend = ax3.legend(handles=c_graph_handles[1], title=species_label[1], loc='lower left', bbox_to_anchor=(1.00,-0.02) )
 ax3.add_artist(first_c_legend) # add automatically removed first legend again
