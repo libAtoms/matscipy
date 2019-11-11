@@ -37,3 +37,11 @@ xyz file, or as a pipeline
     pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell --verbose | c2d --verbose > NaCl.xyz
 
 for text and xyz format streams.
+
+Steric effects at the interface leading to a compact Stern layer can be either
+modeled explicitly via enforcing a linear potential regime within the compact
+layer region, or implicitly by excluding the compact layer region from the
+computation domain and applying Robin boundary conditions. Latter is the default
+via command line interface.  
+
+    pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 --lambda-s 5.0e-10 -bc cell-robin --verbose NaCl.npz

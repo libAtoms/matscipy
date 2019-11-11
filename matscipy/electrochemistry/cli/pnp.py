@@ -24,7 +24,6 @@ University of Freiburg
 
 Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
-  Lukas Elflein <elfleinl@cs.uni-freiburg.de>
 """
 import datetime, logging, os, sys
 import numpy as np
@@ -98,7 +97,14 @@ def main():
                         default='cell', type=str,
                         metavar='BC', required=False,
                         dest="boundary_conditions",
-                        choices=('cell','cell-robin','interface'),
+                        choices=(
+                            'interface', # open half-space
+                            'cell', # 1D electorchemical cell with zero flux BC
+                            'cell-stern', # 1D cell with linear compact layer regime
+                            'cell-stern-explicit', # same as cell-stern
+                            'cell-robin', # 1D cell with implict compact layer by Robin BC
+                            'cell-stern-implicit', # same as cell-robin
+                            ),
                         help='Boundary conditions')
 
     # technical settings
@@ -206,8 +212,10 @@ def main():
 
     if args.boundary_conditions == 'cell':
         pnp.useStandardCellBC()
-    elif args.boundary_conditions == 'cell-robin':
-        pnp.useRobinCellBC()
+    elif args.boundary_conditions in ('cell-stern','cell-stern-explicit'):
+        pnp.useSternLayerCellBC(implicit=False)
+    elif args.boundary_conditions in ('cell-robin','cell-stern-implicit'):
+        pnp.useSternLayerCellBC(implicit=True)
     elif args.boundary_conditions == 'interface':
         pnp.useStandardInterfaceBC()
     else:
@@ -246,6 +254,10 @@ def main():
             [ '{:22s}'.format('c{:02d}'.format(k)) for k in range(pnp.M)])
         data = np.column_stack([pnp.grid, pnp.potential, pnp.concentration.T])
         np.savetxt(outfile, data, fmt='%22.15e', header=header)
+
+    # write out final state as usual, but mark process failed if not converged
+    if not pnp.converged:
+        sys.exit(1)
 
 if __name__ == '__main__':
     # Execute everything else

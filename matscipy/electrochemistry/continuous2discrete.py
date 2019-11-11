@@ -89,10 +89,10 @@ def get_nearest_pos(array, value):
 def get_histogram(struc, box, n_bins=100):
     """Slice the list of atomic positions, aggregate positions into histogram."""
     # Extract x/y/z positions only
-    x, y, z = struc[:, 0], struc[:, 1], struc[:, 2]
+    # x, y, z = struc[:, 0], struc[:, 1], struc[:, 2]
 
     histograms = []
-    for dimension in (0, 1, 2):
+    for dimension in range(struc.shape[1]):
         bins = np.linspace(0, box[dimension], n_bins)
         hist, bins = np.histogram(struc[:, dimension], bins=bins, density=True)
         # Normalize the histogram for all values to sum to 1
@@ -162,21 +162,25 @@ def inversion_sampler(distribution, support):
     return sample
 
 
-def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000):
+def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000, scale_M=1.1):
     """Sample distribution by drawing from support and keeping according to distribution.
 
     Draw a random sample from our support, and keep it if another random number is
     smaller than our target distribution at the support location.
 
+        Algorithm: https://en.wikipedia.org/wiki/Rejection_sampling
+
     Parameters
     ----------
     distribution: callable(x)
-        target distribution
+        target distribut10on
     support: list or 2-tuple
         either discrete list of locations in space where our distribution is
         defined, or 2-tuple defining conitnuous support interval
     max_tries: how often the sampler should attempt to draw before giving up.
        If the distribution is very sparse, increase this parameter to still get results.
+    scale_M: float, optional
+        scales bound M for likelihood ratio
 
     Returns
     -------
@@ -205,15 +209,17 @@ def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000):
         a = support[0]
         b = support[1]
         logger.debug("continuous support X (interval [{},{}]".format(a,b))
-
-        g = 1 / ( a - b )
-        x0 = optimize.minimize_scalar(
-            distribution, bounds=(a,b), method='bounded').x
+        # uniform probability density g(x) on support is
+        g = 1 / ( b - a )
+        # find maximum value fmax on distribution at x0
+        xatol = (b - a)*1e-6 # optimization absolute tolerance
+        x0 = optimize.minimize_scalar( lambda x: -distribution(x),
+            bounds=(a,b), method='bounded', options={'xatol':xatol}).x
         fmax = distribution(x0)
-        M = fmax / g
+        M = scale_M*fmax / g
         logger.debug("Uniform probability density g(x) = {:g} and".format(g))
         logger.debug("maximum probability density f(x0) = {:g} at x0 = {:g}".format(fmax, x0))
-        logger.debug("require M >= g(x)/max(f(x)), i.e. M = {:g}.".format(M))
+        logger.debug("require M >= scale_M*g(x)/max(f(x)), i.e. M = {:g}.".format(M))
 
         for i in range(max_tries):
             # draw a sample from a uniformly distributed support
@@ -232,10 +238,10 @@ def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000):
         # maximum probability on distributiom f(x) is
         fmax = np.max(distribution(support))
         # thus M must be at least
-        M = fmax / g
+        M = scale_M * fmax / g
         logger.debug("Uniform probability g(x) = {:g} and".format(g))
         logger.debug("maximum probability max(f(x)) = {:g} require".format(fmax))
-        logger.debug("M >= g(x)/max(f(x)), i.e. M = {:g}.".format(M))
+        logger.debug("M >= scale_M*g(x)/max(f(x)), i.e. M = {:g}.".format(M))
 
         for i in range(max_tries):
             # draw a sample from support

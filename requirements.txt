@@ -1,3 +1,4 @@
+wheel                   # needed by atomman setup
 git+https://gitlab.com/ase/ase.git@ed4369dc1fb7efeb0928f49365a133b259b915f1 # modify as soon as next ASE release out
 atomman                 # required by tests/test_dislocation.py
 matplotlib>=3.0.3

@@ -25,7 +25,8 @@ University of Freiburg
 
 Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
-  """
+  Lukas Elflein <elfleinl@cs.uni-freiburg.de>
+"""
 import logging, os, sys
 import os.path
 
