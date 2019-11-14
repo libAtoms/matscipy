@@ -45,6 +45,14 @@ non_sock_calc = ase.calculators.castep.Castep()
 #non_sock_calc.params.PP=T
 #non_sock_calc.params.SW=T
 
+devel_code = """PP=T
+pp: NL=T SW=T :endpp
+"""
+
+non_sock_calc.param.devel_code = devel_code
+
+#if self.castep.param.devel_code.value is not None:
+#      self._orig_devel_code = self.castep.param.devel_code.value.strip()+'\n'
 
 try:
       sock_calc = SocketCalculator(castep_client)
