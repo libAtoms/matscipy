@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # ======================================================================
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
