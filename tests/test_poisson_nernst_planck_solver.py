@@ -3,6 +3,7 @@ import os.path
 import pytest
 
 from matscipy.electrochemistry import PoissonNernstPlanckSystem
+
 rel_err_norm_tol = 1.0e-10 # relative tolerance when comparing test data against reference
 abs_err_tol = 1.0e-12
 
