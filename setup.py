@@ -273,11 +273,5 @@ setup(name='matscipy',
             )
         ],
       download_url=download_url,
-      url="https://github.com/libAtoms/matscipy",
-      entry_points={
-          'console_scripts': [
-              'c2d = matscipy.electrochemistry.cli.c2d:main',
-              'pnp = matscipy.electrochemistry.cli.pnp:main'
-          ]
-        }
+      url="https://github.com/libAtoms/matscipy"
       )
