@@ -1,8 +1,6 @@
-wheel                   # needed by atomman setup
-ase>=3.18.1             # electrochemistry c2d LAMMPS data file export actually requires current development version >= git+https://gitlab.com/ase/ase.git@ed4369dc1fb7efeb0928f49365a133b259b915f1
-atomman                 # required by tests/test_dislocation.py
-matplotlib>=3.0.3
-numpy >= 1.16.2
-scipy>=1.2.1
-six>=1.12.0
+wheel
+numpy>=1.5.0
+ase>=3.9.0
+atomman
+#scipy>=0.10.0
 sphinxcontrib-napoleon
