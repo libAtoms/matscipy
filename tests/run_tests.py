@@ -41,6 +41,8 @@ from spatial_correlation_function import *
 from test_io import *
 from crack_tests import *
 from mcfm_test import *
+from test_c2d import *
+from test_poisson_nernst_planck_solver import *
 
 try:
     from scipy.interpolate import InterpolatedUnivariateSpline
