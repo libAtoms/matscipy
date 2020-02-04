@@ -21,4 +21,4 @@
 from .poisson_boltzmann_distribution import ionic_strength, debye
 from .poisson_nernst_planck_solver import PoissonNernstPlanckSystem
 from .continuous2discrete import generate_structure as continuous2discrete
-from .continuous2discrete import plot_dist, get_histogram
+from .continuous2discrete import get_histogram

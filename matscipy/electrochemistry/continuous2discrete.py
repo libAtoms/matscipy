@@ -35,7 +35,7 @@ from six.moves import builtins
 from collections.abc import Iterable
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 import scipy.constants as sc
 from scipy import integrate, optimize
@@ -102,25 +102,25 @@ def get_histogram(struc, box, n_bins=100):
     return histograms
 
 
-def plot_dist(histogram, name, reference_distribution=None):
-    """Plot histogram with an optional reference distribution."""
-    hist, bins = histogram
-    width = 1 * (bins[1] - bins[0])
-    centers = get_centers(bins)
-
-    fi, ax = plt.subplots()
-    ax.bar( centers, hist, align='center', width=width, label='Empirical distribution',
-            edgecolor="none")
-
-    if reference_distribution is not None:
-        ref = reference_distribution(centers)
-        ref /= sum(ref)
-        ax.plot(centers, ref, color='red', label='Target distribution')
-
-    plt.title(name)
-    plt.legend()
-    plt.xlabel('Distance ' + name)
-    plt.savefig(name + '.png')
+# def plot_dist(histogram, name, reference_distribution=None):
+#     """Plot histogram with an optional reference distribution."""
+#     hist, bins = histogram
+#     width = 1 * (bins[1] - bins[0])
+#     centers = get_centers(bins)
+#
+#     fi, ax = plt.subplots()
+#     ax.bar( centers, hist, align='center', width=width, label='Empirical distribution',
+#             edgecolor="none")
+#
+#     if reference_distribution is not None:
+#         ref = reference_distribution(centers)
+#         ref /= sum(ref)
+#         ax.plot(centers, ref, color='red', label='Target distribution')
+#
+#     plt.title(name)
+#     plt.legend()
+#     plt.xlabel('Distance ' + name)
+#     plt.savefig(name + '.png')
 
 
 def quartile_function(distribution, p, support=None):

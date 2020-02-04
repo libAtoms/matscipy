@@ -37,7 +37,7 @@ import ase, ase.io
 import scipy.constants as sc
 from scipy import interpolate, integrate
 
-from matscipy.electrochemistry import  continuous2discrete, plot_dist
+from matscipy.electrochemistry import  continuous2discrete #, plot_dist
 
 
 logger = logging.getLogger(__name__)
@@ -300,13 +300,13 @@ def main():
     #            box=box, atom_name=args.atom_name)
 
     # only if requested
-    if hist_plot_file_name:
-        logger.info('Plotting distribution histograms ...')
-        histx, histy, histz = get_histogram(struc, box=args.box, n_bins=args.nbins)
-
-        plot_dist(histx, hist_plot_file_name[0], reference_distribution=uniform)
-        plot_dist(histy, hist_plot_file_name[1], reference_distribution=uniform)
-        plot_dist(histz, hist_plot_file_name[2], reference_distribution=func)
+    # if hist_plot_file_name:
+    #     logger.info('Plotting distribution histograms ...')
+    #     histx, histy, histz = get_histogram(struc, box=args.box, n_bins=args.nbins)
+    #
+    #     plot_dist(histx, hist_plot_file_name[0], reference_distribution=uniform)
+    #     plot_dist(histy, hist_plot_file_name[1], reference_distribution=uniform)
+    #     plot_dist(histz, hist_plot_file_name[2], reference_distribution=func)
 
     logger.info('Done.')
 

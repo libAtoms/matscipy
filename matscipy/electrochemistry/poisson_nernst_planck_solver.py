@@ -29,7 +29,7 @@ Authors:
 import logging, os, sys
 import numpy as np
 import scipy.constants as sc
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -142,27 +142,27 @@ class PoissonNernstPlanckSystem:
         i = 0
         delta_rel = 2*self.e
 
-        if self.output:
-            fig = plt.figure(figsize=(16,15))
-            ax1 = plt.subplot(221)
-            ax1.set_ylabel('u')
-            ax1.set_xlabel('x')
-            ax1.set_title('potential u')
-
-            ax2 = plt.subplot(322)
-            ax2.set_ylabel('n')
-            ax2.set_xlabel('x')
-            ax2.set_title('density n')
-
-            ax3 = plt.subplot(325)
-            ax3.set_ylabel('du')
-            ax3.set_xlabel('x')
-            ax3.set_title('step du')
-
-            ax4 = plt.subplot(326)
-            ax4.set_ylabel('dn')
-            ax4.set_xlabel('x')
-            ax4.set_title('step dn')
+        # if self.output:
+        #     fig = plt.figure(figsize=(16,15))
+        #     ax1 = plt.subplot(221)
+        #     ax1.set_ylabel('u')
+        #     ax1.set_xlabel('x')
+        #     ax1.set_title('potential u')
+        #
+        #     ax2 = plt.subplot(322)
+        #     ax2.set_ylabel('n')
+        #     ax2.set_xlabel('x')
+        #     ax2.set_title('density n')
+        #
+        #     ax3 = plt.subplot(325)
+        #     ax3.set_ylabel('du')
+        #     ax3.set_xlabel('x')
+        #     ax3.set_title('step du')
+        #
+        #     ax4 = plt.subplot(326)
+        #     ax4.set_ylabel('dn')
+        #     ax4.set_xlabel('x')
+        #     ax4.set_title('step dn')
 
         self.logger.info("Convergence criterion: norm(dx) < {:4.2e}".format(self.e))
 
@@ -183,10 +183,9 @@ class PoissonNernstPlanckSystem:
             self.logger.debug('    Jacobian ({}) rank {:d}'.format(J.shape, rank))
 
             if rank < self.N:
-                if self.output:
-                    self.logger.warn("Singular jacobian of rank"
-                          + "{:d} < {:d} at step {:d}".format(
-                          rank, self.N, i ))
+                self.logger.warn("Singular jacobian of rank"
+                      + "{:d} < {:d} at step {:d}".format(
+                      rank, self.N, i ))
                 break
 
             F = f(xij)
@@ -211,25 +210,25 @@ class PoissonNernstPlanckSystem:
             self.convergenceResidualAbsolute[i] = normF
             self.logger.info("Step {:4d}: norm(dx)/norm(x) = {:4.2e}, norm(dx) = {:4.2e}, norm(F) = {:4.2e}".format(
                 i, delta_rel, delta, normF) )
-            if i % self.outfreq == 0 and self.output:
-
-                duij = dxij[:self.Ni]
-                dnij = dxij[self.Ni:(self.M+1)*self.Ni].reshape(self.M,self.Ni)
-
-                uij = xij[:self.Ni]
-                nij = xij[self.Ni:(self.M+1)*self.Ni].reshape(self.M,self.Ni)
-
-                ax1.plot(self.X, uij, '-', label='u step {:02d}'.format(i))
-                for k in range(self.M):
-                  ax2.plot(self.X, nij[k,:], '-', label='n step {:02d}, species {:02d}'.format(i,k))
-                ax3.plot(self.X, duij, '-', label='du step {:02d}'.format(i))
-                for k in range(self.M):
-                  ax4.plot(self.X, dnij[k,:], '-', label='dn step {:02d}, species {:02d}'.format(i,k))
-
-                ax1.legend(loc='best')
-                ax2.legend(loc='best')
-                ax3.legend(loc='best')
-                ax4.legend(loc='best')
+            # if i % self.outfreq == 0 and self.output:
+            #
+            #     duij = dxij[:self.Ni]
+            #     dnij = dxij[self.Ni:(self.M+1)*self.Ni].reshape(self.M,self.Ni)
+            #
+            #     uij = xij[:self.Ni]
+            #     nij = xij[self.Ni:(self.M+1)*self.Ni].reshape(self.M,self.Ni)
+            #
+            #     ax1.plot(self.X, uij, '-', label='u step {:02d}'.format(i))
+            #     for k in range(self.M):
+            #       ax2.plot(self.X, nij[k,:], '-', label='n step {:02d}, species {:02d}'.format(i,k))
+            #     ax3.plot(self.X, duij, '-', label='du step {:02d}'.format(i))
+            #     for k in range(self.M):
+            #       ax4.plot(self.X, dnij[k,:], '-', label='dn step {:02d}, species {:02d}'.format(i,k))
+            #
+            #     ax1.legend(loc='best')
+            #     ax2.legend(loc='best')
+            #     ax3.legend(loc='best')
+            #     ax4.legend(loc='best')
 
             i += 1
 
@@ -238,23 +237,23 @@ class PoissonNernstPlanckSystem:
             self.converged = False
 
         self.logger.info("Ended after {:d} steps.".format(i))
-        if self.output:
-            fig = plt.figure(figsize=(16,10))
-            ax1 = plt.subplot(221)
-            ax1.set_ylabel(r'$\epsilon = \frac{|x_j - x_{j-1}|}{|x_{j-1}}$')
-            ax1.set_xlabel('j')
-            ax1.set_title('step convergence, relative')
-            ax2 = plt.subplot(222)
-            ax2.set_ylabel(r'\epsilon = $|x_j - x_{j-1}|')
-            ax2.set_xlabel('j')
-            ax2.set_title('step convergence, absolute')
-            ax3 = plt.subplot(223)
-            ax3.set_ylabel(r'$R = F(x_j)$')
-            ax3.set_xlabel('j')
-            ax3.set_title('residue convergence, absolute')
-            ax1.plot(self.convergenceStepRelative[:i])
-            ax2.plot(self.convergenceStepAbsolute[:i])
-            ax3.plot(self.convergenceResidualAbsolute[:i])
+        # if self.output:
+        #     fig = plt.figure(figsize=(16,10))
+        #     ax1 = plt.subplot(221)
+        #     ax1.set_ylabel(r'$\epsilon = \frac{|x_j - x_{j-1}|}{|x_{j-1}}$')
+        #     ax1.set_xlabel('j')
+        #     ax1.set_title('step convergence, relative')
+        #     ax2 = plt.subplot(222)
+        #     ax2.set_ylabel(r'\epsilon = $|x_j - x_{j-1}|')
+        #     ax2.set_xlabel('j')
+        #     ax2.set_title('step convergence, absolute')
+        #     ax3 = plt.subplot(223)
+        #     ax3.set_ylabel(r'$R = F(x_j)$')
+        #     ax3.set_xlabel('j')
+        #     ax3.set_title('residue convergence, absolute')
+        #     ax1.plot(self.convergenceStepRelative[:i])
+        #     ax2.plot(self.convergenceStepAbsolute[:i])
+        #     ax3.plot(self.convergenceResidualAbsolute[:i])
 
         self.convergenceStepAbsolute = self.convergenceStepAbsolute[:i]
         self.convergenceStepRelative = self.convergenceStepRelative[:i]
@@ -966,8 +965,8 @@ class PoissonNernstPlanckSystem:
         self.maxit  = maxit # Newton solver maximum iterations
 
         # default output settings
-        self.output = False   # let Newton solver output convergence plots...
-        self.outfreq = 1      # ...at every nth iteration
+        # self.output = False   # let Newton solver output convergence plots...
+        # self.outfreq = 1      # ...at every nth iteration
         self.label_width = 40 # charcater width of quantity labels in log
 
         # standard governing equations

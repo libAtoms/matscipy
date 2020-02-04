@@ -96,8 +96,9 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
                 ==  self.ref_xyz.get_initial_charges() ).all() )
             self.assertTrue( ( xyz.cell ==  self.ref_xyz.cell ).all() )
 
-    @unittest.skipUnless(LooseVersion(ase.__version__) > LooseVersion('3.18.1'),
-        "LAMMPS data file won't work for ASE version up until 3.18.1, skipped")
+    @unittest.skipUnless(LooseVersion(ase.__version__) > LooseVersion('3.19.0'),
+        """ LAMMPS data file won't work for ASE version up until 3.18.1,
+            LAMMPS data file input broken in ASE 3.19.0, skipped""")
     def test_c2d_input_format_npz_output_format_lammps(self):
         """c2d NaCl.npz NaCl.lammps"""
         print("  RUN test_c2d_input_format_npz_output_format_lammps")

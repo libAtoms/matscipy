@@ -128,11 +128,11 @@ def main():
                         help='Absolute tolerance Newton solver convergence criterion')
 
     # output settings
-    parser.add_argument('--output-interval',
-                        default=1, type=int,
-                        metavar='N', required=False,
-                        dest="outinterval",
-                        help='Print log messages every Nth Newton step')
+    # parser.add_argument('--output-interval',
+    #                     default=1, type=int,
+    #                     metavar='N', required=False,
+    #                     dest="outinterval",
+    #                     help='Print log messages every Nth Newton step')
 
     parser.add_argument('--convergence-stats', default=False, required=False,
                         action='store_true', dest="convergence",
@@ -205,10 +205,10 @@ def main():
         relative_permittivity = float(args.relative_permittivity) )
 
     # technical settings
-    pnp.output  = args.convergence # makes Newton solver display convergence plots
+    # pnp.output  = args.convergence # makes Newton solver display convergence plots
     pnp.N       = args.segments # uniformlya distanced grid points
     pnp.maxit   = args.maxit # maximum number of Newton iterations
-    pnp.outfreq = args.outinterval
+    # pnp.outfreq = args.outinterval
     pnp.e       = args.absolute_tolerance # absolute tolerance
 
     if args.boundary_conditions == 'cell':
