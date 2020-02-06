@@ -30,16 +30,19 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                              dft_C44]
 
         cent_x = np.sqrt(6.0)*dft_alat/3.0
-        center = (cent_x, 0.0, 0.0)
+        center = np.array((cent_x, 0.0, 0.0))
 
         # make the cell with dislocation core not in center
-
         disloc, bulk, u = sd.make_screw_cyl(dft_alat, dft_C11,
                                             dft_C12, dft_C44,
                                             cylinder_r=40,
                                             center=center)
+
+        #  initial guess is the center of the cell
+        initial_guess = np.diagonal(disloc.cell).copy()[:2] / 2.0
+
         res = minimize(sd.cost_function,
-                       (1.0, 0.5),
+                       initial_guess,
                        args=(disloc,
                              bulk,
                              40,
@@ -47,7 +50,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                              False, False),
                        method='Nelder-Mead')
 
-        self.assertArrayAlmostEqual(res.x, center[:2], tol=1e-4)
+        self.assertArrayAlmostEqual(res.x, initial_guess + center[:2], tol=1e-4)
 
     def test_elastic_constants_lammpslib(self):
         """Test the get_elastic_constants() function using lammpslib.
@@ -109,7 +112,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         disloc_ini.set_calculator(lammps)
         ini_toten = disloc_ini.get_potential_energy()
-        self.assertAlmostEqual(ini_toten, target_toten, tol=1e-4)
+        self.assertAlmostEqual(ini_toten, target_toten, places=4)
 
         disloc_fin, __, __ = sd.make_screw_cyl(alat, C11, C12, C44,
                                                cylinder_r=cylinder_r,
@@ -117,7 +120,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         disloc_fin.set_calculator(lammps)
         fin_toten = disloc_fin.get_potential_energy()
-        self.assertAlmostEqual(fin_toten, target_toten, tol=1e-4)
+        self.assertAlmostEqual(fin_toten, target_toten, places=4)
 
 
 if __name__ == '__main__':

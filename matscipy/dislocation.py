@@ -60,7 +60,7 @@ def make_screw_cyl(alat, C11, C12, C44,
     u : np.array
         displacement per atom.
     """
-    # Create a Stroh ojbect with junk data
+    # Create a Stroh object with junk data
     stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
                             np.array([0, 0, 1]))
 
@@ -106,7 +106,7 @@ def make_screw_cyl(alat, C11, C12, C44,
     # size of the cubic cell as a 110 direction
     Ly = int(round((cylinder_r + 3.*cutoff + shift_y + l_shift_y)
                    / (alat * np.sqrt(2.))))
-    # factor 2 to make shure odd number of images is translated
+    # factor 2 to make sure odd number of images is translated
     # it is important for the correct centering of the dislocation core
     bulk = unit_cell * (2*Lx, 2*Ly, 1)
     # make 0, 0, at the center
@@ -161,6 +161,13 @@ def make_screw_cyl(alat, C11, C12, C44,
     region = np.full_like(disloc, "MM")
     region[fix_mask] = np.full_like(disloc[fix_mask], "fixed")
     disloc.new_array("region", region)
+
+    # center the atoms to avoid "lost atoms" error by lammps
+    center_shift = np.diagonal(bulk.cell).copy()
+    center_shift[2] = 0.0  # do not shift along z direction
+
+    disloc.positions += center_shift / 2.0
+    bulk.positions += center_shift / 2.0
 
     return disloc, bulk, u
 
