@@ -8,7 +8,7 @@ from ase.optimize import FIRE
 from ase.build import bulk
 from matscipy.elasticity import fit_elastic_constants
 from ase.calculators.lammpslib import LAMMPSlib
-from ase.units import GPa  # unit convertion
+from ase.units import GPa  # unit conversion
 from ase.lattice.cubic import SimpleCubicFactory
 from ase.io import read
 
@@ -368,9 +368,7 @@ def show_NEB_configurations(images, bulk, xyscale=7,
 
 
 def show_configuration(disloc, bulk, u, fixed_mask=None):
-    '''
-    shows the displacement fixed atoms
-    '''
+    '''shows the displacement fixed atoms.'''
 
     fig = plt.figure(figsize=(16, 4))
 
@@ -624,7 +622,7 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 
     u = dislo.positions - bulk.positions
     u_extended = np.zeros(u_ref.shape)
-    u_extended[mapping.values(), :] = u
+    u_extended[list(mapping.values()), :] = u
 
     du = u_extended - u_ref
 
@@ -636,8 +634,8 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
                   hard_core=False, print_info=True):
     """Cost function for fitting analytical displacement field
-       and detecting dislcoation core position. Uses `compare_configurations`
-       function for the minisation of the core position.
+       and detecting dislocation core position. Uses `compare_configurations`
+       function for the minimisation of the core position.
 
     Parameters
     ----------
@@ -909,7 +907,7 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     # leave only atoms inside the cylinder
     bulk_octa = bulk_octa[final_mask]
 
-    # Create a Stroh ojbect with junk data
+    # Create a Stroh object with junk data
     stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
                             np.array([0, 0, 1]))
 
@@ -1183,7 +1181,7 @@ def make_screw_quadrupole(alat,
 
     C1_quadrupole, C2_quadrupole, C3_quadrupole = bulk.get_cell()
 
-    # calulation of dislocation cores positions
+    # calculation of dislocation cores positions
     # distance between centers of triangles along x
     # move to odd/even number -> get to upward/downward triangle
     x_core_dist = alat * np.sqrt(6.)/6.0
@@ -1196,11 +1194,11 @@ def make_screw_quadrupole(alat,
     nx_right = 5
 
     if n2v % 2 == 0:  # check if the number of cells in y direction is even
-        # Even: then introduce cores between two equal halfes of the cell
+        # Even: then introduce cores between two equal halves of the cell
         ny_left = -2
         ny_right = -1
 
-    else:  # Odd: introduce cores between two equal halfes of the cell
+    else:  # Odd: introduce cores between two equal halves of the cell
         ny_left = 4
         ny_right = 5
 
@@ -1215,7 +1213,7 @@ def make_screw_quadrupole(alat,
                                   ny_right * y_core_dist,
                                   0.0])
 
-    # caclulation of the shifts of the inital cores coordinates for the final
+    # calculation of the shifts of the initial cores coordinates for the final
     # quadrupole arrangements
 
     # different x centering preferences for odd and even values

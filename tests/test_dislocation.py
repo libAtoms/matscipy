@@ -10,9 +10,14 @@ from scipy.optimize import minimize
 
 
 class TestDislocation(matscipytest.MatSciPyTestCase):
+    """Class to store test for dislocation.py module."""
 
     def test_core_position(self):
+        """Make screw dislocation and fit a core position to it.
 
+        Tests that the fitted core postion is same as created
+        """
+        print("Fitting the core, takes about 10 seconds")
         dft_alat = 3.19
 
         dft_C11 = 488
@@ -39,7 +44,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                              bulk,
                              40,
                              dft_elastic_param,
-                             False),
+                             False, False),
                        method='Nelder-Mead')
 
         self.assertArrayAlmostEqual(res.x, center[:2], tol=1e-4)
