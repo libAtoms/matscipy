@@ -21,6 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+import sys
 import unittest
 
 from analysis import *
@@ -41,8 +42,14 @@ from spatial_correlation_function import *
 from test_io import *
 from crack_tests import *
 from mcfm_test import *
-from test_c2d import *
-from test_poisson_nernst_planck_solver import *
+
+
+if sys.version_info.major > 2:
+    from test_c2d import *
+    from test_poisson_nernst_planck_solver import *
+else:
+    print('Electrochemistry module requires python 3, related tests '
+          '(test_c2d, test_poisson_nernst_planck_solver) skipped.')
 
 try:
     from scipy.interpolate import InterpolatedUnivariateSpline
@@ -51,7 +58,7 @@ except:
           'EAM test.')
 else:
     print('EAM tests (eam_calculate, rotation_of_elastic_constants) are '
-          'broken with added scipy 1.2.3 and otherwise current matscipy 0.3.0'
+          'broken with added scipy 1.2.3 and otherwise current matscipy 0.3.0 '
           'Travis CI configuration (ase 3.13.0, numpy 1.12.1), hence skipped.')
     # from eam_calculator import *
     # from rotation_of_elastic_constants import *
