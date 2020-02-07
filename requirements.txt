@@ -1,4 +1,4 @@
-numpy>=1.5.0
-ase>=3.9.0
-#scipy>=0.10.0
+numpy>=1.12.1
+ase>=3.13.0
+scipy>=1.2.3
 sphinxcontrib-napoleon

@@ -18,6 +18,7 @@ elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
 fi
 pip install numpy==1.12.1
 pip install ase==3.13.0
+pip install scipy==1.2.3
 #if [ "$TRAVIS_OS_NAME" == "linux" ]; then
 #  pip install atomistica
 #fi
