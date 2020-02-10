@@ -33,38 +33,38 @@ import scipy.constants as sc
 import matplotlib.pyplot as plt
 
 
-# In[4]:
+# In[26]:
 
 
 # sampling
 from scipy import interpolate
 from matscipy.electrochemistry import continuous2discrete
-from matscipy.electrochemistry import plot_dist
 from matscipy.electrochemistry import get_histogram
+from matscipy.electrochemistry.utility import plot_dist
 
 
-# In[5]:
+# In[8]:
 
 
 # electrochemistry basics
 from matscipy.electrochemistry import debye, ionic_strength
 
 
-# In[6]:
+# In[9]:
 
 
 # Poisson-Bolzmann distribution
 from matscipy.electrochemistry.poisson_boltzmann_distribution import gamma, potential, concentration, charge_density
 
 
-# In[7]:
+# In[10]:
 
 
 # Poisson-Nernst-Planck solver
 from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
 
-# In[8]:
+# In[11]:
 
 
 # 3rd party file output
@@ -72,7 +72,7 @@ import ase
 import ase.io
 
 
-# In[9]:
+# In[12]:
 
 
 # PoissonNernstPlanckSystem makes extensive use of Python's logging module
@@ -104,14 +104,14 @@ ch.setLevel(standard_loglevel)
 logger.addHandler(ch)
 
 
-# In[10]:
+# In[13]:
 
 
 # Test 1
 logging.info("Root logger")
 
 
-# In[11]:
+# In[14]:
 
 
 # Test 2
@@ -185,7 +185,7 @@ logger.info("Root Logger")
 # 
 # These equations are implemented in `poisson_boltzmann_distribution.py`
 
-# In[12]:
+# In[15]:
 
 
 # Notes on units
@@ -201,7 +201,7 @@ print("e/k_B = {}".format(sc.value('elementary charge')/sc.value('Boltzmann cons
 print("F/R   = e/k_B !")
 
 
-# In[13]:
+# In[16]:
 
 
 # Debye length of 0.1 mM NaCl aqueous solution
@@ -211,7 +211,7 @@ deb = debye(c,z)
 print('Debye Length of 10^-4 M saltwater: {} nm (Target: 30.52 nm)'.format(round(deb/sc.nano, 2)))
 
 
-# In[14]:
+# In[17]:
 
 
 C = np.logspace(-3, 3, 50) # mM, 
@@ -235,7 +235,7 @@ plt.show()
 # 
 # Next we calculate the gamma function $\gamma = \tanh(\frac{e\Psi(0)}{4k_B T})$
 
-# In[15]:
+# In[18]:
 
 
 x = np.linspace(-0.5, 0.5, 40)
@@ -253,7 +253,7 @@ plt.show()
 # $\phi(z) = \frac{2k_B T}{e} \log\Big(\frac{1 + \gamma e^{-\kappa z}}{1- \gamma e^{-\kappa z}}\Big) 
 #         \approx \frac{4k_B T}{e} \gamma e^{-\kappa z}$
 
-# In[16]:
+# In[19]:
 
 
 x = np.linspace(0, 2*10**-7, 10000) # 200 nm
@@ -274,7 +274,7 @@ plt.show()
 # 
 # $c_{i}(x) = c_{i}^\infty e^{-F \phi(x) \> / \> R T}$
 
-# In[17]:
+# In[20]:
 
 
 x = np.linspace(0, 100*10**-9, 2000)
@@ -287,7 +287,7 @@ C   = concentration(x, c, z, u)
 rho = charge_density(x, c, z, u)
 
 
-# In[18]:
+# In[21]:
 
 
 # potential and concentration distributions analytic solution 
@@ -341,7 +341,7 @@ plt.show()
 # ## Sampling
 # First, convert the physical concentration distributions into a callable "probability density":
 
-# In[19]:
+# In[22]:
 
 
 distributions = [interpolate.interp1d(x,c) for c in C]
@@ -349,7 +349,7 @@ distributions = [interpolate.interp1d(x,c) for c in C]
 
 # Normalization is not necessary here. Now we can sample the distribution of our $Na^+$ ions in z-direction.
 
-# In[20]:
+# In[23]:
 
 
 x = y = 50e-9
@@ -358,13 +358,13 @@ box = np.array([x, y, z])
 sample_size = 1000
 
 
-# In[21]:
+# In[24]:
 
 
 from scipy import optimize
 
 
-# In[22]:
+# In[28]:
 
 
 na_coordinate_sample = continuous2discrete(
@@ -373,7 +373,7 @@ histx, histy, histz = get_histogram(na_coordinate_sample, box=box, n_bins=51)
 plot_dist(histz, 'Distribution of Na+ ions in z-direction', reference_distribution=distributions[0])
 
 
-# In[23]:
+# In[61]:
 
 
 cl_coordinate_sample = continuous2discrete(
@@ -382,6 +382,209 @@ histx, histy, histz = get_histogram(cl_coordinate_sample, box=box, n_bins=51)
 plot_dist(histx, 'Distribution of Cl- ions in x-direction', reference_distribution=lambda x: np.ones(x.shape)*1/box[0])
 plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distribution=lambda x: np.ones(x.shape)*1/box[1])
 plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
+
+
+# In[135]:
+
+
+from matscipy.electrochemistry.continuous2discrete import target_function
+from matscipy.electrochemistry.continuous2discrete import box_constraint
+
+
+# In[35]:
+
+
+cl_coordinate_sample.shape
+
+
+# In[65]:
+
+
+x = cl_coordinate_sample*1e9
+
+
+# In[66]:
+
+
+x
+
+
+# In[95]:
+
+
+d = 10
+f = 0
+n = x.shape[0]
+xi  = x
+dsq = d**2*np.ones(n)
+zeros = np.zeros(n)
+for i in np.arange(n):
+    xj  = np.roll(x,i,axis=0)
+    dx  = xi - xj
+    dxsq = np.square(dx)
+    dxnormsq = np.sum( dxsq, axis=1 )
+    sqdiff = dsq - dxnormsq
+    penalty = np.maximum(zeros,sqdiff)
+    penaltysq = np.square(penalty)
+    f += 0.5*np.sum(penaltysq)
+
+
+# In[174]:
+
+
+box = np.array([[0.,0.,0],[50,50,100]])
+
+
+# In[163]:
+
+
+box
+
+
+# In[129]:
+
+
+ldist = box[0,:] - x
+rdist = x - box[1,:]
+
+
+# In[130]:
+
+
+lpenalty = np.maximum(zeros,ldist)
+rpenalty = np.maximum(zeros,rdist)
+
+
+# In[132]:
+
+
+rpenalty
+
+
+# In[128]:
+
+
+zeros = np.zeros(x.shape)
+
+
+# In[165]:
+
+
+x
+
+
+# In[166]:
+
+
+(x - box[1,:])
+
+
+# In[170]:
+
+
+d = 2
+
+
+# In[175]:
+
+
+(box[0,:]-d-x)
+
+
+# In[176]:
+
+
+(-box[1,:]+d+x)
+
+
+# In[183]:
+
+
+target_function(x,d=d)
+
+
+# In[182]:
+
+
+box_constraint(x,box=box,d=d)
+
+
+# In[186]:
+
+
+target_function(x,d=d,constraints=(lambda x: box_constraint(x,box=box,d=d)))
+
+
+# In[114]:
+
+
+f
+
+
+# In[90]:
+
+
+penalty = np.maximum(zeros,sqdiff)
+
+
+# In[94]:
+
+
+np.sum(np.square(penalty))
+
+
+# In[86]:
+
+
+np.max(sqdiff)
+
+
+# In[88]:
+
+
+np.maximum(zeros,sqdiff)
+
+
+# In[158]:
+
+
+np.max(x,axis=0)
+
+
+# In[141]:
+
+
+target_function(x,d=10)
+
+
+# In[159]:
+
+
+box_constraint(x,box=np.array([[0,0,0],[50,50,100]]))
+
+
+# In[139]:
+
+
+drange = np.exp(np.log(10)*np.arange(-10,10,1))
+
+
+# In[ ]:
+
+
+
+
+
+# In[105]:
+
+
+t = np.array([target_function(x,d) for d in drange])
+
+
+# In[108]:
+
+
+plt.loglog(drange,t)
 
 
 # ## Write to file

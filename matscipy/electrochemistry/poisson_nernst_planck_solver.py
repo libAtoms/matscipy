@@ -29,7 +29,6 @@ Authors:
 import logging, os, sys
 import numpy as np
 import scipy.constants as sc
-# import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
