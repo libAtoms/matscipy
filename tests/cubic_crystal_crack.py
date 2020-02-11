@@ -208,7 +208,7 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 du_dx += np.ones_like(du_dx)
                 dv_dy += np.ones_like(dv_dy)
                 F_num = np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
-                self.assertArrayAlmostEqual(F, F_num, tol=1e-5)
+                self.assertArrayAlmostEqual(F, F_num, tol=1e-4)
 
     def test_elastostatics(self):
         eps = 1e-3

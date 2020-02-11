@@ -23,6 +23,7 @@
 
 from __future__ import print_function
 
+import gzip
 import random
 import unittest
 
