@@ -255,6 +255,34 @@ def target_function(x, d=2.0, constraints=None):
         f += constraints(x)
     return f
 
+def min_dist(x):
+    """Finds minimum distance ||xi-xj||
+
+    Parameters
+    ----------
+    x: np.ndarray((sample_size,3))
+      coordinates
+
+    Returns
+    -------
+    float: minimum distance
+    """
+    # sum_i sum_{j!=i} max(0,d^2-||xi-xj||^2)^2
+    #f = 0
+    n = x.shape[0]
+    #xi  = x
+    for i in np.arange(n):
+        for j in np.arange(i):
+            dx  = x[i,:] - x[j,:]
+            dxsq = np.square(dx)
+            dxnormsq = np.sum( dxsq )
+            if i == 1 and j == 0:
+                mindsq = dxnormsq
+            elif dxnormsq < mindsq:
+                mindsq = dxnormsq
+    return np.sqrt(mindsq)
+
+
 
 def box_constraint(x, box=np.array([[0.,0.,0],[1.0,1.0,1.0]]), d=0.):
     """Constraint function confining coordinates within box.
