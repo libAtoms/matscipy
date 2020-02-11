@@ -7,7 +7,7 @@
 # 
 # from continuous electrochemical double layer theory to discrete coordinate sets
 
-# In[154]:
+# In[1]:
 
 
 # for dynamic module reload during testing, code modifications take immediate effect
@@ -15,7 +15,7 @@ get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
 
 
-# In[155]:
+# In[2]:
 
 
 # stretching notebook width across whole window
@@ -23,7 +23,7 @@ from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:100% !important; }</style>"))
 
 
-# In[156]:
+# In[3]:
 
 
 # basics
@@ -33,7 +33,7 @@ import scipy.constants as sc
 import matplotlib.pyplot as plt
 
 
-# In[157]:
+# In[4]:
 
 
 # sampling
@@ -43,28 +43,28 @@ from matscipy.electrochemistry import get_histogram
 from matscipy.electrochemistry.utility import plot_dist
 
 
-# In[158]:
+# In[5]:
 
 
 # electrochemistry basics
 from matscipy.electrochemistry import debye, ionic_strength
 
 
-# In[159]:
+# In[6]:
 
 
 # Poisson-Bolzmann distribution
 from matscipy.electrochemistry.poisson_boltzmann_distribution import gamma, potential, concentration, charge_density
 
 
-# In[160]:
+# In[7]:
 
 
 # Poisson-Nernst-Planck solver
 from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
 
-# In[161]:
+# In[8]:
 
 
 # 3rd party file output
@@ -72,7 +72,7 @@ import ase
 import ase.io
 
 
-# In[162]:
+# In[9]:
 
 
 # PoissonNernstPlanckSystem makes extensive use of Python's logging module
@@ -104,14 +104,14 @@ ch.setLevel(standard_loglevel)
 logger.addHandler(ch)
 
 
-# In[163]:
+# In[10]:
 
 
 # Test 1
 logging.info("Root logger")
 
 
-# In[164]:
+# In[11]:
 
 
 # Test 2
@@ -185,7 +185,7 @@ logger.info("Root Logger")
 # 
 # These equations are implemented in `poisson_boltzmann_distribution.py`
 
-# In[165]:
+# In[12]:
 
 
 # Notes on units
@@ -201,7 +201,7 @@ print("e/k_B = {}".format(sc.value('elementary charge')/sc.value('Boltzmann cons
 print("F/R   = e/k_B !")
 
 
-# In[166]:
+# In[13]:
 
 
 # Debye length of 0.1 mM NaCl aqueous solution
@@ -211,7 +211,7 @@ deb = debye(c,z)
 print('Debye Length of 10^-4 M saltwater: {} nm (Target: 30.52 nm)'.format(round(deb/sc.nano, 2)))
 
 
-# In[167]:
+# In[14]:
 
 
 C = np.logspace(-3, 3, 50) # mM, 
@@ -235,7 +235,7 @@ plt.show()
 # 
 # Next we calculate the gamma function $\gamma = \tanh(\frac{e\Psi(0)}{4k_B T})$
 
-# In[168]:
+# In[15]:
 
 
 x = np.linspace(-0.5, 0.5, 40)
@@ -253,7 +253,7 @@ plt.show()
 # $\phi(z) = \frac{2k_B T}{e} \log\Big(\frac{1 + \gamma e^{-\kappa z}}{1- \gamma e^{-\kappa z}}\Big) 
 #         \approx \frac{4k_B T}{e} \gamma e^{-\kappa z}$
 
-# In[169]:
+# In[16]:
 
 
 x = np.linspace(0, 2*10**-7, 10000) # 200 nm
@@ -274,7 +274,7 @@ plt.show()
 # 
 # $c_{i}(x) = c_{i}^\infty e^{-F \phi(x) \> / \> R T}$
 
-# In[170]:
+# In[17]:
 
 
 x = np.linspace(0, 100*10**-9, 2000)
@@ -287,7 +287,7 @@ C   = concentration(x, c, z, u)
 rho = charge_density(x, c, z, u)
 
 
-# In[171]:
+# In[18]:
 
 
 # potential and concentration distributions analytic solution 
@@ -341,7 +341,7 @@ plt.show()
 # ## Sampling
 # First, convert the physical concentration distributions into a callable "probability density":
 
-# In[172]:
+# In[19]:
 
 
 distributions = [interpolate.interp1d(x,c) for c in C]
@@ -349,7 +349,7 @@ distributions = [interpolate.interp1d(x,c) for c in C]
 
 # Normalization is not necessary here. Now we can sample the distribution of our $Na^+$ ions in z-direction.
 
-# In[208]:
+# In[20]:
 
 
 x = y = 50e-9
@@ -358,13 +358,13 @@ box = np.array([x, y, z])
 sample_size = 1000
 
 
-# In[182]:
+# In[21]:
 
 
 from scipy import optimize
 
 
-# In[183]:
+# In[22]:
 
 
 na_coordinate_sample = continuous2discrete(
@@ -373,7 +373,7 @@ histx, histy, histz = get_histogram(na_coordinate_sample, box=box, n_bins=51)
 plot_dist(histz, 'Distribution of Na+ ions in z-direction', reference_distribution=distributions[0])
 
 
-# In[184]:
+# In[23]:
 
 
 cl_coordinate_sample = continuous2discrete(
@@ -384,12 +384,56 @@ plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distributi
 plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
 
 
-# In[185]:
+# In[24]:
 
 
 from matscipy.electrochemistry.continuous2discrete import target_function
 from matscipy.electrochemistry.continuous2discrete import box_constraint
 from matscipy.electrochemistry.continuous2discrete import min_dist
+
+
+# ### Enforcing steric ions
+
+# In[31]:
+
+
+X = np.vstack([na_coordinate_sample, cl_coordinate_sample])
+
+
+# In[70]:
+
+
+box_volume = np.product(BOX[1,:]-BOX[0,:])
+
+
+# In[71]:
+
+
+k = np.power(box_volume,-1./3.)
+
+
+# In[85]:
+
+
+X.ndim
+
+
+# In[77]:
+
+
+box
+
+
+# In[80]:
+
+
+np.product(box*k)
+
+
+# In[43]:
+
+
+box
 
 
 # In[187]:
@@ -398,31 +442,92 @@ from matscipy.electrochemistry.continuous2discrete import min_dist
 X = cl_coordinate_sample*1e9
 
 
-# In[210]:
+# In[41]:
 
 
-BOX = np.array([[0.,0.,0],[50,50,100]])
+# BOX = np.array([[0.,0.,0],[50,50,100]])
 
 
-# In[211]:
+# In[45]:
+
+
+BOX = np.array([[0.,0.,0],box])
+
+
+# In[46]:
 
 
 BOX
 
 
-# In[191]:
+# In[84]:
 
 
-d = 2
+X.min(axis=0)
 
 
-# In[209]:
+# In[47]:
+
+
+d = 2e-10
+
+
+# In[54]:
+
+
+f = 0
+n = X.shape[0]
+xi  = X
+dsq = d**2*np.ones(n)
+zeros = np.zeros(n)
+
+
+# In[55]:
+
+
+for i in np.arange(n):
+    xj  = np.roll(xi,i,axis=0)
+    dx  = xi - xj
+    dxsq = np.square(dx)
+    dxnormsq = np.sum( dxsq, axis=1 )
+    sqdiff = dsq - dxnormsq
+    penalty = np.maximum(zeros,sqdiff)
+    penaltysq = np.square(penalty)
+    # halv for double-counting
+    f += 0.5*np.sum(penaltysq)
+
+
+# In[63]:
+
+
+dsq - dxnormsq
+
+
+# In[61]:
+
+
+dxnormsq
+
+
+# In[67]:
+
+
+penaltysq
+
+
+# In[48]:
 
 
 target_function(X,d=d)
 
 
-# In[212]:
+# In[49]:
+
+
+d
+
+
+# In[51]:
 
 
 box_constraint(X,box=BOX,d=d)
@@ -449,7 +554,7 @@ def calc_wrapper(x,dim=3):
     return target_function(X,d=d,constraints=(lambda x: box_constraint(x,box=BOX,d=d)))
 
 
-# In[234]:
+# In[87]:
 
 
 from scipy.optimize import minimize
@@ -467,13 +572,13 @@ X0.shape
 calc_wrapper(X0)
 
 
-# In[201]:
+# In[89]:
 
 
 import scipy.optimize
 
 
-# In[115]:
+# In[90]:
 
 
 scipy.optimize.show_options('minimize','BFGS')
