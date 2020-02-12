@@ -7,7 +7,7 @@
 # 
 # from continuous electrochemical double layer theory to discrete coordinate sets
 
-# In[1]:
+# In[2]:
 
 
 # for dynamic module reload during testing, code modifications take immediate effect
@@ -15,7 +15,7 @@ get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
 
 
-# In[2]:
+# In[3]:
 
 
 # stretching notebook width across whole window
@@ -23,7 +23,7 @@ from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:100% !important; }</style>"))
 
 
-# In[3]:
+# In[4]:
 
 
 # basics
@@ -33,7 +33,7 @@ import scipy.constants as sc
 import matplotlib.pyplot as plt
 
 
-# In[4]:
+# In[5]:
 
 
 # sampling
@@ -43,28 +43,28 @@ from matscipy.electrochemistry import get_histogram
 from matscipy.electrochemistry.utility import plot_dist
 
 
-# In[5]:
+# In[6]:
 
 
 # electrochemistry basics
 from matscipy.electrochemistry import debye, ionic_strength
 
 
-# In[6]:
+# In[7]:
 
 
 # Poisson-Bolzmann distribution
 from matscipy.electrochemistry.poisson_boltzmann_distribution import gamma, potential, concentration, charge_density
 
 
-# In[7]:
+# In[8]:
 
 
 # Poisson-Nernst-Planck solver
 from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
 
-# In[8]:
+# In[9]:
 
 
 # 3rd party file output
@@ -72,7 +72,7 @@ import ase
 import ase.io
 
 
-# In[9]:
+# In[153]:
 
 
 # PoissonNernstPlanckSystem makes extensive use of Python's logging module
@@ -104,18 +104,25 @@ ch.setLevel(standard_loglevel)
 logger.addHandler(ch)
 
 
-# In[10]:
+# In[50]:
 
 
 # Test 1
 logging.info("Root logger")
 
 
-# In[11]:
+# In[51]:
 
 
 # Test 2
 logger.info("Root Logger")
+
+
+# In[54]:
+
+
+# Debug Test
+logging.debug("Root logger")
 
 
 # # The Poisson-Boltzman Distribution
@@ -185,7 +192,7 @@ logger.info("Root Logger")
 # 
 # These equations are implemented in `poisson_boltzmann_distribution.py`
 
-# In[12]:
+# In[13]:
 
 
 # Notes on units
@@ -201,7 +208,7 @@ print("e/k_B = {}".format(sc.value('elementary charge')/sc.value('Boltzmann cons
 print("F/R   = e/k_B !")
 
 
-# In[13]:
+# In[14]:
 
 
 # Debye length of 0.1 mM NaCl aqueous solution
@@ -211,7 +218,7 @@ deb = debye(c,z)
 print('Debye Length of 10^-4 M saltwater: {} nm (Target: 30.52 nm)'.format(round(deb/sc.nano, 2)))
 
 
-# In[14]:
+# In[15]:
 
 
 C = np.logspace(-3, 3, 50) # mM, 
@@ -235,7 +242,7 @@ plt.show()
 # 
 # Next we calculate the gamma function $\gamma = \tanh(\frac{e\Psi(0)}{4k_B T})$
 
-# In[15]:
+# In[16]:
 
 
 x = np.linspace(-0.5, 0.5, 40)
@@ -253,7 +260,7 @@ plt.show()
 # $\phi(z) = \frac{2k_B T}{e} \log\Big(\frac{1 + \gamma e^{-\kappa z}}{1- \gamma e^{-\kappa z}}\Big) 
 #         \approx \frac{4k_B T}{e} \gamma e^{-\kappa z}$
 
-# In[16]:
+# In[17]:
 
 
 x = np.linspace(0, 2*10**-7, 10000) # 200 nm
@@ -274,7 +281,7 @@ plt.show()
 # 
 # $c_{i}(x) = c_{i}^\infty e^{-F \phi(x) \> / \> R T}$
 
-# In[17]:
+# In[18]:
 
 
 x = np.linspace(0, 100*10**-9, 2000)
@@ -287,7 +294,7 @@ C   = concentration(x, c, z, u)
 rho = charge_density(x, c, z, u)
 
 
-# In[18]:
+# In[19]:
 
 
 # potential and concentration distributions analytic solution 
@@ -341,7 +348,7 @@ plt.show()
 # ## Sampling
 # First, convert the physical concentration distributions into a callable "probability density":
 
-# In[19]:
+# In[20]:
 
 
 distributions = [interpolate.interp1d(x,c) for c in C]
@@ -349,7 +356,7 @@ distributions = [interpolate.interp1d(x,c) for c in C]
 
 # Normalization is not necessary here. Now we can sample the distribution of our $Na^+$ ions in z-direction.
 
-# In[20]:
+# In[206]:
 
 
 x = y = 50e-9
@@ -358,13 +365,13 @@ box = np.array([x, y, z])
 sample_size = 1000
 
 
-# In[21]:
+# In[207]:
 
 
 from scipy import optimize
 
 
-# In[22]:
+# In[208]:
 
 
 na_coordinate_sample = continuous2discrete(
@@ -373,7 +380,7 @@ histx, histy, histz = get_histogram(na_coordinate_sample, box=box, n_bins=51)
 plot_dist(histz, 'Distribution of Na+ ions in z-direction', reference_distribution=distributions[0])
 
 
-# In[23]:
+# In[209]:
 
 
 cl_coordinate_sample = continuous2discrete(
@@ -384,62 +391,31 @@ plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distributi
 plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
 
 
-# In[24]:
+# In[414]:
 
 
-from matscipy.electrochemistry.continuous2discrete import target_function
-from matscipy.electrochemistry.continuous2discrete import box_constraint
-from matscipy.electrochemistry.continuous2discrete import min_dist
+from matscipy.electrochemistry.steric_distribution import *
+
+
+# In[363]:
+
+
+from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
+from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
+from matscipy.electrochemistry.steric_distribution import brute_force_target_function
+from matscipy.electrochemistry.steric_distribution import box_constraint
+from matscipy.electrochemistry.steric_distribution import min_dist
+from matscipy.electrochemistry.steric_distribution import brute_force_closest_pair
+from matscipy.electrochemistry.steric_distribution import closest_pair
+from matscipy.electrochemistry.steric_distribution import make_steric
 
 
 # ### Enforcing steric ions
 
-# In[31]:
+# In[211]:
 
 
 X = np.vstack([na_coordinate_sample, cl_coordinate_sample])
-
-
-# In[70]:
-
-
-box_volume = np.product(BOX[1,:]-BOX[0,:])
-
-
-# In[71]:
-
-
-k = np.power(box_volume,-1./3.)
-
-
-# In[85]:
-
-
-X.ndim
-
-
-# In[77]:
-
-
-box
-
-
-# In[80]:
-
-
-np.product(box*k)
-
-
-# In[43]:
-
-
-box
-
-
-# In[187]:
-
-
-X = cl_coordinate_sample*1e9
 
 
 # In[41]:
@@ -448,28 +424,304 @@ X = cl_coordinate_sample*1e9
 # BOX = np.array([[0.,0.,0],[50,50,100]])
 
 
-# In[45]:
+# In[284]:
 
 
 BOX = np.array([[0.,0.,0],box])
 
 
-# In[46]:
+# In[285]:
 
 
 BOX
 
 
-# In[84]:
+# In[289]:
 
 
-X.min(axis=0)
+n = X.shape[0]
 
 
-# In[47]:
+# In[291]:
 
 
-d = 2e-10
+dim = X.shape[1]
+
+
+# In[292]:
+
+
+L = np.power( np.product(BOX[1,:]-BOX[0,:]), 1/dim)
+
+
+# In[293]:
+
+
+L
+
+
+# In[543]:
+
+
+BOX/L
+
+
+# In[295]:
+
+
+x0 = X / L
+
+
+# In[296]:
+
+
+box0 = BOX / L
+
+
+# In[354]:
+
+
+k = 10
+
+
+# In[537]:
+
+
+from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
+from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
+from matscipy.electrochemistry.steric_distribution import brute_force_target_function
+import itertools
+import pandas as pd
+import timeit
+
+funcs = [
+        brute_force_target_function,
+        numpy_only_target_function,
+        scipy_distance_based_target_function ]
+func_names = ['brute','numpy','scipy']
+
+stats = []
+K = np.exp(np.log(10)*np.arange(-3,3))
+for k in K:
+    lambdas = [ (lambda x0=x0,k=k,f=f: f(x0*k)) for f in funcs ]
+    vals    = [ f() for f in lambdas ]
+    times   = [ timeit.timeit(f,number=1) for f in lambdas ]
+    diffs = pdist(np.atleast_2d(vals).T,metric='euclidean')
+    stats.append((k,*vals,*diffs,*times))
+
+func_name_tuples = list(itertools.combinations(func_names,2))
+diff_names = [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
+perf_names = [ 't_{:s}'.format(f) for f in func_names ]
+fields =  ['k',*func_names,*diff_names,*perf_names]
+dtypes = [ (field, '>f4') for field in fields ]
+labeled_stats = np.array(stats,dtype=dtypes) 
+stats_df = pd.DataFrame(labeled_stats)
+print(stats_df.to_string(float_format='%8.6g'))
+
+
+# In[172]:
+
+
+min_dist(X)**2
+
+
+# In[544]:
+
+
+brute_force_closest_pair(X)
+
+
+# In[545]:
+
+
+closest_pair(X)
+
+
+# In[215]:
+
+
+np.sqrt(closest_pair(X)[0])
+
+
+# In[546]:
+
+
+X
+
+
+# In[ ]:
+
+
+x1, res = make_steric(X,box=BOX,r=2e-10,
+           options={'gtol':1.e-5,'maxiter':1,'disp':True,'eps':1.e-5})
+
+
+# In[217]:
+
+
+res
+
+
+# In[222]:
+
+
+x1-X
+
+
+# In[221]:
+
+
+X
+
+
+# In[248]:
+
+
+a = np.array([1,2,3])
+
+
+# In[253]:
+
+
+b = np.ones((3,1))
+
+
+# In[254]:
+
+
+a
+
+
+# In[255]:
+
+
+b
+
+
+# In[257]:
+
+
+ab = np.kron(a,b)
+
+
+# In[258]:
+
+
+ab
+
+
+# In[260]:
+
+
+ba = ab.T
+
+
+# In[261]:
+
+
+ba
+
+
+# In[272]:
+
+
+AB = ab + ba
+
+
+# In[279]:
+
+
+AB
+
+
+# In[267]:
+
+
+from scipy.spatial.distance import pdist
+
+
+# In[271]:
+
+
+from scipy.spatial.distance import squareform
+
+
+# In[283]:
+
+
+AB
+
+
+# In[282]:
+
+
+squareform(AB,force='tovector',checks=False)
+
+
+# In[270]:
+
+
+pdist(X).shape
+
+
+# In[263]:
+
+
+ba
+
+
+# In[218]:
+
+
+brute_force_closest_pair(X)[0]**(0.5)
+
+
+# In[219]:
+
+
+brute_force_closest_pair(x1)[0]**0.5
+
+
+# In[89]:
+
+
+testarr = np.array([(3,2,1),(4,5,6),(9,7,8)]).T
+
+
+# In[140]:
+
+
+n = 2000
+
+
+# In[141]:
+
+
+d*np.ones(n)
+
+
+# In[149]:
+
+
+np.atleast_2d(d*np.ones(n)).T
+
+
+# In[136]:
+
+
+np.atleast_2d(r)
+
+
+# In[94]:
+
+
+np.sort(testarr,axis=0)
+
+
+# In[78]:
+
+
+np.flip(BOX,axis=1)
 
 
 # In[54]:
