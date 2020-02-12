@@ -7,7 +7,7 @@
 # 
 # from continuous electrochemical double layer theory to discrete coordinate sets
 
-# In[2]:
+# In[1]:
 
 
 # for dynamic module reload during testing, code modifications take immediate effect
@@ -15,7 +15,7 @@ get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
 
 
-# In[3]:
+# In[2]:
 
 
 # stretching notebook width across whole window
@@ -23,7 +23,7 @@ from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:100% !important; }</style>"))
 
 
-# In[4]:
+# In[3]:
 
 
 # basics
@@ -33,7 +33,7 @@ import scipy.constants as sc
 import matplotlib.pyplot as plt
 
 
-# In[5]:
+# In[4]:
 
 
 # sampling
@@ -43,28 +43,28 @@ from matscipy.electrochemistry import get_histogram
 from matscipy.electrochemistry.utility import plot_dist
 
 
-# In[6]:
+# In[5]:
 
 
 # electrochemistry basics
 from matscipy.electrochemistry import debye, ionic_strength
 
 
-# In[7]:
+# In[6]:
 
 
 # Poisson-Bolzmann distribution
 from matscipy.electrochemistry.poisson_boltzmann_distribution import gamma, potential, concentration, charge_density
 
 
-# In[8]:
+# In[7]:
 
 
 # Poisson-Nernst-Planck solver
 from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
 
-# In[9]:
+# In[8]:
 
 
 # 3rd party file output
@@ -72,7 +72,7 @@ import ase
 import ase.io
 
 
-# In[153]:
+# In[9]:
 
 
 # PoissonNernstPlanckSystem makes extensive use of Python's logging module
@@ -104,21 +104,21 @@ ch.setLevel(standard_loglevel)
 logger.addHandler(ch)
 
 
-# In[50]:
+# In[10]:
 
 
 # Test 1
 logging.info("Root logger")
 
 
-# In[51]:
+# In[11]:
 
 
 # Test 2
 logger.info("Root Logger")
 
 
-# In[54]:
+# In[12]:
 
 
 # Debug Test
@@ -356,7 +356,7 @@ distributions = [interpolate.interp1d(x,c) for c in C]
 
 # Normalization is not necessary here. Now we can sample the distribution of our $Na^+$ ions in z-direction.
 
-# In[206]:
+# In[21]:
 
 
 x = y = 50e-9
@@ -365,13 +365,13 @@ box = np.array([x, y, z])
 sample_size = 1000
 
 
-# In[207]:
+# In[22]:
 
 
 from scipy import optimize
 
 
-# In[208]:
+# In[23]:
 
 
 na_coordinate_sample = continuous2discrete(
@@ -380,7 +380,7 @@ histx, histy, histz = get_histogram(na_coordinate_sample, box=box, n_bins=51)
 plot_dist(histz, 'Distribution of Na+ ions in z-direction', reference_distribution=distributions[0])
 
 
-# In[209]:
+# In[24]:
 
 
 cl_coordinate_sample = continuous2discrete(
@@ -391,13 +391,13 @@ plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distributi
 plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
 
 
-# In[414]:
+# In[25]:
 
 
 from matscipy.electrochemistry.steric_distribution import *
 
 
-# In[363]:
+# In[85]:
 
 
 from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
@@ -406,85 +406,103 @@ from matscipy.electrochemistry.steric_distribution import brute_force_target_fun
 from matscipy.electrochemistry.steric_distribution import box_constraint
 from matscipy.electrochemistry.steric_distribution import min_dist
 from matscipy.electrochemistry.steric_distribution import brute_force_closest_pair
-from matscipy.electrochemistry.steric_distribution import closest_pair
+# from matscipy.electrochemistry.steric_distribution import closest_pair
 from matscipy.electrochemistry.steric_distribution import make_steric
 
 
 # ### Enforcing steric ions
 
-# In[211]:
+# In[28]:
 
 
 X = np.vstack([na_coordinate_sample, cl_coordinate_sample])
 
 
-# In[41]:
+# In[29]:
 
 
 # BOX = np.array([[0.,0.,0],[50,50,100]])
 
 
-# In[284]:
+# In[30]:
 
 
 BOX = np.array([[0.,0.,0],box])
 
 
-# In[285]:
+# In[31]:
 
 
 BOX
 
 
-# In[289]:
+# In[32]:
 
 
 n = X.shape[0]
 
 
-# In[291]:
+# In[33]:
 
 
 dim = X.shape[1]
 
 
-# In[292]:
+# In[34]:
 
 
 L = np.power( np.product(BOX[1,:]-BOX[0,:]), 1/dim)
 
 
-# In[293]:
+# In[35]:
 
 
 L
 
 
-# In[543]:
+# In[36]:
 
 
 BOX/L
 
 
-# In[295]:
+# In[37]:
 
 
 x0 = X / L
 
 
-# In[296]:
+# In[38]:
 
 
 box0 = BOX / L
 
 
-# In[354]:
+# In[82]:
+
+
+box0
+
+
+# In[83]:
+
+
+box_constraint(x0,box=box0,r=2.0)
+
+
+# In[86]:
+
+
+scipy_distance_based_target_function(x0,r=2.0)
+
+
+# In[75]:
 
 
 k = 10
 
 
-# In[537]:
+# In[40]:
 
 
 from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
@@ -519,10 +537,80 @@ stats_df = pd.DataFrame(labeled_stats)
 print(stats_df.to_string(float_format='%8.6g'))
 
 
-# In[172]:
+# In[41]:
 
 
 min_dist(X)**2
+
+
+# In[59]:
+
+
+c = np.array([1, 2, 3, 4, 5, 6])
+print(c)
+
+
+# In[60]:
+
+
+d = scipy.spatial.distance.squareform(c)
+print(d)
+
+
+# In[101]:
+
+
+I,J = np.tril_indices(d.shape[0], -1)
+print(I,J)
+
+
+# In[100]:
+
+
+I[0][3]
+
+
+# In[100]:
+
+
+print(d)
+
+
+# In[61]:
+
+
+e =  d[np.tril_indices(d.shape[0], -1)]
+print(e)
+
+
+# In[94]:
+
+
+X
+
+
+# In[95]:
+
+
+np.tril_indices_from(X)
+
+
+# In[55]:
+
+
+print(c)
+
+
+# In[53]:
+
+
+print(d)
+
+
+# In[45]:
+
+
+np.tril_indices(n,-1)
 
 
 # In[544]:

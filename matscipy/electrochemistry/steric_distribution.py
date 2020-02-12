@@ -77,9 +77,8 @@ import time
 
 import numpy as np
 
-# import scipy.constants as sc
-#from scipy import integrate, optimize
 import scipy.optimize
+import scipy.spatial.distance
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +146,7 @@ def brute_force_closest_pair(x):
                 imin = i
                 jmin = j
                 mindsq = dxnormsq
-    # mind = np.sqrt(mindsq)
+
     t1 = time.perf_counter()-t0
     logger.debug("""Found minimum distance squared {:10.5e} for pair
         ({:d},{:d}) with coodinates {} and {} within {:10.5e} s.""".format(
@@ -165,7 +164,7 @@ def recursive_closest_pair(x,y):
 
     Returns
     -------
-    float, (ndarray, ndarray): minimum distance squared and coodinate pair indices
+    float, (ndarray, ndarray): minimum distance squared and coodinate pair
     """
     t0 = time.perf_counter()
 
@@ -216,8 +215,10 @@ def recursive_closest_pair(x,y):
 
     return mindsq, (pim, pjm)
 
-def closest_pair(x):
+def planar_closest_pair(x):
     """Finds coordinate pair with minimum distance ||xi-xj||
+
+    ATTENTION: this implementation tackles the planar problem!
 
     Parameters
     ----------
@@ -226,26 +227,15 @@ def closest_pair(x):
 
     Returns
     -------
-    float, int, int: minimum distance and coodinate pair indices
+    float, (ndarray, ndarray): minimum distance squared and coodinates pair
     """
     assert isinstance(x, np.ndarray), "np.ndarray expected for x"
     assert x.ndim == 2, "x is expected to be 2d array"
 
     t0 = time.perf_counter()
 
-    n = x.shape[0]
-    dim = x.shape[1]
-    # N = np.arange(n)
-
-    # order = np.arange(dim)
-    # inv_order = np.flip(order)
     I = np.argsort(x[:,0])
-    # invI = N[I]
     J = np.argsort(x[:,-1])
-    # invI = N[I]
-    # X = x[I]
-    # X = np.sort(x,axis=0)
-    # Y = np.sort(x.flip(axis=1),axis=0).flip(axis=1)
     X = x[I,:]
     Y = x[J,:]
     mindsq, (pim, pjm) = recursive_closest_pair(X,Y)
@@ -256,6 +246,54 @@ def closest_pair(x):
         coodinates {} and {} within {:10.5e} s.""".format(mindsq,pim,pjm,t1))
     return mindsq, (pim, pjm)
 
+def scipy_distance_based_closest_pair(x):
+    """Finds coordinate pair with minimum distance ||xi-xj||
+
+    Parameters
+    ----------
+    x: (N,dim) ndarray
+      coordinates
+
+    Returns
+    -------
+    float, (ndarray, ndarray): minimum distance squared and coodinates pair
+
+    Examples
+    --------
+    Handling condensed distance matrix indices:
+
+        >>> c = np.array([1, 2, 3, 4, 5, 6])
+        >>> print(c)
+        [1 2 3 4 5 6]
+
+        >>> d = scipy.spatial.distance.squareform(c)
+        >>> print(d)
+        [[0 1 2 3]
+         [1 0 4 5]
+         [2 4 0 6]
+         [3 5 6 0]]
+
+        >>> I = np.tril_indices(d.shape[0], -1)
+        >>> print(I)
+        (array([1, 2, 2, 3, 3, 3]), array([0, 0, 1, 0, 1, 2]))
+        
+        >>> print(d[I])
+        [1 2 4 3 5 6]
+    """
+    t0 = time.perf_counter()
+
+    n = x.shape[0]
+
+    dxnormsq  = scipy.spatial.distance.pdist(x, metric='sqeuclidean')
+
+    ij = np.argmin(dxnormsq)
+
+
+    t1 = time.perf_counter()-t0
+    logger.debug("""Found minimum distance squared {:10.5e} for pair
+        ({:d},{:d}) with coodinates {} and {} within {:10.5e} s.""".format(
+        mindsq,imin,jmin,x[imin,:],x[jmin,:],t1))
+    return mindsq, (x[imin,:], x[jmin,:])
 
 def brute_force_target_function(x, r=1.0, constraints=None):
     """Target function. Penalizes dense packing for coordinates ||xi-xj||<ri+rj.
@@ -283,7 +321,6 @@ def brute_force_target_function(x, r=1.0, constraints=None):
     assert  ri.shape == (n,)
 
     zeros = np.zeros(n)
-    # TODO: vectorize loop
     for i in np.arange(1,n):
         rj = np.roll(ri,i,axis=0)
         xj = np.roll(xi,i,axis=0)
@@ -331,7 +368,7 @@ def scipy_distance_based_target_function(x, r=1.0, constraints=None):
     assert  r.shape == (n,)
 
 
-    # r(Nx1) kron  ones(1xN) = Ri(NxN)
+    # r(Nx1) kron ones(1xN) = Ri(NxN)
     Ri = np.kron(r, np.ones((n,1)))
     Rj = Ri.T
     Dij = Ri + Rj
@@ -392,8 +429,6 @@ def numpy_only_target_function(x, r=1.0, constraints=None):
     Dij = Ri + Rj
     dsq = np.square(Dij)
     np.fill_diagonal(dsq,0.)
-
-    # dij = scipy.spatial.distance.squareform(Dij,force='tovector',checks=False)
 
     G = np.dot(x,x.T)
     H = np.tile(np.diag(G), (n,1))
