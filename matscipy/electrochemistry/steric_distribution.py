@@ -28,47 +28,113 @@ Authors:
 
     Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
 
-Examples:
+Examples
+-------
 
-    Performance of target functions:
+Benchmark different scipty optimizers for the steric correction problem:
 
-    >>> from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
-    >>> from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
-    >>> from matscipy.electrochemistry.steric_distribution import brute_force_target_function
-    >>> import itertools
-    >>> import pandas as pd
-    >>> import timeit
+    >>> # measures of box
+    >>> xsize = ysize = 5e-9 # nm, SI units
+    >>> zsize = 10e-9    # nm, SI units
     >>>
-    >>> funcs = [
-    >>>         brute_force_target_function,
-    >>>         numpy_only_target_function,
-    >>>         scipy_distance_based_target_function ]
-    >>> func_names = ['brute','numpy','scipy']
+    >>> # get continuum distribution, z direction
+    >>> x = np.linspace(0, zsize, 2000)
+    >>> c = [0.1,0.1]
+    >>> z = [1,-1]
+    >>> u = 0.05
     >>>
-    >>> stats = []
-    >>> K = np.exp(np.log(10)*np.arange(-3,3))
-    >>> for k in K:
-    >>>     lambdas = [ (lambda x0=x0,k=k,f=f: f(x0*k)) for f in funcs ]
-    >>>     vals    = [ f() for f in lambdas ]
-    >>>     times   = [ timeit.timeit(f,number=1) for f in lambdas ]
-    >>>     diffs = pdist(np.atleast_2d(vals).T,metric='euclidean')
-    >>>     stats.append((k,*vals,*diffs,*times))
+    >>> phi = potential(x, c, z, u)
+    >>> C   = concentration(x, c, z, u)
+    >>> rho = charge_density(x, c, z, u)
     >>>
-    >>> func_name_tuples = list(itertools.combinations(func_names,2))
-    >>> diff_names = [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
-    >>> perf_names = [ 't_{:s}'.format(f) for f in func_names ]
-    >>> fields =  ['k',*func_names,*diff_names,*perf_names]
-    >>> dtypes = [ (field, '>f4') for field in fields ]
-    >>> labeled_stats = np.array(stats,dtype=dtypes)
-    >>> stats_df = pd.DataFrame(labeled_stats)
+    >>> # create distribution functions
+    >>> distributions = [interpolate.interp1d(x,c) for c in C]
+    >>>
+    >>> # sample discrete coordinate set
+    >>> box = np.array([xsize, ysize, zsize])m
+    >>> sample_size = 100
+    >>>
+    >>> samples = [ continuous2discrete(
+    >>>     distribution=d, box=box, count=sample_size) for d in distributions ]
+    >>>
+    >>> # apply penalty for steric overlap
+    >>> x = np.vstack(samples)
+    >>>
+    >>> box = np.array([[0.,0.,0],box]) # needs lower corner
+    >>>
+    >>> n = x.shape[0]
+    >>> dim = x.shape[1]
+    >>>
+    >>> # benchmakr methods
+    >>> mindsq, (p1,p2) = scipy_distance_based_closest_pair(x)
+    >>> pmin = np.min(x,axis=0)
+    >>> pmax = np.max(x,axis=0)
+    >>> mind = np.sqrt(mindsq)
+    >>> logger.info("Minimum pair-wise distance in sample: {}".format(mind))
+    >>> logger.info("First sample point in pair:    ({:8.4e},{:8.4e},{:8.4e})".format(*p1))
+    >>> logger.info("Second sample point in pair    ({:8.4e},{:8.4e},{:8.4e})".format(*p2))
+    >>> logger.info("Box lower boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[0]))
+    >>> logger.info("Minimum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmin))
+    >>> logger.info("Maximum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmax))
+    >>> logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[1]))
+    >>>
+    >>> # stats: method, x, res, dt, mind, p1, p2 , pmin, pmax
+    >>> stats = [('initial',x,None,0,mind,p1,p2,pmin,pmax)]
+    >>>
+    >>> r = 4e-10 # 4 Angstrom steric radius
+    >>> logger.info("Steric radius: {:8.4e}".format(r))
+    >>>
+    >>> methods = [
+    >>>     'Powell',
+    >>>     'CG',
+    >>>     'BFGS',
+    >>>     'L-BFGS-C'
+    >>> ]
+    >>>
+    >>> for m in methods:
+    >>>     try:
+    >>>         logger.info("### {} ###".format(m))
+    >>>         t0 = time.perf_counter()
+    >>>         x1, res = make_steric(x,box=box,r=r,method=m)
+    >>>         t1 = time.perf_counter()
+    >>>         dt = t1 - t0
+    >>>         logger.info("{} s runtime".format(dt))
+    >>>
+    >>>         mindsq, (p1,p2) = scipy_distance_based_closest_pair(x1)
+    >>>         mind = np.sqrt(mindsq)
+    >>>         pmin = np.min(x1,axis=0)
+    >>>         pmax = np.max(x1,axis=0)
+    >>>
+    >>>         stats.append([m,x1,res,dt,mind,p1,p2,pmin,pmax])
+    >>>
+    >>>         logger.info("Minimum pair-wise distance in final configuration: {:8.4e}".format(mind))
+    >>>         logger.info("First sample point in pair:    ({:8.4e},{:8.4e},{:8.4e})".format(*p1))
+    >>>         logger.info("Second sample point in pair    ({:8.4e},{:8.4e},{:8.4e})".format(*p2))
+    >>>         logger.info("Box lower boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[0]))
+    >>>         logger.info("Minimum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmin))
+    >>>         logger.info("Maximum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmax))
+    >>>         logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[1]))
+    >>>     except:
+    >>>         logger.warn("{} failed.".format(m))
+    >>>         continue
+    >>>
+    >>> stats_df = pd.DataFrame( [ {
+    >>>     'method':  s[0],
+    >>>     'runtime': s[3],
+    >>>     'mind':    s[4],
+    >>>     **{'p1{:d}'.format(i): c for i,c in enumerate(s[5]) },
+    >>>     **{'p2{:d}'.format(i): c for i,c in enumerate(s[6]) },
+    >>>     **{'pmin{:d}'.format(i): c for i,c in enumerate(s[7]) },
+    >>>     **{'pmax{:d}'.format(i): c for i,c in enumerate(s[8]) }
+    >>> } for s in stats] )
+    >>>
     >>> print(stats_df.to_string(float_format='%8.6g'))
-             k       brute       numpy       scipy  d_brute_numpy  d_brute_scipy  d_numpy_scipy  t_brute  t_numpy   t_scipy
-    0    0.001  3.1984e+07  3.1984e+07  3.1984e+07    5.58794e-08    6.70552e-08    1.11759e-08 0.212432 0.168858 0.0734278
-    1     0.01 3.19829e+07 3.19829e+07 3.19829e+07    9.31323e-08    7.82311e-08    1.49012e-08 0.212263  0.16846 0.0791856
-    2      0.1 3.18763e+07 3.18763e+07 3.18763e+07    7.45058e-09    1.86265e-08    1.11759e-08 0.201706 0.164867 0.0711544
-    3        1 2.27418e+07 2.27418e+07 2.27418e+07    3.72529e-08    4.84288e-08    1.11759e-08  0.20762 0.166005 0.0724238
-    4       10      199751      199751      199751    1.16415e-10    2.91038e-11    8.73115e-11 0.202635 0.161932 0.0772684
-    5      100     252.548     252.548     252.548    3.28555e-11              0    3.28555e-11 0.202512 0.161217 0.0726705
+    method  runtime        mind         p10         p11         p12         p20         p21         p22       pmin0       pmin1       pmin2       pmax0       pmax1       pmax2
+    0   initial        0 1.15674e-10 2.02188e-09 4.87564e-10 5.21835e-09 2.03505e-09 3.72691e-10 5.22171e-09 1.17135e-12 1.49124e-10 6.34126e-12 4.98407e-09 4.99037e-09 9.86069e-09
+    1    Powell  75.2704 8.02318e-10 4.23954e-09 3.36242e-09 8.80092e-09 4.31183e-09 2.56345e-09 8.81278e-09 4.01789e-10  4.0081e-10  4.2045e-10 4.59284e-09 4.54413e-09  9.5924e-09
+    2        CG  27.0756  7.9992e-10 3.39218e-09 4.00079e-09 8.27255e-09 3.86337e-09 4.27807e-09 7.68863e-09 4.00018e-10 4.00146e-10 4.00565e-10 4.59941e-09 4.59989e-09 9.59931e-09
+    3      BFGS  19.0255 7.99527e-10 1.82802e-09 3.54397e-09 9.69736e-10 2.41411e-09   3.936e-09 1.34664e-09 4.00514e-10 4.01874e-10  4.0002e-10 4.59695e-09 4.59998e-09 9.58155e-09
+    4  L-BFGS-B  11.7869 7.99675e-10 4.34395e-09 3.94096e-09 1.28996e-09 4.44064e-09 3.15999e-09 1.14778e-09 4.12146e-10 4.01506e-10 4.03583e-10     4.6e-09 4.59898e-09  9.5982e-09
 
 """
 import logging, os, sys
@@ -82,37 +148,6 @@ import scipy.spatial.distance
 
 logger = logging.getLogger(__name__)
 
-def min_dist(x):
-    """Finds minimum distance ||xi-xj|| within coordinate distribution
-
-    Parameters
-    ----------
-    x: (N,dim) ndarray
-      coordinates
-
-    Returns
-    -------
-    float: minimum distance
-    """
-    # sum_i sum_{j!=i} max(0,d^2-||xi-xj||^2)^2
-    n = x.shape[0]
-    # TODO: vectorize loop
-    t0 = time.perf_counter()
-    for i in np.arange(n):
-        for j in np.arange(i):
-            dx  = x[i,:] - x[j,:]
-            dxsq = np.square(dx)
-            dxnormsq = np.sum( dxsq )
-            if i == 1 and j == 0:
-                mindsq = dxnormsq
-            elif dxnormsq < mindsq:
-                mindsq = dxnormsq
-    mind = np.sqrt(mindsq)
-    t1 = time.perf_counter()-t0
-    logger.debug("Found minimum distance {:10.5e} within {:10.5e} s.".format(
-        mind,t1))
-    return mind
-
 def brute_force_closest_pair(x):
     """Finds coordinate pair with minimum distance squared ||xi-xj||^2
 
@@ -124,6 +159,76 @@ def brute_force_closest_pair(x):
     Returns
     -------
     float, (ndarray, ndarray): minimum distance squared and coodinates pair
+
+    Examples
+    --------
+    Compare the performance of closest pair algorithms:
+
+        >>> from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
+        >>> from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
+        >>> from matscipy.electrochemistry.steric_distribution import brute_force_target_function
+        >>> import itertools
+        >>> import pandas as pd
+        >>> import scipy.spatial.distance
+        >>> import timeit
+        >>>
+        >>> funcs = [
+        >>>         brute_force_closest_pair,
+        >>>         scipy_distance_based_closest_pair,
+        >>>         planar_closest_pair ]
+        >>> func_names = ['brute','scipy','planar']
+        >>> stats = []
+        >>> N = 1000
+        >>> dim = 3
+        >>> for k in range(5):
+        >>>     x = np.random.rand(N,dim)
+        >>>     lambdas = [ (lambda x=x,f=f: f(x)) for f in funcs ]
+        >>>     rets    = [ f() for f in lambdas ]
+        >>>     vals    = [ v[0] for v in rets ]
+        >>>     coords  = [ c for v in rets for p in v[1] for c in p ]
+        >>>     times   = [ timeit.timeit(f,number=1) for f in lambdas ]
+        >>>     diffs   = scipy.spatial.distance.pdist(
+        >>>         np.atleast_2d(vals).T,metric='euclidean')
+        >>>     stats.append((*vals,*diffs,*times,*coords))
+        >>>
+        >>> func_name_tuples = list(itertools.combinations(func_names,2))
+        >>> diff_names =  [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
+        >>> perf_names =  [ 't_{:s}'.format(f) for f in func_names ]
+        >>> coord_names = [
+        >>>     'p{:d}{:s}_{:s}'.format(i,a,f) for f in func_names for i in (1,2) for a in ('x','y','z') ]
+        >>> float_fields = [*func_names,*diff_names,*perf_names,*coord_names]
+        >>> dtypes = [ (field, 'f4') for field in float_fields ]
+        >>> labeled_stats = np.array(stats,dtype=dtypes)
+        >>> stats_df = pd.DataFrame(labeled_stats)
+        >>> print(stats_df.T.to_string(float_format='%8.6g'))
+                                 0           1           2           3           4
+        brute          2.24089e-05 5.61002e-05 8.51047e-05 3.48424e-05 5.37235e-05
+        scipy          2.24089e-05 5.61002e-05 8.51047e-05 3.48424e-05 5.37235e-05
+        planar         2.24089e-05 5.61002e-05 8.51047e-05 3.48424e-05 5.37235e-05
+        d_brute_scipy            0           0           0           0           0
+        d_brute_planar           0           0           0           0           0
+        d_scipy_planar           0           0           0           0           0
+        t_brute            4.02697     3.85543      4.1414     3.90338     3.86993
+        t_scipy         0.00708364  0.00698962  0.00762594  0.00703242  0.00703579
+        t_planar           0.38302     0.39462    0.434342    0.407233    0.420773
+        p1x_brute         0.132014    0.331441    0.553405    0.534633    0.977582
+        p1y_brute         0.599688    0.186959     0.90897    0.575864    0.636278
+        p1z_brute          0.49631    0.993856    0.246418    0.853567    0.411793
+        p2x_brute         0.134631    0.333526     0.55322    0.534493    0.977561
+        p2y_brute         0.603598    0.179771    0.915063    0.576894    0.629313
+        p2z_brute         0.496833    0.994145    0.239493    0.859377    0.409509
+        p1x_scipy         0.132014    0.331441    0.553405    0.534633    0.977582
+        p1y_scipy         0.599688    0.186959     0.90897    0.575864    0.636278
+        p1z_scipy          0.49631    0.993856    0.246418    0.853567    0.411793
+        p2x_scipy         0.134631    0.333526     0.55322    0.534493    0.977561
+        p2y_scipy         0.603598    0.179771    0.915063    0.576894    0.629313
+        p2z_scipy         0.496833    0.994145    0.239493    0.859377    0.409509
+        p1x_planar        0.132014    0.331441     0.55322    0.534633    0.977561
+        p1y_planar        0.599688    0.186959    0.915063    0.575864    0.629313
+        p1z_planar         0.49631    0.993856    0.239493    0.853567    0.409509
+        p2x_planar        0.134631    0.333526    0.553405    0.534493    0.977582
+        p2y_planar        0.603598    0.179771     0.90897    0.576894    0.636278
+        p2z_planar        0.496833    0.994145    0.246418    0.859377    0.411793
     """
     t0 = time.perf_counter()
 
@@ -273,10 +378,14 @@ def scipy_distance_based_closest_pair(x):
          [2 4 0 6]
          [3 5 6 0]]
 
-        >>> I = np.tril_indices(d.shape[0], -1)
-        >>> print(I)
-        (array([1, 2, 2, 3, 3, 3]), array([0, 0, 1, 0, 1, 2]))
-        
+        >>> I,J = np.tril_indices(d.shape[0],-1)
+        >>> print(I,J)
+        [1 2 2 3 3 3] [0 0 1 0 1 2]
+
+        >>> I,J = np.triu_indices(d.shape[0],1)
+        >>> print(I,J)
+        [0 0 0 1 1 2] [1 2 3 2 3 3]
+
         >>> print(d[I])
         [1 2 4 3 5 6]
     """
@@ -287,7 +396,11 @@ def scipy_distance_based_closest_pair(x):
     dxnormsq  = scipy.spatial.distance.pdist(x, metric='sqeuclidean')
 
     ij = np.argmin(dxnormsq)
+    mindsq = dxnormsq[ij]
 
+    #I,J = np.tril_indices(n,-1)
+    I,J = np.triu_indices(n,1)
+    imin,jmin = (I[ij],J[ij])
 
     t1 = time.perf_counter()-t0
     logger.debug("""Found minimum distance squared {:10.5e} for pair
@@ -308,6 +421,50 @@ def brute_force_target_function(x, r=1.0, constraints=None):
     Returns
     -------
     float: target function value
+
+    Examples
+    --------
+    Compare performance of target functions:
+
+
+        >>> from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
+        >>> from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
+        >>> from matscipy.electrochemistry.steric_distribution import brute_force_target_function
+        >>> import itertools
+        >>> import pandas as pd
+        >>> import scipy.spatial.distance
+        >>> import timeit
+        >>>
+        >>> funcs = [
+        >>>         brute_force_target_function,
+        >>>         numpy_only_target_function,
+        >>>         scipy_distance_based_target_function ]
+        >>> func_names = ['brute','numpy','scipy']
+        >>>
+        >>> stats = []
+        >>> K = np.exp(np.log(10)*np.arange(-3,3))
+        >>> for k in K:
+        >>>     lambdas = [ (lambda x0=x0,k=k,f=f: f(x0*k)) for f in funcs ]
+        >>>     vals    = [ f() for f in lambdas ]
+        >>>     times   = [ timeit.timeit(f,number=1) for f in lambdas ]
+        >>>     diffs = scipy.spatial.distance.pdist(np.atleast_2d(vals).T,metric='euclidean')
+        >>>     stats.append((k,*vals,*diffs,*times))
+        >>>
+        >>> func_name_tuples = list(itertools.combinations(func_names,2))
+        >>> diff_names = [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
+        >>> perf_names = [ 't_{:s}'.format(f) for f in func_names ]
+        >>> fields =  ['k',*func_names,*diff_names,*perf_names]
+        >>> dtypes = [ (field, '>f4') for field in fields ]
+        >>> labeled_stats = np.array(stats,dtype=dtypes)
+        >>> stats_df = pd.DataFrame(labeled_stats)
+        >>> print(stats_df.to_string(float_format='%8.6g'))
+                 k       brute       numpy       scipy  d_brute_numpy  d_brute_scipy  d_numpy_scipy  t_brute  t_numpy   t_scipy
+        0    0.001  3.1984e+07  3.1984e+07  3.1984e+07    5.58794e-08    6.70552e-08    1.11759e-08 0.212432 0.168858 0.0734278
+        1     0.01 3.19829e+07 3.19829e+07 3.19829e+07    9.31323e-08    7.82311e-08    1.49012e-08 0.212263  0.16846 0.0791856
+        2      0.1 3.18763e+07 3.18763e+07 3.18763e+07    7.45058e-09    1.86265e-08    1.11759e-08 0.201706 0.164867 0.0711544
+        3        1 2.27418e+07 2.27418e+07 2.27418e+07    3.72529e-08    4.84288e-08    1.11759e-08  0.20762 0.166005 0.0724238
+        4       10      199751      199751      199751    1.16415e-10    2.91038e-11    8.73115e-11 0.202635 0.161932 0.0772684
+        5      100     252.548     252.548     252.548    3.28555e-11              0    3.28555e-11 0.202512 0.161217 0.0726705
     """
     assert x.ndim == 2, "2d array expected for x"
     # sum_i sum_{j!=i} max(0,(r_i+r_j)"^2-||xi-xj||^2)^2
@@ -469,8 +626,8 @@ def box_constraint(x, box=np.array([[0.,0.,0],[1.0,1.0,1.0]]), r=0.):
     r = np.atleast_2d(r).T
 
     # positive if coordinates out of box
-    ldist = box[0,:] - (x+r)
-    rdist = (x+r) - box[1,:]
+    ldist = box[0,:] - x + r
+    rdist = x + r - box[1,:]
 
     lpenalty = np.maximum(zeros,ldist)
     rpenalty = np.maximum(zeros,rdist)
@@ -483,8 +640,12 @@ def box_constraint(x, box=np.array([[0.,0.,0],[1.0,1.0,1.0]]), r=0.):
     return g
 
 def make_steric(x, box=None, r=None,
-    options={'gtol':1e-3,'maxiter':10,'disp':True,'eps':0.1},
-    target_function=scipy_distance_based_target_function):
+    method = 'L-BFGS-B',
+    options = None,
+    # options={'gtol':1.e-5,'maxiter':10,'disp':True,'eps':1.0e-8},
+    #options={'xatol':1.e-8,'maxiter':10,'disp':True,'fatol':1.0e-8},
+    target_function=scipy_distance_based_target_function,
+    closest_pair_function=scipy_distance_based_closest_pair):
     """Enforces steric constraints on coordinate distribution within box.
 
     Parameters
@@ -498,10 +659,13 @@ def make_steric(x, box=None, r=None,
     options : dict, optional
         forwarded to scipy BFGS minimzer
         https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html
-        (default: {'gtol':1e-3,'maxiter':10,'disp':True,'eps':1e-3})
+        (default: {'gtol':1.e-5,'maxiter':10,'disp':True,'eps':1.e-8})
     target_function: func, optional
         one of the target functions within this submodule, or function
         of same signature (default: scipy_distance_based_target_function)
+    closest_pair_function: func, optional
+        one of the closest pair functions within this submodule, or function
+        of same signature (default: scipy_distance_based_closest_pair)
 
     Returns
     -------
@@ -528,9 +692,8 @@ def make_steric(x, box=None, r=None,
 
     if box is None:
         box = np.array(x.min(axis=0),x.max(axis=0))
-        logger.info(
-            """No bounding box explicitly specified, using extreme coordinates
-            ({}) of coordinate set as default.""".format(box))
+        logger.info("No bounding box explicitly specified, using extreme")
+        logger.info("coordinates ({}) of coordinate set as default.".format(box))
 
     assert isinstance(box, np.ndarray), "box must be np.ndarray"
     assert x.ndim == 2, "box must be 2d array"
@@ -539,9 +702,9 @@ def make_steric(x, box=None, r=None,
 
     V = np.product(box[1,:]-box[0,:])
     L = np.power(V, (1./dim))
-    logger.info(
-        """Normalizing coordinates by reference length
-        L = V^(1/dim) = ({:.2g})^(1/{:d}) = {:.2g}.""".format(V,dim,L) )
+    logger.info("Normalizing coordinates by reference length")
+    logger.info("    L = V^(1/dim) = ({:.2g})^(1/{:d}) = {:.2g}.".format(
+        V,dim,L))
 
     # normalizing to unit volume necessary,
     # as target function apparently not dimension-insensitive
@@ -549,7 +712,9 @@ def make_steric(x, box=None, r=None,
     X0  = x / L
     R   = r / L
 
-    logger.info("Normalized bounding box: {}.".format(BOX))
+    logger.info("Normalized bounding box: ")
+    logger.info("    {}.".format(BOX[0]))
+    logger.info("    {}.".format(BOX[1]))
 
     # flatten coordinates for scipy optimizer
     x0 = X0.reshape(np.product(X0.shape))
@@ -558,10 +723,8 @@ def make_steric(x, box=None, r=None,
     g = lambda x: box_constraint(x, box=BOX, r=R )
     f = lambda x: target_function(x.reshape((n,dim)),r=R,constraints=g)
 
-    callback_count = 0
-
-    t0 = time.perf_counter()
-    tk = t0
+    logger.info("Initial constraint penalty: {:10.5e}.".format(g(X0)))
+    logger.info("Initial total penalty:      {:10.5e}.".format(f(x0)))
 
     def minimizer_callback(xk, *_):
         """Callback function that can be used by optimizers of scipy.optimize.
@@ -569,7 +732,7 @@ def make_steric(x, box=None, r=None,
         optimizer calls the callback function with more than one argument. See
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
         """
-        nonlocal callback_count, tk
+        nonlocal closest_pair_function, callback_count, tk
         if callback_count == 0:
             logger.info(
                 "{:>12s} {:>12s} {:>12s} {:>12s} {:>12s}".format(
@@ -577,7 +740,8 @@ def make_steric(x, box=None, r=None,
 
         fk = f(xk)
         Xk = xk.reshape((n,dim))
-        mind = min_dist(Xk)
+        mindsq, _ = closest_pair_function(Xk)
+        mind = np.sqrt(mindsq)
 
         t1 = time.perf_counter()
         dt = t1 - tk
@@ -591,23 +755,39 @@ def make_steric(x, box=None, r=None,
         callback_count += 1
         return
 
-    res = scipy.optimize.minimize(f,x0,method='BFGS',
+    callback_count = 0
+    t0 = time.perf_counter()
+    tk = t0 # previosu callback timer value
+    # call once for initial configuration
+    minimizer_callback(x0)
+    # neat lecture on scipy optimizers
+    # http://scipy-lectures.org/advanced/mathematical_optimization/
+    res = scipy.optimize.minimize(f,x0,method=method,
         callback=minimizer_callback, options=options)
 
     if not res.success:
         logger.warn(res.message)
 
-    X1 = res.x
-    f1 = f(X1)
-    X1 = X1.reshape((n,dim))
-    minD = min_dist(X1)
-    x1 = X1*L
-    mind = min_dist(x1)
+    x1 = res.x # dimensionless, flat
+    X1 = x1.reshape((n,dim)) # dimensionless, 2d
+    logger.info("Final constraint penalty: {:10.5e}.".format(g(X1)))
+    logger.info("Final total penalty:      {:10.5e}.".format(f(x1)))
 
-    logger.info(
-        """Final distribution has residual penalty {:10.5e} with minimum
-        distance {:10.5e} or {:10.5e} (normalized by L = {:.2g}""".format(
-            f1, minD, mind, L ))
+    x1 = X1*L # dimensional
+    minDsq, (P1,P2) = closest_pair_function(X1) # dimensionless
+    mindsq, (p1,p2) = closest_pair_function(x1) # dimensional
+
+    minD = np.sqrt(minDsq)
+    mind = np.sqrt(mindsq)
+
+    # logger.info("Final distribution has residual penalty {:10.5e}.".format(f1))
+    logger.info("Min. dist. {:10.5e} between points".format(mind))
+    logger.info("    {} and".format(p1))
+    logger.info("    {}.".format(p2))
+    logger.info("Min. dist. {:10.5e} between dimensionless points".format(minD))
+    logger.info("    {} and".format(P1))
+    logger.info("    {}.".format(P2))
+    logger.info("    normalized by L = {:.2g}).".format(L))
 
     dT = time.perf_counter() - t0
     logger.info("Ellapsed time: {:10.5} s.".format(dT))

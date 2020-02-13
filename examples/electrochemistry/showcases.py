@@ -72,7 +72,7 @@ import ase
 import ase.io
 
 
-# In[9]:
+# In[174]:
 
 
 # PoissonNernstPlanckSystem makes extensive use of Python's logging module
@@ -391,118 +391,277 @@ plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distributi
 plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
 
 
-# In[25]:
+# ### Enforcing steric ions
+
+# In[55]:
 
 
 from matscipy.electrochemistry.steric_distribution import *
 
 
-# In[85]:
-
-
-from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
-from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
-from matscipy.electrochemistry.steric_distribution import brute_force_target_function
-from matscipy.electrochemistry.steric_distribution import box_constraint
-from matscipy.electrochemistry.steric_distribution import min_dist
-from matscipy.electrochemistry.steric_distribution import brute_force_closest_pair
-# from matscipy.electrochemistry.steric_distribution import closest_pair
-from matscipy.electrochemistry.steric_distribution import make_steric
-
-
-# ### Enforcing steric ions
-
-# In[28]:
+# In[199]:
 
 
 X = np.vstack([na_coordinate_sample, cl_coordinate_sample])
 
-
-# In[29]:
-
-
-# BOX = np.array([[0.,0.,0],[50,50,100]])
-
-
-# In[30]:
-
-
 BOX = np.array([[0.,0.,0],box])
 
+n = X.shape[0]
 
-# In[31]:
+dim = X.shape[1]
+
+L = np.power( np.product(BOX[1,:]-BOX[0,:]), 1/dim)
+
+
+# In[200]:
 
 
 BOX
 
 
-# In[32]:
-
-
-n = X.shape[0]
-
-
-# In[33]:
-
-
-dim = X.shape[1]
-
-
-# In[34]:
-
-
-L = np.power( np.product(BOX[1,:]-BOX[0,:]), 1/dim)
-
-
-# In[35]:
+# In[201]:
 
 
 L
 
 
-# In[36]:
+# In[202]:
 
 
 BOX/L
 
 
-# In[37]:
+# In[209]:
 
 
 x0 = X / L
-
-
-# In[38]:
-
-
 box0 = BOX / L
 
 
-# In[82]:
+# In[210]:
 
 
 box0
 
 
-# In[83]:
+# In[260]:
 
 
-box_constraint(x0,box=box0,r=2.0)
+r = 2.0e-10
 
 
-# In[86]:
+# In[261]:
 
 
-scipy_distance_based_target_function(x0,r=2.0)
+R = r / L
 
 
-# In[75]:
+# In[262]:
 
 
-k = 10
+R
 
 
-# In[40]:
+# In[264]:
+
+
+box_constraint(x0,box=box0,r=R)
+
+
+# In[265]:
+
+
+scipy_distance_based_target_function(x0,r=R)
+
+
+# In[215]:
+
+
+P = scipy_distance_based_closest_pair(X)
+
+
+# In[216]:
+
+
+p = scipy_distance_based_closest_pair(x0)
+
+
+# In[217]:
+
+
+P
+
+
+# In[218]:
+
+
+p
+
+
+# In[223]:
+
+
+P[0]**0.5
+
+
+# In[224]:
+
+
+P[0]**0.5/L
+
+
+# In[269]:
+
+
+R
+
+
+# In[222]:
+
+
+p[0]**0.5
+
+
+# In[267]:
+
+
+x1, res = make_steric(X,box=BOX,r=2e-10)
+
+
+# In[270]:
+
+
+X1 = x1
+
+
+# In[271]:
+
+
+x1 = np.reshape(res.x,(n,dim))
+
+
+# In[304]:
+
+
+
+x1
+
+
+# In[308]:
+
+
+X1
+
+
+# In[286]:
+
+
+R
+
+
+# In[278]:
+
+
+box_constraint(x0,box=box0,r=R)
+
+
+# In[279]:
+
+
+scipy_distance_based_target_function(x0,r=R)
+
+
+# In[280]:
+
+
+box_constraint(x1,box=box0,r=R)
+
+
+# In[281]:
+
+
+scipy_distance_based_target_function(x1,r=R)
+
+
+# In[ ]:
+
+
+
+
+
+# In[287]:
+
+
+P0 = scipy_distance_based_closest_pair(X)
+
+
+# In[288]:
+
+
+p0 = scipy_distance_based_closest_pair(x0)
+
+
+# In[293]:
+
+
+P0
+
+
+# In[294]:
+
+
+p0
+
+
+# In[290]:
+
+
+P1 = scipy_distance_based_closest_pair(X1)
+
+
+# In[291]:
+
+
+p1 = scipy_distance_based_closest_pair(x1)
+
+
+# In[292]:
+
+
+P1
+
+
+# In[299]:
+
+
+p1
+
+
+# In[311]:
+
+
+R*2
+
+
+# In[301]:
+
+
+np.sqrt(p1[0])
+
+
+# In[302]:
+
+
+np.sqrt(P1[0])
+
+
+# In[303]:
+
+
+res
+
+
+# In[43]:
 
 
 from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
@@ -510,6 +669,7 @@ from matscipy.electrochemistry.steric_distribution import numpy_only_target_func
 from matscipy.electrochemistry.steric_distribution import brute_force_target_function
 import itertools
 import pandas as pd
+import scipy.spatial.distance
 import timeit
 
 funcs = [
@@ -524,7 +684,7 @@ for k in K:
     lambdas = [ (lambda x0=x0,k=k,f=f: f(x0*k)) for f in funcs ]
     vals    = [ f() for f in lambdas ]
     times   = [ timeit.timeit(f,number=1) for f in lambdas ]
-    diffs = pdist(np.atleast_2d(vals).T,metric='euclidean')
+    diffs = scipy.spatial.distance.pdist(np.atleast_2d(vals).T,metric='euclidean')
     stats.append((k,*vals,*diffs,*times))
 
 func_name_tuples = list(itertools.combinations(func_names,2))
@@ -537,129 +697,368 @@ stats_df = pd.DataFrame(labeled_stats)
 print(stats_df.to_string(float_format='%8.6g'))
 
 
-# In[41]:
+# In[182]:
 
 
-min_dist(X)**2
+from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
+from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
+from matscipy.electrochemistry.steric_distribution import brute_force_target_function
+import itertools
+import pandas as pd
+import scipy.spatial.distance
+import timeit
+
+funcs = [
+        brute_force_closest_pair,
+        scipy_distance_based_closest_pair,
+        planar_closest_pair ]
+func_names = ['brute','scipy','planar']
+stats = []
+N = 1000
+dim = 3
+for k in range(5):
+    x = np.random.rand(N,dim)
+    lambdas = [ (lambda x=x,f=f: f(x)) for f in funcs ]
+    rets    = [ f() for f in lambdas ]
+    vals    = [ v[0] for v in rets ]
+    coords  = [ c for v in rets for p in v[1] for c in p ]
+    times   = [ timeit.timeit(f,number=1) for f in lambdas ]
+    diffs   = scipy.spatial.distance.pdist(
+        np.atleast_2d(vals).T,metric='euclidean')
+    stats.append((*vals,*diffs,*times,*coords))
+
+func_name_tuples = list(itertools.combinations(func_names,2))
+diff_names =  [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
+perf_names =  [ 't_{:s}'.format(f) for f in func_names ]
+coord_names = [ 
+    'p{:d}{:s}_{:s}'.format(i,a,f) for f in func_names for i in (1,2) for a in ('x','y','z') ]
+float_fields = [*func_names,*diff_names,*perf_names,*coord_names]
+dtypes = [ (field, 'f4') for field in float_fields ]
+labeled_stats = np.array(stats,dtype=dtypes)
+stats_df = pd.DataFrame(labeled_stats)
+print(stats_df.T.to_string(float_format='%8.6g'))
 
 
-# In[59]:
+# In[191]:
 
 
-c = np.array([1, 2, 3, 4, 5, 6])
-print(c)
+from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
+from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
+from matscipy.electrochemistry.steric_distribution import brute_force_target_function
+import itertools
+import pandas as pd
+import scipy.spatial.distance
+import timeit
+
+funcs = [
+        brute_force_closest_pair,
+        scipy_distance_based_closest_pair,
+        planar_closest_pair ]
+func_names = ['brute','scipy','planar']
+stats = []
+N = 1000
+dim = 3
+for k in range(5):
+    x = np.random.rand(N,dim)
+    lambdas = [ (lambda x=x,f=f: f(x)) for f in funcs ]
+    rets    = [ f() for f in lambdas ]
+    vals    = [ v[0] for v in rets ]
+    coords  = [ c for v in rets for p in v[1] for c in p ]
+    times   = [ timeit.timeit(f,number=1) for f in lambdas ]
+    diffs   = scipy.spatial.distance.pdist(
+        np.atleast_2d(vals).T,metric='euclidean')
+    stats.append((*vals,*diffs,*times,*coords))
+
+func_name_tuples = list(itertools.combinations(func_names,2))
+diff_names =  [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
+perf_names =  [ 't_{:s}'.format(f) for f in func_names ]
+coord_names = [ 
+    'p{:d}{:s}_{:s}'.format(i,a,f) for f in func_names for i in (1,2) for a in ('x','y','z') ]
+float_fields = [*func_names,*diff_names,*perf_names,*coord_names]
+dtypes = [ (field, 'f4') for field in float_fields ]
+labeled_stats = np.array(stats,dtype=dtypes)
+stats_df = pd.DataFrame(labeled_stats)
+print(stats_df.T.to_string(float_format='%8.6g'))
 
 
-# In[60]:
+# In[268]:
 
 
-d = scipy.spatial.distance.squareform(c)
-print(d)
+import time
 
 
-# In[101]:
+# In[21]:
 
 
-I,J = np.tril_indices(d.shape[0], -1)
-print(I,J)
+x = y = 5e-9
+z = 10e-9
+box = np.array([x, y, z])
+sample_size = 100
 
+na_coordinate_sample = continuous2discrete(
+    distribution=distributions[0], box=box, count=sample_size)
 
-# In[100]:
-
-
-I[0][3]
-
-
-# In[100]:
-
-
-print(d)
-
-
-# In[61]:
-
-
-e =  d[np.tril_indices(d.shape[0], -1)]
-print(e)
-
-
-# In[94]:
-
-
-X
-
-
-# In[95]:
-
-
-np.tril_indices_from(X)
-
-
-# In[55]:
-
-
-print(c)
-
-
-# In[53]:
-
-
-print(d)
-
-
-# In[45]:
-
-
-np.tril_indices(n,-1)
-
-
-# In[544]:
-
-
-brute_force_closest_pair(X)
-
-
-# In[545]:
-
-
-closest_pair(X)
-
-
-# In[215]:
-
-
-np.sqrt(closest_pair(X)[0])
-
-
-# In[546]:
-
-
-X
+cl_coordinate_sample = continuous2discrete(
+    distributions[1], box=box, count=sample_size)
 
 
 # In[ ]:
 
 
-x1, res = make_steric(X,box=BOX,r=2e-10,
-           options={'gtol':1.e-5,'maxiter':1,'disp':True,'eps':1.e-5})
+histx, histy, histz = get_histogram(na_coordinate_sample, box=box, n_bins=51)
+histx, histy, histz = get_histogram(cl_coordinate_sample, box=box, n_bins=51)
+plot_dist(histz, 'Distribution of Na+ ions in z-direction', reference_distribution=distributions[0])
+plot_dist(histx, 'Distribution of Cl- ions in x-direction', reference_distribution=lambda x: np.ones(x.shape)*1/box[0])
+plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distribution=lambda x: np.ones(x.shape)*1/box[1])
+plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
 
 
-# In[217]:
+# In[22]:
 
 
-res
+from scipy import optimize
 
 
-# In[222]:
+# In[ ]:
 
 
-x1-X
+# measures of box
+xsize = ysize = 50e-9 # nm, SI units
+zsize = 100e-9    # nm, SI units
+
+# get continuum distribution, z direction
+x = np.linspace(0, zsize, 2000)
+c = [0.1,0.1]
+z = [1,-1]
+u = 0.05 
+
+phi = potential(x, c, z, u)
+C   = concentration(x, c, z, u)
+rho = charge_density(x, c, z, u)
+
+# create distribution functions
+distributions = [interpolate.interp1d(x,c) for c in C]
+
+# sample discrete coordinate set
+box = np.array([xsize, ysize, zsize])
+sample_size = 1000
+
+samples = [ continuous2discrete(
+    distribution=d, box=box, count=sample_size) for d in distributions ]
+
+# apply penalty for steric overlap
+x = np.vstack(samples)
+
+box = np.array([[0.,0.,0],box]) # needs lower corner
+
+n = x.shape[0]
+dim = x.shape[1]
+
+# benchmakr methods
+mindsq, (p1,p2) = scipy_distance_based_closest_pair(x)
+pmin = np.min(x,axis=0)
+pmax = np.max(x,axis=0)
+mind = np.sqrt(mindsq)
+logger.info("Minimum pair-wise distance in sample: {}".format(mind))
+logger.info("First sample point in pair:    ({:8.4e},{:8.4e},{:8.4e})".format(*p1))
+logger.info("Second sample point in pair    ({:8.4e},{:8.4e},{:8.4e})".format(*p2))
+logger.info("Box lower boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[0]))
+logger.info("Minimum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmin))
+logger.info("Maximum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmax))
+logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[1]))
+
+# stats: method, x, res, dt, mind, p1, p2 , pmin, pmax
+stats = [('initial',x,None,0,mind,p1,p2,pmin,pmax)]
+
+r = 2e-10 # 4 Angstrom steric radius
+logger.info("Steric radius: {:8.4e}".format(r))
+
+methods = [
+    #'Nelder-Mead', # not suitable
+    'Powell',
+    'CG',
+    'BFGS',
+    #'Newton-CG', # needs explicit Jacobian
+    'L-BFGS-B' 
+]
+        
+for m in methods:
+    try:
+        logger.info("### {} ###".format(m))
+        t0 = time.perf_counter()
+        x1, res = make_steric(x,box=box,r=r,method=m)
+        t1 = time.perf_counter()
+        dt = t1 - t0
+        logger.info("{} s runtime".format(dt))
+        
+        mindsq, (p1,p2) = scipy_distance_based_closest_pair(x1)
+        mind = np.sqrt(mindsq)
+        pmin = np.min(x1,axis=0)
+        pmax = np.max(x1,axis=0)
+
+        stats.append([m,x1,res,dt,mind,p1,p2,pmin,pmax])
+        
+        logger.info("Minimum pair-wise distance in final configuration: {:8.4e}".format(mind))
+        logger.info("First sample point in pair:    ({:8.4e},{:8.4e},{:8.4e})".format(*p1))
+        logger.info("Second sample point in pair    ({:8.4e},{:8.4e},{:8.4e})".format(*p2))
+        logger.info("Box lower boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[0]))
+        logger.info("Minimum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmin))
+        logger.info("Maximum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmax))
+        logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[1]))
+    except:
+        logger.warn("{} failed.".format(m))
+        continue
+        
+stats_df = pd.DataFrame( [ { 
+    'method':  s[0], 
+    'runtime': s[3],
+    'mind':    s[4],
+    **{'p1{:d}'.format(i): c for i,c in enumerate(s[5]) },
+    **{'p2{:d}'.format(i): c for i,c in enumerate(s[6]) }, 
+    **{'pmin{:d}'.format(i): c for i,c in enumerate(s[7]) },
+    **{'pmax{:d}'.format(i): c for i,c in enumerate(s[8]) }
+} for s in stats] )
+
+print(stats_df.to_string(float_format='%8.6g'))
 
 
-# In[221]:
+# In[368]:
+
+
+x1 = stats[1][1]
+
+
+# In[372]:
+
+
+box_constraint(x1)
+
+
+# In[375]:
+
+
+L = np.product(box[1]-box[0])**(1/3)
+
+
+# In[379]:
+
+
+r
+
+
+# In[382]:
+
+
+BOX = box / L
+
+
+# In[380]:
+
+
+R = r / L
+
+
+# In[384]:
+
+
+X1 = x1 / L
+
+
+# In[385]:
+
+
+box_constraint(X1,box=BOX,r=R)
+
+
+# In[386]:
+
+
+zeros = np.zeros(X1.shape)
+R = np.atleast_2d(R).T
+
+
+# In[395]:
+
+
+ldist = BOX[0,:] - X1+R
+
+
+# In[397]:
+
+
+ldist.min()
+
+
+# In[ ]:
+
+
+# positive if coordinates out of box
+ldist = box[0,:] - (x+r)
+rdist = (x+r) - box[1,:]
+
+lpenalty = np.maximum(zeros,ldist)
+rpenalty = np.maximum(zeros,rdist)
+
+lpenaltysq = np.square(lpenalty)
+rpenaltysq = np.square(rpenalty)
+
+g = np.sum(lpenaltysq) + np.sum(rpenaltysq)
+
+
+# In[ ]:
 
 
 X
+
+
+# In[352]:
+
+
+[ { 'p1{:d}'.format(i): c for i,c in enumerate(s[5]) } for s in stats ]
+
+
+# In[351]:
+
+
+pd.DataFrame([ { 'p1{:d}'.format(i): c for i,c in enumerate(s[5]) } for s in stats ])
+
+
+# In[354]:
+
+
+df = pd.DataFrame( [ { 
+    'method':  s[0], 
+    'runtime': s[3],
+    'mind':    s[4],
+    **{'p1{:d}'.format(i): c for i,c in enumerate(s[5]) },
+    **{'p2{:d}'.format(i): c for i,c in enumerate(s[6]) }, 
+    **{'pmin{:d}'.format(i): c for i,c in enumerate(s[7]) },
+    **{'pmax{:d}'.format(i): c for i,c in enumerate(s[8]) }
+} for s in stats] )
+
+
+# In[355]:
+
+
+df
+
+
+# In[334]:
+
+
+res.
+
+
+# In[333]:
+
+
+dir(res)
+
+
+# In[322]:
+
+
+stats
 
 
 # In[248]:
