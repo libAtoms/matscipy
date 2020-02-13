@@ -270,7 +270,7 @@ def make_edge_cyl(alat, C11, C12, C44,
     return ED, bulk
 
 
-def plot_vitek(dislo, bulk, save_file=None,
+def plot_vitek(dislo, bulk,
                alat=3.16, plot_axes=None, xyscale=10):
     """Plots vitek map from ase configurations.
 
@@ -280,8 +280,6 @@ def plot_vitek(dislo, bulk, save_file=None,
         Dislocation configuration.
     bulk : ase.Atoms
         Corresponding bulk configuration for calculation of displacements.
-    save_file : str, optional
-        If given then the plot will be saved to a file with this name.
     alat : float
         Lattice parameter for calculation of neghbour list cutoff.
     plot_axes : matplotlib.Axes.axes object
@@ -325,7 +323,6 @@ def plot_vitek(dislo, bulk, save_file=None,
                                         ylim=plot_range[1],
                                         zlim=plot_range[2],
                                         plot_scale=plot_scale,
-                                        save_file=save_file,
                                         plot_axes=plot_axes)
 
     return None
