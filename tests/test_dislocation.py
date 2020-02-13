@@ -6,6 +6,7 @@ import matscipy.dislocation as sd
 import numpy as np
 
 from ase.calculators.lammpslib import LAMMPSlib
+from ase.io import write
 from scipy.optimize import minimize
 
 
@@ -148,6 +149,52 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                                          xyscale=5.0, show=False)
         print("'dd_test.png' will be created: check the displacement map")
         fig.savefig("dd_test.png")
+
+    def test_read_dislo_QMMM(self):
+        """Test read_dislo_QMMM() function"""
+
+        alat = 3.14339177996466
+        C11 = 523.0266819809012
+        C12 = 202.1786296941397
+        C44 = 160.88179872237012
+
+        target_values = {"Nat": 1443,  # total number of atoms
+                         "QM": 12,  # number of atoms in QM region
+                         "MM": 876,  # number of atoms in MM region
+                         "fixed": 555}  # number of fixed atoms
+
+        cylinder_r = 40
+
+        disloc, __, __ = sd.make_screw_cyl(alat, C11, C12, C44,
+                                           cylinder_r=cylinder_r)
+
+        x, y, _ = disloc.positions.T
+        R = np.sqrt((x - x.mean()) ** 2 + (y - y.mean()) ** 2)
+
+        R_cut = alat * np.sqrt(6.0) / 2.0 + 0.2  # radius for 12 QM atoms
+        QM_mask = R < R_cut
+
+        region = disloc.get_array("region")
+        region[QM_mask] = np.full_like(region[QM_mask], "QM")
+        disloc.set_array("region", region)
+
+        disloc.write("test_read_dislo.xyz")
+
+        test_disloc, __ = sd.read_dislo_QMMM("test_read_dislo.xyz")
+        Nat = test_disloc.get_global_number_of_atoms()
+
+        self.assertEqual(Nat, target_values["Nat"])
+
+        total_Nat_type = 0
+        for atom_type in ["QM", "MM", "fixed"]:
+
+            Nat_type = np.count_nonzero(region == atom_type)
+            total_Nat_type += Nat_type
+            self.assertEqual(Nat_type, target_values[atom_type])
+
+        self.assertEqual(Nat, total_Nat_type)  # total number of atoms in region is equal to Nat (no atoms unmapped)
+        # TODO
+        #  self.assertAtomsAlmostEqual(disloc, test_disloc) - gives an error of _cell attribute new ase version?
 
 if __name__ == '__main__':
     unittest.main()
