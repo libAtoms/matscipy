@@ -181,7 +181,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         disloc.write("test_read_dislo.xyz")
 
         test_disloc, __ = sd.read_dislo_QMMM("test_read_dislo.xyz")
-        Nat = test_disloc.get_global_number_of_atoms()
+        Nat = len(test_disloc)
 
         self.assertEqual(Nat, target_values["Nat"])
 

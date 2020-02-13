@@ -1468,7 +1468,7 @@ def read_dislo_QMMM(filename=None, image=None):
         raise RuntimeError("Please provide either path or image")
 
     region = dislo_QMMM.get_array("region")
-    Nat = dislo_QMMM.get_number_of_atoms()
+    Nat = len(dislo_QMMM)
 
     print("Total number of atoms in read configuration: {0:7}".format(Nat))
 
