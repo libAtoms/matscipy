@@ -122,6 +122,32 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         fin_toten = disloc_fin.get_potential_energy()
         self.assertAlmostEqual(fin_toten, target_toten, places=4)
 
+    def test_differential_displacement(self):
+        """Test differential_displacement() function from atomman
+
+        """
+        alat = 3.14339177996466
+        C11 = 523.0266819809012
+        C12 = 202.1786296941397
+        C44 = 160.88179872237012
+
+        cylinder_r = 40
+
+        cent_x = np.sqrt(6.0) * alat / 3.0
+        center = (cent_x, 0.0, 0.0)
+
+        disloc_ini, bulk_ini, __ = sd.make_screw_cyl(alat, C11, C12, C44,
+                                                     cylinder_r=cylinder_r,
+                                                     l_extend=center)
+
+        disloc_fin, __, __ = sd.make_screw_cyl(alat, C11, C12, C44,
+                                               cylinder_r=cylinder_r,
+                                               center=center)
+
+
+        fig = sd.show_NEB_configurations([disloc_ini, disloc_fin], bulk_ini, xyscale=5.0)
+
+        fig.savefig("dd_test.png")
 
 if __name__ == '__main__':
     unittest.main()
