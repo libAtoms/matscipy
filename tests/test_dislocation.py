@@ -144,9 +144,9 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                                                cylinder_r=cylinder_r,
                                                center=center)
 
-
-        fig = sd.show_NEB_configurations([disloc_ini, disloc_fin], bulk_ini, xyscale=5.0)
-
+        fig = sd.show_NEB_configurations([disloc_ini, disloc_fin], bulk_ini,
+                                         xyscale=5.0, show=False)
+        print("'dd_test.png' will be created: check the displacement map")
         fig.savefig("dd_test.png")
 
 if __name__ == '__main__':
