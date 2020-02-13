@@ -306,10 +306,12 @@ def plot_vitek(dislo, bulk,
 
     neighborListCutoff = 0.95 * alat
 
-    # plot window is +-10 angstroms in x,y directions, and one Burgerx vector
+    # plot window is +-10 angstroms from center in x,y directions, and one Burgers vector
     # thickness along z direction
-    plot_range = np.array([[-xyscale, xyscale],
-                          [-xyscale, xyscale],
+    x, y, _ = bulk.positions.T
+
+    plot_range = np.array([[x.mean() - xyscale, x.mean() + xyscale],
+                          [y.mean() - xyscale, y.mean() + xyscale],
                           [-0.1, alat * 3.**(0.5) / 2.]])
 
     # This scales arrows such that b/2 corresponds to the
@@ -363,7 +365,7 @@ def show_NEB_configurations(images, bulk, xyscale=7,
             x, y = core_positions[i]
             ax1.scatter(x, y, marker="+", s=200, c='C1')
     if show:
-        plt.show(fig2)
+        fig2.show()
         return None
     else:
         return fig2
