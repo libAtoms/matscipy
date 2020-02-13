@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # continuous2discrete 
+# # Poisson-Boltzmann distribution & continuous2discrete 
 # 
 # *Johannes Hörmann, Lukas Elflein, 2019*
 # 
@@ -72,7 +72,7 @@ import ase
 import ase.io
 
 
-# In[174]:
+# In[9]:
 
 
 # PoissonNernstPlanckSystem makes extensive use of Python's logging module
@@ -391,1138 +391,11 @@ plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distributi
 plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
 
 
-# ### Enforcing steric ions
-
-# In[55]:
-
-
-from matscipy.electrochemistry.steric_distribution import *
-
-
-# In[199]:
-
-
-X = np.vstack([na_coordinate_sample, cl_coordinate_sample])
-
-BOX = np.array([[0.,0.,0],box])
-
-n = X.shape[0]
-
-dim = X.shape[1]
-
-L = np.power( np.product(BOX[1,:]-BOX[0,:]), 1/dim)
-
-
-# In[200]:
-
-
-BOX
-
-
-# In[201]:
-
-
-L
-
-
-# In[202]:
-
-
-BOX/L
-
-
-# In[209]:
-
-
-x0 = X / L
-box0 = BOX / L
-
-
-# In[210]:
-
-
-box0
-
-
-# In[260]:
-
-
-r = 2.0e-10
-
-
-# In[261]:
-
-
-R = r / L
-
-
-# In[262]:
-
-
-R
-
-
-# In[264]:
-
-
-box_constraint(x0,box=box0,r=R)
-
-
-# In[265]:
-
-
-scipy_distance_based_target_function(x0,r=R)
-
-
-# In[215]:
-
-
-P = scipy_distance_based_closest_pair(X)
-
-
-# In[216]:
-
-
-p = scipy_distance_based_closest_pair(x0)
-
-
-# In[217]:
-
-
-P
-
-
-# In[218]:
-
-
-p
-
-
-# In[223]:
-
-
-P[0]**0.5
-
-
-# In[224]:
-
-
-P[0]**0.5/L
-
-
-# In[269]:
-
-
-R
-
-
-# In[222]:
-
-
-p[0]**0.5
-
-
-# In[267]:
-
-
-x1, res = make_steric(X,box=BOX,r=2e-10)
-
-
-# In[270]:
-
-
-X1 = x1
-
-
-# In[271]:
-
-
-x1 = np.reshape(res.x,(n,dim))
-
-
-# In[304]:
-
-
-
-x1
-
-
-# In[308]:
-
-
-X1
-
-
-# In[286]:
-
-
-R
-
-
-# In[278]:
-
-
-box_constraint(x0,box=box0,r=R)
-
-
-# In[279]:
-
-
-scipy_distance_based_target_function(x0,r=R)
-
-
-# In[280]:
-
-
-box_constraint(x1,box=box0,r=R)
-
-
-# In[281]:
-
-
-scipy_distance_based_target_function(x1,r=R)
-
-
-# In[ ]:
-
-
-
-
-
-# In[287]:
-
-
-P0 = scipy_distance_based_closest_pair(X)
-
-
-# In[288]:
-
-
-p0 = scipy_distance_based_closest_pair(x0)
-
-
-# In[293]:
-
-
-P0
-
-
-# In[294]:
-
-
-p0
-
-
-# In[290]:
-
-
-P1 = scipy_distance_based_closest_pair(X1)
-
-
-# In[291]:
-
-
-p1 = scipy_distance_based_closest_pair(x1)
-
-
-# In[292]:
-
-
-P1
-
-
-# In[299]:
-
-
-p1
-
-
-# In[311]:
-
-
-R*2
-
-
-# In[301]:
-
-
-np.sqrt(p1[0])
-
-
-# In[302]:
-
-
-np.sqrt(P1[0])
-
-
-# In[303]:
-
-
-res
-
-
-# In[43]:
-
-
-from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
-from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
-from matscipy.electrochemistry.steric_distribution import brute_force_target_function
-import itertools
-import pandas as pd
-import scipy.spatial.distance
-import timeit
-
-funcs = [
-        brute_force_target_function,
-        numpy_only_target_function,
-        scipy_distance_based_target_function ]
-func_names = ['brute','numpy','scipy']
-
-stats = []
-K = np.exp(np.log(10)*np.arange(-3,3))
-for k in K:
-    lambdas = [ (lambda x0=x0,k=k,f=f: f(x0*k)) for f in funcs ]
-    vals    = [ f() for f in lambdas ]
-    times   = [ timeit.timeit(f,number=1) for f in lambdas ]
-    diffs = scipy.spatial.distance.pdist(np.atleast_2d(vals).T,metric='euclidean')
-    stats.append((k,*vals,*diffs,*times))
-
-func_name_tuples = list(itertools.combinations(func_names,2))
-diff_names = [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
-perf_names = [ 't_{:s}'.format(f) for f in func_names ]
-fields =  ['k',*func_names,*diff_names,*perf_names]
-dtypes = [ (field, '>f4') for field in fields ]
-labeled_stats = np.array(stats,dtype=dtypes) 
-stats_df = pd.DataFrame(labeled_stats)
-print(stats_df.to_string(float_format='%8.6g'))
-
-
-# In[182]:
-
-
-from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
-from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
-from matscipy.electrochemistry.steric_distribution import brute_force_target_function
-import itertools
-import pandas as pd
-import scipy.spatial.distance
-import timeit
-
-funcs = [
-        brute_force_closest_pair,
-        scipy_distance_based_closest_pair,
-        planar_closest_pair ]
-func_names = ['brute','scipy','planar']
-stats = []
-N = 1000
-dim = 3
-for k in range(5):
-    x = np.random.rand(N,dim)
-    lambdas = [ (lambda x=x,f=f: f(x)) for f in funcs ]
-    rets    = [ f() for f in lambdas ]
-    vals    = [ v[0] for v in rets ]
-    coords  = [ c for v in rets for p in v[1] for c in p ]
-    times   = [ timeit.timeit(f,number=1) for f in lambdas ]
-    diffs   = scipy.spatial.distance.pdist(
-        np.atleast_2d(vals).T,metric='euclidean')
-    stats.append((*vals,*diffs,*times,*coords))
-
-func_name_tuples = list(itertools.combinations(func_names,2))
-diff_names =  [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
-perf_names =  [ 't_{:s}'.format(f) for f in func_names ]
-coord_names = [ 
-    'p{:d}{:s}_{:s}'.format(i,a,f) for f in func_names for i in (1,2) for a in ('x','y','z') ]
-float_fields = [*func_names,*diff_names,*perf_names,*coord_names]
-dtypes = [ (field, 'f4') for field in float_fields ]
-labeled_stats = np.array(stats,dtype=dtypes)
-stats_df = pd.DataFrame(labeled_stats)
-print(stats_df.T.to_string(float_format='%8.6g'))
-
-
-# In[191]:
-
-
-from matscipy.electrochemistry.steric_distribution import scipy_distance_based_target_function
-from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
-from matscipy.electrochemistry.steric_distribution import brute_force_target_function
-import itertools
-import pandas as pd
-import scipy.spatial.distance
-import timeit
-
-funcs = [
-        brute_force_closest_pair,
-        scipy_distance_based_closest_pair,
-        planar_closest_pair ]
-func_names = ['brute','scipy','planar']
-stats = []
-N = 1000
-dim = 3
-for k in range(5):
-    x = np.random.rand(N,dim)
-    lambdas = [ (lambda x=x,f=f: f(x)) for f in funcs ]
-    rets    = [ f() for f in lambdas ]
-    vals    = [ v[0] for v in rets ]
-    coords  = [ c for v in rets for p in v[1] for c in p ]
-    times   = [ timeit.timeit(f,number=1) for f in lambdas ]
-    diffs   = scipy.spatial.distance.pdist(
-        np.atleast_2d(vals).T,metric='euclidean')
-    stats.append((*vals,*diffs,*times,*coords))
-
-func_name_tuples = list(itertools.combinations(func_names,2))
-diff_names =  [ 'd_{:s}_{:s}'.format(f1,f2) for (f1,f2) in func_name_tuples ]
-perf_names =  [ 't_{:s}'.format(f) for f in func_names ]
-coord_names = [ 
-    'p{:d}{:s}_{:s}'.format(i,a,f) for f in func_names for i in (1,2) for a in ('x','y','z') ]
-float_fields = [*func_names,*diff_names,*perf_names,*coord_names]
-dtypes = [ (field, 'f4') for field in float_fields ]
-labeled_stats = np.array(stats,dtype=dtypes)
-stats_df = pd.DataFrame(labeled_stats)
-print(stats_df.T.to_string(float_format='%8.6g'))
-
-
-# In[268]:
-
-
-import time
-
-
-# In[21]:
-
-
-x = y = 5e-9
-z = 10e-9
-box = np.array([x, y, z])
-sample_size = 100
-
-na_coordinate_sample = continuous2discrete(
-    distribution=distributions[0], box=box, count=sample_size)
-
-cl_coordinate_sample = continuous2discrete(
-    distributions[1], box=box, count=sample_size)
-
-
-# In[ ]:
-
-
-histx, histy, histz = get_histogram(na_coordinate_sample, box=box, n_bins=51)
-histx, histy, histz = get_histogram(cl_coordinate_sample, box=box, n_bins=51)
-plot_dist(histz, 'Distribution of Na+ ions in z-direction', reference_distribution=distributions[0])
-plot_dist(histx, 'Distribution of Cl- ions in x-direction', reference_distribution=lambda x: np.ones(x.shape)*1/box[0])
-plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distribution=lambda x: np.ones(x.shape)*1/box[1])
-plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
-
-
-# In[22]:
-
-
-from scipy import optimize
-
-
-# In[ ]:
-
-
-# measures of box
-xsize = ysize = 50e-9 # nm, SI units
-zsize = 100e-9    # nm, SI units
-
-# get continuum distribution, z direction
-x = np.linspace(0, zsize, 2000)
-c = [0.1,0.1]
-z = [1,-1]
-u = 0.05 
-
-phi = potential(x, c, z, u)
-C   = concentration(x, c, z, u)
-rho = charge_density(x, c, z, u)
-
-# create distribution functions
-distributions = [interpolate.interp1d(x,c) for c in C]
-
-# sample discrete coordinate set
-box = np.array([xsize, ysize, zsize])
-sample_size = 1000
-
-samples = [ continuous2discrete(
-    distribution=d, box=box, count=sample_size) for d in distributions ]
-
-# apply penalty for steric overlap
-x = np.vstack(samples)
-
-box = np.array([[0.,0.,0],box]) # needs lower corner
-
-n = x.shape[0]
-dim = x.shape[1]
-
-# benchmakr methods
-mindsq, (p1,p2) = scipy_distance_based_closest_pair(x)
-pmin = np.min(x,axis=0)
-pmax = np.max(x,axis=0)
-mind = np.sqrt(mindsq)
-logger.info("Minimum pair-wise distance in sample: {}".format(mind))
-logger.info("First sample point in pair:    ({:8.4e},{:8.4e},{:8.4e})".format(*p1))
-logger.info("Second sample point in pair    ({:8.4e},{:8.4e},{:8.4e})".format(*p2))
-logger.info("Box lower boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[0]))
-logger.info("Minimum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmin))
-logger.info("Maximum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmax))
-logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[1]))
-
-# stats: method, x, res, dt, mind, p1, p2 , pmin, pmax
-stats = [('initial',x,None,0,mind,p1,p2,pmin,pmax)]
-
-r = 2e-10 # 4 Angstrom steric radius
-logger.info("Steric radius: {:8.4e}".format(r))
-
-methods = [
-    #'Nelder-Mead', # not suitable
-    'Powell',
-    'CG',
-    'BFGS',
-    #'Newton-CG', # needs explicit Jacobian
-    'L-BFGS-B' 
-]
-        
-for m in methods:
-    try:
-        logger.info("### {} ###".format(m))
-        t0 = time.perf_counter()
-        x1, res = make_steric(x,box=box,r=r,method=m)
-        t1 = time.perf_counter()
-        dt = t1 - t0
-        logger.info("{} s runtime".format(dt))
-        
-        mindsq, (p1,p2) = scipy_distance_based_closest_pair(x1)
-        mind = np.sqrt(mindsq)
-        pmin = np.min(x1,axis=0)
-        pmax = np.max(x1,axis=0)
-
-        stats.append([m,x1,res,dt,mind,p1,p2,pmin,pmax])
-        
-        logger.info("Minimum pair-wise distance in final configuration: {:8.4e}".format(mind))
-        logger.info("First sample point in pair:    ({:8.4e},{:8.4e},{:8.4e})".format(*p1))
-        logger.info("Second sample point in pair    ({:8.4e},{:8.4e},{:8.4e})".format(*p2))
-        logger.info("Box lower boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[0]))
-        logger.info("Minimum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmin))
-        logger.info("Maximum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmax))
-        logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box[1]))
-    except:
-        logger.warn("{} failed.".format(m))
-        continue
-        
-stats_df = pd.DataFrame( [ { 
-    'method':  s[0], 
-    'runtime': s[3],
-    'mind':    s[4],
-    **{'p1{:d}'.format(i): c for i,c in enumerate(s[5]) },
-    **{'p2{:d}'.format(i): c for i,c in enumerate(s[6]) }, 
-    **{'pmin{:d}'.format(i): c for i,c in enumerate(s[7]) },
-    **{'pmax{:d}'.format(i): c for i,c in enumerate(s[8]) }
-} for s in stats] )
-
-print(stats_df.to_string(float_format='%8.6g'))
-
-
-# In[368]:
-
-
-x1 = stats[1][1]
-
-
-# In[372]:
-
-
-box_constraint(x1)
-
-
-# In[375]:
-
-
-L = np.product(box[1]-box[0])**(1/3)
-
-
-# In[379]:
-
-
-r
-
-
-# In[382]:
-
-
-BOX = box / L
-
-
-# In[380]:
-
-
-R = r / L
-
-
-# In[384]:
-
-
-X1 = x1 / L
-
-
-# In[385]:
-
-
-box_constraint(X1,box=BOX,r=R)
-
-
-# In[386]:
-
-
-zeros = np.zeros(X1.shape)
-R = np.atleast_2d(R).T
-
-
-# In[395]:
-
-
-ldist = BOX[0,:] - X1+R
-
-
-# In[397]:
-
-
-ldist.min()
-
-
-# In[ ]:
-
-
-# positive if coordinates out of box
-ldist = box[0,:] - (x+r)
-rdist = (x+r) - box[1,:]
-
-lpenalty = np.maximum(zeros,ldist)
-rpenalty = np.maximum(zeros,rdist)
-
-lpenaltysq = np.square(lpenalty)
-rpenaltysq = np.square(rpenalty)
-
-g = np.sum(lpenaltysq) + np.sum(rpenaltysq)
-
-
-# In[ ]:
-
-
-X
-
-
-# In[352]:
-
-
-[ { 'p1{:d}'.format(i): c for i,c in enumerate(s[5]) } for s in stats ]
-
-
-# In[351]:
-
-
-pd.DataFrame([ { 'p1{:d}'.format(i): c for i,c in enumerate(s[5]) } for s in stats ])
-
-
-# In[354]:
-
-
-df = pd.DataFrame( [ { 
-    'method':  s[0], 
-    'runtime': s[3],
-    'mind':    s[4],
-    **{'p1{:d}'.format(i): c for i,c in enumerate(s[5]) },
-    **{'p2{:d}'.format(i): c for i,c in enumerate(s[6]) }, 
-    **{'pmin{:d}'.format(i): c for i,c in enumerate(s[7]) },
-    **{'pmax{:d}'.format(i): c for i,c in enumerate(s[8]) }
-} for s in stats] )
-
-
-# In[355]:
-
-
-df
-
-
-# In[334]:
-
-
-res.
-
-
-# In[333]:
-
-
-dir(res)
-
-
-# In[322]:
-
-
-stats
-
-
-# In[248]:
-
-
-a = np.array([1,2,3])
-
-
-# In[253]:
-
-
-b = np.ones((3,1))
-
-
-# In[254]:
-
-
-a
-
-
-# In[255]:
-
-
-b
-
-
-# In[257]:
-
-
-ab = np.kron(a,b)
-
-
-# In[258]:
-
-
-ab
-
-
-# In[260]:
-
-
-ba = ab.T
-
-
-# In[261]:
-
-
-ba
-
-
-# In[272]:
-
-
-AB = ab + ba
-
-
-# In[279]:
-
-
-AB
-
-
-# In[267]:
-
-
-from scipy.spatial.distance import pdist
-
-
-# In[271]:
-
-
-from scipy.spatial.distance import squareform
-
-
-# In[283]:
-
-
-AB
-
-
-# In[282]:
-
-
-squareform(AB,force='tovector',checks=False)
-
-
-# In[270]:
-
-
-pdist(X).shape
-
-
-# In[263]:
-
-
-ba
-
-
-# In[218]:
-
-
-brute_force_closest_pair(X)[0]**(0.5)
-
-
-# In[219]:
-
-
-brute_force_closest_pair(x1)[0]**0.5
-
-
-# In[89]:
-
-
-testarr = np.array([(3,2,1),(4,5,6),(9,7,8)]).T
-
-
-# In[140]:
-
-
-n = 2000
-
-
-# In[141]:
-
-
-d*np.ones(n)
-
-
-# In[149]:
-
-
-np.atleast_2d(d*np.ones(n)).T
-
-
-# In[136]:
-
-
-np.atleast_2d(r)
-
-
-# In[94]:
-
-
-np.sort(testarr,axis=0)
-
-
-# In[78]:
-
-
-np.flip(BOX,axis=1)
-
-
-# In[54]:
-
-
-f = 0
-n = X.shape[0]
-xi  = X
-dsq = d**2*np.ones(n)
-zeros = np.zeros(n)
-
-
-# In[55]:
-
-
-for i in np.arange(n):
-    xj  = np.roll(xi,i,axis=0)
-    dx  = xi - xj
-    dxsq = np.square(dx)
-    dxnormsq = np.sum( dxsq, axis=1 )
-    sqdiff = dsq - dxnormsq
-    penalty = np.maximum(zeros,sqdiff)
-    penaltysq = np.square(penalty)
-    # halv for double-counting
-    f += 0.5*np.sum(penaltysq)
-
-
-# In[63]:
-
-
-dsq - dxnormsq
-
-
-# In[61]:
-
-
-dxnormsq
-
-
-# In[67]:
-
-
-penaltysq
-
-
-# In[48]:
-
-
-target_function(X,d=d)
-
-
-# In[49]:
-
-
-d
-
-
-# In[51]:
-
-
-box_constraint(X,box=BOX,d=d)
-
-
-# In[194]:
-
-
-target_function(X,d=d,constraints=(lambda x: box_constraint(x,box=box,d=d)))
-
-
-# In[197]:
-
-
-X0 = X.reshape(np.product(X.shape))
-
-
-# In[233]:
-
-
-def calc_wrapper(x,dim=3):
-    n = int(x.shape[0] / dim)
-    X = x.reshape((n,dim))
-    return target_function(X,d=d,constraints=(lambda x: box_constraint(x,box=BOX,d=d)))
-
-
-# In[87]:
-
-
-from scipy.optimize import minimize
-
-
-# In[235]:
-
-
-X0.shape
-
-
-# In[236]:
-
-
-calc_wrapper(X0)
-
-
-# In[89]:
-
-
-import scipy.optimize
-
-
-# In[90]:
-
-
-scipy.optimize.show_options('minimize','BFGS')
-
-
-# In[237]:
-
-
-res_cg = minimize(calc_wrapper,X0,method='CG',options={
-    'gtol':1e-5,'maxiter':1,'disp':True,'eps':1e-5})
-
-
-# In[238]:
-
-
-res_bfgs = minimize(calc_wrapper,X0,method='BFGS',
-               options={'gtol':1e-5,'maxiter':10,'disp':True,'eps':1e-5})
-
-
-# In[239]:
-
-
-res_bfgs
-
-
-# In[240]:
-
-
-X1 = res_bfgs.x.reshape(X.shape)
-
-
-# In[241]:
-
-
-min_dist(X1)
-
-
-# In[204]:
-
-
-min_dist(
-    res.x.reshape(X.shape) )
-
-
-# In[145]:
-
-
-res_lbfgsb = minimize(calc_wrapper,X0,method='L-BFGS-B',
-               options={
-                   'ftol': 1e-5, 
-                   'gtol':1e-5,
-                   'maxiter':1,
-                   'disp':True,
-                   'iprint':101,
-                   'eps':1.0})
-
-
-# In[205]:
-
-
-X1 = res_bfgs.x.reshape(X.shape)
-
-
-# In[206]:
-
-
-min_dist(X1)
-
-
-# In[242]:
-
-
-x1 = X1/1e9
-
-
-# In[243]:
-
-
-histx, histy, histz = get_histogram(x1, box=box, n_bins=51)
-plot_dist(histx, 'Distribution of Cl- ions in x-direction', reference_distribution=lambda x: np.ones(x.shape)*1/box[0])
-plot_dist(histy, 'Distribution of Cl- ions in y-direction', reference_distribution=lambda x: np.ones(x.shape)*1/box[1])
-plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distribution=distributions[1])
-
-
-# In[219]:
-
-
-res_cg = minimize(calc_wrapper,X0,method='CG',
-               options={'gtol':1e-5,'maxiter':1,'disp':True})
-
-
-# In[147]:
-
-
-x
-
-
-# In[ ]:
-
-
-res = minimize(calc_wrapper,X0,method='CG')
-
-
-# In[110]:
-
-
-res = minimize(calc_wrapper,X0,method='CG',
-               options={'gtol':1e-5,'maxiter':1,'disp':True})
-
-
-# In[63]:
-
-
-calc(x)
-
-
-# In[60]:
-
-
-dyn=BFGS(system)
-
-
-# In[61]:
-
-
-dyn.run()
-
-
-# In[47]:
-
-
-f
-
-
-# In[90]:
-
-
-penalty = np.maximum(zeros,sqdiff)
-
-
-# In[94]:
-
-
-np.sum(np.square(penalty))
-
-
-# In[86]:
-
-
-np.max(sqdiff)
-
-
-# In[88]:
-
-
-np.maximum(zeros,sqdiff)
-
-
-# In[158]:
-
-
-np.max(x,axis=0)
-
-
-# In[141]:
-
-
-target_function(x,d=10)
-
-
-# In[159]:
-
-
-box_constraint(x,box=np.array([[0,0,0],[50,50,100]]))
-
-
-# In[139]:
-
-
-drange = np.exp(np.log(10)*np.arange(-10,10,1))
-
-
-# In[ ]:
-
-
-
-
-
-# In[105]:
-
-
-t = np.array([target_function(x,d) for d in drange])
-
-
-# In[108]:
-
-
-plt.loglog(drange,t)
-
-
 # ## Write to file
 # To visualize our sampled coordinates, we utilize ASE to export it to some standard format, i.e. .xyz or LAMMPS data file.
 # ASE speaks Ångström per default, thus we convert SI units:
 
-# In[24]:
+# In[25]:
 
 
 na_atoms = ase.Atoms(
@@ -1546,7 +419,7 @@ system
 ase.io.write('NaCl_0.1mM_0.05V_50x50x100nm_at_interface_poisson_boltzmann_distributed.xyz',system,format='xyz')
 
 
-# In[25]:
+# In[26]:
 
 
 # LAMMPS data format, units 'real', atom style 'full'
@@ -1724,7 +597,7 @@ ase.io.write('NaCl_0.1mM_0.05V_50x50x100nm_at_interface_poisson_boltzmann_distri
 # 
 # $$ B(x) = \frac{x}{\exp(x)-1} $$ 
 
-# In[26]:
+# In[27]:
 
 
 def B(x):
@@ -1733,13 +606,13 @@ def B(x):
         x / ( np.exp(x) - 1 ) )
 
 
-# In[27]:
+# In[28]:
 
 
 xB = np.arange(-10,10,0.1)
 
 
-# In[28]:
+# In[29]:
 
 
 plt.plot( xB ,B( xB ), label="$B(x)$")
@@ -1815,7 +688,7 @@ plt.legend()
 
 # ## Test case 1: PNP interface system, 0.1 mM NaCl, positive potential u = 0.05 V
 
-# In[29]:
+# In[30]:
 
 
 # Test case parameters
@@ -1825,7 +698,7 @@ L=1e-07
 delta_u=0.05
 
 
-# In[30]:
+# In[31]:
 
 
 # define desired system
@@ -1835,19 +708,19 @@ pnp = PoissonNernstPlanckSystem(c, z, L, delta_u=delta_u)
 # with default values set for 0.1 mM NaCl aqueous solution across 100 nm  and 0.05 V potential drop
 
 
-# In[31]:
+# In[32]:
 
 
 pnp.useStandardInterfaceBC()
 
 
-# In[32]:
+# In[33]:
 
 
 pnp.init()
 
 
-# In[33]:
+# In[34]:
 
 
 pnp.output = True # let's Newton solver display convergence plots
@@ -1856,7 +729,7 @@ uij, nij, lamj = pnp.solve()
 
 # ### Validation: Analytical half-space solution & Numerical finite-size PNP system
 
-# In[34]:
+# In[35]:
 
 
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
@@ -1919,7 +792,7 @@ plt.show()
 
 # #### Potential at left and right hand side of domain
 
-# In[35]:
+# In[36]:
 
 
 (pnp.potential[0],pnp.potential[-1])
@@ -1927,7 +800,7 @@ plt.show()
 
 # #### Residual cation flux at interface and at open right hand side
 
-# In[36]:
+# In[37]:
 
 
 ( pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,0), pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -1935,7 +808,7 @@ plt.show()
 
 # #### Residual anion flux at interface and at open right hand side
 
-# In[37]:
+# In[38]:
 
 
 (pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,1),  pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -1943,7 +816,7 @@ plt.show()
 
 # #### Cation concentration at interface and at open right hand side
 
-# In[38]:
+# In[39]:
 
 
 (pnp.concentration[0,0],pnp.concentration[0,-1])
@@ -1951,7 +824,7 @@ plt.show()
 
 # #### Anion concentration at interface and at open right hand side
 
-# In[39]:
+# In[40]:
 
 
 (pnp.concentration[1,0],pnp.concentration[1,-1])
@@ -1959,7 +832,7 @@ plt.show()
 
 # ## Test case 2: PNP interface system, 0.1 mM NaCl, negative potential u = -0.05 V, analytical solution as initial values
 
-# In[40]:
+# In[41]:
 
 
 # Test case parameters
@@ -1969,25 +842,25 @@ L=1e-07
 delta_u=-0.05
 
 
-# In[41]:
+# In[42]:
 
 
 pnp = PoissonNernstPlanckSystem(c, z, L, delta_u=delta_u)
 
 
-# In[42]:
+# In[43]:
 
 
 pnp.useStandardInterfaceBC()
 
 
-# In[43]:
+# In[44]:
 
 
 pnp.init()
 
 
-# In[44]:
+# In[45]:
 
 
 # initial config
@@ -1996,25 +869,25 @@ phi = potential(x, c, z, delta_u)
 C = concentration(x, c, z, delta_u)
 
 
-# In[45]:
+# In[46]:
 
 
 pnp.ni0 = C / pnp.c_unit # manually remove dimensions from analyatical solution
 
 
-# In[46]:
+# In[47]:
 
 
 ui0 = pnp.initial_values()
 
 
-# In[47]:
+# In[48]:
 
 
 plt.plot(ui0) # solution to linear Poisson equation under assumption of fixed charge density distribution
 
 
-# In[48]:
+# In[49]:
 
 
 pnp.output = True # let's Newton solver display convergence plots
@@ -2023,7 +896,7 @@ uij, nij, lamj = pnp.solve() # no faster convergence than above, compare converg
 
 # ### Validation: Analytical half-space solution & Numerical finite-size PNP system
 
-# In[49]:
+# In[50]:
 
 
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
@@ -2086,7 +959,7 @@ plt.show()
 
 # #### Potential at left and right hand side of domain
 
-# In[50]:
+# In[51]:
 
 
 (pnp.potential[0],pnp.potential[-1])
@@ -2094,7 +967,7 @@ plt.show()
 
 # #### Residual cation flux at interface and at open right hand side
 
-# In[51]:
+# In[52]:
 
 
 ( pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,0), pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -2102,7 +975,7 @@ plt.show()
 
 # #### Residual anion flux at interface and at open right hand side
 
-# In[52]:
+# In[53]:
 
 
 ( pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,1), pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,1) )
@@ -2110,7 +983,7 @@ plt.show()
 
 # #### Cation concentration at interface and at open right hand side
 
-# In[53]:
+# In[54]:
 
 
 (pnp.concentration[0,0],pnp.concentration[0,-1])
@@ -2118,7 +991,7 @@ plt.show()
 
 # #### Anion concentration at interface and at open right hand side
 
-# In[54]:
+# In[55]:
 
 
 (pnp.concentration[1,0],pnp.concentration[1,-1])
@@ -2126,7 +999,7 @@ plt.show()
 
 # ## Test case 3: PNP interface system, 0.1 mM NaCl, positive potential u = 0.05 V, 200 nm domain
 
-# In[55]:
+# In[56]:
 
 
 # Test case parameters
@@ -2136,25 +1009,25 @@ L=2e-07
 delta_u=0.05
 
 
-# In[56]:
+# In[57]:
 
 
 pnp = PoissonNernstPlanckSystem(c, z, L, delta_u=delta_u)
 
 
-# In[57]:
+# In[58]:
 
 
 pnp.useStandardInterfaceBC()
 
 
-# In[58]:
+# In[59]:
 
 
 pnp.init()
 
 
-# In[59]:
+# In[60]:
 
 
 pnp.output = True
@@ -2163,7 +1036,7 @@ uij, nij, lamj = pnp.solve()
 
 # ### Validation: Analytical half-space solution & Numerical finite-size PNP system
 
-# In[60]:
+# In[61]:
 
 
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
@@ -2228,7 +1101,7 @@ plt.show()
 
 # #### Potential at left and right hand side of domain
 
-# In[61]:
+# In[62]:
 
 
 (pnp.potential[0],pnp.potential[-1])
@@ -2236,7 +1109,7 @@ plt.show()
 
 # #### Residual cation flux at interface and at open right hand side
 
-# In[62]:
+# In[63]:
 
 
 ( pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,0), pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -2244,7 +1117,7 @@ plt.show()
 
 # #### Residual anion flux at interface and at open right hand side
 
-# In[63]:
+# In[64]:
 
 
 (pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,1),  pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -2252,7 +1125,7 @@ plt.show()
 
 # #### Cation concentration at interface and at open right hand side
 
-# In[64]:
+# In[65]:
 
 
 (pnp.concentration[0,0],pnp.concentration[0,-1])
@@ -2260,7 +1133,7 @@ plt.show()
 
 # #### Anion concentration at interface and at open right hand side
 
-# In[65]:
+# In[66]:
 
 
 (pnp.concentration[1,0],pnp.concentration[1,-1])
@@ -2268,7 +1141,7 @@ plt.show()
 
 # ## Test case 4: 1D electrochemical cell, 0.1 mM NaCl, positive potential u = 0.05 V, 100 nm domain
 
-# In[66]:
+# In[67]:
 
 
 # Test case parameters
@@ -2278,25 +1151,25 @@ L=1e-07
 delta_u=0.05
 
 
-# In[67]:
+# In[68]:
 
 
 pnp = PoissonNernstPlanckSystem(c, z, L, delta_u=delta_u)
 
 
-# In[68]:
+# In[69]:
 
 
 pnp.useStandardCellBC()
 
 
-# In[69]:
+# In[70]:
 
 
 pnp.init()
 
 
-# In[70]:
+# In[71]:
 
 
 pnp.output = True
@@ -2305,7 +1178,7 @@ xij = pnp.solve()
 
 # ### Validation: Analytical half-space solution & Numerical finite-size PNP system
 
-# In[71]:
+# In[72]:
 
 
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
@@ -2366,7 +1239,7 @@ fig.tight_layout()
 plt.show()
 
 
-# In[72]:
+# In[73]:
 
 
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
@@ -2419,7 +1292,7 @@ plt.show()
 
 # #### Potential at left and right hand side of domain
 
-# In[73]:
+# In[74]:
 
 
 (pnp.potential[0],pnp.potential[-1])
@@ -2427,7 +1300,7 @@ plt.show()
 
 # #### Residual cation flux at interfaces
 
-# In[74]:
+# In[75]:
 
 
 ( pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,0), pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -2435,7 +1308,7 @@ plt.show()
 
 # #### Residual anion flux at interfaces
 
-# In[75]:
+# In[76]:
 
 
 (pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,1),  pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -2443,7 +1316,7 @@ plt.show()
 
 # #### Cation concentration at interfaces
 
-# In[76]:
+# In[77]:
 
 
 (pnp.concentration[0,0],pnp.concentration[0,-1])
@@ -2451,7 +1324,7 @@ plt.show()
 
 # #### Anion concentration at interfaces
 
-# In[77]:
+# In[78]:
 
 
 (pnp.concentration[1,0],pnp.concentration[1,-1])
@@ -2459,7 +1332,7 @@ plt.show()
 
 # #### Equilibrium cation and anion amount
 
-# In[78]:
+# In[79]:
 
 
 ( pnp.numberConservationConstraint(pnp.xij1,0,0), pnp.numberConservationConstraint(pnp.xij1,1,0) )
@@ -2467,7 +1340,7 @@ plt.show()
 
 # #### Initial cation and anion amount
 
-# In[79]:
+# In[80]:
 
 
 ( pnp.numberConservationConstraint(pnp.xi0,0,0), pnp.numberConservationConstraint(pnp.xi0,1,0) )
@@ -2475,7 +1348,7 @@ plt.show()
 
 # #### Species conservation
 
-# In[80]:
+# In[81]:
 
 
 (pnp.numberConservationConstraint(pnp.xij1,0,
@@ -2491,7 +1364,7 @@ plt.show()
 # This compact layer is parametrized by its thickness $\lambda_S$ and can be treated explicitly by prescribing a linear potential regime across the compact layer region, or by 
 # the implicit parametrization of a compact layer with uniform charge density as Robin boundary conditions on the potential. 
 
-# In[81]:
+# In[82]:
 
 
 c        = [1000,1000] # high concentrations close to NaCl's solubility limit in water
@@ -2500,82 +1373,82 @@ L        = 30e-10 # tiny gap of 3 nm
 lambda_S =  5e-10 # 0.5 nm Stern layer
 
 
-# In[82]:
+# In[83]:
 
 
 pnp_no_compact_layer = PoissonNernstPlanckSystem(c,z,L,delta_u=delta_u, e=1e-12)
 
 
-# In[83]:
+# In[84]:
 
 
 pnp_with_explicit_compact_layer = PoissonNernstPlanckSystem(c,z,L, delta_u=delta_u,lambda_S=lambda_S, e=1e-12)
 
 
-# In[84]:
+# In[85]:
 
 
 pnp_with_implicit_compact_layer = PoissonNernstPlanckSystem(c,z,L, delta_u=delta_u,lambda_S=lambda_S, e=1e-12)
 
 
-# In[85]:
+# In[86]:
 
 
 pnp_no_compact_layer.useStandardCellBC()
 
 
-# In[86]:
+# In[87]:
 
 
 pnp_with_explicit_compact_layer.useSternLayerCellBC(implicit=False)
 
 
-# In[87]:
+# In[88]:
 
 
 pnp_with_implicit_compact_layer.useSternLayerCellBC(implicit=True)
 
 
-# In[88]:
+# In[89]:
 
 
 pnp_no_compact_layer.init()
 
 
-# In[89]:
+# In[90]:
 
 
 pnp_with_explicit_compact_layer.init()
 
 
-# In[90]:
+# In[91]:
 
 
 pnp_with_implicit_compact_layer.init()
 
 
-# In[91]:
+# In[92]:
 
 
 pnp_no_compact_layer.output = True
 xij_no_compact_layer = pnp_no_compact_layer.solve()
 
 
-# In[92]:
+# In[93]:
 
 
 pnp_with_explicit_compact_layer.output = True
 xij_with_explicit_compact_layer = pnp_with_explicit_compact_layer.solve()
 
 
-# In[93]:
+# In[94]:
 
 
 pnp_with_implicit_compact_layer.output = True
 xij_with_implicit_compact_layer = pnp_with_implicit_compact_layer.solve()
 
 
-# In[94]:
+# In[95]:
 
 
 x = np.linspace(0,L,100)
@@ -2650,19 +1523,19 @@ plt.show()
 
 # #### Potential at left and right hand side of domain
 
-# In[95]:
+# In[96]:
 
 
 (pnp_no_compact_layer.potential[0],pnp_no_compact_layer.potential[-1])
 
 
-# In[96]:
+# In[97]:
 
 
 (pnp_with_explicit_compact_layer.potential[0],pnp_with_explicit_compact_layer.potential[-1])
 
 
-# In[97]:
+# In[98]:
 
 
 (pnp_with_implicit_compact_layer.potential[0],pnp_with_implicit_compact_layer.potential[-1])
@@ -2670,19 +1543,19 @@ plt.show()
 
 # #### Residual cation flux at interfaces
 
-# In[98]:
+# In[99]:
 
 
 ( pnp_no_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_no_compact_layer.xij1,0), pnp_no_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_no_compact_layer.xij1,0) )
 
 
-# In[99]:
+# In[100]:
 
 
 ( pnp_with_explicit_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_with_explicit_compact_layer.xij1,0), pnp_with_explicit_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_with_explicit_compact_layer.xij1,0) )
 
 
-# In[100]:
+# In[101]:
 
 
 ( pnp_with_implicit_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_with_implicit_compact_layer.xij1,0), pnp_with_implicit_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_with_implicit_compact_layer.xij1,0) )
@@ -2690,19 +1563,19 @@ plt.show()
 
 # #### Residual cation flux at interfaces
 
-# In[101]:
+# In[102]:
 
 
 ( pnp_no_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_no_compact_layer.xij1,1), pnp_no_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_no_compact_layer.xij1,1) )
 
 
-# In[102]:
+# In[103]:
 
 
 ( pnp_with_explicit_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_with_explicit_compact_layer.xij1,1), pnp_with_explicit_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_with_explicit_compact_layer.xij1,1) )
 
 
-# In[103]:
+# In[104]:
 
 
 ( pnp_with_implicit_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_with_implicit_compact_layer.xij1,1), pnp_with_implicit_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_with_implicit_compact_layer.xij1,1) )
@@ -2710,19 +1583,19 @@ plt.show()
 
 # #### Cation concentration at interfaces
 
-# In[104]:
+# In[105]:
 
 
 (pnp_no_compact_layer.concentration[0,0],pnp_no_compact_layer.concentration[0,-1])
 
 
-# In[105]:
+# In[106]:
 
 
 (pnp_with_explicit_compact_layer.concentration[0,0],pnp_with_explicit_compact_layer.concentration[0,-1])
 
 
-# In[106]:
+# In[107]:
 
 
 (pnp_with_implicit_compact_layer.concentration[0,0],pnp_with_implicit_compact_layer.concentration[0,-1])
@@ -2730,19 +1603,19 @@ plt.show()
 
 # #### Anion concentration at interfaces
 
-# In[107]:
+# In[108]:
 
 
 (pnp_no_compact_layer.concentration[1,0],pnp_no_compact_layer.concentration[1,-1])
 
 
-# In[108]:
+# In[109]:
 
 
 (pnp_with_explicit_compact_layer.concentration[1,0],pnp_with_explicit_compact_layer.concentration[1,-1])
 
 
-# In[109]:
+# In[110]:
 
 
 (pnp_with_implicit_compact_layer.concentration[1,0],pnp_with_implicit_compact_layer.concentration[1,-1])
@@ -2750,19 +1623,19 @@ plt.show()
 
 # #### Equilibrium cation and anion amount
 
-# In[110]:
+# In[111]:
 
 
 ( pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xij1,0,0), pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xij1,1,0) )
 
 
-# In[111]:
+# In[112]:
 
 
 ( pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xij1,0,0), pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xij1,1,0) )
 
 
-# In[112]:
+# In[113]:
 
 
 ( pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xij1,0,0), pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xij1,1,0) )
@@ -2770,19 +1643,19 @@ plt.show()
 
 # #### Initial cation and anion amount
 
-# In[113]:
+# In[114]:
 
 
 ( pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xi0,0,0), pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xi0,1,0) )
 
 
-# In[114]:
+# In[115]:
 
 
 ( pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xi0,0,0), pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xi0,1,0) )
 
 
-# In[115]:
+# In[116]:
 
 
 ( pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xi0,0,0), pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xi0,1,0) )
@@ -2790,7 +1663,7 @@ plt.show()
 
 # #### Species conservation
 
-# In[116]:
+# In[117]:
 
 
 (pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xij1,0,
@@ -2799,7 +1672,7 @@ plt.show()
                                  pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xi0,1,0)) )
 
 
-# In[117]:
+# In[118]:
 
 
 (pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xij1,0,
@@ -2808,7 +1681,7 @@ plt.show()
                                  pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xi0,1,0)) )
 
 
-# In[118]:
+# In[119]:
 
 
 (pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xij1,0,
@@ -2821,31 +1694,31 @@ plt.show()
 
 # We want to fill a gap of 3 nm between gold electrodes with 0.2 wt % NaCl aqueous solution, apply a small potential difference and generate an initial configuration for LAMMPS within a cubic box:
 
-# In[119]:
+# In[120]:
 
 
 box_Ang=np.array([50.,50.,50.]) # Angstrom
 
 
-# In[120]:
+# In[121]:
 
 
 box_m = box_Ang*sc.angstrom
 
 
-# In[121]:
+# In[122]:
 
 
 box_m
 
 
-# In[122]:
+# In[123]:
 
 
 vol_AngCube = box_Ang.prod() # Angstrom^3
 
 
-# In[123]:
+# In[124]:
 
 
 vol_mCube = vol_AngCube*sc.angstrom**3
@@ -2854,7 +1727,7 @@ vol_mCube = vol_AngCube*sc.angstrom**3
 # With a concentration of 0.2 wt %, we are close to NaCl's solubility limit in water.
 # We estimate molar concentrations and atom numbers in our box:
 
-# In[124]:
+# In[125]:
 
 
 # enter number between 0 ... 0.2 
@@ -2864,50 +1737,50 @@ saline_mass_density_kg_per_L  = 1 + weight_concentration_NaCl * 0.15 / 0.20 # g 
 # see https://www.engineeringtoolbox.com/density-aqueous-solution-inorganic-sodium-salt-concentration-d_1957.html
 
 
-# In[125]:
+# In[126]:
 
 
 saline_mass_density_g_per_L = saline_mass_density_kg_per_L*sc.kilo
 
 
-# In[126]:
+# In[127]:
 
 
 molar_mass_H2O = 18.015 # g / mol
 molar_mass_NaCl  = 58.44 # g / mol
 
 
-# In[127]:
+# In[128]:
 
 
 cNaCl_M = weight_concentration_NaCl*saline_mass_density_g_per_L/molar_mass_NaCl # mol L^-1
 
 
-# In[128]:
+# In[129]:
 
 
 cNaCl_mM = np.round(cNaCl_M/sc.milli) # mM
 
 
-# In[129]:
+# In[130]:
 
 
 cNaCl_mM
 
 
-# In[130]:
+# In[131]:
 
 
 n_NaCl = np.round(cNaCl_mM*vol_mCube*sc.value('Avogadro constant'))
 
 
-# In[131]:
+# In[132]:
 
 
 n_NaCl
 
 
-# In[132]:
+# In[133]:
 
 
 c = [cNaCl_mM,cNaCl_mM]
@@ -2917,32 +1790,32 @@ lamda_S = 2.0e-10
 delta_u  = 0.5
 
 
-# In[133]:
+# In[134]:
 
 
 pnp = PoissonNernstPlanckSystem(c,z,L, lambda_S=lambda_S, delta_u=delta_u, N=200, maxit=20, e=1e-6)
 
 
-# In[134]:
+# In[135]:
 
 
 pnp.useSternLayerCellBC()
 
 
-# In[135]:
+# In[136]:
 
 
 pnp.init()
 
 
-# In[136]:
+# In[137]:
 
 
 pnp.output = True
 xij = pnp.solve()
 
 
-# In[137]:
+# In[138]:
 
 
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
@@ -2995,7 +1868,7 @@ plt.show()
 
 # #### Potential at left and right hand side of domain
 
-# In[138]:
+# In[139]:
 
 
 (pnp.potential[0],pnp.potential[-1])
@@ -3003,7 +1876,7 @@ plt.show()
 
 # #### Residual cation flux at interfaces
 
-# In[139]:
+# In[140]:
 
 
 ( pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,0), pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -3011,7 +1884,7 @@ plt.show()
 
 # #### Residual anion flux at interfaces
 
-# In[140]:
+# In[141]:
 
 
 (pnp.leftControlledVolumeSchemeFluxBC(pnp.xij1,1),  pnp.rightControlledVolumeSchemeFluxBC(pnp.xij1,0) )
@@ -3019,7 +1892,7 @@ plt.show()
 
 # #### Cation concentration at interfaces
 
-# In[141]:
+# In[142]:
 
 
 (pnp.concentration[0,0],pnp.concentration[0,-1])
@@ -3027,7 +1900,7 @@ plt.show()
 
 # #### Anion concentration at interfaces
 
-# In[142]:
+# In[143]:
 
 
 (pnp.concentration[1,0],pnp.concentration[1,-1])
@@ -3035,7 +1908,7 @@ plt.show()
 
 # #### Equilibrium cation and anion amount
 
-# In[143]:
+# In[144]:
 
 
 ( pnp.numberConservationConstraint(pnp.xij1,0,0), pnp.numberConservationConstraint(pnp.xij1,1,0) )
@@ -3043,7 +1916,7 @@ plt.show()
 
 # #### Initial cation and anion amount
 
-# In[144]:
+# In[145]:
 
 
 ( pnp.numberConservationConstraint(pnp.xi0,0,0), pnp.numberConservationConstraint(pnp.xi0,1,0) )
@@ -3051,7 +1924,7 @@ plt.show()
 
 # #### Species conservation
 
-# In[145]:
+# In[146]:
 
 
 (pnp.numberConservationConstraint(pnp.xij1,0,
@@ -3063,13 +1936,13 @@ plt.show()
 # ## Sampling
 # First, convert the physical concentration distributions into a callable "probability density":
 
-# In[146]:
+# In[147]:
 
 
 pnp.concentration.shape
 
 
-# In[147]:
+# In[148]:
 
 
 distributions = [interpolate.interp1d(pnp.grid,pnp.concentration[i,:]) for i in range(pnp.concentration.shape[0])]
@@ -3077,7 +1950,7 @@ distributions = [interpolate.interp1d(pnp.grid,pnp.concentration[i,:]) for i in 
 
 # Normalization is not necessary here. Now we can sample the distribution of our $Na^+$ ions in z-direction.
 
-# In[148]:
+# In[149]:
 
 
 na_coordinate_sample = continuous2discrete(
@@ -3086,7 +1959,7 @@ histx, histy, histz = get_histogram(na_coordinate_sample, box=box_m, n_bins=51)
 plot_dist(histz, 'Distribution of Na+ ions in z-direction', reference_distribution=distributions[0])
 
 
-# In[149]:
+# In[150]:
 
 
 cl_coordinate_sample = continuous2discrete(
@@ -3101,19 +1974,19 @@ plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distributi
 # To visualize our sampled coordinates, we utilize ASE to export it to some standard format, i.e. .xyz or LAMMPS data file.
 # ASE speaks Ångström per default, thus we convert SI units:
 
-# In[150]:
+# In[151]:
 
 
 sample_size = int(n_NaCl)
 
 
-# In[151]:
+# In[152]:
 
 
 sample_size
 
 
-# In[152]:
+# In[153]:
 
 
 na_atoms = ase.Atoms(
@@ -3137,7 +2010,7 @@ system
 ase.io.write('NaCl_c_4_M_u_0.5_V_box_5x5x10nm_lambda_S_2_Ang.xyz',system,format='xyz')
 
 
-# In[153]:
+# In[154]:
 
 
 # LAMMPS data format, units 'real', atom style 'full'

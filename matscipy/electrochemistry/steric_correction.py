@@ -95,7 +95,7 @@ Benchmark different scipty optimizers for the steric correction problem:
     >>>     try:
     >>>         logger.info("### {} ###".format(m))
     >>>         t0 = time.perf_counter()
-    >>>         x1, res = make_steric(x,box=box,r=r,method=m)
+    >>>         x1, res = apply_steric_correction(x,box=box,r=r,method=m)
     >>>         t1 = time.perf_counter()
     >>>         dt = t1 - t0
     >>>         logger.info("{} s runtime".format(dt))
@@ -639,7 +639,7 @@ def box_constraint(x, box=np.array([[0.,0.,0],[1.0,1.0,1.0]]), r=0.):
     logger.debug("Constraint penalty: {:.4g}.".format(g))
     return g
 
-def make_steric(x, box=None, r=None,
+def apply_steric_correction(x, box=None, r=None,
     method = 'L-BFGS-B',
     options = None,
     # options={'gtol':1.e-5,'maxiter':10,'disp':True,'eps':1.0e-8},
