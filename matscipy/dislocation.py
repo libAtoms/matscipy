@@ -18,8 +18,8 @@ from matscipy.neighbours import neighbour_list, mic
 def make_screw_cyl(alat, C11, C12, C44,
                    cylinder_r=10, cutoff=5.5,
                    hard_core=False,
-                   center=(0., 0., 0.),
-                   l_extend=(0., 0., 0.),
+                   center=[0., 0., 0.],
+                   l_extend=[0., 0., 0.],
                    symbol='W'):
 
     """Makes screw dislocation using atomman library
@@ -45,10 +45,10 @@ def make_screw_cyl(alat, C11, C12, C44,
         The position of the dislocation core and the center of the
                  cylinder with FixAtoms condition
     l_extend : float
-        extention of the box. used for creation of initial
+        extension of the box. used for creation of initial
         dislocation position with box equivalent to the final position
     symbol : string
-        Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
+        Symbol of the element to pass to ase.lattice.cubic.SimpleCubicFactory
         default is "W" for tungsten
 
     Returns
@@ -270,7 +270,7 @@ def make_edge_cyl(alat, C11, C12, C44,
     return ED, bulk
 
 
-def plot_vitek(dislo, bulk, show=True, save_file=None,
+def plot_vitek(dislo, bulk, save_file=None,
                alat=3.16, plot_axes=None, xyscale=10):
     """Plots vitek map from ase configurations.
 
@@ -280,8 +280,6 @@ def plot_vitek(dislo, bulk, show=True, save_file=None,
         Dislocation configuration.
     bulk : ase.Atoms
         Corresponding bulk configuration for calculation of displacements.
-    show : bool
-        Show the figure after plotting. Default is True.
     save_file : str, optional
         If given then the plot will be saved to a file with this name.
     alat : float
@@ -327,7 +325,7 @@ def plot_vitek(dislo, bulk, show=True, save_file=None,
                                         ylim=plot_range[1],
                                         zlim=plot_range[2],
                                         plot_scale=plot_scale,
-                                        show=show, save_file=save_file,
+                                        save_file=save_file,
                                         plot_axes=plot_axes)
 
     return None
@@ -375,7 +373,7 @@ def show_NEB_configurations(images, bulk, xyscale=7,
 
 
 def show_configuration(disloc, bulk, u, fixed_mask=None):
-    '''shows the displacement fixed atoms.'''
+    """shows the displacement fixed atoms."""
 
     fig = plt.figure(figsize=(16, 4))
 
@@ -528,7 +526,7 @@ def make_barrier_configurations(elastic_param=None,
         cutoff = 5.5
 
     cent_x = np.sqrt(6.0)*alat/3.0
-    center = (cent_x, 0.0, 0.0)
+    center = [cent_x, 0.0, 0.0]
 
     disloc_ini, bulk_ini, __ = make_screw_cyl(alat, C11, C12, C44,
                                               cylinder_r=cylinder_r,
