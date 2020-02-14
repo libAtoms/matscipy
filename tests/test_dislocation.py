@@ -16,7 +16,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_core_position(self):
         """Make screw dislocation and fit a core position to it.
 
-        Tests that the fitted core postion is same as created
+        Tests that the fitted core position is same as created
         """
         print("Fitting the core, takes about 10 seconds")
         dft_alat = 3.19
@@ -61,9 +61,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                                   160.88179872237012])  # C44 for eam4
 
         pot_name = "w_eam4.fs"
-
         calc_EAM = EAM(pot_name)
-
         obtained_values = sd.get_elastic_constants(calculator=calc_EAM,
                                                    delta=1.0e-3)
 
@@ -145,6 +143,9 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         fin_toten = disloc_fin.get_potential_energy()
         self.assertAlmostEqual(fin_toten, target_toten, places=4)
 
+    # Also requires version of atomman higher than 1.3.1.1
+    # can be used for testing of local installation, comment the line below to activate the test
+    @unittest.skip("Requires matplotlib which is not a part of automated testing environment")
     def test_differential_displacement(self):
         """Test differential_displacement() function from atomman
 
