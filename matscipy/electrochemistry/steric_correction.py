@@ -502,6 +502,7 @@ def brute_force_target_function(x, r=1.0, constraints=None):
             "Total penalty:         {:10.5e}.".format(f))
     return f
 
+# TODO: code explicit Jacobian
 def scipy_distance_based_target_function(x, r=1.0, constraints=None):
     """Target function. Penalizes dense packing for coordinates ||xi-xj||<ri+rj.
 
@@ -787,7 +788,7 @@ def apply_steric_correction(x, box=None, r=None,
     logger.info("Min. dist. {:10.5e} between dimensionless points".format(minD))
     logger.info("    {} and".format(P1))
     logger.info("    {}.".format(P2))
-    logger.info("    normalized by L = {:.2g}).".format(L))
+    logger.info("    normalized by L = {:.2g}.".format(L))
 
     dT = time.perf_counter() - t0
     logger.info("Ellapsed time: {:10.5} s.".format(dT))
