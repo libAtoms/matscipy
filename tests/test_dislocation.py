@@ -8,7 +8,7 @@ import numpy as np
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.io import write
 from scipy.optimize import minimize
-
+from matscipy.calculators.eam import EAM
 
 class TestDislocation(matscipytest.MatSciPyTestCase):
     """Class to store test for dislocation.py module."""
@@ -52,6 +52,22 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                        method='Nelder-Mead')
 
         self.assertArrayAlmostEqual(res.x, initial_guess + center[:2], tol=1e-4)
+
+    def test_elastic_constants_EAM(self):
+        """Test the get_elastic_constants() function using matscipy EAM calculator."""
+        target_values = np.array([3.14339177996466,  # alat
+                                  523.0266819809012,  # C11
+                                  202.1786296941397,  # C12
+                                  160.88179872237012])  # C44 for eam4
+
+        pot_name = "w_eam4.fs"
+
+        calc_EAM = EAM(pot_name)
+
+        obtained_values = sd.get_elastic_constants(calculator=calc_EAM,
+                                                   delta=1.0e-3)
+
+        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
 
     # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
     # Comment the line below to run it.
