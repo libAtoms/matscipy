@@ -229,5 +229,33 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # TODO
         #  self.assertAtomsAlmostEqual(disloc, test_disloc) - gives an error of _cell attribute new ase version?
 
+    def test_stroh_solution(self):
+        """Builds isotropic Stroh solution and compares it to Volterra solution"""
+
+        alat = 3.14
+        C11 = 523.0
+        C12 = 202.0
+        C44 = 160.49
+
+        # A = 2. * C44 / (C11 - C12)
+        # print(A) # A = 0.999937 very isotropic material
+        cylinder_r = 40
+        burgers = alat * np.sqrt(3.0) / 2.
+
+        __, W_bulk, u_stroh = sd.make_screw_cyl(alat, C11, C12, C44,
+                                                cylinder_r=cylinder_r)
+        x, y, __ = W_bulk.positions.T
+        # make center of the cell at the dislocation core
+        x -= x.mean()
+        y -= y.mean()
+        u_volterra = np.arctan2(y, x) * burgers / (2.0 * np.pi)
+
+        # compare x and y components with zeros - isotropic solution
+        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 0], tol=1e-5)
+        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 1], tol=1e-5)
+        #  compare z component with simple Volterra solution
+        self.assertArrayAlmostEqual(u_volterra, u_stroh[:, 2])
+
+
 if __name__ == '__main__':
     unittest.main()
