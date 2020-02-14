@@ -1,18 +1,20 @@
 import numpy as np
-# https://github.com/usnistgov/atomman
-import atomman as am
+
 from ase.lattice.cubic import BodyCenteredCubic
 from ase.constraints import FixAtoms, StrainFilter
 from ase.optimize import FIRE
 from ase.build import bulk
-from matscipy.elasticity import fit_elastic_constants
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
 from ase.lattice.cubic import SimpleCubicFactory
 from ase.io import read
 
 from matscipy.neighbours import neighbour_list, mic
+from matscipy.elasticity import fit_elastic_constants
 
+# https://github.com/usnistgov/atomman
+from atomman import ElasticConstants
+from atomman.defect import Stroh
 
 def make_screw_cyl(alat, C11, C12, C44,
                    cylinder_r=10, cutoff=5.5,
@@ -60,14 +62,14 @@ def make_screw_cyl(alat, C11, C12, C44,
         displacement per atom.
     """
     # Create a Stroh object with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                  np.array([0, 0, 1]))
 
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
                      [1, 1, 1]])
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -188,14 +190,14 @@ def make_edge_cyl(alat, C11, C12, C44,
     '''
 
     # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                                   np.array([0, 0, 1]))
 
     axes = np.array([[1, 1, 1],
                      [1, -1, 0],
                      [1, 1, -2]])
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -296,12 +298,15 @@ def plot_vitek(dislo, bulk,
     None
 
     """
+    from atomman import load
+    from atomman.defect import differential_displacement
+
 
     lengthB = 0.5*np.sqrt(3.)*alat
     burgers = np.array([0.0, 0.0, lengthB])
 
-    base_system = am.load("ase_Atoms", bulk)
-    disl_system = am.load("ase_Atoms", dislo)
+    base_system = load("ase_Atoms", bulk)
+    disl_system = load("ase_Atoms", dislo)
 
     neighborListCutoff = 0.95 * alat
 
@@ -317,14 +322,14 @@ def plot_vitek(dislo, bulk,
     # distance between atoms on the plot
     plot_scale = 1.885618083
 
-    am.defect.differential_displacement(base_system, disl_system,
-                                        burgers,
-                                        cutoff=neighborListCutoff,
-                                        xlim=plot_range[0],
-                                        ylim=plot_range[1],
-                                        zlim=plot_range[2],
-                                        plot_scale=plot_scale,
-                                        plot_axes=plot_axes)
+    differential_displacement(base_system, disl_system,
+                              burgers,
+                              cutoff=neighborListCutoff,
+                              xlim=plot_range[0],
+                              ylim=plot_range[1],
+                              zlim=plot_range[2],
+                              plot_scale=plot_scale,
+                              plot_axes=plot_axes)
 
     return None
 
@@ -670,8 +675,8 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
 
 
     # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                  np.array([0, 0, 1]))
 
     axes = np.array([[1, 1, -2],
                     [-1, 1, 0],
@@ -679,7 +684,7 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
 
     alat, C11, C12, C44 = elastic_param
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -745,7 +750,6 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
         positions around dislocation core.
 
     """
-
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
                      [1, 1, 1]])
@@ -800,10 +804,10 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
     bulk_tetra = bulk_tetra[final_mask]
 
     # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                  np.array([0, 0, 1]))
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -912,10 +916,10 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     bulk_octa = bulk_octa[final_mask]
 
     # Create a Stroh object with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                                   np.array([0, 0, 1]))
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -1358,18 +1362,18 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disloc : ase.Atoms object
         Dislocation configuration.
     disp : np.array
-        Correstonding displacement.
+        Corresponding displacement.
     """
 
     # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                  np.array([0, 0, 1]))
 
     axes = np.array([[1, 0, 0],
                      [0, 1, 0],
                      [0, 0, 1]])
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = a0 * np.array([1., 0., 0.])
 
     # Solving a new problem with Stroh.solve
