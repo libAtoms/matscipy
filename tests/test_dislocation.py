@@ -53,6 +53,9 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         self.assertArrayAlmostEqual(res.x, initial_guess + center[:2], tol=1e-4)
 
+    # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
+    # Comment the line below to run it.
+    @unittest.skip("LAMMPS installation is required and thus is not good for automated testing")
     def test_elastic_constants_lammpslib(self):
         """Test the get_elastic_constants() function using lammpslib.
 
@@ -73,13 +76,16 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                            atom_types={'W': 1}, keep_alive=True,
                            log_file="lammps.log")
 
-        obtained_valeus = sd.get_elastic_constants(calculator=lammps,
+        obtained_values = sd.get_elastic_constants(calculator=lammps,
                                                    delta=1.0e-3)
 
         os.remove("lammps.log")
 
-        self.assertArrayAlmostEqual(obtained_valeus, target_values, tol=1e-4)
+        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
 
+    # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
+    # Comment the line below to run it.
+    @unittest.skip("LAMMPS installation is required and thus is not good for automated testing")
     def test_screw_cyl_lammpslib(self):
         """Test make_crew_cyl() and call lammpslib caclulator.
 
