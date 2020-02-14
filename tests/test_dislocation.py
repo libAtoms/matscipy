@@ -1,14 +1,24 @@
 import os
 import unittest
 import matscipytest
+import sys
 
 import matscipy.dislocation as sd
 import numpy as np
 
 from ase.calculators.lammpslib import LAMMPSlib
-from ase.io import write
 from scipy.optimize import minimize
 from matscipy.calculators.eam import EAM
+
+try:
+    import matplotlib
+except ImportError:
+    print("matplotlib not found: will skip some tests")
+
+try:
+    import lammps
+except ImportError:
+    print("lammps not found: will skip some tests")
 
 class TestDislocation(matscipytest.MatSciPyTestCase):
     """Class to store test for dislocation.py module."""
@@ -68,8 +78,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
 
     # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
-    # Comment the line below to run it.
-    @unittest.skip("LAMMPS installation is required and thus is not good for automated testing")
+    @unittest.skipIf("lammps" not in sys.modules,
+                     "LAMMPS installation is required and thus is not good for automated testing")
     def test_elastic_constants_lammpslib(self):
         """Test the get_elastic_constants() function using lammpslib.
 
@@ -98,8 +108,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
 
     # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
-    # Comment the line below to run it.
-    @unittest.skip("LAMMPS installation is required and thus is not good for automated testing")
+    @unittest.skipIf("lammps" not in sys.modules,
+                     "LAMMPS installation is required and thus is not good for automated testing")
     def test_screw_cyl_lammpslib(self):
         """Test make_crew_cyl() and call lammpslib caclulator.
 
@@ -144,8 +154,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.assertAlmostEqual(fin_toten, target_toten, places=4)
 
     # Also requires version of atomman higher than 1.3.1.1
-    # can be used for testing of local installation, comment the line below to activate the test
-    @unittest.skip("Requires matplotlib which is not a part of automated testing environment")
+    @unittest.skipIf(not "matplotlib" in sys.modules,
+        "Requires matplotlib which is not a part of automated testing environment")
     def test_differential_displacement(self):
         """Test differential_displacement() function from atomman
 
