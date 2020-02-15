@@ -239,7 +239,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         C44 = 160.49
 
         # A = 2. * C44 / (C11 - C12)
-        # print(A) # A = 0.999937 very isotropic material
+        # print(A) # A = 0.999937 very isotropic material.
+        # At values closer to 1.0 Stroh solution is numerically unstable and does not pass checks
         cylinder_r = 40
         burgers = alat * np.sqrt(3.0) / 2.
 
