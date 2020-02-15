@@ -148,10 +148,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         disloc_fin, __, __ = sd.make_screw_cyl(alat, C11, C12, C44,
                                                cylinder_r=cylinder_r,
                                                center=center)
-
         disloc_fin.set_calculator(lammps)
         fin_toten = disloc_fin.get_potential_energy()
         self.assertAlmostEqual(fin_toten, target_toten, places=4)
+        os.remove("lammps.log")
 
     # Also requires version of atomman higher than 1.3.1.1
     @unittest.skipIf(not "matplotlib" in sys.modules,
