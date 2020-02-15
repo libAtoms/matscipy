@@ -214,6 +214,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         disloc.write("test_read_dislo.xyz")
 
         test_disloc, __ = sd.read_dislo_QMMM("test_read_dislo.xyz")
+        os.remove("test_read_dislo.xyz")
         Nat = len(test_disloc)
 
         self.assertEqual(Nat, target_values["Nat"])
