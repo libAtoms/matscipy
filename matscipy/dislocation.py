@@ -12,10 +12,6 @@ from ase.io import read
 from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
 
-# https://github.com/usnistgov/atomman
-from atomman import ElasticConstants
-from atomman.defect import Stroh
-
 def make_screw_cyl(alat, C11, C12, C44,
                    cylinder_r=10, cutoff=5.5,
                    hard_core=False,
@@ -61,6 +57,10 @@ def make_screw_cyl(alat, C11, C12, C44,
     u : np.array
         displacement per atom.
     """
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
+
     # Create a Stroh object with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
                   np.array([0, 0, 1]))
@@ -188,7 +188,9 @@ def make_edge_cyl(alat, C11, C12, C44,
         Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
         default is "W" for tungsten
     '''
-
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
                                    np.array([0, 0, 1]))
@@ -672,7 +674,9 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         Error for optimisation (result from `compare_configurations` function)
 
     """
-
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
 
     # Create a Stroh ojbect with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
@@ -750,6 +754,10 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
         positions around dislocation core.
 
     """
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
+
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
                      [1, 1, 1]])
@@ -868,6 +876,10 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     """
     # TODO: Make one function for impurities and pass factory to it:
     # TODO: i.e. octahedral or terahedral
+
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
 
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
@@ -1364,7 +1376,9 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disp : np.array
         Corresponding displacement.
     """
-
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
                   np.array([0, 0, 1]))
