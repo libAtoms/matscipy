@@ -13,16 +13,23 @@ from matscipy.calculators.eam import EAM
 try:
     import matplotlib
 except ImportError:
-    print("matplotlib not found: will skip some tests")
+    print("matplotlib not found: skipping some tests")
 
 try:
     import lammps
 except ImportError:
-    print("lammps not found: will skip some tests")
+    print("lammps not found: skipping some tests")
+
+try:
+    import atomman
+except ImportError:
+    print("atomman not found: skipping some tests")
+
 
 class TestDislocation(matscipytest.MatSciPyTestCase):
     """Class to store test for dislocation.py module."""
 
+    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
     def test_core_position(self):
         """Make screw dislocation and fit a core position to it.
 
@@ -40,7 +47,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                              dft_C12,
                              dft_C44]
 
-        cent_x = np.sqrt(6.0)*dft_alat/3.0
+        cent_x = np.sqrt(6.0) * dft_alat / 3.0
         center = np.array((cent_x, 0.0, 0.0))
 
         # make the cell with dislocation core not in center
@@ -126,7 +133,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         cylinder_r = 40
 
-        cent_x = np.sqrt(6.0)*alat/3.0
+        cent_x = np.sqrt(6.0) * alat / 3.0
         center = (cent_x, 0.0, 0.0)
 
         pot_name = "w_eam4.fs"
@@ -154,8 +161,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         os.remove("lammps.log")
 
     # Also requires version of atomman higher than 1.3.1.1
-    @unittest.skipIf(not "matplotlib" in sys.modules,
-        "Requires matplotlib which is not a part of automated testing environment")
+    @unittest.skipIf("matplotlib" not in sys.modules or "atomman" not in sys.modules,
+                     "Requires matplotlib and atomman which is not a part of automated testing environment")
     def test_differential_displacement(self):
         """Test differential_displacement() function from atomman
 
@@ -183,6 +190,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         print("'dd_test.png' will be created: check the displacement map")
         fig.savefig("dd_test.png")
 
+    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
     def test_read_dislo_QMMM(self):
         """Test read_dislo_QMMM() function"""
 
@@ -221,7 +229,6 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         total_Nat_type = 0
         for atom_type in ["QM", "MM", "fixed"]:
-
             Nat_type = np.count_nonzero(region == atom_type)
             total_Nat_type += Nat_type
             self.assertEqual(Nat_type, target_values[atom_type])
@@ -230,6 +237,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # TODO
         #  self.assertAtomsAlmostEqual(disloc, test_disloc) - gives an error of _cell attribute new ase version?
 
+    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
     def test_stroh_solution(self):
         """Builds isotropic Stroh solution and compares it to Volterra solution"""
 
