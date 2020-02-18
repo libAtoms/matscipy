@@ -1,25 +1,22 @@
-import matplotlib.pyplot as plt
 import numpy as np
-# https://github.com/usnistgov/atomman
-import atomman as am
+
 from ase.lattice.cubic import BodyCenteredCubic
 from ase.constraints import FixAtoms, StrainFilter
 from ase.optimize import FIRE
 from ase.build import bulk
-from matscipy.elasticity import fit_elastic_constants
 from ase.calculators.lammpslib import LAMMPSlib
-from ase.units import GPa  # unit convertion
+from ase.units import GPa  # unit conversion
 from ase.lattice.cubic import SimpleCubicFactory
 from ase.io import read
 
 from matscipy.neighbours import neighbour_list, mic
-
+from matscipy.elasticity import fit_elastic_constants
 
 def make_screw_cyl(alat, C11, C12, C44,
                    cylinder_r=10, cutoff=5.5,
                    hard_core=False,
-                   center=(0., 0., 0.),
-                   l_extend=(0., 0., 0.),
+                   center=[0., 0., 0.],
+                   l_extend=[0., 0., 0.],
                    symbol='W'):
 
     """Makes screw dislocation using atomman library
@@ -45,10 +42,10 @@ def make_screw_cyl(alat, C11, C12, C44,
         The position of the dislocation core and the center of the
                  cylinder with FixAtoms condition
     l_extend : float
-        extention of the box. used for creation of initial
+        extension of the box. used for creation of initial
         dislocation position with box equivalent to the final position
     symbol : string
-        Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
+        Symbol of the element to pass to ase.lattice.cubic.SimpleCubicFactory
         default is "W" for tungsten
 
     Returns
@@ -60,15 +57,19 @@ def make_screw_cyl(alat, C11, C12, C44,
     u : np.array
         displacement per atom.
     """
-    # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
+
+    # Create a Stroh object with junk data
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                  np.array([0, 0, 1]))
 
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
                      [1, 1, 1]])
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -106,7 +107,7 @@ def make_screw_cyl(alat, C11, C12, C44,
     # size of the cubic cell as a 110 direction
     Ly = int(round((cylinder_r + 3.*cutoff + shift_y + l_shift_y)
                    / (alat * np.sqrt(2.))))
-    # factor 2 to make shure odd number of images is translated
+    # factor 2 to make sure odd number of images is translated
     # it is important for the correct centering of the dislocation core
     bulk = unit_cell * (2*Lx, 2*Ly, 1)
     # make 0, 0, at the center
@@ -162,6 +163,13 @@ def make_screw_cyl(alat, C11, C12, C44,
     region[fix_mask] = np.full_like(disloc[fix_mask], "fixed")
     disloc.new_array("region", region)
 
+    # center the atoms to avoid "lost atoms" error by lammps
+    center_shift = np.diagonal(bulk.cell).copy()
+    center_shift[2] = 0.0  # do not shift along z direction
+
+    disloc.positions += center_shift / 2.0
+    bulk.positions += center_shift / 2.0
+
     return disloc, bulk, u
 
 
@@ -180,16 +188,18 @@ def make_edge_cyl(alat, C11, C12, C44,
         Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
         default is "W" for tungsten
     '''
-
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                                   np.array([0, 0, 1]))
 
     axes = np.array([[1, 1, 1],
                      [1, -1, 0],
                      [1, 1, -2]])
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -263,7 +273,7 @@ def make_edge_cyl(alat, C11, C12, C44,
     return ED, bulk
 
 
-def plot_vitek(dislo, bulk, show=True, save_file=None,
+def plot_vitek(dislo, bulk,
                alat=3.16, plot_axes=None, xyscale=10):
     """Plots vitek map from ase configurations.
 
@@ -273,10 +283,6 @@ def plot_vitek(dislo, bulk, show=True, save_file=None,
         Dislocation configuration.
     bulk : ase.Atoms
         Corresponding bulk configuration for calculation of displacements.
-    show : bool
-        Show the figure after plotting. Default is True.
-    save_file : str, optional
-        If given then the plot will be saved to a file with this name.
     alat : float
         Lattice parameter for calculation of neghbour list cutoff.
     plot_axes : matplotlib.Axes.axes object
@@ -294,34 +300,38 @@ def plot_vitek(dislo, bulk, show=True, save_file=None,
     None
 
     """
+    from atomman import load
+    from atomman.defect import differential_displacement
+
 
     lengthB = 0.5*np.sqrt(3.)*alat
     burgers = np.array([0.0, 0.0, lengthB])
 
-    base_system = am.load("ase_Atoms", bulk)
-    disl_system = am.load("ase_Atoms", dislo)
+    base_system = load("ase_Atoms", bulk)
+    disl_system = load("ase_Atoms", dislo)
 
     neighborListCutoff = 0.95 * alat
 
-    # plot window is +-10 angstroms in x,y directions, and one Burgerx vector
+    # plot window is +-10 angstroms from center in x,y directions, and one Burgers vector
     # thickness along z direction
-    plot_range = np.array([[-xyscale, xyscale],
-                          [-xyscale, xyscale],
+    x, y, _ = bulk.positions.T
+
+    plot_range = np.array([[x.mean() - xyscale, x.mean() + xyscale],
+                          [y.mean() - xyscale, y.mean() + xyscale],
                           [-0.1, alat * 3.**(0.5) / 2.]])
 
     # This scales arrows such that b/2 corresponds to the
     # distance between atoms on the plot
     plot_scale = 1.885618083
 
-    am.defect.differential_displacement(base_system, disl_system,
-                                        burgers,
-                                        cutoff=neighborListCutoff,
-                                        xlim=plot_range[0],
-                                        ylim=plot_range[1],
-                                        zlim=plot_range[2],
-                                        plot_scale=plot_scale,
-                                        show=show, save_file=save_file,
-                                        plot_axes=plot_axes)
+    differential_displacement(base_system, disl_system,
+                              burgers,
+                              cutoff=neighborListCutoff,
+                              xlim=plot_range[0],
+                              ylim=plot_range[1],
+                              zlim=plot_range[2],
+                              plot_scale=plot_scale,
+                              plot_axes=plot_axes)
 
     return None
 
@@ -350,6 +360,7 @@ def show_NEB_configurations(images, bulk, xyscale=7,
         If the show is False else returns None
 
     """
+    import matplotlib.pyplot as plt
 
     n_images = len(images)
     fig2 = plt.figure(figsize=(n_images * 4, 4))
@@ -361,17 +372,15 @@ def show_NEB_configurations(images, bulk, xyscale=7,
             x, y = core_positions[i]
             ax1.scatter(x, y, marker="+", s=200, c='C1')
     if show:
-        plt.show(fig2)
+        fig2.show()
         return None
     else:
         return fig2
 
 
 def show_configuration(disloc, bulk, u, fixed_mask=None):
-    '''
-    shows the displacement fixed atoms
-    '''
-
+    """shows the displacement fixed atoms."""
+    import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(16, 4))
 
     ax1 = fig.add_subplot(131)
@@ -523,7 +532,7 @@ def make_barrier_configurations(elastic_param=None,
         cutoff = 5.5
 
     cent_x = np.sqrt(6.0)*alat/3.0
-    center = (cent_x, 0.0, 0.0)
+    center = [cent_x, 0.0, 0.0]
 
     disloc_ini, bulk_ini, __ = make_screw_cyl(alat, C11, C12, C44,
                                               cylinder_r=cylinder_r,
@@ -624,7 +633,7 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 
     u = dislo.positions - bulk.positions
     u_extended = np.zeros(u_ref.shape)
-    u_extended[mapping.values(), :] = u
+    u_extended[list(mapping.values()), :] = u
 
     du = u_extended - u_ref
 
@@ -636,8 +645,8 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
                   hard_core=False, print_info=True):
     """Cost function for fitting analytical displacement field
-       and detecting dislcoation core position. Uses `compare_configurations`
-       function for the minisation of the core position.
+       and detecting dislocation core position. Uses `compare_configurations`
+       function for the minimisation of the core position.
 
     Parameters
     ----------
@@ -665,11 +674,13 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         Error for optimisation (result from `compare_configurations` function)
 
     """
-
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
 
     # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                  np.array([0, 0, 1]))
 
     axes = np.array([[1, 1, -2],
                     [-1, 1, 0],
@@ -677,7 +688,7 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
 
     alat, C11, C12, C44 = elastic_param
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -743,6 +754,9 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
         positions around dislocation core.
 
     """
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
 
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
@@ -798,10 +812,10 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
     bulk_tetra = bulk_tetra[final_mask]
 
     # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                  np.array([0, 0, 1]))
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -863,6 +877,10 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     # TODO: Make one function for impurities and pass factory to it:
     # TODO: i.e. octahedral or terahedral
 
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
+
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
                      [1, 1, 1]])
@@ -909,11 +927,11 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     # leave only atoms inside the cylinder
     bulk_octa = bulk_octa[final_mask]
 
-    # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    # Create a Stroh object with junk data
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                                   np.array([0, 0, 1]))
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
 
     # Solving a new problem with Stroh.solve
@@ -1183,7 +1201,7 @@ def make_screw_quadrupole(alat,
 
     C1_quadrupole, C2_quadrupole, C3_quadrupole = bulk.get_cell()
 
-    # calulation of dislocation cores positions
+    # calculation of dislocation cores positions
     # distance between centers of triangles along x
     # move to odd/even number -> get to upward/downward triangle
     x_core_dist = alat * np.sqrt(6.)/6.0
@@ -1196,11 +1214,11 @@ def make_screw_quadrupole(alat,
     nx_right = 5
 
     if n2v % 2 == 0:  # check if the number of cells in y direction is even
-        # Even: then introduce cores between two equal halfes of the cell
+        # Even: then introduce cores between two equal halves of the cell
         ny_left = -2
         ny_right = -1
 
-    else:  # Odd: introduce cores between two equal halfes of the cell
+    else:  # Odd: introduce cores between two equal halves of the cell
         ny_left = 4
         ny_right = 5
 
@@ -1215,7 +1233,7 @@ def make_screw_quadrupole(alat,
                                   ny_right * y_core_dist,
                                   0.0])
 
-    # caclulation of the shifts of the inital cores coordinates for the final
+    # calculation of the shifts of the initial cores coordinates for the final
     # quadrupole arrangements
 
     # different x centering preferences for odd and even values
@@ -1356,18 +1374,20 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disloc : ase.Atoms object
         Dislocation configuration.
     disp : np.array
-        Correstonding displacement.
+        Corresponding displacement.
     """
-
+    # https://github.com/usnistgov/atomman
+    from atomman import ElasticConstants
+    from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
-    stroh = am.defect.Stroh(am.ElasticConstants(C11=141, C12=110, C44=98),
-                            np.array([0, 0, 1]))
+    stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
+                  np.array([0, 0, 1]))
 
     axes = np.array([[1, 0, 0],
                      [0, 1, 0],
                      [0, 0, 1]])
 
-    c = am.ElasticConstants(C11=C11, C12=C12, C44=C44)
+    c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = a0 * np.array([1., 0., 0.])
 
     # Solving a new problem with Stroh.solve
@@ -1466,7 +1486,7 @@ def read_dislo_QMMM(filename=None, image=None):
         raise RuntimeError("Please provide either path or image")
 
     region = dislo_QMMM.get_array("region")
-    Nat = dislo_QMMM.get_number_of_atoms()
+    Nat = len(dislo_QMMM)
 
     print("Total number of atoms in read configuration: {0:7}".format(Nat))
 
