@@ -167,7 +167,7 @@ C   = concentration(x, c, z, u)
 rho = charge_density(x, c, z, u)
 
 
-# In[15]:
+# In[14]:
 
 
 # potential and concentration distributions analytic solution 
@@ -218,7 +218,7 @@ plt.show()
 
 # ## Step 2: Sample from distribution
 
-# In[16]:
+# In[15]:
 
 
 # create distribution functions
@@ -229,7 +229,7 @@ box3 = np.array([xsize, ysize, zsize])
 sample_size = 200
 
 
-# In[17]:
+# In[16]:
 
 
 samples = [ continuous2discrete(distribution=d, box=box3, count=sample_size) for d in distributions ]
@@ -248,7 +248,7 @@ for ion,sample,d in zip(species,samples,distributions):
 
 # Initial state of system:
 
-# In[18]:
+# In[17]:
 
 
 # need all coordinates in one N x 3 array
@@ -394,13 +394,13 @@ for ion,sample,steric_sample,d in zip(species,samples,steric_samples,distributio
 # We utilize ASE to export it to some standard format, i.e. LAMMPS data file.
 # ASE speaks Ångström per default, thus we convert SI units:
 
-# In[25]:
+# In[18]:
 
 
 symbols = ['Na','Cl']
 
 
-# In[27]:
+# In[19]:
 
 
 system = ase.Atoms(
@@ -414,7 +414,7 @@ for symbol, sample, charge in zip(symbols,samples,z):
 system
 
 
-# In[28]:
+# In[20]:
 
 
 ase.io.write('NaCl_200_0.05V_5x5x20nm_at_interface_pb_distributed.lammps',system,format='lammps-data',units="real",atom_style='full')
@@ -533,3 +533,27 @@ print(stats_df.T.to_string(float_format='%8.6g'))
 
 
 # Scipy-based implementation fastest.
+
+# In[26]:
+
+
+print('{}'.format(system.symbols))
+
+
+# In[28]:
+
+
+system.cell.array
+
+
+# In[33]:
+
+
+np.array(system.get_cell_lengths_and_angles())
+
+
+# In[ ]:
+
+
+
+

@@ -354,7 +354,7 @@ class PoissonNernstPlanckSystem:
         else:
           self.xi0 = np.concatenate([self.ui0, self.ni0.flatten()])
 
-        self.xij1 = self.newton(self.G,self.xi0.copy())
+        self.xij1 = self.solver(self.G,self.xi0.copy())
 
         # store results:
         self.uij  = self.xij1[:self.Ni] # potential
@@ -672,6 +672,9 @@ class PoissonNernstPlanckSystem:
         """N0: total amount of species, k: ion species"""
         nijk = x[(k+1)*self.Ni:(k+2)*self.Ni]
 
+        ## TODO: this integration scheme assumes constant concentrations within
+        ## an interval. Adapt to controlled volume scheme!
+
         # rescale to fit interval
         N = np.sum(nijk*self.dx) * self.N / self.Ni
         constraint_val = N - N0
@@ -914,7 +917,8 @@ class PoissonNernstPlanckSystem:
         F = sc.value('Faraday constant'),
         N = 200, # number of grid segments, number of grid points Ni = N + 1
         e = 1e-10, # absolute tolerance, TODO: switch to standaradized measure
-        maxit = 20 ): # maximum number of Newton iterations
+        maxit = 20,
+        solver = None ): # maximum number of Newton iterations
         """Initializes a 1D Poisson-Nernst-Planck system description.
 
         Expects quantities in SI units per default.
@@ -950,6 +954,8 @@ class PoissonNernstPlanckSystem:
             absolute tolerance for Newton solver convergence (default: 1e-10)
         maxit : int, optional
             maximum number of Newton iterations (default: 20)
+        solver: func( funx(x), x0), optional
+            solver to use (default: None, will use own simple Newton solver)
         """
 
         self.logger = logging.getLogger(__name__)
@@ -1000,31 +1006,31 @@ class PoissonNernstPlanckSystem:
 
         # print all quantities to log
         for i, (c, z) in enumerate(zip(self.c,self.z)):
-          self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-            "ion species {:02d} concentration c".format(i), c, lwidth=self.label_width))
-          self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-            "ion species {:02d} number charge z".format(i), z, lwidth=self.label_width))
+            self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
+                "ion species {:02d} concentration c".format(i), c, lwidth=self.label_width))
+            self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
+                "ion species {:02d} number charge z".format(i), z, lwidth=self.label_width))
 
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'temperature T', self.T, lwidth=self.label_width))
+            'temperature T', self.T, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'domain size L', self.L, lwidth=self.label_width))
+            'domain size L', self.L, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'compact layer thickness lambda_S', self.lambda_S, lwidth=self.label_width))
+            'compact layer thickness lambda_S', self.lambda_S, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'reference position x0', self.x0, lwidth=self.label_width))
+            'reference position x0', self.x0, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'potential difference delta_u', self.delta_u, lwidth=self.label_width))
+            'potential difference delta_u', self.delta_u, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'relative permittivity eps_R', self.relative_permittivity, lwidth=self.label_width))
+            'relative permittivity eps_R', self.relative_permittivity, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'vacuum permittivity eps_0', self.vacuum_permittivity, lwidth=self.label_width))
+            'vacuum permittivity eps_0', self.vacuum_permittivity, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'universal gas constant R', self.R, lwidth=self.label_width))
+            'universal gas constant R', self.R, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'Faraday constant F', self.F, lwidth=self.label_width))
+            'Faraday constant F', self.F, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'f = F / (RT)', self.f, lwidth=self.label_width))
+            'f = F / (RT)', self.f, lwidth=self.label_width))
 
         # scaled units for dimensionless formulation
 
@@ -1040,11 +1046,11 @@ class PoissonNernstPlanckSystem:
         self.u_unit = self.R * self.T / self.F # thermal voltage
 
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'spatial unit [l]', self.l_unit, lwidth=self.label_width))
+            'spatial unit [l]', self.l_unit, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'concentration unit [c]', self.c_unit, lwidth=self.label_width))
+            'concentration unit [c]', self.c_unit, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'potential unit [u]', self.u_unit, lwidth=self.label_width))
+            'potential unit [u]', self.u_unit, lwidth=self.label_width))
 
         # domain
         self.L_scaled = self.L / self.l_unit
@@ -1069,21 +1075,26 @@ class PoissonNernstPlanckSystem:
 
         # print scaled quantities to log
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'reduced domain size L*', self.L_scaled, lwidth=self.label_width))
+            'reduced domain size L*', self.L_scaled, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-           'reduced compact layer thickness lambda_S*', self.lambda_S_scaled, lwidth=self.label_width))
+            'reduced compact layer thickness lambda_S*', self.lambda_S_scaled, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-           'reduced reference position x0*', self.x0_scaled, lwidth=self.label_width))
+            'reduced reference position x0*', self.x0_scaled, lwidth=self.label_width))
 
         for i, c_scaled in enumerate(self.c_scaled):
-          self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-            "ion species {:02d} reduced concentration c*".format(i),
-            c_scaled, lwidth=self.label_width))
+            self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
+                "ion species {:02d} reduced concentration c*".format(i),
+                c_scaled, lwidth=self.label_width))
 
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'reduced potential delta_u*', self.delta_u_scaled, lwidth=self.label_width))
+            'reduced potential delta_u*', self.delta_u_scaled, lwidth=self.label_width))
 
 
         # per default, no outer Helmholtz plane
         self.lhs_ohp = np.nan
         self.rhs_ohp = np.nan
+
+        if solver:
+            self.solver = solver
+        else
+            self.solver = self.neweton

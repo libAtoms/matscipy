@@ -13017,6 +13017,45 @@ ul.typeahead-list  > li > a.pull-right {
 .highlight .vm { color: #19177C } /* Name.Variable.Magic */
 .highlight .il { color: #666666 } /* Literal.Number.Integer.Long */
     </style>
+<style type="text/css">
+    
+/* Temporary definitions which will become obsolete with Notebook release 5.0 */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-bold { font-weight: bold; }
+
+    </style>
 
 
 <style type="text/css">
@@ -13050,7 +13089,7 @@ div#notebook {
 
 <!-- Loading mathjax macro -->
 <!-- Load mathjax -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS_HTML"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML"></script>
     <!-- MathJax configuration -->
     <script type="text/x-mathjax-config">
     MathJax.Hub.Config({
@@ -13104,7 +13143,7 @@ div#notebook {
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># stretching notebook width across whole window</span>
-<span class="kn">from</span> <span class="nn">IPython.core.display</span> <span class="kn">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">HTML</span>
+<span class="kn">from</span> <span class="nn">IPython.core.display</span> <span class="k">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">HTML</span>
 <span class="n">display</span><span class="p">(</span><span class="n">HTML</span><span class="p">(</span><span class="s2">&quot;&lt;style&gt;.container { width:100% !important; }&lt;/style&gt;&quot;</span><span class="p">))</span>
 </pre></div>
 
@@ -13155,10 +13194,10 @@ div#notebook {
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># sampling</span>
-<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">interpolate</span>
-<span class="kn">from</span> <span class="nn">matscipy.electrochemistry</span> <span class="kn">import</span> <span class="n">continuous2discrete</span>
-<span class="kn">from</span> <span class="nn">matscipy.electrochemistry</span> <span class="kn">import</span> <span class="n">get_histogram</span>
-<span class="kn">from</span> <span class="nn">matscipy.electrochemistry.utility</span> <span class="kn">import</span> <span class="n">plot_dist</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">interpolate</span>
+<span class="kn">from</span> <span class="nn">matscipy.electrochemistry</span> <span class="k">import</span> <span class="n">continuous2discrete</span>
+<span class="kn">from</span> <span class="nn">matscipy.electrochemistry</span> <span class="k">import</span> <span class="n">get_histogram</span>
+<span class="kn">from</span> <span class="nn">matscipy.electrochemistry.utility</span> <span class="k">import</span> <span class="n">plot_dist</span>
 </pre></div>
 
     </div>
@@ -13172,7 +13211,7 @@ div#notebook {
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># electrochemistry basics</span>
-<span class="kn">from</span> <span class="nn">matscipy.electrochemistry</span> <span class="kn">import</span> <span class="n">debye</span><span class="p">,</span> <span class="n">ionic_strength</span>
+<span class="kn">from</span> <span class="nn">matscipy.electrochemistry</span> <span class="k">import</span> <span class="n">debye</span><span class="p">,</span> <span class="n">ionic_strength</span>
 </pre></div>
 
     </div>
@@ -13186,7 +13225,7 @@ div#notebook {
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Poisson-Bolzmann distribution</span>
-<span class="kn">from</span> <span class="nn">matscipy.electrochemistry.poisson_boltzmann_distribution</span> <span class="kn">import</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">potential</span><span class="p">,</span> <span class="n">concentration</span><span class="p">,</span> <span class="n">charge_density</span>
+<span class="kn">from</span> <span class="nn">matscipy.electrochemistry.poisson_boltzmann_distribution</span> <span class="k">import</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">potential</span><span class="p">,</span> <span class="n">concentration</span><span class="p">,</span> <span class="n">charge_density</span>
 </pre></div>
 
     </div>
@@ -13200,7 +13239,7 @@ div#notebook {
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Poisson-Nernst-Planck solver</span>
-<span class="kn">from</span> <span class="nn">matscipy.electrochemistry</span> <span class="kn">import</span> <span class="n">PoissonNernstPlanckSystem</span>
+<span class="kn">from</span> <span class="nn">matscipy.electrochemistry</span> <span class="k">import</span> <span class="n">PoissonNernstPlanckSystem</span>
 </pre></div>
 
     </div>
@@ -16527,859 +16566,43 @@ the implicit parametrization of a compact layer with uniform charge density as R
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Potential-at-left-and-right-hand-side-of-domain">Potential at left and right hand side of domain<a class="anchor-link" href="#Potential-at-left-and-right-hand-side-of-domain">&#182;</a></h4>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[83]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">potential</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">potential</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[83]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(0.025, -0.025)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[84]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">potential</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">potential</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[84]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(0.025, -0.025)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[85]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">potential</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">potential</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[85]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(0.009458456331056995, -0.009458456331057043)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Residual-cation-flux-at-interfaces">Residual cation flux at interfaces<a class="anchor-link" href="#Residual-cation-flux-at-interfaces">&#182;</a></h4>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[86]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">leftControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">rightControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[86]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(-5.551115123125783e-16, -5.773159728050814e-15)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[87]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">leftControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">rightControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[87]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(-3.3306690738754696e-16, -5.329070518200751e-15)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[88]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">leftControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">rightControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[88]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(2.886579864025407e-15, 6.439293542825908e-15)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Residual-cation-flux-at-interfaces">Residual cation flux at interfaces<a class="anchor-link" href="#Residual-cation-flux-at-interfaces">&#182;</a></h4>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[89]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">leftControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">rightControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[89]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(3.552713678800501e-15, 1.2212453270876722e-15)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[90]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">leftControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">rightControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[90]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(1.7763568394002505e-15, 8.881784197001252e-16)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[91]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">leftControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">rightControlledVolumeSchemeFluxBC</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[91]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(-6.661338147750939e-15, -3.1086244689504383e-15)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Cation-concentration-at-interfaces">Cation concentration at interfaces<a class="anchor-link" href="#Cation-concentration-at-interfaces">&#182;</a></h4>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[92]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[92]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(359.0165609893429, 2513.560978154427)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[93]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[93]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(345.5690973914945, 2419.4120629572317)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[94]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[94]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(684.7967185446415, 1429.959318506736)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
+<h4 id="Potential-at-left-and-right-hand-side-of-domain">Potential at left and right hand side of domain<a class="anchor-link" href="#Potential-at-left-and-right-hand-side-of-domain">&#182;</a></h4><p>(pnp_no_compact_layer.potential[0],pnp_no_compact_layer.potential[-1])</p>
+<p>(pnp_with_explicit_compact_layer.potential[0],pnp_with_explicit_compact_layer.potential[-1])</p>
+<p>(pnp_with_implicit_compact_layer.potential[0],pnp_with_implicit_compact_layer.potential[-1])</p>
+<h4 id="Residual-cation-flux-at-interfaces">Residual cation flux at interfaces<a class="anchor-link" href="#Residual-cation-flux-at-interfaces">&#182;</a></h4><p>( pnp_no_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_no_compact_layer.xij1,0), pnp_no_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_no_compact_layer.xij1,0) )</p>
+<p>( pnp_with_explicit_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_with_explicit_compact_layer.xij1,0), pnp_with_explicit_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_with_explicit_compact_layer.xij1,0) )</p>
+<p>( pnp_with_implicit_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_with_implicit_compact_layer.xij1,0), pnp_with_implicit_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_with_implicit_compact_layer.xij1,0) )</p>
+<h4 id="Residual-cation-flux-at-interfaces">Residual cation flux at interfaces<a class="anchor-link" href="#Residual-cation-flux-at-interfaces">&#182;</a></h4><p>( pnp_no_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_no_compact_layer.xij1,1), pnp_no_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_no_compact_layer.xij1,1) )</p>
+<p>( pnp_with_explicit_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_with_explicit_compact_layer.xij1,1), pnp_with_explicit_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_with_explicit_compact_layer.xij1,1) )</p>
+<p>( pnp_with_implicit_compact_layer.leftControlledVolumeSchemeFluxBC(pnp_with_implicit_compact_layer.xij1,1), pnp_with_implicit_compact_layer.rightControlledVolumeSchemeFluxBC(pnp_with_implicit_compact_layer.xij1,1) )</p>
+<h4 id="Cation-concentration-at-interfaces">Cation concentration at interfaces<a class="anchor-link" href="#Cation-concentration-at-interfaces">&#182;</a></h4><p>(pnp_no_compact_layer.concentration[0,0],pnp_no_compact_layer.concentration[0,-1])</p>
+<p>(pnp_with_explicit_compact_layer.concentration[0,0],pnp_with_explicit_compact_layer.concentration[0,-1])</p>
+<p>(pnp_with_implicit_compact_layer.concentration[0,0],pnp_with_implicit_compact_layer.concentration[0,-1])</p>
+<h4 id="Anion-concentration-at-interfaces">Anion concentration at interfaces<a class="anchor-link" href="#Anion-concentration-at-interfaces">&#182;</a></h4><p>L
+(pnp_no_compact_layer.concentration[1,0],pnp_no_compact_layer.concentration[1,-1])</p>
+<p>(pnp_with_explicit_compact_layer.concentration[1,0],pnp_with_explicit_compact_layer.concentration[1,-1])</p>
+<p>(pnp_with_implicit_compact_layer.concentration[1,0],pnp_with_implicit_compact_layer.concentration[1,-1])</p>
+<h4 id="Equilibrium-cation-and-anion-amount">Equilibrium cation and anion amount<a class="anchor-link" href="#Equilibrium-cation-and-anion-amount">&#182;</a></h4><p>( pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xij1,0,0), pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xij1,1,0) )</p>
+<p>( pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xij1,0,0), pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xij1,1,0) )</p>
+<p>( pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xij1,0,0), pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xij1,1,0) )</p>
+<h4 id="Initial-cation-and-anion-amount">Initial cation and anion amount<a class="anchor-link" href="#Initial-cation-and-anion-amount">&#182;</a></h4><p>( pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xi0,0,0), pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xi0,1,0) )</p>
+<p>( pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xi0,0,0), pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xi0,1,0) )</p>
+<p>( pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xi0,0,0), pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xi0,1,0) )</p>
+<h4 id="Species-conservation">Species conservation<a class="anchor-link" href="#Species-conservation">&#182;</a></h4><p>(pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xij1,0,
+                                 pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xi0,0,0)), 
+ pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xij1,1,
+                                 pnp_no_compact_layer.numberConservationConstraint(pnp_no_compact_layer.xi0,1,0)) )</p>
+<p>(pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xij1,0,
+                                 pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xi0,0,0)), 
+ pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xij1,1,
+                                 pnp_with_explicit_compact_layer.numberConservationConstraint(pnp_with_explicit_compact_layer.xi0,1,0)) )</p>
+<p>(pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xij1,0,
+                                 pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xi0,0,0)), 
+ pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xij1,1,
+                                 pnp_with_implicit_compact_layer.numberConservationConstraint(pnp_with_implicit_compact_layer.xi0,1,0)) )</p>
 
 </div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Anion-concentration-at-interfaces">Anion concentration at interfaces<a class="anchor-link" href="#Anion-concentration-at-interfaces">&#182;</a></h4>
 </div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[95]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[95]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(2513.560978154379, 359.01656098936076)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[96]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[96]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(2419.4120629573695, 345.56909739152894)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[97]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[97]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(1429.9593185067033, 684.7967185446328)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Equilibrium-cation-and-anion-amount">Equilibrium cation and anion amount<a class="anchor-link" href="#Equilibrium-cation-and-anion-amount">&#182;</a></h4>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[98]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[98]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(9.830489385131512, 9.830489385131509)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[99]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[99]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(9.830489385131512, 9.830489385131509)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[100]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[100]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(6.553659590087673, 6.553659590087673)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Initial-cation-and-anion-amount">Initial cation and anion amount<a class="anchor-link" href="#Initial-cation-and-anion-amount">&#182;</a></h4>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[101]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[101]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(9.830489385131512, 9.830489385131512)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[102]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[102]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(9.830489385131512, 9.830489385131512)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[103]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span> <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[103]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(6.553659590087673, 6.553659590087673)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Species-conservation">Species conservation<a class="anchor-link" href="#Species-conservation">&#182;</a></h4>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[104]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span>
-                                 <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)),</span> 
- <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span>
-                                 <span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_no_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[104]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(0.0, -3.552713678800501e-15)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[105]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span>
-                                 <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)),</span> 
- <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span>
-                                 <span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_explicit_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[105]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(0.0, -3.552713678800501e-15)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[106]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span>
-                                 <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)),</span> 
- <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xij1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span>
-                                 <span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">numberConservationConstraint</span><span class="p">(</span><span class="n">pnp_with_implicit_compact_layer</span><span class="o">.</span><span class="n">xi0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span> <span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[106]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(0.0, 0.0)</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
