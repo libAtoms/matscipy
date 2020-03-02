@@ -88,7 +88,7 @@ Benchmark different scipty optimizers for the steric correction problem:
     >>>     'Powell',
     >>>     'CG',
     >>>     'BFGS',
-    >>>     'L-BFGS-C'
+    >>>     'L-BFGS-B'
     >>> ]
     >>>
     >>> for m in methods:
@@ -658,7 +658,7 @@ def apply_steric_correction(x, box=None, r=None,
     r : float or (N,) ndarray, optional (default=None)
         steric radius of particles. Can be specified particle-wise.
     options : dict, optional
-        forwarded to scipy BFGS minimzer
+        forwarded to scipy minimzer
         https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html
         (default: {'gtol':1.e-5,'maxiter':10,'disp':True,'eps':1.e-8})
     target_function: func, optional
