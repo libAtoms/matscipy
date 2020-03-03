@@ -7,7 +7,7 @@
 # 
 # from continuous electrochemical double layer theory to discrete coordinate sets
 
-# In[1]:
+# In[2]:
 
 
 # for dynamic module reload during testing, code modifications take immediate effect
@@ -15,7 +15,7 @@ get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
 
 
-# In[2]:
+# In[3]:
 
 
 # stretching notebook width across whole window
@@ -23,7 +23,7 @@ from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:100% !important; }</style>"))
 
 
-# In[3]:
+# In[4]:
 
 
 # basics
@@ -33,7 +33,7 @@ import scipy.constants as sc
 import matplotlib.pyplot as plt
 
 
-# In[4]:
+# In[5]:
 
 
 # sampling
@@ -397,7 +397,7 @@ plt.legend()
 
 # ## Test case 1: PNP interface system, 0.1 mM NaCl, positive potential u = 0.05 V
 
-# In[17]:
+# In[1]:
 
 
 # Test case parameters
@@ -407,7 +407,7 @@ L=1e-07
 delta_u=0.05
 
 
-# In[18]:
+# In[2]:
 
 
 # define desired system
@@ -438,7 +438,7 @@ uij, nij, lamj = pnp.solve()
 
 # ### Validation: Analytical half-space solution & Numerical finite-size PNP system
 
-# In[22]:
+# In[1]:
 
 
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system

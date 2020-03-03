@@ -35,6 +35,17 @@ from matscipy.electrochemistry.poisson_nernst_planck_solver import PoissonNernst
 
 logger = logging.getLogger(__name__)
 
+class Boundary(fn.SubDomain):
+    # Boundary causes crash kernel if __init__ doe not call super().__init__()
+    def __init__(self,x0=0,tol=1e-14):
+        super().__init__()
+        self.tol = tol
+        self.x0  = x0
+
+    def inside(self, x, on_boundary):
+        return on_boundary and fn.near(x[0],self.x0,self.tol)
+
+
 class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
     """Describes and solves a 1D Poisson-Nernst-Planck system,
     using log concentrations internally"""
@@ -76,9 +87,15 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
 
         # constraints set up elsewhere
         F = poisson + nernst_planck + self.constraints
-        # for i in range self.M:
 
         fn.solve(F==0,self.w,self.boundary_conditions)
+
+        # a = fn.lhs(F)
+        # L = fn.rhs(F)
+        #
+        # A = fn.assemble(a)
+        # b = fn.assemble(L)
+        # fn.solve(A,self.w.vector(),b,self.boundary_conditions)
 
         # store results:
 
@@ -96,8 +113,8 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
     def boundary_R(self, x, on_boundary):
         return on_boundary and fn.near(x[0], self.x1_scaled, self.bctol)
 
-    def boundary_inner(self, x, on_boundary, x_ref):
-        return fn.near(x[0], x_ref, self.bctol)
+    def boundary_C(self, x, on_boundary):
+        return fn.near(x[0], (self.x0_scaled + self.x1_scaled)/2., self.bctol)
 
     def applyLeftPotentialDirichletBC(self,u0):
         self.boundary_conditions.extend( [
@@ -121,16 +138,15 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
           fn.DirichletBC(self.W.sub(k+1),c0,
               lambda x, on_boundary: self.boundary_R(x, on_boundary)) ] )
 
-    def applyReferenceConcentrationConstraint(self,k,c0,x0):
+    def applyCentralReferenceConcentrationConstraint(self,k,c0):
         """FEniCS Dirichlet BC c0 for k'th ion species at right boundary"""
         self.boundary_conditions.extend( [
           fn.DirichletBC(self.W.sub(k+1),c0,
-              lambda x, on_boundary, x0=x0: self.boundary_inner(x, on_boundary, x0)) ] )
+              lambda x, on_boundary: self.boundary_C(x, on_boundary)) ] )
 
-
-    def applyPotentialDirichletBC(self,u0,u1):
-        self.applyLeftPotentialDirichletBC(u0)
-        self.applyRightPotentialDirichletBC(u1)
+    def applyLeftPotentialRobinBC(self,u0,lam0):
+        self.constraints += self.lam[k]*self.q[k]*fn.dx \
+            + (self.p[k]-c0)*self.mu[k]*fn.dx
 
     def applyNumberConservationConstraint(self,k,c0):
         """
@@ -139,7 +155,14 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         """
         self.constraints += self.lam[k]*self.q[k]*fn.dx \
             + (self.p[k]-c0)*self.mu[k]*fn.dx
-             # + (self.p[k] - c0)*self.mu[k]*fn.dx
+
+    def applyPotentialDirichletBC(self,u0,u1):
+        self.applyLeftPotentialDirichletBC(u0)
+        self.applyRightPotentialDirichletBC(u1)
+
+    def applyPotentialRobinBC(self,u0,u1,lam0,lam1):
+        self.applyLeftPotentialRobinBC(u0,lam0)
+        self.applyRightPotentialRobinBC(u1,lam1)
 
     def useStandardInterfaceBC(self):
         """Interface at left hand side and open bulk at right hand side"""
@@ -188,7 +211,7 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
                 N0[k], lwidth=self.label_width))
             self.applyNumberConservationConstraint(k,self.c_scaled[k])
 
-    def useReferenceConcentrationBasedCellBC(self):
+    def useCentralReferenceConcentrationBasedCellBC(self):
         """
         Interfaces at left hand side and right hand side, species-wise
         concentration fixed at cell center."""
@@ -196,8 +219,8 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
 
         # Introduce a Lagrange multiplier per species anderson
         # rebuild discretization scheme (function spaces)
-        self.K = self.M
-        self.discretize()
+        # self.K = self.M
+        # self.discretize()
 
         # Potential Dirichlet BC
         self.u0 = self.delta_u_scaled / 2.
@@ -210,17 +233,71 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         self.applyPotentialDirichletBC(self.u0,self.u1)
 
         # Number conservation constraints
-        x_ref = (self.x0_scaled + self.x1_scaled)/2.
+
+        window = fn.Expression('(x[0] >= xref - tol) && (x[0] <= xref + tol) ? 1 : 0',
+            degree=0, xref=(self.x0_scaled + self.x1_scaled)/2., tol=self.bctol)
+
         for k in range(self.M):
             # self.logger.info('{:>{lwidth}s} N0 = {:<8.4g}'.format(
             #    'Ion species {:02d} number conservation constraint'.format(k),
             #    N0[k], lwidth=self.label_width))
             # self.applyNumberConservationConstraint(k,self.c_scaled[k])
             self.logger.info(
-                'Ion species {:02d} reference concentration condition: c1 = {:> 8.4g} at x0 = {:> 8.4}'.format(
-                    k,self.c_scaled[k],x_ref))
+                'Ion species {:02d} reference concentration condition: c1 = {:> 8.4g} at cell center'.format(
+                    k, self.c_scaled[k]))
+            self.applyCentralReferenceConcentrationConstraint(k,self.c_scaled[k])
+            # self.constraints += window*self.lam[k]*self.q[k]*fn.dx \
+            #    + window*(self.p[k]-self.c_scaled[k])*self.mu[k]*fn.dx
 
-            self.applyReferenceConcentrationConstraint(k,self.c_scaled[k],x_ref)
+    def useSternLayerCellBC(self):
+        """
+        Interfaces at left hand side and right hand side, species-wise
+        number conservation within interval."""
+        self.boundary_conditions = []
+
+        # Introduce a Lagrange multiplier per species anderson
+        # rebuild discretization scheme (function spaces)
+        self.constraints = 0
+        self.K = self.M
+        self.discretize()
+
+        # Potential Dirichlet BC
+        self.u0 = self.delta_u_scaled / 2.
+        self.u1 = - self.delta_u_scaled / 2.
+
+        boundary_markers = fn.MeshFunction('size_t',self.mesh, self.mesh.topology().dim()-1)
+
+        bx = [
+            Boundary(x0=self.x0_scaled,tol=self.bctol),
+            Boundary(x0=self.x1_scaled,tol=self.bctol) ]
+
+        # Boundary.mark crashes the kernel if Boundary is internal class
+        for i, b in enumerate(bx):
+            b.mark(boundary_markers,i)
+
+        boundary_conditions = {
+            0: {'Robin': (1./self.lambda_S_scaled, self.u0)},
+            1: {'Robin': (1./self.lambda_S_scaled, self.u1)},
+        }
+
+        ds = fn.Measure('ds',domain=self.mesh, subdomain_data=boundary_markers)
+
+        integrals_R = []
+        for i in boundary_conditions:
+            if 'Robin' in boundary_conditions[i]:
+                r, s = boundary_conditions[i]['Robin']
+                integrals_R.append(r*(self.u-s)*self.v*ds(i))
+
+        self.constraints += sum(integrals_R)
+
+        # Number conservation constraints
+
+        N0 = self.L_scaled*self.c_scaled # total amount of species in cell
+        for k in range(self.M):
+            self.logger.info('{:>{lwidth}s} N0 = {:<8.4g}'.format(
+                'Ion species {:02d} number conservation constraint'.format(k),
+                N0[k], lwidth=self.label_width))
+            self.applyNumberConservationConstraint(k,self.c_scaled[k])
 
     def discretize(self):
         """Builds function space, call again after introducing constraints"""
@@ -287,12 +364,11 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         self.v, self.q, self.mu = (vqmu[0],[*vqmu[1:(self.M+1)]],[*vqmu[(self.M+1):]])
 
 
-
     def __init__(self, *args, **kwargs):
         self.init(*args,**kwargs)
 
         # tolerance for identifying boundaries
-        self.bctol = 1e-14
-        self.K     = 0 # number of Lagrange multipliers (constraints)
-        self.constraints = 0 # constraint kernels
+        self.bctol = 1e-14   # tolerance for identifying domain boundaries
+        self.K     = 0       # number of Lagrange multipliers (constraints)
+        self.constraints = 0 # holds constraint kernels
         self.discretize()

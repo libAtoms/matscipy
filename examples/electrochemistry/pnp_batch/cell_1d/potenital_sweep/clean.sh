@@ -1,0 +1,1 @@
+rm -rf data_* log_* fig_*.png

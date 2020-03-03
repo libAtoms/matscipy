@@ -29,7 +29,13 @@ Authors:
 import datetime, logging, os, sys
 import numpy as np
 
-from matscipy.electrochemistry import PoissonNernstPlanckSystem
+# use FEniCS finite element solver if available,
+# otherwise own controlled volume scheme
+try:
+    import fenics
+    from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
+except:
+    from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
 def main():
     """Solve Poisson-Nernst-Planck system and store distribution.
@@ -102,9 +108,9 @@ def main():
                             'interface', # open half-space
                             'cell', # 1D electorchemical cell with zero flux BC
                             'cell-stern', # 1D cell with linear compact layer regime
-                            'cell-stern-explicit', # same as cell-stern
+                            #'cell-stern-explicit', # same as cell-stern
                             'cell-robin', # 1D cell with implict compact layer by Robin BC
-                            'cell-stern-implicit', # same as cell-robin
+                            #'cell-stern-implicit', # same as cell-robin
                             ),
                         help='Boundary conditions')
 
@@ -126,13 +132,6 @@ def main():
                         metavar='e', required=False,
                         dest="absolute_tolerance",
                         help='Absolute tolerance Newton solver convergence criterion')
-
-    # output settings
-    # parser.add_argument('--output-interval',
-    #                     default=1, type=int,
-    #                     metavar='N', required=False,
-    #                     dest="outinterval",
-    #                     help='Print log messages every Nth Newton step')
 
     parser.add_argument('--convergence-stats', default=False, required=False,
                         action='store_true', dest="convergence",
@@ -202,28 +201,21 @@ def main():
         T =         float(args.temperature),
         delta_u =   float(args.potential),
         lambda_S =  float(args.lambda_S),
+        N =         args.segments,
+        maxit =     args.maxit,
+        e =         args.absolute_tolerance,
         relative_permittivity = float(args.relative_permittivity) )
 
-    # technical settings
-    # pnp.output  = args.convergence # makes Newton solver display convergence plots
-    pnp.N       = args.segments # uniformlya distanced grid points
-    pnp.maxit   = args.maxit # maximum number of Newton iterations
-    # pnp.outfreq = args.outinterval
-    pnp.e       = args.absolute_tolerance # absolute tolerance
-
-    if args.boundary_conditions == 'cell':
+    if args.boundary_conditions in ('cell-robin') and float(args.lambda_S) > 0:
+        pnp.useSternLayerCellBC()
+    elif (args.boundary_conditions in ('cell-robin') and float(args.lambda_S) == 0) or args.boundary_conditions == 'cell':
         pnp.useStandardCellBC()
-    elif args.boundary_conditions in ('cell-stern','cell-stern-explicit'):
-        pnp.useSternLayerCellBC(implicit=False)
-    elif args.boundary_conditions in ('cell-robin','cell-stern-implicit'):
-        pnp.useSternLayerCellBC(implicit=True)
     elif args.boundary_conditions == 'interface':
         pnp.useStandardInterfaceBC()
     else:
         raise ValueError("Boundary conditions '{}' not implemented!".format(
             args.boundary_conditions ))
 
-    pnp.init()
     pnp.solve()
 
     extra_kwargs = {}
@@ -232,7 +224,6 @@ def main():
             'convergence_step_absolute': pnp.convergenceStepAbsolute,
             'convergence_step_relative': pnp.convergenceStepRelative,
             'convergence_residual_absolute': pnp.convergenceResidualAbsolute } )
-
 
     if not args.outfile:
         outfile = sys.stdout
@@ -261,5 +252,4 @@ def main():
         sys.exit(1)
 
 if __name__ == '__main__':
-    # Execute everything else
     main()

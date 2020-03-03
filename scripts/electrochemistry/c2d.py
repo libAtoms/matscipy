@@ -237,8 +237,9 @@ def main():
     # distribution functions from concentrations;
     D = [ interpolate.interp1d(x,c) for c in C ]
 
-    # infer sample sice from integral over concentration distribution if
+    # infer sample size from integral over concentration distribution if
     # no explicit sample size given
+    # TODO: over-estimates sample size when distribution highly nonlinear
     for i, s in enumerate(sample_size):
         if np.isnan(s):
             # average concentration in distribution over interval
@@ -294,19 +295,6 @@ def main():
             outfile,system,format='lammps-data',units="real",atom_style='full')
     else: # elif outfile_format == '.xyz'
         ase.io.write(outfile,system,format='xyz')
-
-
-    # export_xyz( struc, outfile_name=args.outfile,
-    #            box=box, atom_name=args.atom_name)
-
-    # only if requested
-    # if hist_plot_file_name:
-    #     logger.info('Plotting distribution histograms ...')
-    #     histx, histy, histz = get_histogram(struc, box=args.box, n_bins=args.nbins)
-    #
-    #     plot_dist(histx, hist_plot_file_name[0], reference_distribution=uniform)
-    #     plot_dist(histy, hist_plot_file_name[1], reference_distribution=uniform)
-    #     plot_dist(histz, hist_plot_file_name[2], reference_distribution=func)
 
     logger.info('Done.')
 
