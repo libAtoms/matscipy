@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+
+from __future__ import (
+    division,
+    absolute_import,
+    print_function,
+    unicode_literals
+)
+from matplotlib import pyplot as pp
+from matscipy import sliding_p as pc
+from scipy.ndimage import uniform_filter
+from ase.units import fs
+import sys
+import numpy as np
+from io import open
+
+if len(sys.argv) > 1:
+    fn = sys.argv[1]
+else:
+    fn = 'log.txt'
+if len(sys.argv) > 2:
+    dt_mean = float(sys.argv[2]) * fs
+else:
+    dt_mean = 100.0 * fs
+with open(fn, 'r', encoding='utf-8') as handle:
+    log = pc.SlideLog(handle)
+
+dt = (log.time[1] - log.time[0]) * fs
+
+
+def cummean(a):
+    return np.cumsum(a) / np.arange(1, len(log.time) + 1)
+
+
+def leftmwmean(a, time):
+    steps = int(np.around(time / dt))
+    ret = uniform_filter(a, steps, mode="constant", cval=0.0, origin=(steps - 1) // 2)
+    ret[:steps - 1] = np.nan
+    return ret
+
+
+def plot(attrs, labels, dt_mean, ylabel):
+    pp.figure()
+    for attr, label in zip(attrs, labels):
+        pp.plot(log.time, getattr(log, attr), ':', label=label + ' current')
+    pp.gca().set_prop_cycle(None)
+    for attr, label in zip(attrs, labels):
+        pp.plot(log.time, cummean(getattr(log, attr)), '--', label=label + ' last $t$ mean')
+    pp.gca().set_prop_cycle(None)
+    for attr, label in zip(attrs, labels):
+        pp.plot(log.time, leftmwmean(getattr(log, attr), dt_mean), '-', label=label + ' last %.0f fs mean' % (dt_mean / fs, ))
+    pp.xlabel(r'$t / \mathrm{fs}$')
+    pp.ylabel(ylabel)
+    pp.legend(loc='upper left')
+    pp.tight_layout()
+
+
+plot(['T_thermostat'], ['thermostat dof'], dt_mean, r'$T / \mathrm{K}$')
+plot(['P_top', 'P_bottom'], ['top', 'bottom'], dt_mean, r'$P / \mathrm{GPa}$')
+plot(['tau_top', 'tau_bottom'], ['top', 'bottom'], dt_mean, r'$\tau / \mathrm{GPa}$')
+plot(['h'], ['lid normal pos.'], dt_mean, r'$h / \mathrm{\AA}$')
+plot(['v'], ['lid normal vel.'], dt_mean, r'$v_{\mathrm{normal}} / \mathrm{\AA}\mathrm{fs}^{-1}$')
+plot(['a'], ['lid normal acc.'], dt_mean, r'$a_{\mathrm{normal}} / \mathrm{\AA}\mathrm{fs}^{-2}$')
+
+# friction coefficient
+pp.figure()
+pp.plot(log.time, cummean(-log.tau_top) / cummean(log.P_top), '--', label='top last $t$ mean')
+pp.plot(log.time, cummean(-log.tau_bottom) / cummean(log.P_bottom), '--', label='bottom last $t$ mean')
+pp.gca().set_prop_cycle(None)
+pp.plot(log.time, leftmwmean(-log.tau_top, dt_mean) / leftmwmean(log.P_top, dt_mean), '-', label='top last %.0f fs mean' % (dt_mean / fs, ))
+pp.plot(log.time, leftmwmean(-log.tau_bottom, dt_mean) / leftmwmean(log.P_bottom, dt_mean), '-', label='bottom last %.0f fs mean' % (dt_mean / fs, ))
+pp.xlabel(r'$t / \mathrm{fs}$')
+pp.ylabel(r'$\mu$')
+pp.legend(loc='upper left')
+pp.tight_layout()
+
+tau_mean = 0.5 * (leftmwmean(-log.tau_top, dt_mean)[-1] + leftmwmean(log.tau_bottom, dt_mean)[-1])
+print("Final tau last %.0f fs mean top/bottom: %.1f GPa" % (dt_mean / fs, tau_mean))
+
+
+pp.show()
