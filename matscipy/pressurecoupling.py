@@ -51,17 +51,35 @@ class AutoDamping(object):
     """
 
     def __init__(self, C11, p_c=0.01):
-        """Constructor.
+        """Initialize object to calculate M and gamma.
 
-        Parameters   
+        Parameters
         ----------
-        C11: Elastic 
-
+        C11 : float
+            Elastic material constant.
+        p_c : float
+            Empirical cut-off parameter.
         """
         self.C11 = float(C11)
         self.p_c = float(p_c)
 
     def get_M_gamma(self, slider, atoms):
+        """Calculate mass M and dissipation constant gamma.
+
+        Parameters
+        ----------
+        slider : matscipy.pressurecoupling.SlideWithNormalPressureCuboidCell
+            ASE constraint used for sliding with pressure coupling.
+        atoms : ase.Atoms
+            Atomic configuration.
+
+        Returns
+        -------
+        M: float
+            Mass parameter.
+        gamma : float
+            Dissipation constant parameter.
+        """
         A = slider.get_A(atoms)
         l = atoms.cell[slider.vdir, slider.vdir]
         t_c = l / slider.v
@@ -80,10 +98,35 @@ class FixedDamping(object):
     """Damping with fixed damping constant and fixed mass."""
 
     def __init__(self, gamma, M_factor=1.0):
+        """Initialize object to manually set M and gamma.
+
+        Parameters
+        ----------
+        gamma : float
+            Damping constant.
+        M_factor : float
+            Multiplicative factor to increase actual mass of upper rigid atoms.
+        """
         self.gamma = float(gamma)
         self.M_factor = float(M_factor)
 
     def get_M_gamma(self, slider, atoms):
+        """Calculate mass M and damping constant gamma.
+
+        Parameters
+        ----------
+        slider : matscipy.pressurecoupling.SlideWithNormalPressureCuboidCell
+            ASE constraint used for sliding with pressure coupling.
+        atoms : ase.Atoms
+            Atomic configuration.
+
+        Returns
+        -------
+        M: float
+            Mass parameter.
+        gamma : float
+            Damping parameter.
+        """
         M_top = atoms.get_masses()[slider.top_mask].sum()
         return M_top * self.M_factor, self.gamma
 
@@ -95,10 +138,35 @@ class FixedMassCriticalDamping(object):
     """
 
     def __init__(self, C11, M_factor=1.0):
+        """Initialize object to set M and calculate gamma.
+
+        Parameters
+        ----------
+        C11 : float
+            Elastic material constant.
+        M_factor : float
+            Multiplicative factor to increase actual mass of upper rigid atoms.
+        """
         self.C11 = float(C11)
         self.M_factor = float(M_factor)
 
     def get_M_gamma(self, slider, atoms):
+        """Calculate mass M and damping constant gamma.
+
+        Parameters
+        ----------
+        slider : matscipy.pressurecoupling.SlideWithNormalPressureCuboidCell
+            ASE constraint used for sliding with pressure coupling.
+        atoms : ase.Atoms
+            Atomic configuration.
+
+        Returns
+        -------
+        M: float
+            Mass parameter.
+        gamma : float
+            Damping parameter.
+        """
         M_top = atoms.get_masses()[slider.top_mask].sum()
         M = M_top * self.M_factor
         A = slider.get_A(atoms)
@@ -111,7 +179,7 @@ class FixedMassCriticalDamping(object):
 
 
 class SlideWithNormalPressureCuboidCell(object):
-    """ASE constraint used for sliding with pressure coupling
+    """ASE constraint used for sliding with pressure coupling.
 
     Only works with diagonal cuboid cells so far.
     Sliding only works along cell vectors so far.
