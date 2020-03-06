@@ -396,19 +396,19 @@ class SlideLog(object):
 
     The data of the log files is found as attributes
     (numpy arrays with step as axis):
-    step -- step indices 0, 1, 2, ...
-    time -- simulation time in fs at step
-    T_thermostat -- instantaneous temperature in K from thermostatet region
+    step : step indices 0, 1, 2, ...
+    time : simulation time in fs at step
+    T_thermostat : instantaneous temperature in K from thermostat-region
                     only from degrees of freedom along thermalized
                     direction
-    P_top -- normal pressure on lid in GPa
-    P_bottom -- normal pressure on base in GPa
-    h -- separation of lid and base in Ang
-    v -- normal speed of lid in Ang / fs
-    a -- normal acceleration of lid in Ang / fs ** 2
-    tau_top -- shear stress on lid in GPa
-    tau_bottom -- shear stress on base in GPa
-    rows -- all data in a 2d array with axis 0 step and axis 1
+    P_top : normal pressure on lid in GPa
+    P_bottom : normal pressure on base in GPa
+    h : separation of lid and base in Ang
+    v : normal speed of lid in Ang / fs
+    a : normal acceleration of lid in Ang / fs ** 2
+    tau_top : shear stress on lid in GPa
+    tau_bottom : shear stress on base in GPa
+    rows : all data in a 2d array with axis 0 step and axis 1
             the values in the order as above
 
     Parameters
