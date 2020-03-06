@@ -2,8 +2,8 @@
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright (2020) Alexander Held,
+#                  Thomas Reichenbach
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,15 +21,13 @@
 
 """
 
-This python module provides classes to be used together with ASE in order to
-perform pressure relaxation and/or sliding simulations under pressure.
+Classes to be used with ASE in order to perform pressure relaxation and/or sliding simulations under pressure.
 
 A usage example is found in the example directory.
 
 Some parts are based on L. Pastewka, S. Moser, and M. Moseler, Tribol. Lett. 39, 49 (2010)
 as indicated again below.
 
-Author: Alexander Held
 """
 
 from __future__ import (
@@ -46,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 class AutoDamping(object):
-    """Automatic damping
+    """Automatic damping.
 
     Following L. Pastewka, S. Moser, and M. Moseler,
     Tribol. Lett. 39, 49 (2010).
@@ -55,8 +53,10 @@ class AutoDamping(object):
     def __init__(self, C11, p_c=0.01):
         """Constructor.
 
-        Arguments as described in L. Pastewka, S. Moser, and M. Moseler,
-        Tribol. Lett. 39, 49 (2010).
+        Parameters   
+        ----------
+        C11: Elastic 
+
         """
         self.C11 = float(C11)
         self.p_c = float(p_c)

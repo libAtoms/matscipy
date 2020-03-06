@@ -8,7 +8,7 @@ from ase.io import Trajectory, read
 from ase.units import GPa, kB, fs, m, s
 import numpy as np
 from ase.md.langevin import Langevin
-from matscipy import sliding_p as pc
+from matscipy import pressurecoupling as pc
 from io import open
 
 
@@ -22,7 +22,7 @@ v = 100.0 * m / s  # constant sliding speed
 vdir = 0  # index of cell axis along sliding happens
 T = 300.0  # target temperature for thermostat
            # thermostat is applied in the third direction which
-           # is neihter pressure nor sliding direction and only
+           # is neither pressure nor sliding direction and only
            # in the middle region between top and bottom.
            # This makes sense for small systems which cannot have
            # a dedicated thermostat region.
@@ -43,7 +43,7 @@ atoms.set_constraint(slider)
 
 calc = ASE_CALCULATOR_OBJECT  # put a specific calculator here
 
-atoms.calc = calc
+atoms.set_calculator(calc)
 temps = np.zeros((len(atoms), 3))
 temps[slider.middle_mask, slider.Tdir] = kB * T
 gammas = np.zeros((len(atoms), 3))

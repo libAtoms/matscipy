@@ -74,7 +74,7 @@ else:
 #           ' atomman. Skipping dislocation test.')
 # else:
 from test_dislocation import *
-from test_sliding_p import *
+from test_pressurecoupling import *
 
 ###
 

@@ -4,8 +4,8 @@
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright (2020) Alexander Held,
+#                  Thomas Reichenbach
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ from __future__ import (
 )
 import unittest
 import matscipytest
-from matscipy import sliding_p as pc
+from matscipy import pressurecoupling as pc
 from ase.build import fcc111
 from ase.calculators.emt import EMT
 from ase.units import GPa, kB, fs, m, s

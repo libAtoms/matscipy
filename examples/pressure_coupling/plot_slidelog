@@ -7,7 +7,7 @@ from __future__ import (
     unicode_literals
 )
 from matplotlib import pyplot as pp
-from matscipy import sliding_p as pc
+from matscipy import pressurecoupling as pc
 from scipy.ndimage import uniform_filter
 from ase.units import fs
 import sys
