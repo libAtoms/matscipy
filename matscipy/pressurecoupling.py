@@ -48,18 +48,16 @@ class AutoDamping(object):
 
     Following L. Pastewka, S. Moser, and M. Moseler,
     Tribol. Lett. 39, 49 (2010).
+
+    Parameters
+    ----------
+    C11 : float
+        Elastic material constant.
+    p_c : float
+        Empirical cut-off parameter.
     """
 
     def __init__(self, C11, p_c=0.01):
-        """Initialize object to calculate M and gamma.
-
-        Parameters
-        ----------
-        C11 : float
-            Elastic material constant.
-        p_c : float
-            Empirical cut-off parameter.
-        """
         self.C11 = float(C11)
         self.p_c = float(p_c)
 
@@ -95,18 +93,17 @@ class AutoDamping(object):
 
 
 class FixedDamping(object):
-    """Damping with fixed damping constant and fixed mass."""
+    """Damping with fixed damping constant and fixed mass.
+
+    Parameters
+    ----------
+    gamma : float
+        Damping constant.
+    M_factor : float
+        Multiplicative factor to increase actual mass of upper rigid atoms.
+    """
 
     def __init__(self, gamma, M_factor=1.0):
-        """Initialize object to manually set M and gamma.
-
-        Parameters
-        ----------
-        gamma : float
-            Damping constant.
-        M_factor : float
-            Multiplicative factor to increase actual mass of upper rigid atoms.
-        """
         self.gamma = float(gamma)
         self.M_factor = float(M_factor)
 
@@ -135,18 +132,16 @@ class FixedMassCriticalDamping(object):
     """Damping with fixed mass and critical damping constant.
 
     Useful for fast pressure equilibration with small lid mass.
+
+    Parameters
+    ----------
+    C11 : float
+        Elastic material constant.
+    M_factor : float
+        Multiplicative factor to increase actual mass of upper rigid atoms.
     """
 
     def __init__(self, C11, M_factor=1.0):
-        """Initialize object to set M and calculate gamma.
-
-        Parameters
-        ----------
-        C11 : float
-            Elastic material constant.
-        M_factor : float
-            Multiplicative factor to increase actual mass of upper rigid atoms.
-        """
         self.C11 = float(C11)
         self.M_factor = float(M_factor)
 
@@ -181,28 +176,29 @@ class FixedMassCriticalDamping(object):
 class SlideWithNormalPressureCuboidCell(object):
     """ASE constraint used for sliding with pressure coupling.
 
-    Only works with diagonal cuboid cells so far.
-    Sliding only works along cell vectors so far.
     Following L. Pastewka, S. Moser, and M. Moseler,
     Tribol. Lett. 39, 49 (2010).
+
+    Parameters
+    ----------
+    top_mask : boolean numpy array
+        Array a with a[i] == True for each index i of the
+        constraint top atoms (the atoms which slide with constant speed).
+    bottom_mask : boolean numpy array
+        same as top_mask but for completely fixed bottom atoms.
+    Pdir : integer
+        Index of cell axis (0, 1, 2) along which normal pressure is applied.
+    P : integer
+        Normal pressure in ASE units (e.g. 10.0 * ase.units.GPa).
+    vdir : integer
+        Index of cell axis (0, 1, 2) along which to slide.
+    v : float
+        Constant sliding speed in ASE units (e.g. 100.0 * ase.units.m / ase.units.s).
+    damping :
+        Damping object (e.g. matscipy.pressurecoupling.AutoDamping instance).
     """
 
     def __init__(self, top_mask, bottom_mask, Pdir, P, vdir, v, damping):
-        """Constructor.
-
-        top_mask -- boolean numpy array a with a[i] == True for i the index
-                    of a constraint top atom (the atoms which slide with
-                    constant speed)
-        bottom_mask -- same as top_mask but for completely fixed bottom
-                       atoms
-        Pdir -- index of cell axis (0, 1, 2) along which normal pressure
-                is applied
-        P -- normal pressure in ASE units (e.g. 10.0 * ase.units.GPa)
-        vdir -- index of cell axis (0, 1, 2) along which to slide
-        v -- constant sliding speed in ASE units
-             (e.g. 100.0 * ase.units.m / ase.units.s)
-        damping -- a damping object (e.g. AutoDamping instance)
-        """
         self.top_mask = top_mask
         self.Ntop = top_mask.sum()
         self.bottom_mask = bottom_mask
@@ -214,6 +210,16 @@ class SlideWithNormalPressureCuboidCell(object):
 
     @property
     def Tdir(self):
+        """Get direction used for thermostatting.
+
+        Thermostat direction is normal to the sliding direction and the direciton of the
+        applied load direction.
+
+        Returns
+        -------
+        int
+            Direction used for thermostatting.
+        """
         all_dirs = {0, 1, 2}
         all_dirs.remove(self.Pdir)
         all_dirs.remove(self.vdir)
@@ -221,12 +227,34 @@ class SlideWithNormalPressureCuboidCell(object):
 
     @property
     def middle_mask(self):
+        """Get mask of free atoms.
+
+        Returns
+        -------
+        numpy boolean array
+            Array a with a[i] == True for each index i of the atoms
+            not being part of lower or upper rigid group.
+        """
         return np.logical_not(np.logical_or(self.top_mask, self.bottom_mask))
 
     def adjust_positions(self, atoms, positions):
+        """Do not adjust positions, method required by ASE."""
         pass
 
     def get_A(self, atoms):
+        """Calculate cell area normal to applied load.
+
+        Returns
+        -------
+        float
+            Cell area normal to applied load.
+
+        Raises
+        ------
+            SlideWithNormalPressureCuboidCell only works for orthogonal cells.
+        """
+        if np.abs(atoms.get_cell().sum() - atoms.get_cell().trace()) > 0:
+            raise NotImplementedError("Can't do non-orthogonal cell!")
         A = 1.0
         for c in (0, 1, 2):
             if c != self.Pdir:
@@ -234,6 +262,14 @@ class SlideWithNormalPressureCuboidCell(object):
         return A
 
     def adjust_forces(self, atoms, forces):
+        """Adjust forces of upper and lower rigid atoms.
+
+        Raises
+        ------
+            SlideWithNormalPressureCuboidCell only works for orthogonal cells.
+        """
+        if np.abs(atoms.get_cell().sum() - atoms.get_cell().trace()) > 0:
+            raise NotImplementedError("Can't do non-orthogonal cell!")
         A = self.get_A(atoms)
         M, gamma = self.damping.get_M_gamma(self, atoms)
         Ftop = forces[self.top_mask, self.Pdir].sum()
@@ -245,6 +281,14 @@ class SlideWithNormalPressureCuboidCell(object):
         forces[self.top_mask, self.Pdir] = atoms.get_masses()[self.top_mask] * a
 
     def adjust_momenta(self, atoms, momenta):
+        """Adjust momenta of upper and lower rigid atoms.
+
+        Raises
+        ------
+            SlideWithNormalPressureCuboidCell only works for orthogonal cells.
+        """
+        if np.abs(atoms.get_cell().sum() - atoms.get_cell().trace()) > 0:
+            raise NotImplementedError("Can't do non-orthogonal cell!")
         top_masses = atoms.get_masses()[self.top_mask]
         vtop = (momenta[self.top_mask, self.Pdir] / top_masses).sum() / self.Ntop
         momenta[self.bottom_mask, :] = 0.0
@@ -253,6 +297,7 @@ class SlideWithNormalPressureCuboidCell(object):
         momenta[self.top_mask, self.Pdir] = vtop * top_masses
 
     def adjust_potential_energy(self, atoms):
+        """Do not adjust energy, method required by ASE."""
         return 0.0
 
 
