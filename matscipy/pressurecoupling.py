@@ -251,6 +251,8 @@ class SlideWithNormalPressureCuboidCell(object):
 
         Raises
         ------
+        NotImplementedError
+            If atoms.get_cell() is non-orthogonal,
             SlideWithNormalPressureCuboidCell only works for orthogonal cells.
         """
         if np.abs(atoms.get_cell().sum() - atoms.get_cell().trace()) > 0:
@@ -266,6 +268,8 @@ class SlideWithNormalPressureCuboidCell(object):
 
         Raises
         ------
+        NotImplementedError
+            If atoms.get_cell() is non-orthogonal,
             SlideWithNormalPressureCuboidCell only works for orthogonal cells.
         """
         if np.abs(atoms.get_cell().sum() - atoms.get_cell().trace()) > 0:
@@ -285,6 +289,8 @@ class SlideWithNormalPressureCuboidCell(object):
 
         Raises
         ------
+        NotImplementedError
+            If atoms.get_cell() is non-orthogonal,
             SlideWithNormalPressureCuboidCell only works for orthogonal cells.
         """
         if np.abs(atoms.get_cell().sum() - atoms.get_cell().trace()) > 0:
@@ -302,47 +308,49 @@ class SlideWithNormalPressureCuboidCell(object):
 
 
 class SlideLogger(object):
-    """Logger to be attached to an ASE integrator."""
+    """Logger to be attached to an ASE integrator.
 
-    def __init__(self, handle, atoms, slider, integrator, step_offset=0):
-        """Constructor.
+    For new files (not restart jobs), the write_header method should
+    be called once in order to write the header to the file. Also note
+    that ASE does not write the time step 0 automatically.
+    You can do so by calling the SlideLogger instance once
+    before starting the integration as in example 1 below.
 
-        handle -- filehandle e.g. pointing to a file opened in w or a mode
-        atoms -- the ASE atoms object
-        slider -- slider object
-                  (e.g. instance of SlideWithNormalPressureCuboidCell)
-        integrator -- ASE integrator object,
-                      e.g. ase.md.langevin.Langevin instance
-        step_offset -- for restart jobs: last step already written to log file
+    Parameters
+    ----------
+    handle : filehandle
+       Filehandle e.g. pointing to a file opened in w or a mode.
+    atoms : ase.Atoms
+        Atomic configuration.
+    slider : slider object
+        Instance of SlideWithNormalPressureCuboidCell.
+    integrator : ASE integrator object,
+        Instance of ASE integrator e.g. ase.md.langevin.Langevin.
+    step_offset : integer
+        Last step already written to log file, useful for restarts.
 
-        For new files (not restart jobs), the write_header method should
-        be called once in order to write the header to the file. Also note
-        that ASE does *NOT* write the time step 0 automatically.
-        You can do so by calling the SlideLogger instance once
-        before starting the integration, like so:
-
-        ...
+    Examples
+    --------
+    1. For new runs:
         log_handle = open(logfn, 'w', 1)  # line buffered
         logger = SlideLogger(log_handle, ...)
         logger.write_header()
         logger()
         integrator.attach(logger)
         integrator.run(steps_integrate)
-        log_handle.close()  # or some try ... finally clause
-        ...
+        log_handle.close()
 
-        For a restart job, you can use the following recipe:
-
-        ...
+    2. For restarts:
         with open(logfn, 'r') as log_handle:
             step_offset = SlideLog(log_handle).step[-1]
         log_handle = open(logfn, 'a', 1)  # line buffered append
         logger = SlideLogger(log_handle, ..., step_offset=step_offset)
         integrator.attach(logger)
         integrator.run(steps_integrate)
-        log_handle.close()  # or some try ... finally clause
-        ...
-        """
+        log_handle.close()
+    """
+
+    def __init__(self, handle, atoms, slider, integrator, step_offset=0):
         self.handle = handle
         self.atoms = atoms
         self.slider = slider
@@ -350,9 +358,11 @@ class SlideLogger(object):
         self.step_offset = step_offset
 
     def write_header(self):
+        """Write header of log-file."""
         self.handle.write('# step | time / fs | T_thermostat / K | P_top / GPa | P_bottom / GPa | h / Ang | v / Ang * fs | a / Ang * fs ** 2 | tau_top / GPa | tau_bottom / GPa\n')
 
     def __call__(self):
+        """Write current status (time, T, P, ...) to log-file."""
         slider = self.slider
         atoms = self.atoms
         integrator = self.integrator
@@ -400,13 +410,14 @@ class SlideLog(object):
     tau_bottom -- shear stress on base in GPa
     rows -- all data in a 2d array with axis 0 step and axis 1
             the values in the order as above
+
+    Parameters
+    ----------
+    handle matscipy.pressurecoupling.SlideLogger instance
+        Handle or filename pointing to log file.
     """
 
     def __init__(self, handle):
-        """Constructor.
-
-        handle -- handle or filename pointing to log file
-        """
         self.rows = np.loadtxt(handle)
         self.step, self.time, self.T_thermostat, self.P_top, self.P_bottom, self.h, self.v, self.a, self.tau_top, self.tau_bottom = self.rows.T
         self.step = self.step.astype(int)
