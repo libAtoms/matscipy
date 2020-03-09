@@ -394,22 +394,32 @@ class SlideLogger(object):
 class SlideLog(object):
     """Reader for logs written with SlideLogger instance.
 
-    The data of the log files is found as attributes
-    (numpy arrays with step as axis):
-    step : step indices 0, 1, 2, ...
-    time : simulation time in fs at step
-    T_thermostat : instantaneous temperature in K from thermostat-region
-                    only from degrees of freedom along thermalized
-                    direction
-    P_top : normal pressure on lid in GPa
-    P_bottom : normal pressure on base in GPa
-    h : separation of lid and base in Ang
-    v : normal speed of lid in Ang / fs
-    a : normal acceleration of lid in Ang / fs ** 2
-    tau_top : shear stress on lid in GPa
-    tau_bottom : shear stress on base in GPa
-    rows : all data in a 2d array with axis 0 step and axis 1
-            the values in the order as above
+    The data of the log files is found as attributes:
+
+    step : ndarray
+        Step indices 0, 1, 2, ....
+    time : ndarray
+        Simulation time in fs at step.
+    T_thermostat : ndarray
+        Instantantaneous temperature in K from thermostat-region
+        only from degrees of freedom along thermalized direction.
+    P_top : ndarray
+        Normal pressure on lid in GPa.
+    P_bottom : ndarray
+        Normal pressure on base in GPa.
+    h : ndarray
+        Separation of lid and base in Ang.
+    v : ndarray
+        Normal speed of lid in Ang / fs.
+    a : ndarray
+        Normal acceleration of lid in Ang / fs ** 2.
+    tau_top : ndarray
+        Shear stress on lid in GPa.
+    tau_bottom : ndarray
+        Shear stress on base in GPa.
+    rows : ndarray
+        All data in a 2d array with axis 0 step and axis 1
+        the values ordered as above.
 
     Parameters
     ----------
