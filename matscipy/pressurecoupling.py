@@ -394,8 +394,8 @@ class SlideLogger(object):
 class SlideLog(object):
     """Reader for logs written with SlideLogger instance.
 
-    The data of the log files is found as attributes:
-
+    Attributes
+    ----------
     step : ndarray
         Step indices 0, 1, 2, ....
     time : ndarray
