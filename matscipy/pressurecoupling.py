@@ -394,6 +394,11 @@ class SlideLogger(object):
 class SlideLog(object):
     """Reader for logs written with SlideLogger instance.
 
+    Parameters
+    ----------
+    handle matscipy.pressurecoupling.SlideLogger instance
+        Handle or filename pointing to log file.
+
     Attributes
     ----------
     step : ndarray
@@ -420,11 +425,6 @@ class SlideLog(object):
     rows : ndarray
         All data in a 2d array with axis 0 step and axis 1
         the values ordered as above.
-
-    Parameters
-    ----------
-    handle matscipy.pressurecoupling.SlideLogger instance
-        Handle or filename pointing to log file.
     """
 
     def __init__(self, handle):
