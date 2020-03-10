@@ -264,6 +264,13 @@ setup(name='matscipy',
                 'matscipy.calculators.mcfm.neighbour_list_mcfm',
                 'matscipy.calculators.mcfm.qm_cluster_tools'],
       scripts=scripts,
+      entry_points={
+            'console_scripts': [
+                'c2d = matscipy.cli.electrochemistry.c2d:main',
+                'pnp = matscipy.cli.electrochemistry.pnp:main',
+                'stericify = matscipy.cli.electrochemistry.stericify:main'
+            ],
+        },
       ext_modules=[
         Extension(
             '_matscipy',
