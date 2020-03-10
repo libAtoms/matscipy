@@ -36,9 +36,10 @@ from __future__ import (
     print_function,
     unicode_literals
 )
+import logging
 import numpy as np
 from ase.units import kB, fs, GPa
-import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -186,11 +187,11 @@ class SlideWithNormalPressureCuboidCell(object):
         constraint top atoms (the atoms which slide with constant speed).
     bottom_mask : boolean numpy array
         same as top_mask but for completely fixed bottom atoms.
-    Pdir : integer
+    Pdir : int
         Index of cell axis (0, 1, 2) along which normal pressure is applied.
-    P : integer
+    P : int
         Normal pressure in ASE units (e.g. 10.0 * ase.units.GPa).
-    vdir : integer
+    vdir : int
         Index of cell axis (0, 1, 2) along which to slide.
     v : float
         Constant sliding speed in ASE units (e.g. 100.0 * ase.units.m / ase.units.s).
@@ -210,9 +211,9 @@ class SlideWithNormalPressureCuboidCell(object):
 
     @property
     def Tdir(self):
-        """Get direction used for thermostatting.
+        """Direction used for thermostatting.
 
-        Thermostat direction is normal to the sliding direction and the direciton of the
+        Thermostat direction is normal to the sliding direction and the direction of the
         applied load direction.
 
         Returns
@@ -227,7 +228,7 @@ class SlideWithNormalPressureCuboidCell(object):
 
     @property
     def middle_mask(self):
-        """Get mask of free atoms.
+        """Mask of free atoms.
 
         Returns
         -------
@@ -238,7 +239,7 @@ class SlideWithNormalPressureCuboidCell(object):
         return np.logical_not(np.logical_or(self.top_mask, self.bottom_mask))
 
     def adjust_positions(self, atoms, positions):
-        """Do not adjust positions, method required by ASE."""
+        """Do not adjust positions."""
         pass
 
     def get_A(self, atoms):
@@ -303,7 +304,7 @@ class SlideWithNormalPressureCuboidCell(object):
         momenta[self.top_mask, self.Pdir] = vtop * top_masses
 
     def adjust_potential_energy(self, atoms):
-        """Do not adjust energy, method required by ASE."""
+        """Do not adjust energy."""
         return 0.0
 
 
@@ -326,7 +327,7 @@ class SlideLogger(object):
         Instance of SlideWithNormalPressureCuboidCell.
     integrator : ASE integrator object,
         Instance of ASE integrator e.g. ase.md.langevin.Langevin.
-    step_offset : integer
+    step_offset : int
         Last step already written to log file, useful for restarts.
 
     Examples
