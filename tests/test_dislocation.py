@@ -266,6 +266,18 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         #  compare z component with simple Volterra solution
         self.assertArrayAlmostEqual(u_volterra, u_stroh[:, 2])
 
+    def test_make_screw_quadrupole_kink(self):
+        """Test the total number of atoms in the quadrupole double kink configuration"""
+
+        alat = 3.14
+        n1u = 5
+        kink_length = 20
+
+        kink, _, _ = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kink_length=kink_length)
+        quadrupole_base, _, _, _ = sd.make_screw_quadrupole(alat=alat, n1u=n1u)
+
+        self.assertEqual(len(kink), len(quadrupole_base) * 2 * kink_length)
+
 
 if __name__ == '__main__':
     unittest.main()

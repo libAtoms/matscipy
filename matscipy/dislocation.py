@@ -1338,6 +1338,117 @@ def make_screw_quadrupole(alat,
     return disloc_quadrupole, bulk, dislo_coord_left, dislo_coord_right
 
 
+def make_screw_quadrupole_kink(alat, kind="double", n1u=5, kink_length=20, symbol="W"):
+    """Generates kink configuration using make_screw_quadrupole() function
+       works for BCC structure.
+       The method is based on paper https://doi.org/10.1016/j.jnucmat.2008.12.053
+
+    Parameters
+    ----------
+    alat : float
+        Lattice parameter of the system in Angstrom.
+    kind : string
+        kind of the kink: right, left or double
+    n1u : int
+        Number of lattice vectors for the quadrupole cell (make_screw_quadrupole() function)
+    kink_length : int
+        Length of the cell per kink along b in unit of b, must be even.
+    symbol : string
+        Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
+        default is "W" for tungsten
+
+    Returns
+    -------
+
+    kink : ase.atoms
+        kink configuration
+    reference_straight_disloc : ase.atoms
+        reference straight dislocation configuration
+    large_bulk : ase.atoms
+        large bulk cell corresponding to the kink configuration
+
+    """
+
+    b = np.sqrt(3.0) * alat / 2.0
+    cent_x = np.sqrt(6.0) * alat / 3.0
+
+    ini_disloc_quadrupole, W_bulk, _, _ = make_screw_quadrupole(alat, n1u=n1u,
+                                                                   left_shift=0.0,
+                                                                   right_shift=0.0,
+                                                                   symbol=symbol)
+
+    fin_disloc_quadrupole, W_bulk, _, _ = make_screw_quadrupole(alat, n1u=n1u,
+                                                                   left_shift=1.0,
+                                                                   right_shift=1.0,
+                                                                   symbol=symbol)
+
+    reference_straight_disloc = ini_disloc_quadrupole * [1, 1, kink_length]
+    large_bulk = W_bulk * [1, 1, kink_length]
+    __, __, z = large_bulk.positions.T
+
+    if kind == "left":
+
+        # we have to adjust the cell to make the kink vector periodic
+        # here we remove one atomic row . it is nicely explained in the paper
+        left_kink_mask = z < large_bulk.get_cell()[2][2] - 1.0 * b / 3.0 - 0.01
+        large_bulk.cell[2][0] -= cent_x
+        large_bulk.cell[2][2] -= 1.0 * b / 3.0
+        large_bulk = large_bulk[left_kink_mask]
+
+        kink = fin_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink = ini_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink.positions += np.array((0.0, 0.0, kink.cell[2][2]))
+        kink.cell[2][2] += upper_kink.cell[2][2]
+        kink.extend(upper_kink)
+
+        # left kink is created the kink vector is in negative x direction assuming (x, y, z) is right group of vectors
+        kink = kink[left_kink_mask]
+        kink.cell[2][0] -= cent_x
+        kink.cell[2][2] -= 1.0 * b / 3.0
+
+    elif kind == "right":
+
+        # we have to adjust the cell to make the kink vector periodic
+        # here we remove two atomic rows . it is nicely explained in the paper
+        right_kink_mask = z < large_bulk.cell[2][2] - 2.0 * b / 3.0 - 0.01
+        large_bulk.cell[2][0] += cent_x
+        large_bulk.cell[2][2] -= 2.0 * b / 3.0
+        large_bulk = large_bulk[right_kink_mask]
+
+        kink = ini_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink = fin_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink.positions += np.array((0.0, 0.0, kink.cell[2][2]))
+        kink.cell[2][2] += upper_kink.cell[2][2]
+        kink.extend(upper_kink)
+
+        kink = kink[right_kink_mask]
+        # right kink is created when the kink vector is in positive x direction
+        # assuming (x, y, z) is right group of vectors
+        kink.cell[2][0] += cent_x
+        kink.cell[2][2] -= 2.0 * b / 3.0
+
+    elif kind == "double":
+
+        # for the double kink it is kink length per kink
+        kink = ini_disloc_quadrupole * [1, 1, kink_length // 2]
+        middle_kink = fin_disloc_quadrupole * [1, 1, kink_length]
+        middle_kink.positions += np.array((0.0, 0.0, kink.get_cell()[2][2]))
+
+        kink.extend(middle_kink)
+        kink.cell[2][2] += middle_kink.cell[2][2]
+
+        upper_kink = ini_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink.positions += np.array((0.0, 0.0, kink.get_cell()[2][2]))
+        kink.extend(upper_kink)
+
+        kink.cell[2][2] += upper_kink.cell[2][2]
+
+    else:
+        raise ValueError('Kind must be "right", "left" or "double"')
+
+    return kink, reference_straight_disloc, large_bulk
+
+
 def make_edge_cyl_001_100(a0, C11, C12, C44,
                           cylinder_r,
                           cutoff=5.5,
