@@ -485,10 +485,10 @@ def get_elastic_constants(pot_path=None,
 
 def make_barrier_configurations(elastic_param=None,
                                 pot_path=None, calculator=None,
-                                cylinder_r=10, hard_core=False):
-    """ Creates the initial and final configurations for the NEB calculation
-        The positions in FixedAtoms contrained region are average between
-        final and inital configurations
+                                cylinder_r=10, hard_core=False, **kwargs):
+    """Creates the initial and final configurations for the NEB calculation
+        The positions in FixedAtoms constrained region are average between
+        final and initial configurations
 
     Parameters
     ----------
@@ -501,7 +501,9 @@ def make_barrier_configurations(elastic_param=None,
                     dislocation  in angstrom.
     hard_core : bool
         Type of the core hard or soft.
-        If hard is chosen the displacment field is reversed.
+        If hard is chosen the displacement field is reversed.
+    **kwargs :
+        Keyword arguments to pass to make_screw_cyl() function.
 
     Returns
     -------
@@ -538,13 +540,13 @@ def make_barrier_configurations(elastic_param=None,
                                               cylinder_r=cylinder_r,
                                               cutoff=cutoff,
                                               hard_core=hard_core,
-                                              l_extend=center)
+                                              l_extend=center, **kwargs)
 
     disloc_fin, __, __ = make_screw_cyl(alat, C11, C12, C44,
                                         cylinder_r=cylinder_r,
                                         cutoff=cutoff,
                                         hard_core=hard_core,
-                                        center=center)
+                                        center=center, **kwargs)
 
     # get the fixed atoms constrain
     FixAtoms = disloc_ini.constraints[0]
@@ -567,6 +569,152 @@ def make_barrier_configurations(elastic_param=None,
     disloc_fin.set_positions(positions, apply_constraint=False)
 
     return disloc_fin, disloc_ini, bulk_ini
+
+def make_screw_cyl_kink(alat, C11, C12, C44,
+                        cylinder_r=40, kink_length=26, kind="double", **kwargs):
+    """Function to create kink configuration based on make_screw_cyl() function.
+        Double kink configuration is in agreement with quadrupoles in terms of formation energy.
+        Single kink configurations provide correct and stable structure, but formation energy is not accessible?
+
+    Parameters
+    ----------
+    alat : float
+        Lattice constant of the material.
+    C11 : float
+        C11 elastic constant of the material.
+    C12 : float
+        C12 elastic constant of the material.
+    C44 : float
+        C44 elastic constant of the material.
+    cylinder_r : float
+        radius of cylinder of unconstrained atoms around the
+        dislocation  in angstrom
+    kink_length : int
+        Length of the cell per kink along b in unit of b, must be even.
+    kind : string
+        kind of the kink: right, left or double
+    **kwargs :
+        Keyword arguments to pass to make_screw_cyl() function.
+
+    Returns
+    -------
+    kink : ase.atoms
+        kink configuration
+    reference_straight_disloc : ase.atoms
+        reference straight dislocation configuration
+    large_bulk : ase.atoms
+        large bulk cell corresponding to the kink configuration
+    """
+    b = np.sqrt(3.0) * alat / 2.0
+    cent_x = np.sqrt(6.0) * alat / 3.0
+
+    disloc_fin, disloc_ini, bulk_ini = make_barrier_configurations((alat, C11, C12, C44),
+                                                                    cylinder_r=cylinder_r, **kwargs)
+
+    if kind == "double":
+
+        large_bulk = bulk_ini * [1, 1, 2 * kink_length]
+        reference_straight_disloc = disloc_ini * [1, 1, 2 * kink_length]
+
+        if kink_length % 2:
+            print("WARNING: length is not even!")
+
+        kink = disloc_ini * [1, 1, kink_length // 2]
+        middle_kink = disloc_fin * [1, 1, kink_length]
+
+        middle_kink.positions += np.array((0.0, 0.0, kink.get_cell()[2][2]))
+
+        kink.constraints[0].index = np.append(kink.constraints[0].index,
+                                              middle_kink.constraints[0].get_indices() + len(kink))
+        kink.extend(middle_kink)
+        kink.cell[2][2] += middle_kink.cell[2][2]
+
+        upper_kink = disloc_ini * [1, 1, kink_length // 2]
+        upper_kink.positions += np.array((0.0, 0.0, kink.get_cell()[2][2]))
+
+        kink.constraints[0].index = np.append(kink.constraints[0].index,
+                                              upper_kink.constraints[0].get_indices() + len(kink))
+        kink.extend(upper_kink)
+        kink.cell[2][2] += upper_kink.cell[2][2]
+
+    elif kind == "right":
+
+        large_bulk = bulk_ini * [1, 1, kink_length]
+        reference_straight_disloc = disloc_ini * [1, 1, kink_length]
+
+        kink = disloc_ini * [1, 1, kink_length // 2]
+        upper_disloc = disloc_fin * [1, 1, kink_length // 2]
+
+        upper_disloc.positions += np.array((0.0, 0.0, kink.cell[2][2]))
+
+        kink.extend(upper_disloc)
+        kink.constraints[0].index = np.append(kink.constraints[0].index,
+                                              upper_disloc.constraints[0].get_indices() + len(kink))
+        kink.cell[2][2] += upper_disloc.cell[2][2]
+
+        # we have to adjust the cell to make the kink vector periodic
+        # here we remove two atomic rows. it is nicely explained in the paper
+        _, _, z = large_bulk.positions.T
+        right_kink_mask = z < large_bulk.cell[2][2] - 2.0 * b / 3 - 0.01
+
+        kink = kink[right_kink_mask]
+
+        cell = kink.cell.copy()
+
+        # right kink is created when the kink vector is in positive x direction
+        # assuming (x, y, z) is right group of vectors
+        cell[2][0] += cent_x
+        cell[2][2] -= 2.0 * b / 3.0
+        kink.set_cell(cell, scale_atoms=False)
+
+        # make sure all the atoms are removed and cell is modified for the bulk as well.
+        large_bulk.cell[2][0] += cent_x
+        large_bulk.cell[2][2] -= 2.0 * b / 3.0
+        large_bulk = large_bulk[right_kink_mask]
+        for constraint in kink.constraints:
+            large_bulk.set_constraint(constraint)
+
+    elif kind == "left":
+
+        large_bulk = bulk_ini * [1, 1, kink_length]
+        reference_straight_disloc = disloc_ini * [1, 1, kink_length]
+
+        kink = disloc_fin * [1, 1, kink_length // 2]
+
+        upper_disloc = disloc_ini * [1, 1, kink_length // 2]
+        upper_disloc.positions += np.array((0.0, 0.0, kink.cell[2][2]))
+
+        kink.extend(upper_disloc)
+        kink.constraints[0].index = np.append(kink.constraints[0].index,
+                                              upper_disloc.constraints[0].get_indices() + len(kink))
+        kink.cell[2][2] += upper_disloc.cell[2][2]
+
+        # we have to adjust the cell to make the kink vector periodic
+        # here we remove one atomic row. it is nicely explained in the paper
+        _, _, z = large_bulk.positions.T
+        left_kink_mask = z < large_bulk.cell[2][2] - 1.0 * b / 3 - 0.01
+
+        kink = kink[left_kink_mask]
+
+        cell = kink.cell.copy()
+
+        # left kink is created when the kink vector is in negative x direction
+        # assuming (x, y, z) is right group of vectors
+        cell[2][0] -= cent_x
+        cell[2][2] -= 1.0 * b / 3.0
+        kink.set_cell(cell, scale_atoms=False)
+
+        # make sure all the atoms are removed and cell is modified for the bulk as well.
+        large_bulk.cell[2][0] -= cent_x
+        large_bulk.cell[2][2] -= 1.0 * b / 3.0
+        large_bulk = large_bulk[left_kink_mask]
+        for constraint in kink.constraints:
+            large_bulk.set_constraint(constraint)
+
+    else:
+        raise ValueError('Kind must be "right", "left" or "double"')
+
+    return kink, reference_straight_disloc, large_bulk
 
 
 def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,

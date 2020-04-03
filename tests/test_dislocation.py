@@ -278,6 +278,38 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         self.assertEqual(len(kink), len(quadrupole_base) * 2 * kink_length)
 
+    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
+    def test_make_screw_cyl_kink(self):
+        """Test the total number of atoms and number of fixed atoms in the cylinder double kink configuration"""
+
+        alat = 3.14339177996466
+        C11 = 523.0266819809012
+        C12 = 202.1786296941397
+        C44 = 160.88179872237012
+
+        cent_x = np.sqrt(6.0) * alat / 3.0
+        center = [cent_x, 0.0, 0.0]
+
+        cylinder_r = 40
+        kink_length = 26
+
+        kink, large_disloc, straight_bulk = sd.make_screw_cyl_kink(alat, C11, C12, C44, kink_length=kink_length,
+                                                                   cylinder_r=cylinder_r, kind="double")
+
+        # check the total number of atoms as compared to make_screw_cyl()
+        disloc, _, _ = sd.make_screw_cyl(alat, C11, C12, C12, cylinder_r=cylinder_r, l_extend=center)
+
+        self.assertEqual(len(kink), len(disloc) * 2 * kink_length)
+
+        kink_fixed_atoms = kink.constraints[0].get_indices()
+        reference_fixed_atoms = kink.constraints[0].get_indices()
+
+        # check that the same number of atoms is fixed
+        self.assertEqual(len(kink_fixed_atoms), len(reference_fixed_atoms))
+        # check that the fixed atoms are the same and with same positions
+        self.assertArrayAlmostEqual(kink_fixed_atoms, reference_fixed_atoms)
+        self.assertArrayAlmostEqual(kink.positions[kink_fixed_atoms],
+                                    large_disloc.positions[reference_fixed_atoms])
 
 if __name__ == '__main__':
     unittest.main()
