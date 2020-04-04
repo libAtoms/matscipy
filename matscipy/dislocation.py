@@ -568,7 +568,7 @@ def make_barrier_configurations(elastic_param=None,
     positions[fixed_atoms_indices] = new_av_pos
     disloc_fin.set_positions(positions, apply_constraint=False)
 
-    return disloc_fin, disloc_ini, bulk_ini
+    return disloc_ini, disloc_fin, bulk_ini
 
 def make_screw_cyl_kink(alat, C11, C12, C44,
                         cylinder_r=40, kink_length=26, kind="double", **kwargs):
@@ -608,7 +608,7 @@ def make_screw_cyl_kink(alat, C11, C12, C44,
     b = np.sqrt(3.0) * alat / 2.0
     cent_x = np.sqrt(6.0) * alat / 3.0
 
-    disloc_fin, disloc_ini, bulk_ini = make_barrier_configurations((alat, C11, C12, C44),
+    disloc_ini, disloc_fin, bulk_ini = make_barrier_configurations((alat, C11, C12, C44),
                                                                     cylinder_r=cylinder_r, **kwargs)
 
     if kind == "double":
