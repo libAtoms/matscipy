@@ -716,6 +716,89 @@ def make_screw_cyl_kink(alat, C11, C12, C44,
 
     return kink, reference_straight_disloc, large_bulk
 
+def slice_long_dislo(kink, kink_bulk, b):
+    """Function to slice a long dislocation configuration to perform dislocation structure and core position analysis
+
+    Parameters
+    ----------
+    kink : ase.Atoms
+        kink configuration to slice
+    kink_bulk : ase.Atoms
+        corresponding bulk configuration to perform mapping for slicing
+    b : float
+        burgers vector b should be along z direction
+
+
+    Returns
+    -------
+    sliced_kink : list of [sliced_bulk, sliced_kink]
+        sliced configurations 1 b length each
+    disloc_z_positions : float
+        positions of each sliced configuration (center along z)
+    """
+
+    if not len(kink) == len(kink_bulk):
+        raise ValueError('"kink" and "kink_bulk" must be same size')
+
+    n_slices = int(np.round(kink.cell[2][2] / b * 3))
+    atom_z_positions = kink_bulk.positions.T[2]
+
+    kink_z_length = kink_bulk.cell[2][2]
+
+    sliced_kink = []
+    disloc_z_positions = []
+
+    for slice_id in range(n_slices):
+
+        shift = slice_id * b / 3.0
+
+        upper_bound = 5.0 * b / 6.0 + shift
+        lower_bound = -b / 6.0 + shift
+
+        if upper_bound < kink_z_length:
+
+            mask = np.logical_and(atom_z_positions < upper_bound,
+                                  atom_z_positions > lower_bound)
+
+            bulk_slice = kink_bulk.copy()[mask]
+            kink_slice = kink.copy()[mask]
+
+        else:  # take into account PBC at the end of the box
+
+            upper_mask = atom_z_positions < (upper_bound - kink_z_length)
+
+            mask = np.logical_or(upper_mask,
+                                 atom_z_positions > lower_bound)
+
+            bulk_slice = kink_bulk.copy()[mask]
+            kink_slice = kink.copy()[mask]
+
+            # move the bottom atoms on top of the box
+            kink_slice.positions[upper_mask[mask]] += np.array(kink_bulk.cell[2])
+
+            bulk_slice.positions[upper_mask[mask]] += np.array((kink_bulk.cell[2]))
+
+        # print(kink_bulk[mask].positions.T[2].max())
+        # print(kink_bulk[mask].positions.T[2].min())
+
+        bulk_slice.positions -= np.array((0.0, 0.0, shift))
+        kink_slice.positions -= np.array((0.0, 0.0, shift))
+
+        bulk_slice.cell = kink_bulk.cell
+        bulk_slice.cell[2][2] = b
+        bulk_slice.cell[2][0] = 0
+
+        kink_slice.cell = kink_bulk.cell
+        kink_slice.cell[2][2] = b
+        kink_slice.cell[2][0] = 0
+
+        sliced_kink.append([bulk_slice, kink_slice])
+        disloc_z_positions.append(b / 3.0 + shift)
+
+    disloc_z_positions = np.array(disloc_z_positions)
+
+    return sliced_kink, disloc_z_positions
+
 
 def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
                            alat, cylinder_r=None, print_info=True):
@@ -1590,6 +1673,8 @@ def make_screw_quadrupole_kink(alat, kind="double", n1u=5, kink_length=20, symbo
         kink.extend(upper_kink)
 
         kink.cell[2][2] += upper_kink.cell[2][2]
+
+        large_bulk = W_bulk * [1, 1, 2 * kink_length]  # double kink is double length
 
     else:
         raise ValueError('Kind must be "right", "left" or "double"')

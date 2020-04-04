@@ -311,5 +311,41 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(kink.positions[kink_fixed_atoms],
                                     large_disloc.positions[reference_fixed_atoms])
 
+    def test_slice_long_dislo(self):
+        """Function to test slicing tool"""
+
+        alat = 3.14339177996466
+        b = np.sqrt(3.0) * alat / 2.0
+        n1u = 5
+        kink_length = 20
+
+        kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kink_length=kink_length)
+        quadrupole_base, _, _, _ = sd.make_screw_quadrupole(alat=alat, n1u=n1u)
+
+        sliced_kink, core_positions = sd.slice_long_dislo(kink, kink_bulk, b)
+
+        # check the number of sliced configurations is equal to length of 2 * kink_length * 3 (for double kink)
+        self.assertEqual(len(sliced_kink), kink_length * 3 * 2)
+
+        # check that the bulk and kink slices are the same size
+        bulk_sizes = [len(slice[0]) for slice in sliced_kink]
+        kink_sizes = [len(slice[1]) for slice in sliced_kink]
+        self.assertArrayAlmostEqual(bulk_sizes, kink_sizes)
+
+        # check that the size of slices are the same as single b configuration
+        self.assertArrayAlmostEqual(len(quadrupole_base), len(sliced_kink[0][0]))
+
+        right_kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kind="right",
+                                                                              kink_length=kink_length)
+        sliced_right_kink, _ = sd.slice_long_dislo(right_kink, kink_bulk, b)
+        # check the number of sliced configurations is equal to length of kink_length * 3 - 2 (for right kink)
+        self.assertEqual(len(sliced_right_kink), kink_length * 3 - 2)
+
+        left_kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kind="left",
+                                                                              kink_length=kink_length)
+        sliced_left_kink, _ = sd.slice_long_dislo(left_kink, kink_bulk, b)
+        # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
+        self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
+
 if __name__ == '__main__':
     unittest.main()
