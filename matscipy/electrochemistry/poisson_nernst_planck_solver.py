@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================"""
-""" Compute ion concentrations consistent with general
-Poisson-Nernst-Planck (PNP) equations.
+"""
+Compute ion concentrations with general Poisson-Nernst-Planck (PNP) equations.
 
 Copyright 2019 IMTEK Simulation
 University of Freiburg
@@ -26,7 +26,8 @@ University of Freiburg
 Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
 """
-import logging, os, sys, time
+import logging
+import time
 import numpy as np
 import scipy.constants as sc
 import scipy.optimize
@@ -43,11 +44,14 @@ logger = logging.getLogger(__name__)
 # and Simulation of Semiconductor Devices, Spriger 1984) wird eine noch
 # aufwendigere stueckweise Definition empfohlen, allerdings werden wir im
 # Folgenden sehen, dass unser Ansatz fuer dieses stationaere Problem genuegt.
+
+
 def B(x):
-    """Bernoulli function"""
+    """Bernoulli function."""
     return np.where( np.abs(x) < 1e-9,
         1 - x/2 + x**2/12 - x**4/720, # Taylor
         x / ( np.exp(x) - 1 ) )
+
 
 # "lazy" Ansatz for approximating Jacobian
 def jacobian(f, x0, dx=np.NaN):
