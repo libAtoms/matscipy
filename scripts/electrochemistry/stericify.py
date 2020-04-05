@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 # ======================================================================
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
@@ -43,10 +44,19 @@ Examples:
         stericify.py --verbose --box 48 48 196 --names Na Cl --charges 1 -1 \\
             --radii 2.0 5.0 -- input.lammps output.lammps
 """
-import logging, os, os.path, sys
-import ase, ase.io
-import numpy as np
+import logging
+import os
+import sys
 import time
+
+import ase
+import ase.io
+import numpy as np
+
+try:
+    import json
+except ImportError:
+    pass
 
 from matscipy.electrochemistry.steric_correction import apply_steric_correction
 from matscipy.electrochemistry.steric_correction import scipy_distance_based_closest_pair
@@ -68,32 +78,42 @@ def main():
     # * preformatted help text and ...
     # * automatic display of defaults
     class ArgumentDefaultsAndRawDescriptionHelpFormatter(
-        argparse.ArgumentDefaultsHelpFormatter,
-        argparse.RawDescriptionHelpFormatter):
+            argparse.ArgumentDefaultsHelpFormatter,
+            argparse.RawDescriptionHelpFormatter):
         pass
 
     class StoreAsNumpyArray(argparse._StoreAction):
         def __call__(self, parser, namespace, values, option_string=None):
-            values = np.array(values,ndmin=1)
-            return super().__call__(parser, namespace, values, option_string)
+            values = np.array(values, ndmin=1)
+            return super().__call__(
+                parser, namespace, values, option_string)
+
+    class StoreAsDict(argparse._StoreAction):
+        def __call__(self, parser, namespace, value, option_string=None):
+            if 'json' not in sys.modules:
+                raise ModuleNotFoundError(
+                    "Module 'json' required for parsing dicts.")
+            parsed_value = json.loads(value)
+            return super().__call__(
+                parser, namespace, parsed_value, option_string)
 
     parser = argparse.ArgumentParser(description=__doc__,
-        formatter_class = ArgumentDefaultsAndRawDescriptionHelpFormatter)
+        formatter_class=ArgumentDefaultsAndRawDescriptionHelpFormatter)
 
     parser.add_argument('infile', metavar='IN', nargs='?',
                         help='.xyz or .lammps (LAMMPS data) format input file')
     parser.add_argument('outfile', metavar='OUT', nargs='?',
                         help='.xyz or .lammps (LAMMPS data) format output file')
 
-    parser.add_argument('--radii','-r', default=[2.0], type=float, nargs='+',
+    parser.add_argument('--radii', '-r', default=[2.0], type=float, nargs='+',
                         action=StoreAsNumpyArray,
                         metavar=('R'), required=False, dest="radii",
                         help=('Steric radii, either one for all or '
                             'species-wise. Same units as distances in input.'))
 
-    parser.add_argument('--box','-b', default=None, nargs=3,
+    parser.add_argument('--box', '-b', default=None, nargs=3,
                         action=StoreAsNumpyArray,
-                        metavar=('X','Y','Z'), required=False, type=float,
+                        metavar=('X', 'Y', 'Z'), required=False, type=float,
                         dest="box", help=('Bounding box, overrides cell from'
                             'input. Same units as distances in input.'))
 
@@ -106,21 +126,44 @@ def main():
                         metavar=('Z'), required=False, dest="charges",
                         help='Atom charges, overrides charges from input')
 
+    parser.add_argument('--method', type=str,
+                        metavar=('METHOD'), required=False,
+                        dest="method",
+                        default='L-BFGS-B',
+                        help='Scipy minimizer')
+
+    parser.add_argument('--options', type=str,
+                        action=StoreAsDict,
+                        metavar=('JSON DICT'), required=False,
+                        dest="options",
+                        default={
+                            'gtol':    1.e-10,
+                            'maxiter': 100,
+                            'disp':    False,
+                        },
+                        help=(
+                            'Convergence options for scipy minimier.'
+                            ' Pass as JSON-formatted key:value dict. See'
+                            ' https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html'
+                            ' for minimizer-specific options.'))
+
     parser.add_argument('--debug', default=False, required=False,
                         action='store_true', dest="debug", help='debug flag')
     parser.add_argument('--verbose', default=False, required=False,
-                        action='store_true', dest="verbose", help='verbose flag')
+                        action='store_true', dest="verbose",
+                        help='verbose flag')
     parser.add_argument('--log', required=False, nargs='?', dest="log",
                         default=None, const='c2d.log', metavar='LOG',
-                        help='Write log file c2d.log, optionally specify log file name')
+                        help=(
+                            'Write log file c2d.log, optionally specify log'
+                            ' file name'))
 
     try:
         import argcomplete
         argcomplete.autocomplete(parser)
-        # This supports bash autocompletion. To enable this, pip install
-        # argcomplete, activate global completion, or add
-        #      eval "$(register-python-argcomplete lpad)"
-        # into your .bash_profile or .bashrc
+        # This supports bash autocompletion.
+        # To enable this, 'pip install argcomplete',
+        # then activate global completion.
     except ImportError:
         pass
 
@@ -186,7 +229,8 @@ def main():
       logger.info('    [ {:> 8.2e},{:> 8.2e},{:> 8.2e} ]'.format(*l))
 
     species_atomic_numbers = np.unique(system.get_atomic_numbers())
-    species_symbols = [ ase.data.chemical_symbols[i] for i in species_atomic_numbers ]
+    species_symbols = [
+        ase.data.chemical_symbols[i] for i in species_atomic_numbers]
 
     n_species = len(species_atomic_numbers)
     logger.info('    containing {:d} particles of {:d} species'.format(
@@ -251,15 +295,15 @@ def main():
 
     # only works for orthogonal box
     box3 = np.array(system.get_cell_lengths_and_angles())[0:3]
-    box6 = np.array([[0.,0.,0],box3]) # needs lower corner
+    box6 = np.array([[0.,0.,0], box3])  # needs lower corner
 
     # n = x0.shape[0], set above
-    dim = x0.shape[1]
+    # dim = x0.shape[1]
 
     # benchmakr methods
-    mindsq, (p1,p2) = scipy_distance_based_closest_pair(x0)
-    pmin = np.min(x0,axis=0)
-    pmax = np.max(x0,axis=0)
+    mindsq, (p1, p2) = scipy_distance_based_closest_pair(x0)
+    pmin = np.min(x0, axis=0)
+    pmax = np.max(x0, axis=0)
     mind = np.sqrt(mindsq)
     logger.info("Minimum pair-wise distance in initial sample: {}".format(mind))
     logger.info("First sample point in pair:    ({:8.4e},{:8.4e},{:8.4e})".format(*p1))
@@ -270,15 +314,18 @@ def main():
     logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box6[1]))
 
     t0 = time.perf_counter()
-    x1, res = apply_steric_correction(x0,box=box6,r=r) # use default method and options
+    x1, res = apply_steric_correction(x0, box=box6, r=r,
+        method=args.method, options=args.options)
+    # use default method and options
+
     t1 = time.perf_counter()
     dt = t1 - t0
     logger.info("{} s runtime".format(dt))
 
-    mindsq, (p1,p2) = scipy_distance_based_closest_pair(x1)
+    mindsq, (p1, p2) = scipy_distance_based_closest_pair(x1)
     mind = np.sqrt(mindsq)
-    pmin = np.min(x1,axis=0)
-    pmax = np.max(x1,axis=0)
+    pmin = np.min(x1, axis=0)
+    pmax = np.max(x1, axis=0)
 
     logger.info("Finished with status = {}, success = {}, #it = {}".format(
         res.status, res.success, res.nit))

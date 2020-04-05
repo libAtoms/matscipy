@@ -6,7 +6,7 @@ mkdir -p log_robin
 for f in ${srcdir}/*.txt; do
     n=$(basename $f)
     b=${n%.txt}
-    cmd="c2d.py --verbose --names Na Cl --charges 1 -1 --box 28e-9 28e-9 20e-9"
+    cmd="c2d --verbose --names Na Cl --charges 1 -1 --box 28e-9 28e-9 20e-9"
     cmd="${cmd} --log log_robin/${b}.log ${f} data_robin/${b}.lammps"
     echo "Run '$cmd'..."
     $cmd

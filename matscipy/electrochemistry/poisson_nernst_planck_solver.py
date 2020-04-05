@@ -721,23 +721,23 @@ class PoissonNernstPlanckSystem:
         for k in range(self.M):
           self.logger.debug(
             'ion species {:02d} concentration range [c_min, c_max] = [ {:>.4g}, {:>.4g} ]'.format(
-              k,np.min(nijk1[k,:]),np.max(nijk1[k,:]) ) )
+              k,np.min(nijk1[k,:]),np.max(nijk1[k,:])))
 
         # M rows (ion species), N_i cols (grid points)
         zi0nijk1 = self.zi0*nijk1 # z_ik*n_ijk
         for k in range(self.M):
           self.logger.debug(
             'ion species {:02d} charge range [z*c_min, z*c_max] = [ {:>.4g}, {:>.4g} ]'.format(
-              k,np.min(zi0nijk1[k,:]),np.max(zi0nijk1[k,:]) ) )
+              k,np.min(zi0nijk1[k,:]), np.max(zi0nijk1[k,:])))
 
         # charge density sum_k=1^M (z_ik*n_ijk)
         rhoij1 = zi0nijk1.sum(axis=0)
         self.logger.debug(
           'charge density range [rho_min, rho_max] = [ {:>.4g}, {:>.4g} ]'.format(
-            np.min(rhoij1),np.max(rhoij1) ) )
+            np.min(rhoij1),np.max(rhoij1)))
 
         # reduced Poisson equation: d2udx2 = rho
-        Fu = - ( np.roll(uij1, -1) - 2*uij1 + np.roll(uij1, 1) ) - 0.5 * rhoij1*self.dx**2
+        Fu = -(np.roll(uij1, -1)-2*uij1+np.roll(uij1, 1))-0.5*rhoij1*self.dx**2
 
         # linear potential regime due to steric effects incorporated here
         # TODO: incorporate "spatially finite" BC into Robin BC functions
@@ -1015,10 +1015,10 @@ class PoissonNernstPlanckSystem:
         self.R                     = R
         self.F                     = F
 
-        self.f                     = F / (R*T) # for convenience
+        self.f                     = F / (R*T)  # for convenience
 
         # print all quantities to log
-        for i, (c, z) in enumerate(zip(self.c,self.z)):
+        for i, (c, z) in enumerate(zip(self.c, self.z)):
             self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
                 "ion species {:02d} concentration c".format(i), c, lwidth=self.label_width))
             self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
@@ -1051,7 +1051,7 @@ class PoissonNernstPlanckSystem:
         self.l_unit = self.lambda_D
 
         # concentration unit is ionic strength
-        self.c_unit =  self.I
+        self.c_unit = self.I
 
         # no time unit for now, only steady state
         # self.t_unit = self.l_unit**2 / self.Dn # fixes Dn_scaled = 1
@@ -1079,12 +1079,6 @@ class PoissonNernstPlanckSystem:
 
         # potential difference
         self.delta_u_scaled = self.delta_u / self.u_unit
-
-
-        # relaxation time
-        # self.tau_scaled   = self.tau / self.t_unit
-
-        # Dn_scaled    = Dn * t_unit / l_unit**2
 
         # print scaled quantities to log
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
@@ -1120,9 +1114,7 @@ class PoissonNernstPlanckSystem:
 
         self.zi0 = None
 
-
-
-    def __init__(self,*args,**kwargs):
+    def __init__(self, *args, **kwargs):
         """Constructor, see init doc string for arguments.
 
         Additional Parameters
@@ -1132,7 +1124,7 @@ class PoissonNernstPlanckSystem:
         options: dict, optional (default: None)
             options object for scipy solver
         """
-        self.init(*args,**kwargs)
+        self.init(*args, **kwargs)
 
         if 'solver' in kwargs:
             self.solver = kwargs['solver']
