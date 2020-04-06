@@ -146,7 +146,7 @@ import scipy.spatial.distance
 # https://stackoverflow.com/questions/21377020/python-how-to-do-lazy-debug-logging
 class DeferredMessage(object):
     """Lazy evaluation for log messages."""
-    
+
     def __init__(self, msg, func, *args, **kwargs):
         self.msg = msg
         self.func = func
@@ -640,11 +640,11 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
         particle coordinates
     r: float or (N,) ndarray, optional (default=1.0)
         steric radii of particles
-    constraints: callable, returns (float, (N,dim) ndarray) 
+    constraints: callable, returns (float, (N,dim) ndarray)
         constraint function value and gradien
     Dij: (N, N) ndarray, optional (default=None)
         pairwise minimum allowed distance matrix, overrides r
-        
+
     Returns
     -------
     (float, (N,dim) ndarray): target function value and gradient
@@ -667,7 +667,7 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
     # gradient:
     #
     # dfdxi'k'=4*si sj ((r_i'+r_j)^2-||xi-xj||^2)^2)*(xik'-xjk')*(kdi'j-kdi'i)
-    # 
+    #
     # for all pairs i'j within ri'+rj cutoff
     # where k is the spatial direction x, y or z.
 
@@ -729,16 +729,16 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
 
     # 4*si sj ((r_i'+r_j)^2-||xi-xj||^2)^2)*(xik'-xjk')*(kdi'j-kdi'i)
     # (N x 1) column vector (a1 ... aN) * (N x dim) matrix ((d11,))
-    # Other than the formula above implicates, _matscipy.neighbour_list 
+    # Other than the formula above implicates, _matscipy.neighbour_list
     # returns the distance vector dxijvec = xj-xi (pointing from i to j),
     # thus positive sign in gradient below:
     gradij = 4*np.atleast_2d(sqdiff).T*dxijvec  # let's hope for proper broadcasting
     grad = np.zeros(x.shape)
     grad[i] += gradij
-    # Since neighbour list always includes ij and ji, we only have to treat i, 
+    # Since neighbour list always includes ij and ji, we only have to treat i,
     # not j. The following line is obsolete (otherwise we would introduce
     # double-counting again):
-    # grad[j] -= gradij  
+    # grad[j] -= gradij
 
     if constraints:
         logger.debug(
@@ -751,13 +751,13 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
         grad += g_grad
 
     grad_1d = grad.reshape(np.product(grad.shape))
-    
+
     logger.debug(
         "Total penalty:               {:10.5e}.".format(f))
     logger.debug(DeferredMessage(
         "Gradient norm:               {:10.5e}.",
         np.linalg.norm, grad_1d))
-    
+
     return f, grad_1d
 
 
@@ -932,7 +932,7 @@ def apply_steric_correction(
 
     # flatten coordinates for scipy optimizer
     x0 = X0.reshape(np.product(X0.shape))
-    
+
 
     # define constraint and target wrapper for scipy optimizer
     if returns_gradient:
@@ -963,7 +963,7 @@ def apply_steric_correction(
 
         logger.info("Initial constraint penalty: {:10.5e}.".format(g(X0)))
         logger.info("Initial total penalty:      {:10.5e}.".format(f(x0)))
-     
+
     # log initial minimum distance between pairs
     minDsq, (P1, P2) = closest_pair_function(X0)  # dimensionless
     mindsq, (p1, p2) = closest_pair_function(x)  # dimensional
@@ -1033,10 +1033,11 @@ def apply_steric_correction(
     tk = t0  # previosu callback timer value
     # call once for initial configuration
     if logger.isEnabledFor(logging.INFO):
-        callback = minimizer_callback(x0)
+        callback = minimizer_callback
+        callback(x0)
     else:
         callback = None
-    
+
     # neat lecture on scipy optimizers
     # http://scipy-lectures.org/advanced/mathematical_optimization/
     res = scipy.optimize.minimize(f, x0, method=method, jac=returns_gradient,

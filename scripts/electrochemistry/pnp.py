@@ -27,16 +27,11 @@ University of Freiburg
 Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
 """
-import datetime, logging, os, sys
+import datetime
+import logging
+import os
+import sys
 import numpy as np
-
-# use FEniCS finite element solver if available,
-# otherwise own controlled volume scheme
-try:
-    import fenics
-    from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
-except:
-    from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
 def main():
     """Solve Poisson-Nernst-Planck system and store distribution.
@@ -193,6 +188,20 @@ def main():
         fh.setFormatter(formatter)
         fh.setLevel(loglevel)
         logger.addHandler(fh)
+
+    # use FEniCS finite element solver if available,
+    # otherwise own controlled volume scheme
+    try:
+        import fenics
+        from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
+            import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
+        logger.info("Will use FEniCS finite element solver.")
+    except ModuleNotFoundError:
+        logger.warning(
+            ("No FEniCS finite element solver found,",
+             " falling back to internal controlled-volume implementation.",
+             " ATTENTION: Number conservation not exact."))
+        from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
     # set up system
     pnp = PoissonNernstPlanckSystem(

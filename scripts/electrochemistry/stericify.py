@@ -55,14 +55,13 @@ import numpy as np
 
 try:
     import json
+    import urllib.parse
 except ImportError:
     pass
 
 from matscipy.electrochemistry.steric_correction import apply_steric_correction
 from matscipy.electrochemistry.steric_correction import scipy_distance_based_closest_pair
 
-
-logger = logging.getLogger(__name__)
 
 def main():
     """Applies steric correction to coordiante sample. Assures a certain
@@ -71,6 +70,7 @@ def main():
 
     ATTENTION: LAMMPS data file export (atom style 'full') requires ase>3.20.0
     """
+    logger = logging.getLogger()
 
     import argparse
 
@@ -90,10 +90,15 @@ def main():
 
     class StoreAsDict(argparse._StoreAction):
         def __call__(self, parser, namespace, value, option_string=None):
-            if 'json' not in sys.modules:
+            if 'json' not in sys.modules or 'urllib' not in sys.modules:
                 raise ModuleNotFoundError(
-                    "Module 'json' required for parsing dicts.")
-            parsed_value = json.loads(value)
+                    "Modules 'json' and 'urllib' required for parsing dicts.")
+            try:
+                parsed_value = json.loads(urllib.parse.unquote(value))
+            except json.decoder.JSONDecodeError as exc:
+                logger.error("Failed parsing '{}'".format(value))
+                raise exc
+
             return super().__call__(
                 parser, namespace, parsed_value, option_string)
 
@@ -137,7 +142,8 @@ def main():
                         metavar=('JSON DICT'), required=False,
                         dest="options",
                         default={
-                            'gtol':    1.e-10,
+                            'gtol':    1.e-12,
+                            'ftol':    1.e-12,
                             'maxiter': 100,
                             'disp':    False,
                         },
@@ -169,7 +175,6 @@ def main():
 
     args = parser.parse_args()
 
-
     if args.debug:
         loglevel = logging.DEBUG
     elif args.verbose:
@@ -177,10 +182,9 @@ def main():
     else:
         loglevel = logging.WARNING
 
-
     # logformat  = ''.join(("%(asctime)s",
     #  "[ %(filename)s:%(lineno)s - %(funcName)s() ]: %(message)s"))
-    logformat  = "[ %(filename)s:%(lineno)s - %(funcName)s() ]: %(message)s"
+    logformat = "[ %(filename)s:%(lineno)s - %(funcName)s() ]: %(message)s"
 
     logging.basicConfig(level=loglevel,
                         format=logformat)
@@ -206,6 +210,8 @@ def main():
         logger.addHandler(fh)
 
     logger.info('This is `{}` : `{}`.'.format(__file__,__name__))
+
+    logger.debug('Args: {}'.format(args))
 
     # input validation
     if not args.infile:
@@ -290,6 +296,10 @@ def main():
         species_atomic_numbers = new_species_atomic_numbers
         species_symbols = new_species_symbols
 
+        specorder = args.names  # assure type ordering as specified on cmdline
+    else:
+        specorder = None  # keep ordering as is
+
     # prepare for minimization
     x0 = system.get_positions()
 
@@ -361,11 +371,14 @@ def main():
 
     logger.info('Output format {} to {}.'.format(outfile_format,outfile))
 
+
     if outfile_format == '.lammps':
         ase.io.write(
-            outfile,system,format='lammps-data',units="real",atom_style='full')
+            outfile, system,
+            format='lammps-data', units="real", atom_style='full',
+            specorder=specorder)
     else: # elif outfile_format == '.xyz'
-        ase.io.write(outfile,system,format='xyz')
+        ase.io.write(outfile, system, format='xyz')
 
     logger.info('Done.')
 

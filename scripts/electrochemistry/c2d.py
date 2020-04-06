@@ -29,19 +29,22 @@ Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
   Lukas Elflein <elfleinl@cs.uni-freiburg.de>
 """
-import logging, os, sys
+import logging
+import os
 import os.path
+import sys
 
 import numpy as np
 
-import ase, ase.io
+import ase
+import ase.io
 import scipy.constants as sc
 from scipy import interpolate, integrate
 
-from matscipy.electrochemistry import  continuous2discrete #, plot_dist
-
+from matscipy.electrochemistry import continuous2discrete
 
 logger = logging.getLogger(__name__)
+
 
 def main():
     """Generate discrete coordinate sets from continuous distributions.
@@ -92,6 +95,20 @@ def main():
                         metavar=('NAME'), required=False, dest="charges",
                         help='Atom charges')
 
+    parser.add_argument('--mol-id-offset', default=[-1,-1],
+                        type=int, nargs='+',
+                        action=StoreAsNumpyArray,
+                        metavar=('OFFSET'), required=False,
+                        dest="mol_id_offset",
+                        help=('When storing as LAMMPS data, this tool uses'
+                              ' atom sytle "full", assigning a molecule id to'
+                              ' each atom. Per default, a unique 1-indexed'
+                              ' molecule id corrsponding to its atom id is'
+                              ' assigned to each atom. Specify a species-wise'
+                              ' offset here. Specifying 0 (zero) for each'
+                              ' species will result in moleucules containing '
+                              ' one atom per species.'))
+
     # sampling
     parser.add_argument('--ngridpoints', default=np.nan, type=float, nargs='+',
                         action=StoreAsNumpyArray,
@@ -141,7 +158,6 @@ def main():
         pass
 
     args = parser.parse_args()
-
 
     if args.debug:
         loglevel = logging.DEBUG
@@ -225,7 +241,7 @@ def main():
         c = data[2:,:]
 
     if c.ndim > 1:
-        C = [ c[k,:] for k in range(c.shape[0]) ]
+        C = [c[k,:] for k in range(c.shape[0])]
     else:
         C = [c]
 
@@ -233,10 +249,11 @@ def main():
 
     logger.info('Read {:d} concentration distributions.'.format(len(C)))
     sample_size = args.sample_size
-    sample_size = sample_size.repeat(len(C)) if sample_size.shape == (1,) else sample_size
+    sample_size = ( sample_size.repeat(len(C)) if sample_size.shape == (1,)
+                    else sample_size )
 
     # distribution functions from concentrations;
-    D = [ interpolate.interp1d(x,c) for c in C ]
+    D = [interpolate.interp1d(x, c) for c in C]
 
     # infer sample size from integral over concentration distribution if
     # no explicit sample size given
@@ -260,11 +277,11 @@ def main():
         sample_size, n_gridpoints, args.names))
 
     logger.info('Generating structure from distribution ...')
-    struc = [ continuous2discrete(
+    struc = [continuous2discrete(
                 distribution=d,
                 box=args.box, count=sample_size[k],
-                n_gridpoints=n_gridpoints[k] )
-                    for k,d in enumerate(D) ]
+                n_gridpoints=n_gridpoints[k])
+                    for k,d in enumerate(D)]
 
     logger.info('Generated {:d} coordinate sets.'.format(len(struc)))
 
@@ -273,12 +290,26 @@ def main():
         cell=args.box/sc.angstrom,
         pbc=[1,1,0])
 
+    # We assume here that 'mol-id' is 0-indexed internally but converted to a
+    # 1-indexed LAMMPS data molecule id within ASE's io module.
+    system.new_array('mol-id', [], dtype=int)
+
     for i, s in enumerate(struc):
-        logger.info('{:d} samples in coordinate set {:d}.'.format(len(s),i))
-        system += ase.Atoms(
+        logger.info('{:d} samples in coordinate set {:d}.'.format(len(s), i))
+        new_species = ase.Atoms(
             symbols=args.names[i]*int(sample_size[i]),
             charges=[args.charges[i]]*int(sample_size[i]),
             positions=s/sc.angstrom)
+
+        # per default, consecutive numbering, otherwise custom offest:
+        mol_id_offset = len(system) \
+            if args.mol_id_offset[i] < 0 else args.mol_id_offset[i]
+
+        new_species.new_array(
+            'mol-id', mol_id_offset + np.arange(
+                start=0, stop=len(new_species), step=1, dtype=int), dtype=int)
+
+        system += new_species
 
     logger.info('Writing output file ...')
 
@@ -289,13 +320,20 @@ def main():
         outfile = args.outfile
         _, outfile_format = os.path.splitext(outfile)
 
-    logger.info('Output format {} to {}.'.format(outfile_format,outfile))
+    logger.info('Output format {} to {}.'.format(outfile_format, outfile))
 
     if outfile_format == '.lammps':
         ase.io.write(
-            outfile,system,format='lammps-data',units="real",atom_style='full')
-    else: # elif outfile_format == '.xyz'
-        ase.io.write(outfile,system,format='xyz')
+            outfile, system,
+            format='lammps-data',
+            units="real",
+            atom_style='full',
+            specorder=args.names)
+    # specorder shoudl make sure ASE assigns types in the same order as
+    # species names have been specified on command line.
+
+    else:  # elif outfile_format == '.xyz'
+        ase.io.write(outfile, system, format='xyz')
 
     logger.info('Done.')
 
