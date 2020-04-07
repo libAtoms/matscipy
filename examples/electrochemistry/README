@@ -1,0 +1,12 @@
+This folder contains (not necessarily 100% up-to-date) sample jupyter 
+notebooks demonstrating the electrochemistry sub-module's functionality
+as well as sample bash scripts making use of the electrochemistry 
+module's command line interface for simple parametric sweeps.
+
+Look into the *_batch subfolders. Run a sample 'pipeline'
+of pnp, c2d and stericify from within this folder, i.e. with
+
+   bash pcs_pipeline.sh 2>&1 | tee pcs_pipeline.log
+
+and check the results below above-mentioned sub-folders.
+

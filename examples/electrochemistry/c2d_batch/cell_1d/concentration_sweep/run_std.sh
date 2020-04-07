@@ -1,5 +1,5 @@
 #!/bin/bash
-# solves Poisson-Nernst-Planck system for different concentrations
+# samples discrete coordinate sets from continuous distributions for different concentrations
 srcdir=../../../pnp_batch/cell_1d/concentration_sweep/data_std
 mkdir -p data_std
 mkdir -p log_std
