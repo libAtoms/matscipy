@@ -305,8 +305,10 @@ def main():
         mol_id_offset = len(system) \
             if args.mol_id_offset[i] < 0 else args.mol_id_offset[i]
 
+        # without offset, LAMMPS molecule ids are 1-indexed
+        # mol-id 0 is reserved for 'non-bonded' atoms
         new_species.new_array(
-            'mol-id', mol_id_offset + np.arange(
+            'mol-id', 1 + mol_id_offset + np.arange(
                 start=0, stop=len(new_species), step=1, dtype=int), dtype=int)
 
         system += new_species
