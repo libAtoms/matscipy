@@ -76,7 +76,12 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
                 id type x y z fx fy fz &
                 modify sort id format float "%.14g"
         """
-        atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump")
+        if "lammps-dump" in io.formats.ioformats.keys():
+            atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump")
+        elif "lammps-dump-text" in io.formats.ioformats.keys():
+            atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump-text")
+        else:
+            raise KeyError("ase.io can read neither 'lammps-dump' nor 'lammps-dump-text'")
         old_atomic_numbers = atoms.get_atomic_numbers()
         sel, = np.where(old_atomic_numbers == 1)
         new_atomic_numbers = np.zeros_like(old_atomic_numbers)
