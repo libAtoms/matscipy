@@ -1,0 +1,3 @@
+How to generate sample potential and concentration plots of a 1D electochemical
+cell Poisson-Nernst-Planck system with standard Dirichlet as well as 
+Stern layer parametrization Robin boundary conditions.

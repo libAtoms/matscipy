@@ -66,6 +66,7 @@ tau2 = parameter('tau2', 500*fs)
 dtdump = parameter('dtdump', 100*fs)
 teq = parameter('teq', 50e3*fs)
 tqu = parameter('tqu', 20e3*fs)
+nsteps_relax = parameter('nsteps_relax', 10000)
 
 ###
 
@@ -101,7 +102,7 @@ for _density in densities:
             # Relax with the quick potential
             a.set_atomic_numbers([6]*len(a))
             a.set_calculator(quick_calc)
-            FIRE(a, downhill_check=True).run(fmax=1.0, steps=10000)
+            FIRE(a, downhill_check=True).run(fmax=1.0, steps=nsteps_relax)
             a.set_atomic_numbers(n)
             write(initial_fn, a)
         else:

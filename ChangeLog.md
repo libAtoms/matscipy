@@ -1,6 +1,13 @@
 Change log
 ==========
 
+v0.3.0 (4May19)
+---------------
+
+- Analytic computation of Hessian matrix for pair potentials
+- Creation of screw and edge dislocation, visualization of dislocations
+  dislocation barrier calculation.
+
 v0.2.0 (10May18)
 ----------------
 
