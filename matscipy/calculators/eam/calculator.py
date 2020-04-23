@@ -240,7 +240,6 @@ class EAM(Calculator):
                         'stress': virial_v/self.atoms.get_volume(),
                         'forces': forces_ic}
 
-
     def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
         r"""Compute the Hessian matrix
 
@@ -447,8 +446,8 @@ class EAM(Calculator):
         density_i = np.bincount(i_n, weights=f_n, minlength=nat)
 
         # Calculate the derivatives of the embedding energy
-        demb_i = np.zeros(len(atoms))   # first derivative
-        ddemb_i = np.zeros(len(atoms))  # second derivative
+        demb_i = np.zeros(nat)   # first derivative
+        ddemb_i = np.zeros(nat)  # second derivative
         for atidx, atnum in enumerate(self._db_atomic_numbers):
             F = self.F[atidx]
             dF = self.dF[atidx]
