@@ -471,7 +471,7 @@ class EAM(Calculator):
         # i_n[r] to the derivative of j_n[r]. This value is also in df_n,
         # but at a different position. reverse[r] gives the new index s
         # where we find this value. The same indexing applies to ddf_n.
-        reverse = _find_indices_of_reverse_pairs(i_n, j_n)
+        reverse = find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n)
         df_i_n = np.take(df_n, reverse)
         ddf_i_n = np.take(ddf_n, reverse)
         #we already have ddf_j_n = ddf_n 
