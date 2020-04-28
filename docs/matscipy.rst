@@ -8,6 +8,7 @@ Subpackages
 
     matscipy.contact_mechanics
     matscipy.fracture_mechanics
+    matscipy.calculators
 
 Submodules
 ----------
@@ -99,7 +100,6 @@ matscipy.surface module
     :members:
     :undoc-members:
     :show-inheritance:
-
 
 Module contents
 ---------------
