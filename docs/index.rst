@@ -13,6 +13,7 @@ Contents
 
    matscipy.angle_distribution
    matscipy.atomic_strain
+   matscipy.calculators.eam
    matscipy.contact_mechanics
    matscipy.contact_mechanics.DMT
    matscipy.contact_mechanics.greens_function
