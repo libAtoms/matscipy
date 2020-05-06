@@ -1,6 +1,6 @@
 # Travis auto-virtualenv isn't supported on OS X
 language: generic
-dist: trusty
+dist: xenial
 sudo: required
 matrix:
   include:
@@ -9,11 +9,11 @@ matrix:
       python: "2.7"
       os: linux
       env: PYTHON=/usr/bin/python2.7
-    - python: 3.4
+    - python: 3.6
       language: python
-      python: "3.4"
+      python: "3.6"
       os: linux
-      env: PYTHON=/usr/bin/python3.4
+      env: PYTHON=/usr/bin/python3.6
 before_install:
   - source .travis.before_install.bash
 install:
@@ -32,6 +32,7 @@ notifications:
     - andreas.klemenz@iwm.fraunhofer.de
     - thomas.reichenbach@iwm.fraunhofer.de
     - gianpietro.moras@iwm.fraunhofer.de
+    - johannes.hoermann@imtek.uni-freiburg.de
 addons:
   apt:
     packages:
