@@ -245,3 +245,49 @@ e_nc = (dr_nc.T/abs_dr_n).T
     return _matscipy.neighbour_list(quantities, cell_origin, cell,
                                     np.linalg.inv(cell.T), pbc, positions,
                                     _cutoff, numbers)
+
+
+def find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n):
+    """Find neighbor list indices where reversed pairs are stored
+
+    Given list of identifiers of neighbor atoms `i_n` and `j_n`,
+    determines the list of indices `reverse` into the neighbor list
+    where each pair is reversed, i.e. `i_n[reverse[n]]=j_n[n]` and
+    `j_n[reverse[n]]=i_n[n]` for each index `n` in the neighbor list
+    
+    In the case of small periodic systems, one needs to be careful, because
+    the same pair may appear more than one time, with different pair
+    distances. Therefore, the pair distance must be taken into account.
+
+    We assume that there is in fact one reversed pair for every pair.
+    However, we do not check this assumption in order to avoid overhead.
+
+    Parameters
+    ----------
+    i_n : array_like
+       array of atom identifiers
+    j_n : array_like
+       array of atom identifiers
+    abs_dr_n : array_like
+        pair distances
+
+    Returns
+    -------
+    reverse : numpy.ndarray
+        array of indices into i_n and j_n
+    """
+    sorted_1 = np.lexsort(keys=(abs_dr_n, i_n, j_n))
+    sorted_2 = np.lexsort(keys=(abs_dr_n, j_n, i_n))
+    #np.testing.assert_equal(j_n[sorted_1], i_n[sorted_2])
+    #np.testing.assert_equal(i_n[sorted_1], j_n[sorted_2])
+    #np.testing.assert_equal(abs_dr_n[sorted_1], abs_dr_n[sorted_2])
+    #print(np.c_[i_n[sorted_2], j_n[sorted_2], abs_dr_n[sorted_2], 
+    #            i_n[sorted_1], j_n[sorted_1], abs_dr_n[sorted_1]])
+    tmp2 = np.arange(i_n.size)[sorted_2]
+    tmp1 = np.arange(i_n.size)[sorted_1]
+    # np.arange(i_n.size) are indices into the neighbor list, so
+    #  * the nth element in tmp1 is the index where i,j was before reordering with sorted_1
+    #  * the nth element in tmp2 is the index where j,i was before reordering with sorted_2
+    reverse = np.empty(i_n.size, dtype=i_n.dtype)
+    reverse[tmp1] = tmp2
+    return reverse
