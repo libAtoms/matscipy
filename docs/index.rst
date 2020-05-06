@@ -6,9 +6,31 @@
 .. include:: ../README.rst
 
 
-.. toctree::
-   :maxdepth: 2
+Contents
+========
 
+.. autosummary::
+
+   matscipy.angle_distribution
+   matscipy.atomic_strain
+   matscipy.contact_mechanics
+   matscipy.contact_mechanics.DMT
+   matscipy.contact_mechanics.greens_function
+   matscipy.contact_mechanics.Hertz
+   matscipy.contact_mechanics.JKR
+   matscipy.elasticity
+   matscipy.fracture_mechanics
+   matscipy.fracture_mechanics.clusters
+   matscipy.fracture_mechanics.crack
+   matscipy.fracture_mechanics.crackpathsel
+   matscipy.fracture_mechanics.energy_release
+   matscipy.fracture_mechanics.idealbrittlesolid
+   matscipy.hydrogenate
+   matscipy.io
+   matscipy.logger
+   matscipy.neighbours
+   matscipy.rings
+   matscipy.surface
 
 
 Indices and tables
