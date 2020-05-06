@@ -58,7 +58,7 @@ class MillerIndex(np.ndarray):
     all_brackets = list(itertools.chain(*brackets.values()))
 
     def __new__(cls, v=None, type='direction'):
-        if isinstance(v, basestring):
+        if isinstance(v, str):
             v = MillerIndex.parse(v)
         if len(v) == 3 or len(v) == 4:
             self = np.ndarray.__new__(cls, len(v))
