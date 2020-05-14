@@ -37,7 +37,12 @@ except:
 
 from scipy.sparse import bsr_matrix
 from matscipy.calculators.eam.io import read_eam
-from matscipy.neighbours import neighbour_list, first_neighbours, find_indices_of_reversed_pairs
+from matscipy.neighbours import (
+    neighbour_list, 
+    first_neighbours, 
+    find_indices_of_reversed_pairs,
+    find_common_neighbours
+)
 
 ###
 
@@ -357,13 +362,6 @@ class EAM(Calculator):
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms,
                                                    self._db_cutoff)
         first_i = first_neighbours(nat, i_n)
-        # Make sure that the neighborlist does not contain the same pairs twice.
-        # Reoccuring entries may be due to small system size. In this case, the
-        # Hessian matrix will not be symmetric.
-        unique_pairs = set((i, j) for (i, j) in zip(i_n, j_n))
-        if len(unique_pairs) != len(i_n):
-            raise ValueError("neighborlist contains some pairs more than once") 
-        assert(np.all(i_n != j_n))
 
         if divide_by_masses: 
             masses_i = atoms.get_masses().reshape(-1, 1, 1)
@@ -594,51 +592,15 @@ class EAM(Calculator):
         #U_\gamma'' g_{\gamma\nu}'g_{\gamma\mu}' 
         #\frac{r_{\gamma\nu i}}{r_{\gamma\nu}}
         #\frac{r_{\gamma\mu j}}{r_{\gamma\mu}} 
-        #-----------------------------------------------------------------------
-        # This term requires knowledge of common neighbors of pairs of atoms.
-        # Construction of a common neighbor list in Python is likely a
-        # performance bottleneck; it should be implemented in C++ instead.
-        #-----------------------------------------------------------------------
-
-        # For each (i1, j2)-pair in the neighbor list, find all other
-        # pairs (i2, j) which share the same j. This includes (i1, j)
-        # itself. In this way, create a list with n blocks of rows, where
-        # n is the length of the neighbor list. All rows in a block have
-        # the same j. Each row corresponds to one triplet i1, j, i2.
-        # The number of rows in the block is equal to the total number
-        # of neighbors of j. This is the common neighbor list (cnl).
-        # Besides the block number and i1, j, i2, the cnl stores the
-        # index into the neighbor list where the pair i2-j can be found.
-        j_order = np.argsort(j_n)
-        i_n_2 = i_n[j_order]
-        j_n_2 = j_n[j_order]
-        first_j = first_neighbours(nat, j_n_2)
-        num_rows_per_j = first_j[j_n+1] - first_j[j_n]
-        total_num_rows = np.sum(num_rows_per_j)
-        # The common neighbor information could be stored as
-        # a 2D array. However, multiple 1D arrays are likely
-        # better for performance (fewer cache misses later).
-        cnl_block_number = np.empty(total_num_rows, dtype=i_n.dtype)
-        cnl_j1 = np.empty(total_num_rows, dtype=i_n.dtype)
-        cnl_j_order = np.empty(total_num_rows, dtype=i_n.dtype)
-        cnl_i1_i2 = np.empty((total_num_rows, 2), dtype=i_n.dtype)
-        block_start = np.r_[0, np.cumsum(num_rows_per_j)]
-        slice_for_j1 = {j1: slice(first_j[j1], first_j[j1+1]) for j1 in np.arange(nat)}
-        for block_number, (i1, j1) in enumerate(zip(i_n, j_n)):
-            slice1 = slice(block_start[block_number], block_start[block_number+1])
-            slice2 = slice_for_j1[j1] 
-            cnl_block_number[slice1] = block_number
-            cnl_j1[slice1] = j1 
-            cnl_j_order[slice1] = j_order[slice2]
-            cnl_i1_i2[slice1, 0] = i1
-            cnl_i1_i2[slice1, 1] = i_n_2[slice2]
+        # This term requires knowledge of common neighbors of pairs of atoms. 
+        cnl_i1_i2, cnl_j1, nl_index_i1_j1, nl_index_i2_j1 = find_common_neighbours(i_n, j_n, nat)
         # Determine bins for accumulation by bincount
         unique_pairs_i1_i2, bincount_bins = np.unique(cnl_i1_i2, axis=0, return_inverse=True)
-        e_nu_cnl = np.take(e_nc, cnl_block_number, axis=0)
-        e_mu_cnl = np.take(e_nc, cnl_j_order, axis=0)
+        e_nu_cnl = np.take(e_nc, nl_index_i1_j1, axis=0)
+        e_mu_cnl = np.take(e_nc, nl_index_i2_j1, axis=0)
         ddemb_cnl = np.take(ddemb_i, cnl_j1)
-        df_nu_cnl = np.take(df_i_n, cnl_block_number)
-        df_mu_cnl = np.take(df_i_n, cnl_j_order)
+        df_nu_cnl = np.take(df_i_n, nl_index_i1_j1)
+        df_mu_cnl = np.take(df_i_n, nl_index_i2_j1)
         tmp_3 = ((ddemb_cnl * df_nu_cnl * df_mu_cnl * e_nu_cnl.T).T).reshape(-1, 3, 1) * e_mu_cnl.reshape(-1, 1, 3)
         tmp_3_summed = np.empty((unique_pairs_i1_i2.shape[0], 3, 3), dtype=e_nc.dtype)
         for x in range(3):

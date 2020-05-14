@@ -291,3 +291,113 @@ def find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n):
     reverse = np.empty(i_n.size, dtype=i_n.dtype)
     reverse[tmp1] = tmp2
     return reverse
+
+
+def find_common_neighbours(i_n, j_n,  nat):
+    """Find common neighbors of pairs of atoms
+
+    For each pair ``(i1, j1)`` in the neighbor list, find all other pairs
+    ``(i2, j1)`` which share the same ``j1``. This includes ``(i1,j1)``
+    itself. In this way, create a list with ``n`` blocks of rows, where ``n``
+    is the length of the neighbor list. All rows in a block have the same
+    ``j1``. Each row corresponds to one triplet ``(i1, j1 ,i2)``. The number
+    of rows in the block is equal to the total number of neighbors of ``j1``.
+
+    Parameters
+    ----------
+    i_n : array_like
+       array of atom identifiers
+    j_n : array_like
+       array of atom identifiers
+    nat: int
+        number of atoms
+
+    Returns
+    -------
+    cnl_i1_i2: array
+        atom numbers i1 and i2
+    cnl_j1: array
+        shared neighbor of i1 and i2
+    nl_index_i1_j1: array
+        index in the neighbor list of pair i1, j1
+    nl_index_i2_j1: array
+        index in the neighbor list of pair i2, j1
+
+    Examples
+    --------
+
+    Accumulate random numbers for pairs with common neighbors:
+
+    >>> import numpy as np
+    >>> import matscipy
+    >>> from ase.lattice.cubic import FaceCenteredCubic
+    >>> from matscipy.neighbours import neighbour_list, find_common_neighbours
+    >>> cutoff = 6.5
+    >>> atoms = FaceCenteredCubic('Cu', size=[4, 4, 4])
+    >>> nat = len(atoms.numbers)
+    >>> print(nat)
+    256
+    >>> i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, cutoff)
+    >>> print(i_n.shape)
+    (22016,)
+    >>> cnl_i1_i2, cnl_j1, nl_index_i1_j1, nl_index_i2_j1 = find_common_neighbours(i_n, j_n, nat)
+    >>> print(cnl_i1_i2.shape)
+    (1893376, 2)
+    >>> unique_pairs_i1_i2, bincount_bins = np.unique(cnl_i1_i2, axis=0, return_inverse=True) 
+    >>> print(unique_pairs_i1_i2.shape)
+    (65536, 2)
+    >>> tmp = np.random.rand(cnl_i1_i2.shape[0])
+    >>> my_sum = np.bincount(bincount_bins, weights=tmp, minlength=unique_pairs_i1_i2.shape[0]) 
+    >>> print(my_sum.shape)
+    (65536,)
+
+    """
+    # Create a copy of the neighbor list which is sorted by j_n, e.g.
+    # +---------------+    +---------------+
+    # | sorted by i_n |    | sorted by j_n |
+    # +=======+=======+    +=======+=======+
+    # | i_n   | j_n   |    | i_n   | j_n   |
+    # +-------+-------+    +-------+-------+
+    # | 1     | 2     |    | 2     | 1     |
+    # +-------+-------+    +-------+-------+
+    # | 1     | 95    |    | 4     | 1     |
+    # +-------+-------+    +-------+-------+
+    # | 2     | 51    |    | 81    | 2     |
+    # +-------+-------+    +-------+-------+
+    # | 2     | 99    |    | 12    | 2     |
+    # +-------+-------+    +-------+-------+
+    # | 2     | 1     |    | 6     | 2     |
+    # +-------+-------+    +-------+-------+
+    # | 3     | 78    |    | 143   | 3     |
+    # +-------+-------+    +-------+-------+
+    # | ...   | ...   |    | ...   | ...   |
+    # +-------+-------+    +-------+-------+
+    j_order = np.argsort(j_n)
+    i_n_2 = i_n[j_order]
+    j_n_2 = j_n[j_order]
+    # Find indices in the copy where contiguous blocks with same j_n_2 start
+    first_j = first_neighbours(nat, j_n_2) 
+    num_rows_per_j = first_j[j_n+1] - first_j[j_n] 
+    num_rows_cnl = np.sum(num_rows_per_j)
+
+    # The common neighbor information could be stored as
+    # a 2D array. However, multiple 1D arrays are likely
+    # better for performance (fewer cache misses later).
+    nl_index_i1_j1 = np.empty(num_rows_cnl, dtype=i_n.dtype)
+    cnl_j1 = np.empty(num_rows_cnl, dtype=i_n.dtype)
+    nl_index_i2_j1 = np.empty(num_rows_cnl, dtype=i_n.dtype)
+    cnl_i1_i2 = np.empty((num_rows_cnl, 2), dtype=i_n.dtype)
+
+    block_start = np.r_[0, np.cumsum(num_rows_per_j)]
+    slice_for_j1 = {j1: slice(first_j[j1], first_j[j1+1]) for j1 in np.arange(nat)}
+    for block_number, (i1, j1) in enumerate(zip(i_n, j_n)):
+        slice1 = slice(block_start[block_number], block_start[block_number+1])
+        slice2 = slice_for_j1[j1] 
+        nl_index_i1_j1[slice1] = block_number
+        cnl_j1[slice1] = j1 
+        nl_index_i2_j1[slice1] = j_order[slice2]
+        cnl_i1_i2[slice1, 0] = i1
+        cnl_i1_i2[slice1, 1] = i_n_2[slice2]
+    return cnl_i1_i2, cnl_j1, nl_index_i1_j1, nl_index_i2_j1
+
+
