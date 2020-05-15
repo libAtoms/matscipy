@@ -59,16 +59,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         #  initial guess is the center of the cell
         initial_guess = np.diagonal(disloc.cell).copy()[:2] / 2.0
 
-        res = minimize(sd.cost_function,
-                       initial_guess,
-                       args=(disloc,
-                             bulk,
-                             40,
-                             dft_elastic_param,
-                             False, False),
-                       method='Nelder-Mead')
-
-        self.assertArrayAlmostEqual(res.x, initial_guess + center[:2], tol=1e-4)
+        core_pos = sd.fit_core_position(disloc, bulk, dft_elastic_param,
+                                        origin=initial_guess,
+                                        hard_core=False, core_radius=40)
+        self.assertArrayAlmostEqual(core_pos, initial_guess + center[:2], tol=1e-4)
 
     def test_elastic_constants_EAM(self):
         """Test the get_elastic_constants() function using matscipy EAM calculator."""
