@@ -291,3 +291,101 @@ def find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n):
     reverse = np.empty(i_n.size, dtype=i_n.dtype)
     reverse[tmp1] = tmp2
     return reverse
+
+
+def triplet_list(quantities, atoms=None, cutoff=None, positions=None,
+                   cell=None, pbc=None, numbers=None, cell_origin=None):
+    """
+    Compute a triple list for an atomic configuration. The triple list is a
+    mask that can be applied to the corresponding neighbour list that is
+    computed by the neigbour_list function. 
+
+    The neighbor list is sorted by first atom index 'i', but not by second 
+    atom index 'j'.
+
+    The neighbour list accepts either an ASE Atoms object or positions and cell
+    vectors individually.
+
+    Parameters
+    ----------
+    quantities : str
+        Quantities to compute by the neighbor list algorithm. Each character
+        in this string defines a quantity. They are returned in a tuple of
+        the same order. Possible quantities are
+            'i' : first atom index
+            'j' : second atom index
+            'd' : absolute distance
+            'D' : distance vector
+            'S' : shift vector (number of cell boundaries crossed by the bond
+                  between atom i and j). With the shift vector S, the
+                  distances D between atoms can be computed from:
+                  D = a.positions[j]-a.positions[i]+S.dot(a.cell)
+    atoms : ase.Atoms
+        Atomic configuration. (Default: None)
+    cutoff : float or dict
+        Cutoff for neighbor search. It can be
+            - A single float: This is a global cutoff for all elements.
+            - A dictionary: This specifies cutoff values for element
+              pairs. Specification accepts element numbers of symbols.
+              Example: {(1, 6): 1.1, (1, 1): 1.0, ('C', 'C'): 1.85}
+            - A list/array with a per atom value: This specifies the radius of
+              an atomic sphere for each atoms. If spheres overlap, atoms are
+              within each others neighborhood.
+    positions : array_like
+        Atomic positions. (Default: None)
+    cell : array_like
+        Cell vectors as a 3x3 matrix. (Default: Shrink wrapped cell)
+    pbc : array_like
+        3-vector containing periodic boundary conditions in all three
+        directions. (Default: Nonperiodic box)
+    numbers : array_like
+        Array containing the atomic numbers.
+
+    Returns
+    -------
+    ij, ik : array
+        
+    i, j, ... : array
+        Tuple with arrays for each quantity specified above. Indices in `i`
+        are returned in ascending order 0..len(a), but the order of (i,j)
+        pairs is not guaranteed.
+
+    Examples
+    --------
+    Examples assume Atoms object *a* and numpy imported as *np*.
+    1. Coordination counting:
+        i = neighbor_list('i', a, 1.85)
+        coord = np.bincount(i)
+
+    2. Coordination counting with different cutoffs for each pair of species
+        i = neighbor_list('i', a,
+                           {('H', 'H'): 1.1, ('C', 'H'): 1.3, ('C', 'C'): 1.85})
+    """
+
+    # make sure to compute i_n since it's needed for the first_neighbours
+    i_n_pos = quantities.find('i')
+    if i_n_pos == -1:
+        i_n, neighbor_results = neighbour_list('i' + quantities, atoms, cutoff,
+                positions, cell, pbc, numbers, cell_origin)
+    else:
+        neighbor_results = neighbour_list(quantities, atoms, cutoff, positions,
+                cell, pbc, numbers, cell_origin)
+        i_n = neighbor_results[i_n_pos]
+
+    # compute the first_neighbours indicies and store it in first_i
+    first_i = first_neighbours(len(atoms), i_n)
+    
+    # initialize ij_t and ik_t
+    ij_t = np.zeros(0, dtype=int)
+    ik_t = np.zeros(0, dtype=int)
+
+    # compute the triple list by processing first_i
+    diffs = np.diff(first_i)
+    for i in range(len(diffs)):
+        for r in range(1, diffs[i]):
+            ij_t = np.concatenate([ij_t,
+                            np.ones(diffs[i]-r, dtype=int)*(first_i[i]+r-1)])
+            ik_t = np.concatenate([ik_t, np.arange(first_i[i],
+                                    first_i[i+1], dtype=int)[-(diffs[i]-r):]])
+
+    return tuple([ij_t, ik_t, *neighbor_results])
