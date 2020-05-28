@@ -243,7 +243,7 @@ if hasattr(params, 'relax_slab') and params.relax_slab:
 
 # Find initial position of crack tip
 crack_pos = find_tip_stress_field(crack_slab, calc=params.calc)
-print 'Found crack tip at position %s' % crack_pos
+print('Found crack tip at position %s' % crack_pos)
 
 crack_slab.info['strain'] = strain
 crack_slab.info['G'] = params.initial_G

@@ -59,16 +59,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         #  initial guess is the center of the cell
         initial_guess = np.diagonal(disloc.cell).copy()[:2] / 2.0
 
-        res = minimize(sd.cost_function,
-                       initial_guess,
-                       args=(disloc,
-                             bulk,
-                             40,
-                             dft_elastic_param,
-                             False, False),
-                       method='Nelder-Mead')
-
-        self.assertArrayAlmostEqual(res.x, initial_guess + center[:2], tol=1e-4)
+        core_pos = sd.fit_core_position(disloc, bulk, dft_elastic_param,
+                                        origin=initial_guess,
+                                        hard_core=False, core_radius=40)
+        self.assertArrayAlmostEqual(core_pos, initial_guess + center[:2], tol=1e-4)
 
     def test_elastic_constants_EAM(self):
         """Test the get_elastic_constants() function using matscipy EAM calculator."""
@@ -266,6 +260,86 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         #  compare z component with simple Volterra solution
         self.assertArrayAlmostEqual(u_volterra, u_stroh[:, 2])
 
+    def test_make_screw_quadrupole_kink(self):
+        """Test the total number of atoms in the quadrupole double kink configuration"""
+
+        alat = 3.14
+        n1u = 5
+        kink_length = 20
+
+        kink, _, _ = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kink_length=kink_length)
+        quadrupole_base, _, _, _ = sd.make_screw_quadrupole(alat=alat, n1u=n1u)
+
+        self.assertEqual(len(kink), len(quadrupole_base) * 2 * kink_length)
+
+    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
+    def test_make_screw_cyl_kink(self):
+        """Test the total number of atoms and number of fixed atoms in the cylinder double kink configuration"""
+
+        alat = 3.14339177996466
+        C11 = 523.0266819809012
+        C12 = 202.1786296941397
+        C44 = 160.88179872237012
+
+        cent_x = np.sqrt(6.0) * alat / 3.0
+        center = [cent_x, 0.0, 0.0]
+
+        cylinder_r = 40
+        kink_length = 26
+
+        kink, large_disloc, straight_bulk = sd.make_screw_cyl_kink(alat, C11, C12, C44, kink_length=kink_length,
+                                                                   cylinder_r=cylinder_r, kind="double")
+
+        # check the total number of atoms as compared to make_screw_cyl()
+        disloc, _, _ = sd.make_screw_cyl(alat, C11, C12, C12, cylinder_r=cylinder_r, l_extend=center)
+
+        self.assertEqual(len(kink), len(disloc) * 2 * kink_length)
+
+        kink_fixed_atoms = kink.constraints[0].get_indices()
+        reference_fixed_atoms = kink.constraints[0].get_indices()
+
+        # check that the same number of atoms is fixed
+        self.assertEqual(len(kink_fixed_atoms), len(reference_fixed_atoms))
+        # check that the fixed atoms are the same and with same positions
+        self.assertArrayAlmostEqual(kink_fixed_atoms, reference_fixed_atoms)
+        self.assertArrayAlmostEqual(kink.positions[kink_fixed_atoms],
+                                    large_disloc.positions[reference_fixed_atoms])
+
+    def test_slice_long_dislo(self):
+        """Function to test slicing tool"""
+
+        alat = 3.14339177996466
+        b = np.sqrt(3.0) * alat / 2.0
+        n1u = 5
+        kink_length = 20
+
+        kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kink_length=kink_length)
+        quadrupole_base, _, _, _ = sd.make_screw_quadrupole(alat=alat, n1u=n1u)
+
+        sliced_kink, core_positions = sd.slice_long_dislo(kink, kink_bulk, b)
+
+        # check the number of sliced configurations is equal to length of 2 * kink_length * 3 (for double kink)
+        self.assertEqual(len(sliced_kink), kink_length * 3 * 2)
+
+        # check that the bulk and kink slices are the same size
+        bulk_sizes = [len(slice[0]) for slice in sliced_kink]
+        kink_sizes = [len(slice[1]) for slice in sliced_kink]
+        self.assertArrayAlmostEqual(bulk_sizes, kink_sizes)
+
+        # check that the size of slices are the same as single b configuration
+        self.assertArrayAlmostEqual(len(quadrupole_base), len(sliced_kink[0][0]))
+
+        right_kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kind="right",
+                                                                              kink_length=kink_length)
+        sliced_right_kink, _ = sd.slice_long_dislo(right_kink, kink_bulk, b)
+        # check the number of sliced configurations is equal to length of kink_length * 3 - 2 (for right kink)
+        self.assertEqual(len(sliced_right_kink), kink_length * 3 - 2)
+
+        left_kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kind="left",
+                                                                              kink_length=kink_length)
+        sliced_left_kink, _ = sd.slice_long_dislo(left_kink, kink_bulk, b)
+        # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
+        self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
 if __name__ == '__main__':
     unittest.main()

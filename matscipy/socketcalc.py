@@ -863,8 +863,8 @@ class CastepClient(QMClient):
             self.logger.pr('No task key in castep_args, setting task=MD')
             castep_args['task'] = 'MD'
         if 'md_ensemble' not in castep_args:
-            self.logger.pr('No md_ensemble key in castep_args, setting md_ensemble=SOC')
-            castep_args['md_ensemble'] = 'SOC'
+            self.logger.pr('No md_ensemble key in castep_args, setting md_ensemble=SKT')
+            castep_args['md_ensemble'] = 'SKT'
         if 'md_num_iter' not in castep_args:
             self.logger.pr('No md_num_iter key in castep_args, setting md_num_iter=1000000')
             castep_args['md_num_iter'] = 1000000

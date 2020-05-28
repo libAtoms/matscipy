@@ -1,5 +1,7 @@
 import numpy as np
 
+from scipy.optimize import minimize
+
 from ase.lattice.cubic import BodyCenteredCubic
 from ase.constraints import FixAtoms, StrainFilter
 from ase.optimize import FIRE
@@ -485,10 +487,10 @@ def get_elastic_constants(pot_path=None,
 
 def make_barrier_configurations(elastic_param=None,
                                 pot_path=None, calculator=None,
-                                cylinder_r=10, hard_core=False):
-    """ Creates the initial and final configurations for the NEB calculation
-        The positions in FixedAtoms contrained region are average between
-        final and inital configurations
+                                cylinder_r=10, hard_core=False, **kwargs):
+    """Creates the initial and final configurations for the NEB calculation
+        The positions in FixedAtoms constrained region are average between
+        final and initial configurations
 
     Parameters
     ----------
@@ -501,7 +503,9 @@ def make_barrier_configurations(elastic_param=None,
                     dislocation  in angstrom.
     hard_core : bool
         Type of the core hard or soft.
-        If hard is chosen the displacment field is reversed.
+        If hard is chosen the displacement field is reversed.
+    **kwargs :
+        Keyword arguments to pass to make_screw_cyl() function.
 
     Returns
     -------
@@ -538,13 +542,13 @@ def make_barrier_configurations(elastic_param=None,
                                               cylinder_r=cylinder_r,
                                               cutoff=cutoff,
                                               hard_core=hard_core,
-                                              l_extend=center)
+                                              l_extend=center, **kwargs)
 
     disloc_fin, __, __ = make_screw_cyl(alat, C11, C12, C44,
                                         cylinder_r=cylinder_r,
                                         cutoff=cutoff,
                                         hard_core=hard_core,
-                                        center=center)
+                                        center=center, **kwargs)
 
     # get the fixed atoms constrain
     FixAtoms = disloc_ini.constraints[0]
@@ -566,11 +570,241 @@ def make_barrier_configurations(elastic_param=None,
     positions[fixed_atoms_indices] = new_av_pos
     disloc_fin.set_positions(positions, apply_constraint=False)
 
-    return disloc_fin, disloc_ini, bulk_ini
+    return disloc_ini, disloc_fin, bulk_ini
+
+def make_screw_cyl_kink(alat, C11, C12, C44,
+                        cylinder_r=40, kink_length=26, kind="double", **kwargs):
+    """Function to create kink configuration based on make_screw_cyl() function.
+        Double kink configuration is in agreement with quadrupoles in terms of formation energy.
+        Single kink configurations provide correct and stable structure, but formation energy is not accessible?
+
+    Parameters
+    ----------
+    alat : float
+        Lattice constant of the material.
+    C11 : float
+        C11 elastic constant of the material.
+    C12 : float
+        C12 elastic constant of the material.
+    C44 : float
+        C44 elastic constant of the material.
+    cylinder_r : float
+        radius of cylinder of unconstrained atoms around the
+        dislocation  in angstrom
+    kink_length : int
+        Length of the cell per kink along b in unit of b, must be even.
+    kind : string
+        kind of the kink: right, left or double
+    **kwargs :
+        Keyword arguments to pass to make_screw_cyl() function.
+
+    Returns
+    -------
+    kink : ase.atoms
+        kink configuration
+    reference_straight_disloc : ase.atoms
+        reference straight dislocation configuration
+    large_bulk : ase.atoms
+        large bulk cell corresponding to the kink configuration
+    """
+    b = np.sqrt(3.0) * alat / 2.0
+    cent_x = np.sqrt(6.0) * alat / 3.0
+
+    disloc_ini, disloc_fin, bulk_ini = make_barrier_configurations((alat, C11, C12, C44),
+                                                                    cylinder_r=cylinder_r, **kwargs)
+
+    if kind == "double":
+
+        large_bulk = bulk_ini * [1, 1, 2 * kink_length]
+        reference_straight_disloc = disloc_ini * [1, 1, 2 * kink_length]
+
+        if kink_length % 2:
+            print("WARNING: length is not even!")
+
+        kink = disloc_ini * [1, 1, kink_length // 2]
+        middle_kink = disloc_fin * [1, 1, kink_length]
+
+        middle_kink.positions += np.array((0.0, 0.0, kink.get_cell()[2][2]))
+
+        kink.constraints[0].index = np.append(kink.constraints[0].index,
+                                              middle_kink.constraints[0].get_indices() + len(kink))
+        kink.extend(middle_kink)
+        kink.cell[2][2] += middle_kink.cell[2][2]
+
+        upper_kink = disloc_ini * [1, 1, kink_length // 2]
+        upper_kink.positions += np.array((0.0, 0.0, kink.get_cell()[2][2]))
+
+        kink.constraints[0].index = np.append(kink.constraints[0].index,
+                                              upper_kink.constraints[0].get_indices() + len(kink))
+        kink.extend(upper_kink)
+        kink.cell[2][2] += upper_kink.cell[2][2]
+
+    elif kind == "right":
+
+        large_bulk = bulk_ini * [1, 1, kink_length]
+        reference_straight_disloc = disloc_ini * [1, 1, kink_length]
+
+        kink = disloc_ini * [1, 1, kink_length // 2]
+        upper_disloc = disloc_fin * [1, 1, kink_length // 2]
+
+        upper_disloc.positions += np.array((0.0, 0.0, kink.cell[2][2]))
+
+        kink.extend(upper_disloc)
+        kink.constraints[0].index = np.append(kink.constraints[0].index,
+                                              upper_disloc.constraints[0].get_indices() + len(kink))
+        kink.cell[2][2] += upper_disloc.cell[2][2]
+
+        # we have to adjust the cell to make the kink vector periodic
+        # here we remove two atomic rows. it is nicely explained in the paper
+        _, _, z = large_bulk.positions.T
+        right_kink_mask = z < large_bulk.cell[2][2] - 2.0 * b / 3 - 0.01
+
+        kink = kink[right_kink_mask]
+
+        cell = kink.cell.copy()
+
+        # right kink is created when the kink vector is in positive x direction
+        # assuming (x, y, z) is right group of vectors
+        cell[2][0] += cent_x
+        cell[2][2] -= 2.0 * b / 3.0
+        kink.set_cell(cell, scale_atoms=False)
+
+        # make sure all the atoms are removed and cell is modified for the bulk as well.
+        large_bulk.cell[2][0] += cent_x
+        large_bulk.cell[2][2] -= 2.0 * b / 3.0
+        large_bulk = large_bulk[right_kink_mask]
+        for constraint in kink.constraints:
+            large_bulk.set_constraint(constraint)
+
+    elif kind == "left":
+
+        large_bulk = bulk_ini * [1, 1, kink_length]
+        reference_straight_disloc = disloc_ini * [1, 1, kink_length]
+
+        kink = disloc_fin * [1, 1, kink_length // 2]
+
+        upper_disloc = disloc_ini * [1, 1, kink_length // 2]
+        upper_disloc.positions += np.array((0.0, 0.0, kink.cell[2][2]))
+
+        kink.extend(upper_disloc)
+        kink.constraints[0].index = np.append(kink.constraints[0].index,
+                                              upper_disloc.constraints[0].get_indices() + len(kink))
+        kink.cell[2][2] += upper_disloc.cell[2][2]
+
+        # we have to adjust the cell to make the kink vector periodic
+        # here we remove one atomic row. it is nicely explained in the paper
+        _, _, z = large_bulk.positions.T
+        left_kink_mask = z < large_bulk.cell[2][2] - 1.0 * b / 3 - 0.01
+
+        kink = kink[left_kink_mask]
+
+        cell = kink.cell.copy()
+
+        # left kink is created when the kink vector is in negative x direction
+        # assuming (x, y, z) is right group of vectors
+        cell[2][0] -= cent_x
+        cell[2][2] -= 1.0 * b / 3.0
+        kink.set_cell(cell, scale_atoms=False)
+
+        # make sure all the atoms are removed and cell is modified for the bulk as well.
+        large_bulk.cell[2][0] -= cent_x
+        large_bulk.cell[2][2] -= 1.0 * b / 3.0
+        large_bulk = large_bulk[left_kink_mask]
+        for constraint in kink.constraints:
+            large_bulk.set_constraint(constraint)
+
+    else:
+        raise ValueError('Kind must be "right", "left" or "double"')
+
+    return kink, reference_straight_disloc, large_bulk
+
+def slice_long_dislo(kink, kink_bulk, b):
+    """Function to slice a long dislocation configuration to perform dislocation structure and core position analysis
+
+    Parameters
+    ----------
+    kink : ase.Atoms
+        kink configuration to slice
+    kink_bulk : ase.Atoms
+        corresponding bulk configuration to perform mapping for slicing
+    b : float
+        burgers vector b should be along z direction
+
+
+    Returns
+    -------
+    sliced_kink : list of [sliced_bulk, sliced_kink]
+        sliced configurations 1 b length each
+    disloc_z_positions : float
+        positions of each sliced configuration (center along z)
+    """
+
+    if not len(kink) == len(kink_bulk):
+        raise ValueError('"kink" and "kink_bulk" must be same size')
+
+    n_slices = int(np.round(kink.cell[2][2] / b * 3))
+    atom_z_positions = kink_bulk.positions.T[2]
+
+    kink_z_length = kink_bulk.cell[2][2]
+
+    sliced_kink = []
+    disloc_z_positions = []
+
+    for slice_id in range(n_slices):
+
+        shift = slice_id * b / 3.0
+
+        upper_bound = 5.0 * b / 6.0 + shift
+        lower_bound = -b / 6.0 + shift
+
+        if upper_bound < kink_z_length:
+
+            mask = np.logical_and(atom_z_positions < upper_bound,
+                                  atom_z_positions > lower_bound)
+
+            bulk_slice = kink_bulk.copy()[mask]
+            kink_slice = kink.copy()[mask]
+
+        else:  # take into account PBC at the end of the box
+
+            upper_mask = atom_z_positions < (upper_bound - kink_z_length)
+
+            mask = np.logical_or(upper_mask,
+                                 atom_z_positions > lower_bound)
+
+            bulk_slice = kink_bulk.copy()[mask]
+            kink_slice = kink.copy()[mask]
+
+            # move the bottom atoms on top of the box
+            kink_slice.positions[upper_mask[mask]] += np.array(kink_bulk.cell[2])
+
+            bulk_slice.positions[upper_mask[mask]] += np.array((kink_bulk.cell[2]))
+
+        # print(kink_bulk[mask].positions.T[2].max())
+        # print(kink_bulk[mask].positions.T[2].min())
+
+        bulk_slice.positions -= np.array((0.0, 0.0, shift))
+        kink_slice.positions -= np.array((0.0, 0.0, shift))
+
+        bulk_slice.cell = kink_bulk.cell
+        bulk_slice.cell[2][2] = b
+        bulk_slice.cell[2][0] = 0
+
+        kink_slice.cell = kink_bulk.cell
+        kink_slice.cell[2][2] = b
+        kink_slice.cell[2][0] = 0
+
+        sliced_kink.append([bulk_slice, kink_slice])
+        disloc_z_positions.append(b / 3.0 + shift)
+
+    disloc_z_positions = np.array(disloc_z_positions)
+
+    return sliced_kink, disloc_z_positions
 
 
 def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
-                           alat, cylinder_r=None, print_info=True):
+                           alat, cylinder_r=None, print_info=True, remap=True,
+                           bulk_neighbours=None, origin=(0., 0.)):
     """Compares two dislocation configurations based on the gradient of
        the displacements along the bonds.
 
@@ -594,6 +828,14 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
         around the dislocation core position.
     print_info : bool
         Flag to switch print statement about the type of the comparison
+    remap: bool
+        Flag to swtich off remapping of atoms between deformed and reference
+        configurations. Only set this to true if atom order is the same!
+    bulk_neighbours:
+        Optionally pass in bulk neighbours as a tuple (bulk_i, bulk_j)
+    origin: tuple
+        Optionally pass in coordinate origin (x0, y0)
+
     Returns
     -------
     float
@@ -601,9 +843,13 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 
     """
 
+    x0, y0 = origin
+    x, y, __ = bulk.get_positions().T
+    x -= x0
+    y -= y0
+    radius = np.sqrt(x ** 2 + y ** 2)
+
     if cylinder_r is None:
-        x, y, __ = bulk.positions.T
-        radius = np.sqrt(x**2 + y**2)
         cutoff_radius = radius.max() - 10.
 
         if print_info:
@@ -614,20 +860,23 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
         if print_info:
             print("Making a local comparison with radius %.2f" % cutoff_radius)
 
-    x, y, __ = bulk_ref.positions.T
-    radius = np.sqrt(x**2 + y**2)
-    cutoff_mask = (radius < cutoff_radius)
-
+    cutoff_mask = radius < cutoff_radius
     second_NN_distance = alat
-    bulk_i, bulk_j = neighbour_list('ij', bulk_ref, second_NN_distance)
+    if bulk_neighbours is None:
+        bulk_i, bulk_j = neighbour_list('ij', bulk_ref, second_NN_distance)
+    else:
+        bulk_i, bulk_j = bulk_neighbours
 
     I_core, J_core = np.array([(i, j) for i, j in zip(bulk_i, bulk_j) if cutoff_mask[i]]).T
 
-    mapping = {}
-
-    for i in range(len(bulk)):
-        mapping[i] = np.linalg.norm(bulk_ref.positions -
-                                    bulk.positions[i], axis=1).argmin()
+    if remap:
+        mapping = {}
+        for i in range(len(bulk)):
+            mapping[i] = np.linalg.norm(bulk_ref.positions -
+                                        bulk.positions[i], axis=1).argmin()
+    else:
+        mapping = dict(zip(list(range(len(bulk))),
+                           list(range(len(bulk)))))
 
     u_ref = dislo_ref.positions - bulk_ref.positions
 
@@ -643,7 +892,8 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 
 
 def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
-                  hard_core=False, print_info=True):
+                  hard_core=False, print_info=True, remap=True,
+                  bulk_neighbours=None, origin=(0, 0)):
     """Cost function for fitting analytical displacement field
        and detecting dislocation core position. Uses `compare_configurations`
        function for the minimisation of the core position.
@@ -667,6 +917,11 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         type of the core True for hard
     print_info : bool
         Flag to switch print statement about the type of the comparison
+    bulk_neighbours: tuple or None
+        Optionally pass in neighbour list for bulk reference config to save
+        computing it each time.
+    origin: tuple
+        Optionally pass in coordinate origin (x0, y0)
 
     Returns
     -------
@@ -694,6 +949,7 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
     # Solving a new problem with Stroh.solve
     stroh.solve(c, burgers, axes=axes)
 
+    x0, y0 = origin
     center = (pos[0], pos[1], 0.0)
     u = stroh.displacement(bulk.positions - center)
     u = -u if hard_core else u
@@ -704,9 +960,90 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
     err = compare_configurations(dislo, bulk,
                                  dislo_guess, bulk,
                                  alat, cylinder_r=cylinder_r,
-                                 print_info=print_info)
+                                 print_info=print_info, remap=remap,
+                                 bulk_neighbours=bulk_neighbours,
+                                 origin=origin)
 
     return err
+
+
+def fit_core_position(dislo_image, bulk, elastic_param, hard_core=False,
+                      core_radius=10, current_pos=None, bulk_neighbours=None,
+                      origin=(0, 0)):
+    """
+    Use `cost_function()` to fit atomic positions to Stroh solution with
+
+    `scipy.optimize.minimize` is used to perform the fit using Powell's method.
+
+    Parameters
+    ----------
+
+    dislo_image: ase.atoms.Atoms
+    bulk: ase.atoms.Atoms
+    elastic_param: array-like
+        [alat, C11, C12, C44]
+    hard_core: bool
+    core_radius: float
+    current_pos: array-like
+        array [core_x, core_y] containing initial guess for core position
+    bulk_neighbours: tuple
+        cache of bulk neigbbours to speed up calcualtion. Should be a
+        tuple (bulk_I, bulk_J) as returned by
+        `matscipy.neigbbours.neighbour_list('ij', bulk, alat)`.
+    origin: tuple
+        Optionally pass in coordinate origin (x0, y0)
+
+    Returns
+    -------
+
+    core_pos - array [core_x, core_y]
+
+    """
+    if current_pos is None:
+        current_pos = origin
+    res = minimize(cost_function, current_pos, args=(
+                    dislo_image, bulk, core_radius, elastic_param,
+                    hard_core, False, False, bulk_neighbours, origin),
+                   method='Powell', options={'xtol': 1e-2, 'ftol': 1e-2})
+    return res.x
+
+
+def fit_core_position_images(images, bulk, elastic_param,
+                             bulk_neighbours=None,
+                             origin=(0, 0)):
+    """
+    Call fit_core_position() for a list of Atoms objects, e.g. NEB images
+
+    Parameters
+    ----------
+    images: list
+        list of Atoms object for dislocation configurations
+    bulk: ase.atoms.Atoms
+        bulk reference configuration
+    elastic_param: list
+        as for `fit_core_position()`.
+    bulk_neighbours:
+        as for `fit_core_position()`.
+    origin: tuple
+        Optionally pass in coordinate origin (x0, y0)
+
+    Returns
+    -------
+    core_positions: array of shape `(len(images), 2)`
+    """
+    core_positions = []
+    core_position = images[0].info.get('core_position', origin)
+    for dislo in images:
+        dislo_tmp = dislo.copy()
+        core_position = fit_core_position(dislo_tmp, bulk, elastic_param,
+                                          current_pos=dislo.info.get(
+                                              'core_position', core_position),
+                                          bulk_neighbours=bulk_neighbours,
+                                          origin=origin)
+        dislo.info['core_position'] = core_position
+        core_positions.append(core_position)
+
+    return np.array(core_positions)
 
 
 def screw_cyl_tetrahedral(alat, C11, C12, C44,
@@ -715,7 +1052,7 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
                           imp_symbol='H',
                           hard_core=False,
                           center=(0., 0., 0.)):
-    """Generates a set of terahedral positions with `scan_r` radius.
+    """Generates a set of tetrahedral positions with `scan_r` radius.
        Applies the screw dislocation displacement for creating an initial guess
        for the H positions at dislocation core.
 
@@ -1336,6 +1673,119 @@ def make_screw_quadrupole(alat,
     bulk.cell[1][2] -= burgers/2.0
 
     return disloc_quadrupole, bulk, dislo_coord_left, dislo_coord_right
+
+
+def make_screw_quadrupole_kink(alat, kind="double", n1u=5, kink_length=20, symbol="W"):
+    """Generates kink configuration using make_screw_quadrupole() function
+       works for BCC structure.
+       The method is based on paper https://doi.org/10.1016/j.jnucmat.2008.12.053
+
+    Parameters
+    ----------
+    alat : float
+        Lattice parameter of the system in Angstrom.
+    kind : string
+        kind of the kink: right, left or double
+    n1u : int
+        Number of lattice vectors for the quadrupole cell (make_screw_quadrupole() function)
+    kink_length : int
+        Length of the cell per kink along b in unit of b, must be even.
+    symbol : string
+        Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
+        default is "W" for tungsten
+
+    Returns
+    -------
+
+    kink : ase.atoms
+        kink configuration
+    reference_straight_disloc : ase.atoms
+        reference straight dislocation configuration
+    large_bulk : ase.atoms
+        large bulk cell corresponding to the kink configuration
+
+    """
+
+    b = np.sqrt(3.0) * alat / 2.0
+    cent_x = np.sqrt(6.0) * alat / 3.0
+
+    ini_disloc_quadrupole, W_bulk, _, _ = make_screw_quadrupole(alat, n1u=n1u,
+                                                                   left_shift=0.0,
+                                                                   right_shift=0.0,
+                                                                   symbol=symbol)
+
+    fin_disloc_quadrupole, W_bulk, _, _ = make_screw_quadrupole(alat, n1u=n1u,
+                                                                   left_shift=1.0,
+                                                                   right_shift=1.0,
+                                                                   symbol=symbol)
+
+    reference_straight_disloc = ini_disloc_quadrupole * [1, 1, kink_length]
+    large_bulk = W_bulk * [1, 1, kink_length]
+    __, __, z = large_bulk.positions.T
+
+    if kind == "left":
+
+        # we have to adjust the cell to make the kink vector periodic
+        # here we remove one atomic row . it is nicely explained in the paper
+        left_kink_mask = z < large_bulk.get_cell()[2][2] - 1.0 * b / 3.0 - 0.01
+        large_bulk.cell[2][0] -= cent_x
+        large_bulk.cell[2][2] -= 1.0 * b / 3.0
+        large_bulk = large_bulk[left_kink_mask]
+
+        kink = fin_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink = ini_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink.positions += np.array((0.0, 0.0, kink.cell[2][2]))
+        kink.cell[2][2] += upper_kink.cell[2][2]
+        kink.extend(upper_kink)
+
+        # left kink is created the kink vector is in negative x direction assuming (x, y, z) is right group of vectors
+        kink = kink[left_kink_mask]
+        kink.cell[2][0] -= cent_x
+        kink.cell[2][2] -= 1.0 * b / 3.0
+
+    elif kind == "right":
+
+        # we have to adjust the cell to make the kink vector periodic
+        # here we remove two atomic rows . it is nicely explained in the paper
+        right_kink_mask = z < large_bulk.cell[2][2] - 2.0 * b / 3.0 - 0.01
+        large_bulk.cell[2][0] += cent_x
+        large_bulk.cell[2][2] -= 2.0 * b / 3.0
+        large_bulk = large_bulk[right_kink_mask]
+
+        kink = ini_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink = fin_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink.positions += np.array((0.0, 0.0, kink.cell[2][2]))
+        kink.cell[2][2] += upper_kink.cell[2][2]
+        kink.extend(upper_kink)
+
+        kink = kink[right_kink_mask]
+        # right kink is created when the kink vector is in positive x direction
+        # assuming (x, y, z) is right group of vectors
+        kink.cell[2][0] += cent_x
+        kink.cell[2][2] -= 2.0 * b / 3.0
+
+    elif kind == "double":
+
+        # for the double kink it is kink length per kink
+        kink = ini_disloc_quadrupole * [1, 1, kink_length // 2]
+        middle_kink = fin_disloc_quadrupole * [1, 1, kink_length]
+        middle_kink.positions += np.array((0.0, 0.0, kink.get_cell()[2][2]))
+
+        kink.extend(middle_kink)
+        kink.cell[2][2] += middle_kink.cell[2][2]
+
+        upper_kink = ini_disloc_quadrupole * [1, 1, kink_length // 2]
+        upper_kink.positions += np.array((0.0, 0.0, kink.get_cell()[2][2]))
+        kink.extend(upper_kink)
+
+        kink.cell[2][2] += upper_kink.cell[2][2]
+
+        large_bulk = W_bulk * [1, 1, 2 * kink_length]  # double kink is double length
+
+    else:
+        raise ValueError('Kind must be "right", "left" or "double"')
+
+    return kink, reference_straight_disloc, large_bulk
 
 
 def make_edge_cyl_001_100(a0, C11, C12, C44,
