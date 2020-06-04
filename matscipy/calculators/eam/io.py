@@ -5,6 +5,7 @@
 # Copyright (2014) James Kermode, King's College London
 #                  Lars Pastewka, Karlsruhe Institute of Technology
 #                  Adrien Gola, Karlsruhe Institute of Technology
+#                  Wolfram Nöhring, University of Freiburg
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
-
+"""Read and write tabulated EAM potentials"""
 
 from __future__ import division, print_function
 
@@ -36,12 +37,41 @@ import os
 
 ###
 
-EAMParameters = namedtuple('EAMParameters', 'symbols atomic_numbers '
-                           'atomic_masses lattice_constants crystal_structures '
-                           'number_of_density_grid_points '
-                           'number_of_distance_grid_points '
-                           'density_grid_spacing distance_grid_spacing '
-                           'cutoff')
+
+# Todo: replace by data class (requires Python > 3.7)
+class EAMParameters(
+    namedtuple(
+        "EAMParameters",
+        "symbols atomic_numbers "
+        "atomic_masses lattice_constants crystal_structures "
+        "number_of_density_grid_points "
+        "number_of_distance_grid_points "
+        "density_grid_spacing distance_grid_spacing "
+        "cutoff",
+    )
+):
+    """Embedded Atom Method potential parameters
+
+    :param array_like symbols: Symbols of the elements coverered by
+        this potential (only for eam/alloy and 
+        eam/fs, EMPTY for eam
+    :param array_like atomic_numbers: Atomic numbers of the elements 
+        covered by this potential
+    :param array_like atomic_masses: Atomic masses of the elements 
+        covered by this potential
+    :param array_like lattice_constants: Lattice constant of a pure crystal 
+        with crystal structure as specified in crystal_structures
+    :param array_like crystal_structures: Crystal structure of the pure metal.
+    :param int number_of_density_grid_points: Number of grid points 
+        of the embedding energy functional
+    :param int number_of_distance_grid_points: Number of grid points of 
+        the electron density function and the pair potential
+    :param float density_grid_spacing: Grid spacing in electron density space
+    :param float distance_grid_spacing: Grid spacing in pair distance space
+    :param float cutoff: Cutoff distance of the potential
+    """
+
+    __slots__ = ()
 
 ###
 
@@ -52,34 +82,26 @@ def read_eam(eam_file,kind="eam/alloy"):
     
     Parameters
     ----------
-      eam_file : string
-                      eam alloy file name 
-      kind : string
-             kind of EAM file to read (supported eam,eam/alloy,eam/fs)
+    eam_file : string
+        eam alloy file name 
+    kind : string
+        kind of EAM file to read (supported eam,eam/alloy,eam/fs)
+
     Returns
     -------
-      source : string
-          Source informations or comment line for the file header
-      parameters : list of tuples
-                [0] - array of str - atoms (ONLY FOR eam/alloy and eam/fs, EMPTY for eam)
-                [1] - array of int - atomic numbers
-                [2] - array of float -atomic masses
-                [3] - array of float - equilibrium lattice parameter
-                [4] - array of str - crystal structure
-                [5] - int - number of data point for embedded function
-                [6] - int - number of data point for density and pair functions
-                [7] - float - step size for the embedded function
-                [8] - float - step size for the density and pair functions
-                [9] - float - cutoff of the potentials
-      F : array_like
-          contain the tabulated values of the embedded functions
-          shape = (nb atoms, nb of data points)
-      f : array_like
-          contain the tabulated values of the density functions
-          shape = (nb atoms, nb of data points)
-      rep : array_like
-          contain the tabulated values of pair potential
-          shape = (nb atoms,nb atoms, nb of data points)
+    source : string
+        Source informations or comment line for the file header
+    parameters : EAMParameters
+        EAM potential parameters
+    F : array_like
+        contain the tabulated values of the embedded functions
+        shape = (nb atoms, nb of data points)
+    f : array_like
+        contain the tabulated values of the density functions
+        shape = (nb atoms, nb of data points)
+    rep : array_like
+        contain the tabulated values of pair potential
+        shape = (nb atoms,nb atoms, nb of data points)
     """
     with open(eam_file, 'r') as file:
         eam = file.readlines()
@@ -205,47 +227,38 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
     
     Parameters
     ----------
-      files : array of strings
-              Contain all the files to merge and mix
-      kind : string
-              kinf of eam. Supported eam/alloy, eam/fs
-      method : string, (geometric,arithmetic,weighted,fitted)
-              Method used to mix the pair interaction terms
-              Available : Geometric average, arithmetic average, weighted arithmetic average
-                  The Weighted arithmetic method is using the electron density function values of atom a and b to 
-                  ponderate the pair potential between species a and b, 
-                  rep_ab = 0.5*(fb/fa * rep_a + fa/fb * rep_b)
-                  ref : X. W. Zhou, R. A. Johnson, and H. N. G. Wadley, Phys. Rev. B, 69, 144113 (2004)
-                  Fitted method is to be used if the rep_ab has been previously fitted and is parse as rep_ab karg
-      f : np.array of the fitted density term (for FS eam style)
-      rep_ab : np.array of the fitted rep_ab term
-      alphas : array of fitted alpha values for the fine tuned mixing. rep_ab = alpha_a*rep_a+alpha_b*rep_b
-      betas : array of fitted values for the fine tuned mixing. f_ab = beta_00*rep_a+beta_01*rep_b
+    files : array of strings
+            Contain all the files to merge and mix
+    kind : string
+            kinf of eam. Supported eam/alloy, eam/fs
+    method : string, (geometric,arithmetic,weighted,fitted)
+            Method used to mix the pair interaction terms
+            Available : Geometric average, arithmetic average, weighted arithmetic average
+                The Weighted arithmetic method is using the electron density function values of atom a and b to 
+                ponderate the pair potential between species a and b, 
+                rep_ab = 0.5*(fb/fa * rep_a + fa/fb * rep_b)
+                ref : X. W. Zhou, R. A. Johnson, and H. N. G. Wadley, Phys. Rev. B, 69, 144113 (2004)
+                Fitted method is to be used if the rep_ab has been previously fitted and is parse as rep_ab karg
+    f : np.array of the fitted density term (for FS eam style)
+    rep_ab : np.array of the fitted rep_ab term
+    alphas : array of fitted alpha values for the fine tuned mixing. rep_ab = alpha_a*rep_a+alpha_b*rep_b
+    betas : array of fitted values for the fine tuned mixing. f_ab = beta_00*rep_a+beta_01*rep_b
                                                                 f_ba = beta_10*rep_a+beta_11*rep_b
     Returns
     -------
-      sources : string
-              Source informations or comment line for the file header
-      parameters_mix : list of tuples
-                [0] - array of str - atoms 
-                [1] - array of int - atomic numbers
-                [2] - array of float -atomic masses
-                [3] - array of float - equilibrium lattice parameter
-                [4] - array of str - crystal structure
-                [5] - int - number of data point for embedded function
-                [6] - int - number of data point for density and pair functions
-                [7] - float - step size for the embedded function
-                [8] - float - step size for the density and pair functions
-                [9] - float - cutoff of the potentials
-      F_ : array_like
-          contain the tabulated values of the embedded functions
-          shape = (nb atoms,nb atoms, nb of data points)
-      f_ : array_like
-          contain the tabulated values of the density functions
-          shape = (nb atoms,nb atoms, nb of data points)
-      rep_ : array_like
-          contain the tabulated values of pair potential
-          shape = (nb atoms,nb atoms, nb of data points)
+    sources : string
+            Source informations or comment line for the file header
+    parameters_mix: EAMParameters
+        EAM potential parameters
+    F_ : array_like
+        contain the tabulated values of the embedded functions
+        shape = (nb atoms,nb atoms, nb of data points)
+    f_ : array_like
+        contain the tabulated values of the density functions
+        shape = (nb atoms,nb atoms, nb of data points)
+    rep_ : array_like
+        contain the tabulated values of pair potential
+        shape = (nb atoms,nb atoms, nb of data points)
     """
 
     nb_at = 0
@@ -397,6 +410,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
                 
     parameters_mix = EAMParameters(atoms, atnumber, atmass,crystallatt,crystal, Nrho_,Nr_, drho_, dr_, cutoff[max_cutoff])
     return sources, parameters_mix, F_, f_, rep_
+
       
 def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
     """
@@ -407,17 +421,8 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
     ----------
     source : string
           Source information or comment line for the file header
-    parameters : list of tuples
-                [0] - array of str - atoms (ONLY FOR eam/alloy and eam/fs, EMPTY for eam)
-                [1] - array of int - atomic numbers
-                [2] - array of float -atomic masses
-                [3] - array of float - equilibrium lattice parameter
-                [4] - array of str - crystal structure
-                [5] - int - number of data point for embedded function
-                [6] - int - number of data point for density and pair functions
-                [7] - float - step size for the embedded function
-                [8] - float - step size for the density and pair functions
-                [9] - float - cutoff of the potentials
+    parameters_mix: EAMParameters
+        EAM potential parameters
     F : array_like
         contain the tabulated values of the embedded functions
         shape = (nb of data points)
