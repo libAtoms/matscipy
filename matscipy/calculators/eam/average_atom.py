@@ -102,10 +102,10 @@ def average_potential(
     >>>     concentrations, parameters, F, f, rep
     >>> )
     >>> composition = " ".join(
-    >>>     [str(c * 100.0) + f"% {e}," for c, e in zip(concentrations, parameters.symbols)]
+    >>>     [str(c * 100.0) + "% {0},".format(e) for c, e in zip(concentrations, parameters.symbols)]
     >>> )
     >>> composition = composition.rstrip(",")
-    >>> source += f", averaged for composition {composition}"
+    >>> source += ", averaged for composition {0}".format(composition)
     >>> io.write_eam(
     >>>     source,
     >>>     new_parameters,

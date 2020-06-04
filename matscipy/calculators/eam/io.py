@@ -39,35 +39,39 @@ import os
 
 
 # Todo: replace by data class (requires Python > 3.7)
-EAMParameters = namedtuple('EAMParameters', 'symbols atomic_numbers '
-                           'atomic_masses lattice_constants crystal_structures '
-                           'number_of_density_grid_points '
-                           'number_of_distance_grid_points '
-                           'density_grid_spacing distance_grid_spacing '
-                           'cutoff')
-EAMParameters.__doc__ += ": Embedded Atom Method potential parameters"
-EAMParameters.symbols.__doc__ = """\
-Symbols of the elements coverered by this potential (only for eam/alloy and eam/fs, EMPTY for eam"""
-EAMParameters.atomic_numbers.__doc__ = """\
-Atomic numbers of the elements covered by this potential"""
-EAMParameters.atomic_masses.__doc__ = """\
-Atomic masses of the elements covered by this potential"""
-EAMParameters.lattice_constants.__doc__ = """\
-Lattice constant of a pure crystal with 
-crystal structure as specified in `EAMParameters.crystal_structures`"""
-EAMParameters.crystal_structures.__doc__ = """\
-Crystal structure of the pure metal."""
-EAMParameters.number_of_density_grid_points.__doc__ = """\
-Number of grid points of the embedding energy functional"""
-EAMParameters.number_of_distance_grid_points.__doc__ = """\
-Number of grid points of the electron density function and the pair potential"""
-EAMParameters.density_grid_spacing.__doc__ = """\
-Grid spacing in electron density space"""
-EAMParameters.distance_grid_spacing.__doc__ = """\
-Grid spacing in pair distance space"""
-EAMParameters.cutoff.__doc__ = """\
-Cutoff distance of the potential"""
+class EAMParameters(
+    namedtuple(
+        "EAMParameters",
+        "symbols atomic_numbers "
+        "atomic_masses lattice_constants crystal_structures "
+        "number_of_density_grid_points "
+        "number_of_distance_grid_points "
+        "density_grid_spacing distance_grid_spacing "
+        "cutoff",
+    )
+):
+    """Embedded Atom Method potential parameters
 
+    :param array_like symbols: Symbols of the elements coverered by
+        this potential (only for eam/alloy and 
+        eam/fs, EMPTY for eam
+    :param array_like atomic_numbers: Atomic numbers of the elements 
+        covered by this potential
+    :param array_like atomic_masses: Atomic masses of the elements 
+        covered by this potential
+    :param array_like lattice_constants: Lattice constant of a pure crystal 
+        with crystal structure as specified in crystal_structures
+    :param array_like crystal_structures: Crystal structure of the pure metal.
+    :param int number_of_density_grid_points: Number of grid points 
+        of the embedding energy functional
+    :param int number_of_distance_grid_points: Number of grid points of 
+        the electron density function and the pair potential
+    :param float density_grid_spacing: Grid spacing in electron density space
+    :param float distance_grid_spacing: Grid spacing in pair distance space
+    :param float cutoff: Cutoff distance of the potential
+    """
+
+    __slots__ = ()
 
 ###
 
