@@ -22,6 +22,7 @@
 import itertools
 
 import numpy as np
+from array import array
 
 from ase.data import atomic_numbers
 
@@ -343,7 +344,11 @@ def triplet_list(quantities, atoms=None, cutoff=None, positions=None,
 
     Returns
     -------
-    ij, ik : array
+    ij_t, ik_t : array
+        lists of adresses that form triples in the pair lists
+
+    first_ij : array
+        adresses of the first triplet of a pair ij in the ij_t, ik_t lists
         
     i, j, ... : array
         Tuple with arrays for each quantity specified above. Indices in `i`
@@ -353,13 +358,9 @@ def triplet_list(quantities, atoms=None, cutoff=None, positions=None,
     Examples
     --------
     Examples assume Atoms object *a* and numpy imported as *np*.
-    1. Coordination counting:
-        i = neighbor_list('i', a, 1.85)
-        coord = np.bincount(i)
+    1. Calculate the angle between all triplets
+        #TODO
 
-    2. Coordination counting with different cutoffs for each pair of species
-        i = neighbor_list('i', a,
-                           {('H', 'H'): 1.1, ('C', 'H'): 1.3, ('C', 'C'): 1.85})
     """
 
     # make sure to compute i_n since it's needed for the first_neighbours
@@ -375,6 +376,7 @@ def triplet_list(quantities, atoms=None, cutoff=None, positions=None,
     # compute the first_neighbours indicies and store it in first_i
     first_i = first_neighbours(len(atoms), i_n)
     
+    """
     # initialize ij_t and ik_t
     ij_t = np.zeros(0, dtype=int)
     ik_t = np.zeros(0, dtype=int)
@@ -384,8 +386,31 @@ def triplet_list(quantities, atoms=None, cutoff=None, positions=None,
     for i in range(len(diffs)):
         for r in range(1, diffs[i]):
             ij_t = np.concatenate([ij_t,
-                            np.ones(diffs[i]-r, dtype=int)*(first_i[i]+r-1)])
+                                   np.ones(diffs[i]-r, dtype=int)*(first_i[i]+r-1)])
             ik_t = np.concatenate([ik_t, np.arange(first_i[i],
-                                    first_i[i+1], dtype=int)[-(diffs[i]-r):]])
+                                   first_i[i+1], dtype=int)[-(diffs[i]-r):]])
+    """
 
-    return tuple([ij_t, ik_t, *neighbor_results])
+    # newer approach
+    ij_t = np.zeros(0, dtype=int)
+    ik_t = np.zeros(0, dtype=int)
+    # because numpy.append is super slow (l. 410ff), array is used instead
+    first_triplets = array('I', [0]) 
+    # first_triplets = np.zeros(1, dtype=int)
+
+    # compute the triple list by processing first_i
+    diffs = np.diff(first_i)
+    for i in range(len(diffs)):
+        for r in range(1, diffs[i]+1):
+            ij_t = np.concatenate([ij_t,
+                               np.ones(diffs[i]-1, dtype=int)*(first_i[i]+r-1)])
+            ik_t = np.concatenate([ik_t, np.arange(first_i[i],
+                                first_i[i+1],
+                                dtype=int)[np.arange(diffs[i])!=(r-1)].copy()])
+            # compute first_ij list
+            # first_triplets = np.append(first_triplets, [len(ij_t)])
+            first_triplets.append(ij_t.size)
+            # first_triplets = np.concatenate([first_triplets, [len(ij_t)]])
+
+
+    return tuple([ij_t, ik_t, np.array(first_triplets), *neighbor_results])
