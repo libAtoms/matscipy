@@ -4,11 +4,6 @@ dist: xenial
 sudo: required
 matrix:
   include:
-    - python: 2.7
-      language: python
-      python: "2.7"
-      os: linux
-      env: PYTHON=/usr/bin/python2.7
     - python: 3.6
       language: python
       python: "3.6"
