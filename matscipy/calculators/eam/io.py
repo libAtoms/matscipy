@@ -104,8 +104,8 @@ def _strip_comments_from_line(string, marker="#"):
 def read_eam(eam_file, kind="eam/alloy"):
     """Read a tabulated EAM potential
     
-    There are flavors of EAM, with different storage formats.
-    This function supports a subset of the formats supported
+    There are differnt flavors of EAM, with different storage
+    formats. This function supports a subset of the formats supported
     by Lammps (http://lammps.sandia.gov/doc/pair_eam.html),
     * eam (DYNAMO funcfl format)
     * eam/alloy (DYNAMO setfl format)
@@ -136,7 +136,7 @@ def read_eam(eam_file, kind="eam/alloy"):
     """
     supported_kinds = ["eam", "eam/alloy", "eam/fs"]
     if kind not in supported_kinds: 
-        raise ValueError("EAM kind {kind} not supported")
+        raise ValueError(f"EAM kind {kind} not supported")
     with open(eam_file, 'r') as file:
         eam = file.readlines()
 
@@ -291,34 +291,46 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
             Contain all the files to merge and mix
     kind : string
             kinf of eam. Supported eam/alloy, eam/fs
-    method : string, (geometric,arithmetic,weighted,fitted)
-            Method used to mix the pair interaction terms
-            Available : Geometric average, arithmetic average, weighted arithmetic average
-                The Weighted arithmetic method is using the electron density function values of atom a and b to 
-                ponderate the pair potential between species a and b, 
-                rep_ab = 0.5*(fb/fa * rep_a + fa/fb * rep_b)
-                ref : X. W. Zhou, R. A. Johnson, and H. N. G. Wadley, Phys. Rev. B, 69, 144113 (2004)
-                Fitted method is to be used if the rep_ab has been previously fitted and is parse as rep_ab karg
-    f : np.array of the fitted density term (for FS eam style)
-    rep_ab : np.array of the fitted rep_ab term
-    alphas : array of fitted alpha values for the fine tuned mixing. rep_ab = alpha_a*rep_a+alpha_b*rep_b
-    betas : array of fitted values for the fine tuned mixing. f_ab = beta_00*rep_a+beta_01*rep_b
-                                                                f_ba = beta_10*rep_a+beta_11*rep_b
+    method : string, {geometric, arithmetic, weighted, fitted}
+        Method used to mix the pair interaction terms. The geometric,
+        arithmetic, and weighted arithmetic average are available. The weighted
+        arithmetic method is using the electron density function values of atom
+        :code:`a` and :code:`b` to ponderate the pair potential between species
+        :code:`a` and :math:`b`, :code:`rep_ab = 0.5(fb/fa * rep_a + fa/fb *
+        rep_b)`, see [1]. The fitted method is to be used if :code:`rep_ab`
+        has been previously fitted and is parse as :math:`rep_ab` karg.
+    f : np.array 
+        fitted density term (for FS eam style)
+    rep_ab : np.array 
+        fitted rep_ab term
+    alphas : array
+        fitted alpha values for the fine tuned mixing. 
+        :code:`rep_ab = alpha_a*rep_a+alpha_b*rep_b`
+    betas : array 
+        fitted values for the fine tuned mixing. 
+        :code:`f_ab = beta_00*rep_a+beta_01*rep_b`
+        :code:`f_ba = beta_10*rep_a+beta_11*rep_b`
+
     Returns
     -------
     sources : string
-            Source informations or comment line for the file header
+        Source informations or comment line for the file header
     parameters_mix: EAMParameters
         EAM potential parameters
     F_ : array_like
         contain the tabulated values of the embedded functions
-        shape = (nb elements,nb elements, nb of data points)
+        shape = (nb elements, nb elements, nb of data points)
     f_ : array_like
         contain the tabulated values of the density functions
-        shape = (nb elements,nb elements, nb of data points)
+        shape = (nb elements, nb elements, nb of data points)
     rep_ : array_like
         contain the tabulated values of pair potential
-        shape = (nb elements,nb elements, nb of data points)
+        shape = (nb elements, nb elements, nb of data points)
+
+    References
+    ----------
+
+    1. X. W. Zhou, R. A. Johnson, and H. N. G. Wadley, Phys. Rev. B, 69, 144113 (2004)
     """
 
     nb_at = 0
@@ -465,17 +477,21 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
                     rep_[i,j,:][np.isnan(rep_[i,j,:])] = 0
                     rep_[i,j,:][np.isinf(rep_[i,j,:])] = 0
     else:
-        print('Non supported eam file type')
-        raise ValueError
+        raise ValueError(f"EAM kind {kind} is not supported")
                 
     parameters_mix = EAMParameters(elements, atomic_numbers, atomic_masses,lattice_parameters,crystal_structures, Nrho_,Nr_, drho_, dr_, cutoff[max_cutoff])
     return sources, parameters_mix, F_, f_, rep_
 
       
-def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
-    """
-    Write an eam lammps format file 
-    http://lammps.sandia.gov/doc/pair_eam.html
+def write_eam(source, parameters, F, f, rep, out_file, kind="eam"):
+    """Write an eam lammps format file 
+
+    There are differnt flavors of EAM, with different storage
+    formats. This function supports a subset of the formats supported
+    by Lammps (http://lammps.sandia.gov/doc/pair_eam.html),
+    * eam (DYNAMO funcfl format)
+    * eam/alloy (DYNAMO setfl format)
+    * eam/fs (DYNAMO setfl format)
     
     Parameters
     ----------
@@ -494,9 +510,12 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
         shape = (nb of data points)
     out_file : string
               output file name for the eam alloy potential file
+    kind : {'eam', 'eam/alloy', 'eam/fs'}
+        kind of EAM file to read
+
     Returns
     -------
-      
+    None
     """
   
     elements, atomic_numbers, atomic_masses, lattice_parameters, crystal_structures = parameters[0:5]
@@ -504,14 +523,14 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
     
     if kind == "eam":
         # parameters unpacked
-        atline = "%i %f %f %s"%(int(atomic_numbers),float(atomic_masses),float(lattice_parameters),str(crystal_structures))
-        parameterline = '%i\t%.16e\t%i\t%.16e\t%.10e'%(int(Nrho),float(drho),int(Nr),float(dr),float(cutoff))
-        potheader = "# EAM potential from : # %s \n %s \n %s"%(source,atline,parameterline)
+        atline = f"{int(atomic_numbers)} {float(atomic_masses)}  {float(lattice_parameters)} {str(crystal_structures)}"
+        parameterline = f'{int(Nrho)}\t{float(drho):.16e}\t{int(Nr)}\t{float(dr):.16e}\t{float(cutoff):.10e}'
+        potheader = f"# EAM potential from : # {source} \n {atline} \n {parameterline}"
         # --- Writing new EAM alloy pot file --- #
         # write header and file parameters
         potfile = open(out_file,'wb')
         # write F and f tables
-        np.savetxt(potfile, F, fmt='%.16e',header=potheader,comments='')
+        np.savetxt(potfile, F, fmt='%.16e', header=potheader, comments='')
         np.savetxt(potfile, f, fmt='%.16e')
         # write pair interactions tables
         np.savetxt(potfile, rep, fmt='%.16e')
@@ -519,29 +538,48 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
     elif kind == "eam/alloy":
         num_elements = len(elements)
         # parameters unpacked
-        potheader = "# Mixed EAM alloy potential from :\n# %s \n# \n"%(source)
+        potheader = f"# Mixed EAM alloy potential from :\n# {source} \n# \n"
         # --- Writing new EAM alloy pot file --- #
         potfile = open(out_file,'wb')
         # write header and file parameters
-        np.savetxt(potfile,elements,fmt="%s",newline=' ', header=potheader+str(num_elements),footer='\n%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff), comments='')
+        np.savetxt(
+            potfile, elements, fmt="%s", newline=' ', 
+            header=potheader+str(num_elements), 
+            footer=f'\n{Nrho}\t{drho:e}\t{Nr}\t{dr:e}\t{cutoff:e}\n', 
+            comments=''
+        )
         # write F and f tables
-        [np.savetxt(potfile,np.append(F[i,:],f[i,:]),fmt="%.16e",header='%i\t%f\t%f\t%s'%(atomic_numbers[i],atomic_masses[i],lattice_parameters[i],crystal_structures[i]),comments='') for i in range(num_elements)]
+        for i in range(num_elements):
+            np.savetxt(
+                potfile, np.append(F[i,:], f[i,:]), fmt="%.16e", 
+                header=f'{atomic_numbers[i]:d}\t{atomic_masses[i]}\t{lattice_parameters[i]}\t{crystal_structures[i]}',
+                comments=''
+            )
         # write pair interactions tables
         [[np.savetxt(potfile,rep[i,j,:],fmt="%.16e") for j in range(rep.shape[0]) if j <= i] for i in range(rep.shape[0])]
         potfile.close() 
     elif kind == "eam/fs":
         num_elements = len(elements)
         # parameters unpacked
-        potheader = "# Mixed EAM fs potential from :\n# %s \n# \n"%(source)
+        potheader = f"# Mixed EAM fs potential from :\n# {source} \n# \n"
         # --- Writing new EAM alloy pot file --- #
         potfile = open(out_file,'wb')
         # write header and file parameters
-        np.savetxt(potfile,elements,fmt="%s",newline=' ', header=potheader+str(num_elements),footer='\n%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff), comments='')
+        np.savetxt(
+            potfile, elements, fmt="%s", newline=' ', 
+            header=potheader+str(num_elements), 
+            footer=f'\n{Nrho}\t{drho:e}\t{Nr}\t{dr:e}\t{cutoff:e}\n', 
+            comments=''
+        )
         # write F and f tables
-        [np.savetxt(potfile,np.append(F[i,:],f[i,:,:].flatten()),fmt="%.16e",header='%i\t%f\t%f\t%s'%(atomic_numbers[i],atomic_masses[i],lattice_parameters[i],crystal_structures[i]),comments='') for i in range(num_elements)]
+        for i in range(num_elements):
+            np.savetxt(
+                potfile, np.append(F[i,:], f[i,:,:].flatten()), fmt="%.16e", 
+                header=f'{atomic_numbers[i]:d}\t{atomic_masses[i]}\t{lattice_parameters[i]}\t{crystal_structures[i]}',
+                comments=''
+            )
         # write pair interactions tables
-        [[np.savetxt(potfile,rep[i,j,:],fmt="%.16e") for j in range(rep.shape[0]) if j <= i] for i in range(rep.shape[0])]
+        [[np.savetxt(potfile, rep[i,j,:], fmt="%.16e") for j in range(rep.shape[0]) if j <= i] for i in range(rep.shape[0])]
         potfile.close() 
     else:
-        print('Non supported eam file type')
-        raise ValueError
+        raise ValueError(f"EAM kind {kind} is not supported")
