@@ -75,17 +75,48 @@ class EAMParameters(
 
 ###
 
-def read_eam(eam_file,kind="eam/alloy"):
+def _strip_comments_from_line(string, marker="#"):
+    """Strip comments from lines but retain newlines
+
+    Parameters
+    ----------
+    string : str
+        string which may contain comments
+    marker : str
+        marker which indicates the start of a comment
+
+    Returns
+    -------
+    stripped_string : str
+        string without commments; if the string terminated
+        with a newline, then the newline is retained
     """
-    Read an eam alloy lammps format file and return the tabulated data and parameters
-    http://lammps.sandia.gov/doc/pair_eam.html
+    start = string.find(marker)
+    if start != -1:
+        stripped_string = string[:start]
+        if string.endswith("\n"):
+            stripped_string += "\n"
+    else:
+        stripped_string = string
+    return stripped_string
+
+
+def read_eam(eam_file, kind="eam/alloy"):
+    """Read a tabulated EAM potential
+    
+    There are flavors of EAM, with different storage formats.
+    This function supports a subset of the formats supported
+    by Lammps (http://lammps.sandia.gov/doc/pair_eam.html),
+    * eam (DYNAMO funcfl format)
+    * eam/alloy (DYNAMO setfl format)
+    * eam/fs (DYNAMO setfl format)
     
     Parameters
     ----------
     eam_file : string
         eam alloy file name 
-    kind : string
-        kind of EAM file to read (supported eam,eam/alloy,eam/fs)
+    kind : {'eam', 'eam/alloy', 'eam/fs'}
+        kind of EAM file to read
 
     Returns
     -------
@@ -95,129 +126,158 @@ def read_eam(eam_file,kind="eam/alloy"):
         EAM potential parameters
     F : array_like
         contain the tabulated values of the embedded functions
-        shape = (nb atoms, nb of data points)
+        shape = (nb elements, nb of data points)
     f : array_like
         contain the tabulated values of the density functions
-        shape = (nb atoms, nb of data points)
+        shape = (nb elements, nb of data points)
     rep : array_like
         contain the tabulated values of pair potential
-        shape = (nb atoms,nb atoms, nb of data points)
+        shape = (nb elements,nb elements, nb of data points)
     """
+    supported_kinds = ["eam", "eam/alloy", "eam/fs"]
+    if kind not in supported_kinds: 
+        raise ValueError("EAM kind {kind} not supported")
     with open(eam_file, 'r') as file:
         eam = file.readlines()
-    if kind=="eam":
+
+    if kind == "eam":
+        with open(eam_file, 'r') as file:
+            # ignore comment characters on first line but strip them from subsequent lines
+            lines = [file.readline()]
+            lines.extend(_strip_comments_from_line(line) for line in file.readlines())
         # reading first comment line as source for eam potential data
-        source = eam[0].strip()
-        # -- Parameters -- #
-        atnumber = int(eam[1].split()[0])
-        atmass = float(eam[1].split()[1])
-        crystallatt = float(eam[1].split()[2])
-        crystal = eam[1].split()[3]
-        Nrho = int(eam[2].split()[0])       # Nrho (number of values for the embedding function F(rho))
-        Nr = int(eam[2].split()[2])         # Nr (number of values for the effective charge function Z(r) and density function rho(r))
-        drho = float(eam[2].split()[1])     # spacing in density space
-        dr = float(eam[2].split()[3]) # spacing in distance space
-        cutoff = float(eam[2].split()[4])
-        parameters = EAMParameters(np.zeros(1),atnumber, atmass,crystallatt,crystal, Nrho,Nr, drho, dr, cutoff)
-        # -- Tabulated data -- #
-        data = np.loadtxt(eam_file, dtype="float", skiprows = 3).flatten()
+        source = lines[0].strip()
+
+        words = lines[1].strip().split()
+        if len(words) != 4:
+            raise ValueError(
+                "expected four values on second line of EAM setfl file: "
+                "atomic number, mass, lattice constant, lattice"
+            )
+        atomic_numbers = int(words[0])
+        atomic_masses = float(words[1])
+        lattice_parameters = float(words[2])
+        crystal_structures = words[3]
+
+        words = lines[2].strip().split()
+        if len(words) != 5:
+            raise ValueError(
+                "expected five values on third line of EAM setfl file: "
+                "Nrho, drho, Nr, dr, cutoff"
+            )
+        Nrho = int(words[0])       # Nrho (number of values for the embedding function F(rho))
+        drho = float(words[1])     # spacing in density space
+        Nr = int(words[2])         # Nr (number of values for the effective charge function Z(r) and density function rho(r))
+        dr = float(words[3])       # spacing in distance space
+        cutoff = float(words[4])
+        parameters = EAMParameters(
+            np.zeros(1), atomic_numbers, atomic_masses, lattice_parameters, 
+            crystal_structures, Nrho, Nr, drho, dr, cutoff
+        )
+
+        # Strip empty lines 
+        remaining_lines = [line for line in lines[3:] if len(line.strip()) > 0]
+        remaining_words = []
+        for line in remaining_lines:
+            words = line.split()
+            remaining_words.extend(words)
+        expected_length = Nrho + 2 * Nr
+        true_length = len(remaining_words)
+        if true_length != expected_length:
+            raise ValueError(f"expected {expected_length} tabulated values, but there are {true_length}")
+        data = np.array(remaining_words, dtype=float)
         F = data[0:Nrho]
         f = data[Nrho:Nrho+Nr]
         rep = data[Nrho+Nr:2*Nr+Nrho]
-        return source,parameters, F,f,rep
-    elif kind=="eam/alloy":
+        return source, parameters, F, f, rep
+
+    if kind in ["eam/alloy", "eam/fs"]:
+        """eam/alloy and eam/fs have almost the same structure, except for the electron density section"""
+        with open(eam_file, 'r') as file:
+            # ignore comment characters on first line but strip them from subsequent lines
+            lines = [file.readline() for _ in range(3)]
+            lines.extend(_strip_comments_from_line(line) for line in file.readlines())
         # reading 3 first comment lines as source for eam potential data
-        source = eam[0].strip()+eam[1].strip()+eam[2].strip()
-        # -- Parameters -- #
-        atoms = eam[3].strip().split()[1:]
-        nb_atoms = len(atoms)
-        Nrho = int(eam[4].split()[0])       # Nrho (number of values for the embedding function F(rho))
-        Nr = int(eam[4].split()[2])         # Nr (number of values for the effective charge function Z(r) and density function rho(r))
-        drho = float(eam[4].split()[1])     # spacing in density space
-        dr = float(eam[4].split()[3]) # spacing in distance space
-        cutoff = float(eam[4].split()[4])
-        atnumber,atmass,crystallatt,crystal = np.empty(nb_atoms,dtype=int),np.empty(nb_atoms),np.empty(nb_atoms),np.empty(nb_atoms).astype(np.str)
-        for i in range(nb_atoms):
-            # Fixme: The following lines assume that data occurs in blocks of
-            # homogeneous width. This can break.
-            l = len(eam[6].strip().split())
-            row = int(5+i*((Nr+Nrho)/l+1))
-            atnumber[i] = int(eam[row].split()[0])
-            atmass[i] = float(eam[row].split()[1])
-            crystallatt[i] = float(eam[row].split()[2])
-            crystal[i] = str(eam[row].split()[3])
-        parameters = EAMParameters(atoms,atnumber,atmass,crystallatt,crystal,Nrho,Nr,drho,dr,cutoff)
-        # -- Tabulated data -- #
-        F,f,rep,data = np.empty((nb_atoms,Nrho)),np.empty((nb_atoms,Nr)),np.empty((nb_atoms,nb_atoms,Nr)),np.empty(())
-        eam = open(eam_file,'r')
-        [eam.readline() for i in range(5)]
-        for i in range(nb_atoms):
-            eam.readline()
-            data = np.append(data,np.fromfile(eam,count=Nrho+Nr, sep=' '))
-        data = np.append(data,np.fromfile(eam,count=-1, sep=' '))
-        data = data[1:]
-        for i in range(nb_atoms):
-            F[i,:] = data[i*(Nrho+Nr):Nrho+i*(Nrho+Nr)]
-            f[i,:] = data[Nrho+i*(Nrho+Nr):Nrho+Nr+i*(Nrho+Nr)]
-        interaction = 0
-        for i in range(nb_atoms):
-            for j in range(nb_atoms):
-                if j < i :
-                    rep[i,j,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
-                    rep[j,i,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
-                    interaction+=1
-            rep[i,i,:] = data[nb_atoms*(Nrho+Nr)+interaction*Nr:nb_atoms*(Nrho+Nr)+interaction*Nr+Nr]
-            interaction+=1
-        return source,parameters, F,f,rep
-    elif kind=="eam/fs":
-        # reading 3 first comment lines as source for eam potential data
-        source = eam[0].strip()+eam[1].strip()+eam[2].strip()
-        # -- Parameters -- #
-        atoms = eam[3].strip().split()[1:]
-        nb_atoms = len(atoms)
-        Nrho = int(eam[4].split()[0])       # Nrho (number of values for the embedding function F(rho))
-        Nr = int(eam[4].split()[2])         # Nr (number of values for the effective charge function Z(r) and density function rho(r))
-        drho = float(eam[4].split()[1])     # spacing in density space
-        dr = float(eam[4].split()[3]) # spacing in distance space
-        cutoff = float(eam[4].split()[4])
-        atnumber,atmass,crystallatt,crystal = np.empty(nb_atoms,dtype=int),np.empty(nb_atoms),np.empty(nb_atoms),np.empty(nb_atoms).astype(np.str)
-        for i in range(nb_atoms):
-            # Fixme: The following lines assume that data occurs in blocks of
-            # homogeneous width. This can break.
-            l = len(eam[6].strip().split())
-            row = int(5+i*((Nr*nb_atoms+Nrho)/l+1))
-            atnumber[i] = int(eam[row].split()[0])
-            atmass[i] = float(eam[row].split()[1])
-            crystallatt[i] = float(eam[row].split()[2])
-            crystal[i] = str(eam[row].split()[3])
-        parameters = EAMParameters(atoms,atnumber,atmass,crystallatt,crystal,Nrho,Nr,drho,dr,cutoff)
-        # -- Tabulated data -- #
-        F,f,rep,data = np.empty((nb_atoms,Nrho)),np.empty((nb_atoms,nb_atoms,Nr)),np.empty((nb_atoms,nb_atoms,Nr)),np.empty(())
-        eam = open(eam_file,'r')
-        [eam.readline() for i in range(5)]
-        for i in range(nb_atoms):
-            eam.readline()
-            data = np.append(data,np.fromfile(eam,count=Nrho+Nr*nb_atoms, sep=' '))
-        data = np.append(data,np.fromfile(eam,count=-1, sep=' '))
-        data = data[1:]
-        for i in range(nb_atoms):
-            F[i,:] = data[i*(Nrho+Nr*nb_atoms):Nrho+i*(Nrho+Nr*nb_atoms)]
-            #f[i,:] = data[Nrho+i*(Nrho+Nr):Nrho+Nr+i*(Nrho+Nr)]
-        interaction = 0
-        for i in range(nb_atoms):
-            for j in range(nb_atoms):
-                f[i,j,:] = data[Nrho+j*Nr+i*(Nrho+Nr*nb_atoms):Nr+Nrho+j*Nr+i*(Nrho+Nr*nb_atoms)]
-                if j < i :
-                    rep[i,j,:] = data[nb_atoms*(Nrho+Nr*nb_atoms)+interaction*Nr:nb_atoms*(Nrho+Nr*nb_atoms)+interaction*Nr+Nr]
-                    rep[j,i,:] = data[nb_atoms*(Nrho+Nr*nb_atoms)+interaction*Nr:nb_atoms*(Nrho+Nr*nb_atoms)+interaction*Nr+Nr]
-                    interaction+=1
-            rep[i,i,:] = data[nb_atoms*(Nrho+Nr*nb_atoms)+interaction*Nr:nb_atoms*(Nrho+Nr*nb_atoms)+interaction*Nr+Nr]
-            interaction+=1
-        eam.close()
-        return source,parameters, F,f,rep
-    else:
-        print('Non supported eam file type')
-        raise ValueError
+        source = "".join(line.strip() for line in lines[:3])
+
+        words = lines[3].strip().split()
+        alleged_num_elements = int(words[0])
+        elements = words[1:]
+        true_num_elements = len(elements)
+        if alleged_num_elements != true_num_elements:
+            raise ValueError(
+                f"Header claims there are tables for {alleged_num_elements} elements, "
+                f"but actual element list has {true_num_elements} elements: {' '.join(elements)}"
+            )
+
+        words = lines[4].strip().split()
+        Nrho = int(words[0])     # Nrho (number of values for the embedding function F(rho))
+        drho = float(words[1])   # spacing in density space
+        Nr = int(words[2])       # Nr (number of values for the effective charge function Z(r) and density function rho(r))
+        dr = float(words[3])     # spacing in distance space
+        cutoff = float(words[4])
+
+        # Strip empty lines and check that the table contains the expected number of values
+        remaining_lines = [line for line in lines[5:] if len(line.strip()) > 0]
+        remaining_words = []
+        for line in remaining_lines:
+            words = line.split()
+            remaining_words.extend(words)
+        if kind == "eam/fs":
+            expected_num_density_functions_per_element = true_num_elements
+        else:
+            expected_num_density_functions_per_element = 1
+        expected_num_words_per_element = (
+            4 + 
+            Nrho + 
+            expected_num_density_functions_per_element * Nr 
+        )
+        expected_num_pair_functions = np.sum(np.arange(1, true_num_elements+1)).astype(int)
+        expected_length = true_num_elements * expected_num_words_per_element + expected_num_pair_functions * Nr
+        true_length = len(remaining_words)
+        if true_length != expected_length:
+            raise ValueError(f"expected {expected_length} tabulated values, but there are {true_length}")
+
+        atomic_numbers = np.zeros(true_num_elements, dtype=int)
+        atomic_masses = np.zeros(true_num_elements)
+        lattice_parameters = np.zeros(true_num_elements)
+        crystal_structures = np.empty(true_num_elements).astype(np.str) # fixme: be careful with string length
+        F = np.zeros((true_num_elements, Nrho))
+        for i in range(true_num_elements):
+            offset = i * expected_num_words_per_element
+            atomic_numbers[i] = int(remaining_words[offset])
+            atomic_masses[i] = float(remaining_words[offset+1])
+            lattice_parameters[i] = float(remaining_words[offset+2])
+            crystal_structures[i] = remaining_words[offset+3]
+            F[i, :] = np.array(remaining_words[offset+4:offset+4+Nrho], dtype=float)
+
+        # Read data for individual elemements
+        if kind == "eam/alloy":
+            f = np.zeros((true_num_elements, Nr))
+            for i in range(true_num_elements):
+                offset = i * expected_num_words_per_element + 4 + Nrho
+                f[i, :] = np.array(remaining_words[offset:offset+Nr], dtype=float)
+        if kind == "eam/fs":
+            f = np.zeros((true_num_elements, true_num_elements, Nr))
+            for i in range(true_num_elements):
+                offset = i * expected_num_words_per_element + 4 + Nrho
+                for j in range(true_num_elements):
+                    f[i, j, :] = np.array(remaining_words[offset+j*Nr:offset+(j+1)*Nr], dtype=float)
+
+        # Read pair data
+        rep = np.zeros((true_num_elements, true_num_elements, Nr))
+        rows, cols = np.tril_indices(true_num_elements)
+        for pair_number, (i, j) in enumerate(zip(rows, cols)):
+            offset = true_num_elements * expected_num_words_per_element + pair_number * Nr
+            rep[i, j, :] = np.array(remaining_words[offset:offset+Nr], dtype=float)
+            rep[j, i, :] = rep[i, j, :]
+
+        parameters = EAMParameters(
+            elements, atomic_numbers, atomic_masses, 
+            lattice_parameters, crystal_structures, 
+            Nrho, Nr, drho, dr, cutoff
+        )
+        return source, parameters, F, f, rep
             
 
 def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
@@ -252,13 +312,13 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         EAM potential parameters
     F_ : array_like
         contain the tabulated values of the embedded functions
-        shape = (nb atoms,nb atoms, nb of data points)
+        shape = (nb elements,nb elements, nb of data points)
     f_ : array_like
         contain the tabulated values of the density functions
-        shape = (nb atoms,nb atoms, nb of data points)
+        shape = (nb elements,nb elements, nb of data points)
     rep_ : array_like
         contain the tabulated values of pair potential
-        shape = (nb atoms,nb atoms, nb of data points)
+        shape = (nb elements,nb elements, nb of data points)
     """
 
     nb_at = 0
@@ -280,7 +340,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         max_cutoff = cutoff.argmax()
         max_prod = (Nrho*drho).argmax()
         max_prod_r = (Nr*dr).argmax()
-        atnumber,atmass,crystallatt,crystal,atoms = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
+        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
         Nr_ = Nr[max_prod_r]
         dr_ = ((Nr*dr).max())/Nr_
         Nrho_ = Nrho[max_prod]
@@ -296,11 +356,11 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         at = 0
         for i,f_eam in enumerate(files):
             source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
-            atoms = np.append(atoms,parameters[0])
-            atnumber = np.append(atnumber,parameters[1])
-            atmass = np.append(atmass,parameters[2])
-            crystallatt = np.append(crystallatt,parameters[3])
-            crystal = np.append(crystal,parameters[4])
+            elements = np.append(elements,parameters[0])
+            atomic_numbers = np.append(atomic_numbers,parameters[1])
+            atomic_masses = np.append(atomic_masses,parameters[2])
+            lattice_parameters = np.append(lattice_parameters,parameters[3])
+            crystal_structures = np.append(crystal_structures,parameters[4])
             for j in range(len(parameters[0])):
                 F_[at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nrho[i]*drho[i],Nrho[i]),F[j,:])(np.linspace(0,Nrho_*drho_,Nrho_))
                 f_[at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),f[j,:])(np.linspace(0,Nr_*dr_,Nr_))
@@ -342,7 +402,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         max_cutoff = cutoff.argmax()
         max_prod = (Nrho*drho).argmax()
         max_prod_r = (Nr*dr).argmax()
-        atnumber,atmass,crystallatt,crystal,atoms = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
+        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
         Nr_ = Nr[max_prod_r]
         dr_ = ((Nr*dr).max())/Nr_
         Nrho_ = Nrho[max_prod]
@@ -358,11 +418,11 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         at = 0
         for i,f_eam in enumerate(files):
             source,parameters, F,f,rep = read_eam(f_eam,kind="eam/alloy")
-            atoms = np.append(atoms,parameters[0])
-            atnumber = np.append(atnumber,parameters[1])
-            atmass = np.append(atmass,parameters[2])
-            crystallatt = np.append(crystallatt,parameters[3])
-            crystal = np.append(crystal,parameters[4])
+            elements = np.append(elements,parameters[0])
+            atomic_numbers = np.append(atomic_numbers,parameters[1])
+            atomic_masses = np.append(atomic_masses,parameters[2])
+            lattice_parameters = np.append(lattice_parameters,parameters[3])
+            crystal_structures = np.append(crystal_structures,parameters[4])
             for j in range(len(parameters[0])):
                 F_[at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nrho[i]*drho[i],Nrho[i]),F[j,:])(np.linspace(0,Nrho_*drho_,Nrho_))
                 f_[at,at,:] = interpolate.InterpolatedUnivariateSpline(np.linspace(0,Nr[i]*dr[i],Nr[i]),f[j,:])(np.linspace(0,Nr_*dr_,Nr_))
@@ -408,7 +468,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         print('Non supported eam file type')
         raise ValueError
                 
-    parameters_mix = EAMParameters(atoms, atnumber, atmass,crystallatt,crystal, Nrho_,Nr_, drho_, dr_, cutoff[max_cutoff])
+    parameters_mix = EAMParameters(elements, atomic_numbers, atomic_masses,lattice_parameters,crystal_structures, Nrho_,Nr_, drho_, dr_, cutoff[max_cutoff])
     return sources, parameters_mix, F_, f_, rep_
 
       
@@ -439,12 +499,12 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
       
     """
   
-    atoms, atnumber, atmass, crystallatt, crystal = parameters[0:5]
+    elements, atomic_numbers, atomic_masses, lattice_parameters, crystal_structures = parameters[0:5]
     Nrho, Nr, drho, dr, cutoff = parameters[5:10]
     
     if kind == "eam":
         # parameters unpacked
-        atline = "%i %f %f %s"%(int(atnumber),float(atmass),float(crystallatt),str(crystal))
+        atline = "%i %f %f %s"%(int(atomic_numbers),float(atomic_masses),float(lattice_parameters),str(crystal_structures))
         parameterline = '%i\t%.16e\t%i\t%.16e\t%.10e'%(int(Nrho),float(drho),int(Nr),float(dr),float(cutoff))
         potheader = "# EAM potential from : # %s \n %s \n %s"%(source,atline,parameterline)
         # --- Writing new EAM alloy pot file --- #
@@ -457,28 +517,28 @@ def write_eam(source, parameters, F, f, rep,out_file,kind="eam"):
         np.savetxt(potfile, rep, fmt='%.16e')
         potfile.close()  
     elif kind == "eam/alloy":
-        nb_atoms = len(atoms)
+        num_elements = len(elements)
         # parameters unpacked
         potheader = "# Mixed EAM alloy potential from :\n# %s \n# \n"%(source)
         # --- Writing new EAM alloy pot file --- #
         potfile = open(out_file,'wb')
         # write header and file parameters
-        np.savetxt(potfile,atoms,fmt="%s",newline=' ', header=potheader+str(nb_atoms),footer='\n%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff), comments='')
+        np.savetxt(potfile,elements,fmt="%s",newline=' ', header=potheader+str(num_elements),footer='\n%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff), comments='')
         # write F and f tables
-        [np.savetxt(potfile,np.append(F[i,:],f[i,:]),fmt="%.16e",header='%i\t%f\t%f\t%s'%(atnumber[i],atmass[i],crystallatt[i],crystal[i]),comments='') for i in range(nb_atoms)]
+        [np.savetxt(potfile,np.append(F[i,:],f[i,:]),fmt="%.16e",header='%i\t%f\t%f\t%s'%(atomic_numbers[i],atomic_masses[i],lattice_parameters[i],crystal_structures[i]),comments='') for i in range(num_elements)]
         # write pair interactions tables
         [[np.savetxt(potfile,rep[i,j,:],fmt="%.16e") for j in range(rep.shape[0]) if j <= i] for i in range(rep.shape[0])]
         potfile.close() 
     elif kind == "eam/fs":
-        nb_atoms = len(atoms)
+        num_elements = len(elements)
         # parameters unpacked
         potheader = "# Mixed EAM fs potential from :\n# %s \n# \n"%(source)
         # --- Writing new EAM alloy pot file --- #
         potfile = open(out_file,'wb')
         # write header and file parameters
-        np.savetxt(potfile,atoms,fmt="%s",newline=' ', header=potheader+str(nb_atoms),footer='\n%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff), comments='')
+        np.savetxt(potfile,elements,fmt="%s",newline=' ', header=potheader+str(num_elements),footer='\n%i\t%e\t%i\t%e\t%e\n'%(Nrho,drho,Nr,dr,cutoff), comments='')
         # write F and f tables
-        [np.savetxt(potfile,np.append(F[i,:],f[i,:,:].flatten()),fmt="%.16e",header='%i\t%f\t%f\t%s'%(atnumber[i],atmass[i],crystallatt[i],crystal[i]),comments='') for i in range(nb_atoms)]
+        [np.savetxt(potfile,np.append(F[i,:],f[i,:,:].flatten()),fmt="%.16e",header='%i\t%f\t%f\t%s'%(atomic_numbers[i],atomic_masses[i],lattice_parameters[i],crystal_structures[i]),comments='') for i in range(num_elements)]
         # write pair interactions tables
         [[np.savetxt(potfile,rep[i,j,:],fmt="%.16e") for j in range(rep.shape[0]) if j <= i] for i in range(rep.shape[0])]
         potfile.close() 
