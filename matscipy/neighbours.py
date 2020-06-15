@@ -294,7 +294,11 @@ def find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n):
     return reverse
 
 
+<<<<<<< HEAD
 def triplet_list(first_neighbours)
+=======
+def triplet_list(first_neighbours):
+>>>>>>> 0d9c32e... WIP: modified triplet_list functionality
     """
     Compute a triple list for an atomic configuration. The triple list is a
     mask that can be applied to the corresponding neighbour list to mask
