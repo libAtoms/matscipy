@@ -185,14 +185,11 @@ def write_lammps_atoms(prefix, atoms):
         p = ase.calculators.lammpsrun.prism(atoms.get_cell())
 
 
-    if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.17.0'):
-        xhi, yhi, zhi, xy, xz, yz = p.get_lammps_prism()
-    else:
-        xhi, yhi, zhi, xy, xz, yz = p.get_lammps_prism_str()
+    xhi, yhi, zhi, xy, xz, yz = p.get_lammps_prism()
+    fileobj.write('\n0.0 %f  xlo xhi\n' % xhi)
+    fileobj.write('0.0 %f  ylo yhi\n' % yhi)
+    fileobj.write('0.0 %f  zlo zhi\n' % zhi)
 
-    fileobj.write('\n0.0 %s  xlo xhi\n' % xhi)
-    fileobj.write('0.0 %s  ylo yhi\n' % yhi)
-    fileobj.write('0.0 %s  zlo zhi\n' % zhi)
 
     
     # atoms
@@ -205,7 +202,7 @@ def write_lammps_atoms(prefix, atoms):
         molid = [1] * len(atoms)
 
     if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.17.0'):
-        positions_lammps_str = p.vector_to_lammps(atoms.get_positions())
+        positions_lammps_str = p.vector_to_lammps(atoms.get_positions()).astype(str)
 
     elif distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.13.0'):
         positions_lammps_str = p.positions_to_lammps_strs(atoms.get_positions())

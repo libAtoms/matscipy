@@ -4,6 +4,7 @@
 #
 # Copyright (2014) James Kermode, King's College London
 #                  Lars Pastewka, Karlsruhe Institute of Technology
+#                  Wolfram Nöhring, University of Freiburg
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,10 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
-
-"""
-Embedded-atom method potential.
-"""
+"""EAM calculator"""
 
 import os
 
@@ -318,7 +316,7 @@ class EAM(Calculator):
         ----------
         atoms : ase.Atoms
         divide_by_masses : bool
-            Divide block :math:`\nu\mu` by :math:`m_\num_\mu` to obtain the dynamical matrix
+            Divide block :math:`\nu\mu` by :math:`m_\nu{}m_\mu{}` to obtain the dynamical matrix
 
         Returns
         -------
@@ -336,7 +334,7 @@ class EAM(Calculator):
          * :math:`r_{\nu\mu{}i} = r_{\mu{}i}-r_{\nu{}i}` 
          * :math:`r_{\nu\mu{}}` Norm of :math:`r_{\nu\mu{}i}`, i.e.\ :math:`\left(r_{\nu\mu{}1}^2+r_{\nu\mu{}2}^2+r_{\nu\mu{}3}^2\right)^{1/2}`
          * :math:`\phi_{\nu\mu}(r_{\nu\mu{}})` Pair potential energy of atoms :math:`\nu` and :math:`\mu` 
-         * :math:`\rho_nu` Total electron density of atom :math:`\nu`  
+         * :math:`\rho_{\nu}` Total electron density of atom :math:`\nu`  
          * :math:`U_\nu(\rho_nu)` Embedding energy of atom :math:`\nu` 
          * :math:`g_{\delta}\left(r_{\gamma\delta}\right) \equiv g_{\gamma\delta}` Contribution from atom :math:`\delta` to :math:`\rho_\gamma`
          * :math:`m_\nu` mass of atom :math:`\nu`
