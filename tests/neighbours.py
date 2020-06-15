@@ -31,7 +31,7 @@ import ase.lattice.hexagonal
 from ase.build import bulk, molecule
 
 import matscipytest
-from matscipy.neighbours import mic, neighbour_list, first_neighbours
+from matscipy.neighbours import *
 from matscipy.fracture_mechanics.idealbrittlesolid import triangular_lattice_slab
 
 ###
@@ -233,6 +233,20 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         ik_t_comp = [1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4, 7, 8, 6, 8, 6, 7, 10,
                      11, 9, 11, 9, 10]
         first_ij_comp = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
+        i_n = np.array([1]*2+[4]*4+[5]*4)
+        j_n = np.array([2,3,1,2,3,6,1,2,3,5])
+        first_i = np.array([0,2,6, 10])
+        ij_t_comp = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6,
+                     7, 7, 7, 8, 8, 8, 9, 9, 9]
+        ik_t_comp = [1, 0, 3, 4, 5, 2, 4, 5, 2, 3, 5, 2, 3, 4, 7, 8, 9,
+                     6, 8, 9, 6, 7, 9, 6, 7, 8]
+
+        ij_t, ik_t = triplet_list(first_i)
+        assert np.alltrue(ij_t == ij_t_comp)
+        assert np.alltrue(ik_t == ik_t_comp)
+        assert np.alltrue(first_triplets_res == first_triplets_comp)
+
+        """
         d = 2  # ~ Si2 bondlength
         a = Atoms([14]*4, [(d, 0, d), (0, 0, 0), (d, 0, 0), (0, 0, d)],
                   cell=(100,100,100))
@@ -242,6 +256,7 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         assert np.alltrue(ij_t_comp == ij_t)
         assert np.alltrue(ik_t_comp == ik_t)
         assert np.alltrue(first_ij == first_ij_comp)
+        """
 ###
 
 if __name__ == '__main__':
