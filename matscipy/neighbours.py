@@ -27,7 +27,7 @@ from array import array
 from ase.data import atomic_numbers
 
 import _matscipy
-from _matscipy import first_neighbours
+from _matscipy import first_neighbours, triplet_list, first_triplets
 
 ###
 
@@ -294,11 +294,7 @@ def find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n):
     return reverse
 
 
-<<<<<<< HEAD
-def triplet_list(first_neighbours)
-=======
-def triplet_list(first_neighbours):
->>>>>>> 0d9c32e... WIP: modified triplet_list functionality
+def triplet_list_py(first_neighbours):
     """
     Compute a triple list for an atomic configuration. The triple list is a
     mask that can be applied to the corresponding neighbour list to mask
@@ -358,10 +354,9 @@ def triplet_list(first_neighbours):
                                    first_i[i+1], dtype=int)[-(diffs[i]-r):]])
     """
 
-    print("outdated")
     # newer approach
-    ij_t = np.zeros(0, dtype=int)
-    ik_t = np.zeros(0, dtype=int)
+    ij_t = np.zeros(0, dtype='int32')
+    ik_t = np.zeros(0, dtype='int32')
     # because numpy.append is super slow (l. 410ff), array is used instead
     # first_triplets = array('I', [0]) 
     # first_triplets = np.zeros(1, dtype=int)
@@ -371,19 +366,19 @@ def triplet_list(first_neighbours):
     for i in range(len(diffs)):
         for r in range(1, diffs[i]+1):
             ij_t = np.concatenate([ij_t,
-                    np.ones(diffs[i]-1, dtype=int)*(first_neighours[i]+r-1)])
+                    np.ones(diffs[i]-1, dtype='int32')*(first_neighbours[i]+r-1)])
             ik_t = np.concatenate([ik_t, np.arange(first_neighbours[i],
                                 first_neighbours[i+1],
-                                dtype=int)[np.arange(diffs[i])!=(r-1)].copy()])
+                                dtype='int32')[np.arange(diffs[i])!=(r-1)].copy()])
             # compute first_ij list
             # first_triplets = np.append(first_triplets, [len(ij_t)])
             # first_triplets.append(ij_t.size)
             # first_triplets = np.concatenate([first_triplets, [len(ij_t)]])
 
 
-    return ij_t, ik_t, np.array(first_triplets)
+    return ij_t, ik_t
 
-def first_triplets(ij_t):
+def first_triplets_py(ij_t):
     """
     description
     """

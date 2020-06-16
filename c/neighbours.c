@@ -688,3 +688,118 @@ py_first_neighbours(PyObject *self, PyObject *args)
 
     return py_seed;
 }
+
+/*
+ * Python wrapper for triplet list calculation
+ */
+
+PyObject *
+py_triplet_list(PyObject *self, PyObject *args)
+{
+    PyObject *py_fi;
+
+    if (!PyArg_ParseTuple(args, "O", &py_fi)) {
+        return NULL;
+    }
+    // py_fi = PyArray_FROMANY(py_fi, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    // PyArrayObject * fi;
+    // npy_int *fi = NULL;
+    npy_int *fi = NULL, *ij_t = NULL, *ik_t = NULL;
+
+    fi = (PyArrayObject *) PyArray_FROM_OTF(py_fi, NPY_INT, NPY_ARRAY_IN_ARRAY);
+    fi = PyArray_DATA((PyArrayObject *) py_fi);
+    if (fi == NULL){
+        Py_XDECREF(fi);
+        return NULL;
+    } 
+    npy_intp dim = (int) PyArray_SIZE(py_fi);
+    // length--;
+    
+    // PyObject *py_ij_t =  PyArray_SimpleNew(1, &dim, NPY_INT);
+    dim *= 2;
+    PyObject *py_ij_t = PyArray_ZEROS(1, &dim, NPY_INT, 0);
+    ij_t = PyArray_DATA((PyArrayObject *) py_ij_t);
+    PyObject *py_ik_t = PyArray_ZEROS(1, &dim, NPY_INT, 0);
+    ik_t = PyArray_DATA((PyArrayObject *) py_ik_t);
+    // compute the triple list by processing first_i
+    // calculate diffs
+    int init_length = (int) PyArray_SIZE(py_fi);
+    int diffs[(init_length)];
+    PyObject *output =  PyArray_SimpleNew(1, &dim, NPY_INT);
+    int *out_data = (int *) PyArray_DATA((PyArrayObject *) output);
+    for (int i = 0; i < (init_length); i++) { 
+        diffs[i] = fi[i+1] - fi[i];
+	out_data[i] = fi[i+1] - fi[i];
+    }
+    if (output && !(out_data = resize_array(output, (init_length-1)))) goto fail;
+    int list_length = init_length*2;
+    int index_ij = 0;
+    int index_ik = 0;
+    for (int i = 0; i < (init_length - 1); i++) {
+        for (int r = 1; r < (diffs[i] + 1); r++) {
+	    for (int k = 0; k < (diffs[i] - 1); k++) {
+    		int length_ij = (int) PyArray_SIZE(py_ij_t);
+		if (index_ij >= length_ij) {
+		    length_ij *= 2;
+	    	    if (py_ij_t && !(ij_t = resize_array(py_ij_t, length_ij))) goto fail;
+		}
+		ij_t[index_ij++] = fi[i] + r - 1;
+	    }
+	    int counter = 0;
+	    for (int k = fi[i]; k < fi[i+1]; k++) {
+    		    int length_ik = (int) PyArray_SIZE(py_ik_t);
+		    if (index_ik >= length_ik) {
+		    length_ik *= 2;
+	    	    if (py_ik_t && !(ik_t = resize_array(py_ik_t, length_ik))) goto fail;
+		}
+		    if (counter++ != (r - 1)) {
+		        ik_t[index_ik++] = k;
+		    };
+	    }
+	}
+	
+    }
+    if (py_ij_t && !(ij_t = resize_array(py_ij_t, index_ij))) goto fail;
+    if (py_ik_t && !(ik_t = resize_array(py_ik_t, index_ik))) goto fail;
+    PyObject *py_ret = PyTuple_New(2);
+    PyTuple_SetItem(py_ret, 0, py_ij_t);
+    PyTuple_SetItem(py_ret, 1, py_ik_t);
+ 
+    return py_ret;
+
+    fail:
+    /* Cleanup */
+    if (py_fi)  Py_DECREF(py_fi);
+    if (py_ij_t)  Py_DECREF(py_ij_t);
+    if (py_ik_t)  Py_DECREF(py_ik_t);
+    return NULL;
+
+}
+
+PyObject*
+py_first_triplets(PyObject *self, PyObject *args)
+{
+    npy_int n;
+    PyObject *py_ij;
+
+    if (!PyArg_ParseTuple(args, "iO", &n, &py_ij))
+        return NULL;
+   
+    /* Make sure our arrays are contiguous */
+    py_ij = PyArray_FROMANY(py_ij, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    if (!py_ij) return NULL;
+
+    /* Triplet list size */
+    npy_intp nn = PyArray_DIM((PyArrayObject *) py_ij, 0);
+
+    /* Create seed array of length n */
+    npy_intp n1 = n+1;
+    PyObject *py_seed = PyArray_ZEROS(1, &n1, NPY_INT, 0);
+
+    /* Construct seed array */
+    first_neighbours(n, nn, PyArray_DATA(py_ij), PyArray_DATA(py_seed));
+
+    return py_seed;
+
+
+}
