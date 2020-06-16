@@ -23,7 +23,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from ase.lattice.cubic import Diamond, FaceCenteredCubic, SimpleCubic
+from ase.lattice.cubic import Diamond, FaceCenteredCubic, SimpleCubic, BodyCenteredCubic
 
 ###
 
@@ -98,6 +98,9 @@ def fcc(*args, **kwargs):
     kwargs['lattice'] = FaceCenteredCubic
     return cluster(*args, **kwargs)
 
+def bcc(*args, **kwargs):
+    kwargs['lattice'] = BodyCenteredCubic
+    return cluster(*args, **kwargs)
 
 def sc(*args, **kwargs):
     kwargs['lattice'] = SimpleCubic
