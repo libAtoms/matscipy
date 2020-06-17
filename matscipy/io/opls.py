@@ -184,14 +184,16 @@ def write_lammps_atoms(prefix, atoms):
     else:
         p = ase.calculators.lammpsrun.prism(atoms.get_cell())
 
-
     xhi, yhi, zhi, xy, xz, yz = p.get_lammps_prism()
     fileobj.write('\n0.0 %f  xlo xhi\n' % xhi)
     fileobj.write('0.0 %f  ylo yhi\n' % yhi)
     fileobj.write('0.0 %f  zlo zhi\n' % zhi)
-
-
     
+    # write tilt factors for non-orthogonal cells
+    if np.abs(xy) > 1e-10 or np.abs(xz) > 1e-10 or np.abs(yz) > 1e-10:
+        fileobj.write('\n%f %f %f  xy xz yz\n' % (xy, xz, yz))
+    
+
     # atoms
     fileobj.write('\nAtoms\n\n')
     tags  = atoms.get_tags()
@@ -203,10 +205,8 @@ def write_lammps_atoms(prefix, atoms):
 
     if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.17.0'):
         positions_lammps_str = p.vector_to_lammps(atoms.get_positions()).astype(str)
-
     elif distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.13.0'):
         positions_lammps_str = p.positions_to_lammps_strs(atoms.get_positions())
-
     else:
         positions_lammps_str = map(p.pos_to_lammps_str, atoms.get_positions())
 
