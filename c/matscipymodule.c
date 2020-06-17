@@ -52,7 +52,7 @@ static PyMethodDef module_methods[] = {
     { "first_neighbours", (PyCFunction) py_first_neighbours, METH_VARARGS,
       "Compute indices of first neighbours in neighbour list array." },
     { "triplet_list", (PyCFunction) py_triplet_list, METH_VARARGS,
-      "Compute indices of first neighbours in neighbour list array." },
+      "Compute a triplet list for a first_neighbour list." },
     { "first_triplets", (PyCFunction) py_first_triplets, METH_VARARGS,
       "Compute indices of first neighbours in neighbour list array." },
     { "count_islands", (PyCFunction) py_count_islands, METH_VARARGS,
