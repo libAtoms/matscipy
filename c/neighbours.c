@@ -777,28 +777,41 @@ fail:
     return NULL;
 }
 
-PyObject*
-py_first_triplets(PyObject *self, PyObject *args)
-{
-    npy_int n;
-    PyObject *py_ij;
+/*
+ *  construct array that points to the index jumps of a continous, sorted array
+ *  starting with 0 at index 0
+ */
 
-    if (!PyArg_ParseTuple(args, "iO", &n, &py_ij))
+PyObject*
+py_get_jump_indicies(PyObject *self, PyObject *args)
+{
+    PyObject *py_sorted;
+
+    if (!PyArg_ParseTuple(args, "O", &py_sorted))
         return NULL;
 
     /* Make sure our arrays are contiguous */
-    py_ij = PyArray_FROMANY(py_ij, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
-    if (!py_ij) return NULL;
+    py_sorted = PyArray_FROMANY(py_sorted, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    if (!py_sorted) return NULL;
 
-    /* Triplet list size */
-    npy_intp nn = PyArray_DIM((PyArrayObject *) py_ij, 0);
+    /* sorted imput array size */
+    npy_intp nn = PyArray_DIM((PyArrayObject *) py_sorted, 0);
+
+    /* calculate number of jumps */
+    npy_int *sorted = PyArray_DATA((PyArrayObject *) py_sorted);
+    int n = 0;
+    for (int i = 0; i < nn; i++) {
+        if (sorted[i] != sorted[i+1]) {
+	    n++;
+	}
+    }
 
     /* Create seed array of length n */
     npy_intp n1 = n+1;
     PyObject *py_seed = PyArray_ZEROS(1, &n1, NPY_INT, 0);
 
     /* Construct seed array */
-    first_neighbours(n, nn, PyArray_DATA(py_ij), PyArray_DATA(py_seed));
+    first_neighbours(n, nn, sorted, PyArray_DATA(py_seed));
 
     return py_seed;
 }

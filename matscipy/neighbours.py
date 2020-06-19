@@ -24,7 +24,7 @@ import numpy as np
 from ase.data import atomic_numbers
 
 import _matscipy
-from _matscipy import first_neighbours, triplet_list, first_triplets
+from _matscipy import first_neighbours, triplet_list, get_jump_indicies
 
 ###
 

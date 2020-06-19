@@ -225,17 +225,29 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
         self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
 
+
 class TestTriplets(matscipytest.MatSciPyTestCase):
+
+    def test_get_jump_indicies(self):
+        first_triplets = get_jump_indicies([0, 0, 0, 1, 1, 1, 1, 1, 2, 2,
+                                            2, 3, 3, 3, 3, 4, 4, 4, 4])
+        first_triplets_comp = [0, 3, 8, 11, 15, 19]
+        assert np.all(first_triplets == first_triplets_comp)
+        first_triplets = get_jump_indicies([0])
+        first_triplets_comp = [0, 1]
+        assert np.all(first_triplets == first_triplets_comp)
 
     def test_triplet_list(self):
         ij_t_comp = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9,
                      9, 10, 10, 11, 11]
         ik_t_comp = [1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4, 7, 8, 6, 8, 6, 7, 10,
                      11, 9, 11, 9, 10]
-        first_ij_comp = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
-        i_n = np.array([1]*2+[4]*4+[5]*4)
-        j_n = np.array([2,3,1,2,3,6,1,2,3,5])
-        first_i = np.array([0,2,6, 10])
+        i_n = [0]*2+[1]*4+[2]*4
+        # TODO: ?
+        # -> first_neighbours/get_jump_indicies only works with continous
+        #    arrays starting at 0
+        # i.e.:  i_n = [1]*2+[4]*4+[5]*4 does not work
+        first_i = get_jump_indicies(i_n)
         ij_t_comp = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6,
                      7, 7, 7, 8, 8, 8, 9, 9, 9]
         ik_t_comp = [1, 0, 3, 4, 5, 2, 4, 5, 2, 3, 5, 2, 3, 4, 7, 8, 9,
@@ -244,20 +256,8 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         ij_t, ik_t = triplet_list(first_i)
         assert np.alltrue(ij_t == ij_t_comp)
         assert np.alltrue(ik_t == ik_t_comp)
-        assert np.alltrue(first_triplets_res == first_triplets_comp)
 
-        """
-        d = 2  # ~ Si2 bondlength
-        a = Atoms([14]*4, [(d, 0, d), (0, 0, 0), (d, 0, 0), (0, 0, d)],
-                  cell=(100,100,100))
-        a.center(vacuum=10.0)
-        ij_t, ik_t, first_ij  = triplet_list('ijd', a, 4.3)
-        assert len(ij_t) == len(ik_t)
-        assert np.alltrue(ij_t_comp == ij_t)
-        assert np.alltrue(ik_t_comp == ik_t)
-        assert np.alltrue(first_ij == first_ij_comp)
-        """
-###
+        ###
 
 if __name__ == '__main__':
     unittest.main()
