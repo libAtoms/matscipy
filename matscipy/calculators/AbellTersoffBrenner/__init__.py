@@ -22,3 +22,4 @@
 from __future__ import absolute_import
 
 from .calculator import AbellTersoffBrenner, KumagaiTersoff
+from .calculator import Kumagai_CompMaterSci_39_457_Si_py_var
