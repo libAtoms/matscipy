@@ -188,8 +188,12 @@ def write_lammps_atoms(prefix, atoms):
     fileobj.write('\n0.0 %f  xlo xhi\n' % xhi)
     fileobj.write('0.0 %f  ylo yhi\n' % yhi)
     fileobj.write('0.0 %f  zlo zhi\n' % zhi)
-
     
+    # write tilt factors for non-orthogonal cells
+    if np.abs(xy) > 1e-10 or np.abs(xz) > 1e-10 or np.abs(yz) > 1e-10:
+        fileobj.write('\n%f %f %f  xy xz yz\n' % (xy, xz, yz))
+    
+
     # atoms
     fileobj.write('\nAtoms\n\n')
     tags  = atoms.get_tags()
