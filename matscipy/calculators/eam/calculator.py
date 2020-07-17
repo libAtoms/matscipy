@@ -368,6 +368,98 @@ class EAM(Calculator):
             ).reshape(-1, 1, 1)
 
         # Calculate the derivatives of the pair energy
+        drep_n, ddrep_n = self._calculate_pair_energy_derivatives(atnums, i_n, j_n, abs_dr_n)
+        df_n, ddf_n, demb_i, ddemb_i = self._calculate_edensity_embedding_energy_derivatives(nat, atnums, i_n, j_n, abs_dr_n)
+
+        # Calculate the total electron density at each atom, and the 
+        # derivatives of pairwise contributions
+
+        symmetry_check = False # check symmetry of individual terms?
+        #------------------------------------------------------------------------ 
+        # Calculate pair contribution to the Hessian matrix
+        #------------------------------------------------------------------------ 
+        e_nc = (dr_nc.T / abs_dr_n).T # normalized distance vectors r_i^{\mu\nu}
+        outer_1 = e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3)
+        outer_2 = np.eye(3, dtype=e_nc.dtype) - outer_1
+
+        if divide_by_masses:
+            D =  self._calculate_hessian_pair_term(
+                nat, i_n, j_n, abs_dr_n, first_i, 
+                drep_n, ddrep_n, outer_1, outer_2, 
+                True, geom_mean_mass_n, masses_i
+            )
+        else:
+            D =  self._calculate_hessian_pair_term(
+                nat, i_n, j_n, abs_dr_n, first_i, 
+                drep_n, ddrep_n, outer_1, outer_2, 
+            )
+        drep_n = None
+        ddrep_n = None
+
+        #------------------------------------------------------------------------ 
+        # Calculate contribution of embedding term
+        #------------------------------------------------------------------------ 
+        # For each pair in the neighborlist, create arrays which store the 
+        # derivatives of the embedding energy of the corresponding atoms.
+        demb_i_n = np.take(demb_i, i_n)
+        demb_j_n = np.take(demb_i, j_n)
+
+        # Let r be an index into the neighbor list. df_n[r] contains the the
+        # contribution from atom j_n[r] to the derivative of the electron
+        # density of atom i_n[r]. We additionally need the contribution of
+        # i_n[r] to the derivative of j_n[r]. This value is also in df_n,
+        # but at a different position. reverse[r] gives the new index s
+        # where we find this value. The same indexing applies to ddf_n.
+        reverse = find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n)
+        df_i_n = np.take(df_n, reverse)
+        ddf_i_n = np.take(ddf_n, reverse)
+        #we already have ddf_j_n = ddf_n 
+        reverse = None
+
+        # Term 1
+        df_n_e_nc_i = self._calculate_df_n_e_nc_i(nat, i_n, df_n, e_nc)
+        if divide_by_masses:
+            D += self._calculate_hessian_embedding_term_1(
+                nat, ddemb_i, df_n_e_nc_i, divide_by_masses=False, masses_i=None, symmetry_check=False
+            )
+        else:
+            D += self._calculate_hessian_embedding_term_1(nat, ddemb_i, df_n_e_nc_i)
+
+        # Term 2: 
+        D += self._calculate_hessian_embedding_term_2(nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_n_e_nc_i, divide_by_masses=False, geom_mean_mass_n=None, symmetry_check=False)
+
+        # Term 3: 
+        D += self._calculate_hessian_embedding_term_3(nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_n_e_nc_i, divide_by_masses=False, geom_mean_mass_n=None, symmetry_check=False)
+
+        # Term 4:
+        # Term 5:
+        D += self._calculate_hessian_embedding_terms_4_and_5(nat, first_i, i_n, j_n, outer_1, demb_i_n, demb_j_n, ddf_i_n, ddf_n, divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False)
+        ddf_n = None
+        # Term 6:
+        # -\left(U_\mu'g_{\mu\nu}' + U_\nu'g_{\nu\mu}'\right) \frac{1}{r_{\nu\mu}}
+        #\left(
+        #\delta_{ij}- 
+        #\frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+        #\frac{r_{\nu\mu j}}{r_{\nu\mu}}
+        #\right)
+        # Like term 4, which was needed to construct term 5, we don't add 
+        # term 6 immediately, because it is needed for construction of term 7
+
+        # Term 6:
+        # Term 7:
+        D += self._calculate_hessian_embedding_terms_6_and_7(
+            nat, first_i, i_n, j_n, outer_2, demb_i_n, demb_j_n, df_i_n, df_n, abs_dr_n,
+            divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False)
+        outer_1 = None
+        outer_2 = None
+        df_n = None
+
+        #Term 8: 
+        D += self._calculate_hessian_embedding_term_8(nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
+            divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False)
+        return D
+
+    def _calculate_pair_energy_derivatives(self, atnums, i_n, j_n, abs_dr_n):
         drep_n = np.zeros_like(abs_dr_n)  # first derivative
         ddrep_n = np.zeros_like(abs_dr_n) # second derivative
         for atidx1, atnum1 in enumerate(self._db_atomic_numbers):
@@ -385,9 +477,9 @@ class EAM(Calculator):
                         r = rep(abs_dr_n[mask])/abs_dr_n[mask]
                         drep_n[mask] = (drep(abs_dr_n[mask])-r) / abs_dr_n[mask]
                         ddrep_n[mask] = (ddrep(abs_dr_n[mask]) - 2.0 * drep_n[mask]) / abs_dr_n[mask]
+        return drep_n, ddrep_n
 
-        # Calculate the total electron density at each atom, and the 
-        # derivatives of pairwise contributions
+    def _calculate_edensity_embedding_energy_derivatives(self, nat, atnums, i_n, j_n, abs_dr_n):
         f_n = np.zeros_like(abs_dr_n)
         df_n = np.zeros_like(abs_dr_n)  # first derivative
         ddf_n = np.zeros_like(abs_dr_n) # second derivative
@@ -425,14 +517,12 @@ class EAM(Calculator):
             if mask.sum() > 0:
                 demb_i[mask] += dF(density_i[mask])
                 ddemb_i[mask] += ddF(density_i[mask])
+        return df_n, ddf_n, demb_i, ddemb_i
 
-        symmetry_check = False # check symmetry of individual terms?
-        #------------------------------------------------------------------------ 
-        # Calculate pair contribution to the Hessian matrix
-        #------------------------------------------------------------------------ 
-        e_nc = (dr_nc.T / abs_dr_n).T # normalized distance vectors r_i^{\mu\nu}
-        outer_1 = e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3)
-        outer_2 = np.eye(3, dtype=e_nc.dtype) - outer_1
+    def _calculate_hessian_pair_term(self,
+            nat, i_n, j_n, abs_dr_n, first_i, 
+            drep_n, ddrep_n, outer_1, outer_2, 
+            divide_by_masses=False, geom_mean_mass_n=None, masses_i=None):
         D_ncc = -(ddrep_n * outer_1.T).T
         D_ncc += -(drep_n / abs_dr_n * outer_2.T).T
         if divide_by_masses:
@@ -450,72 +540,59 @@ class EAM(Calculator):
             Ddiag /= masses_i
         # put 3x3 blocks on diagonal (Kronecker Delta delta_{\mu\nu})
         D += bsr_matrix((Ddiag, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
-
-        #------------------------------------------------------------------------ 
-        # Calculate contribution of embedding term
-        #------------------------------------------------------------------------ 
-        # For each pair in the neighborlist, create arrays which store the 
-        # derivatives of the embedding energy of the corresponding atoms.
-        demb_i_n = np.take(demb_i, i_n)
-        demb_j_n = np.take(demb_i, j_n)
-        ddemb_i_n = np.take(ddemb_i, i_n)
-        ddemb_j_n = np.take(ddemb_i, j_n)
-
-        # Let r be an index into the neighbor list. df_n[r] contains the the
-        # contribution from atom j_n[r] to the derivative of the electron
-        # density of atom i_n[r]. We additionally need the contribution of
-        # i_n[r] to the derivative of j_n[r]. This value is also in df_n,
-        # but at a different position. reverse[r] gives the new index s
-        # where we find this value. The same indexing applies to ddf_n.
-        reverse = find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n)
-        df_i_n = np.take(df_n, reverse)
-        ddf_i_n = np.take(ddf_n, reverse)
-        #we already have ddf_j_n = ddf_n 
-
+        return D
+    
+    def _calculate_df_n_e_nc_i(self, nat, i_n, df_n, e_nc):
+        df_n_e_nc_outer_product = (df_n * e_nc.T).T
+        df_n_e_nc_i = np.empty((nat, 3), dtype=df_n.dtype)
+        for x in range(3):
+            df_n_e_nc_i[:, x] = np.bincount(i_n, weights=df_n_e_nc_outer_product[:, x], minlength=nat)
+        return df_n_e_nc_i
+    
+    def _calculate_hessian_embedding_term_1(self, nat, ddemb_i, df_n_e_nc_i, divide_by_masses=False, masses_i=None, symmetry_check=False):
         # Term 1: 
         # \delta_{\nu\mu}U_\nu''
         # \sum_{\gamma\neq\nu}^{\natoms}g_{\nu\gamma}'\frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
         # \sum_{\gamma\neq\nu}^{\natoms}g_{\nu\gamma}'\frac{r_{\nu\gamma j}}{r_{\nu\gamma}} 
         # Likely zero in equilibrium because the sum is zero (appears in the force vector)
-        df_n_e_nc_outer_product = (df_n * e_nc.T).T
-        df_n_e_nc_i = np.empty((nat, 3), dtype=df_n.dtype)
-        for x in range(3):
-            df_n_e_nc_i[:, x] = np.bincount(i_n, weights=df_n_e_nc_outer_product[:, x], minlength=nat)
         term_1_ncc = ((ddemb_i * df_n_e_nc_i.T).T).reshape(-1,3,1) * df_n_e_nc_i.reshape(-1,1,3)
         if divide_by_masses:
             term_1_ncc /= masses_i
         term_1 = bsr_matrix((term_1_ncc, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat)) 
-        D += term_1
         if symmetry_check: 
             print("check term 1", np.linalg.norm(term_1.todense() - term_1.todense().T))
-
-        # Term 2: 
+        return term_1
+    
+    def _calculate_hessian_embedding_term_2(self, nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_n_e_nc_i, divide_by_masses=False, geom_mean_mass_n=None, symmetry_check=False):
         # -u_\nu''g_{\nu\mu}' \frac{r_{\nu\mu j}}{r_{\nu\mu}} \sum_{\gamma\neq\nu}^{\natoms} 
         #      g_{\nu\gamma}' \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
         # Likely zero in equilibrium because the sum is zero (appears in the force vector)
         df_n_e_nc_j_n = np.take(df_n_e_nc_i, j_n, axis=0)
+        ddemb_j_n = np.take(ddemb_i, j_n)
         term_2_ncc = ((ddemb_j_n * df_i_n * e_nc.T).T).reshape(-1,3,1) * df_n_e_nc_j_n.reshape(-1,1,3)
         if divide_by_masses:
             term_2_ncc /= geom_mean_mass_n
         term_2 = bsr_matrix((term_2_ncc, j_n, first_i), shape=(3*nat, 3*nat))
-        D += term_2 
         if symmetry_check: 
             print("check term 2", np.linalg.norm(term_2.todense() - term_2.todense().T))
-
-        # Term 3: 
+        return term_2
+    
+    def _calculate_hessian_embedding_term_3(self, nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_n_e_nc_i, divide_by_masses=False, geom_mean_mass_n=None, symmetry_check=False):
         # +u_\mu''g_{\mu\nu}' \frac{r_{\nu\mu i}}{r_{\nu\mu}} \sum_{\gamma\neq\mu}^{\natoms} 
         #      g_{\mu\gamma}' \frac{r_{\mu\gamma j}}{r_{\mu\gamma}} 
         # Likely zero in equilibrium because the sum is zero (appears in the force vector)
         df_n_e_nc_i_n = np.take(df_n_e_nc_i, i_n, axis=0)
+        ddemb_i_n = np.take(ddemb_i, i_n)
         term_3_ncc = -((ddemb_i_n * df_n * df_n_e_nc_i_n.T).T).reshape(-1,3,1) * e_nc.reshape(-1,1,3)
         if divide_by_masses:
             term_3_ncc /= geom_mean_mass_n
         term_3 = bsr_matrix((term_3_ncc, j_n, first_i), shape=(3*nat, 3*nat))
-        D += term_3
         if symmetry_check: 
             print("check term 3", np.linalg.norm(term_3.todense() - term_3.todense().T))
-
-        # Term 4:
+        return term_3
+    
+    def _calculate_hessian_embedding_terms_4_and_5(self, nat, first_i, i_n, j_n, outer_1, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
+            divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
         # -\left(u_\mu'g_{\mu\nu}'' + u_\nu'g_{\nu\mu}''\right)
         # \left(
         # \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
@@ -525,8 +602,7 @@ class EAM(Calculator):
         # We don't immediately add term 4 to the matrix, because it would have 
         # to be normalized by the masses if divide_by_masses is true. However,
         # for construction of term 5, we need term 4 without normalization
-
-        # Term 5:
+        
         # \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{\natoms}
         #\left(U_\gamma'g_{\gamma\nu}'' + U_\nu'g_{\nu\gamma}''\right)
         #\left(
@@ -540,34 +616,25 @@ class EAM(Calculator):
         if divide_by_masses:
             tmp_1_summed /= masses_i
         term_5 = bsr_matrix((tmp_1_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
-        D += term_5
         if symmetry_check: 
             print("check term 5", np.linalg.norm(term_5.todense() - term_5.todense().T))
         if divide_by_masses:
             tmp_1 /= geom_mean_mass_n
         term_4 = bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
-        D += term_4 
         if symmetry_check: 
             print("check term 4", np.linalg.norm(term_4.todense() - term_4.todense().T))
-
-        # Term 6:
-        # -\left(U_\mu'g_{\mu\nu}' + U_\nu'g_{\nu\mu}'\right) \frac{1}{r_{\nu\mu}}
-        #\left(
-        #\delta_{ij}- 
-        #\frac{r_{\nu\mu i}}{r_{\nu\mu}} 
-        #\frac{r_{\nu\mu j}}{r_{\nu\mu}}
-        #\right)
-        # Like term 4, which was needed to construct term 5, we don't add 
-        # term 6 immediately, because it is needed for construction of term 7
-        tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * outer_2.T).T
-
-        # Term 7:
+        return term_4 + term_5
+    
+    def _calculate_hessian_embedding_terms_6_and_7(self, nat, first_i, i_n, j_n, outer_2, demb_i_n, demb_j_n, df_i_n, df_n, 
+            abs_dr_n,
+            divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
         # \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{\natoms}
         #\left(U_\gamma'g_{\gamma\nu}' + U_\nu'g_{\nu\gamma}'\right) \frac{1}{r_{\nu\gamma}}
         #\left(\delta_{ij}-
         #\frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
         #\frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
         #\right)
+        tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * outer_2.T).T
         tmp_2_summed = np.empty((nat, 3, 3), dtype=tmp_2.dtype)
         for x in range(3):
             for y in range(3):
@@ -575,38 +642,42 @@ class EAM(Calculator):
         if divide_by_masses:
             tmp_2_summed /= masses_i
         term_7 = bsr_matrix((tmp_2_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
-        D += term_7 
         if symmetry_check: 
             print("check term 7", np.linalg.norm(term_7.todense() - term_7.todense().T))
         if divide_by_masses:
             tmp_2 /= geom_mean_mass_n
         term_6 = bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
-        D += term_6 
         if symmetry_check: 
             print("check term 6", np.linalg.norm(term_6.todense() - term_6.todense().T))
-
-        #Term 8: 
+        return term_6 + term_7
+    
+    def _calculate_hessian_embedding_term_8(self, nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
+            divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
         #  \sum_{\substack{\gamma\neq\nu \\ \gamma \neq \mu}}^{\natoms}
         #U_\gamma'' g_{\gamma\nu}'g_{\gamma\mu}' 
         #\frac{r_{\gamma\nu i}}{r_{\gamma\nu}}
         #\frac{r_{\gamma\mu j}}{r_{\gamma\mu}} 
         # This term requires knowledge of common neighbors of pairs of atoms. 
         cnl_i1_i2, cnl_j1, nl_index_i1_j1, nl_index_i2_j1 = find_common_neighbours(i_n, j_n, nat)
-        # Determine bins for accumulation by bincount
         unique_pairs_i1_i2, bincount_bins = np.unique(cnl_i1_i2, axis=0, return_inverse=True)
-        e_nu_cnl = np.take(e_nc, nl_index_i1_j1, axis=0)
-        e_mu_cnl = np.take(e_nc, nl_index_i2_j1, axis=0)
-        ddemb_cnl = np.take(ddemb_i, cnl_j1)
-        df_nu_cnl = np.take(df_i_n, nl_index_i1_j1)
-        df_mu_cnl = np.take(df_i_n, nl_index_i2_j1)
-        tmp_3 = ((ddemb_cnl * df_nu_cnl * df_mu_cnl * e_nu_cnl.T).T).reshape(-1, 3, 1) * e_mu_cnl.reshape(-1, 1, 3)
+        cnl_i1_i2 = None
+        tmp_3 = np.take(df_i_n, nl_index_i1_j1) * np.take(ddemb_i, cnl_j1) * np.take(df_i_n, nl_index_i2_j1)
+        cnl_j1 = None
         tmp_3_summed = np.empty((unique_pairs_i1_i2.shape[0], 3, 3), dtype=e_nc.dtype)
-        for x in range(3):
-            for y in range(3):
-                tmp_3_summed[:, x, y] = np.bincount(
-                        bincount_bins, weights=tmp_3[:, x, y], 
-                        minlength=unique_pairs_i1_i2.shape[0]
-                ) 
+        for x, y in np.ndindex(3, 3):
+            weights = (tmp_3 * 
+                np.take(e_nc[:, x], nl_index_i1_j1) * 
+                np.take(e_nc[:, y], nl_index_i2_j1)
+            )
+            tmp_3_summed[:, x, y] = np.bincount(
+                    bincount_bins, weights=weights, 
+                    minlength=unique_pairs_i1_i2.shape[0]
+            ) 
+        nl_index_i1_j1 = None
+        nl_index_i2_j1 = None
+        weights = None
+        tmp_3 = None
+        bincount_bins = None
         if divide_by_masses:
             geom_mean_mass_i1_i2 = np.sqrt(
                 np.take(masses_i, unique_pairs_i1_i2[:, 0]) * np.take(masses_i, unique_pairs_i1_i2[:, 1])
@@ -616,8 +687,8 @@ class EAM(Calculator):
         term_8 = bsr_matrix((tmp_3_summed, unique_pairs_i1_i2[:, 1], index_ptr), shape=(3*nat, 3*nat))
         if symmetry_check:
             print("check term 8", np.linalg.norm(term_8.todense() - term_8.todense().T))
-        D += term_8
-        return D
+        return term_8
+
 
     @property
     def cutoff(self):
