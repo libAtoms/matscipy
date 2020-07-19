@@ -217,7 +217,6 @@ class EAM(Calculator):
                         'stress': virial_v/self.atoms.get_volume(),
                         'forces': forces_ic}
 
-    @profile
     def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
         r"""Compute the Hessian matrix
 
@@ -560,7 +559,6 @@ class EAM(Calculator):
         D += bsr_matrix((Ddiag, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
         return D
     
-    @profile
     def _calculate_hessian_embedding_term_1(self, nat, ddemb_i, df_e_ni, 
         divide_by_masses=False, masses_i=None, symmetry_check=False):
         """Calculate term 1 in the embedding part of the Hessian matrix.
