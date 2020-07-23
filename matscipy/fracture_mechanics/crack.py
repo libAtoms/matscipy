@@ -27,7 +27,8 @@ import warnings
 import numpy as np
 from numpy.linalg import inv
 try:
-    from scipy.optimize import brentq, leastsq, minimize
+    from scipy.optimize.nonlin import NoConvergence
+    from scipy.optimize import brentq, leastsq, minimize, root
 except ImportError:
     warnings.warn('Warning: no scipy')
 
@@ -122,7 +123,7 @@ class RectilinearAnisotropicCrack:
 
     def displacements(self, r, theta, k):
         """
-        Displacement field in mode I fracture. Positions are passed in cyclinder
+        Displacement field in mode I fracture. Positions are passed in cylinder
         coordinates.
 
         Parameters
@@ -200,7 +201,6 @@ class RectilinearAnisotropicCrack:
         dv_dy += np.ones_like(dv_dy)
 
         return np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
-
 
     def stresses(self, r, theta, k):
         """
@@ -513,14 +513,13 @@ class CubicCrystalCrack:
         dy = ref_y - y0
         return self.deformation_gradient_from_cartesian_coordinates(dx, dy, k)
 
-
     def crack_tip_position(self, x, y, ref_x, ref_y, x0, y0, k, mask=None,
                            residual_func=displacement_residual,
                            method='Powell', return_residuals=False):
         """
         Return an estimate of the real crack tip position by minimizing the
         mean square error of the current configuration relative to the
-        diplacement field obtained for a stress intensity factor k from linear
+        displacement field obtained for a stress intensity factor k from linear
         elastic fracture mechanics.
 
         Parameters
@@ -701,6 +700,325 @@ class CubicCrystalCrack:
         dy = ref_y - y0
         sig_x, sig_y, sig_xy = self.stresses_from_cartesian_coordinates(dx, dy, k)
         return sig_x, sig_y, sig_xy
+
+class SinclairCrack:
+    """
+    Flexible boundary conditions for a Mode I crack as described in
+
+    Sinclair, J. E. The Influence of the Interatomic Force Law and of Kinks on the
+        Propagation of Brittle Cracks. Philos. Mag. 31, 647–671 (1975)
+    """
+    def __init__(self, crk, cryst, calc, k, vacuum=6.0,
+                 alpha_scale=1.0, variable_k=False):
+        """
+
+        Parameters
+        ----------
+        crk - instance of CubicCrystalCrack
+        cryst - Atoms object representing undeformed crystal
+        calc - ASE-compatible calculator
+        k - stress intensity factor
+        """
+        self.crk = crk # instance of CubicCrystalCrack
+        self.cryst = cryst # Atoms object representing crystal
+        self.regionI = self.cryst.arrays['region'] == 1
+        self.regionII = self.cryst.arrays['region'] == 2
+        self.regionIII = self.cryst.arrays['region'] == 3
+        self.regionIV = self.cryst.arrays['region'] == 4
+
+        self.regionI_II = self.regionI | self.regionII
+
+        self.calc = calc
+        self.vacuum = vacuum
+
+        self.u = np.zeros((self.regionI.sum(), 3))
+        self.alpha = 0
+        self.k = k
+
+        a0 = self.get_atoms()
+        self.E0 = self.calc.get_potential_energies(a0)[self.regionI | self.regionII].sum()
+        cryst_II_III = self.cryst[self.regionII | self.regionIII]
+        f0bar = self.calc.get_forces(cryst_II_III)
+        self.f0bar = f0bar[cryst_II_III.arrays['region'] == 2]
+
+        self.alpha_scale = alpha_scale
+
+        self.variable_k = variable_k
+
+    def get_dofs(self):
+        if self.variable_k:
+            return np.r_[self.u.reshape(-1), self.alpha, self.k]
+        else:
+            return np.r_[self.u.reshape(-1), self.alpha]
+
+    def set_dofs(self, x):
+        if self.variable_k:
+            self.u = x[:-2].reshape(self.regionI.sum(), 3)
+            self.alpha = x[-2]
+            self.k = x[-1]
+        else:
+            self.u = x[:-1].reshape(self.regionI.sum(), 3)
+            self.alpha = x[-1]
+
+    def u_cle(self):
+        """
+        Returns CLE displacement solution at current (alpha, K)
+
+        Note that this is NOT pre-multipled by the stress intensity factor k
+        """
+        tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
+        tip_y = self.cryst.cell.diagonal()[1] / 2.0
+        ux, uy = self.crk.displacements(self.cryst.positions[:, 0],
+                                        self.cryst.positions[:, 1],
+                                        tip_x, tip_y, 1.0)
+        u = np.c_[ux, uy, np.zeros_like(ux)] # convert to 3D field
+        return u
+
+    def get_atoms(self, centre=True):
+        a = self.cryst.copy()
+        a.set_pbc([False, False, True])
+        a.calc = self.calc
+        a.positions[:, :] += self.k * self.u_cle()
+        a.positions[self.regionI, :] += self.u
+
+        # Center notched configuration in simulation cell and add vacuum.
+        if centre:
+            a.center(vacuum=self.vacuum, axis=0)
+            a.center(vacuum=self.vacuum, axis=1)
+
+        return a
+
+    def plot(self, ax=None, regions='1234', styles=None, bonds=False,
+             cutoff=2.5):
+        import matplotlib.pyplot as plt
+        from matplotlib.collections import LineCollection
+
+        if ax is None:
+            fig, ax = plt.subplots()
+        if isinstance(regions, str):
+            regions = [int(i) for i in regions]
+        a = self.get_atoms()
+        region = a.arrays['region']
+        if styles is None:
+            styles = ['bo', 'ko', 'r.', 'rx']
+        ps = []
+        for i, fmt in zip(regions, styles):
+            (p,) = ax.plot(a.positions[region == i, 0],
+                           a.positions[region == i, 1], fmt, ms=10)
+            ps.append(p)
+        if bonds:
+            i, j = bonds
+            lines = list(zip(a.positions[i, 0:2], a.positions[j, 0:2]))
+            colors = [styles[region[I] - 1][0] for I in i]
+            lc = LineCollection(lines, colors=colors, linewidths=3,
+                                antialiased=True)
+            ax.add_collection(lc)
+
+        ax.set_aspect('equal')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        return ax, ps, lc
+
+    def animate(self, x, regions='12', cutoff=2.6, frames=None):
+        import matplotlib.pyplot as plt
+        from matplotlib.animation import FuncAnimation
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+
+        self.set_dofs(x[0])
+        a = self.get_atoms()
+
+        i, j = neighbour_list('ij', a, cutoff)
+        i12, j12 = np.array([(I, J) for I, J in zip(i, j) if
+                             region[I] in [1, 2] and
+                             region[J] in [1, 2]]).T
+
+        i = 0
+        ax1.plot(x[:, -1] / k1g, x[:, -2], '-')
+        (blob,) = ax1.plot([x[i, -1] / k1g], [x[i, -2]], 'C0o')
+        ax1.set_ylabel(r'Crack position $\alpha$')
+        ax1.set_xlabel(r'Stress intensity factor $K/K_{G}$');
+
+        sc.set_dofs(x[i, :])
+        ax2, ps, lc = self.plot(ax2, regions=regions, bonds=(i12, j12))
+
+        def frame(i):
+            blob.set_data([x[i, -1] / k1g], [x[i, -2]])
+            sc.set_dofs(x[i])
+            a = sc.get_atoms()
+            for r, p in zip(regions, ps):
+                p.set_data([a.positions[region == r, 0],
+                            a.positions[region == r, 1]])
+            i, j = neighbour_list('ij', a, 2.8)
+            i12, j12 = np.array([(I, J) for I, J in zip(i, j) if
+                                 region[I] in [1, 2] and region[J] in [1, 2]]).T
+            lines = list(zip(a.positions[i12, 0:2], a.positions[j12, 0:2]))
+            lc.set_segments(lines)
+            return blob, ps, lc
+
+        if frames is None:
+            frames = range(0, len(x), 100)
+        return FuncAnimation(fig, frame, frames)
+
+    def get_crack_tip_force(self, forces=None, mask=None):
+        # V_alpha = -\nabla_1 U_CLE(alpha)
+        tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
+        tip_y = self.cryst.cell.diagonal()[1] / 2.0
+        dg = self.crk.deformation_gradient(self.cryst.positions[:, 0],
+                                           self.cryst.positions[:, 1],
+                                           tip_x, tip_y, self.k)
+        V = np.zeros((len(self.cryst), 3))
+        V[:, 0] = -(dg[:, 0, 0] - 1.0)
+        V[:, 1] = -(dg[:, 0, 1])
+
+        if forces is None:
+            a = self.get_atoms()
+            forces = a.get_forces()
+        if mask is None:
+            mask = self.regionII #| self.regionIII
+        return np.tensordot(forces[mask, :], V[mask, :])
+
+    def get_xdot(self, x1, x2, ds=None):
+        u1, alpha1, k1 = x1[:-2], x1[-2], x1[-1]
+        u2, alpha2, k2 = x2[:-2], x2[-2], x2[-1]
+
+        if ds is None:
+            # first step
+            udot = (u2 - u1) / (k2 - k1)
+            alphadot = (alpha2 - alpha1) / (k2 - k1)
+            kdot = 1.0
+        else:
+            udot = (u2 - u1) / ds
+            alphadot = (alpha2 - alpha1) / ds
+            kdot = (k2 - k1) / ds
+
+        print(f'   get_xdot: |udot|_inf = {np.linalg.norm(udot, np.inf):.3f},'
+              f' alphadot = {alphadot:.3f}, kdot = {kdot:.3f}')
+        xdot = np.r_[udot, alphadot, kdot]
+        return xdot
+
+    def get_k_force(self, x1, xdot1, ds):
+        assert self.variable_k
+
+        u1, alpha1, k1 = x1[:-2], x1[-2], x1[-1]
+        x2 = self.get_dofs()
+        u2, alpha2, k2 = x2[:-2], x2[-2], x2[-1]
+        udot1, alphadot1, kdot1 = xdot1[:-2], xdot1[-2], xdot1[-1]
+        # print(f'   get_k_force u:{np.dot(u2 - u1, udot1):.3f},'
+        #       f' alpha:{(alpha2 - alpha1) * alphadot1}, k:{(k2 - k1) * kdot1:.3f}')
+        f_k = (np.dot(u2 - u1, udot1) +
+               (alpha2 - alpha1) * alphadot1 +
+               (k2 - k1) * kdot1 - ds)
+        return f_k
+
+    def get_forces(self, forces=None, x1=None, xdot1=None, ds=None):
+        if forces is None:
+            a = self.get_atoms()
+            forces = a.get_forces()
+        f_I = forces[self.regionI, :].reshape(-1)
+        f_alpha = self.get_crack_tip_force(forces)
+        if self.variable_k:
+            f_k = self.get_k_force(x1, xdot1, ds)
+            return np.r_[f_I,
+                         f_alpha * self.alpha_scale,
+                         f_k]
+        else:
+            return np.r_[f_I,
+                         f_alpha * self.alpha_scale]
+
+    def residuals(self, x, x1=None, xdot1=None, ds=None):
+        self.set_dofs(x)
+        return self.get_forces(x1=x1, xdot1=xdot1, ds=ds)
+
+    def optimize(self, ftol=1e-3, steps=20, dump=False,
+                 x1=None, xdot1=None, ds=None):
+        def log(x, f):
+            if self.variable_k:
+                print(f'  alpha={self.alpha:.3f} f_alpha={f[-2]:.3f} '
+                      f'  k={self.k:.3f} f_k={f[-1]:.3f} '
+                      f'|f_I|_inf ={np.linalg.norm(f[:-2], np.inf):.3f}')
+            else:
+                print(f'  alpha={self.alpha:.3f} f_alpha={f[-1]:.3f} '
+                      f'|f_I|_inf ={np.linalg.norm(f[:-1], np.inf):.3f}')
+            if dump:
+                a = self.get_atoms()
+                a.get_forces()
+                a.write('dump.xyz', append=True)
+        res = root(self.residuals, self.get_dofs(),
+                   args=(x1, xdot1, ds),
+                   method='krylov',
+                   options={'disp': True, 'fatol': ftol, 'maxiter': steps},
+                   callback=log)
+        if res.success:
+            self.set_dofs(res.x)
+        else:
+            raise NoConvergence()
+
+    def get_potential_energy(self):
+        a = self.get_atoms()
+
+        # E1: energy of region I and II atoms
+        E = a.get_potential_energies()[self.regionI | self.regionII].sum()
+        E1 = E - self.E0
+
+        # E2: energy of far-field (region III)
+        regionII_III = self.regionII | self.regionIII
+        a_II_III = a[regionII_III]
+        fbar = self.calc.get_forces(a_II_III)
+        fbar = fbar[a_II_III.arrays['region'] == 2]
+
+        E2 = - 0.5 * np.tensordot(fbar + self.f0bar,
+                                  a.positions[self.regionII, :] -
+                                  self.cryst.positions[self.regionII, :])
+
+        return E1, E2, E1 + E2
+
+    def rescale_k(self, new_k):
+        ref_x = self.cryst.positions[:, 0]
+        ref_y = self.cryst.positions[:, 1]
+        ref_z = self.cryst.positions[:, 2]
+
+        # get atomic positions corresponding to current (u, alpha, k)
+        a = self.get_atoms(centre=False)
+        x, y, z = a.positions.T
+
+        # rescale full displacement field (CLE + atomistic corrector)
+        x = ref_x + new_k / self.k * (x - ref_x)
+        y = ref_y + new_k / self.k * (y - ref_y)
+
+        self.k = new_k
+        u_cle = new_k * self.u_cle()  # CLE solution at new K
+        self.u[:] = np.c_[x - u_cle[:, 0] - ref_x,
+                          y - u_cle[:, 1] - ref_y,
+                          z - ref_z][self.regionI, :]
+
+    def arc_length_continuation(self, x0, x1, N=10, ds=0.01, ftol=1e-2,
+                                steps=100, continuation=False, dump=False):
+        assert self.variable_k
+
+        if continuation:
+            xdot1 = self.get_xdot(x0, x1, ds)
+        else:
+            xdot1 = self.get_xdot(x0, x1)
+        traj = [np.r_[x1, xdot1]]
+
+        for i in range(N):
+            x2 = x1 + ds * xdot1
+            print(f'ARC LENGTH step={i} ds={ds}, k1 = {x1[-1]:.3f}, k2 = {x2[-1]:.3f}, '
+                  f' |F| = {np.linalg.norm(self.get_forces(x1=x1, xdot1=xdot1, ds=ds)):.4f}')
+            self.set_dofs(x2)
+            self.optimize(ftol, steps, x1=x1, xdot1=xdot1, ds=ds)
+            x2 = self.get_dofs()
+            xdot2 = self.get_xdot(x1, x2, ds)
+            traj.append(np.r_[x2, xdot2])
+            if dump:
+                with open('dump.txt', 'a') as df:
+                    np.savetxt(df, [traj[-1]])
+
+            x1[:] = x2
+            xdot1[:] = xdot2
+
+        return traj
+
 
 
 

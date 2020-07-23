@@ -1,5 +1,5 @@
 import numpy as np
-from matscipy.fracture_mechanics.clusters import diamond, set_groups
+from matscipy.fracture_mechanics.clusters import diamond, set_groups, set_regions
 import ase.io
 import atomistica
 
@@ -7,48 +7,71 @@ import atomistica
 calc = atomistica.KumagaiScr()
 
 # Fundamental material properties
-el              = 'Si'
-a0              = 5.429
-C11             = 166.   # GPa
-C12             = 65.    # GPa
-C44             = 77.    # GPa
-surface_energy  = 1.08  * 10    # GPa*A = 0.1 J/m^2
+el = 'Si'
+a0 = 5.429
+surface_energy = 1.08 * 10  # GPa*A = 0.1 J/m^2
+
+elastic_symmetry = 'cubic'
 
 # Crack system
-n               = [ 10, 9, 1 ]
-crack_surface   = [ 1, 1, 1 ]
-crack_front     = [ 1, -1, 0 ]
-skin_x, skin_y = 1.5, 1.5
+crack_surface = [1, 1, 1]
+crack_front = [1, -1, 0]
 
-vacuum          = 6.0
+vacuum = 6.0
 
 # Simulation control
-nsteps          = 31
-# Increase stress intensity factor
-k1              = [1.0] #np.linspace(0.8, 1.5, nsteps)
+ds = 0.01
+nsteps = 10000
+continuation = True
 
-fmax            = 1e-3
+k0 = 0.9
+dk = 1e-4
 
-# Setup crack system and regions I, II and III
-cryst = diamond(el, a0, n, crack_surface, crack_front)
+fmax = 1e-2
+max_steps = 50
 
-set_groups(cryst, n, skin_x, skin_y)
-regionIII = cryst.arrays['groups'] == 0
-regionI_II = cryst.arrays['groups'] == 1
+circular_regions = True
 
-set_groups(cryst, n, 2*skin_x, 2*skin_y)
-regionII_III = cryst.arrays['groups'] == 0
-regionI = cryst.arrays['groups'] == 1
+# circular regions I-II-III-IV
+if circular_regions:
+    r_I = 15.0
+    cutoff = 6.0
+    r_III = 40.0
 
-regionII = regionI_II & regionII_III
+    n = [2 * int((r_III + cutoff)/ a0), 2 * int((r_III + cutoff)/ a0) - 1, 1]
+    print('n=', n)
 
-print('sum(region) I, II, III = ', sum(regionI), sum(regionII), sum(regionIII))
+    # Setup crack system and regions I, II, III and IV
+    cryst = diamond(el, a0, n, crack_surface, crack_front)
+    cluster = set_regions(cryst, r_I, cutoff, r_III)  # carve circular cluster
 
-cryst.new_array('region', np.zeros(len(cryst), dtype=int))
-cryst.arrays['region'][regionI] = 1
-cryst.arrays['region'][regionII] = 2
-cryst.arrays['region'][regionIII] = 3
-del cryst.arrays['groups']
+else:
+    # boxy regions, with fixed dimension n
+    n = [20, 19, 1]
+    R_III = 4
+    R_II = 4
+
+    cryst = diamond(el, a0, n, crack_surface, crack_front)
+
+    set_groups(cryst, n, R_III, R_III)
+    regionIII = cryst.arrays['groups'] == 0
+    regionI_II = cryst.arrays['groups'] == 1
+
+    set_groups(cryst, n, R_II + R_III, R_II + R_III)
+    regionII_III = cryst.arrays['groups'] == 0
+    regionI = cryst.arrays['groups'] == 1
+
+    regionII = regionI_II & regionII_III
+
+    print(sum(regionI), sum(regionII), sum(regionIII))
+
+    cryst.new_array('region', np.zeros(len(cryst), dtype=int))
+    cryst.arrays['region'][regionI] = 1
+    cryst.arrays['region'][regionII] = 2
+    cryst.arrays['region'][regionIII] = 3
+
+    del cryst.arrays['groups']
+    cluster = cryst  # cluster and crystal only differ by PBC
 
 ase.io.write('cryst.cfg', cryst)
-
+ase.io.write('cluster.cfg', cluster)
