@@ -10,6 +10,10 @@ from matscipy.elasticity import  fit_elastic_constants
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 from scipy.optimize.nonlin import NoConvergence
 
+import sys
+sys.path.insert(0, '.')
+print(sys.path)
+
 import params
 
 calc = parameter('calc')

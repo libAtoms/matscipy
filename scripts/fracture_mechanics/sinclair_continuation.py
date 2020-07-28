@@ -11,6 +11,9 @@ from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 
 from scipy.optimize.nonlin import NoConvergence
 
+import sys
+sys.path.insert(0, '.')
+
 import params
 
 calc = parameter('calc')
