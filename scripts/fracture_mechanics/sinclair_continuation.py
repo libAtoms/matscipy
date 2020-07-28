@@ -47,10 +47,10 @@ print('Griffith k1 = %f' % k1g)
 cluster = params.cluster.copy()
 
 if continuation:
-    if not os.path.exists('x_traj.txt') or not os.path.exists('xdot_traj.txt'):
+    if not os.path.exists('x_traj.txt'):
         continuation = False
 if continuation:
-    x, xdot = np.loadtxt('x_traj.txt'), np.loadtxt('xdot_traj.txt')
+    x = np.loadtxt('x_traj.txt')
     x0 = x[-2, :]
     x1 = x[-1, :]
     k0 = x0[-1] / k1g
@@ -91,7 +91,7 @@ if not continuation:
     assert abs(alpha1 - alpha0) < dalpha
 
 sc.variable_k = True
-x_traj, xdot_traj = sc.arc_length_continuation(x0, x1, N=nsteps,
-                                               ds=ds, ftol=fmax, steps=max_steps,
-                                               continuation=continuation,
-                                               traj_interval=traj_interval)
+x_traj = sc.arc_length_continuation(x0, x1, N=nsteps,
+                                    ds=ds, ftol=fmax, steps=max_steps,
+                                    continuation=continuation,
+                                    traj_interval=traj_interval)

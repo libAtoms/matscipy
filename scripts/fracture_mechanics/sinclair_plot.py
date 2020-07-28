@@ -60,10 +60,10 @@ for directory, color in zip(args, colors):
     x = np.loadtxt(f'{directory}/x_traj.txt')
     u, alpha, k = sc.unpack(x.T)
     if flexible:
-        plt.plot(k / k1g, alpha, label=directory)
+        plt.plot(k / k1g, alpha, c=color, label=directory)
     else:
         plt.plot(k / k1g, np.linalg.norm(u, axis=0),
-                 label=directory)
+                 c=color, label=directory)
 
 
 plt.axvline(1.0, color='k', label=r'$K_G$')

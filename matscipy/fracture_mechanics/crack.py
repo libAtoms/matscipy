@@ -971,7 +971,6 @@ class SinclairCrack:
                 xdot1 = -xdot1
 
         x_traj = [x1]
-        xdot_traj = [xdot1]
 
         for i in range(N):
             x2 = x1 + ds * xdot1
@@ -989,17 +988,14 @@ class SinclairCrack:
                     xdot2 = -xdot2
 
             x_traj.append(x2)
-            xdot_traj.append(xdot2)
             if i % traj_interval == 0:
                 with open('x_traj.txt', 'a') as fh:
                     np.savetxt(fh, [x_traj[-1]])
-                with open('xdot_traj.txt', 'a') as fh:
-                    np.savetxt(fh, [xdot_traj[-1]])
 
             x1[:] = x2
             xdot1[:] = xdot2
 
-        return x_traj, xdot_traj
+        return x_traj
 
     def plot(self, ax=None, regions='1234', styles=None, bonds=None, cutoff=2.8):
         import matplotlib.pyplot as plt
