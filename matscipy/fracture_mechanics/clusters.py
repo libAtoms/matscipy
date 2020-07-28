@@ -79,7 +79,12 @@ def set_regions(cryst, r_I, cutoff, r_III):
     region[regionIV] = 4
 
     # keep only cylinder defined by regions I - IV
-    return cryst[regionI | regionII | regionIII | regionIV]
+    cryst = cryst[regionI | regionII | regionIII | regionIV]
+
+    # order by radial distance from tip
+    order = r[regionI | regionII | regionIII | regionIV ].argsort()
+    cryst = cryst[order]
+    return cryst
 
 def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
             lattice=None, shift=None):

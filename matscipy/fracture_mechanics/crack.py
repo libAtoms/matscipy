@@ -708,8 +708,10 @@ class SinclairCrack:
     Sinclair, J. E. The Influence of the Interatomic Force Law and of Kinks on the
         Propagation of Brittle Cracks. Philos. Mag. 31, 647–671 (1975)
     """
-    def __init__(self, crk, cryst, calc, k, vacuum=6.0,
-                 alpha_scale=1.0, variable_k=False):
+    def __init__(self, crk, cryst, calc, k, alpha=0.0, vacuum=6.0,
+                 variable_alpha=True, variable_k=False,
+                 alpha_scale=1.0, k_scale=1.0,
+                 extended_far_field=False):
         """
 
         Parameters
@@ -721,44 +723,74 @@ class SinclairCrack:
         """
         self.crk = crk # instance of CubicCrystalCrack
         self.cryst = cryst # Atoms object representing crystal
+
         self.regionI = self.cryst.arrays['region'] == 1
         self.regionII = self.cryst.arrays['region'] == 2
         self.regionIII = self.cryst.arrays['region'] == 3
         self.regionIV = self.cryst.arrays['region'] == 4
-
         self.regionI_II = self.regionI | self.regionII
+
+        self.N1 = self.regionI.sum()
+        self.N2 = self.N1 + self.regionII.sum()
+        self.N3 = self.N2 + self.regionIII.sum()
 
         self.calc = calc
         self.vacuum = vacuum
+        self.variable_alpha = variable_alpha
+        self.variable_k = variable_k
+        self.alpha_scale = alpha_scale
+        self.k_scale = k_scale
+        self.extended_far_field = extended_far_field
 
-        self.u = np.zeros((self.regionI.sum(), 3))
-        self.alpha = 0
+        self.u = np.zeros((self.N1, 3))
+        self.alpha = alpha
         self.k = k
 
+        # check atoms are sorted by distance from centre so we can use N1,N2,N3
+        tip_x = cryst.cell.diagonal()[0] / 2.0
+        tip_y = cryst.cell.diagonal()[1] / 2.0
+        x = cryst.positions[:, 0]
+        y = cryst.positions[:, 1]
+        r = np.sqrt((x - tip_x) ** 2 + (y - tip_y) ** 2)
+        assert np.all(np.diff(r) >= 0) # check distances increase monotonically
+
         a0 = self.get_atoms()
-        self.E0 = self.calc.get_potential_energies(a0)[self.regionI | self.regionII].sum()
+        self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
         cryst_II_III = self.cryst[self.regionII | self.regionIII]
         f0bar = self.calc.get_forces(cryst_II_III)
         self.f0bar = f0bar[cryst_II_III.arrays['region'] == 2]
 
-        self.alpha_scale = alpha_scale
+    def pack(self, u, alpha, k):
+        dofs = list(u.reshape(-1))
+        if self.variable_alpha:
+            dofs.append(alpha)
+        if self.variable_k:
+            dofs.append(k)
+        return np.array(dofs)
 
-        self.variable_k = variable_k
+    def unpack(self, x, reshape=False, defaults=None):
+        if defaults is None:
+            defaults = {}
+        u = x[:3 * self.N1]
+        if reshape:
+            u = u.reshape(self.N1, 3)
+        offset = 3 * self.N1
+        if self.variable_alpha:
+            alpha = x[offset]
+            offset += 1
+        else:
+            alpha = defaults.get('alpha', self.alpha)
+        if self.variable_k:
+            k = x[offset]
+        else:
+            k = defaults.get('k', self.k)
+        return (u, alpha, k)
 
     def get_dofs(self):
-        if self.variable_k:
-            return np.r_[self.u.reshape(-1), self.alpha, self.k]
-        else:
-            return np.r_[self.u.reshape(-1), self.alpha]
+        return self.pack(self.u, self.alpha, self.k)
 
     def set_dofs(self, x):
-        if self.variable_k:
-            self.u = x[:-2].reshape(self.regionI.sum(), 3)
-            self.alpha = x[-2]
-            self.k = x[-1]
-        else:
-            self.u = x[:-1].reshape(self.regionI.sum(), 3)
-            self.alpha = x[-1]
+        self.u[:], self.alpha, self.k = self.unpack(x, reshape=True)
 
     def u_cle(self):
         """
@@ -788,78 +820,9 @@ class SinclairCrack:
 
         return a
 
-    def plot(self, ax=None, regions='1234', styles=None, bonds=False,
-             cutoff=2.5):
-        import matplotlib.pyplot as plt
-        from matplotlib.collections import LineCollection
-
-        if ax is None:
-            fig, ax = plt.subplots()
-        if isinstance(regions, str):
-            regions = [int(i) for i in regions]
-        a = self.get_atoms()
-        region = a.arrays['region']
-        if styles is None:
-            styles = ['bo', 'ko', 'r.', 'rx']
-        ps = []
-        for i, fmt in zip(regions, styles):
-            (p,) = ax.plot(a.positions[region == i, 0],
-                           a.positions[region == i, 1], fmt, ms=10)
-            ps.append(p)
-        if bonds:
-            i, j = bonds
-            lines = list(zip(a.positions[i, 0:2], a.positions[j, 0:2]))
-            colors = [styles[region[I] - 1][0] for I in i]
-            lc = LineCollection(lines, colors=colors, linewidths=3,
-                                antialiased=True)
-            ax.add_collection(lc)
-
-        ax.set_aspect('equal')
-        ax.set_xticks([])
-        ax.set_yticks([])
-        return ax, ps, lc
-
-    def animate(self, x, regions='12', cutoff=2.6, frames=None):
-        import matplotlib.pyplot as plt
-        from matplotlib.animation import FuncAnimation
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
-
-        self.set_dofs(x[0])
-        a = self.get_atoms()
-
-        i, j = neighbour_list('ij', a, cutoff)
-        i12, j12 = np.array([(I, J) for I, J in zip(i, j) if
-                             region[I] in [1, 2] and
-                             region[J] in [1, 2]]).T
-
-        i = 0
-        ax1.plot(x[:, -1] / k1g, x[:, -2], '-')
-        (blob,) = ax1.plot([x[i, -1] / k1g], [x[i, -2]], 'C0o')
-        ax1.set_ylabel(r'Crack position $\alpha$')
-        ax1.set_xlabel(r'Stress intensity factor $K/K_{G}$');
-
-        sc.set_dofs(x[i, :])
-        ax2, ps, lc = self.plot(ax2, regions=regions, bonds=(i12, j12))
-
-        def frame(i):
-            blob.set_data([x[i, -1] / k1g], [x[i, -2]])
-            sc.set_dofs(x[i])
-            a = sc.get_atoms()
-            for r, p in zip(regions, ps):
-                p.set_data([a.positions[region == r, 0],
-                            a.positions[region == r, 1]])
-            i, j = neighbour_list('ij', a, 2.8)
-            i12, j12 = np.array([(I, J) for I, J in zip(i, j) if
-                                 region[I] in [1, 2] and region[J] in [1, 2]]).T
-            lines = list(zip(a.positions[i12, 0:2], a.positions[j12, 0:2]))
-            lc.set_segments(lines)
-            return blob, ps, lc
-
-        if frames is None:
-            frames = range(0, len(x), 100)
-        return FuncAnimation(fig, frame, frames)
-
     def get_crack_tip_force(self, forces=None, mask=None):
+        assert self.variable_alpha
+
         # V_alpha = -\nabla_1 U_CLE(alpha)
         tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
@@ -874,15 +837,17 @@ class SinclairCrack:
             a = self.get_atoms()
             forces = a.get_forces()
         if mask is None:
-            mask = self.regionII #| self.regionIII
+            mask = self.regionII
+            if self.extended_far_field:
+                mask = self.regionII | self.regionIII
         return np.tensordot(forces[mask, :], V[mask, :])
 
     def get_xdot(self, x1, x2, ds=None):
-        u1, alpha1, k1 = x1[:-2], x1[-2], x1[-1]
-        u2, alpha2, k2 = x2[:-2], x2[-2], x2[-1]
+        u1, alpha1, k1 = self.unpack(x1)
+        u2, alpha2, k2 = self.unpack(x2)
 
         if ds is None:
-            # first step
+            # fro the first step, assume kdot = 1.0
             udot = (u2 - u1) / (k2 - k1)
             alphadot = (alpha2 - alpha1) / (k2 - k1)
             kdot = 1.0
@@ -891,60 +856,59 @@ class SinclairCrack:
             alphadot = (alpha2 - alpha1) / ds
             kdot = (k2 - k1) / ds
 
-        print(f'   get_xdot: |udot|_inf = {np.linalg.norm(udot, np.inf):.3f},'
+        print(f'   XDOT: |udot| = {np.linalg.norm(udot, np.inf):.3f},'
               f' alphadot = {alphadot:.3f}, kdot = {kdot:.3f}')
-        xdot = np.r_[udot, alphadot, kdot]
+        xdot = self.pack(udot, alphadot, kdot)
         return xdot
 
     def get_k_force(self, x1, xdot1, ds):
         assert self.variable_k
 
-        u1, alpha1, k1 = x1[:-2], x1[-2], x1[-1]
+        u1, alpha1, k1 = self.unpack(x1)
+
         x2 = self.get_dofs()
-        u2, alpha2, k2 = x2[:-2], x2[-2], x2[-1]
-        udot1, alphadot1, kdot1 = xdot1[:-2], xdot1[-2], xdot1[-1]
-        # print(f'   get_k_force u:{np.dot(u2 - u1, udot1):.3f},'
-        #       f' alpha:{(alpha2 - alpha1) * alphadot1}, k:{(k2 - k1) * kdot1:.3f}')
+        u2, alpha2, k2 = self.unpack(x2)
+        udot1, alphadot1, kdot1 = self.unpack(xdot1,
+                                              defaults={'alpha': 0,
+                                                        'k': 0})
         f_k = (np.dot(u2 - u1, udot1) +
                (alpha2 - alpha1) * alphadot1 +
                (k2 - k1) * kdot1 - ds)
         return f_k
 
-    def get_forces(self, forces=None, x1=None, xdot1=None, ds=None):
+    def get_forces(self, x1=None, xdot1=None, ds=None, forces=None):
         if forces is None:
             a = self.get_atoms()
             forces = a.get_forces()
-        f_I = forces[self.regionI, :].reshape(-1)
-        f_alpha = self.get_crack_tip_force(forces)
+        F = list(forces[self.regionI, :].reshape(-1))
+        if self.variable_alpha:
+            f_alpha = self.get_crack_tip_force(forces)
+            F.append(self.alpha_scale * f_alpha)
         if self.variable_k:
             f_k = self.get_k_force(x1, xdot1, ds)
-            return np.r_[f_I,
-                         f_alpha * self.alpha_scale,
-                         f_k]
-        else:
-            return np.r_[f_I,
-                         f_alpha * self.alpha_scale]
+            F.append(self.k_scale * f_k)
+        return np.array(F)
 
-    def residuals(self, x, x1=None, xdot1=None, ds=None):
+    def residuals(self, x, *args, **kwargs):
         self.set_dofs(x)
-        return self.get_forces(x1=x1, xdot1=xdot1, ds=ds)
+        return self.get_forces(*args, **kwargs)
 
-    def optimize(self, ftol=1e-3, steps=20, dump=False,
-                 x1=None, xdot1=None, ds=None):
+    def optimize(self, ftol=1e-3, steps=20, dump=False, args=None):
         def log(x, f):
+            u, alpha, k = self.unpack(x)
+            f_I, f_alpha, f_k = self.unpack(f)
+            message =  f'|f_I| ={np.linalg.norm(f_I, np.inf):.3f}'
+            if self.variable_alpha:
+                message += f'  alpha={alpha:.3f} f_alpha={f_alpha:.3f}'
             if self.variable_k:
-                print(f'  alpha={self.alpha:.3f} f_alpha={f[-2]:.3f} '
-                      f'  k={self.k:.3f} f_k={f[-1]:.3f} '
-                      f'|f_I|_inf ={np.linalg.norm(f[:-2], np.inf):.3f}')
-            else:
-                print(f'  alpha={self.alpha:.3f} f_alpha={f[-1]:.3f} '
-                      f'|f_I|_inf ={np.linalg.norm(f[:-1], np.inf):.3f}')
+                message += f'  k={k:.3f} f_k={f_k:.3f} '
+            print(message)
             if dump:
                 a = self.get_atoms()
                 a.get_forces()
                 a.write('dump.xyz', append=True)
         res = root(self.residuals, self.get_dofs(),
-                   args=(x1, xdot1, ds),
+                   args=args,
                    method='krylov',
                    options={'disp': True, 'fatol': ftol, 'maxiter': steps},
                    callback=log)
@@ -957,7 +921,7 @@ class SinclairCrack:
         a = self.get_atoms()
 
         # E1: energy of region I and II atoms
-        E = a.get_potential_energies()[self.regionI | self.regionII].sum()
+        E = a.get_potential_energies()[self.regionI_II].sum()
         E1 = E - self.E0
 
         # E2: energy of far-field (region III)
@@ -992,33 +956,130 @@ class SinclairCrack:
                           z - ref_z][self.regionI, :]
 
     def arc_length_continuation(self, x0, x1, N=10, ds=0.01, ftol=1e-2,
-                                steps=100, continuation=False, dump=False):
-        assert self.variable_k
+                                steps=100, continuation=False, traj_interval=1):
+        assert self.variable_k # only makes sense if K can vary
 
         if continuation:
             xdot1 = self.get_xdot(x0, x1, ds)
         else:
             xdot1 = self.get_xdot(x0, x1)
-        traj = [np.r_[x1, xdot1]]
+
+        # ensure we start moving forwards!
+        if self.variable_alpha:
+            _, alphadot1, _ = self.unpack(xdot1)
+            if np.sign(alphadot1) < 0:
+                xdot1 = -xdot1
+
+        x_traj = [x1]
+        xdot_traj = [xdot1]
 
         for i in range(N):
             x2 = x1 + ds * xdot1
             print(f'ARC LENGTH step={i} ds={ds}, k1 = {x1[-1]:.3f}, k2 = {x2[-1]:.3f}, '
                   f' |F| = {np.linalg.norm(self.get_forces(x1=x1, xdot1=xdot1, ds=ds)):.4f}')
             self.set_dofs(x2)
-            self.optimize(ftol, steps, x1=x1, xdot1=xdot1, ds=ds)
+            self.optimize(ftol, steps, args=(x1, xdot1, ds))
             x2 = self.get_dofs()
             xdot2 = self.get_xdot(x1, x2, ds)
-            traj.append(np.r_[x2, xdot2])
-            if dump:
-                with open('dump.txt', 'a') as df:
-                    np.savetxt(df, [traj[-1]])
+
+            # monitor sign of \dot{alpha} and flip if necessary
+            if self.variable_alpha:
+                _, alphadot2, _ = self.unpack(xdot2)
+                if np.sign(alphadot2) < 0:
+                    xdot2 = -xdot2
+
+            x_traj.append(x2)
+            xdot_traj.append(xdot2)
+            if i % traj_interval == 0:
+                with open('x_traj.txt', 'a') as fh:
+                    np.savetxt(fh, [x_traj[-1]])
+                with open('xdot_traj.txt', 'a') as fh:
+                    np.savetxt(fh, [xdot_traj[-1]])
 
             x1[:] = x2
             xdot1[:] = xdot2
 
-        return traj
+        return x_traj, xdot_traj
 
+    def plot(self, ax=None, regions='1234', styles=None, bonds=None, cutoff=2.8):
+        import matplotlib.pyplot as plt
+        from matplotlib.collections import LineCollection
+
+        if ax is None:
+            fig, ax = plt.subplots()
+        if isinstance(regions, str):
+            regions = [int(r) for r in regions]
+        a = self.get_atoms()
+        region = a.arrays['region']
+        if styles is None:
+            styles = ['bo', 'ko', 'r.', 'rx']
+        plot_elements = []
+        for i, fmt in zip(regions, styles):
+            (p,) = ax.plot(a.positions[region == i, 0],
+                           a.positions[region == i, 1], fmt, ms=10)
+            plot_elements.append(p)
+        if bonds:
+            if isinstance(bonds, bool):
+                bonds = regions
+            if isinstance(bonds, str):
+                bonds = [int(b) for b in bonds]
+            i, j = neighbour_list('ij', a, cutoff)
+            i, j = np.array([(I, J) for I, J in zip(i, j) if
+                                 region[I] in bonds and region[J] in bonds]).T
+            lines = list(zip(a.positions[i, 0:2], a.positions[j, 0:2]))
+            colors = [styles[region[I] - 1][0] for I in i]
+            lc = LineCollection(lines, colors=colors, linewidths=3,
+                                antialiased=True)
+            ax.add_collection(lc)
+            plot_elements.append(lc)
+
+        ax.set_aspect('equal')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        return plot_elements
+
+    def animate(self, x, k1g, regions='12', cutoff=2.8, frames=None):
+        import matplotlib.pyplot as plt
+        from matplotlib.animation import FuncAnimation
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+
+        if isinstance(regions, str):
+            regions = [int(r) for r in regions]
+
+        self.set_dofs(x[0])
+        a = self.get_atoms()
+        region = a.arrays['region']
+
+        i = 0
+        ax1.plot(x[:, -1] / k1g, x[:, -2], '-')
+        (blob,) = ax1.plot([x[i, -1] / k1g], [x[i, -2]], 'C0o')
+        ax1.set_ylabel(r'Crack position $\alpha$')
+        ax1.set_xlabel(r'Stress intensity factor $K/K_{G}$');
+
+        self.set_dofs(x[i, :])
+        plot_elements = self.plot(ax2, regions=regions, bonds=regions)
+        lc = plot_elements.pop(-1) # last thing plotted is the bonds
+
+        def frame(i):
+            # move the indicator blob in left panel
+            blob.set_data([x[i, -1] / k1g], [x[i, -2]])
+            self.set_dofs(x[i])
+            a = self.get_atoms()
+            # update positions in right panel
+            for r, p in zip(regions, plot_elements):
+                p.set_data([a.positions[region == r, 0],
+                            a.positions[region == r, 1]])
+            # update bonds - requires a neighbour list recalculation
+            i, j = neighbour_list('ij', a, cutoff)
+            i, j = np.array([(I, J) for I, J in zip(i, j) if
+                             region[I] in regions and region[J] in regions]).T
+            lines = list(zip(a.positions[i, 0:2], a.positions[j, 0:2]))
+            lc.set_segments(lines)
+            return blob, plot_elements, lc
+
+        if frames is None:
+            frames = range(0, len(x), 100)
+        return FuncAnimation(fig, frame, frames)
 
 
 
