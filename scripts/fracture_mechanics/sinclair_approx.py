@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import os
+import sys
 import numpy as np
 
 from ase.units import GPa
@@ -11,6 +11,7 @@ from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 
 from scipy.optimize import fsolve
 
+sys.path.insert(0, '.')
 import params
 
 calc = parameter('calc')
@@ -44,11 +45,18 @@ cluster = params.cluster.copy()
 
 sc = SinclairCrack(crk, cluster, calc, k0 * k1g, vacuum=vacuum,
                    alpha_scale=alpha_scale)
+
+mask = sc.regionI | sc.regionII
+
+extended_far_field = parameter('extended_far_field', False)
+if extended_far_field:
+    mask = sc.regionI | sc.regionII | sc.regionIII
+
 def f(k, alpha):
     sc.k = k * k1g
     sc.alpha = alpha
     return sc.get_crack_tip_force(
-        mask=sc.regionI | sc.regionII)
+        mask=mask)
 
 alpha_range = parameter('alpha_range', np.linspace(-1.0, 1.0, 100))
 # look for a solution to f(k, alpha) = 0 close to alpha = 0.

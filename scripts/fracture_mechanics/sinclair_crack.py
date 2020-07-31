@@ -11,9 +11,8 @@ from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 from scipy.optimize.nonlin import NoConvergence
 
 import sys
-sys.path.insert(0, '.')
-print(sys.path)
 
+sys.path.insert(0, '.')
 import params
 
 calc = parameter('calc')
@@ -23,11 +22,11 @@ alpha_scale = parameter('alpha_scale', 1.0)
 k_scale = parameter('k_scale', 1.0)
 flexible = parameter('flexible', True)
 extended_far_field = parameter('extended_far_field', False)
-
 k0 = parameter('k0', 1.0)
 alpha0 = parameter('alpha0', 0.0) # initial guess for crack position
-
 dump = parameter('dump', False)
+precon = parameter('precon', False)
+method = parameter('method', 'krylov')
 
 # compute elastic constants
 cryst = params.cryst.copy()
@@ -70,7 +69,8 @@ for i, k in enumerate(ks):
     print(f'alpha = {sc.alpha}')
 
     try:
-        sc.optimize(fmax, steps=max_steps, dump=dump)
+        sc.optimize(fmax, steps=max_steps, dump=dump,
+                    precon=precon, method=method)
     except NoConvergence:
         print(f'Skipping failed optimisation at k={k} * k1G')
         continue
