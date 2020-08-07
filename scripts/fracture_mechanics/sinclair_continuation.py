@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+import matscipy; print(matscipy.__file__)
+
 import os
 import numpy as np
 
@@ -22,8 +24,6 @@ calc = parameter('calc')
 fmax = parameter('fmax', 1e-3)
 max_steps = parameter('max_steps', 100)
 vacuum = parameter('vacuum', 10.0)
-alpha_scale = parameter('alpha_scale', 1.0)
-k_scale = parameter('k_scale', 1.0)
 flexible = parameter('flexible', True)
 continuation = parameter('continuation', False)
 ds = parameter('ds', 1e-2)
@@ -33,7 +33,7 @@ extended_far_field = parameter('extended_far_field', False)
 alpha0 = parameter('alpha0', 0.0) # initial guess for crack position
 dump = parameter('dump', False)
 precon = parameter('precon', False)
-method = parameter('method', 'krylov')
+prerelax = parameter('prerelax', False)
 traj_file = parameter('traj_file', 'x_traj.h5')
 traj_interval = parameter('traj_interval', 1)
 direction = parameter('direction', +1)
@@ -62,15 +62,15 @@ if continuation and not os.path.exists(traj_file):
 if continuation:
     with h5py.File(traj_file, 'r') as hf:
         x = hf['x']
-        x0 = x[-2, :]
-        x1 = x[-1, :]
+        restart_index = parameter('restart_index', x.shape[0] - 1)
+        x0 = x[restart_index-1, :]
+        x1 = x[restart_index, :]
         k0 = x0[-1] / k1g
 
 sc = SinclairCrack(crk, cluster, calc, k0 * k1g,
                    alpha=alpha0,
                    vacuum=vacuum,
                    variable_alpha=flexible,
-                   alpha_scale=alpha_scale, k_scale=k_scale,
                    extended_far_field=extended_far_field)
 
 if not continuation:
@@ -86,22 +86,19 @@ if not continuation:
         print(f'Reading atoms from k_{int(k0 * 1000):04d}.xyz')
         a = ase.io.read(f'k_{int(k0 * 1000):04d}.xyz')
         sc.set_atoms(a)
-
-        # check for consistency
-        # b = sc.get_atoms()
-        # min_len = min(len(a), len(b))
-        # assert np.abs(a.positions[:min_len] -
-        #               b.positions[:min_len]).max() < 1e-4
-        # b.write('b.xyz')
-
     try:
         print(f'k = {k0} * k1g, alpha = {sc.alpha}')
-        sc.optimize(fmax, steps=max_steps, dump=dump,
-                    precon=precon, method=method)
+
+        if prerelax:
+            print('Pre-relaxing with Conjugate-Gradients')
+            sc.optimize(ftol=1e-5, steps=max_steps, dump=dump, method='cg')
+        else:
+            sc.optimize(fmax, steps=max_steps, dump=dump,
+                        precon=precon, method='krylov')
     except NoConvergence:
-        a = sc.get_atoms()
-        a.write('dump.xyz')
+        sc.atoms.write('dump.xyz')
         raise
+    sc.atoms.write('x0.xyz')
     x0 = np.r_[sc.get_dofs(), k0 * k1g]
     alpha0 = sc.alpha
 
@@ -109,19 +106,30 @@ if not continuation:
     # k_1 ~= k_0 and alpha_1 ~= alpha_0
     print(f'Rescaling K_I from {sc.k} to {sc.k + dk * k1g}')
     sc.rescale_k(k1 * k1g)
-    sc.optimize(fmax, steps=max_steps, dump=dump,
-                precon=precon, method=method)
+    if prerelax:
+        print('Pre-relaxing with Conjugate-Gradients')
+        sc.optimize(ftol=1e-5, steps=max_steps, dump=dump, method='cg')
+    else:
+        sc.optimize(fmax, steps=max_steps, dump=dump,
+                    precon=precon, method='krylov')
+    sc.atoms.write('x1.xyz')
     x1 = np.r_[sc.get_dofs(), k1 * k1g]
     # check crack tip didn't jump too far
     alpha1 = sc.alpha
     print(f'k0={k0}, k1={k1} --> alpha0={alpha0}, alpha1={alpha1}')
     assert abs(alpha1 - alpha0) < dalpha
 
-sc.variable_k = True
-sc.arc_length_continuation(x0, x1, N=nsteps,
-                           ds=ds, ftol=fmax, steps=max_steps,
-                           direction=direction,
-                           continuation=continuation,
-                           traj_file=traj_file,
-                           traj_interval=traj_interval,
-                           precon=precon)
+scv = SinclairCrack(crk, cluster, calc, k0 * k1g,
+                    alpha=alpha0,
+                    vacuum=vacuum,
+                    variable_alpha=flexible,
+                    variable_k=True,
+                    extended_far_field=extended_far_field)
+
+scv.arc_length_continuation(x0, x1, N=nsteps,
+                            ds=ds, ftol=fmax, steps=max_steps,
+                            direction=direction,
+                            continuation=continuation,
+                            traj_file=traj_file,
+                            traj_interval=traj_interval,
+                            precon=precon)

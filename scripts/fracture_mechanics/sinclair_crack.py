@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import os
 import numpy as np
 
 import ase.io
@@ -8,7 +9,6 @@ from ase.units import GPa
 from matscipy import parameter
 from matscipy.elasticity import  fit_elastic_constants
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
-from scipy.optimize.nonlin import NoConvergence
 
 import sys
 
@@ -18,15 +18,13 @@ import params
 calc = parameter('calc')
 fmax = parameter('fmax', 1e-3)
 vacuum = parameter('vacuum', 10.0)
-alpha_scale = parameter('alpha_scale', 1.0)
-k_scale = parameter('k_scale', 1.0)
 flexible = parameter('flexible', True)
 extended_far_field = parameter('extended_far_field', False)
 k0 = parameter('k0', 1.0)
 alpha0 = parameter('alpha0', 0.0) # initial guess for crack position
 dump = parameter('dump', False)
 precon = parameter('precon', False)
-method = parameter('method', 'krylov')
+prerelax = parameter('prerelax', False)
 
 # compute elastic constants
 cryst = params.cryst.copy()
@@ -50,8 +48,6 @@ sc = SinclairCrack(crk, cluster, calc, k0 * k1g,
                    alpha=alpha0,
                    variable_alpha=flexible,
                    vacuum=vacuum,
-                   alpha_scale=alpha_scale,
-                   k_scale=k_scale,
                    extended_far_field=extended_far_field)
 
 nsteps = parameter('nsteps')
@@ -62,29 +58,60 @@ ks_out = []
 alphas = []
 
 max_steps = parameter('max_steps', 10)
+fit_alpha = parameter('fit_alpha', False)
 
 for i, k in enumerate(ks):
-    sc.rescale_k(k * k1g)
-    print(f'k = {k} * k1g')
+    restart_file = parameter('restart_file', f'k_{int(k * 1000):04d}.xyz')
+    if os.path.exists(restart_file):
+        print(f'Restarting from {restart_file}')
+        if restart_file.endswith('.xyz'):
+            a = ase.io.read(restart_file)
+            sc.set_atoms(a)
+        elif restart_file.endswith('.txt'):
+            x = np.loadtxt(restart_file)
+            if len(x) == len(sc):
+                sc.set_dofs(x)
+            elif len(x) == len(sc) + 1:
+                sc.variable_k = True
+                sc.set_dofs(x)
+                sc.variable_k = False
+            elif len(x) == len(sc) + 2:
+                sc.variable_alpha = True
+                sc.variable_k = True
+                sc.set_dofs(x)
+                sc.variable_alpha = False
+                sc.variable_k = False
+            else:
+                raise RuntimeError('cannot guess how to restart with'
+                                   f' {len(x)} variables for {len(self)} DoFs')
+        else:
+            raise ValueError(f"don't know how to restart from {restart_file}")
+    else:
+        sc.rescale_k(k * k1g)
+
+    if fit_alpha:
+        sc.alpha, = sc.fit_cle(variable_alpha=True, variable_k=False)
+        print(f'Fitted value of alpha: {sc.alpha}')
+
+    print(f'k = {sc.k / k1g} * k1g')
     print(f'alpha = {sc.alpha}')
 
-    try:
-        sc.optimize(fmax, steps=max_steps, dump=dump,
-                    precon=precon, method=method)
-    except NoConvergence:
-        print(f'Skipping failed optimisation at k={k} * k1G')
-        continue
+    if prerelax:
+        print('Pre-relaxing with Conjugate-Gradients')
+        sc.optimize(ftol=1e-5, steps=max_steps, dump=dump,
+                    method='cg')
+
+    sc.optimize(fmax, steps=max_steps, dump=dump,
+                precon=precon, method='krylov')
 
     if flexible:
         print(f'Optimized alpha = {sc.alpha:.3f}')
     ks_out.append(k)
     alphas.append(sc.alpha)
 
-    a = sc.get_atoms()
-    a.info['k'] = sc.k
-    a.info['alpha'] = sc.alpha
+    a = sc.atoms
     a.get_forces()
-    ase.io.write(f'k_{int(k*1000):04d}.xyz', a)
+    ase.io.write(f'k_{int(k * 1000):04d}.xyz', a)
     with open('x.txt', 'a') as fh:
         np.savetxt(fh, [sc.get_dofs()])
 

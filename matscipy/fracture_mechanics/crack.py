@@ -23,13 +23,14 @@ from __future__ import print_function
 
 import math
 import warnings
+import time
 
 import numpy as np
 from numpy.linalg import inv
 try:
     from scipy.optimize.nonlin import NoConvergence
     from scipy.optimize import brentq, leastsq, minimize, root
-    from scipy.sparse import csc_matrix
+    from scipy.sparse import csc_matrix, spdiags
     from scipy.sparse.linalg import spsolve, spilu, LinearOperator
 except ImportError:
     warnings.warn('Warning: no scipy')
@@ -714,7 +715,7 @@ class SinclairCrack:
     """
     def __init__(self, crk, cryst, calc, k, alpha=0.0, vacuum=6.0,
                  variable_alpha=True, variable_k=False,
-                 alpha_scale=1.0, k_scale=1.0,
+                 alpha_scale=None, k_scale=None,
                  extended_far_field=False):
         """
 
@@ -724,6 +725,12 @@ class SinclairCrack:
         cryst - Atoms object representing undeformed crystal
         calc - ASE-compatible calculator
         k - stress intensity factor
+        alpha - crack tip position
+        vacuum - amount of vacuum to add to unit cell
+        variable_alpha - if True, crack tip position can vary (flexible BCs)
+        variable_k - if True, stress intensity factor can vary
+                     (needed for arc-length continuation)
+        extended_far_field - if True, crack tip force includes region III contrib
         """
         self.crk = crk # instance of CubicCrystalCrack
         self.cryst = cryst # Atoms object representing crystal
@@ -755,14 +762,22 @@ class SinclairCrack:
         tip_y = cryst.cell.diagonal()[1] / 2.0
         x = cryst.positions[:, 0]
         y = cryst.positions[:, 1]
-        r = np.sqrt((x - tip_x) ** 2 + (y - tip_y) ** 2)
-        # assert np.all(np.diff(r) >= 0) # check distances increase monotonically FIXME
+        self.r = np.sqrt((x - tip_x) ** 2 + (y - tip_y) ** 2)
+        if not np.all(np.diff(self.r) >= 0):
+            warnings.warn('Radial distances do not increase monotonically!')
 
-        a0 = self.get_atoms()
+        self.atoms = self.cryst.copy()
+        self.update_atoms()  # apply CLE displacements for initial (alpha, k)
+
+        a0 = self.atoms.copy()
+        self.x0 = a0.get_positions()
         self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
-        cryst_II_III = self.cryst[self.regionII | self.regionIII]
-        f0bar = self.calc.get_forces(cryst_II_III)
-        self.f0bar = f0bar[cryst_II_III.arrays['region'] == 2]
+        a0_II_III = a0[self.regionII | self.regionIII]
+        f0bar = self.calc.get_forces(a0_II_III)
+        self.f0bar = f0bar[a0_II_III.arrays['region'] == 2]
+
+        self.precon = None
+        self.precon_count = 0
 
     def pack(self, u, alpha, k):
         dofs = list(u.reshape(-1))
@@ -773,6 +788,7 @@ class SinclairCrack:
         return np.array(dofs)
 
     def unpack(self, x, reshape=False, defaults=None):
+        assert len(x) == len(self)
         if defaults is None:
             defaults = {}
         u = x[:3 * self.N1]
@@ -795,6 +811,7 @@ class SinclairCrack:
 
     def set_dofs(self, x):
         self.u[:], self.alpha, self.k = self.unpack(x, reshape=True)
+        self.update_atoms()
 
     def __len__(self):
         N_dofs = 3 * self.regionI.sum()
@@ -804,13 +821,15 @@ class SinclairCrack:
             N_dofs += 1
         return N_dofs
 
-    def u_cle(self):
+    def u_cle(self, alpha=None):
         """
         Returns CLE displacement solution at current (alpha, K)
 
         Note that this is NOT pre-multipled by the stress intensity factor k
         """
-        tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
+        if alpha is None:
+            alpha = self.alpha
+        tip_x = self.cryst.cell.diagonal()[0] / 2.0 + alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
         ux, uy = self.crk.displacements(self.cryst.positions[:, 0],
                                         self.cryst.positions[:, 1],
@@ -818,31 +837,68 @@ class SinclairCrack:
         u = np.c_[ux, uy, np.zeros_like(ux)] # convert to 3D field
         return u
 
-    def get_atoms(self, centre=True):
-        a = self.cryst.copy()
-        a.set_pbc([False, False, True])
-        a.calc = self.calc
-        a.positions[:, :] += self.k * self.u_cle()
-        a.positions[self.regionI, :] += self.u
+    def fit_cle(self, r_fit=20.0, variable_alpha=True, variable_k=True):
+        def residuals(x, mask):
+            idx = 0
+            if variable_alpha:
+                alpha = x[idx]
+                idx += 1
+            else:
+                alpha = self.alpha
+            if variable_k:
+                k = x[idx]
+                idx += 1
+            else:
+                k = self.k
+            u = np.zeros((len(self.atoms), 3))
+            u[self.regionI] = self.u
+            du = (self.k * self.u_cle(self.alpha) + u - k * self.u_cle(alpha))
+            return du[mask, :].reshape(-1)
 
-        # Center notched configuration in simulation cell and add vacuum.
-        if centre:
-            a.center(vacuum=self.vacuum, axis=0)
-            a.center(vacuum=self.vacuum, axis=1)
+        x0 = []
+        mask = self.r < r_fit
+        if variable_alpha:
+            x0.append(self.alpha)
+        if variable_k:
+            x0.append(self.k)
+        res, ier = leastsq(residuals, x0, args=(mask,))
+        if ier not in [1, 2, 3, 4]:
+            raise RuntimeError('CLE fit failed')
+        return res
 
-        return a
+    def update_atoms(self):
+        """
+        Update self.atoms from degrees of freedom (self.u, self.alpha, self.k)
+        """
+        self.atoms.set_pbc([False, False, True])
+        self.atoms.calc = self.calc
+
+        self.atoms.info['k'] = self.k
+        self.atoms.info['alpha'] = self.alpha
+
+        # x = x_cryst + K * u_cle + u
+        self.atoms.positions[:, :] = self.cryst.positions
+        self.atoms.positions[:, :] += self.k * self.u_cle()
+        self.atoms.positions[self.regionI, :] += self.u
+
+        # add vacuum
+        self.atoms.cell = self.cryst.cell
+        self.atoms.cell[0, 0] += self.vacuum
+        self.atoms.cell[1, 1] += self.vacuum
 
     def set_atoms(self, atoms):
         N1_in = (atoms.arrays['region'] == 1).sum()
         self.alpha = atoms.info['alpha']
         self.k = atoms.info['k']
         self.u[:] = np.zeros(3, self.N1)
-        ref_atoms = self.get_atoms()
+        self.update_atoms()  # now we have same u_cle in atoms and self.atoms
         min_len = min(N1_in, self.N1)
-        u = atoms.positions[:min_len] - ref_atoms.positions[:min_len]
-        shift = atoms.positions[0] - ref_atoms.positions[0]
-        u -= shift
+        # FIXME this assumes stable sort order for atoms and self.atoms
+        u = atoms.positions[:min_len] - self.atoms.positions[:min_len]
+        shift = np.diag(self.atoms.cell)/2 - np.diag(atoms.cell)/2
+        u += shift
         self.u[:min_len] = u
+        self.update_atoms()
 
     def get_crack_tip_force(self, forces=None, mask=None):
         assert self.variable_alpha
@@ -857,9 +913,25 @@ class SinclairCrack:
         V[:, 0] = -(dg[:, 0, 0] - 1.0)
         V[:, 1] = -(dg[:, 0, 1])
 
+        # eps = 1e-5
+        # V_fd = np.zeros((len(self.cryst), 3))
+        # u, v = self.crk.displacements(self.cryst.positions[:, 0],
+        #                               self.cryst.positions[:, 1],
+        #                               tip_x, tip_y, self.k)
+        # xp = self.cryst.positions[:, 0].copy()
+        # for i in range(len(self.cryst)):
+        #     xp[i] += eps
+        #     up, vp = self.crk.displacements(xp,
+        #                                     self.cryst.positions[:, 1],
+        #                                     tip_x, tip_y, self.k)
+        #     xp[i] -= eps
+        #     V_fd[i, 0] = - (up[i] - u[i]) / eps
+        #     V_fd[i, 1] = - (vp[i] - v[i]) / eps
+        #
+        # print('|V - V_fd|', np.linalg.norm(V - V_fd, np.inf))
+
         if forces is None:
-            a = self.get_atoms()
-            forces = a.get_forces()
+            forces = self.atoms.get_forces()
         if mask is None:
             mask = self.regionII
             if self.extended_far_field:
@@ -871,7 +943,7 @@ class SinclairCrack:
         u2, alpha2, k2 = self.unpack(x2)
 
         if ds is None:
-            # fro the first step, assume kdot = 1.0
+            # for the first step, assume kdot = 1.0
             udot = (u2 - u1) / (k2 - k1)
             alphadot = (alpha2 - alpha1) / (k2 - k1)
             kdot = 1.0
@@ -900,27 +972,26 @@ class SinclairCrack:
                (k2 - k1) * kdot1 - ds)
         return f_k
 
-    def get_forces(self, x1=None, xdot1=None, ds=None, forces=None):
+    def get_forces(self, x1=None, xdot1=None, ds=None, forces=None, mask=None):
         if forces is None:
-            a = self.get_atoms()
-            forces = a.get_forces()
+            forces = self.atoms.get_forces()
         F = list(forces[self.regionI, :].reshape(-1))
         if self.variable_alpha:
-            f_alpha = self.get_crack_tip_force(forces)
+            f_alpha = self.get_crack_tip_force(forces, mask=mask)
             F.append(f_alpha)
         if self.variable_k:
             f_k = self.get_k_force(x1, xdot1, ds)
             F.append(f_k)
         return np.array(F)
 
-    def residuals(self, x, *args):
-        self.set_dofs(x)
-        return self.get_forces(*args)
-
     def update_precon(self, x, F=None):
+        self.precon_count += 1
+        if self.precon is not None and self.precon_count % 100 != 0:
+            return
+
         self.set_dofs(x)
         # build a preconditioner using regions I+II of the atomic system
-        a = self.get_atoms()[:self.N2]
+        a = self.atoms[:self.N2]
         a.calc = self.calc
         # a.write('atoms.xyz')
         if self.precon is None:
@@ -928,7 +999,6 @@ class SinclairCrack:
         print('Updating atomistic preconditioner...')
 
         self.precon.make_precon(a)
-        self.last_x = x.copy()
         P_12 = self.precon.P
         # np.savetxt('P_12.txt', P_12.todense())
 
@@ -941,11 +1011,16 @@ class SinclairCrack:
 
         Fu, Falpha, Fk = self.unpack(F)
         Pf_1 = spilu(P_1).solve(Fu)
+
         if self.variable_alpha:
-            alpha_scale = abs(Falpha) / np.linalg.norm(Pf_1, np.inf)
+            alpha_scale = self.alpha_scale
+            if alpha_scale is None:
+                alpha_scale = abs(Falpha) / np.linalg.norm(Pf_1, np.inf)
             print(f'alpha_scale = {alpha_scale}')
         if self.variable_k:
-            k_scale = abs(Fk) / np.linalg.norm(Pf_1, np.inf)
+            k_scale = self.k_scale
+            if k_scale is None:
+                k_scale = abs(Fk) / np.linalg.norm(Pf_1, np.inf)
             print(f'k_scale = {k_scale}')
 
         # extend diagonal of preconditioner for additional DoFs
@@ -961,7 +1036,11 @@ class SinclairCrack:
             J.append(offset)
             Z.append(k_scale)
         P_ext = csc_matrix((Z, (I, J)), shape=(N_dof, N_dof))
-        # np.savetxt('P_ext.txt', P_ext.todense())
+
+        # data = [1.0 for i in range(3 * self.N1)]
+        # data.append(alpha_scale)
+        # P_ext = spdiags(data, [0], 3 * self.N1 + 1, 3 * self.N1 + 1)
+
         self.P_ilu = spilu(P_ext)
         if F is not None:
             Pf = self.P_ilu.solve(F)
@@ -970,58 +1049,74 @@ class SinclairCrack:
             print(f'|P^-1 f_I| = {np.linalg.norm(Pfu, np.inf)}, P^-1 f_alpha = {Pfalpha}')
 
     def get_precon(self, x, F):
-        self.last_x = None
-        self.precon = None # first time, there's no precon to reuse
         self.update_precon(x, F)
         M = LinearOperator(shape=(len(x), len(x)), matvec=self.P_ilu.solve)
         M.update = self.update_precon
         return M
 
     def optimize(self, ftol=1e-3, steps=20, dump=False, args=None, precon=False,
-                 method='krylov'):
+                 method='krylov', check_grad=True, dump_interval=10):
+        self.step = 0
+
         def log(x, f=None):
             u, alpha, k = self.unpack(x)
             if f is None:
-                f = self.residuals(x)
+                # CG doesn't pass forces to callback, so we need to recompute
+                f = cg_jacobian(x)
             f_I, f_alpha, f_k = self.unpack(f)
-            message =  f'|f_I| ={np.linalg.norm(f_I, np.inf):.3f}'
+            message = f'STEP {self.step:-5d} |f_I| ={np.linalg.norm(f_I, np.inf):.8f}'
             if self.variable_alpha:
-                message += f'  alpha={alpha:.3f} f_alpha={f_alpha:.3f}'
+                message += f'  alpha={alpha:.8f} f_alpha={f_alpha:.8f}'
             if self.variable_k:
-                message += f'  k={k:.3f} f_k={f_k:.3f} '
+                message += f'  k={k:.8f} f_k={f_k:.8f} '
             print(message)
-            if dump:
-                a = self.get_atoms()
-                a.get_forces()
-                a.write('dump.xyz', append=True)
+            if dump and self.step % dump_interval == 0:
+                self.atoms.write('dump.xyz')
+            self.step += 1
 
-        def objective(x):
+        def residuals(x, *args):
+            self.set_dofs(x)
+            return self.get_forces(*args)
+
+        def cg_objective(x):
             u, alpha, k = self.unpack(x)
-            u0 = np.zeros_like(u)
+            u0 = np.zeros(3 * self.N1)
             self.set_dofs(self.pack(u0, alpha, k))
-            a = self.get_atoms()
-            E0 = a.get_potential_energy()
+            E0 = self.atoms.get_potential_energy()
+            # print(f'alpha = {alpha} E0 = {E0}')
+            # return E0
 
             self.set_dofs(x)
-            a = self.get_atoms()
-            E = a.get_potential_energy()
+            E = self.atoms.get_potential_energy()
             # print('objective', E - E0)
-            return E #- E0
+            return E - E0
 
-        def jacobian(x):
+        def cg_jacobian(x, verbose=False):
             u, alpha, k = self.unpack(x)
-            u0 = np.zeros_like(u)
+            u0 = np.zeros(3 * self.N1)
             self.set_dofs(self.pack(u0, alpha, k))
-            f_alpha0 = self.get_crack_tip_force()
+            f_alpha0 = self.get_crack_tip_force(mask=self.regionI | self.regionII)
 
             self.set_dofs(x)
-            F = self.get_forces()
-            print(f'alpha {alpha} f_alpha {F[-1]} f_alpha0 {f_alpha0}')
-            #F[-1] -= f_alpha0
+            F = self.get_forces(mask=self.regionI | self.regionII)
+            if verbose:
+                print(f'alpha {alpha} f_alpha {F[-1]} f_alpha0 {f_alpha0}')
+            F[-1] -= f_alpha0
             # print('jacobian', np.linalg.norm(F[:-1], np.inf), F[-1])
             return -F
 
+        def cg2_objective(x):
+            self.set_dofs(x)
+            return self.get_potential_energy()
+
+        def cg2_jacobian(x):
+            self.set_dofs(x)
+            return -self.get_forces(mask=self.regionI | self.regionII)
+
         x0 = self.get_dofs()
+        # np.random.seed(0)
+        # x0[:] += 0.01*np.random.uniform(-1,1, size=len(x0))
+        # print('norm(u) = ', np.linalg.norm(x0[:-1]))
         if args is not None:
             f0 = self.get_forces(*args)
         else:
@@ -1031,9 +1126,28 @@ class SinclairCrack:
         else:
             M = None
 
-        if method == 'cg':
-            assert self.variable_alpha and not self.variable_k
-            from scipy.optimize import check_grad, approx_fprime
+        if method == 'cg' or method == 'cg2':
+            assert self.variable_alpha
+            assert not self.variable_k
+            assert not precon
+
+            if method == 'cg':
+                objective = cg_objective
+                jacobian = cg_jacobian
+            else:
+                objective = cg2_objective
+                jacobian = cg2_jacobian
+
+            if check_grad:
+                eps = 1e-5
+                F = jacobian(x0)
+                E0 = objective(x0)
+                x = x0.copy()
+                x[-1] += eps
+                Ep = objective(x)
+                F_fd = (Ep - E0) / eps
+                print(
+                    f'CHECK_GRAD: F = {F[-1]} F_fd = {F_fd}  |F - F_fd| = {abs(F[-1] - F_fd)} F/F_fd = {F[-1] / F_fd}')
 
             res = minimize(objective, x0,
                            method='cg',
@@ -1042,53 +1156,56 @@ class SinclairCrack:
                                     'gtol': ftol,
                                     'maxiter': steps},
                            callback=log)
-            self.set_dofs(res.x)  # pretend CG always succeeds
-            x0 = res.x
 
-            F = jacobian(x0)
-            for i in range(1, 12):
-                eps = 10.0 ** (-i)
-                Fp = approx_fprime(x0, objective, eps)
-                print(f'{eps:-18.15f} {np.linalg.norm(F - Fp):-12.8f}')
-                if i == 5:
-                    print(F - Fp)
-            print('check_grad err', check_grad(objective, jacobian, x0))
-            1/0
+            if check_grad:
+                F = jacobian(res.x, verbose=True)
+                E0 = objective(res.x)
+                x = res.x.copy()
+                x[-1] += eps
+                Ep = objective(x)
+                F_fd = (Ep - E0) / eps
+                print(
+                    f'CHECK_GRAD: F = {F[-1]} F_fd = {F_fd}  |F - F_fd| = {abs(F[-1] - F_fd)} F/F_fd = {F[-1] / F_fd}')
+
+            F = residuals(res.x)
+            print(f'Full residual at end of CG pre-relaxation: |F|_2 = {np.linalg.norm(F, 2)} '
+                  f'|F|_inf = {np.linalg.norm(F, np.inf)} '
+                  f'f_alpha = {F[-1]}')
 
         elif method == 'krylov':
-            res = root(self.residuals, x0,
+            res = root(residuals, x0,
                        args=args,
                        method='krylov',
-                       options={'disp': True, 'fatol': ftol, 'maxiter': steps,
+                       options={'disp': True,
+                                'fatol': ftol,
+                                'maxiter': steps,
                                 'jac_options': {'inner_M': M}},
                        callback=log)
-            if res.success:
-                self.set_dofs(res.x)
-            else:
-                raise NoConvergence
         else:
             raise RuntimeError(f'unknown method {method}')
 
-
+        if res.success:
+            self.set_dofs(res.x)
+        else:
+            self.atoms.write('no_convergence.xyz')
+            raise NoConvergence
 
     def get_potential_energy(self):
-        a = self.get_atoms()
-
         # E1: energy of region I and II atoms
-        E = a.get_potential_energies()[self.regionI_II].sum()
+        E = self.atoms.get_potential_energies()[self.regionI_II].sum()
         E1 = E - self.E0
 
         # E2: energy of far-field (region III)
         regionII_III = self.regionII | self.regionIII
-        a_II_III = a[regionII_III]
+        a_II_III = self.atoms[regionII_III]
         fbar = self.calc.get_forces(a_II_III)
         fbar = fbar[a_II_III.arrays['region'] == 2]
 
         E2 = - 0.5 * np.tensordot(fbar + self.f0bar,
-                                  a.positions[self.regionII, :] -
-                                  self.cryst.positions[self.regionII, :])
-
-        return E1, E2, E1 + E2
+                                  self.atoms.positions[self.regionII, :] -
+                                  self.x0[self.regionII, :])
+        # print(f'E1={E1} E2={E2} total E={E1 + E2}')
+        return E1 + E2
 
     def rescale_k(self, new_k):
         ref_x = self.cryst.positions[:, 0]
@@ -1096,8 +1213,7 @@ class SinclairCrack:
         ref_z = self.cryst.positions[:, 2]
 
         # get atomic positions corresponding to current (u, alpha, k)
-        a = self.get_atoms(centre=False)
-        x, y, z = a.positions.T
+        x, y, z = self.atoms.get_positions().T
 
         # rescale full displacement field (CLE + atomistic corrector)
         x = ref_x + new_k / self.k * (x - ref_x)
@@ -1115,14 +1231,14 @@ class SinclairCrack:
                                 traj_interval=1,
                                 precon=False):
         import h5py
-        assert self.variable_k # only makes sense if K can vary
+        assert self.variable_k  # only makes sense if K can vary
 
         if continuation:
             xdot1 = self.get_xdot(x0, x1, ds)
         else:
             xdot1 = self.get_xdot(x0, x1)
 
-        # ensure we start moving forwards!
+        # ensure we start moving in the correct direction
         if self.variable_alpha:
             _, alphadot1, _ = self.unpack(xdot1)
             if direction * np.sign(alphadot1) < 0:
@@ -1158,31 +1274,48 @@ class SinclairCrack:
                     xdot2 = -xdot2
 
             if i % traj_interval == 0:
-                with h5py.File(traj_file, 'a') as hf:
-                    x_traj = hf['x']
-                    x_traj.resize((row + 1, x_traj.shape[1]))
-                    x_traj[row, :] = x2
-                    row += 1
+                for nattempt in range(1000):
+                    try:
+                        with h5py.File(traj_file, 'a') as hf:
+                            x_traj = hf['x']
+                            x_traj.resize((row + 1, x_traj.shape[1]))
+                            x_traj[row, :] = x2
+                            row += 1
+                            break
+                    except OSError:
+                        print('hdf5 file not accessible, trying again in 1s')
+                        time.sleep(1.0)
+                        continue
+                else:
+                    raise IOError("ran out of attempts to access trajectory file")
 
             x1[:] = x2
             xdot1[:] = xdot2
 
-    def plot(self, ax=None, regions='1234', styles=None, bonds=None, cutoff=2.8):
+    def plot(self, ax=None, regions='1234', styles=None, bonds=None, cutoff=2.8,
+             tip=False, atoms_args=None, bonds_args=None, tip_args=None):
         import matplotlib.pyplot as plt
         from matplotlib.collections import LineCollection
+
+        if atoms_args is None:
+            atoms_args = dict(marker='o', color='b', linestyle="None")
+        if bonds_args is None:
+            bonds_args = dict(linewidths=3, antialiased=True)
+        if tip_args is None:
+            tip_args = dict(color='r', ms=20, marker='x', mew=5)
 
         if ax is None:
             fig, ax = plt.subplots()
         if isinstance(regions, str):
             regions = [int(r) for r in regions]
-        a = self.get_atoms()
+        a = self.atoms
         region = a.arrays['region']
         if styles is None:
             styles = ['bo', 'ko', 'r.', 'rx']
         plot_elements = []
         for i, fmt in zip(regions, styles):
             (p,) = ax.plot(a.positions[region == i, 0],
-                           a.positions[region == i, 1], fmt, ms=10)
+                           a.positions[region == i, 1], **atoms_args)
             plot_elements.append(p)
         if bonds:
             if isinstance(bonds, bool):
@@ -1191,57 +1324,67 @@ class SinclairCrack:
                 bonds = [int(b) for b in bonds]
             i, j = neighbour_list('ij', a, cutoff)
             i, j = np.array([(I, J) for I, J in zip(i, j) if
-                                 region[I] in bonds and region[J] in bonds]).T
+                             region[I] in bonds and region[J] in bonds]).T
             lines = list(zip(a.positions[i, 0:2], a.positions[j, 0:2]))
-            colors = [styles[region[I] - 1][0] for I in i]
-            lc = LineCollection(lines, colors=colors, linewidths=3,
-                                antialiased=True)
+            lc = LineCollection(lines, **bonds_args)
             ax.add_collection(lc)
             plot_elements.append(lc)
+        if tip:
+            (tip,) = ax.plot(self.cryst.cell[0, 0] / 2.0 + self.alpha,
+                             self.cryst.cell[1, 1] / 2.0, **tip_args)
+            plot_elements.append(tip)
 
         ax.set_aspect('equal')
         ax.set_xticks([])
         ax.set_yticks([])
         return plot_elements
 
-    def animate(self, x, k1g, regions='12', cutoff=2.8, frames=None):
+    def animate(self, x, k1g, regions='12', cutoff=2.8, frames=None,
+                callback=None):
         import matplotlib.pyplot as plt
         from matplotlib.animation import FuncAnimation
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 12))
 
         if isinstance(regions, str):
             regions = [int(r) for r in regions]
 
         self.set_dofs(x[0])
-        a = self.get_atoms()
+        a = self.atoms
         region = a.arrays['region']
 
         i = 0
-        ax1.plot(x[:, -1] / k1g, x[:, -2], '-')
-        (blob,) = ax1.plot([x[i, -1] / k1g], [x[i, -2]], 'C0o')
-        ax1.set_ylabel(r'Crack position $\alpha$')
-        ax1.set_xlabel(r'Stress intensity factor $K/K_{G}$');
+        ax1.plot(x[:, -2], x[:, -1] / k1g, 'b-')
+        (blob,) = ax1.plot([x[i, -2]], [x[i, -1] / k1g], 'rx', mew=5, ms=20)
+        ax1.set_xlabel(r'Crack position $\alpha$')
+        ax1.set_ylabel(r'Stress intensity factor $K/K_{G}$');
 
         self.set_dofs(x[i, :])
-        plot_elements = self.plot(ax2, regions=regions, bonds=regions)
-        lc = plot_elements.pop(-1) # last thing plotted is the bonds
+        plot_elements = self.plot(ax2, regions=regions, bonds=regions, tip=True)
+        tip = plot_elements.pop(-1)
+        lc = plot_elements.pop(-1)
 
-        def frame(i):
+        if callback:
+            callback(ax1, ax2)
+
+        def frame(idx):
             # move the indicator blob in left panel
-            blob.set_data([x[i, -1] / k1g], [x[i, -2]])
-            self.set_dofs(x[i])
-            a = self.get_atoms()
+            blob.set_data([x[idx, -2]], [x[idx, -1] / k1g])
+            self.set_dofs(x[idx])
+            a = self.atoms
             # update positions in right panel
             for r, p in zip(regions, plot_elements):
-                p.set_data([a.positions[region == r, 0],
-                            a.positions[region == r, 1]])
+                p.set_data(
+                    [a.positions[region == r, 0], a.positions[region == r, 1]])
             # update bonds - requires a neighbour list recalculation
             i, j = neighbour_list('ij', a, cutoff)
             i, j = np.array([(I, J) for I, J in zip(i, j) if
                              region[I] in regions and region[J] in regions]).T
             lines = list(zip(a.positions[i, 0:2], a.positions[j, 0:2]))
             lc.set_segments(lines)
-            return blob, plot_elements, lc
+            # update crack tip indicator
+            tip.set_data([self.cryst.cell[0, 0] / 2.0 + x[idx, -2]],
+                         [self.cryst.cell[1, 1] / 2.0])
+            return blob, plot_elements, lc, tip
 
         if frames is None:
             frames = range(0, len(x), 100)

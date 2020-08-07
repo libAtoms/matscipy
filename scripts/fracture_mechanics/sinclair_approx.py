@@ -55,6 +55,7 @@ if extended_far_field:
 def f(k, alpha):
     sc.k = k * k1g
     sc.alpha = alpha
+    sc.update_atoms()
     return sc.get_crack_tip_force(
         mask=mask)
 

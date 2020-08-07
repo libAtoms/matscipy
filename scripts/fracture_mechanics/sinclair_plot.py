@@ -81,7 +81,7 @@ for directory, color, label in zip(args, colors, plot_labels):
         with h5py.File(fn) as hf:
             x = hf['x']
             sc.set_dofs(x[0])
-            a = sc.get_atoms()
+            a = sc.atoms
             atoms.append(a)
 
             k = x[:, -1]
