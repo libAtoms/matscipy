@@ -83,6 +83,14 @@ class IPL():
         return self.coeffs
 
     def first_derivative(self, r):
+        """
+        Return first derivative 
+        """
+        ipl = -10*self.epsilon*np.power(ijsize,10)/np.power(r,10)
+        dipl = 2*self.coeffs[1]*self.epsilon*r/np.power(ijsize,2)
+        ddipl = 4*self.coeffs[2]*self.epsilon*np.power(r,3)/np.power(ijsize,4)
+        dddipl = 6*self.coeffs[3]*self.epsilon*np.power(r,5)/np.power(ijsize,6)
+        return ipl + dipl + ddipl + dddipl
 
     def second_derivative(self, r):
 
@@ -96,3 +104,25 @@ class IPL():
                 "Don't know how to compute {}-th derivative.".format(n))     	
 
 ###
+
+class Polydisperse(Calculator):
+    implemented_properties = ["energy", "stress", "forces"]
+    default_parameters = {}
+    name = "Polydisperse"
+
+    def __init__(self, f, cutoff=None):
+        Calculator.__init__(self)
+        self.f = f
+
+        self.dict = {x: obj.get_cutoff() for x, obj in f.items()}
+        self.df = {x: obj.derivative(1) for x, obj in f.items()}
+        self.df2 = {x: obj.derivative(2) for x, obj in f.items()}
+
+    def calculate(self, atoms, properties, system_changes):
+        Calculator.calculate(self, atoms, properties, system_changes)
+
+        nat = len(self.atoms)
+        atnums = self.atoms.numbers
+        atnums_in_system = set(atnums)
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, self.dict)
