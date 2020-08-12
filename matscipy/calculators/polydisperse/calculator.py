@@ -29,7 +29,10 @@ import time
 
 import numpy as np
 
+from scipy.special import factorial2
+
 import ase
+
 from ase.calculators.calculator import Calculator
 
 from matscipy.neighbours import neighbour_list, first_neighbours
@@ -40,11 +43,23 @@ class IPL():
 	"""
     Functional form for a inverse-power-law potential with an exponent of 10.
     Energy, its first, second and third derivative are shifted to zero at cutoff.
+    Reference:
+    E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
 	"""
     
     def __init__(self, epsilon, cutoff):
         self.epsilon = epsilon
         self.cutoff = cutoff
+
+    def __call__(self, r):
+        """
+        Return function value (potential energy)
+        """
+
+    def smoothing_coefficients(self, q, xc):
+    	"""
+        Return coefficients which smooth the potential up to q-th derivative
+        """
 
     def get_cutoff(self):
         return self.cutoff
