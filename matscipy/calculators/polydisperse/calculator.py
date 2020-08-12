@@ -47,22 +47,40 @@ class IPL():
     E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
 	"""
     
-    def __init__(self, epsilon, cutoff):
+    def __init__(self, epsilon, q, cutoff):
         self.epsilon = epsilon
         self.cutoff = cutoff
+        self.q = q
+        self.coeffs = smoothing_coeffs(q, cutoff)
 
     def __call__(self, r):
         """
         Return function value (potential energy)
         """
 
-    def smoothing_coefficients(self, q, xc):
+    def smoothing_coeffs(self, order, rc):
     	"""
-        Return coefficients which smooth the potential up to q-th derivative
+        Return coefficients which smooth the potential up to the desired order.
         """
+        coeffs_n = []
+        for index in range(0,order):
+        	first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
+            second_expr = factorial2(10+2*q, exact=True)/(factorial2(10-2)*(10+2*l))
+            third_expr = np.power(rc, -(10+2*l))
+        	coeffs_n.append(first_expr*second_expr*third_expr)
+        return coeffs_n
 
     def get_cutoff(self):
+        """
+        Return the cutoff.
+        """
         return self.cutoff
+
+    def get_coeffs(self):
+        """
+        Return the smoothing coefficients of the potential.
+        """
+        return self.coeffs
 
     def first_derivative(self, r):
 
