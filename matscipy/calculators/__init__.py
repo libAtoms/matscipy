@@ -23,6 +23,7 @@ from __future__ import absolute_import
 
 from .eam import EAM
 from .pair_potential import PairPotential
+from .polydisperse import Polydisperse
 from .supercell_calculator import SupercellCalculator
 
 try:
