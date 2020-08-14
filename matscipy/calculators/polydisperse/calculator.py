@@ -150,9 +150,32 @@ class Polydisperse(Calculator):
 
         # Mask in order to consider only the atoms which are abs_dr_n <= 1.4*lambdaij
         mask = abs_dr_n <= self.dict*ijsize
-        e_n[mask] = self.f(abs_dr_n[mask])
-        de_n[mask] = self.df(abs_dr_n[mask])
+        e_n[mask] = self.f(abs_dr_n[mask], ijsize[mask])
+        de_n[mask] = self.df(abs_dr_n[mask], ijsize[mask])
 
-    epot = 0.5*np.sum(e_n)
+        epot = 0.5*np.sum(e_n)
+
+        # Forces
+        df_nc = -0.5*de_n.reshape(-1,1)*dr_nc/abs_dr_n.reshape(-1,1)
+
+        # Sum for each atom
+        fx_i = np.bincount(j_n, weights=df_nc[:, 0], minlength=nat) - \
+            np.bincount(i_n, weights=df_nc[:, 0], minlength=nat) 
+        fy_i = np.bincount(j_n, weights=df_nc[:, 1], minlength=nat) - \
+            np.bincount(i_n, weights=df_nc[:, 1], minlength=nat) 
+        fz_i = np.bincount(j_n, weights=df_nc[:, 2], minlength=nat) - \
+            np.bincount(i_n, weights=df_nc[:, 2], minlength=nat) 
+
+        # Virial 
+        virial_v = -np.array([dr_nc[:, 0]*df_nc[:, 0],               # xx
+                              dr_nc[:, 1]*df_nc[:, 1],               # yy
+                              dr_nc[:, 2]*df_nc[:, 2],               # zz
+                              dr_nc[:, 1]*df_nc[:, 2],               # yz
+                              dr_nc[:, 0]*df_nc[:, 2],               # xz
+                              dr_nc[:, 0]*df_nc[:, 1]]).sum(axis=1)  # xy
+
+        self.results = {'energy': epot,
+                        'stress': virial_v/self.atoms.get_volume(),
+                        'forces': np.transpose([fx_i, fy_i, fz_i])}
 
 
