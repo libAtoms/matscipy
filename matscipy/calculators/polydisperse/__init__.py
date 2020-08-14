@@ -21,4 +21,4 @@
 
 from __future__ import absolute_import
 
-from .calculator import IPL
+from .calculator import IPL, Polydisperse
