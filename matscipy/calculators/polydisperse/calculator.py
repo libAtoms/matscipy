@@ -57,7 +57,7 @@ class IPL():
             first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
             second_expr = factorial2(10+2*q, exact=True)/(factorial2(10-2)*(10+2*index))
             third_expr = np.power(cutoff, -(10+2*index))
-            coeffs_n.append(first_expr*second_expr*third_expr)
+            coeffs.append(first_expr*second_expr*third_expr)
 
     def mix_sizes(self, isize, jsize):
         """
