@@ -60,10 +60,16 @@ class IPL():
         """
         return 0.5*(isize+jsize)*(1 - self.na * np.absolute(isize-jsize))
 
-    def __call__(self, r):
+    def __call__(self, r, ijsize):
         """
         Return function value (potential energy)
         """
+        ipl = self.epsilon*(np.power(ijsize,10)/np.power(r,10) + self.coeffs[0])
+        dipl = self.epsilon*self.coeffs[1]*np.power(r,2)/np.power(ijsize,2)
+        ddipl = self.epsilon*self.coeffs[2]*np.power(r, 4)/np.power(ijsize,4)
+        dddipl = self.epsilon*self.coeffs[3]*np.power(r,6)/np.power(ijsize,6)
+        
+        return ipl + dipl + ddipl + dddipl
 
     def smoothing_coeffs(self, order, rc):
         """
@@ -89,7 +95,7 @@ class IPL():
         """
         return self.coeffs
 
-    def first_derivative(self, r):
+    def first_derivative(self, r, ijsize):
         """
         Return first derivative 
         """
@@ -99,7 +105,7 @@ class IPL():
         dddipl = 6*self.coeffs[3]*self.epsilon*np.power(r,5)/np.power(ijsize,6)
         return ipl + dipl + ddipl + dddipl
 
-    def second_derivative(self, r):
+    def second_derivative(self, r, ijsize):
         """
         Return second derivative 
         """
