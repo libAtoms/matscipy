@@ -40,18 +40,24 @@ from matscipy.neighbours import neighbour_list, first_neighbours
 ###
 
 class IPL():
-	"""
+    """
     Functional form for a inverse-power-law potential with an exponent of 10.
     Energy, its first, second and third derivative are shifted to zero at cutoff.
     Reference:
     E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
-	"""
+    """
     
-    def __init__(self, epsilon, q, cutoff):
+    def __init__(self, epsilon, cutoff, q):
         self.epsilon = epsilon
         self.cutoff = cutoff
         self.q = q
         self.coeffs = smoothing_coeffs(q, cutoff)
+
+    def mix_sizes(self, isize, jsize, na):
+        """
+        Nonadditive interaction rule for the cross size of particles i and j. 
+        """
+        return 0.5*(isize+jsize)*(1 - na*np.absolute(isize-jsize))
 
     def __call__(self, r):
         """
@@ -59,15 +65,15 @@ class IPL():
         """
 
     def smoothing_coeffs(self, order, rc):
-    	"""
+        """
         Return coefficients which smooth the potential up to the desired order.
         """
         coeffs_n = []
         for index in range(0,order):
-        	first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
+            first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
             second_expr = factorial2(10+2*q, exact=True)/(factorial2(10-2)*(10+2*l))
             third_expr = np.power(rc, -(10+2*l))
-        	coeffs_n.append(first_expr*second_expr*third_expr)
+            coeffs_n.append(first_expr*second_expr*third_expr)
         return coeffs_n
 
     def get_cutoff(self):
@@ -93,7 +99,10 @@ class IPL():
         return ipl + dipl + ddipl + dddipl
 
     def second_derivative(self, r):
-
+        """
+        Return second derivative 
+        """
+        
     def derivative(self, n=1):
         if n == 1:
             return self.first_derivative
@@ -124,5 +133,6 @@ class Polydisperse(Calculator):
         nat = len(self.atoms)
         atnums = self.atoms.numbers
         atnums_in_system = set(atnums)
+        size = self.atoms.get_charges()
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, self.dict)
