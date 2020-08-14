@@ -52,7 +52,12 @@ class IPL():
         self.cutoff = cutoff
         self.q = q
         self.na = na
-        self.coeffs = smoothing_coeffs(q, cutoff)
+        self.coeffs = []
+        for index in range(0,q):
+            first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
+            second_expr = factorial2(10+2*q, exact=True)/(factorial2(10-2)*(10+2*l))
+            third_expr = np.power(cutoff, -(10+2*l))
+            coeffs_n.append(first_expr*second_expr*third_expr)
 
     def mix_sizes(self, isize, jsize):
         """
@@ -70,18 +75,6 @@ class IPL():
         dddipl = self.epsilon*self.coeffs[3]*np.power(r,6)/np.power(ijsize,6)
         
         return ipl + dipl + ddipl + dddipl
-
-    def smoothing_coeffs(self, order, rc):
-        """
-        Return coefficients which smooth the potential up to the desired order.
-        """
-        coeffs_n = []
-        for index in range(0,order):
-            first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
-            second_expr = factorial2(10+2*q, exact=True)/(factorial2(10-2)*(10+2*l))
-            third_expr = np.power(rc, -(10+2*l))
-            coeffs_n.append(first_expr*second_expr*third_expr)
-        return coeffs_n
 
     def get_cutoff(self):
         """
