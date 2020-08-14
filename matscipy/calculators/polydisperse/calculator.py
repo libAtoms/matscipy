@@ -47,17 +47,18 @@ class IPL():
     E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
     """
     
-    def __init__(self, epsilon, cutoff, q):
+    def __init__(self, epsilon, cutoff, q, na):
         self.epsilon = epsilon
         self.cutoff = cutoff
         self.q = q
+        self.na = na
         self.coeffs = smoothing_coeffs(q, cutoff)
 
-    def mix_sizes(self, isize, jsize, na):
+    def mix_sizes(self, isize, jsize):
         """
         Nonadditive interaction rule for the cross size of particles i and j. 
         """
-        return 0.5*(isize+jsize)*(1 - na*np.absolute(isize-jsize))
+        return 0.5*(isize+jsize)*(1 - self.na * np.absolute(isize-jsize))
 
     def __call__(self, r):
         """
@@ -136,3 +137,16 @@ class Polydisperse(Calculator):
         size = self.atoms.get_charges()
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, self.dict)
+        ijsize = self.mix_sizes(size[i_n], size[j_n])
+
+        e_n = np.zeros_like(abs_dr_n)
+        de_n = np.zeros_like(abs_dr_n)
+
+        # Mask in order to consider only the atoms which are abs_dr_n <= 1.4*lambdaij
+        mask = abs_dr_n <= self.dict*ijsize
+        e_n[mask] = self.f(abs_dr_n[mask])
+        de_n[mask] = self.df(abs_dr_n[mask])
+
+    epot = 0.5*np.sum(e_n)
+
+
