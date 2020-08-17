@@ -43,17 +43,34 @@ class IPL():
     """
     Functional form for a inverse-power-law potential with an exponent of 10.
     Energy, its first, second and third derivative are shifted to zero at cutoff.
+
+    Parameters
+    ----------
+    epsilon : float
+        Energy scale
+    cutoff : float
+        Cutoff for the pair-interaction
+    minSize : float 
+        Minimal size of a particle. Lower bound of distribtuion
+    maxSize : float 
+        Maximal size of a particle. Upper bound of distribtuion
+    na : float 
+        Non-additivity paramter for pair sizes
+    q : int
+        Smooth the potential up to the q-th derivative
+
     Reference:
-    E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
+    ----------
+        E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
     """
     
-    def __init__(self, epsilon, cutoff, q, na, minSize, maxSize):
+    def __init__(self, epsilon, cutoff, na, minSize, maxSize):
         self.epsilon = epsilon
         self.cutoff = cutoff
         self.minSize = minSize
         self.maxSize = maxSize
         self.na = na
-        self.q = q
+        self.q = 3
         self.coeffs = []
         for index in range(0,q+1):
             first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
