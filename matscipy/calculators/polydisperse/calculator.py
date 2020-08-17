@@ -47,23 +47,19 @@ class IPL():
     E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
     """
     
-    def __init__(self, epsilon, cutoff, q, na):
+    def __init__(self, epsilon, cutoff, q, na, minSize, maxSize):
         self.epsilon = epsilon
         self.cutoff = cutoff
-        self.q = q
+        self.minSize = minSize
+        self.maxSize = maxSize
         self.na = na
+        self.q = q
         self.coeffs = []
         for index in range(0,q+1):
             first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
             second_expr = factorial2(10+2*q, exact=True)/(factorial2(10-2)*(10+2*index))
             third_expr = np.power(cutoff, -(10+2*index))
             self.coeffs.append(first_expr*second_expr*third_expr)
-
-    def mix_sizes(self, isize, jsize):
-        """
-        Nonadditive interaction rule for the cross size of particles i and j. 
-        """
-        return 0.5*(isize+jsize)*(1 - self.na * np.absolute(isize-jsize))
 
     def __call__(self, r, ijsize):
         """
@@ -75,6 +71,12 @@ class IPL():
         dddipl = self.epsilon*self.coeffs[3]*np.power(r,6)/np.power(ijsize,6)
         
         return ipl + dipl + ddipl + dddipl
+
+    def mix_sizes(self, isize, jsize):
+        """
+        Nonadditive interaction rule for the cross size of particles i and j. 
+        """
+        return 0.5*(isize+jsize)*(1 - self.na * np.absolute(isize-jsize))
 
     def get_cutoff(self):
         """
@@ -92,16 +94,23 @@ class IPL():
         """
         Return first derivative 
         """
-        ipl = -10*self.epsilon*np.power(ijsize,10)/np.power(r,10)
-        dipl = 2*self.coeffs[1]*self.epsilon*r/np.power(ijsize,2)
-        ddipl = 4*self.coeffs[2]*self.epsilon*np.power(r,3)/np.power(ijsize,4)
-        dddipl = 6*self.coeffs[3]*self.epsilon*np.power(r,5)/np.power(ijsize,6)
+        ipl = -10*self.epsilon*np.power(ijsize,10)/np.power(r,11)
+        dipl = 2*self.epsilon*self.coeffs[1]*r/np.power(ijsize,2)
+        ddipl = 4*self.epsilon*self.coeffs[2]*np.power(r,3)/np.power(ijsize,4)
+        dddipl = 6*self.epsilon*self.coeffs[3]*np.power(r,5)/np.power(ijsize,6)
+
         return ipl + dipl + ddipl + dddipl
 
     def second_derivative(self, r, ijsize):
         """
         Return second derivative 
         """
+        ipl = 110*self.epsilon*np.power(ijsize,10)/np.power(r,12)
+        dipl = 2*self.epsilon*self.coeffs[1]/np.power(ijsize,2)
+        ddipl = 12*self.epsilon*self.coeffs[2]*np.power(r,2)/np.power(ijsize,4)
+        dddipl = 30*self.epsilon*self.coeffs[3]*np.power(r,4)/np.power(ijsize,6)
+
+        return ipl + dipl + ddipl + dddipl 
         
     def derivative(self, n=1):
         if n == 1:
