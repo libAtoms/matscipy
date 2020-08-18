@@ -64,13 +64,13 @@ class IPL():
         E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
     """
     
-    def __init__(self, epsilon, cutoff, na, minSize, maxSize):
+    def __init__(self, epsilon, cutoff, na, minSize, maxSize, q):
         self.epsilon = epsilon
         self.cutoff = cutoff
         self.minSize = minSize
         self.maxSize = maxSize
         self.na = na
-        self.q = 3
+        self.q = q
         self.coeffs = []
         for index in range(0,q+1):
             first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
@@ -106,6 +106,18 @@ class IPL():
         Return the smoothing coefficients of the potential.
         """
         return self.coeffs
+
+    def get_maxSize(self):
+        """
+        Return the maximal size of a particle (=Upper boundary of distribution)
+        """
+        return self.maxSize
+
+    def get_minSize(self):
+        """
+        Return the minimal size of a particle (=Lower boundary of distribution)
+        """
+        return self.minSize
 
     def first_derivative(self, r, ijsize):
         """
@@ -149,26 +161,23 @@ class Polydisperse(Calculator):
         Calculator.__init__(self)
         self.f = f
 
-        self.dict = {x: obj.get_cutoff() for x, obj in f.items()}
-        self.df = {x: obj.derivative(1) for x, obj in f.items()}
-        self.df2 = {x: obj.derivative(2) for x, obj in f.items()}
+        self.dict = f.get_cutoff()
+        self.df = f.derivative(1)
+        self.df2 = f.derivative(2)
 
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
 
         nat = len(self.atoms)
-        atnums = self.atoms.numbers
-        atnums_in_system = set(atnums)
         size = self.atoms.get_charges()
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, self.dict)
-        ijsize = self.mix_sizes(size[i_n], size[j_n])
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, self.f.get_maxSize()*self.f.get_cutoff())
+        ijsize = self.f.mix_sizes(size[i_n], size[j_n])
 
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
 
-        # Mask in order to consider only the atoms which are abs_dr_n <= 1.4*lambdaij
-        mask = abs_dr_n <= self.dict*ijsize
+        mask = abs_dr_n <= self.f.get_cutoff()*ijsize
         e_n[mask] = self.f(abs_dr_n[mask], ijsize[mask])
         de_n[mask] = self.df(abs_dr_n[mask], ijsize[mask])
 
