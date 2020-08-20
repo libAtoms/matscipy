@@ -123,24 +123,19 @@ class IPL():
         Return first derivative 
         """
         dipl = -10*self.epsilon*np.power(ijsize,10)/np.power(r,11)
-        if self.q == 0:
-            return dipl 
-        else:
-            for l in range(0,self.q+1):
-                dipl += self.epsilon*2*(l+1)*self.coeffs[l+1]*np.power(r, 2*l+1)/np.power(ijsize, 2*(l+1))
-            return dipl
+        for l in range(0,self.q+1):
+            dipl += self.epsilon*2*l*self.coeffs[l]*np.power(r, 2*l-1)/np.power(ijsize, 2*l)
+        
+        return dipl
 
     def second_derivative(self, r, ijsize):
         """
         Return second derivative 
         """
         ddipl = 110*self.epsilon*np.power(ijsize,10)/np.power(r,12)
-        if self.q == 0:
-            return ddipl 
-        else:
-            for l in range(0,self.q+1):
-                ddipl = self.epsilon*2*(2*np.power(l,2)+3*l+1)*self.coeffs[l+1]*np.power(r,2*l)/np.power(ijsize, 2*(l+1))
-            return ddipl 
+        for l in range(0,self.q+1):
+            ddipl = self.epsilon*(4*np.power(l,2)-2*l)*coeffs[l]*np.power(r, 2*l-2)/np.power(ijsize,2*l)
+        return ddipl 
         
     def derivative(self, n=1):
         if n == 1:
@@ -162,18 +157,19 @@ class Polydisperse(Calculator):
         Calculator.__init__(self)
         self.f = f
 
-        self.dict = f.get_cutoff()
-        self.df = f.derivative(1)
-        self.df2 = f.derivative(2)
-
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
 
+        f = self.f
         nat = len(self.atoms)
-        size = self.atoms.get_charges()
+        if atoms.has("size"):
+            size = self.atoms.get_array("size")
+        else:
+            raise AttributeError(
+                "Attribute error: Unable to load atom sizes from atoms object! Probably missing size array.")
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, self.f.get_maxSize()*self.f.get_cutoff())
-        ijsize = self.f.mix_sizes(size[i_n], size[j_n])
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
+        ijsize = f.mix_sizes(size[i_n], size[j_n])
 
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
