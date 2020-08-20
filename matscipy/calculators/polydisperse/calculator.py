@@ -41,8 +41,7 @@ from matscipy.neighbours import neighbour_list, first_neighbours
 
 class IPL():
     """
-    Functional form for a inverse-power-law potential with an exponent of 10.
-    Energy, its first, second and third derivative are shifted to zero at cutoff.
+    Functional form for a smoothed inverse-power-law potential (IPL) with an exponent of 10.
 
     Parameters
     ----------
@@ -57,14 +56,16 @@ class IPL():
     na : float 
         Non-additivity paramter for pair sizes
     q : int
-        Smooth the potential up to the q-th derivative
+        Smooth the potential up to the q-th derivative.
+        For q=0 the potential is smoothed, for q=1 the potential
+        and its first derivative are zero at the cutoff.
 
     Reference:
     ----------
         E. Lerner, Journal of Non-Crystalline Solids, 522, 119570.
     """
     
-    def __init__(self, epsilon, cutoff, na, minSize, maxSize, q):
+    def __init__(self, epsilon, cutoff, na, q, minSize, maxSize):
         self.epsilon = epsilon
         self.cutoff = cutoff
         self.minSize = minSize
@@ -84,7 +85,7 @@ class IPL():
         """
         ipl = self.epsilon*np.power(ijsize,10)/np.power(r,10)
         for l in range(0,self.q+1):
-            ipl += self.epsilon*self.coeffs[l]*(np.power(r,2*l)/np.power(ijsize,2*l))  
+            ipl += self.epsilon*self.coeffs[l]*np.power(r/ijsize,2*l)
       
         return ipl
 
