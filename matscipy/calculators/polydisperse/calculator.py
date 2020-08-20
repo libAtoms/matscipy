@@ -135,7 +135,7 @@ class IPL():
         """
         ddipl = 110*self.epsilon*np.power(ijsize,10)/np.power(r,12)
         for l in range(0,self.q+1):
-            ddipl = self.epsilon*(4*np.power(l,2)-2*l)*coeffs[l]*np.power(r, 2*l-2)/np.power(ijsize,2*l)
+            ddipl = self.epsilon*(4*np.power(l,2)-2*l)*self.coeffs[l]*np.power(r, 2*l-2)/np.power(ijsize,2*l)
         return ddipl 
         
     def derivative(self, n=1):
