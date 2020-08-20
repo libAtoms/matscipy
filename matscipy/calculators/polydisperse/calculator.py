@@ -82,12 +82,11 @@ class IPL():
         """
         Return function value (potential energy)
         """
-        ipl = self.epsilon*(np.power(ijsize,10)/np.power(r,10) + self.coeffs[0])
-        dipl = self.epsilon*self.coeffs[1]*np.power(r,2)/np.power(ijsize,2)
-        ddipl = self.epsilon*self.coeffs[2]*np.power(r, 4)/np.power(ijsize,4)
-        dddipl = self.epsilon*self.coeffs[3]*np.power(r,6)/np.power(ijsize,6)
-        
-        return ipl + dipl + ddipl + dddipl
+        ipl = self.epsilon*np.power(ijsize,10)/np.power(r,10)
+        for l in range(0,self.q+1):
+            ipl += self.epsilon*self.coeffs[l]*(np.power(r,2*l)/np.power(ijsize,2*l))  
+      
+        return ipl
 
     def mix_sizes(self, isize, jsize):
         """
@@ -123,23 +122,25 @@ class IPL():
         """
         Return first derivative 
         """
-        ipl = -10*self.epsilon*np.power(ijsize,10)/np.power(r,11)
-        dipl = 2*self.epsilon*self.coeffs[1]*r/np.power(ijsize,2)
-        ddipl = 4*self.epsilon*self.coeffs[2]*np.power(r,3)/np.power(ijsize,4)
-        dddipl = 6*self.epsilon*self.coeffs[3]*np.power(r,5)/np.power(ijsize,6)
-
-        return ipl + dipl + ddipl + dddipl
+        dipl = -10*self.epsilon*np.power(ijsize,10)/np.power(r,11)
+        if self.q == 0:
+            return dipl 
+        else:
+            for l in range(0,self.q+1):
+                dipl += self.epsilon*2*(l+1)*self.coeffs[l+1]*np.power(r, 2*l+1)/np.power(ijsize, 2*(l+1))
+            return dipl
 
     def second_derivative(self, r, ijsize):
         """
         Return second derivative 
         """
-        ipl = 110*self.epsilon*np.power(ijsize,10)/np.power(r,12)
-        dipl = 2*self.epsilon*self.coeffs[1]/np.power(ijsize,2)
-        ddipl = 12*self.epsilon*self.coeffs[2]*np.power(r,2)/np.power(ijsize,4)
-        dddipl = 30*self.epsilon*self.coeffs[3]*np.power(r,4)/np.power(ijsize,6)
-
-        return ipl + dipl + ddipl + dddipl 
+        ddipl = 110*self.epsilon*np.power(ijsize,10)/np.power(r,12)
+        if self.q == 0:
+            return ddipl 
+        else:
+            for l in range(0,self.q+1):
+                ddipl = self.epsilon*2*(2*np.power(l,2)+3*l+1)*self.coeffs[l+1]*np.power(r,2*l)/np.power(ijsize, 2*(l+1))
+            return ddipl 
         
     def derivative(self, n=1):
         if n == 1:
