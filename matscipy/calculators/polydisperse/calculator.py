@@ -175,9 +175,9 @@ class Polydisperse(Calculator):
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
 
-        mask = abs_dr_n <= self.f.get_cutoff()*ijsize
-        e_n[mask] = self.f(abs_dr_n[mask], ijsize[mask])
-        de_n[mask] = self.df(abs_dr_n[mask], ijsize[mask])
+        mask = abs_dr_n <= f.get_cutoff()*ijsize
+        e_n[mask] = f.first_derivative(abs_dr_n[mask], ijsize[mask])
+        de_n[mask] = f.second_derivative(abs_dr_n[mask], ijsize[mask])
 
         epot = 0.5*np.sum(e_n)
 
