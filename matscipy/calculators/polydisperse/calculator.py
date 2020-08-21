@@ -171,13 +171,14 @@ class Polydisperse(Calculator):
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
         ijsize = f.mix_sizes(size[i_n], size[j_n])
+        print("i_n: ", i_n[:10], "j_n: ", j_n[:10], "sizei: ", size[i_n][:10], "sizej: ", size[j_n][:10], "ijsize: ", ijsize[:10] )
 
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
 
         mask = abs_dr_n <= f.get_cutoff()*ijsize
-        e_n[mask] = f.first_derivative(abs_dr_n[mask], ijsize[mask])
-        de_n[mask] = f.second_derivative(abs_dr_n[mask], ijsize[mask])
+        e_n[mask] = f(abs_dr_n[mask], ijsize[mask])
+        de_n[mask] = f.first_derivative(abs_dr_n[mask], ijsize[mask])
 
         epot = 0.5*np.sum(e_n)
 
