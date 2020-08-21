@@ -280,23 +280,22 @@ class Polydisperse(Calculator):
         if H_format == "sparse":
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T)
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
 
             if divide_by_masses:
-                H = bsr_matrix(((H_ncc/geom_mean_mass_n).T, j_n, first_i), shape=(3*nat, 3*nat))
+                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T, j_n, first_i), shape=(3*nat, 3*nat))
             else:
-                H = bsr_matrix((H_ncc.T, j_n, first_i), shape=(3*nat, 3*nat))
+                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
             Hdiag_icc = np.empty((nat, 3, 3))
-
             for x in range(3):
                 for y in range(3):
-                    Hdiag_icc[:, x, y] = - np.bincount(i_n, weights=H_ncc.T[:, x, y])
+                    Hdiag_icc[:, x, y] = - np.bincount(i_n, weights=H_ncc[:, x, y])
 
             if divide_by_masses:
-                Hdiag_icc /= mass_nat
+                Hdiag_icc = (Hdiag_icc.T/mass_nat).T
 
-            H += bsr_matrix((Hdiag_ncc, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+            H += bsr_matrix((Hdiag_icc, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
         
             return H 
 
@@ -304,12 +303,12 @@ class Polydisperse(Calculator):
         else:
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T)
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
 
             H = np.zeros((3*nat, 3*nat))
             if divide_by_masses:
                 for atom in range(len(i_n)):
-                    H[3*i_n[atom]:3*i_n[atom]+3,3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]/geom_mean_mass_n[atom]
+                    H[3*i_n[atom]:3*i_n[atom]+3,3*j_n[atom]:3*j_n[atom]+3] += (H_ncc[atom].T/geom_mean_mass_n[atom]).T
             else:
                 for atom in range(len(i_n)):
                     H[3*i_n[atom]:3*i_n[atom]+3,3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]             
@@ -321,7 +320,7 @@ class Polydisperse(Calculator):
 
             if divided_by_masses:
                 for atom in range(nat):
-                    H[3*atom:3*atom+3,3*atom:3*atom+3] += Hdiag_icc[atom]/mass_nat[atom]
+                    H[3*atom:3*atom+3,3*atom:3*atom+3] += (Hdiag_icc[atom].T/mass_nat[atom]).T
             else:
                 for atom in range(nat):
                     H[3*atom:3*atom+3,3*atom:3*atom+3] += Hdiag_icc[atom]           
