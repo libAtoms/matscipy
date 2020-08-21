@@ -207,7 +207,7 @@ class Polydisperse(Calculator):
 
     ###
 
-    def hessian_matrix(self, atoms, H_format="dense"):
+    def hessian_matrix(self, atoms, H_format="dense", divide_by_masses=False):
         """
         Calculate the Hessian matrix for a polydisperse systems where atoms interact via a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
@@ -222,6 +222,8 @@ class Polydisperse(Calculator):
         H_format: "dense" or "sparse"
             Output format of the hessian matrix.
             The format "sparse" is only possible if matscipy was build with scipy.
+        divide_by_masses: bool
+            Divide the block "l,m" by the corresponding atomic masses "sqrt(m_l, m_m)" to obtain dynamical matrix.
     
         Restrictions
         ----------
@@ -245,7 +247,12 @@ class Polydisperse(Calculator):
                 "Attribute error: Unable to load atom sizes from atoms object! Probably missing size array.")
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
+        first_i = first_neighbours(nat, i_n)
         ijsize = f.mix_sizes(size[i_n], size[j_n])
+        
+        if divide_by_masses:
+            mass_nat = self.atoms.get_masses()
+            geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])
 
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
@@ -256,10 +263,31 @@ class Polydisperse(Calculator):
         de_n[mask] = f.first_derivative(abs_dr_n[mask], ijsize[mask])
         dde_n[mask] = f.second_derivative(abs_dr_n[mask], ijsize[mask])
 
-        # 
+        # Hessian in sparse matrix format
         if H_format == "sparse":
             e_nc = (dr_nc.T/abs_dr_n).T
+            H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T)
 
+            if divide_by_masses:
+                H = bsr_matrix(((H_ncc/geom_mean_mass_n).T, j_n, first_i), shape=(3*nat, 3*nat))
+            else:
+                H = bsr_matrix((H_ncc.T, j_n, first_i), shape=(3*nat, 3*nat))
+
+            Hdiag_icc = np.empty((nat, 3, 3))
+
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:, x, y] = - np.bincount(i_n, weights=H_ncc.T[:, x, y])
+
+            if divide_by_masses:
+                Hdiag_icc /= mass_nat
+
+            H += bsr_matrix((Hdiag_ncc, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+        
+            return H 
+
+        # Hessian in dense matrix format
         else:
             e_nc = (dr_nc.T/abs_dr_n).T
 
