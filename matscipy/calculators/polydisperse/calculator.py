@@ -179,6 +179,7 @@ class Polydisperse(Calculator):
         e_n[mask] = f(abs_dr_n[mask], ijsize[mask])
         de_n[mask] = f.first_derivative(abs_dr_n[mask], ijsize[mask])
 
+        # Energy 
         epot = 0.5*np.sum(e_n)
 
         # Forces
@@ -203,5 +204,84 @@ class Polydisperse(Calculator):
         self.results = {'energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
                         'forces': np.transpose([fx_i, fy_i, fz_i])}
+
+    ###
+
+    def hessian_matrix(self, atoms, H_format="dense"):
+        """
+        Calculate the Hessian matrix for a polydisperse systems where atoms interact via a pair potential.
+        For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
+        with a shape of (d*N,d*N). The matrix is due to the cutoff function a sparse matrix, which consists of dense blocks of shape (d,d), which
+        are the mixed second derivatives. The result of the derivation for a pair potential can be found in:
+        L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Ev. B 86, 075459 (2012).
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+        H_format: "dense" or "sparse"
+            Output format of the hessian matrix.
+            The format "sparse" is only possible if matscipy was build with scipy.
+    
+        Restrictions
+        ----------
+        This method is currently only implemented for three dimensional systems
+    
+        """
+  
+        if H_format == "sparse":
+            try:
+                from scipy.sparse import bsr_matrix
+            except ImportError:
+                raise ImportError(
+                    "Import Error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
+    
+        f = self.f
+        nat = len(self.atoms)
+        if atoms.has("size"):
+            size = self.atoms.get_array("size")
+        else:
+            raise AttributeError(
+                "Attribute error: Unable to load atom sizes from atoms object! Probably missing size array.")
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
+        ijsize = f.mix_sizes(size[i_n], size[j_n])
+
+        e_n = np.zeros_like(abs_dr_n)
+        de_n = np.zeros_like(abs_dr_n)
+        dde_n = np.zeros_like(abs_dr_n)
+
+        mask = abs_dr_n <= f.get_cutoff()*ijsize
+        e_n[mask] = f(abs_dr_n[mask], ijsize[mask])
+        de_n[mask] = f.first_derivative(abs_dr_n[mask], ijsize[mask])
+        dde_n[mask] = f.second_derivative(abs_dr_n[mask], ijsize[mask])
+
+        # 
+        if H_format == "sparse":
+            e_nc = (dr_nc.T/abs_dr_n).T
+
+        else:
+            e_nc = (dr_nc.T/abs_dr_n).T
+
+ 
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
