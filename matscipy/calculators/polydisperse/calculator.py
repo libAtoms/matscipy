@@ -172,12 +172,18 @@ class Polydisperse(Calculator):
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
         ijsize = f.mix_sizes(size[i_n], size[j_n])
 
+        # Mask neighbour list to consider only true neighbors
+        mask = abs_dr_n <= f.get_cutoff()*ijsize
+        i_n = i_n[mask]
+        j_n = j_n[mask]
+        dr_nc = dr_nc[mask]
+        abs_dr_n = abs_dr_n[mask]
+        ijsize = ijsize[mask]
+
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
-
-        mask = abs_dr_n <= f.get_cutoff()*ijsize
-        e_n[mask] = f(abs_dr_n[mask], ijsize[mask])
-        de_n[mask] = f.first_derivative(abs_dr_n[mask], ijsize[mask])
+        e_n = f(abs_dr_n, ijsize)
+        de_n[mask] = f.first_derivative(abs_dr_n, ijsize)
 
         # Energy 
         epot = 0.5*np.sum(e_n)
@@ -247,9 +253,17 @@ class Polydisperse(Calculator):
                 "Attribute error: Unable to load atom sizes from atoms object! Probably missing size array.")
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
-        first_i = first_neighbours(nat, i_n)
         ijsize = f.mix_sizes(size[i_n], size[j_n])
-        
+
+        # Mask neighbour list to consider only true neighbors
+        mask = abs_dr_n <= f.get_cutoff()*ijsize
+        i_n = i_n[mask]
+        j_n = j_n[mask]
+        dr_nc = dr_nc[mask]
+        abs_dr_n = abs_dr_n[mask]
+        ijsize = ijsize[mask]
+
+        first_i = first_neighbours(nat, i_n)        
         if divide_by_masses:
             mass_nat = self.atoms.get_masses()
             geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])
@@ -258,10 +272,9 @@ class Polydisperse(Calculator):
         de_n = np.zeros_like(abs_dr_n)
         dde_n = np.zeros_like(abs_dr_n)
 
-        mask = abs_dr_n <= f.get_cutoff()*ijsize
-        e_n[mask] = f(abs_dr_n[mask], ijsize[mask])
-        de_n[mask] = f.first_derivative(abs_dr_n[mask], ijsize[mask])
-        dde_n[mask] = f.second_derivative(abs_dr_n[mask], ijsize[mask])
+        e_n = f(abs_dr_n, ijsize)
+        de_n = f.first_derivative(abs_dr_n, ijsize)
+        dde_n = f.second_derivative(abs_dr_n, ijsize)
 
         # Hessian in sparse matrix format
         if H_format == "sparse":
@@ -290,10 +303,24 @@ class Polydisperse(Calculator):
         # Hessian in dense matrix format
         else:
             e_nc = (dr_nc.T/abs_dr_n).T
+            H_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T)
 
- 
+            H = np.zeros((3*nat, 3*nat))
+            for atom in range(len(i_n)):
+                H[3*i_n[atom]:3*i_n[atom]+3,3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]/geom_mean_mass_n[atom]
+            
+            Hdiag_icc = np.empty((nat, 3, 3))
+            for x in range(3):
+               for y in range(3):
+                   Hdiag_icc[:, x, y] = -np.bincount(i_n, weights=H_ncc[:, x, y])
 
-     
+            for atom in range(nat):
+                H[3*atom:3*atom+3,
+                          3*atom:3*atom+3] += Hdiag_icc[atom]
+
+            return H 
+                 
 
 
 
