@@ -183,7 +183,7 @@ class Polydisperse(Calculator):
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
         e_n = f(abs_dr_n, ijsize)
-        de_n[mask] = f.first_derivative(abs_dr_n, ijsize)
+        de_n = f.first_derivative(abs_dr_n, ijsize)
 
         # Energy 
         epot = 0.5*np.sum(e_n)
