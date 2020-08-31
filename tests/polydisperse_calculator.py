@@ -71,11 +71,30 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
     def test_symmetry_dense(self):
         """
         Test the symmetry of the dense Hessian matrix 
+
+        atoms = NetCDFTrajectory("/work/ws/nemo/fr_jg1080-ultrastable_glasses-0/00_Tests/generate_test_nc_file/ultrastable_config.nc", "r")
+        atoms = atoms[len(atoms)-1]
+        atomic_configuration.set_masses(masses=np.repeat(1.0, len(atomic_configuration)))
+        atoms.set_array("size", atoms.get_array("q"), dtype=float)
+        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        atoms.set_calculator(calc)
+        H = calc.hessian_matrix(atoms, H_format="dense")
+        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
         """
+
 
     def test_symmetry_sparse(self):
         """
         Test the symmetry of the sparse Hessian matrix 
+
+        atoms = NetCDFTrajectory("/work/ws/nemo/fr_jg1080-ultrastable_glasses-0/00_Tests/generate_test_nc_file/ultrastable_config.nc", "r")
+        atoms = atoms[len(atoms)-1]
+        atomic_configuration.set_masses(masses=np.repeat(1.0, len(atomic_configuration)))
+        atoms.set_array("size", atoms.get_array("q"), dtype=float)
+        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        atoms.set_calculator(calc)
+        H = calc.hessian_matrix(atoms, H_format="sparse")
+        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
         """
 
     def test_hessian(self):
