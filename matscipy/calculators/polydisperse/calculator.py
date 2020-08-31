@@ -50,11 +50,11 @@ class IPL():
     cutoff : float
         Cutoff for the pair-interaction
     minSize : float 
-        Minimal size of a particle. Lower bound of distribtuion
+        Minimal size of a particle, lower bound of distribtuion
     maxSize : float 
-        Maximal size of a particle. Upper bound of distribtuion
+        Maximal size of a particle, upper bound of distribtuion
     na : float 
-        Non-additivity paramter for pair sizes
+        Non-additivity paramter for pairwise sizes
     q : int
         Smooth the potential up to the q-th derivative.
         For q=0 the potential is smoothed, for q=1 the potential
@@ -74,7 +74,7 @@ class IPL():
         self.q = q
         self.coeffs = []
         for index in range(0,q+1):
-            first_expr = np.power(-1, index+1)/(factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
+            first_expr = np.power(-1, index+1) / (factorial2(2*q-2*index, exact=True)*factorial2(2*index, exact=True))
             second_expr = factorial2(10+2*q, exact=True)/(factorial2(10-2)*(10+2*index))
             third_expr = np.power(cutoff, -(10+2*index))
             self.coeffs.append(first_expr*second_expr*third_expr)
