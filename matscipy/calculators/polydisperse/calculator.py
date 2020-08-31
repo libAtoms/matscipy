@@ -1,13 +1,4 @@
-from matscipy.neighbours import neighbour_list, first_neighbours
-from ase.calculators.calculator import Calculator
-import ase
-from scipy.special import factorial2
-import numpy as np
-import time
-import sys
-import os
-from __future__ import division
-A  # ======================================================================
+# ======================================================================
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
 #
@@ -28,13 +19,32 @@ A  # ======================================================================
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+from __future__ import division
+
+import os
+
+import sys
+
+import time
+
+import numpy as np
+
+import ase
+
+from ase.calculators.calculator import Calculator
+
+from matscipy.neighbours import neighbour_list, first_neighbours
+
+from scipy.special import factorial2
+
 
 ###
 
 
 class IPL():
     """
-    Functional form for a smoothed inverse-power-law potential (IPL) with an exponent of 10.
+    Functional form for a smoothed inverse-power-law potential (IPL)
+    with an exponent of 10.
 
     Parameters
     ----------
@@ -42,11 +52,11 @@ class IPL():
         Energy scale
     cutoff : float
         Cutoff for the pair-interaction
-    minSize : float 
+    minSize : float
         Minimal size of a particle, lower bound of distribtuion
-    maxSize : float 
+    maxSize : float
         Maximal size of a particle, upper bound of distribtuion
-    na : float 
+    na : float
         Non-additivity paramter for pairwise sizes
     q : int
         Smooth the potential up to the q-th derivative.
@@ -67,28 +77,28 @@ class IPL():
         self.q = q
         self.coeffs = []
         for index in range(0, q+1):
-            first_expr = np.power(-1, index+1) / (factorial2(2*q -
-                                                             2*index, exact=True)*factorial2(2*index, exact=True))
-            second_expr = factorial2(
-                10+2*q, exact=True)/(factorial2(10-2)*(10+2*index))
+            first_expr = np.power(-1, index+1) / (factorial2(
+                2*q - 2*index, exact=True) * factorial2(2*index, exact=True))
+            second_expr = factorial2(10+2*q, exact=True) / (factorial2(
+                8, exact=True) * (10+2*index))
             third_expr = np.power(cutoff, -(10+2*index))
-            self.coeffs.append(first_expr*second_expr*third_expr)
+            self.coeffs.append(first_expr * second_expr * third_expr)
 
     def __call__(self, r, ijsize):
         """
         Return function value (potential energy)
         """
-        ipl = self.epsilon*np.power(ijsize, 10)/np.power(r, 10)
+        ipl = self.epsilon * np.power(ijsize, 10) / np.power(r, 10)
         for l in range(0, self.q+1):
-            ipl += self.epsilon*self.coeffs[l]*np.power(r/ijsize, 2*l)
+            ipl += self.epsilon * self.coeffs[l] * np.power(r/ijsize, 2*l)
 
         return ipl
 
     def mix_sizes(self, isize, jsize):
         """
-        Nonadditive interaction rule for the cross size of particles i and j. 
+        Nonadditive interaction rule for the cross size of particles i and j.
         """
-        return 0.5*(isize+jsize)*(1 - self.na * np.absolute(isize-jsize))
+        return 0.5 * (isize+jsize) * (1 - self.na * np.absolute(isize-jsize))
 
     def get_cutoff(self):
         """
@@ -116,24 +126,25 @@ class IPL():
 
     def first_derivative(self, r, ijsize):
         """
-        Return first derivative 
+        Return first derivative
         """
-        dipl = -10*self.epsilon*np.power(ijsize, 10)/np.power(r, 11)
+        dipl = -10 * self.epsilon * np.power(ijsize, 10) / np.power(r, 11)
         for l in range(0, self.q+1):
-            dipl += self.epsilon*2*l * \
-                self.coeffs[l]*np.power(r, 2*l-1)/np.power(ijsize, 2*l)
+            dipl += 2*self.epsilon*l * \
+                self.coeffs[l] * np.power(r, 2*l-1) / np.power(ijsize, 2*l)
 
         return dipl
 
     def second_derivative(self, r, ijsize):
         """
-        Return second derivative 
+        Return second derivative
         """
-        ddipl = 110*self.epsilon*np.power(ijsize, 10)/np.power(r, 12)
+        ddipl = 110 * self.epsilon * np.power(ijsize, 10) / np.power(r, 12)
         for l in range(0, self.q+1):
             ddipl = self.epsilon * \
                 (4*np.power(l, 2)-2*l) * \
-                self.coeffs[l]*np.power(r, 2*l-2)/np.power(ijsize, 2*l)
+                self.coeffs[l] * np.power(r, 2*l-2) / np.power(ijsize, 2*l)
+
         return ddipl
 
     def derivative(self, n=1):
@@ -166,22 +177,19 @@ class Polydisperse(Calculator):
             size = self.atoms.get_array("size")
         else:
             raise AttributeError(
-                "Attribute error: Unable to load atom sizes from atoms object! Probably missing size array.")
+                "Attribute error: Unable to load atom sizes from atoms object!")
 
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list(
             "ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
         ijsize = f.mix_sizes(size[i_n], size[j_n])
 
         # Mask neighbour list to consider only true neighbors
-        mask = abs_dr_n <= f.get_cutoff()*ijsize
+        mask = abs_dr_n <= f.get_cutoff() * ijsize
         i_n = i_n[mask]
         j_n = j_n[mask]
         dr_nc = dr_nc[mask]
         abs_dr_n = abs_dr_n[mask]
         ijsize = ijsize[mask]
-
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
         e_n = f(abs_dr_n, ijsize)
         de_n = f.first_derivative(abs_dr_n, ijsize)
 
@@ -269,11 +277,6 @@ class Polydisperse(Calculator):
             mass_nat = self.atoms.get_masses()
             geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])
 
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
-        dde_n = np.zeros_like(abs_dr_n)
-
-        e_n = f(abs_dr_n, ijsize)
         de_n = f.first_derivative(abs_dr_n, ijsize)
         dde_n = f.second_derivative(abs_dr_n, ijsize)
 
@@ -282,12 +285,13 @@ class Polydisperse(Calculator):
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
-                                        (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
+                                       - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
             if divide_by_masses:
                 H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T,
                                 j_n, first_i), shape=(3*nat, 3*nat))
+
             else:
                 H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
@@ -298,10 +302,12 @@ class Polydisperse(Calculator):
                         np.bincount(i_n, weights=H_ncc[:, x, y])
 
             if divide_by_masses:
-                Hdiag_icc = (Hdiag_icc.T/mass_nat).T
+                H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nat),
+                        np.arange(nat+1)), shape=(3*nat, 3*nat))         
 
-            H += bsr_matrix((Hdiag_icc, np.arange(nat),
-                             np.arange(nat+1)), shape=(3*nat, 3*nat))
+            else:
+                H += bsr_matrix((Hdiag_icc, np.arange(nat),
+                         np.arange(nat+1)), shape=(3*nat, 3*nat))
 
             return H
 
@@ -310,18 +316,19 @@ class Polydisperse(Calculator):
             e_nc = (dr_nc.T/abs_dr_n).T
             H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                                * e_nc.reshape(-1, 1, 3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) -
-                                        (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) 
+                                       - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
             H = np.zeros((3*nat, 3*nat))
             if divide_by_masses:
                 for atom in range(len(i_n)):
                     H[3*i_n[atom]:3*i_n[atom]+3, 3*j_n[atom]:3*j_n[atom] +
                         3] += (H_ncc[atom].T/geom_mean_mass_n[atom]).T
+
             else:
                 for atom in range(len(i_n)):
                     H[3*i_n[atom]:3*i_n[atom]+3, 3*j_n[atom]
-                        :3*j_n[atom]+3] += H_ncc[atom]
+                       :3*j_n[atom]+3] += H_ncc[atom]
 
             Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
@@ -329,10 +336,11 @@ class Polydisperse(Calculator):
                     Hdiag_icc[:, x, y] = - \
                         np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            if divided_by_masses:
+            if divide_by_masses:
                 for atom in range(nat):
                     H[3*atom:3*atom+3, 3*atom:3*atom +
                         3] += (Hdiag_icc[atom].T/mass_nat[atom]).T
+
             else:
                 for atom in range(nat):
                     H[3*atom:3*atom+3, 3*atom:3*atom+3] += Hdiag_icc[atom]
