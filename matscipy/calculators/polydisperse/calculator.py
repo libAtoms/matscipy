@@ -197,15 +197,15 @@ class Polydisperse(Calculator):
         epot = 0.5*np.sum(e_n)
 
         # Forces
-        df_nc = -0.5*de_n.reshape(-1, 1)*dr_nc/abs_dr_n.reshape(-1, 1)
+        df_nc = 0.5*de_n.reshape(-1, 1)*dr_nc/abs_dr_n.reshape(-1, 1)
 
         # Sum for each atom
-        fx_i = np.bincount(j_n, weights=df_nc[:, 0], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:, 0], minlength=nat)
-        fy_i = np.bincount(j_n, weights=df_nc[:, 1], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:, 1], minlength=nat)
-        fz_i = np.bincount(j_n, weights=df_nc[:, 2], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:, 2], minlength=nat)
+        fx_i = np.bincount(i_n, weights=df_nc[:, 0], minlength=nat) - \
+            np.bincount(j_n, weights=df_nc[:, 0], minlength=nat)
+        fy_i = np.bincount(i_n, weights=df_nc[:, 1], minlength=nat) - \
+            np.bincount(j_n, weights=df_nc[:, 1], minlength=nat)
+        fz_i = np.bincount(i_n, weights=df_nc[:, 2], minlength=nat) - \
+            np.bincount(j_n, weights=df_nc[:, 2], minlength=nat)
 
         # Virial
         virial_v = -np.array([dr_nc[:, 0]*df_nc[:, 0],               # xx
