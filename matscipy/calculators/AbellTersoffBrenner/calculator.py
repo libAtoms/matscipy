@@ -258,82 +258,73 @@ class AbellTersoffBrenner(Calculator):
             D_t = U_p[ij_t] * ddb_p[ij_t] * h_t_ab + U_p[ik_t] * ddb_p[ik_t] * h_t_ba
             E_t = U_p[ij_t] * db_p[ij_t] * dhb_t_ab + U_p[ik_t] * db_p[ik_t] * dha_t_ba
             F_t = U_p[ij_t] * db_p[ij_t] * ddhab_t_ab + U_p[ik_t] * db_p[ik_t] * ddhab_t_ba
-            X_tc = (h_t_ab.reshape(-1, 1) * cb_tc \
-                 + dha_t_ab.reshape(-1, 1) * norm_pc[ij_t]) * dg_t.reshape(-1, 1)
+            X_tc = (h_t_ab.reshape(-1, 1) * cb_tc
+                    + dha_t_ab.reshape(-1, 1) * norm_pc[ij_t]) * dg_t.reshape(-1, 1)
             Xx_p = np.bincount(ij_t, weights=X_tc[:, 0])
             Xy_p = np.bincount(ij_t, weights=X_tc[:, 1])
             Xz_p = np.bincount(ij_t, weights=X_tc[:, 2])
             X_pc = np.transpose([Xx_p, Xy_p, Xz_p])
-            Y_tc = (h_t_ab.reshape(-1, 1) * ca_tc \
-                 + dhb_t_ab.reshape(-1, 1) * norm_pc[ik_t]) \
-                 * dg_t.reshape(-1, 1)
+            Y_tc = (h_t_ab.reshape(-1, 1) * ca_tc
+                    + dhb_t_ab.reshape(-1, 1) * norm_pc[ik_t]) * dg_t.reshape(-1, 1)
             Yx_p = np.bincount(ij_t, weights=Y_tc[:, 0])
             Yy_p = np.bincount(ij_t, weights=Y_tc[:, 1])
             Yz_p = np.bincount(ij_t, weights=Y_tc[:, 2])
             Y_pc = np.transpose([Yx_p, Yy_p, Yz_p])
-            
+
+            chi_tcc = ((cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T*1/self.r_p[ij_t]
+                       + (norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T*1/self.r_p[ij_t]**2
+                       + self.cos_theta_t*((np.eye(3, dtype=kron_pcc.dtype) - kron_pcc)[ij_t].T*1/self.r_p[ij_t]
+                       - kron_pcc[ij_t].T*1/self.r_p[ij_t]**2)).T
+
+            zeta_tcc = ((np.eye(3, dtype=kron_pcc.dtype) - norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T*1/(self.r_p[ik_t]*self.r_p[ij_t])
+                        - (ca_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T*1/self.r_p[ij_t]).T
+
             """
-            chi_tcc = ((cb_tc.reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3)).T*1/self.r_p[ij_t] \
-                    + (norm_pc[ik_t].reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3)).T*1/self.r_p[ij_t]**2 \
-                    + self.cos_theta_t*((np.eye(3, dtype=kron_pcc.dtype) - kron_pcc)[ij_t].T*1/self.r_p[ij_t] \
-                                        - kron_pcc[ij_t].T*1/self.r_p[ij_t]**2)).T
-            
-            zeta_tcc = ((np.eye(3, dtype=kron_pcc.dtype) - norm_pc[ik_t].reshape(-1,3,1)*norm_pc[ik_t].reshape(-1,1,3)).T*1/(self.r_p[ik_t]*self.r_p[ij_t]) \
-                     - (ca_tc.reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3)).T*1/self.r_p[ij_t]).T
-            """
-            
-            chi_tcc = ((cb_tc.reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3))*(1/self.r_p[ij_t]).reshape(-1,1,1) \
-                    + (norm_pc[ik_t].reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3))*(1/self.r_p[ij_t]**2).reshape(-1,1,1) \
-                    + ((np.eye(3, dtype=kron_pcc.dtype) - kron_pcc)[ij_t]*(self.cos_theta_t/self.r_p[ij_t]).reshape(-1,1,1) \
-                                        - kron_pcc[ij_t]*(1/self.r_p[ij_t]**2).reshape(-1,1,1)))
-            print(chi_tcc.T)
-            
+            chi_tcc = ((cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3))*(1/self.r_p[ij_t]).reshape(-1, 1, 1) \
+                       + (norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3))*(1/self.r_p[ij_t]**2).reshape(-1, 1, 1) \
+                       + ((np.eye(3, dtype=kron_pcc.dtype) - kron_pcc)[ij_t]*(self.cos_theta_t/self.r_p[ij_t]).reshape(-1, 1, 1) \
+                       - kron_pcc[ij_t]*(1/self.r_p[ij_t]**2).reshape(-1, 1, 1)))
+
             zeta_tcc = ((np.eye(3, dtype=kron_pcc.dtype) - norm_pc[ik_t].reshape(-1,3,1)*norm_pc[ik_t].reshape(-1,1,3))*(1/(self.r_p[ik_t]*self.r_p[ij_t])).reshape(-1,1,1) \
-                     - (ca_tc.reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3))*(1/self.r_p[ij_t]).reshape(-1,1,1))
-            
-            
-            dim_tcc = -((( (np.eye(3, dtype=kron_pcc.dtype) + kron_pcc)[ij_t].T*(g_t/self.r_p[ij_t]) \
-                    + dg_t*(0 #norm_pc[ij_t].reshape(-1,3,1)*ca_tc.reshape(-1,1,3) \
-                    + cb_tc.reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3)).T)*A_t).T \
-                    + ((g_t*B_t).reshape(-1,1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1,1)*cb_tc).reshape(-1, 3, 1)*X_pc[ij_t].reshape(-1, 1, 3) \
-                    #+ ((g_t*B_t).reshape(-1,1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1,1)*cb_tc).reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3) \
-                    #+ (ddg_t*C_t*(cb_tc.reshape(-1,3,1)*ca_tc.reshape(-1,1,3)+cb_tc.reshape(-1,3,1)*cb_tc.reshape(-1,1,3)).T).T \
-                    + (ddg_t*C_t*(cb_tc.reshape(-1,3,1)*cb_tc.reshape(-1,1,3)).T).T \
-                    ##+ (g_t*(U_p[ij_t]*db_p[ij_t]*ddhaa_t_ab+U_p[ik_t]*db_p[ik_t]*ddhbb_t_ba)*kron_pcc[ij_t].T).T \
-                    + (g_t*(U_p[ij_t]*db_p[ij_t]*ddhaa_t_ab+U_p[ik_t]*db_p[ik_t]*ddhbb_t_ba)).reshape(-1,1,1)*kron_pcc[ij_t] \
-                    #
-                    + ((g_t*f_att_p[ij_t]*db_p[ij_t]*dha_t_ab).reshape(-1,1,1)*kron_pcc[ij_t]) \
-                    #+ (g_t*F_t*kron_tcc.T).T \
-                    #+ (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba*kron_tcc.T).T \
-                    + (dg_t*U_p[ik_t]*db_p[ik_t]*dhb_t_ba*(norm_pc[ij_t].reshape(-1,3,1)*cb_tc.reshape(-1,1,3)).T).T \
-                    + (dg_t*f_att_p[ij_t]*db_p[ij_t]*h_t_ab*(cb_tc.reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3)).T).T \
-                    #+ (dg_t*E_t*(cb_tc.reshape(-1,3,1)*norm_pc[ik_t].reshape(-1,1,3)).T).T \
-                    #+ (dg_t*f_att_p[ik_t]*db_p[ik_t]*h_t_ba*(cb_tc.reshape(-1,3,1)*norm_pc[ik_t].reshape(-1,1,3)).T).T \
-                    # additional term from 'K_pair' derivative
-                    + (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1,3,1)*X_pc[ij_t].reshape(-1,1,3)).T).T \
-                    #+ (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1,3,1)*Y_pc[ij_t].reshape(-1,1,3)).T).T \
-                       ) +((chi_tcc).T*dg_t*C_t).T
-            
-            
-            djm_tcc = ((dg_t*A_t*(norm_pc[ij_t].reshape(-1,3,1)*ca_tc.reshape(-1,1,3)).T).T \
-                    + ((g_t*B_t).reshape(-1,1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1,1)*cb_tc).reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3) \
-                    + (ddg_t*C_t*(cb_tc.reshape(-1,3,1)*ca_tc.reshape(-1,1,3)).T).T \
-                    + (dg_t*E_t*(cb_tc.reshape(-1,3,1)*norm_pc[ik_t].reshape(-1,1,3)).T).T \
-                    + (g_t*F_t*kron_tcc.T).T \
-                    ##+ (g_t*F_t).reshape(-1,1,1)*kron_tcc \
-                    + (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba*kron_tcc.T).T \
-                    ##+ (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba).reshape(-1,1,1)*kron_tcc \
-                    + (dg_t*f_att_p[ik_t]*db_p[ik_t]*h_t_ba*(cb_tc.reshape(-1,3,1)*norm_pc[ik_t].reshape(-1,1,3)).T).T \
-                    # additional term from 'K_pair' derivative
-                    + (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1,3,1)*Y_pc[ij_t].reshape(-1,1,3)).T).T \
-                     ) + (zeta_tcc.T*dg_t*C_t).T
-            #print('jm', djm_tcc)
+                        - (ca_tc.reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3))*(1/self.r_p[ij_t]).reshape(-1,1,1))
+
+            """
+            dim_tcc = -((((np.eye(3, dtype=kron_pcc.dtype) + kron_pcc)[ij_t].T*(g_t/self.r_p[ij_t])
+                          + dg_t*(norm_pc[ij_t].reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)
+                          + norm_pc[ij_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)
+                          + cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T)*A_t).T
+                        + ((g_t*B_t).reshape(-1, 1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1, 1)*cb_tc).reshape(-1, 3, 1)*X_pc[ij_t].reshape(-1, 1, 3)
+                        + ((g_t*B_t).reshape(-1, 1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1, 1)*cb_tc).reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)
+                        + (ddg_t*C_t*(cb_tc.reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)+cb_tc.reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T
+                        + (g_t*(U_p[ij_t]*db_p[ij_t]*ddhaa_t_ab+U_p[ik_t]*db_p[ik_t]*ddhbb_t_ba)*kron_pcc[ij_t].T).T
+                        + ((g_t*f_att_p[ij_t]*db_p[ij_t]*dha_t_ab)*kron_pcc[ij_t].T).T
+                        + (g_t*F_t*kron_tcc.T).T
+                        + (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba*kron_tcc.T).T \
+                        + (dg_t*f_att_p[ij_t]*db_p[ij_t]*h_t_ab*(cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T).T
+                        + (dg_t*f_att_p[ik_t]*db_p[ik_t]*h_t_ba*(cb_tc.reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T).T
+                        + (dg_t*E_t*(cb_tc.reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T).T \
+                        # additional term from 'K_pair' derivative
+                        + (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1, 3, 1)*X_pc[ij_t].reshape(-1, 1, 3)).T).T \
+                        + (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)).T).T \
+                        ) + ((chi_tcc-zeta_tcc).T*dg_t*C_t).T
+
+            djm_tcc = ((dg_t*A_t*(norm_pc[ij_t].reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)).T).T
+                       + ((g_t*B_t).reshape(-1, 1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1, 1)*cb_tc).reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)
+                       + (ddg_t*C_t*(cb_tc.reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)).T).T
+                       + (g_t*F_t*kron_tcc.T).T
+                       + (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba*kron_tcc.T).T
+                       + (dg_t*f_att_p[ik_t]*db_p[ik_t]*h_t_ba*(cb_tc.reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T).T
+                       + (dg_t*E_t*(cb_tc.reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T).T \
+                       # additional term from 'K_pair' derivative
+                       + (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)).T).T \
+                       ) + (zeta_tcc.T*dg_t*C_t).T
+            # print('jm', djm_tcc)
         else:
             b_p = np.ones_like(i_n)
             # dxi_pcc = np.zeros([nat, 3, 3])
 
-        dF_pcc = - kron_pcc*(k_rep_p-(f_rep_p/self.r_p)+b_p*(k_att_p-(f_att_p/self.r_p))).reshape(-1,1,1)\
-                 - np.eye(3, dtype=kron_pcc.dtype)*((b_p*f_att_p+f_rep_p)/self.r_p).reshape(-1,1,1) \
+        dF_pcc = - kron_pcc*(k_rep_p-(f_rep_p/self.r_p)+b_p*(k_att_p-(f_att_p/self.r_p))).reshape(-1, 1, 1)\
+                 - np.eye(3, dtype=kron_pcc.dtype)*((b_p*f_att_p+f_rep_p)/self.r_p).reshape(-1, 1, 1) \
 
         # K_pcc = 1/2*(dF_pcc[i_n]-dF_pcc[j_n])
 
@@ -341,19 +332,19 @@ class AbellTersoffBrenner(Calculator):
         # dF_tcc = dF_pcc[ij_t]
         # print('b',dF_pcc)
 
-        #print(dxi_pcc.shape, dF_pcc.shape)
+        # print(dxi_pcc.shape, dF_pcc.shape)
 
-        #print(djm_tcc.T, dim_tcc.T)
+        # print(djm_tcc.T, dim_tcc.T)
 
         H_pcc = np.empty((i_n.shape[0], 3, 3))
-        #H_pcc_a = np.empty((i_n.shape[0], 3, 3))
+        # H_pcc_a = np.empty((i_n.shape[0], 3, 3))
 
         if ij_t.size > 0:
             for x in range(3):
                 for y in range(3):
-                    H_pcc[:,x,y] = dF_pcc[:, x, y]+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y])
-                    #H_pcc[:,x,y] = dF_pcc[:, x, y]+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y])
-                    #H_pcc_a[:,x,y] = 1/2*((np.bincount(ij_t, weights=dF_tcc[:, x, y])+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y]))-(np.bincount(ik_t, weights=dF_tcc[:, x, y])+np.bincount(ik_t, weights=dim_tcc[:, x, y])+np.bincount(ij_t, weights=djm_tcc[:, x, y])))
+                    H_pcc[:, x, y] = dF_pcc[:, x, y]+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y])
+                    # H_pcc[:,x,y] = dF_pcc[:, x, y]+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y])
+                    # H_pcc_a[:,x,y] = 1/2*((np.bincount(ij_t, weights=dF_tcc[:, x, y])+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y]))-(np.bincount(ik_t, weights=dF_tcc[:, x, y])+np.bincount(ik_t, weights=dim_tcc[:, x, y])+np.bincount(ij_t, weights=djm_tcc[:, x, y])))
                     # H_pcc[:,x,y] = 1/2*(H_pcc[:,x,y][i_n]-H_pcc[:,x,y][j_n])
                     # a = np.bincount(ij_t, weights=dim_tcc[:, x, y])
                     # b = np.bincount(ik_t, weights=djm_tcc[:, x, y])
@@ -374,7 +365,7 @@ class AbellTersoffBrenner(Calculator):
         H = np.zeros((3*nat, 3*nat))
         for atom in range(len(i_n)):
             H[3*i_n[atom]:3*i_n[atom]+3,
-              3*j_n[atom]:3*j_n[atom]+3] += H_pcc[atom] #1/2*(H_pcc[atom]-H_pcc[j_n[atom]])
+              3*j_n[atom]:3*j_n[atom]+3] += H_pcc[atom]  # 1/2*(H_pcc[atom]-H_pcc[j_n[atom]])
 
         Hdiag_pcc = np.zeros((3*nat, 3*nat))
         for atom in range(nat):
@@ -424,20 +415,20 @@ class KumagaiTersoff(AbellTersoffBrenner):
 
             db_xi=lambda xi: -delta*eta*xi**(eta-1)*(xi**eta+1)**(-delta-1),
 
-            dg_costheta=lambda cos_theta: 2*c_2*(cos_theta - h)*((c_3 + (cos_theta - h)**2)* \
-                                                        (-c_4*c_5*(cos_theta - h)**2 + c_4 + \
-                                                         np.exp(c_5*(cos_theta - h)**2)) - \
-                                                        (c_4 + np.exp(c_5*(cos_theta - h)**2)) \
-                                                        *(cos_theta - h)**2)*np.exp(-c_5*(cos_theta - \
-                                                                        h)**2)/(c_3 + (cos_theta - h)**2)**2,
-            dexp_r_ij=lambda r_ij, r_ik: (alpha*beta)*np.exp(alpha*(r_ij-r_ik)**beta), #(alpha*beta*(r_ij-r_ik)**(beta-1))*np.exp(alpha*(r_ij-r_ik)**beta),
-            dexp_r_ik=lambda r_ij, r_ik: -(alpha*beta)*np.exp(alpha*(r_ij-r_ik)**beta), #-(alpha*beta*(r_ij-r_ik)**(beta-1))*np.exp(alpha*(r_ij-r_ik)**beta),
+            dg_costheta=lambda cos_theta: 2*c_2*(cos_theta - h)*((c_3 + (cos_theta - h)**2) * \
+                                                                 (-c_4*c_5*(cos_theta - h)**2 + c_4 + \
+                                                                  np.exp(c_5*(cos_theta - h)**2)) - \
+                                                                 (c_4 + np.exp(c_5*(cos_theta - h)**2)) \
+                                                                 * (cos_theta - h)**2)*np.exp(-c_5*(cos_theta - \
+                                                                                              h)**2)/(c_3 + (cos_theta - h)**2)**2,
+            dexp_r_ij=lambda r_ij, r_ik: (alpha*beta)*np.exp(alpha*(r_ij-r_ik)**beta),  # (alpha*beta*(r_ij-r_ik)**(beta-1))*np.exp(alpha*(r_ij-r_ik)**beta),
+            dexp_r_ik=lambda r_ij, r_ik: -(alpha*beta)*np.exp(alpha*(r_ij-r_ik)**beta),  # -(alpha*beta*(r_ij-r_ik)**(beta-1))*np.exp(alpha*(r_ij-r_ik)**beta),
             
             # hessian
             ddf_c_r_r=lambda r: np.where(r >= R_2, 0.0,\
-                                      np.where(r <= R_1, 0.0,\
-                                               ((9*np.pi**2*(np.cos(3*np.pi*(R_1 - r)/(R_1 - R_2)) \
-                                                             -np.cos(np.pi*(R_1 - r)/(R_1 - R_2))))/(16*(R_1 - R_2)**2)))),
+                                         np.where(r <= R_1, 0.0,\
+                                                  ((9*np.pi**2*(np.cos(3*np.pi*(R_1 - r)/(R_1 - R_2)) \
+                                                                - np.cos(np.pi*(R_1 - r)/(R_1 - R_2))))/(16*(R_1 - R_2)**2)))),
             #ddb_xi_xi=lambda xi: delta*eta*xi**(eta - 2)*(xi**eta + 1)**(-delta)\
             #                    *(delta*eta*xi**eta - eta + xi**eta + 1)/(xi**(2*eta) + 2*xi**eta + 1),
             ddb_xi_xi=lambda xi: delta*eta**2*xi**(eta - 1)*(delta + 1)*(xi**eta + 1)**(-delta - 2),
@@ -453,12 +444,14 @@ class KumagaiTersoff(AbellTersoffBrenner):
                                         - 5*c_4 - 5*np.exp(c_5*(cos_theta - h)**2))\
                                         + 4*(c_4 + np.exp(c_5*(cos_theta - h)**2))*(cos_theta - h)**4)*np.exp(-c_5*(cos_theta - h)**2)/(c_3 + (cos_theta - h)**2)**3,
             ddU_r_r=lambda r, f_c, df_c_r, ddf_c_r_r: -B*np.exp(-lambda_2*r)*(ddf_c_r_r-2*df_c_r*lambda_2+lambda_2**2*f_c),
-            ddV_r_r=lambda r, f_c, df_c_r, ddf_c_r_r: A*np.exp(-lambda_1*r)*(ddf_c_r_r-2*df_c_r*lambda_1+ lambda_1**2*f_c),
+            ddV_r_r=lambda r, f_c, df_c_r, ddf_c_r_r: A*np.exp(-lambda_1*r)*(ddf_c_r_r-2*df_c_r*lambda_1+lambda_1**2*f_c),
 
         )
 
         def get_cutoff(self):
             return self.cutoff
+
+
 """
 Kumagai_CompMaterSci_39_457_Si_py_var = {
     "__ref__":  "T. Kumagai, S. Izumi, S. Hara, and S. Sakai, \
