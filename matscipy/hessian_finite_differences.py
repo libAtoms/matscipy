@@ -72,11 +72,11 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
 
         for i, index in enumerate(indices):
             for direction in range(3):
-                atoms.position[index, direction] += dx
+                atoms.positions[index, direction] += dx
                 fp_nc = atoms.get_forces()[indices].reshape(-1)
-                atoms.position[index, direction] -= 2 * dx
+                atoms.positions[index, direction] -= 2 * dx
                 fn_nc = atoms.get_forces()[indices].reshape(-1)
-                atoms.position[index, direction] += dx
+                atoms.positions[index, direction] += dx
                 dH_nc = (fn_c - fp_c) / (2 * dx)
                 for j, index2 in enumerate(indices):
                     for l in range(3):
@@ -92,11 +92,11 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
         H = np.zeros((3 * len(indices), 3 * len(atoms)))
         for i, index in enumerate(indices):
             for direction in range(3):
-                atoms.position[index, direction] += dx
+                atoms.positions[index, direction] += dx
                 fp_nc = atoms.get_forces()[indices].reshape(-1)
-                atoms.position[index, direction] -= 2 * dx
+                atoms.positions[index, direction] -= 2 * dx
                 fn_nc = atoms.get_forces()[indices].reshape(-1)
-                atoms.position[index, direction] += dx
+                atoms.positions[index, direction] += dx
                 dH_nc = (fn_c - fp_c) / (2 * dx)
                 for j, index2 in enumerate(indices):
                     H[3*index+direction,3*index2:3*index2+3] = dH_nc[3*index2:3*index2+3]
