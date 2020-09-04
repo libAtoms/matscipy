@@ -19,6 +19,6 @@ fi
 pip install numpy==1.16.0
 pip install ase==3.17.0
 pip install scipy==1.2.3
-if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-  pip install atomistica
-fi
+#if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+#  pip install atomistica
+#fi
