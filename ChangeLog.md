@@ -1,8 +1,8 @@
 Change log
 ==========
 
-v0.5.1 (4Sep20)
----------------
+v0.5.1, v0.5.2 (4Sep20)
+-----------------------
 
 - Enabling automatic publishing on PyPI
 
