@@ -23,7 +23,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from ase.lattice.cubic import Diamond, FaceCenteredCubic, SimpleCubic
+from ase.lattice.cubic import Diamond, FaceCenteredCubic, SimpleCubic, BodyCenteredCubic
 
 ###
 
@@ -59,6 +59,32 @@ def set_groups(a, n, skin_x, skin_y, central_x=-1./2, central_y=-1./2,
 
     a.set_array('groups', g)
 
+def set_regions(cryst, r_I, cutoff, r_III):
+    sx, sy, sz = cryst.cell.diagonal()
+    x, y = cryst.positions[:, 0], cryst.positions[:, 1]
+    cx, cy = sx/2, sy/2
+    r = np.sqrt((x - cx)**2 + (y - cy)**2)
+
+    # Regions I-III defined by radial distance from center
+    regionI = r < r_I
+    regionII = (r >= r_I) & (r < (r_I + cutoff))
+    regionIII = (r >= (r_I + cutoff)) & (r < r_III)
+    regionIV = (r >= r_III) & (r < (r_III + cutoff))
+
+    cryst.new_array('region', np.zeros(len(cryst), dtype=int))
+    region = cryst.arrays['region']
+    region[regionI]  = 1
+    region[regionII] = 2
+    region[regionIII] = 3
+    region[regionIV] = 4
+
+    # keep only cylinder defined by regions I - IV
+    cryst = cryst[regionI | regionII | regionIII | regionIV]
+
+    # order by radial distance from tip
+    order = r[regionI | regionII | regionIII | regionIV ].argsort()
+    cryst = cryst[order]
+    return cryst
 
 def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
             lattice=None, shift=None):
@@ -98,6 +124,9 @@ def fcc(*args, **kwargs):
     kwargs['lattice'] = FaceCenteredCubic
     return cluster(*args, **kwargs)
 
+def bcc(*args, **kwargs):
+    kwargs['lattice'] = BodyCenteredCubic
+    return cluster(*args, **kwargs)
 
 def sc(*args, **kwargs):
     kwargs['lattice'] = SimpleCubic

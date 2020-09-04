@@ -1,30 +1,24 @@
 matscipy.calculators package
 ============================
 
-Submodules
-----------
-
-matscipy.calculators.eam.calculator module
-------------------------------------------
-
-.. automodule:: matscipy.calculators.eam.calculator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-matscipy.calculators.eam module
--------------------------------
-
-.. automodule:: matscipy.calculators.eam
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
 .. automodule:: matscipy.calculators
     :members:
     :undoc-members:
     :show-inheritance:
+
+Packages
+--------
+
+.. autosummary::
+
+   matscipy.calculators.eam
+   matscipy.calculators.mcfm
+   matscipy.calculators.pair_potential
+
+Modules
+-------
+
+.. autosummary::
+
+   matscipy.calculators.supercell_calculator
+

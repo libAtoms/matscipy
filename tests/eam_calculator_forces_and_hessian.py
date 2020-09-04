@@ -108,7 +108,28 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
         Reference: finite difference approximation of 
         Hessian from ASE
         """
-        atoms = FaceCenteredCubic('Cu', size=[4, 4, 4])
+        def _test_for_size(size):
+            atoms = FaceCenteredCubic('Cu', size=size)
+            calculator = EAM('CuAg.eam.alloy')
+            self._test_hessian(atoms, calculator)
+        _test_for_size(size=[1, 1, 1])
+        _test_for_size(size=[2, 2, 2])
+        _test_for_size(size=[1, 4, 4])
+        _test_for_size(size=[4, 1, 4])
+        _test_for_size(size=[4, 4, 1])
+        _test_for_size(size=[4, 4, 4])
+
+    def test_hessian_monoatomic_with_duplicate_pairs(self):
+        """Calculate Hessian matrix of pure Cu
+
+        In a small system, the same pair (i,j) will
+        appear multiple times in the neighbor list,
+        with different pair distance.
+
+        Reference: finite difference approximation of 
+        Hessian from ASE
+        """
+        atoms = FaceCenteredCubic('Cu', size=[2, 2, 2])
         calculator = EAM('CuAg.eam.alloy')
         self._test_hessian(atoms, calculator)
 

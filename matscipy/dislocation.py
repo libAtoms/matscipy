@@ -1,5 +1,7 @@
 import numpy as np
 
+from scipy.optimize import minimize
+
 from ase.lattice.cubic import BodyCenteredCubic
 from ase.constraints import FixAtoms, StrainFilter
 from ase.optimize import FIRE
@@ -801,7 +803,8 @@ def slice_long_dislo(kink, kink_bulk, b):
 
 
 def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
-                           alat, cylinder_r=None, print_info=True):
+                           alat, cylinder_r=None, print_info=True, remap=True,
+                           bulk_neighbours=None, origin=(0., 0.)):
     """Compares two dislocation configurations based on the gradient of
        the displacements along the bonds.
 
@@ -825,6 +828,14 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
         around the dislocation core position.
     print_info : bool
         Flag to switch print statement about the type of the comparison
+    remap: bool
+        Flag to swtich off remapping of atoms between deformed and reference
+        configurations. Only set this to true if atom order is the same!
+    bulk_neighbours:
+        Optionally pass in bulk neighbours as a tuple (bulk_i, bulk_j)
+    origin: tuple
+        Optionally pass in coordinate origin (x0, y0)
+
     Returns
     -------
     float
@@ -832,9 +843,13 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 
     """
 
+    x0, y0 = origin
+    x, y, __ = bulk.get_positions().T
+    x -= x0
+    y -= y0
+    radius = np.sqrt(x ** 2 + y ** 2)
+
     if cylinder_r is None:
-        x, y, __ = bulk.positions.T
-        radius = np.sqrt(x**2 + y**2)
         cutoff_radius = radius.max() - 10.
 
         if print_info:
@@ -845,20 +860,23 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
         if print_info:
             print("Making a local comparison with radius %.2f" % cutoff_radius)
 
-    x, y, __ = bulk_ref.positions.T
-    radius = np.sqrt(x**2 + y**2)
-    cutoff_mask = (radius < cutoff_radius)
-
+    cutoff_mask = radius < cutoff_radius
     second_NN_distance = alat
-    bulk_i, bulk_j = neighbour_list('ij', bulk_ref, second_NN_distance)
+    if bulk_neighbours is None:
+        bulk_i, bulk_j = neighbour_list('ij', bulk_ref, second_NN_distance)
+    else:
+        bulk_i, bulk_j = bulk_neighbours
 
     I_core, J_core = np.array([(i, j) for i, j in zip(bulk_i, bulk_j) if cutoff_mask[i]]).T
 
-    mapping = {}
-
-    for i in range(len(bulk)):
-        mapping[i] = np.linalg.norm(bulk_ref.positions -
-                                    bulk.positions[i], axis=1).argmin()
+    if remap:
+        mapping = {}
+        for i in range(len(bulk)):
+            mapping[i] = np.linalg.norm(bulk_ref.positions -
+                                        bulk.positions[i], axis=1).argmin()
+    else:
+        mapping = dict(zip(list(range(len(bulk))),
+                           list(range(len(bulk)))))
 
     u_ref = dislo_ref.positions - bulk_ref.positions
 
@@ -874,7 +892,8 @@ def compare_configurations(dislo, bulk, dislo_ref, bulk_ref,
 
 
 def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
-                  hard_core=False, print_info=True):
+                  hard_core=False, print_info=True, remap=True,
+                  bulk_neighbours=None, origin=(0, 0)):
     """Cost function for fitting analytical displacement field
        and detecting dislocation core position. Uses `compare_configurations`
        function for the minimisation of the core position.
@@ -898,6 +917,11 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         type of the core True for hard
     print_info : bool
         Flag to switch print statement about the type of the comparison
+    bulk_neighbours: tuple or None
+        Optionally pass in neighbour list for bulk reference config to save
+        computing it each time.
+    origin: tuple
+        Optionally pass in coordinate origin (x0, y0)
 
     Returns
     -------
@@ -925,6 +949,7 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
     # Solving a new problem with Stroh.solve
     stroh.solve(c, burgers, axes=axes)
 
+    x0, y0 = origin
     center = (pos[0], pos[1], 0.0)
     u = stroh.displacement(bulk.positions - center)
     u = -u if hard_core else u
@@ -935,9 +960,90 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
     err = compare_configurations(dislo, bulk,
                                  dislo_guess, bulk,
                                  alat, cylinder_r=cylinder_r,
-                                 print_info=print_info)
+                                 print_info=print_info, remap=remap,
+                                 bulk_neighbours=bulk_neighbours,
+                                 origin=origin)
 
     return err
+
+
+def fit_core_position(dislo_image, bulk, elastic_param, hard_core=False,
+                      core_radius=10, current_pos=None, bulk_neighbours=None,
+                      origin=(0, 0)):
+    """
+    Use `cost_function()` to fit atomic positions to Stroh solution with
+
+    `scipy.optimize.minimize` is used to perform the fit using Powell's method.
+
+    Parameters
+    ----------
+
+    dislo_image: ase.atoms.Atoms
+    bulk: ase.atoms.Atoms
+    elastic_param: array-like
+        [alat, C11, C12, C44]
+    hard_core: bool
+    core_radius: float
+    current_pos: array-like
+        array [core_x, core_y] containing initial guess for core position
+    bulk_neighbours: tuple
+        cache of bulk neigbbours to speed up calcualtion. Should be a
+        tuple (bulk_I, bulk_J) as returned by
+        `matscipy.neigbbours.neighbour_list('ij', bulk, alat)`.
+    origin: tuple
+        Optionally pass in coordinate origin (x0, y0)
+
+    Returns
+    -------
+
+    core_pos - array [core_x, core_y]
+
+    """
+    if current_pos is None:
+        current_pos = origin
+    res = minimize(cost_function, current_pos, args=(
+                    dislo_image, bulk, core_radius, elastic_param,
+                    hard_core, False, False, bulk_neighbours, origin),
+                   method='Powell', options={'xtol': 1e-2, 'ftol': 1e-2})
+    return res.x
+
+
+def fit_core_position_images(images, bulk, elastic_param,
+                             bulk_neighbours=None,
+                             origin=(0, 0)):
+    """
+    Call fit_core_position() for a list of Atoms objects, e.g. NEB images
+
+    Parameters
+    ----------
+    images: list
+        list of Atoms object for dislocation configurations
+    bulk: ase.atoms.Atoms
+        bulk reference configuration
+    elastic_param: list
+        as for `fit_core_position()`.
+    bulk_neighbours:
+        as for `fit_core_position()`.
+    origin: tuple
+        Optionally pass in coordinate origin (x0, y0)
+
+    Returns
+    -------
+    core_positions: array of shape `(len(images), 2)`
+    """
+    core_positions = []
+    core_position = images[0].info.get('core_position', origin)
+    for dislo in images:
+        dislo_tmp = dislo.copy()
+        core_position = fit_core_position(dislo_tmp, bulk, elastic_param,
+                                          current_pos=dislo.info.get(
+                                              'core_position', core_position),
+                                          bulk_neighbours=bulk_neighbours,
+                                          origin=origin)
+        dislo.info['core_position'] = core_position
+        core_positions.append(core_position)
+
+    return np.array(core_positions)
 
 
 def screw_cyl_tetrahedral(alat, C11, C12, C44,
@@ -946,7 +1052,7 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
                           imp_symbol='H',
                           hard_core=False,
                           center=(0., 0., 0.)):
-    """Generates a set of terahedral positions with `scan_r` radius.
+    """Generates a set of tetrahedral positions with `scan_r` radius.
        Applies the screw dislocation displacement for creating an initial guess
        for the H positions at dislocation core.
 

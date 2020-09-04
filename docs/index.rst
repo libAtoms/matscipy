@@ -13,7 +13,11 @@ Contents
 
    matscipy.angle_distribution
    matscipy.atomic_strain
+   matscipy.calculators
    matscipy.calculators.eam
+   matscipy.calculators.pair_potential
+   matscipy.calculators.mcfm
+   matscipy.calculators.supercell_calculator
    matscipy.contact_mechanics
    matscipy.contact_mechanics.DMT
    matscipy.contact_mechanics.greens_function

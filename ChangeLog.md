@@ -1,6 +1,17 @@
 Change log
 ==========
 
+v0.5.1 (4Sep20)
+---------------
+
+- Enabling automatic publishing on PyPI
+
+v0.5.0 (4Sep20)
+---------------
+
+- Sinclair flexible boundary conditions for cracks and arc-length continuation
+- Bug fix in neighbour list search that lead to occasional segfaults
+
 v0.4.0 (5May20)
 ---------------
 
