@@ -28,7 +28,7 @@ try:
 except ImportError:
     warnings.warn('Warning: no scipy')
 
-def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
+def fd_hessian(atoms, dx=1e-5, H_format="dense", indices=None):
     """
 
     Compute the hessian matrix from Jacobian of forces via central differences.

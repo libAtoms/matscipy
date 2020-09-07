@@ -97,7 +97,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             H_analytical = H_analytical.todense()
             self.assertArrayAlmostEqual(np.sum(np.abs(H_analytical-H_analytical.T)), 0, tol=0)
 
-    def test_hessian_split(self):
+    def test_hessian_dense_split(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
             atoms = io.read("FCC_LJcut.xyz")
             nat = len(atoms)
@@ -105,11 +105,25 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
             # Full analytical
-            H_analytical = fd_hessian(atoms)
-            H_analytical_0to16 = fd_hessian(atoms, indices=np.arange(0, 16, 1))
-            H_analytical_16to32 = fd_hessian(atoms, indices=np.arange(16, 32, 1))
-            H_analytical_splitted = np.concatenate((H_analytical_0to16, H_analytical_16to32), axis=0)
-            self.assertArrayAlmostEqual(H_analytical, H_analytical_splitted, tol=self.tol)
+            H_analytical = a.calculate_hessian_matrix(atoms, "dense")
+            H_numerical_0to16 = fd_hessian(atoms, indices=np.arange(0, 16, 1))
+            H_numerical_16to32 = fd_hessian(atoms, indices=np.arange(16, 32, 1))
+            H_numerical_splitted = np.concatenate((H_numerical_0to16, H_numerical_16to32), axis=0)
+            self.assertArrayAlmostEqual(H_analytical, H_numerical_splitted, tol=self.tol)
+
+    def test_hessian_sparse_split(self):
+        for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
+            atoms = io.read("FCC_LJcut.xyz")
+            nat = len(atoms)
+            atoms.center(vacuum=5.0)
+            a = calculator.PairPotential(calc)
+            atoms.set_calculator(a)
+            # Full analytical
+            H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
+            H_nuermical_0to16 = fd_hessian(atoms, dx=1e-5, "sparse", indices=np.arange(0, 16, 1))
+            H_numerical_16to32 = fd_hessian(atoms, dx=1e-5, "sparse", indices=np.arange(16, 32, 1))
+            H_numerical_splitted = np.concatenate((H_nuermical_0to16.todense(), H_numerical_16to32.todense()), axis=0)
+            self.assertArrayAlmostEqual(H_analytical, H_numerical_splitted, tol=self.tol)
 
 
 ###
