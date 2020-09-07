@@ -58,9 +58,6 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
             raise ImportError(
                 "Import error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
 
-        if indices is None:
-            indices = range(len(atoms))
-
     if indices is None:
         indices = range(len(atoms))
 
@@ -69,36 +66,47 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
         col = []
         H = []
 
-        for i, index in enumerate(indices):
+        for i, AtomId1 in enumerate(indices):
             for direction in range(3):
-                atoms.positions[index, direction] += dx
+                atoms.positions[AtomId1, direction] += dx
                 fp_nc = atoms.get_forces()[indices].reshape(-1)
-                atoms.positions[index, direction] -= 2 * dx
+                atoms.positions[AtomId1, direction] -= 2 * dx
                 fn_nc = atoms.get_forces()[indices].reshape(-1)
-                atoms.positions[index, direction] += dx
+                atoms.positions[AtomId1, direction] += dx
                 dH_nc = (fn_nc - fp_nc) / (2 * dx)
-                for j, index2 in enumerate(indices):
-                    for l in range(3):
-                        H.append(dH_nc[3 * index2 + l])
-                        row.append(3 * index + direction)  
-                        col.append(3 * index2 + l) 
+                if indices is None:
+                    for j, AtomId2 in enumerate(indices):
+                        for l in range(3):
+                            H.append(dH_nc[3 * AtomId2 + l])
+                            row.append(3 * AtomId1 + direction)  
+                            col.append(3 * AtomId2 + l) 
+                else:
+                    for j, AtomId2 in enumerate(indices):
+                        for l in range(3):     
+                            H.append(dH_nc[3 * j + l])
+                            row.append(3 * i + direction)  
+                            col.append(3 * AtomId2 + l) 
 
         return coo_matrix((H, (row, col)),
-                          shape=(3 * len(atoms), 3 * len(atoms)))
+                          shape=(3 * len(indices), 3 * len(atoms)))
 
     if H_format == "dense":
         
         H = np.zeros((3 * len(atoms), 3 * len(atoms)))
-        for i, index in enumerate(indices):
+        for i, AtomId1 in enumerate(indices):
             for direction in range(3):
-                atoms.positions[index, direction] += dx
+                atoms.positions[AtomId1, direction] += dx
                 fp_nc = atoms.get_forces()[indices].reshape(-1)
-                atoms.positions[index, direction] -= 2 * dx
+                atoms.positions[AtomId1, direction] -= 2 * dx
                 fn_nc = atoms.get_forces()[indices].reshape(-1)
-                atoms.positions[index, direction] += dx
+                atoms.positions[AtomId1, direction] += dx
                 dH_nc = (fn_nc - fp_nc) / (2 * dx)
-                for j, index2 in enumerate(indices):
-                    H[3*index+direction,3*index2:3*index2+3] = dH_nc[3*index2:3*index2+3]
-
+                if indices is None:
+                    for j, AtomId2 in enumerate(indices):
+                        H[3*AtomId1+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*AtomId2:3*AtomId2+3]
+                else:
+                    for j, AtomId2 in enumerate(indices):
+                        H[3*AtomId1+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*j:3*j+3]
+ 
         return H
 
