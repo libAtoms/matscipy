@@ -108,11 +108,9 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             H_analytical = fd_hessian(atoms)
             # Atom ids: 0-16
             H_analytical_0to16 = fd_hessian(atoms, indices=np.arange(0, 16, 1))
-            H_analytical_0to16 = H_analytical_0to16
             # Atom ids: 16-32
             H_analytical_16to32 = fd_hessian(atoms, indices=np.arange(16, 32, 1))
-            H_analytical_16to32 = H_analytical_16to32
-            H_analytical_splitted = np.stack((H_analytical_0to16, H_analytical_16to32), axis=0)
+            H_analytical_splitted = np.stack((H_analytical_0to16, H_analytical_16to32))
             self.assertArrayAlmostEqual(H_analytical, H_analytical_splitted, tol=self.tol)
 
 

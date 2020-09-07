@@ -91,8 +91,11 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
                           shape=(3 * len(indices), 3 * len(atoms)))
 
     if H_format == "dense":
-        
-        H = np.zeros((3 * len(atoms), 3 * len(atoms)))
+        if indices is None:
+            H = np.zeros((3 * len(atoms), 3 * len(atoms)))
+        else:
+            H = np.zeros((3 * len(indices), 3 * len(atoms)))
+
         for i, AtomId1 in enumerate(indices):
             for direction in range(3):
                 atoms.positions[AtomId1, direction] += dx
@@ -106,7 +109,7 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
                         H[3*AtomId1+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*AtomId2:3*AtomId2+3]
                 else:
                     for j, AtomId2 in enumerate(indices):
-                        H[3*AtomId1+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*j:3*j+3]
+                        H[3*i+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*j:3*j+3]
  
         return H
 
