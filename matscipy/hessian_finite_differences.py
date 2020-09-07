@@ -23,12 +23,9 @@ from __future__ import division
 
 import numpy as np
 
-try:
-    import scipy.sparse as sp
-except ImportError:
-    warnings.warn('Warning: no scipy')
+from scipy.sparse import coo_matrix
 
-def fd_hessian(atoms, dx=1e-5, H_format="dense", indices=None):
+def fd_hessian(atoms, dx=1e-5, indices=None):
     """
 
     Compute the hessian matrix from Jacobian of forces via central differences.
@@ -41,79 +38,43 @@ def fd_hessian(atoms, dx=1e-5, H_format="dense", indices=None):
     dx: float
         Displacement increment  
 
-    H_format: "dense" or "sparse"
-        Output format of the hessian matrix.
-        The format "sparse" is only possible if matscipy was build with scipy.
-
     indices: 
         Compute the hessian only for these atom IDs
 
     """
 
-    if H_format == "sparse":
-        try:
-            from scipy.sparse import coo_matrix
-        except ImportError:
-            raise ImportError(
-                "Import error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
-
     nat = len(atoms)
     if indices is None:
         indices = range(nat)
 
-    if H_format == "sparse":
-        row = []
-        col = []
-        H = []
+    row = []
+    col = []
+    H = []
+    for i, AtomId1 in enumerate(indices):
+        for direction in range(3):
+            atoms.positions[AtomId1, direction] += dx
+            fp_nc = atoms.get_forces().reshape(-1)
+            atoms.positions[AtomId1, direction] -= 2 * dx
+            fn_nc = atoms.get_forces().reshape(-1)
+            atoms.positions[AtomId1, direction] += dx
+            dH_nc = (fn_nc - fp_nc) / (2 * dx)
 
-        for i, AtomId1 in enumerate(indices):
-            for direction in range(3):
-                atoms.positions[AtomId1, direction] += dx
-                fp_nc = atoms.get_forces().reshape(-1)
-                atoms.positions[AtomId1, direction] -= 2 * dx
-                fn_nc = atoms.get_forces().reshape(-1)
-                atoms.positions[AtomId1, direction] += dx
-                dH_nc = (fn_nc - fp_nc) / (2 * dx)
+            if indices is None:
+                for j, AtomId2 in enumerate(indices):
+                    for l in range(3):
+                        H.append(dH_nc[3 * AtomId2 + l])
+                        row.append(3 * AtomId1 + direction)  
+                        col.append(3 * AtomId2 + l) 
 
-                if indices is None:
-                    for j, AtomId2 in enumerate(indices):
-                        for l in range(3):
-                            H.append(dH_nc[3 * AtomId2 + l])
-                            row.append(3 * AtomId1 + direction)  
-                            col.append(3 * AtomId2 + l) 
+            else:
+                for j, AtomId2 in enumerate(range(nat)):
+                    for l in range(3):     
+                        H.append(dH_nc[3 * j + l])
+                        row.append(3 * i + direction)  
+                        col.append(3 * AtomId2 + l) 
 
-                else:
-                    for j, AtomId2 in enumerate(range(nat)):
-                        for l in range(3):     
-                            H.append(dH_nc[3 * j + l])
-                            row.append(3 * i + direction)  
-                            col.append(3 * AtomId2 + l) 
-
-        return coo_matrix((H, (row, col)),
+    return coo_matrix((H, (row, col)),
                           shape=(3 * len(indices), 3 * len(atoms)))
 
-    if H_format == "dense":
-        if indices is None:
-            H = np.zeros((3 * len(atoms), 3 * len(atoms)))
-        else:
-            H = np.zeros((3 * len(indices), 3 * len(atoms)))
 
-        for i, AtomId1 in enumerate(indices):
-            for direction in range(3):
-                atoms.positions[AtomId1, direction] += dx
-                fp_nc = atoms.get_forces().reshape(-1)
-                atoms.positions[AtomId1, direction] -= 2 * dx
-                fn_nc = atoms.get_forces().reshape(-1)
-                atoms.positions[AtomId1, direction] += dx
-                dH_nc = (fn_nc - fp_nc) / (2 * dx)
-
-                if indices is None:
-                    for j, AtomId2 in enumerate(indices):
-                        H[3*AtomId1+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*AtomId2:3*AtomId2+3]
-
-                else:
-                    for j, AtomId2 in enumerate(range(nat)):
-                        H[3*i+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*j:3*j+3]
- 
-        return H
 

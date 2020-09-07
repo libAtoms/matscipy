@@ -52,16 +52,6 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
     tol = 1e-4
 
-    def test_hessian_dense(self):
-        for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
-            atoms = io.read("FCC_LJcut.xyz")
-            atoms.center(vacuum=5.0)
-            a = calculator.PairPotential(calc)
-            atoms.set_calculator(a)
-            H_analytical = a.calculate_hessian_matrix(atoms, "dense")
-            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense")
-            self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
-
     def test_hessian_sparse(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
             atoms = io.read("FCC_LJcut.xyz")
@@ -69,17 +59,8 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
             H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
-            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None, H_format="sparse")
+            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical.todense(), tol=self.tol)
-
-    def test_symmetry_dense(self):
-        for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
-            atoms = io.read("FCC_LJcut.xyz")
-            atoms.center(vacuum=5.0)
-            a = calculator.PairPotential(calc)
-            atoms.set_calculator(a)
-            H_analytical = a.calculate_hessian_matrix(atoms, "dense")
-            self.assertArrayAlmostEqual(np.sum(np.abs(H_analytical-H_analytical.T)), 0, tol=0)
 
     def test_symmetry_sparse(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
@@ -87,22 +68,9 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms.center(vacuum=5.0)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
-            H_analytical = H_analytical.todense()
-            self.assertArrayAlmostEqual(np.sum(np.abs(H_analytical-H_analytical.T)), 0, tol=0)
-
-    def test_hessian_dense_split(self):
-        for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
-            atoms = io.read("FCC_LJcut.xyz")
-            nat = len(atoms)
-            atoms.center(vacuum=5.0)
-            a = calculator.PairPotential(calc)
-            atoms.set_calculator(a)
-            H_analytical = a.calculate_hessian_matrix(atoms, "dense")
-            H_numerical_0to16 = fd_hessian(atoms, indices=np.arange(0, 16, 1))
-            H_numerical_16to32 = fd_hessian(atoms, indices=np.arange(16, 32, 1))
-            H_numerical_splitted = np.concatenate((H_numerical_0to16, H_numerical_16to32), axis=0)
-            self.assertArrayAlmostEqual(H_analytical, H_numerical_splitted, tol=self.tol)
+            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+            H_numerical = H_numerical.todense()
+            self.assertArrayAlmostEqual(np.sum(np.abs(H_numerical-H_numerical.T)), 0, tol=1e-6)
 
     def test_hessian_sparse_split(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
@@ -112,8 +80,8 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
             H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
-            H_numerical_0to16 = fd_hessian(atoms, dx=1e-5, H_format="sparse", indices=np.arange(0, 16, 1))
-            H_numerical_16to32 = fd_hessian(atoms, dx=1e-5, H_format="sparse", indices=np.arange(16, 32, 1))
+            H_numerical_0to16 = fd_hessian(atoms, dx=1e-5, indices=np.arange(0, 16, 1))
+            H_numerical_16to32 = fd_hessian(atoms, dx=1e-5, indices=np.arange(16, 32, 1))
             H_numerical_splitted = np.concatenate((H_numerical_0to16.todense(), H_numerical_16to32.todense()), axis=0)
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical_splitted, tol=self.tol)
 
