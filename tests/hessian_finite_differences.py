@@ -52,7 +52,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
     tol = 1e-4
 
-    def test_hessian(self):
+    def test_hessian_dense(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
             atoms = io.read("FCC_LJcut.xyz")
             atoms.center(vacuum=5.0)
@@ -63,6 +63,40 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             # Numerical
             H_numerical = fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense")
             self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
+
+    def test_hessian_sparse(self):
+        for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
+            atoms = io.read("FCC_LJcut.xyz")
+            atoms.center(vacuum=5.0)
+            a = calculator.PairPotential(calc)
+            atoms.set_calculator(a)
+            # Analytical
+            H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
+            # Numerical
+            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None, H_format="sparse")
+            self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical.todense(), tol=self.tol)
+
+    def test_symmetry_dense(self):
+        for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
+            atoms = io.read("FCC_LJcut.xyz")
+            atoms.center(vacuum=5.0)
+            a = calculator.PairPotential(calc)
+            atoms.set_calculator(a)
+            # Analytical
+            H_analytical = a.calculate_hessian_matrix(atoms, "dense")
+            self.assertArrayAlmostEqual(np.sum(np.abs(H_analytical-H_analytical.T)), 0, tol=0)
+
+    def test_symmetry_sparse(self):
+        for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
+            atoms = io.read("FCC_LJcut.xyz")
+            atoms.center(vacuum=5.0)
+            a = calculator.PairPotential(calc)
+            atoms.set_calculator(a)
+            # Analytical
+            H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
+            H_analytical = H_analytical.todense()
+            self.assertArrayAlmostEqual(np.sum(np.abs(H_analytical-H_analytical.T)), 0, tol=0)
+
 
 
 
