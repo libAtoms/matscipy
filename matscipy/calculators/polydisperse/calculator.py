@@ -37,6 +37,8 @@ from matscipy.neighbours import neighbour_list, first_neighbours
 
 from scipy.special import factorial2
 
+from scipy.sparse import bsr_matrix
+
 
 ###
 
@@ -221,7 +223,7 @@ class Polydisperse(Calculator):
 
     ###
 
-    def hessian_matrix(self, atoms, H_format="dense", divide_by_masses=False):
+    def hessian_matrix(self, atoms, divide_by_masses=False):
         """
         Calculate the Hessian matrix for a polydisperse systems where atoms interact via a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
@@ -233,9 +235,7 @@ class Polydisperse(Calculator):
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
-        H_format: "dense" or "sparse"
-            Output format of the hessian matrix.
-            The format "sparse" is only possible if matscipy was build with scipy.
+
         divide_by_masses: bool
             Divide the block "l,m" by the corresponding atomic masses "sqrt(m_l, m_m)" to obtain dynamical matrix.
 
@@ -244,13 +244,6 @@ class Polydisperse(Calculator):
         This method is currently only implemented for three dimensional systems
 
         """
-
-        if H_format == "sparse":
-            try:
-                from scipy.sparse import bsr_matrix
-            except ImportError:
-                raise ImportError(
-                    "Import Error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
 
         if self.atoms is None:
             self.atoms = atoms
@@ -283,69 +276,31 @@ class Polydisperse(Calculator):
         de_n = f.first_derivative(abs_dr_n, ijsize)
         dde_n = f.second_derivative(abs_dr_n, ijsize)
 
-        # Hessian in sparse matrix format
-        if H_format == "sparse":
-            e_nc = (dr_nc.T/abs_dr_n).T
-            H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                               * e_nc.reshape(-1, 1, 3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
-                                       - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+        e_nc = (dr_nc.T/abs_dr_n).T
+        H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
+                           * e_nc.reshape(-1, 1, 3)).T).T
+        H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
+                                   - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-            if divide_by_masses:
-                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T,
-                                j_n, first_i), shape=(3*nat, 3*nat))
+        if divide_by_masses:
+            H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T,
+                            j_n, first_i), shape=(3*nat, 3*nat))
 
-            else:
-                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
-
-            Hdiag_icc = np.empty((nat, 3, 3))
-            for x in range(3):
-                for y in range(3):
-                    Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_ncc[:, x, y])
-
-            if divide_by_masses:
-                H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nat),
-                        np.arange(nat+1)), shape=(3*nat, 3*nat))         
-
-            else:
-                H += bsr_matrix((Hdiag_icc, np.arange(nat),
-                         np.arange(nat+1)), shape=(3*nat, 3*nat))
-
-            return H
-
-        # Hessian in dense matrix format
         else:
-            e_nc = (dr_nc.T/abs_dr_n).T
-            H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                               * e_nc.reshape(-1, 1, 3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) 
-                                       - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
-            H = np.zeros((3*nat, 3*nat))
-            if divide_by_masses:
-                for atom in range(len(i_n)):
-                    H[3*i_n[atom]:3*i_n[atom]+3, 3*j_n[atom]:3*j_n[atom] +
-                        3] += (H_ncc[atom].T/geom_mean_mass_n[atom]).T
+        Hdiag_icc = np.empty((nat, 3, 3))
+        for x in range(3):
+            for y in range(3):
+                Hdiag_icc[:, x, y] = - \
+                    np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            else:
-                for atom in range(len(i_n)):
-                    H[3*i_n[atom]:3*i_n[atom]+3, 3*j_n[atom]
-                       :3*j_n[atom]+3] += H_ncc[atom]
+        if divide_by_masses:
+            H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nat),
+                    np.arange(nat+1)), shape=(3*nat, 3*nat))         
 
-            Hdiag_icc = np.empty((nat, 3, 3))
-            for x in range(3):
-                for y in range(3):
-                    Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_ncc[:, x, y])
+        else:
+            H += bsr_matrix((Hdiag_icc, np.arange(nat),
+                     np.arange(nat+1)), shape=(3*nat, 3*nat))
 
-            if divide_by_masses:
-                for atom in range(nat):
-                    H[3*atom:3*atom+3, 3*atom:3*atom +
-                        3] += (Hdiag_icc[atom].T/mass_nat[atom]).T
-
-            else:
-                for atom in range(nat):
-                    H[3*atom:3*atom+3, 3*atom:3*atom+3] += Hdiag_icc[atom]
-
-            return H
+        return H
