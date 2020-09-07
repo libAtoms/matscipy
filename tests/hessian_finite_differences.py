@@ -58,9 +58,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms.center(vacuum=5.0)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            # Analytical
             H_analytical = a.calculate_hessian_matrix(atoms, "dense")
-            # Numerical
             H_numerical = fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense")
             self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
 
@@ -70,9 +68,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms.center(vacuum=5.0)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            # Analytical
             H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
-            # Numerical
             H_numerical = fd_hessian(atoms, dx=1e-5, indices=None, H_format="sparse")
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical.todense(), tol=self.tol)
 
@@ -82,7 +78,6 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms.center(vacuum=5.0)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            # Analytical
             H_analytical = a.calculate_hessian_matrix(atoms, "dense")
             self.assertArrayAlmostEqual(np.sum(np.abs(H_analytical-H_analytical.T)), 0, tol=0)
 
@@ -92,7 +87,6 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms.center(vacuum=5.0)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            # Analytical
             H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
             H_analytical = H_analytical.todense()
             self.assertArrayAlmostEqual(np.sum(np.abs(H_analytical-H_analytical.T)), 0, tol=0)
@@ -104,7 +98,6 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms.center(vacuum=5.0)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            # Full analytical
             H_analytical = a.calculate_hessian_matrix(atoms, "dense")
             H_numerical_0to16 = fd_hessian(atoms, indices=np.arange(0, 16, 1))
             H_numerical_16to32 = fd_hessian(atoms, indices=np.arange(16, 32, 1))
@@ -118,11 +111,10 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms.center(vacuum=5.0)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            # Full analytical
             H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
-            H_nuermical_0to16 = fd_hessian(atoms, dx=1e-5, H_format="sparse", indices=np.arange(0, 16, 1))
+            H_numerical_0to16 = fd_hessian(atoms, dx=1e-5, H_format="sparse", indices=np.arange(0, 16, 1))
             H_numerical_16to32 = fd_hessian(atoms, dx=1e-5, H_format="sparse", indices=np.arange(16, 32, 1))
-            H_numerical_splitted = np.concatenate((H_nuermical_0to16.todense(), H_numerical_16to32.todense()), axis=0)
+            H_numerical_splitted = np.concatenate((H_numerical_0to16.todense(), H_numerical_16to32.todense()), axis=0)
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical_splitted, tol=self.tol)
 
 

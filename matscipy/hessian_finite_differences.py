@@ -32,7 +32,6 @@ def fd_hessian(atoms, dx=1e-5, H_format="dense", indices=None):
     """
 
     Compute the hessian matrix from Jacobian of forces via central differences.
-    Finite difference hessian from Jacobian of forces
 
     Parameters
     ----------
@@ -41,13 +40,13 @@ def fd_hessian(atoms, dx=1e-5, H_format="dense", indices=None):
 
     dx: float
         Displacement increment  
-   
-    indices: 
-        Compute the hessian only for these atom IDs
 
     H_format: "dense" or "sparse"
         Output format of the hessian matrix.
         The format "sparse" is only possible if matscipy was build with scipy.
+
+    indices: 
+        Compute the hessian only for these atom IDs
 
     """
 
