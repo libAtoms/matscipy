@@ -43,7 +43,7 @@ from test_io import *
 from crack_tests import *
 from mcfm_test import *
 from hessian_finite_differences.py import * 
-
+from eam_calculator_forces_and_hessian.py import *
 
 if sys.version_info.major > 2:
     from test_c2d import *
