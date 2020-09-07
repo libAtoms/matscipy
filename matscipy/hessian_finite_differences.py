@@ -64,7 +64,6 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
     if indices is None:
         indices = range(len(atoms))
 
-
     if H_format == "sparse":
         row = []
         col = []
