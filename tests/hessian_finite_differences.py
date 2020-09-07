@@ -97,7 +97,23 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             H_analytical = H_analytical.todense()
             self.assertArrayAlmostEqual(np.sum(np.abs(H_analytical-H_analytical.T)), 0, tol=0)
 
-
+    def test_hessian_split(self):
+        for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
+            atoms = io.read("FCC_LJcut.xyz")
+            nat = len(atoms)
+            atoms.center(vacuum=5.0)
+            a = calculator.PairPotential(calc)
+            atoms.set_calculator(a)
+            # Full analytical
+            H_analytical = fd_hessian(atoms)
+            # Atom ids: 0-16
+            H_analytical_0to16 = fd_hessian(atoms, indices=np.arange(0, 16, 1))
+            H_analytical_0to16 = H_analytical_0to16
+            # Atom ids: 16-32
+            H_analytical_16to32 = fd_hessian(atoms, indices=np.arange(16, 32, 1))
+            H_analytical_16to32 = H_analytical_16to32
+            H_analytical_splitted = np.stack((H_analytical_0to16, H_analytical_16to32), axis=0)
+            self.assertArrayAlmostEqual(H_analytical, H_analytical_splitted, tol=self.tol)
 
 
 ###

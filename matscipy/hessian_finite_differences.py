@@ -88,7 +88,7 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
 
     if H_format == "dense":
         
-        H = np.zeros((3 * len(indices), 3 * len(atoms)))
+        H = np.zeros((3 * len(atoms), 3 * len(atoms)))
         for i, index in enumerate(indices):
             for direction in range(3):
                 atoms.positions[index, direction] += dx
