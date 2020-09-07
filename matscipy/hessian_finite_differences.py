@@ -58,8 +58,9 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
             raise ImportError(
                 "Import error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
 
+    nat = len(atoms)
     if indices is None:
-        indices = range(len(atoms))
+        indices = range(nat)
 
     if H_format == "sparse":
         row = []
@@ -69,19 +70,21 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
         for i, AtomId1 in enumerate(indices):
             for direction in range(3):
                 atoms.positions[AtomId1, direction] += dx
-                fp_nc = atoms.get_forces()[indices].reshape(-1)
+                fp_nc = atoms.get_forces().reshape(-1)
                 atoms.positions[AtomId1, direction] -= 2 * dx
-                fn_nc = atoms.get_forces()[indices].reshape(-1)
+                fn_nc = atoms.get_forces().reshape(-1)
                 atoms.positions[AtomId1, direction] += dx
                 dH_nc = (fn_nc - fp_nc) / (2 * dx)
+
                 if indices is None:
                     for j, AtomId2 in enumerate(indices):
                         for l in range(3):
                             H.append(dH_nc[3 * AtomId2 + l])
                             row.append(3 * AtomId1 + direction)  
                             col.append(3 * AtomId2 + l) 
+
                 else:
-                    for j, AtomId2 in enumerate(indices):
+                    for j, AtomId2 in enumerate(range(nat)):
                         for l in range(3):     
                             H.append(dH_nc[3 * j + l])
                             row.append(3 * i + direction)  
@@ -104,11 +107,12 @@ def fd_hessian(atoms, dx=1e-5, indices=None, H_format="dense"):
                 fn_nc = atoms.get_forces().reshape(-1)
                 atoms.positions[AtomId1, direction] += dx
                 dH_nc = (fn_nc - fp_nc) / (2 * dx)
+
                 if indices is None:
                     for j, AtomId2 in enumerate(indices):
                         H[3*AtomId1+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*AtomId2:3*AtomId2+3]
+
                 else:
-                    nat = len(atoms)
                     for j, AtomId2 in enumerate(range(nat)):
                         H[3*i+direction,3*AtomId2:3*AtomId2+3] = dH_nc[3*j:3*j+3]
  
