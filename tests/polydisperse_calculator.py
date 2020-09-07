@@ -30,7 +30,6 @@ import sys
 import numpy as np
 from numpy.linalg import norm
 
-import ase.io as io
 from ase import Atoms
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
@@ -40,10 +39,11 @@ from ase.optimize import FIRE
 from ase.units import GPa
 from ase.phonons import Phonons
 
+
 import matscipytest
-from matscipy.calculators.polydisperse import IPL, Polydisperse
+from ase.io import NetCDFTrajectory
 import matscipy.calculators.polydisperse as calculator
-from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
+from matscipy.calculators.polydisperse import IPL, Polydisperse
 
 ###
 
@@ -68,39 +68,41 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         fn = calc.calculate_numerical_forces(atomic_configuration, d=0.0001)
         self.assertArrayAlmostEqual(f, fn, tol=self.tol)
 
-    def test_symmetry_dense(self):
+    def test_symmetry_sparse(self):
         """
         Test the symmetry of the dense Hessian matrix 
 
-        atoms = NetCDFTrajectory("/work/ws/nemo/fr_jg1080-ultrastable_glasses-0/00_Tests/generate_test_nc_file/ultrastable_config.nc", "r")
-        atoms = atoms[len(atoms)-1]
-        atomic_configuration.set_masses(masses=np.repeat(1.0, len(atomic_configuration)))
-        atoms.set_array("size", atoms.get_array("q"), dtype=float)
-        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
-        atoms.set_calculator(calc)
-        H = calc.hessian_matrix(atoms, H_format="dense")
-        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
         """
-
-
-    def test_symmetry_sparse(self):
-        """
-        Test the symmetry of the sparse Hessian matrix 
-
-        atoms = NetCDFTrajectory("/work/ws/nemo/fr_jg1080-ultrastable_glasses-0/00_Tests/generate_test_nc_file/ultrastable_config.nc", "r")
-        atoms = atoms[len(atoms)-1]
-        atomic_configuration.set_masses(masses=np.repeat(1.0, len(atomic_configuration)))
+        atoms = NetCDFTrajectory("ultrastable_config_N32.nc", "r")
+        atoms = atoms[-1]
+        atoms.set_masses(masses=np.repeat(1.0, len(atoms)))
         atoms.set_array("size", atoms.get_array("q"), dtype=float)
         calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_calculator(calc)
         H = calc.hessian_matrix(atoms, H_format="sparse")
-        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
-        """
+        H = H.todense()
+        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=1e-10)
 
     def test_hessian(self):
         """
         Test the computation of the Hessian matrix 
         """
+        atoms = NetCDFTrajectory("ultrastable_config_N32.nc", "r")
+        atoms = atoms[-1]
+        atoms.set_masses(masses=np.repeat(1.0, len(atoms)))
+        atoms.set_array("size", atoms.get_array("q"), dtype=float)
+        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        atoms.set_calculator(calc)
+        H_analytical = calc.hessian_matrix(atoms, H_format="sparse")
+        H_analytical = H_analytical.todense()
+        # Numerical
+        ph = Phonons(atoms, calc, supercell=(1, 1, 1), delta=0.000001)
+        ph.run()
+        ph.read(acoustic=False)
+        ph.clean()
+        H_numerical = ph.get_force_constant()[0, :, :]
+        self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
+
 
 ###
 

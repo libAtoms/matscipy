@@ -252,6 +252,9 @@ class Polydisperse(Calculator):
                 raise ImportError(
                     "Import Error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
 
+        if self.atoms is None:
+            self.atoms = atoms
+
         f = self.f
         nat = len(self.atoms)
         if atoms.has("size"):
