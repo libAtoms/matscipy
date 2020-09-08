@@ -34,15 +34,13 @@ import ase.io as io
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
-from ase.lattice.hexagonal import HexagonalClosedPacked
 from ase.optimize import FIRE
 from ase.units import GPa
-from ase.phonons import Phonons
+from ase.build import bulk 
 
 import matscipytest
-from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut, LennardJonesQuadratic
+from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut
 import matscipy.calculators.pair_potential as calculator
-from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
 from matscipy.hessian_finite_differences import fd_hessian
 
 ###
@@ -54,8 +52,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
     def test_hessian_sparse(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
-            atoms = io.read("FCC_LJcut.xyz")
-            atoms.center(vacuum=5.0)
+            atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.550)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
             H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
@@ -64,25 +61,23 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
     def test_symmetry_sparse(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
-            atoms = io.read("FCC_LJcut.xyz")
-            atoms.center(vacuum=5.0)
+            atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.550)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
             H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
             H_numerical = H_numerical.todense()
-            self.assertArrayAlmostEqual(np.sum(np.abs(H_numerical-H_numerical.T)), 0, tol=1e-6)
+            self.assertArrayAlmostEqual(np.sum(np.abs(H_numerical-H_numerical.T)), 0, tol=1e-5)
 
     def test_hessian_sparse_split(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
-            atoms = io.read("FCC_LJcut.xyz")
+            atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.550)
             nat = len(atoms)
-            atoms.center(vacuum=5.0)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
             H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
-            H_numerical_0to16 = fd_hessian(atoms, dx=1e-5, indices=np.arange(0, 16, 1))
-            H_numerical_16to32 = fd_hessian(atoms, dx=1e-5, indices=np.arange(16, 32, 1))
-            H_numerical_splitted = np.concatenate((H_numerical_0to16.todense(), H_numerical_16to32.todense()), axis=0)
+            H_numerical_split1 = fd_hessian(atoms, dx=1e-5, indices=np.arange(0, np.int(nat/2), 1))
+            H_numerical_split2 = fd_hessian(atoms, dx=1e-5, indices=np.arange(np.int(nat/2), nat, 1))
+            H_numerical_splitted = np.concatenate((H_numerical_split1.todense(), H_numerical_split2.todense()), axis=0)
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical_splitted, tol=self.tol)
 
 
