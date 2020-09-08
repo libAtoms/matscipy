@@ -143,7 +143,7 @@ class IPL():
         """
         ddipl = 110 * self.epsilon * np.power(ijsize, 10) / np.power(r, 12)
         for l in range(0, self.q+1):
-            ddipl = self.epsilon * \
+            ddipl += self.epsilon * \
                 (4*np.power(l, 2)-2*l) * \
                 self.coeffs[l] * np.power(r, 2*l-2) / np.power(ijsize, 2*l)
 
@@ -260,15 +260,27 @@ class Polydisperse(Calculator):
             "ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
         ijsize = f.mix_sizes(size[i_n], size[j_n])
 
+        print("i_n: ", i_n)
+        print("j_n: ", j_n)
+        print("abs_dr_n: ", abs_dr_n)
+        print("IJSIZE*1.4: ", ijsize*1.4)
         # Mask neighbour list to consider only true neighbors
         mask = abs_dr_n <= f.get_cutoff()*ijsize
+        print("mask: ", mask)
         i_n = i_n[mask]
         j_n = j_n[mask]
         dr_nc = dr_nc[mask]
         abs_dr_n = abs_dr_n[mask]
         ijsize = ijsize[mask]
 
+        print("i_n: ", i_n)
+        print("j_n: ", j_n)
+        print("IJSIZE: ", ijsize)
+
         first_i = first_neighbours(nat, i_n)
+
+        print("first_i: ", first_i)
+
         if divide_by_masses:
             mass_nat = self.atoms.get_masses()
             geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])

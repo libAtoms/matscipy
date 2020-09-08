@@ -79,7 +79,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", atoms.get_array("q"), dtype=float)
         calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_calculator(calc)
-        H = calc.hessian_matrix(atoms, H_format="sparse")
+        H = calc.hessian_matrix(atoms)
         H = H.todense()
         self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=1e-10)
 
@@ -93,10 +93,10 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", atoms.get_array("q"), dtype=float)
         calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_calculator(calc)
-        H_analytical = calc.hessian_matrix(atoms, H_format="sparse")
+        H_analytical = calc.hessian_matrix(atoms)
         H_analytical = H_analytical.todense()
         # Numerical
-        ph = Phonons(atoms, calc, supercell=(1, 1, 1), delta=0.000001)
+        ph = Phonons(atoms, calc, supercell=(1, 1, 1), delta=1e-5)
         ph.run()
         ph.read(acoustic=False)
         ph.clean()
