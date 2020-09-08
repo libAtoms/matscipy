@@ -35,10 +35,11 @@ from ase.calculators.calculator import Calculator
 
 from matscipy.neighbours import neighbour_list, first_neighbours
 
-from scipy.special import factorial2
-
-from scipy.sparse import bsr_matrix
-
+try:
+    from scipy.special import factorial2
+    from scipy.sparse import bsr_matrix
+except ImportError:
+    warnings.warn('Warning: no scipy')
 
 ###
 
@@ -267,16 +268,15 @@ class Polydisperse(Calculator):
         dr_nc = dr_nc[mask]
         abs_dr_n = abs_dr_n[mask]
         ijsize = ijsize[mask]
-
         first_i = first_neighbours(nat, i_n)
 
         if divide_by_masses:
             mass_nat = self.atoms.get_masses()
             geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])
 
+        # Hessian 
         de_n = f.first_derivative(abs_dr_n, ijsize)
         dde_n = f.second_derivative(abs_dr_n, ijsize)
-
         e_nc = (dr_nc.T/abs_dr_n).T
         H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                            * e_nc.reshape(-1, 1, 3)).T).T

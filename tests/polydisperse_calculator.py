@@ -81,7 +81,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_calculator(calc)
         H = calc.hessian_matrix(atoms)
         H = H.todense()
-        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=1e-10)
+        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=1e-5)
 
     def test_hessian(self):
         """
