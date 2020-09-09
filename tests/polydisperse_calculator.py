@@ -77,32 +77,33 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         fn = calc.calculate_numerical_forces(atoms, d=0.0001)
         self.assertArrayAlmostEqual(f, fn, tol=self.tol)
 
-
     def test_symmetry_sparse(self):
         """
         Test the symmetry of the dense Hessian matrix 
 
         """
-        atoms = NetCDFTrajectory("ultrastable_config_N32.nc", "r")
-        atoms = atoms[-1]
-        atoms.set_masses(masses=np.repeat(1.0, len(atoms)))
-        atoms.set_array("size", atoms.get_array("q"), dtype=float)
+        atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=2.37126)
         calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        atoms.set_masses(masses=np.repeat(1.0, len(atoms)))       
+        atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_calculator(calc)
+        dyn = FIRE(atoms)
+        dyn.run(fmax=1e-5)
         H = calc.hessian_matrix(atoms)
         H = H.todense()
         self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=1e-5)
 
-    def test_hessian(self):
+    def test_hessian_random_structure(self):
         """
         Test the computation of the Hessian matrix 
         """
-        atoms = NetCDFTrajectory("ultrastable_config_N32.nc", "r")
-        atoms = atoms[-1]
-        atoms.set_masses(masses=np.repeat(1.0, len(atoms)))
-        atoms.set_array("size", atoms.get_array("q"), dtype=float)
+        atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=2.37126)
         calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        atoms.set_masses(masses=np.repeat(1.0, len(atoms)))       
+        atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_calculator(calc)
+        dyn = FIRE(atoms)
+        dyn.run(fmax=1e-5)
         H_analytical = calc.hessian_matrix(atoms)
         H_analytical = H_analytical.todense()
         # Numerical
@@ -117,13 +118,14 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         """
         Test the computation of the Hessian matrix 
         """
-        atoms = NetCDFTrajectory("ultrastable_config_N32.nc", "r")
-        atoms = atoms[-1]
+        atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=2.37126)     
+        atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         masses_n = np.random.randint(1, 10, size=len(atoms))
         atoms.set_masses(masses=masses_n)
-        atoms.set_array("size", atoms.get_array("q"), dtype=float)
         calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_calculator(calc)
+        dyn = FIRE(atoms)
+        dyn.run(fmax=1e-5)
         D_analytical = calc.hessian_matrix(atoms, divide_by_masses=True)
         D_analytical = D_analytical.todense()
         H_analytical = calc.hessian_matrix(atoms)
