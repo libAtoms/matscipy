@@ -109,24 +109,17 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         """
         atoms = NetCDFTrajectory("ultrastable_config_N32.nc", "r")
         atoms = atoms[-1]
-        mass = np.repeat(1.0, len(atoms))
-        atomId = 5
-        mass[atomId] = 2.0 
-        atoms.set_masses(masses=mass)
+        masses_n = np.random.randint(1, 10, size=len(atoms))
+        atoms.set_masses(masses=masses_n)
         atoms.set_array("size", atoms.get_array("q"), dtype=float)
         calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_calculator(calc)
-        # Dynamical matrix
         D_analytical = calc.hessian_matrix(atoms, divide_by_masses=True)
         D_analytical = D_analytical.todense()
-        # Hessian multiplied with mass matrix 
         H_analytical = calc.hessian_matrix(atoms)
         H_analytical = H_analytical.todense()
-        massMatrix = np.ones((3*len(atoms),3*len(atoms)))
-        massMatrix[:,3*atomId:3*atomId+3] = np.sqrt(2.0)
-        massMatrix[3*atomId:3*atomId+3,:] = np.sqrt(2.0)    
-        massMatrix[3*atomId:3*atomId+3,3*atomId:3*atomId+3] = 2.0 
-        H_analytical /= massMatrix
+        masses_nc = masses_n.repeat(3)
+        H_analytical /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
         self.assertArrayAlmostEqual(H_analytical, D_analytical, tol=self.tol)
 
 ###
