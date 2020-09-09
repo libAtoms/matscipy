@@ -1,6 +1,11 @@
 Change log
 ==========
 
+v0.6.0 (9Sep20)
+-----------------------
+
+- Numerical computation of the Hessian matrix 
+
 v0.5.1, v0.5.2 (4Sep20)
 -----------------------
 
