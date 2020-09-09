@@ -4,7 +4,8 @@ on:
   push:
     branches:    
       - master
-
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -24,6 +25,10 @@ jobs:
       run: |
         python3 setup.py build
         sudo python3 setup.py install
+
+    - name: package_dist
+      run: |
+        sudo python3 setup.py sdist
 
     # Standard drop-in approach that should work for most people.
     - name: build_doc
@@ -52,3 +57,10 @@ jobs:
         branch: gh-pages
         directory: gh-pages
         github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Publish package
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}

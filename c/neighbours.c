@@ -353,9 +353,6 @@ py_neighbour_list(PyObject *self, PyObject *args)
         }
         i++;
     }
-#if PY_MAJOR_VERSION >= 3
-    Py_DECREF(py_bquantities);
-#endif
 
     /* We need the square of the cutoff */
     double cutoff_sq = cutoff*cutoff;
@@ -605,6 +602,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
     }
 
     /* Final cleanup */
+#if PY_MAJOR_VERSION >= 3
+    Py_DECREF(py_bquantities);
+#endif
     Py_XDECREF(py_cutoffs);
     Py_DECREF(py_cell_origin);
     Py_DECREF(py_cell);
@@ -617,6 +617,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
     fail:
     /* Cleanup. Sorry for the goto. */
+#if PY_MAJOR_VERSION >= 3
+    Py_DECREF(py_bquantities);
+#endif
     Py_XDECREF(py_cutoffs);
     Py_DECREF(py_cell_origin);
     Py_DECREF(py_cell);
