@@ -30,28 +30,3 @@ try:
 except ImportError:
     warnings.warn('Warning: no scipy')
 
-def fd_hessian(atoms, dx=1e-5, indices=None):
-    """
-    Finite difference hessian from Jacobian of forces
-    """
-    if indices is None:
-        indices = range(len(atoms))
-    I = []
-    J = []
-    Z = []
-    for i, ii in enumerate(indices):
-        for j in range(3):
-            atoms.positions[ii, j] += dx
-            fp = atoms.get_forces()[indices].reshape(-1)
-            atoms.positions[ii, j] -= 2 * dx
-            fm = atoms.get_forces()[indices].reshape(-1)
-            atoms.positions[ii, j] -= dx
-            dH = -(fp - fm) / (2 * dx)
-            for k, kk in enumerate(indices):
-                for l in range(3):
-                    I.append(3 * ii + j)
-                    J.append(3 * kk + l)
-                    Z.append(dH[3 * k + j])
-
-    return sp.coo_matrix((Z, (I, J)),
-                         shape=(3 * len(atoms), 3 * len(atoms)))

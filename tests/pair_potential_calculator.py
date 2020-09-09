@@ -37,12 +37,11 @@ from ase.lattice.cubic import FaceCenteredCubic
 from ase.lattice.hexagonal import HexagonalClosedPacked
 from ase.optimize import FIRE
 from ase.units import GPa
-from ase.phonons import Phonons
 
 import matscipytest
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut, LennardJonesQuadratic
 import matscipy.calculators.pair_potential as calculator
-from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
+from matscipy.hessian_finite_differences import fd_hessian
 
 ###
 
@@ -81,15 +80,12 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
             atoms = io.read("KA256_Min.xyz")
             atoms.center(vacuum=5.0)
-            b = calculator.PairPotential(calc)
-            H_analytical = b.calculate_hessian_matrix(atoms, "dense")
-            # Numerical
-            ph = Phonons(atoms, b, supercell=(1, 1, 1), delta=0.001)
-            ph.run()
-            ph.read(acoustic=False)
-            ph.clean()
-            H_numerical = ph.get_force_constant()[0, :, :]
-            self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=0.03)
+            a = calculator.PairPotential(calc)
+            atoms.set_calculator(a)
+            H_analytical = a.calculate_hessian_matrix(atoms, "dense")
+            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+            H_numerical = H_numerical.todense()
+            self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
 
     def test_hessian_split(self):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
