@@ -40,7 +40,6 @@ from ase.phonons import Phonons
 
 
 import matscipytest
-from ase.io import NetCDFTrajectory
 import matscipy.calculators.polydisperse as calculator
 from matscipy.calculators.polydisperse import IPL, Polydisperse
 
