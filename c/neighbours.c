@@ -28,6 +28,7 @@
 #include <numpy/arrayobject.h>
 
 #include <limits.h>
+#include <float.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -699,18 +700,50 @@ PyObject *
 py_triplet_list(PyObject *self, PyObject *args)
 {
     /* parse python args */
-    PyObject *py_fi;
+    PyObject *py_fi, *py_absdist = NULL, *py_cutoff = NULL;
+    npy_double *absdist = NULL;
 
-    if (!PyArg_ParseTuple(args, "O", &py_fi)) {
+    if (!PyArg_ParseTuple(args, "O|OO", &py_fi, &py_absdist, &py_cutoff)) {
         return NULL;
     }
 
-    npy_int *fi = NULL, *ij_t = NULL, *ik_t = NULL;
 
+    npy_int *fi = NULL, *ij_t = NULL, *ik_t = NULL, *jk_t = NULL;
+
+    py_fi = PyArray_FROMANY(py_fi, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
     fi = PyArray_DATA((PyArrayObject *) py_fi);
-    if (fi == NULL) {
+
+    if (!fi) {
         Py_XDECREF(fi);
         return NULL;
+    }
+
+    double cutoff = DBL_MAX;
+
+    if (py_cutoff || py_absdist) {
+	if (!py_absdist || !py_cutoff) {
+	    PyErr_SetString(PyExc_TypeError, "Cutoff and distances must "
+                                                "be specified together.");
+	    return NULL;
+	}
+        py_absdist = PyArray_FROMANY(py_absdist, NPY_DOUBLE,
+				         1, 1, NPY_C_CONTIGUOUS);
+       	if (!py_absdist) {
+            PyErr_SetString(PyExc_TypeError, "Distances must be an "
+                                             "array of floats.");
+            return NULL;
+	}
+    	absdist = PyArray_DATA((PyArrayObject *) py_absdist);
+        // absdist_length = (int) PyArray_SIZE(py_absdist);
+    	if (PyFloat_Check(py_cutoff)) {
+        	cutoff = PyFloat_AsDouble(py_cutoff);
+        	py_cutoff = NULL;
+   	}
+    	else {
+            PyErr_SetString(PyExc_NotImplementedError, "Cutoff must be a single "
+                                             "float.");
+            return NULL;
+    	}
     }
 
     /* guess initial triplet list size */
@@ -725,45 +758,55 @@ py_triplet_list(PyObject *self, PyObject *args)
 
     int init_length = (int) PyArray_SIZE(py_fi);
 
-    /* calculate diffs of fi */
-    int diffs[init_length];
-    for (int i = 0; i < (init_length); i++) {
-        diffs[i] = fi[i+1] - fi[i];
-    }
-
     /* compute the triplet list */
     int index_ij = 0;
     int index_ik = 0;
-    for (int i = 0; i < (init_length - 1); i++) {
-        for (int r = 1; r < (diffs[i] + 1); r++) {
-            for (int k = 0; k < (diffs[i] - 1); k++) {
+    int index_trip = 0;
+    int running_index = 0;
+    fprintf(stderr, "%f \n", cutoff);
+    fprintf(stderr, "ri %d \n", running_index);
+    for (int r = 0; r < (init_length - 1); r++) {
+        // for (int i = 0; i < (diffs[r]); i++) {
+        for (int ij= fi[r]; ij < fi[r+1]; ij++) {
+            for (int ik = fi[r]; ik < fi[r+1]; ik++) {
                 /* resize array if necessary */
-                int length_ij = (int) PyArray_SIZE(py_ij_t);
-                if (index_ij >= length_ij) {
-                    length_ij *= 2;
-                    if (py_ij_t && !(ij_t = resize_array(py_ij_t, length_ij)))
+                int length_trip = (int) PyArray_SIZE(py_ij_t);
+                if (index_trip >= length_trip) {
+                    length_trip *= 2;
+                    if (py_ij_t && !(ij_t = resize_array(py_ij_t, length_trip)))
+                        goto fail;
+                    if (py_ik_t && !(ik_t = resize_array(py_ik_t, length_trip)))
                         goto fail;
                 }
-                ij_t[index_ij++] = fi[i] + r - 1;
+		if ((ij != ik)) {
+		    if (absdist) { 
+    			fprintf(stderr, "co %f, ij %f, ik %f  \n", cutoff, absdist[ij], absdist[ik]);
+	                if ((absdist[ij] >= cutoff) || (absdist[ik] >= cutoff)) {
+			    continue; 
+			};
+		    }
+               	    ij_t[index_trip] = ij;
+                    ik_t[index_trip++] = ik;
+	        }
             }
-            int counter = 0;
-            for (int k = fi[i]; k < fi[i+1]; k++) {
-                /* resize array if necessary */
-                int length_ik = (int) PyArray_SIZE(py_ik_t);
-                if (index_ik >= length_ik) {
-                    length_ik *= 2;
-                    if (py_ik_t && !(ik_t = resize_array(py_ik_t, length_ik)))
-                        goto fail;
-                }
-                if (counter++ != (r - 1)) {
-                    ik_t[index_ik++] = k;
-                }
-            }
-        }
+       }
     }
+
     /* set final array sizes of the triplet lists */
-    if (py_ij_t && !(ij_t = resize_array(py_ij_t, index_ij))) goto fail;
-    if (py_ik_t && !(ik_t = resize_array(py_ik_t, index_ik))) goto fail;
+    if (py_ij_t && !(ij_t = resize_array(py_ij_t, index_trip))) goto fail;
+    if (py_ik_t && !(ik_t = resize_array(py_ik_t, index_trip))) goto fail;
+
+    npy_intp d1 = (int) PyArray_SIZE(py_ij_t);
+    PyObject *py_jk_t = PyArray_ZEROS(1, &d1, NPY_INT, 0);
+    jk_t = PyArray_DATA((PyArrayObject *) py_jk_t);
+    index_trip++;
+
+    // TODO: ask Lars and/or use an ordered j_n list
+    for (int t = 0; t < index_trip; t++) {
+    	int ij = ij_t[t];
+	int ik = ik_t[t];
+	continue;
+    } 
 
     /* create return tuple */
     PyObject *py_ret = PyTuple_New(2);
@@ -772,11 +815,13 @@ py_triplet_list(PyObject *self, PyObject *args)
 
     return py_ret;
 
-fail:
+    fail:
     /* Cleanup */
     if (py_fi)  Py_DECREF(py_fi);
+    if (py_cutoff)  Py_DECREF(py_cutoff);
     if (py_ij_t)  Py_DECREF(py_ij_t);
     if (py_ik_t)  Py_DECREF(py_ik_t);
+    // if (diffs) free(diffs);
     return NULL;
 }
 
