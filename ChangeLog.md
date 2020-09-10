@@ -1,10 +1,13 @@
 Change log
 ==========
 
-v0.6.0 (9Sep20)
+v0.6.0 (10Sep20)
 -----------------------
 
 - Numerical computation of the Hessian matrix 
+- Calculator for polydisperse systems in which particles interact via a pair potential 
+- Analytic computation of Hessian for polydisperse systems
+- Bug fix in tests eam_calculator_forces_hessian 
 
 v0.5.1, v0.5.2 (4Sep20)
 -----------------------

@@ -76,9 +76,9 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
                 id type x y z fx fy fz &
                 modify sort id format float "%.14g"
         """
-        if "lammps-dump" in io.formats.ioformats.keys():
+        if "lammps-dump" in io.formats.all_formats.keys():
             atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump")
-        elif "lammps-dump-text" in io.formats.ioformats.keys():
+        elif "lammps-dump-text" in io.formats.all_formats.keys():
             atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump-text")
         else:
             raise KeyError("ase.io can read neither 'lammps-dump' nor 'lammps-dump-text'")
