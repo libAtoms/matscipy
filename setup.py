@@ -240,7 +240,7 @@ class build_ext_subclass(build_ext):
                extra_postargs=extra_link_args,
                export_symbols=self.get_export_symbols(ext),
                debug=self.debug,
-               build_temp=self.build_temp,**kws)
+               build_temp=self.build_temp, **kws)
 
 
 cmdclass = versioneer.get_cmdclass()
@@ -258,9 +258,10 @@ setup(name='matscipy',
                 'matscipy.contact_mechanics',
                 'matscipy.electrochemistry',
                 'matscipy.calculators',
-                'matscipy.calculators.eam','matscipy.io','matscipy.tool',
+                'matscipy.calculators.eam', 'matscipy.io', 'matscipy.tool',
                 'matscipy.calculators.pair_potential',
                 'matscipy.calculators.AbellTersoffBrenner',
+                'matscipy.calculators.polydisperse',
                 'matscipy.calculators.mcfm',
                 'matscipy.calculators.mcfm.mcfm_parallel',
                 'matscipy.calculators.mcfm.neighbour_list_mcfm',
