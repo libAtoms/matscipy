@@ -23,7 +23,7 @@
 
 import sys
 import unittest
-
+"""
 from analysis import *
 from angle_distribution import *
 from cubic_crystal_crack import *
@@ -43,17 +43,18 @@ from test_io import *
 from crack_tests import *
 from mcfm_test import *
 from hessian_finite_differences import * 
+"""
 from eam_calculator_forces_and_hessian import *
-from pair_potential_calculator import *
-from polydisperse_calculator import *
-
+# from pair_potential_calculator import *
+# from polydisperse_calculator import *
+"""
 if sys.version_info.major > 2:
     from test_c2d import *
     from test_poisson_nernst_planck_solver import *
 else:
     print('Electrochemistry module requires python 3, related tests '
           '(test_c2d, test_poisson_nernst_planck_solver) skipped.')
-
+"""
 try:
     from scipy.interpolate import InterpolatedUnivariateSpline
 except:

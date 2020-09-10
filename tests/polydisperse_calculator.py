@@ -42,6 +42,7 @@ from ase.phonons import Phonons
 import matscipytest
 import matscipy.calculators.polydisperse as calculator
 from matscipy.calculators.polydisperse import IPL, Polydisperse
+from matscipy.hessian_finite_differences import fd_hessian
 
 ###
 
@@ -105,12 +106,8 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         dyn.run(fmax=1e-5)
         H_analytical = calc.hessian_matrix(atoms)
         H_analytical = H_analytical.todense()
-        # Numerical
-        ph = Phonons(atoms, calc, supercell=(1, 1, 1), delta=1e-5)
-        ph.run()
-        ph.read(acoustic=False)
-        ph.clean()
-        H_numerical = ph.get_force_constant()[0, :, :]
+        H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+        H_numerical = H_numerical.todense()
         self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
 
     def test_hessian_divide_by_masses(self):
