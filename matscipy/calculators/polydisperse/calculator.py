@@ -44,10 +44,10 @@ except ImportError:
 ###
 
 
-class IPL():
+class InversePowerLawPotential():
     """
     Functional form for a smoothed inverse-power-law potential (IPL)
-    with an exponent of 10.
+    with an repulsive exponent of 10.
 
     Parameters
     ----------
@@ -64,7 +64,7 @@ class IPL():
     q : int
         Smooth the potential up to the q-th derivative.
         For q=0 the potential is smoothed, for q=1 the potential
-        and its first derivative are zero at the cutoff.
+        and its first derivative are zero at the cutoff,...
 
     Reference:
     ----------

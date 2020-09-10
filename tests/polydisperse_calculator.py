@@ -1,4 +1,4 @@
-#! /usr/bin/env pytho
+#! /usr/bin/env python
 
 # ======================================================================
 # matscipy - Python materials science tools
@@ -41,7 +41,7 @@ from ase.phonons import Phonons
 
 import matscipytest
 import matscipy.calculators.polydisperse as calculator
-from matscipy.calculators.polydisperse import IPL, Polydisperse
+from matscipy.calculators.polydisperse import InversePowerLawPotential, Polydisperse
 from matscipy.hessian_finite_differences import fd_hessian
 
 ###
@@ -61,7 +61,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
                                      )
         atomic_configuration.set_array("size", np.array([1.3, 2.22]), dtype=float)
         atomic_configuration.set_masses(masses=np.repeat(1.0, len(atomic_configuration)))
-        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        calc = Polydisperse(InversePowerLawPotential(1.0, 1.4, 0.1, 3, 1, 2.22))
         atomic_configuration.set_calculator(calc)
         f = atomic_configuration.get_forces()
         fn = calc.calculate_numerical_forces(atomic_configuration, d=0.0001)
@@ -69,7 +69,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
 
     def test_forces_random_structure(self):
         atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=2.37126)
-        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        calc = Polydisperse(InversePowerLawPotential(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_masses(masses=np.repeat(1.0, len(atoms)))       
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_calculator(calc)
@@ -83,7 +83,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
 
         """
         atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=2.37126)
-        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        calc = Polydisperse(InversePowerLawPotential(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_masses(masses=np.repeat(1.0, len(atoms)))       
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_calculator(calc)
@@ -98,7 +98,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         Test the computation of the Hessian matrix 
         """
         atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=2.37126)
-        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        calc = Polydisperse(InversePowerLawPotential(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_masses(masses=np.repeat(1.0, len(atoms)))       
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_calculator(calc)
@@ -118,7 +118,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         masses_n = np.random.randint(1, 10, size=len(atoms))
         atoms.set_masses(masses=masses_n)
-        calc = Polydisperse(IPL(1.0, 1.4, 0.1, 3, 1, 2.22))
+        calc = Polydisperse(InversePowerLawPotential(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_calculator(calc)
         dyn = FIRE(atoms)
         dyn.run(fmax=1e-5)
