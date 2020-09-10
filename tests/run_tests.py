@@ -43,7 +43,6 @@ from test_io import *
 from crack_tests import *
 from mcfm_test import *
 from hessian_finite_differences import * 
-
 from eam_calculator_forces_and_hessian import *
 from pair_potential_calculator import *
 from polydisperse_calculator import *
