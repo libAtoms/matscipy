@@ -246,7 +246,8 @@ e_nc = (dr_nc.T/abs_dr_n).T
                                     _cutoff, numbers)
 
 
-def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None):
+def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None, i_p=None,
+                 j_p=None, first_i=None):
     """
     Compute a triplet list for an atomic configuration. The triple list is a
     mask that can be applied to the corresponding neighbour list to mask
@@ -263,8 +264,7 @@ def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None):
     -------
     ij_t, ik_t : array
         lists of adresses that form triples in the pair lists
-    # TODO:
-    jk_t : array
+    jk_t : array (if and only if i_p, j_p, first_i != None)
         list of pairs jk that connect each triplet ij, ik
         between atom j and k
 
@@ -283,10 +283,24 @@ def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None):
 
     """
     if not (abs_dr_p is None or cutoff is None):
-        return _matscipy.triplet_list(first_neighbours, abs_dr_p,
-                                      cutoff)
+        res = _matscipy.triplet_list(first_neighbours, abs_dr_p,
+                                     cutoff)
     else:
-        return _matscipy.triplet_list(first_neighbours)
+        res = _matscipy.triplet_list(first_neighbours)
+    # TODO: should be wrapped in c and be independet of i_n
+    # and j_n as of j_n is sorted; related issue #50
+    # add some tests!!!
+    if not (i_p is None or j_p is None or first_i is None):
+        ij_t, ik_t = res
+        jk_t = -np.ones(len(ij_t), dtype='int32')
+        for t, (ij, ik) in enumerate(zip(ij_t, ik_t)):
+            for i in np.arange(first_i[j_p[ij]], first_i[j_p[ij]+1]):
+                if i_p[i] == j_p[ij] and j_p[i] == j_p[ik]:
+                    jk_t[t] = i
+                    break
+        return ij_t, ik_t, jk_t
+    else:
+        return res
 
 
 def find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n):
