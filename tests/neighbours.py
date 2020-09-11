@@ -243,10 +243,7 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         ik_t_comp = [1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4, 7, 8, 6, 8, 6, 7, 10,
                      11, 9, 11, 9, 10]
         i_n = [0]*2+[1]*4+[2]*4
-        # TODO: ?
-        # -> first_neighbours/get_jump_indicies only works with continous
-        #    arrays starting at 0
-        # i.e.:  i_n = [1]*2+[4]*4+[5]*4 does not work
+
         first_i = get_jump_indicies(i_n)
         ij_t_comp = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6,
                      7, 7, 7, 8, 8, 8, 9, 9, 9]
@@ -257,7 +254,23 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         assert np.alltrue(ij_t == ij_t_comp)
         assert np.alltrue(ik_t == ik_t_comp)
 
-        ###
+    def test_triplet_list_with_cutoff(self):
+        first_i = np.array([0, 2, 6, 10], dtype='int32')
+        a = triplet_list(first_i, [2.2]*9+[3.0], 2.6)
+        ij_t_comp = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5,
+                     5, 6, 6, 7, 7, 8, 8]
+        ik_t_comp = [1, 0, 3, 4, 5, 2, 4, 5, 2, 3, 5, 2, 3,
+                     4, 7, 8, 6, 8, 6, 7]
+        assert np.all(a[0] == ij_t_comp)
+        assert np.all(a[1] == ik_t_comp)
+
+        first_i = np.array([0, 2, 6, 10], dtype='int32')
+        a = triplet_list(first_i, [2.2]*4+[3.0]*2+[2.0]*4, 2.6)
+        ij_t_comp = [0, 1, 2, 3, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9]
+        ik_t_comp = [1, 0, 3, 2, 7, 8, 9, 6, 8, 9, 6, 7, 9, 6, 7, 8]
+        assert np.all(a[0] == ij_t_comp)
+        assert np.all(a[1] == ik_t_comp)
+
 
 if __name__ == '__main__':
     unittest.main()

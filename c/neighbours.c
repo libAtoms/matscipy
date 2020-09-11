@@ -759,14 +759,9 @@ py_triplet_list(PyObject *self, PyObject *args)
     int init_length = (int) PyArray_SIZE(py_fi);
 
     /* compute the triplet list */
-    int index_ij = 0;
-    int index_ik = 0;
     int index_trip = 0;
     int running_index = 0;
-    fprintf(stderr, "%f \n", cutoff);
-    fprintf(stderr, "ri %d \n", running_index);
     for (int r = 0; r < (init_length - 1); r++) {
-        // for (int i = 0; i < (diffs[r]); i++) {
         for (int ij= fi[r]; ij < fi[r+1]; ij++) {
             for (int ik = fi[r]; ik < fi[r+1]; ik++) {
                 /* resize array if necessary */
@@ -780,7 +775,7 @@ py_triplet_list(PyObject *self, PyObject *args)
                 }
 		if ((ij != ik)) {
 		    if (absdist) { 
-    			fprintf(stderr, "co %f, ij %f, ik %f  \n", cutoff, absdist[ij], absdist[ik]);
+    			// fprintf(stderr, "co %f, ij %f, ik %f  \n", cutoff, absdist[ij], absdist[ik]);
 	                if ((absdist[ij] >= cutoff) || (absdist[ik] >= cutoff)) {
 			    continue; 
 			};
@@ -802,11 +797,11 @@ py_triplet_list(PyObject *self, PyObject *args)
     index_trip++;
 
     // TODO: ask Lars and/or use an ordered j_n list
-    for (int t = 0; t < index_trip; t++) {
+    /*for (int t = 0; t < index_trip; t++) {
     	int ij = ij_t[t];
 	int ik = ik_t[t];
 	continue;
-    } 
+    } */
 
     /* create return tuple */
     PyObject *py_ret = PyTuple_New(2);
@@ -821,7 +816,6 @@ py_triplet_list(PyObject *self, PyObject *args)
     if (py_cutoff)  Py_DECREF(py_cutoff);
     if (py_ij_t)  Py_DECREF(py_ij_t);
     if (py_ik_t)  Py_DECREF(py_ik_t);
-    // if (diffs) free(diffs);
     return NULL;
 }
 
@@ -843,7 +837,7 @@ py_get_jump_indicies(PyObject *self, PyObject *args)
     if (!py_sorted) return NULL;
 
     /* sorted imput array size */
-    npy_intp nn = PyArray_DIM((PyArrayObject *) py_sorted, 0);
+    int nn = (int) PyArray_SIZE(py_sorted);
 
     /* calculate number of jumps */
     npy_int *sorted = PyArray_DATA((PyArrayObject *) py_sorted);
