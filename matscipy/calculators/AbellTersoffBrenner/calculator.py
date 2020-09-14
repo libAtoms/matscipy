@@ -1,3 +1,4 @@
+
 from ase.calculators.calculator import Calculator
 from matscipy.neighbours import neighbour_list, first_neighbours, triplet_list
 import numpy as np
@@ -34,8 +35,8 @@ class AbellTersoffBrenner(Calculator):
         self.dexp_r_ik = dexp_r_ik
         self.db_xi = db_xi
         self.dha = lambda r_ij, r_ik: self.f_c(r_ik)*self.dexp_r_ij(r_ij, r_ik)
-        self.dhb = lambda r_ij, r_ik: self.f_c(r_ik)*self.dexp_r_ik(r_ij, r_ik)\
-                + self.df_c_r(r_ik) * self.exp(r_ij, r_ik)
+        self.dhb = lambda r_ij, r_ik: (self.f_c(r_ik)*self.dexp_r_ik(r_ij, r_ik) \
+                + self.df_c_r(r_ik) * self.exp(r_ij, r_ik))
 
         # hessian
         self.ddf_c_r_r = ddf_c_r_r
@@ -47,11 +48,11 @@ class AbellTersoffBrenner(Calculator):
         self.ddV_r_r = ddV_r_r
         self.ddhaa = lambda r_ij, r_ik: \
             self.f_c(r_ik)*self.ddexp_r_ij_r_ik(r_ij, r_ik)
-        self.ddhab = lambda r_ij, r_ik: self.df_c_r(r_ik)*self.dexp_r_ij(r_ij, r_ik)\
-                + self.f_c(r_ik)*self.ddexp_r_ij_r_ik(r_ij, r_ik)
-        self.ddhbb = lambda r_ij, r_ik: self.ddf_c_r_r(r_ik)*self.exp(r_ij, r_ik)\
+        self.ddhab = lambda r_ij, r_ik: (self.df_c_r(r_ik)*self.dexp_r_ij(r_ij, r_ik)\
+                + self.f_c(r_ik)*self.ddexp_r_ij_r_ik(r_ij, r_ik))
+        self.ddhbb = lambda r_ij, r_ik: (self.ddf_c_r_r(r_ik)*self.exp(r_ij, r_ik)\
                 +2*self.dexp_r_ij(r_ij, r_ik)*self.df_c_r(r_ik)\
-                +self.f_c(r_ik)*self.ddexp_r_ij_r_ij(r_ij, r_ik)
+                +self.f_c(r_ik)*self.ddexp_r_ij_r_ij(r_ij, r_ik))
 
     def __call__(self):
         return None
@@ -59,15 +60,19 @@ class AbellTersoffBrenner(Calculator):
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
 
-        nat = len(self.atoms)
 
         # get neighbour and triplet lists
         i_n, j_n, self.r_p, dr_pc = neighbour_list('ijdD', atoms=atoms,
                                                    cutoff=self.cutoff)
+    
+        nat = len(self.atoms)
+        npa = len(i_n)
+        
         first_i = first_neighbours(nat, i_n)
 
         ij_t, ik_t = triplet_list(first_i)
-
+        # print(np.array([ij_t, ik_t]).T)
+    
         # calculate energy
 
         # pair terms
@@ -83,7 +88,7 @@ class AbellTersoffBrenner(Calculator):
             g_t = self.g(self.cos_theta_t)
 
             xi_t = self.xi(self.r_p[ij_t], self.r_p[ik_t], f_c_p[ik_t], g_t)
-            xi_p = np.bincount(ij_t, weights=xi_t, minlength=nat)
+            xi_p = np.bincount(ij_t, weights=xi_t, minlength=npa)
             b_p = self.b(xi_p)
         else:
             b_p = np.ones_like(i_n)
@@ -113,10 +118,10 @@ class AbellTersoffBrenner(Calculator):
 
             f_aa_p = np.bincount(ij_t, weights=(g_t*U_p[ij_t]*db_p[ij_t] *
                                                 self.dha(self.r_p[ij_t],
-                                                         self.r_p[ik_t])))
+                                                         self.r_p[ik_t])), minlength=npa)
             f_ab_p = np.bincount(ij_t, weights=(g_t*U_p[ik_t]*db_p[ik_t] *
                                                 self.dhb(self.r_p[ik_t],
-                                                         self.r_p[ij_t])))
+                                                         self.r_p[ij_t])), minlength=npa)
 
             f_a_p_c = norm_pc*(f_aa_p + f_ab_p).reshape(-1, 1)
 
@@ -132,9 +137,9 @@ class AbellTersoffBrenner(Calculator):
             # TODO: use symmetry; proabably not existent
             f_b_tc = f_ba_tc + f_bb_tc
 
-            fx_b_p = np.bincount(ij_t, weights=f_b_tc[:, 0])
-            fy_b_p = np.bincount(ij_t, weights=f_b_tc[:, 1])
-            fz_b_p = np.bincount(ij_t, weights=f_b_tc[:, 2])
+            fx_b_p = np.bincount(ij_t, weights=f_b_tc[:, 0], minlength=npa)
+            fy_b_p = np.bincount(ij_t, weights=f_b_tc[:, 1], minlength=npa)
+            fz_b_p = np.bincount(ij_t, weights=f_b_tc[:, 2], minlength=npa)
 
             fx_p = f_pc[:, 0] + f_a_p_c[:, 0] + fx_b_p
             fy_p = f_pc[:, 1] + f_a_p_c[:, 1] + fy_b_p
@@ -190,16 +195,24 @@ class AbellTersoffBrenner(Calculator):
 
         # get neighbour and triplet lists
         i_n, j_n, self.r_p, dr_pc = neighbour_list('ijdD', atoms=atoms,
-                                                   cutoff=self.cutoff)
+                                                   cutoff=self.cutoff*2)
         first_i = first_neighbours(nat, i_n)
 
-        ij_t, ik_t = triplet_list(first_i)
+        ij_t, ik_t, jk_t = triplet_list(first_i, self.r_p, self.cutoff, i_n, j_n, first_i)
+        
+        first_ij = first_neighbours(len(i_n), ij_t)
+        
+        # jk_t = calc_jk_t(i_n, j_n, ij_t, ik_t, first_i)
+        
+        tr_p = find_indices_of_reversed_pairs(i_n, j_n, self.r_p)
+        
+        # tr_ij_t, tr_ik_t, tr_jk_t = find_indices_of_reversed_pairs(i_n[tr_p], j_n[tr_p], self.r_p)
 
+        # print(np.array([ij_t, ik_t, jk_t]).T)
         norm_pc = -dr_pc/self.r_p.reshape(-1, 1)
 
         kron_pcc = norm_pc.reshape(-1, 3, 1)*norm_pc.reshape(-1, 1, 3)
-        kron_tcc = norm_pc[ij_t].reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)
-
+        
         f_c_p = self.f_c(self.r_p)
         df_c_r_p = self.df_c_r(self.r_p)
         ddf_c_r_r_p = self.ddf_c_r_r(self.r_p)
@@ -230,8 +243,11 @@ class AbellTersoffBrenner(Calculator):
 
             xi_t = self.xi(self.r_p[ij_t], self.r_p[ik_t], f_c_p[ik_t], g_t)
             xi_p = np.bincount(ij_t, weights=xi_t, minlength=nat)
+            #print('xi', xi_p)
             b_p = self.b(xi_p)
             db_p = self.db_xi(xi_p)
+            #print('b_p', b_p)
+            #print('db_p', db_p)
 
             dg_t = self.dg_costheta(self.cos_theta_t)
 
@@ -250,27 +266,57 @@ class AbellTersoffBrenner(Calculator):
             ddhbb_t_ba = self.ddhbb(self.r_p[ik_t], self.r_p[ij_t])
             ddhab_t_ba = self.ddhab(self.r_p[ik_t], self.r_p[ij_t])
             
-            # print('g', g_t, dg_t, ddg_t)
+            #print('g\n', g_t, '\n dg\n', dg_t, '\n ddg\n', ddg_t)
 
             A_t = U_p[ij_t] * db_p[ij_t] * dha_t_ab + U_p[ik_t] * db_p[ik_t] * dhb_t_ba
-            B_t = U_p[ij_t] * ddb_p[ij_t] * dha_t_ab + U_p[ik_t] * ddb_p[ik_t] * dhb_t_ba
+            # print(U_p[ij_t], db_p[ij_t] , dha_t_ab , U_p[ik_t] , db_p[ik_t] , dhb_t_ba)
+            # B_t = U_p[ij_t] * ddb_p[ij_t] * dha_t_ab + U_p[ik_t] * ddb_p[ik_t] * dhb_t_ba
+            B_tc = (dg_t * U_p[ij_t] * ddb_p[ij_t] * h_t_ab * cb_tc.T + g_t * U_p[ij_t] * ddb_p[ij_t] * dha_t_ab * norm_pc[ij_t].T).T
             C_t = U_p[ij_t] * db_p[ij_t] * h_t_ab + U_p[ik_t] * db_p[ik_t] * h_t_ba
-            D_t = U_p[ij_t] * ddb_p[ij_t] * h_t_ab + U_p[ik_t] * ddb_p[ik_t] * h_t_ba
+            # D_t = U_p[ij_t] * ddb_p[ij_t] * h_t_ab + U_p[ik_t] * ddb_p[ik_t] * h_t_ba
+            D_tc = (dg_t * U_p[ik_t] * ddb_p[ik_t] * h_t_ba * cb_tc.T + g_t * U_p[ik_t] * ddb_p[ik_t] * dhb_t_ba * norm_pc[ij_t].T).T
             E_t = U_p[ij_t] * db_p[ij_t] * dhb_t_ab + U_p[ik_t] * db_p[ik_t] * dha_t_ba
             F_t = U_p[ij_t] * db_p[ij_t] * ddhab_t_ab + U_p[ik_t] * db_p[ik_t] * ddhab_t_ba
-            X_tc = (h_t_ab.reshape(-1, 1) * cb_tc
-                    + dha_t_ab.reshape(-1, 1) * norm_pc[ij_t]) * dg_t.reshape(-1, 1)
+            # print('bl', dhb_t_ba, '\ncut', B_tc)
+            
+            X_tc = (h_t_ab * dg_t * cb_tc.T
+                    + dha_t_ab * g_t * norm_pc[ij_t].T).T
             Xx_p = np.bincount(ij_t, weights=X_tc[:, 0])
             Xy_p = np.bincount(ij_t, weights=X_tc[:, 1])
             Xz_p = np.bincount(ij_t, weights=X_tc[:, 2])
             X_pc = np.transpose([Xx_p, Xy_p, Xz_p])
-            Y_tc = (h_t_ab.reshape(-1, 1) * ca_tc
-                    + dhb_t_ab.reshape(-1, 1) * norm_pc[ik_t]) * dg_t.reshape(-1, 1)
+            
+            Y_tc = (h_t_ab * dg_t * ca_tc.T
+                    + dhb_t_ab * g_t * norm_pc[ik_t].T).T
             Yx_p = np.bincount(ij_t, weights=Y_tc[:, 0])
             Yy_p = np.bincount(ij_t, weights=Y_tc[:, 1])
             Yz_p = np.bincount(ij_t, weights=Y_tc[:, 2])
             Y_pc = np.transpose([Yx_p, Yy_p, Yz_p])
-
+            
+            Z_tc = (h_t_ba * dg_t * ca_tc.T
+                    + dha_t_ba * g_t * norm_pc[ik_t].T).T
+            Zx_p = np.bincount(ik_t, weights=Z_tc[:, 0])
+            Zy_p = np.bincount(ik_t, weights=Z_tc[:, 1])
+            Zz_p = np.bincount(ik_t, weights=Z_tc[:, 2])
+            Z_pc = np.transpose([Zx_p, Zy_p, Zz_p])
+            
+            #W_tc = (h_t_ba.reshape(-1, 1) * cb_tc  * dg_t.reshape(-1, 1)
+            #        + dhb_t_ba.reshape(-1, 1) * norm_pc[ij_t] * g_t.reshape(-1, 1))
+            W_tc = (dg_t * h_t_ba * cb_tc.T
+                    +  g_t * dhb_t_ba * norm_pc[ij_t].T).T
+            Wx_p = np.bincount(ik_t, weights=W_tc[:, 0])
+            Wy_p = np.bincount(ik_t, weights=W_tc[:, 1])
+            Wz_p = np.bincount(ik_t, weights=W_tc[:, 2])
+            W_pc = np.transpose([Wx_p, Wy_p, Wz_p])
+            
+            #print('wpc',W_tc)
+            #print('y, w', Y_pc.T, W_pc.T, 'dhbba', dhb_t_ba, norm_pc, g_t)
+            
+            #print('BY\n', B_tc.reshape(-1, 3, 1)*Y_tc.reshape(-1, 1, 3))
+            #print('DW\n', D_tc.reshape(-1, 3, 1)*W_tc.reshape(-1, 1, 3))
+            #print('DZ\n', D_tc.reshape(-1, 3, 1)*Z_pc[ij_t].reshape(-1, 1, 3))
+            """# old, wrong version before sep 08
+            
             chi_tcc = ((cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T*1/self.r_p[ij_t]
                        + (norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T*1/self.r_p[ij_t]**2
                        + self.cos_theta_t*((np.eye(3, dtype=kron_pcc.dtype) - kron_pcc)[ij_t].T*1/self.r_p[ij_t]
@@ -278,53 +324,74 @@ class AbellTersoffBrenner(Calculator):
 
             zeta_tcc = ((np.eye(3, dtype=kron_pcc.dtype) - norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T*1/(self.r_p[ik_t]*self.r_p[ij_t])
                         - (ca_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T*1/self.r_p[ij_t]).T
-
             """
-            chi_tcc = ((cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3))*(1/self.r_p[ij_t]).reshape(-1, 1, 1) \
-                       + (norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3))*(1/self.r_p[ij_t]**2).reshape(-1, 1, 1) \
-                       + ((np.eye(3, dtype=kron_pcc.dtype) - kron_pcc)[ij_t]*(self.cos_theta_t/self.r_p[ij_t]).reshape(-1, 1, 1) \
-                       - kron_pcc[ij_t]*(1/self.r_p[ij_t]**2).reshape(-1, 1, 1)))
+            
+            chi_tcc = ((norm_pc[ij_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T*1/self.r_p[ij_t]
+                       + (norm_pc[ij_t].reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T*1/self.r_p[ij_t]**2
+                       + self.cos_theta_t/(self.r_p[ij_t]**2)*(np.eye(3, dtype=kron_pcc.dtype) - 2*kron_pcc[ij_t]).T).T
 
-            zeta_tcc = ((np.eye(3, dtype=kron_pcc.dtype) - norm_pc[ik_t].reshape(-1,3,1)*norm_pc[ik_t].reshape(-1,1,3))*(1/(self.r_p[ik_t]*self.r_p[ij_t])).reshape(-1,1,1) \
-                        - (ca_tc.reshape(-1,3,1)*norm_pc[ij_t].reshape(-1,1,3))*(1/self.r_p[ij_t]).reshape(-1,1,1))
-
-            """
-            dim_tcc = -((((np.eye(3, dtype=kron_pcc.dtype) + kron_pcc)[ij_t].T*(g_t/self.r_p[ij_t])
-                          + dg_t*(norm_pc[ij_t].reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)
-                          + norm_pc[ij_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)
-                          + cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T)*A_t).T
-                        + ((g_t*B_t).reshape(-1, 1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1, 1)*cb_tc).reshape(-1, 3, 1)*X_pc[ij_t].reshape(-1, 1, 3)
-                        + ((g_t*B_t).reshape(-1, 1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1, 1)*cb_tc).reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)
+            zeta_tcc = ((np.eye(3, dtype=kron_pcc.dtype) - norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T*1/(self.r_p[ik_t]*self.r_p[ij_t])
+                        - (norm_pc[ij_t].reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)).T*1/self.r_p[ij_t]).T
+            
+            dim_tcc = -((((np.eye(3, dtype=kron_pcc.dtype) - kron_pcc[ij_t]).T*(g_t/self.r_p[ij_t])
+                        + dg_t*(ca_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)
+                        + norm_pc[ij_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)
+                        + cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T)*A_t).T
+                        + X_pc[ij_t].reshape(-1,3,1)*B_tc.reshape(-1, 1, 3) + Y_pc[ij_t].reshape(-1,3,1)*B_tc.reshape(-1, 1, 3) 
+                        + Z_pc[ik_t].reshape(-1,3,1) *D_tc.reshape(-1, 1, 3) + W_pc[ik_t].reshape(-1,3,1)*D_tc.reshape(-1, 1, 3)
                         + (ddg_t*C_t*(cb_tc.reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)+cb_tc.reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T
                         + (g_t*(U_p[ij_t]*db_p[ij_t]*ddhaa_t_ab+U_p[ik_t]*db_p[ik_t]*ddhbb_t_ba)*kron_pcc[ij_t].T).T
                         + ((g_t*f_att_p[ij_t]*db_p[ij_t]*dha_t_ab)*kron_pcc[ij_t].T).T
-                        + (g_t*F_t*kron_tcc.T).T
-                        + (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba*kron_tcc.T).T \
-                        + (dg_t*f_att_p[ij_t]*db_p[ij_t]*h_t_ab*(cb_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T).T
-                        + (dg_t*f_att_p[ik_t]*db_p[ik_t]*h_t_ba*(cb_tc.reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T).T
-                        + (dg_t*E_t*(cb_tc.reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T).T \
+                        + (g_t*F_t*(norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T).T
+                        + (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba*(norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T).T \
+                        + (dg_t*f_att_p[ij_t]*db_p[ij_t]*h_t_ab*(norm_pc[ij_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T
+                        + (dg_t*f_att_p[ik_t]*db_p[ik_t]*h_t_ba*(norm_pc[ik_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T
+                        + (dg_t*E_t*(norm_pc[ik_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T\
                         # additional term from 'K_pair' derivative
-                        + (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1, 3, 1)*X_pc[ij_t].reshape(-1, 1, 3)).T).T \
-                        + (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)).T).T \
+                        + (f_att_p*db_p*(X_pc.reshape(-1, 3, 1)*norm_pc.reshape(-1, 1, 3)).T).T[ij_t] \
+                        + (f_att_p*db_p*(Y_pc.reshape(-1, 3, 1)*norm_pc.reshape(-1, 1, 3)).T).T[ij_t] \
                         ) + ((chi_tcc-zeta_tcc).T*dg_t*C_t).T
-
-            djm_tcc = ((dg_t*A_t*(norm_pc[ij_t].reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)).T).T
-                       + ((g_t*B_t).reshape(-1, 1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1, 1)*cb_tc).reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)
-                       + (ddg_t*C_t*(cb_tc.reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)).T).T
-                       + (g_t*F_t*kron_tcc.T).T
-                       + (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba*kron_tcc.T).T
-                       + (dg_t*f_att_p[ik_t]*db_p[ik_t]*h_t_ba*(cb_tc.reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T).T
-                       + (dg_t*E_t*(cb_tc.reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T).T \
+            
+            print('dim_tcc', dim_tcc.T)
+            #print('=0\n', (
+            #             (dg_t*E_t*(norm_pc[ik_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T\
+            #            ) + ((chi_tcc-zeta_tcc).T*dg_t*C_t).T)
+            #print('comp_a\n', (norm_pc[ij_t].reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)).T,
+            #     '\ncomp_b\n', (ca_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T,
+            #     '\ndiff\n', (ca_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)- norm_pc[ij_t].reshape(-1, 3, 1)*ca_tc.reshape(-1, 1, 3)).T)
+            ##print('comp_a\n', (norm_pc[ij_t].reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3)).T,
+             #    '\ncomp_b\n', (norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T,
+             #    '\ndiff\n', (np.transpose(norm_pc[ij_t].reshape(-1, 3, 1)*norm_pc[ik_t].reshape(-1, 1, 3), axes=(0,2,1))- norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T)
+            
+            #print('bla', D_tc.reshape(-1,3,1)*W_pc[ij_t].reshape(-1, 1, 3))
+            
+            #print('dim split\n', g_t[:3], f_att_p[ik_t][:3], db_p[ik_t][:3], dhb_t_ba[:3], kron_tcc[:3])
+            #print('djm\n', (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba).reshape(-1,1,1)*kron_tcc)
+            #print('djm_comp\n', ((g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba)*kron_tcc.T).T)
+            #print('te\n', g_t*F_t*kron_tcc.T)
+            djm_tcc = ((dg_t*A_t*(ca_tc.reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T).T
+                       #+ ((g_t*B_t).reshape(-1, 1)*norm_pc[ij_t]+(dg_t*D_t).reshape(-1, 1)*cb_tc).reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)
+                       ##+ D_tc.reshape(-1,3,1)*Z_pc[ik_t].reshape(-1,1,3)
+                       + Z_pc[ik_t].reshape(-1,3,1)*D_tc.reshape(-1,1,3)
+                       + (ddg_t*C_t*(ca_tc.reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T
+                       + (g_t*F_t*(norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T).T
+                       + (g_t*f_att_p[ik_t]*db_p[ik_t]*dhb_t_ba*(norm_pc[ik_t].reshape(-1, 3, 1)*norm_pc[ij_t].reshape(-1, 1, 3)).T).T
+                       + (dg_t*f_att_p[ik_t]*db_p[ik_t]*h_t_ba*(norm_pc[ik_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T
+                       + (dg_t*E_t*(norm_pc[ik_t].reshape(-1, 3, 1)*cb_tc.reshape(-1, 1, 3)).T).T \
                        # additional term from 'K_pair' derivative
-                       + (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)).T).T \
-                       ) + (zeta_tcc.T*dg_t*C_t).T
-            # print('jm', djm_tcc)
+                       #+ (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1, 3, 1)*Y_pc[ij_t].reshape(-1, 1, 3)).T).T \
+                       ##+ (f_att_p[ij_t]*db_p[ij_t]*(norm_pc[ij_t].reshape(-1, 3, 1)*Y_tc.reshape(-1, 1, 3)).T).T \
+                       + (f_att_p*db_p*(Y_pc.reshape(-1, 3, 1)*norm_pc.reshape(-1, 1, 3)).T).T[ij_t] \
+                       ) + (zeta_tcc.T*dg_t*C_t).T \
+                        + Y_tc.reshape(-1,3,1)*B_tc.reshape(-1,1,3)
+            print('jm\n', djm_tcc.T)
+            print('test\n', Y_tc.reshape(-1,3,1)*B_tc.reshape(-1,1,3))
         else:
             b_p = np.ones_like(i_n)
             # dxi_pcc = np.zeros([nat, 3, 3])
 
-        dF_pcc = - kron_pcc*(k_rep_p-(f_rep_p/self.r_p)+b_p*(k_att_p-(f_att_p/self.r_p))).reshape(-1, 1, 1)\
-                 - np.eye(3, dtype=kron_pcc.dtype)*((b_p*f_att_p+f_rep_p)/self.r_p).reshape(-1, 1, 1) \
+        dF_pcc = - (kron_pcc*(k_rep_p-(f_rep_p/self.r_p)+b_p*(k_att_p-(f_att_p/self.r_p))).reshape(-1, 1, 1)\
+                 + np.eye(3, dtype=kron_pcc.dtype)*((b_p*f_att_p+f_rep_p)/self.r_p).reshape(-1, 1, 1))
 
         # K_pcc = 1/2*(dF_pcc[i_n]-dF_pcc[j_n])
 
@@ -337,42 +404,94 @@ class AbellTersoffBrenner(Calculator):
         # print(djm_tcc.T, dim_tcc.T)
 
         H_pcc = np.empty((i_n.shape[0], 3, 3))
-        # H_pcc_a = np.empty((i_n.shape[0], 3, 3))
-
+        H_pcc_a = np.zeros((i_n.shape[0], 3, 3))
+        
         if ij_t.size > 0:
+            #mask = np.where(jk_t < 0)
+            #djm_tcc[mask] = 0
+            #jk_t_mod = np.where(jk_t < 0, 0, jk_t)
             for x in range(3):
                 for y in range(3):
-                    H_pcc[:, x, y] = dF_pcc[:, x, y]+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y])
+                    H_pcc[:, x, y] = dF_pcc[:, x, y]+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(jk_t, weights=djm_tcc[:, x, y])
                     # H_pcc[:,x,y] = dF_pcc[:, x, y]+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y])
                     # H_pcc_a[:,x,y] = 1/2*((np.bincount(ij_t, weights=dF_tcc[:, x, y])+np.bincount(ij_t, weights=dim_tcc[:, x, y])+np.bincount(ik_t, weights=djm_tcc[:, x, y]))-(np.bincount(ik_t, weights=dF_tcc[:, x, y])+np.bincount(ik_t, weights=dim_tcc[:, x, y])+np.bincount(ij_t, weights=djm_tcc[:, x, y])))
                     # H_pcc[:,x,y] = 1/2*(H_pcc[:,x,y][i_n]-H_pcc[:,x,y][j_n])
                     # a = np.bincount(ij_t, weights=dim_tcc[:, x, y])
                     # b = np.bincount(ik_t, weights=djm_tcc[:, x, y])
                     # c = dF_pcc[:, x, y]
-                    # H_pcc[:,x,y] = 1/2*(c[i_n]+c[j_n])+1/2*(a[i_n]+a[j_n])+1/2*(b[i_n]+b[j_n])
-
+                    # H_pcc[:,x,y] = 1/2*(c[i_n]+c[j_n])+1/2*(a[i_n]+a[j_n])+1/2*(b[i_n]+b[j_n])      
+#             for t, (ij, il) in enumerate(zip(ij_t, ik_t)):
+#                 for t2 in np.arange(first_ij[ij], first_ij[ij+1]):
+#                     if ik_t[t2] == il:
+#                         continue
+#                     im = ik_t[t2] 
+#                     #for i in np.arange(first_i[j_n[im]], first_i[j_n[im]+1]):
+#                     #    if j_n[il] == j_n[i]:
+#                     #        lm = i
+#                     #        break
+#                     for i in np.arange(first_ij[il], first_ij[il+1]):
+#                         if ik_t[i] == im:
+#                             t3 = i
+#                             break
+#                     lm = jk_t[t3]
+#                     print(lm)
+#                     if True:#i_n[lm] != j_n[lm] and :
+#                         H_pcc[lm] += W_tc.reshape(-1, 3, 1)[t2]*D_tc.reshape(-1, 1, 3)[t]#D_tc.reshape(-1, 3, 1)[t]*W_tc.reshape(-1, 1, 3)[t2]
+            for t, (ij, il) in enumerate(zip(ik_t, ij_t)):
+                for t2 in np.arange(first_ij[ij], first_ij[ij+1]):
+                    if ik_t[t2] == il:
+                        continue
+                    im = ik_t[t2]
+                    #for i in np.arange(first_i[j_n[im]], first_i[j_n[im]+1]):
+                    #    if j_n[il] == j_n[i]:
+                    #        lm = i
+                    #        break
+                    for i in np.arange(first_ij[il], first_ij[il+1]):
+                        if ik_t[i] == im:
+                            t3 = i
+                            break
+                    lm = jk_t[t3]
+                    #print(lm)
+                    if True:#i_n[lm] != j_n[lm] and :
+                        H_pcc[lm] += W_tc.reshape(-1, 3, 1)[t2]*D_tc.reshape(-1, 1, 3)[t]
+                        #print('D_tc\n', D_tc.reshape(-1, 3, 1)[t][::-1], '\n', W_tc.reshape(-1, 1, 3)[t2][::-1])
         else:
             for x in range(3):
                 for y in range(3):
                     H_pcc[:, x, y] = dF_pcc[:, x, y]
-
+        
+        
+        H_pcc += np.transpose(H_pcc[tr_p], axes=(0, 2, 1))
+    
+        H_pr = np.zeros((3*nat, 3*nat))
+        for atom in range(len(i_n)):
+            H_pr[3*i_n[atom]:3*i_n[atom]+3,
+              3*j_n[atom]:3*j_n[atom]+3] += H_pcc_a[atom]
+        
+        #print('Hpcc_a', H_pcc_a)
         Hdiag_ncc = np.empty((nat, 3, 3))
         for x in range(3):
             for y in range(3):
                 Hdiag_ncc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_pcc[:, x, y])  # 1/2*(np.bincount(i_n, weights=H_pcc[:, x, y])+np.bincount(j_n, weights=H_pcc[:, x, y]))
-
+                        np.bincount(i_n, weights=H_pcc[:, x, y])#+np.bincount(j_n, weights=H_pcc[:, x, y])) # np.bincount(i_n, weights=H_pcc[:, x, y]) 
+        
+        
+        
+        
         H = np.zeros((3*nat, 3*nat))
         for atom in range(len(i_n)):
             H[3*i_n[atom]:3*i_n[atom]+3,
-              3*j_n[atom]:3*j_n[atom]+3] += H_pcc[atom]  # 1/2*(H_pcc[atom]-H_pcc[j_n[atom]])
+              3*j_n[atom]:3*j_n[atom]+3] += H_pcc[atom]#+H_pcc_a[atom]#1/2*(H_pcc[atom]-H_pcc[j_n[atom]])#H_pcc[atom]+H_pcc_a[atom]  # 1/2*(H_pcc[atom]-H_pcc[j_n[atom]])
 
         Hdiag_pcc = np.zeros((3*nat, 3*nat))
         for atom in range(nat):
             Hdiag_pcc[3*atom:3*atom+3,
-                      3*atom:3*atom+3] += Hdiag_ncc[atom]
+                      3*atom:3*atom+3] += Hdiag_ncc[atom] #1/2*(Hdiag_ncc[atom]-Hdiag_ncc[j_n[atom]])
 
         H += Hdiag_pcc
+        #H += H.T
+        H = 1/2*H
+        #print('H_pcc_a\n', H_pr)
 
         return H
 
@@ -385,6 +504,7 @@ class KumagaiTersoff(AbellTersoffBrenner):
         super().__init__(
             g=lambda cos_theta: c_1 + (1 + c_4*np.exp(-c_5*(h-cos_theta)**2)) *\
                                 ((c_2*(h-cos_theta)**2)/(c_3 + (h-cos_theta)**2)),
+            #g=lambda cos_theta: cos_theta,
 
             f_c=lambda r: np.where(r <= R_1, 1.0,  np.where(r >= R_2, 0.0, (1/2+(9/16) \
                                                 *np.cos(np.pi*(r - R_1)/(R_2 - R_1)) - (1/16) \
@@ -415,15 +535,17 @@ class KumagaiTersoff(AbellTersoffBrenner):
 
             db_xi=lambda xi: -delta*eta*xi**(eta-1)*(xi**eta+1)**(-delta-1),
 
-            dg_costheta=lambda cos_theta: 2*c_2*(cos_theta - h)*((c_3 + (cos_theta - h)**2) * \
-                                                                 (-c_4*c_5*(cos_theta - h)**2 + c_4 + \
-                                                                  np.exp(c_5*(cos_theta - h)**2)) - \
-                                                                 (c_4 + np.exp(c_5*(cos_theta - h)**2)) \
-                                                                 * (cos_theta - h)**2)*np.exp(-c_5*(cos_theta - \
+            dg_costheta=lambda cos_theta: 2*c_2*(cos_theta - h)*((c_3 + (cos_theta - h)**2) * 
+                                                                 (-c_4*c_5*(cos_theta - h)**2 + c_4 + 
+                                                                 np.exp(c_5*(cos_theta - h)**2)) - 
+                                                                 (c_4 + np.exp(c_5*(cos_theta - h)**2)) 
+                                                                 * (cos_theta - h)**2)*np.exp(-c_5*(cos_theta -
                                                                                               h)**2)/(c_3 + (cos_theta - h)**2)**2,
+            #dg_costheta=lambda cos_theta: cos_theta,
+            
             dexp_r_ij=lambda r_ij, r_ik: (alpha*beta)*np.exp(alpha*(r_ij-r_ik)**beta),  # (alpha*beta*(r_ij-r_ik)**(beta-1))*np.exp(alpha*(r_ij-r_ik)**beta),
             dexp_r_ik=lambda r_ij, r_ik: -(alpha*beta)*np.exp(alpha*(r_ij-r_ik)**beta),  # -(alpha*beta*(r_ij-r_ik)**(beta-1))*np.exp(alpha*(r_ij-r_ik)**beta),
-
+            
             # hessian
             ddf_c_r_r=lambda r: np.where(r >= R_2, 0.0,\
                                          np.where(r <= R_1, 0.0,\
@@ -431,7 +553,7 @@ class KumagaiTersoff(AbellTersoffBrenner):
                                                                 - np.cos(np.pi*(R_1 - r)/(R_1 - R_2))))/(16*(R_1 - R_2)**2)))),
             #ddb_xi_xi=lambda xi: delta*eta*xi**(eta - 2)*(xi**eta + 1)**(-delta)\
             #                    *(delta*eta*xi**eta - eta + xi**eta + 1)/(xi**(2*eta) + 2*xi**eta + 1),
-            ddb_xi_xi=lambda xi: delta*eta**2*xi**(eta - 1)*(delta + 1)*(xi**eta + 1)**(-delta - 2),
+            ddb_xi_xi=lambda xi: delta*eta*xi**(eta - 1)*(delta + 1)*(xi**eta + 1)**(-delta - 2),
             #ddexp_r_ij_r_ik=lambda r_ij, r_ik: alpha*beta*(r_ij - r_ik)**(beta - 2)\
             #                    *(-alpha*beta*(r_ij - r_ik)**beta - beta + 1)*np.exp(alpha*(r_ij - r_ik)**beta),
             #ddexp_r_ij_r_ij=lambda r_ij, r_ik: alpha*beta*(r_ij - r_ik)**(beta - 2)\
@@ -443,6 +565,7 @@ class KumagaiTersoff(AbellTersoffBrenner):
                                         + (c_3 + (cos_theta - h)**2)*(cos_theta - h)**2*(4*c_4*c_5*(cos_theta - h)**2\
                                         - 5*c_4 - 5*np.exp(c_5*(cos_theta - h)**2))\
                                         + 4*(c_4 + np.exp(c_5*(cos_theta - h)**2))*(cos_theta - h)**4)*np.exp(-c_5*(cos_theta - h)**2)/(c_3 + (cos_theta - h)**2)**3,
+            #ddg_costheta_costheta=lambda cos_theta: cos_theta*0,
             ddU_r_r=lambda r, f_c, df_c_r, ddf_c_r_r: -B*np.exp(-lambda_2*r)*(ddf_c_r_r-2*df_c_r*lambda_2+lambda_2**2*f_c),
             ddV_r_r=lambda r, f_c, df_c_r, ddf_c_r_r: A*np.exp(-lambda_1*r)*(ddf_c_r_r-2*df_c_r*lambda_1+lambda_1**2*f_c),
 
@@ -450,3 +573,28 @@ class KumagaiTersoff(AbellTersoffBrenner):
 
         def get_cutoff(self):
             return self.cutoff
+
+
+"""
+Kumagai_CompMaterSci_39_457_Si_py_var = {
+    "__ref__":  "T. Kumagai, S. Izumi, S. Hara, and S. Sakai, \
+            Comput. Mater. Sci. 39, 457 (2007)",
+    "el":        "Si"        ,
+    "A":         3281.5905   ,
+    "B":         121.00047   ,
+    "lambda_1":  3.2300135   ,
+    "lambda_2":  1.3457970   ,
+    "eta":       1.0000000   ,
+    "delta":     0.53298909  ,
+    "alpha":     2.3890327   ,
+    "beta":      1           ,
+    "c_1":       0.20173476  ,
+    "c_2":       730418.72   ,
+    "c_3":       1000000.0   ,
+    "c_4":       1.0000000   ,
+    "c_5":       26.000000   ,
+    "h":         -0.36500000 ,
+    "R_1":       2.70        ,
+    "R_2":       3.30        ,
+}
+"""
