@@ -247,7 +247,7 @@ e_nc = (dr_nc.T/abs_dr_n).T
 
 
 def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None, i_p=None,
-                 j_p=None, first_i=None):
+                 j_p=None):
     """
     Compute a triplet list for an atomic configuration. The triple list is a
     mask that can be applied to the corresponding neighbour list to mask
@@ -290,11 +290,12 @@ def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None, i_p=None,
     # TODO: should be wrapped in c and be independet of i_n
     # and j_n as of j_n is sorted; related issue #50
     # add some tests!!!
-    if not (i_p is None or j_p is None or first_i is None):
+    if not (i_p is None or j_p is None or first_neighbours is None):
         ij_t, ik_t = res
         jk_t = -np.ones(len(ij_t), dtype='int32')
         for t, (ij, ik) in enumerate(zip(ij_t, ik_t)):
-            for i in np.arange(first_i[j_p[ij]], first_i[j_p[ij]+1]):
+            for i in np.arange(first_neighbours[j_p[ij]],
+                               first_neighbours[j_p[ij]+1]):
                 if i_p[i] == j_p[ij] and j_p[i] == j_p[ik]:
                     jk_t[t] = i
                     break
