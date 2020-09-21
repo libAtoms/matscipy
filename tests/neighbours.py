@@ -142,9 +142,15 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_first_neighbours(self):
         i = [1,1,1,1,3,3,3]
-        self.assertArrayAlmostEqual(first_neighbours(5, i), [-1,0,-1,4,-1,7])
+        self.assertArrayAlmostEqual(first_neighbours(5, i), [0,0,4,4,7,7])
         i = [0,1,2,3,4,5]
         self.assertArrayAlmostEqual(first_neighbours(6, i), [0,1,2,3,4,5,6])
+        i = [0,1,2,3,5,6]
+        print(first_neighbours(8, i))
+        self.assertArrayAlmostEqual(first_neighbours(8, i), [0,1,2,3,4,4,5,6,6])
+        i = [0,1,2,3,3,5,6]
+        print(first_neighbours(8, i))
+        self.assertArrayAlmostEqual(first_neighbours(8, i), [0,1,2,3,5,5,6,7,7])
 
     def test_multiple_elements(self):
         a = molecule('HCOOH')
