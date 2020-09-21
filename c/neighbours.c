@@ -648,17 +648,18 @@ first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed)
 {
     int k;
 
-    for (k = 0; k < n; k++) {
-        seed[k] = -1;
-    }
-    seed[n] = nn;
-
     seed[i_n[0]] = 0;
 
     for (k = 1; k < nn; k++) {
         if (i_n[k] != i_n[k-1]) {
-            seed[i_n[k]] = k;
+            int l;
+            for (l = i_n[k-1]+1; l <= i_n[k]; l++) {
+                seed[l] = k;
+            }
         }
+    }
+    for (k = i_n[nn-1]+1; k <= n; k++) {
+        seed[k] = nn;
     }
 }
 
