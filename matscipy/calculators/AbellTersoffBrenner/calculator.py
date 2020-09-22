@@ -663,10 +663,6 @@ def KumagaiTersoff():
                      )
                             )
 
-    f = lambda r: (R_2 - r)/R_2
-    df = lambda r: -np.ones_like(r)/R_2
-    ddf = lambda r: np.zeros_like(r)
-
     fR = lambda r:  A*np.exp(-lambda_1 * r)
     dfR = lambda r: -lambda_1 * fR(r)
     ddfR = lambda r: lambda_1**2 * fR(r)
