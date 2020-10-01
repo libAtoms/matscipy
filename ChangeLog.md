@@ -1,6 +1,25 @@
 Change log
 ==========
 
+v0.6.0 (10Sep20)
+-----------------------
+
+- Numerical computation of the Hessian matrix 
+- Calculator for polydisperse systems in which particles interact via a pair potential 
+- Analytic computation of Hessian for polydisperse systems
+- Bug fix in tests eam_calculator_forces_hessian 
+
+v0.5.1, v0.5.2 (4Sep20)
+-----------------------
+
+- Enabling automatic publishing on PyPI
+
+v0.5.0 (4Sep20)
+---------------
+
+- Sinclair flexible boundary conditions for cracks and arc-length continuation
+- Bug fix in neighbour list search that lead to occasional segfaults
+
 v0.4.0 (5May20)
 ---------------
 
