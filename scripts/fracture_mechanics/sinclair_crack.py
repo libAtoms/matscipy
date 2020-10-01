@@ -5,9 +5,11 @@ import numpy as np
 
 import ase.io
 from ase.units import GPa
+from ase.constraints import FixAtoms
+from ase.optimize.precon import PreconLBFGS
 
 from matscipy import parameter
-from matscipy.elasticity import  fit_elastic_constants
+from matscipy.elasticity import fit_elastic_constants
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 
 import sys
@@ -25,6 +27,7 @@ alpha0 = parameter('alpha0', 0.0) # initial guess for crack position
 dump = parameter('dump', False)
 precon = parameter('precon', False)
 prerelax = parameter('prerelax', False)
+lbfgs = parameter('lbfgs', False)
 
 # compute elastic constants
 cryst = params.cryst.copy()
@@ -96,13 +99,22 @@ for i, k in enumerate(ks):
     print(f'k = {sc.k / k1g} * k1g')
     print(f'alpha = {sc.alpha}')
 
-    if prerelax:
-        print('Pre-relaxing with Conjugate-Gradients')
-        sc.optimize(ftol=1e-5, steps=max_steps, dump=dump,
-                    method='cg')
+    if lbfgs:
+        print('Optimizing with LBFGS')
+        atoms = sc.atoms.copy()
+        atoms.calc = sc.calc
+        atoms.set_constraint(FixAtoms(mask=np.logical_not(sc.regionI)))
+        opt = PreconLBFGS(atoms)
+        opt.run(fmax=fmax)
+        sc.set_atoms(atoms)
+    else:
+        if prerelax:
+            print('Pre-relaxing with Conjugate-Gradients')
+            sc.optimize(ftol=1e-5, steps=max_steps, dump=dump,
+                        method='cg')
 
-    sc.optimize(fmax, steps=max_steps, dump=dump,
-                precon=precon, method='krylov')
+        sc.optimize(fmax, steps=max_steps, dump=dump,
+                    precon=precon, method='krylov')
 
     if flexible:
         print(f'Optimized alpha = {sc.alpha:.3f}')
