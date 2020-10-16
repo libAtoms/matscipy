@@ -73,7 +73,7 @@ class MatSciPyTestCase(unittest.TestCase):
         self.fail('%s != %s' % (a,b))
 
 
-    def assertArrayAlmostEqual(self, a, b, tol=1e-6):
+    def assertArrayAlmostEqual(self, a, b, tol=1e-7):
         a = np.array(a)
         b = np.array(b)
         self.assertEqual(a.shape, b.shape)
