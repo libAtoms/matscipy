@@ -258,8 +258,10 @@ def main():
         np.savetxt(outfile, data, fmt='%22.15e', header=header)
 
     # write out final state as usual, but mark process failed if not converged
-    if not pnp.converged:
-        sys.exit(1)
+    # if not pnp.converged:
+    #    sys.exit(1)
+
+    sys.exit(0)
 
 if __name__ == '__main__':
     main()
