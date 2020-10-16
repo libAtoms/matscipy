@@ -22,6 +22,6 @@
 
 from __future__ import absolute_import
 
-from .calculator import EAM
+from .calculator import EAM, EAMHessianPrecon
 from .io import mix_eam, read_eam, write_eam
 from .average_atom import average_potential

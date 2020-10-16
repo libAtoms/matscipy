@@ -21,16 +21,14 @@
 # ======================================================================
 """EAM calculator"""
 
-import os
-
 import numpy as np
 
-import ase
 from ase.calculators.calculator import Calculator
+from ase.optimize.precon import Precon
 
 try:
     from scipy.interpolate import InterpolatedUnivariateSpline
-except:
+except ImportError:
     InterpolatedUnivariateSpline = None
 
 from scipy.sparse import bsr_matrix
@@ -942,3 +940,44 @@ class EAM(Calculator):
     @property
     def cutoff(self):
         return self._db_cutoff
+
+
+class EAMHessianPrecon(Precon):
+    def __init__(self, calc, c_stab=0.01, move_tol=0.1, P=None, old_positions=None):
+        self.calc = calc
+        self.P = P        
+        self.c_stab = c_stab
+        self.move_tol = move_tol
+        self.old_positions = old_positions        
+        
+    def make_precon(self, atoms):
+        if self.P is None or self.old_positions is None:
+            max_move = np.inf
+        else:
+            max_move = np.abs(atoms.positions - self.old_positions).max()
+        if self.P is None or max_move > self.move_tol:
+            print('Recomputing precon...')
+            P = self.calc.calculate_hessian_matrix(atoms).todense()
+            P += np.diag([self.c_stab] * 3 * len(atoms))
+            D, Q = np.linalg.eigh(P)
+            print(D[:10])
+            if np.any(D < 0):
+                print(f'Flipping {np.sum(D < 0)} negative eigenvalues')
+                self.P = np.array(Q @ np.diag(np.abs(D)) @ Q.T)
+            else:
+                self.P = np.array(P)
+            self.old_positions = atoms.positions.copy()
+                
+    def Pdot(self, x):
+        return self.P.dot(x)
+        
+    def solve(self, x):
+        return np.linalg.solve(self.P, x)
+    
+    def copy(self):
+        return EAMHessianPrecon(self.calc, 
+                                self.c_stab,
+                                self.move_tol,
+                                None, None) #self.P.copy(),
+                                # self.old_positions.copy())
+
