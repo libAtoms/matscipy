@@ -714,32 +714,29 @@ py_triplet_list(PyObject *self, PyObject *args)
     py_fi = PyArray_FROMANY(py_fi, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
     fi = PyArray_DATA((PyArrayObject *) py_fi);
 
-    if (!fi) {
-        Py_XDECREF(fi);
-        return NULL;
-    }
+    if (!fi) return NULL;
 
     double cutoff = DBL_MAX;
 
     if (py_cutoff || py_absdist) {
-	if (!py_absdist || !py_cutoff) {
-	    PyErr_SetString(PyExc_TypeError, "Cutoff and distances must "
-                                                "be specified together.");
-	    return NULL;
-	}
+        if (!py_absdist || !py_cutoff) {
+    	    PyErr_SetString(PyExc_TypeError, "Cutoff and distances must "
+                                                    "be specified together.");
+    	    return NULL;
+    	}
         py_absdist = PyArray_FROMANY(py_absdist, NPY_DOUBLE,
 				         1, 1, NPY_C_CONTIGUOUS);
        	if (!py_absdist) {
             PyErr_SetString(PyExc_TypeError, "Distances must be an "
                                              "array of floats.");
             return NULL;
-	}
+	    }
     	absdist = PyArray_DATA((PyArrayObject *) py_absdist);
         // absdist_length = (int) PyArray_SIZE(py_absdist);
     	if (PyFloat_Check(py_cutoff)) {
         	cutoff = PyFloat_AsDouble(py_cutoff);
         	py_cutoff = NULL;
-   	}
+   	    }
     	else {
             PyErr_SetString(PyExc_NotImplementedError, "Cutoff must be a single "
                                              "float.");
@@ -774,18 +771,17 @@ py_triplet_list(PyObject *self, PyObject *args)
                     if (py_ik_t && !(ik_t = resize_array(py_ik_t, length_trip)))
                         goto fail;
                 }
-		if ((ij != ik)) {
-		    if (absdist) { 
-    			// fprintf(stderr, "co %f, ij %f, ik %f  \n", cutoff, absdist[ij], absdist[ik]);
-	                if ((absdist[ij] >= cutoff) || (absdist[ik] >= cutoff)) {
-			    continue; 
-			};
-		    }
+        		if ((ij != ik)) {
+        		    if (absdist) { 
+            		    if ((absdist[ij] >= cutoff) || (absdist[ik] >= cutoff)) {
+        			        continue; 
+        			    };
+        		    }
                	    ij_t[index_trip] = ij;
                     ik_t[index_trip++] = ik;
-	        }
+        	    }
             }
-       }
+        }
     }
 
     /* set final array sizes of the triplet lists */

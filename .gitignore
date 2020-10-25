@@ -59,6 +59,3 @@ docs/_build/
 
 #MAC DS_Store
 .DS_Store
-
-# everything else
-test_triplets.py
