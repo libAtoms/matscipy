@@ -758,7 +758,6 @@ py_triplet_list(PyObject *self, PyObject *args)
 
     /* compute the triplet list */
     int index_trip = 0;
-    int running_index = 0;
     for (int r = 0; r < (init_length - 1); r++) {
         for (int ij= fi[r]; ij < fi[r+1]; ij++) {
             for (int ik = fi[r]; ik < fi[r+1]; ik++) {
