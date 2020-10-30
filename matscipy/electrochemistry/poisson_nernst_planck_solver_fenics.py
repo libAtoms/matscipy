@@ -68,6 +68,14 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
             value of L Lagrange multipliers
         """
 
+        # weak form and FEM scheme:
+
+        # in the weak form, u and v are the trial and test functions associated
+        # with the Poisson part, p and q the trial and test functions associated
+        # with the Nernst-Planck part. lam and mu are trial and test fuctions
+        # associated to constraints introduced via Lagrange multipliers.
+        # w is the whole set of trial functions [u,p,lam]
+        # W is the space all w live in.
         rho = 0
         for i in range(self.M):
             rho += self.z[i]*self.p[i]
@@ -89,13 +97,6 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         F = poisson + nernst_planck + self.constraints
 
         fn.solve(F==0, self.w, self.boundary_conditions)
-
-        # a = fn.lhs(F)
-        # L = fn.rhs(F)
-        #
-        # A = fn.assemble(a)
-        # b = fn.assemble(L)
-        # fn.solve(A,self.w.vector(),b,self.boundary_conditions)
 
         # store results:
 
@@ -334,7 +335,16 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         # Raviart-Thomas                    RT
         # Real                              R
 
-        # construct test function space
+        # construct test and trial function space from elements
+        # spanned by Lagrange polynomials for the pyhsical variables of
+        # potential and concentration and global elements with a single degree
+        # of freedom ('Real') for constraints.
+        # For an example of this approach, refer to
+        #     https://fenicsproject.org/docs/dolfin/latest/python/demos/neumann-poisson/demo_neumann-poisson.py.html
+        # For another example on how to construct and split function spaces
+        # for solving coupled equations, refer to
+        #     https://fenicsproject.org/docs/dolfin/latest/python/demos/mixed-poisson/demo_mixed-poisson.py.html
+
         P = fn.FiniteElement('Lagrange', fn.interval, 3)
         R = fn.FiniteElement('Real', fn.interval, 0)
         elements = [P]*(1+self.M) + [R]*self.K
