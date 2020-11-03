@@ -187,8 +187,8 @@ def read_eam(eam_file, kind="eam/alloy"):
             raise ValueError(f"expected {expected_length} tabulated values, but there are {true_length}")
         data = np.array(remaining_words, dtype=float)
         F = data[0:Nrho]
-        f = data[Nrho:Nrho+Nr]
-        rep = data[Nrho+Nr:2*Nr+Nrho]
+        rep = data[Nrho:Nrho+Nr]
+        f = data[Nrho+Nr:2*Nr+Nrho]
         return source, parameters, F, f, rep
 
     if kind in ["eam/alloy", "eam/fs"]:
