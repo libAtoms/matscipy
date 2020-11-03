@@ -51,6 +51,11 @@ static PyMethodDef module_methods[] = {
       "Compute a neighbour list for an atomic configuration." },
     { "first_neighbours", (PyCFunction) py_first_neighbours, METH_VARARGS,
       "Compute indices of first neighbours in neighbour list array." },
+    { "triplet_list", (PyCFunction) py_triplet_list, METH_VARARGS,
+      "Compute a triplet list for a first_neighbour list." },
+    { "get_jump_indicies", (PyCFunction) py_get_jump_indicies, METH_VARARGS,
+      "Get jump indicies of an ordered list. Does not need list's length \
+       as an argument - only the ordered list." },
     { "count_islands", (PyCFunction) py_count_islands, METH_VARARGS,
       "N/A" },
     { "count_segments", (PyCFunction) py_count_segments, METH_VARARGS,

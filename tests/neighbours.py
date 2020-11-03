@@ -31,7 +31,7 @@ import ase.lattice.hexagonal
 from ase.build import bulk, molecule
 
 import matscipytest
-from matscipy.neighbours import mic, neighbour_list, first_neighbours
+from matscipy.neighbours import *
 from matscipy.fracture_mechanics.idealbrittlesolid import triangular_lattice_slab
 
 ###
@@ -136,15 +136,21 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
     def test_hexagonal_cell(self):
         for sx in range(3):
             a = ase.lattice.hexagonal.Graphite('C', latticeconstant=(2.5, 10.0),
-                                               size=[sx+1,sx+1,1])
+                                               size=[sx+1, sx+1, 1])
             i = neighbour_list("i", a, 1.85)
             self.assertTrue(np.all(np.bincount(i)==3))
 
     def test_first_neighbours(self):
         i = [1,1,1,1,3,3,3]
-        self.assertArrayAlmostEqual(first_neighbours(5, i), [-1,0,-1,4,-1,7])
+        self.assertArrayAlmostEqual(first_neighbours(5, i), [0,0,4,4,7,7])
         i = [0,1,2,3,4,5]
         self.assertArrayAlmostEqual(first_neighbours(6, i), [0,1,2,3,4,5,6])
+        i = [0,1,2,3,5,6]
+        print(first_neighbours(8, i))
+        self.assertArrayAlmostEqual(first_neighbours(8, i), [0,1,2,3,4,4,5,6,6])
+        i = [0,1,2,3,3,5,6]
+        print(first_neighbours(8, i))
+        self.assertArrayAlmostEqual(first_neighbours(8, i), [0,1,2,3,5,5,6,7,7])
 
     def test_multiple_elements(self):
         a = molecule('HCOOH')
@@ -225,8 +231,70 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
         self.assertTrue(np.all(np.abs(dr-dr_direct) < 1e-12))
 
-###
+
+class TestTriplets(matscipytest.MatSciPyTestCase):
+
+    def test_get_jump_indicies(self):
+        first_triplets = get_jump_indicies([0, 0, 0, 1, 1, 1, 1, 1, 2, 2,
+                                            2, 3, 3, 3, 3, 4, 4, 4, 4])
+        first_triplets_comp = [0, 3, 8, 11, 15, 19]
+        assert np.all(first_triplets == first_triplets_comp)
+        first_triplets = get_jump_indicies([0])
+        first_triplets_comp = [0, 1]
+        assert np.all(first_triplets == first_triplets_comp)
+
+    def test_triplet_list(self):
+        ij_t_comp = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9,
+                     9, 10, 10, 11, 11]
+        ik_t_comp = [1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4, 7, 8, 6, 8, 6, 7, 10,
+                     11, 9, 11, 9, 10]
+        i_n = [0]*2+[1]*4+[2]*4
+        
+        first_i = get_jump_indicies(i_n)
+        ij_t_comp = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6,
+                     7, 7, 7, 8, 8, 8, 9, 9, 9]
+        ik_t_comp = [1, 0, 3, 4, 5, 2, 4, 5, 2, 3, 5, 2, 3, 4, 7, 8, 9,
+                     6, 8, 9, 6, 7, 9, 6, 7, 8]
+
+        a = triplet_list(first_i)
+        assert np.alltrue(a[0] == ij_t_comp)
+        assert np.alltrue(a[1] == ik_t_comp)
+
+        first_i = np.array([0, 2, 6, 10], dtype='int32')
+        a = triplet_list(first_i, [2.2]*4+[3.0]*2+[2.0]*4, 2.6)
+        ij_t_comp = [0, 1, 2, 3, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9]
+        ik_t_comp = [1, 0, 3, 2, 7, 8, 9, 6, 8, 9, 6, 7, 9, 6, 7, 8]
+        assert np.all(a[0] == ij_t_comp)
+        assert np.all(a[1] == ik_t_comp)
+
+        first_i = np.array([0, 2, 6, 10], dtype='int32')
+        a = triplet_list(first_i)
+        ij_t_comp = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5,
+                     5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9]
+        ik_t_comp = [1, 0, 3, 4, 5, 2, 4, 5, 2, 3, 5, 2, 3,
+                     4, 7, 8, 9, 6, 8, 9, 6, 7, 9, 6, 7, 8]
+        assert np.all(a[0] == ij_t_comp)
+        assert np.all(a[1] == ik_t_comp)
+
+
+
+    def test_triplet_list_with_cutoff(self):
+        first_i = np.array([0, 2, 6, 10], dtype='int32')
+        a = triplet_list(first_i, [2.2]*9+[3.0], 2.6)
+        ij_t_comp = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5,
+                     5, 6, 6, 7, 7, 8, 8]
+        ik_t_comp = [1, 0, 3, 4, 5, 2, 4, 5, 2, 3, 5, 2, 3,
+                     4, 7, 8, 6, 8, 6, 7]
+        assert np.all(a[0] == ij_t_comp)
+        assert np.all(a[1] == ik_t_comp)
+
+        first_i = np.array([0, 2, 6, 10], dtype='int32')
+        a = triplet_list(first_i, [2.2]*4+[3.0]*2+[2.0]*4, 2.6)
+        ij_t_comp = [0, 1, 2, 3, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9]
+        ik_t_comp = [1, 0, 3, 2, 7, 8, 9, 6, 8, 9, 6, 7, 9, 6, 7, 8]
+        assert np.all(a[0] == ij_t_comp)
+        assert np.all(a[1] == ik_t_comp)
+
 
 if __name__ == '__main__':
     unittest.main()
-

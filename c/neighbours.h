@@ -35,6 +35,8 @@ extern "C" {
  */
 PyObject *py_neighbour_list(PyObject *self, PyObject *args);
 PyObject *py_first_neighbours(PyObject *self, PyObject *args);
+PyObject *py_triplet_list(PyObject *self, PyObject *args);
+PyObject *py_get_jump_indicies(PyObject *self, PyObject *args);
 
 /*
  * Construct seed array that points to start of rows
