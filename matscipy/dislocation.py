@@ -276,7 +276,11 @@ def make_edge_cyl(alat, C11, C12, C44,
 
 
 def plot_vitek(dislo, bulk,
+<<<<<<< HEAD
                alat=3.16, plot_axes=None, xyscale=10):
+=======
+               alat=3.16, xyscale=10):
+>>>>>>> 89842e2... New general-purpose dislocation generator and tests
     """Plots vitek map from ase configurations.
 
     Parameters
@@ -326,6 +330,7 @@ def plot_vitek(dislo, bulk,
     # distance between atoms on the plot
     plot_scale = 1.885618083
 
+<<<<<<< HEAD
     differential_displacement(base_system, disl_system,
                               burgers,
                               cutoff=neighborListCutoff,
@@ -337,6 +342,15 @@ def plot_vitek(dislo, bulk,
 
     return None
 
+=======
+    return differential_displacement(base_system, disl_system,
+                                     burgers,
+                                     cutoff=neighborListCutoff,
+                                     xlim=plot_range[0],
+                                     ylim=plot_range[1],
+                                     zlim=plot_range[2],
+                                     plot_scale=plot_scale)
+>>>>>>> 89842e2... New general-purpose dislocation generator and tests
 
 def show_NEB_configurations(images, bulk, xyscale=7,
                             show=True, core_positions=None):
@@ -446,7 +460,11 @@ def get_elastic_constants(pot_path=None,
                            atom_types={'W': 1}, keep_alive=True)
         calculator = lammps
 
+<<<<<<< HEAD
     unit_cell.set_calculator(calculator)
+=======
+    unit_cell.calc = calculator
+>>>>>>> 89842e2... New general-purpose dislocation generator and tests
 
 #   simple calculation to get the lattice constant and cohesive energy
 #    alat0 = W.cell[0][1] - W.cell[0][0]
@@ -1968,3 +1986,122 @@ def read_dislo_QMMM(filename=None, image=None):
                                    qm_atom_type))
 
     return dislo_QMMM, qm_mask
+
+
+class CubicCrystalDislocation:
+    def __init__(self, unit_cell, C11, C12, C44,
+                 axes, burgers, shift, parity):
+        self.unit_cell = unit_cell.copy()        
+        self.C11 = C11
+        self.C12 = C12
+        self.C44 = C44
+
+        self.axes = axes
+        self.burgers = burgers
+        self.shift = shift
+        self.parity = parity
+
+    def displacements(self, bulk_positions, center, self_consistent=True, 
+                      tol=1e-6, max_iter=100, verbose=True):
+        from atomman import ElasticConstants
+        from atomman.defect import Stroh
+        c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)        
+        stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
+
+        disp1 = stroh.displacement(bulk_positions - center)
+        if not self_consistent:
+            return disp1
+
+        res = np.inf
+        i = 0
+        while res > tol:
+            disloc_positions = bulk_positions + disp1
+            disp2 = stroh.displacement(disloc_positions - center)
+            res = np.abs(disp1 - disp2).max()
+            disp1 = disp2
+            if verbose:
+                print('disloc SCF', i, '|d1-d2|_inf =', res)
+            i += 1
+            if i > max_iter:
+                raise RuntimeError(f'Self-consistency did not converge in {max_iter} cycles')
+        return disp2
+    
+    def build_cylinder(self, radius, fix_width=10.0, self_consistent=True):
+        extent = np.array([2 * radius + 10., 2 * radius + 10., 1.])
+        repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
+        repeat[2] = 1  # exactly one cell in the periodic direction
+        
+        # ensure correct parity in x and y directions
+        if repeat[0] % 2 != self.parity[0]:
+            repeat[0] += 1
+        if repeat[1] % 2 != self.parity[1]:
+            repeat[1] += 1
+
+        bulk = self.unit_cell * repeat   
+        bulk.positions += self.shift
+
+        # build a bulk cylinder
+        center = np.diag(bulk.cell) / 2
+        r = np.sqrt(((bulk.positions[:, [0, 1]] - center[[0, 1]])**2).sum(axis=1))
+        mask = r < radius
+        bulk = bulk[mask]
+
+        # disloc is a copy of bulk with displacements applied
+        disloc = bulk.copy()
+        disloc.positions += np.real(self.displacements(bulk.positions, center,
+                                                       self_consistent=self_consistent))
+        r = r[mask]
+        fix_mask = r > radius - fix_width
+        disloc.set_array('fix_mask', fix_mask)
+        disloc.set_constraint(FixAtoms(mask=fix_mask))
+        disloc.center(vacuum=2 * fix_width, axis=(0, 1))
+
+        return bulk, disloc
+
+
+class BCCScrew111Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, 1, -2],
+                         [-1, 1, 0],
+                         [1, 1, 1]])
+        burgers = alat * np.array([1, 1, 1]) / 2.0
+        shift = alat * np.array([np.sqrt(6.)/6.0,  np.sqrt(2.)/6.0, 0])
+        parity = [0, 1]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)
+        super().__init__(unit_cell, C11, C12, C44,
+                         axes, burgers, shift, parity)
+
+        
+class BCCEdge111Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, 1, 1],
+                         [1, -1, 0],
+                         [1, 1, -2]])
+        burgers = alat * np.array([1, 1, 1]) / 2.0
+        shift = alat * np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 0.25 * np.sqrt(2.0), 0 ])
+        parity = [0, 0]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)        
+        super().__init__(unit_cell, C11, C12, C44,
+                         axes, burgers, shift, parity)
+
+
+class BCCMixed111Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, -1, -2],
+                        [1, 1, 0],
+                        [1, -1, 1]])
+        burgers = alat * np.array([1, -1, -1]) / 2.0
+        shift = alat * np.array([-0.05, 0.0, 0.0])
+        parity = [1, 1]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)        
+        super().__init__(unit_cell, C11, C12, C44,
+                         axes, burgers, shift, parity)
