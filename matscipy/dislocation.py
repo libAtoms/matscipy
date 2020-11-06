@@ -276,11 +276,7 @@ def make_edge_cyl(alat, C11, C12, C44,
 
 
 def plot_vitek(dislo, bulk,
-<<<<<<< HEAD
-               alat=3.16, plot_axes=None, xyscale=10):
-=======
                alat=3.16, xyscale=10):
->>>>>>> 89842e2... New general-purpose dislocation generator and tests
     """Plots vitek map from ase configurations.
 
     Parameters
@@ -330,19 +326,6 @@ def plot_vitek(dislo, bulk,
     # distance between atoms on the plot
     plot_scale = 1.885618083
 
-<<<<<<< HEAD
-    differential_displacement(base_system, disl_system,
-                              burgers,
-                              cutoff=neighborListCutoff,
-                              xlim=plot_range[0],
-                              ylim=plot_range[1],
-                              zlim=plot_range[2],
-                              plot_scale=plot_scale,
-                              plot_axes=plot_axes)
-
-    return None
-
-=======
     return differential_displacement(base_system, disl_system,
                                      burgers,
                                      cutoff=neighborListCutoff,
@@ -350,7 +333,6 @@ def plot_vitek(dislo, bulk,
                                      ylim=plot_range[1],
                                      zlim=plot_range[2],
                                      plot_scale=plot_scale)
->>>>>>> 89842e2... New general-purpose dislocation generator and tests
 
 def show_NEB_configurations(images, bulk, xyscale=7,
                             show=True, core_positions=None):
@@ -460,11 +442,7 @@ def get_elastic_constants(pot_path=None,
                            atom_types={'W': 1}, keep_alive=True)
         calculator = lammps
 
-<<<<<<< HEAD
-    unit_cell.set_calculator(calculator)
-=======
     unit_cell.calc = calculator
->>>>>>> 89842e2... New general-purpose dislocation generator and tests
 
 #   simple calculation to get the lattice constant and cohesive energy
 #    alat0 = W.cell[0][1] - W.cell[0][0]
