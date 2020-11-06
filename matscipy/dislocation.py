@@ -2064,7 +2064,7 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
                                       pbc=True,
-                                      latticeconstant=alat)        
+                                      latticeconstant=alat)
         super().__init__(unit_cell, C11, C12, C44,
                          axes, burgers, shift, parity)
 
@@ -2072,14 +2072,14 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
 class BCCMixed111Dislocation(CubicCrystalDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='W'):
         axes = np.array([[1, -1, -2],
-                        [1, 1, 0],
-                        [1, -1, 1]])
+                         [1, 1, 0],
+                         [1, -1, 1]])
         burgers = alat * np.array([1, -1, -1]) / 2.0
         shift = alat * np.array([-0.05, 0.0, 0.0])
         parity = [1, 1]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
                                       pbc=True,
-                                      latticeconstant=alat)        
+                                      latticeconstant=alat)
         super().__init__(unit_cell, C11, C12, C44,
                          axes, burgers, shift, parity)
