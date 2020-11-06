@@ -257,19 +257,31 @@ setup(name='matscipy',
                 'matscipy.contact_mechanics',
                 'matscipy.electrochemistry',
                 'matscipy.calculators',
-                'matscipy.calculators.eam','matscipy.io','matscipy.tool',
+                'matscipy.calculators.eam', 'matscipy.io', 'matscipy.tool',
                 'matscipy.calculators.pair_potential',
                 'matscipy.calculators.mcfm',
                 'matscipy.calculators.mcfm.mcfm_parallel',
                 'matscipy.calculators.mcfm.neighbour_list_mcfm',
                 'matscipy.calculators.mcfm.qm_cluster_tools',
-                'matscipy.cli.electrochemistry'],
+                'matscipy.cli.electrochemistry',
+            ],
       scripts=scripts,
+      extras_require={
+            'cli': [],
+            'fenics': [
+                'fenics-dijitso',
+                'fenics-dolfin',
+                'fenics-ffc',
+                'fenics-fiat',
+                'fenics-ufl',
+                'mshr',
+            ]
+      },
       entry_points={
             'console_scripts': [
-                'c2d = matscipy.cli.electrochemistry.c2d:main',
-                'pnp = matscipy.cli.electrochemistry.pnp:main',
-                'stericify = matscipy.cli.electrochemistry.stericify:main'
+                'c2d = matscipy.cli.electrochemistry.c2d:main [cli]',
+                'pnp = matscipy.cli.electrochemistry.pnp:main [cli]',
+                'stericify = matscipy.cli.electrochemistry.stericify:main [cli]'
             ],
         },
       ext_modules=[
