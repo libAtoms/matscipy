@@ -1,41 +1,45 @@
-#!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
+# ---
+# jupyter:
+#   jupytext:
+#     formats: ipynb,py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.6.0
+#   kernelspec:
+#     display_name: Python 3
+#     language: python
+#     name: python3
+# ---
 
+# %% [markdown]
 # # Poisson-Nernst-Planck systems by finite element method
 
+# %% [markdown]
+# Johannes Laurin Hörmann, johannes.hoermann@imtek.uni-freiburg.de, johannes.laurin@gmail.com, Nov 2020
+
+# %% [markdown]
 # ## Initialization
 
-# In[1]:
-
-
+# %%
 # stretching notebook width across whole window
 from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:100% !important; }</style>"))
 
-
-# In[2]:
-
-
+# %%
 # for dynamic module reload during testing, code modifications take immediate effect
-get_ipython().run_line_magic('load_ext', 'autoreload')
-get_ipython().run_line_magic('autoreload', '2')
+# %load_ext autoreload
+# %autoreload 2
 
+# %%
+# %matplotlib inline
 
-# In[3]:
-
-
-get_ipython().run_line_magic('matplotlib', 'inline')
-
-
-# In[4]:
-
-
+# %%
 from IPython.core.display import display, HTML
 
-
-# In[5]:
-
-
+# %%
 # basics
 import logging
 import numpy as np
@@ -65,9 +69,7 @@ import ase
 import ase.io
 
 
-# In[6]:
-
-
+# %%
 def make_patch_spines_invisible(ax):
     ax.set_frame_on(True)
     ax.patch.set_visible(False)
@@ -75,17 +77,13 @@ def make_patch_spines_invisible(ax):
         sp.set_visible(False)
 
 
-# In[7]:
-
-
+# %%
 pnp = {}
 
-
+# %% [markdown]
 # # Convergence in both cases
 
-# In[8]:
-
-
+# %%
 # Test case parameters   oö
 c=[1.0, 1.0]
 z=[ 1, -1]
@@ -93,10 +91,7 @@ L=10e-8 # 200 nm
 delta_u=0.05 # V
 N=200
 
-
-# In[9]:
-
-
+# %%
 # define desired system
 pnp['std_interface'] = PoissonNernstPlanckSystem(
     c, z, L, delta_u=delta_u,N=N,
@@ -105,19 +100,13 @@ pnp['std_interface'] = PoissonNernstPlanckSystem(
 pnp['std_interface'].useStandardInterfaceBC()
 uij, nij, lamj = pnp['std_interface'].solve()
 
-
-# In[10]:
-
-
+# %%
 # define desired system
 pnp['fenics_interface'] = PoissonNernstPlanckSystemFEniCS(c, z, L, delta_u=delta_u,N=N)
 pnp['fenics_interface'].useStandardInterfaceBC()
 uij, nij, _ = pnp['fenics_interface'].solve()
 
-
-# In[11]:
-
-
+# %%
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
 x = np.linspace(0,L,100)
 phi = potential(x, c, z, delta_u) 
@@ -215,12 +204,10 @@ ax3.legend(loc='lower left',  bbox_to_anchor=(1.3,-0.02), fontsize=12, frameon=F
 fig.tight_layout()
 plt.show()
 
-
+# %% [markdown]
 # # Convergence issues for CV
 
-# In[12]:
-
-
+# %%
 # Test case parameters   oö
 c=[1.0, 1.0]
 z=[ 1, -1]
@@ -228,28 +215,19 @@ L=10e-8 # 200 nm
 delta_u=0.2 # V
 N=200
 
-
-# In[13]:
-
-
+# %%
 pnp['std_interface_high_potential'] = PoissonNernstPlanckSystem(
     c, z, L, delta_u=delta_u,N=N,
     solver="hybr", options={'xtol':1e-14})
 pnp['std_interface_high_potential'].useStandardInterfaceBC()
 uij, nij, lamj = pnp['std_interface_high_potential'].solve()
 
-
-# In[14]:
-
-
+# %%
 pnp['fenics_interface_high_potential'] = PoissonNernstPlanckSystemFEniCS(c, z, L, delta_u=delta_u,N=200)
 pnp['fenics_interface_high_potential'].useStandardInterfaceBC()
 uij, nij, _ = pnp['fenics_interface_high_potential'].solve()
 
-
-# In[15]:
-
-
+# %%
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
 x = np.linspace(0,L,100)
 phi = potential(x, c, z, delta_u) 
@@ -347,40 +325,29 @@ ax3.legend(loc='lower left',  bbox_to_anchor=(1.3,-0.02), fontsize=12, frameon=F
 fig.tight_layout()
 plt.show()
 
-
+# %% [markdown]
 # # Standard cell boundary conditions
 
-# In[16]:
-
-
+# %%
 c=[1000.0, 1000.0]
 z=[ 1, -1]
 L=20e-9 # 20 nm
 delta_u=0.8 # V
 
-
-# In[17]:
-
-
+# %%
 pnp['std_cell'] = PoissonNernstPlanckSystem(
     c, z, L, delta_u=delta_u,
     solver="hybr", options={'xtol':1e-15})
 pnp['std_cell'].useStandardCellBC()
 uij, nij, lamj = pnp['std_cell'].solve()
 
-
-# In[18]:
-
-
+# %%
 pnp['fenics_cell'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u)
 pnp['fenics_cell'].useStandardCellBC()
 uij, nij, lamj = pnp['fenics_cell'].solve()
 
-
-# In[19]:
-
-
+# %%
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
 x = np.linspace(0,L,100)
 phi = potential(x, c, z, delta_u) 
@@ -462,27 +429,19 @@ ax3.legend(loc='lower left',  bbox_to_anchor=(1.3,-0.02), fontsize=12, frameon=F
 fig.tight_layout()
 plt.show()
 
-
+# %% [markdown]
 # # Standard cell boundary conditions with initial values
 
-# In[20]:
-
-
+# %%
 delta_u=1.2 # V
 
-
-# In[21]:
-
-
+# %%
 pnp['fenics_cell_high_potential'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u, potential0=pnp['fenics_cell'].potential, concentration0=pnp['fenics_cell'].concentration,N=1000)
 pnp['fenics_cell_high_potential'].useStandardCellBC()
 uij, nij, lamj = pnp['fenics_cell_high_potential'].solve()
 
-
-# In[22]:
-
-
+# %%
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
 x = np.linspace(0,L,100)
 phi = potential(x, c, z, delta_u) 
@@ -564,30 +523,19 @@ ax3.legend(loc='lower left',  bbox_to_anchor=(1.3,-0.02), fontsize=12, frameon=F
 fig.tight_layout()
 plt.show()
 
-
-# In[23]:
-
-
+# %%
 plt.plot(pnp['fenics_cell'].concentration[0][0:100])
 
-
-# In[24]:
-
-
+# %%
 plt.plot(pnp['fenics_cell_high_potential'].concentration[0][0:100])
 
-
+# %% [markdown]
 # # Reference concentration cell boundary conditions
 
-# In[25]:
-
-
+# %%
 import fenics as fn
 
-
-# In[26]:
-
-
+# %%
 # Test case parameters
 c=[1000.0, 1000.0]
 z=[ 1, -1]
@@ -595,30 +543,21 @@ L=20e-9 # 20 nm
 a=28e-9 # 28 x 28 nm area
 delta_u=0.2 # V
 
-
-# In[27]:
-
-
+# %%
 pnp['fenics_cell_low_potential'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u, N = 200)
 pnp['fenics_cell_low_potential'].useStandardCellBC()
 uij, nij, lamj = pnp['fenics_cell_low_potential'].solve()
 
-
-# In[28]:
-
-
+# %%
 pnp['fenics_cell_c_ref'] = PoissonNernstPlanckSystemFEniCS(
-    c, z, L, delta_u=delta_u, N = 200,
+    c, z, L, delta_u=delta_u, N = 300,
     potential0=pnp['fenics_cell_low_potential'].potential,
     concentration0=pnp['fenics_cell_low_potential'].concentration)
 pnp['fenics_cell_c_ref'].useCentralReferenceConcentrationBasedCellBC()
 uij, nij, lamj = pnp['fenics_cell_c_ref'].solve()
 
-
-# In[29]:
-
-
+# %%
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
 x = np.linspace(0,L,100)
 phi = potential(x, c, z, delta_u) 
@@ -700,27 +639,18 @@ ax3.legend(loc='lower left',  bbox_to_anchor=(1.3,-0.02), fontsize=12, frameon=F
 fig.tight_layout()
 plt.show()
 
-
-# In[30]:
-
-
+# %%
 delta_u=0.4
 
-
-# In[31]:
-
-
+# %%
 pnp['fenics_cell_c_ref_u_0.4'] = PoissonNernstPlanckSystemFEniCS(
-    c, z, L, delta_u=delta_u, N=1000,
+    c, z, L, delta_u=delta_u, N=2000,
     potential0=pnp['fenics_cell_c_ref'].potential,
     concentration0=pnp['fenics_cell_c_ref'].concentration)
 pnp['fenics_cell_c_ref_u_0.4'].useCentralReferenceConcentrationBasedCellBC()
 uij, nij, lamj = pnp['fenics_cell_c_ref_u_0.4'].solve()
 
-
-# In[32]:
-
-
+# %%
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
 x = np.linspace(0,L,100)
 phi = potential(x, c, z, delta_u) 
@@ -802,16 +732,10 @@ ax3.legend(loc='lower left',  bbox_to_anchor=(1.3,-0.02), fontsize=12, frameon=F
 fig.tight_layout()
 plt.show()
 
-
-# In[33]:
-
-
+# %%
 delta_u=0.5
 
-
-# In[34]:
-
-
+# %%
 pnp['fenics_cell_c_ref_u_0.6'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u, N=6000,
     potential0=pnp['fenics_cell_c_ref_u_0.4'].potential,
@@ -819,10 +743,7 @@ pnp['fenics_cell_c_ref_u_0.6'] = PoissonNernstPlanckSystemFEniCS(
 pnp['fenics_cell_c_ref_u_0.6'].useCentralReferenceConcentrationBasedCellBC()
 uij, nij, lamj = pnp['fenics_cell_c_ref_u_0.6'].solve()
 
-
-# In[35]:
-
-
+# %%
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
 x = np.linspace(0,L,100)
 phi = potential(x, c, z, delta_u) 
@@ -904,24 +825,16 @@ ax3.legend(loc='lower left',  bbox_to_anchor=(1.3,-0.02), fontsize=12, frameon=F
 fig.tight_layout()
 plt.show()
 
-
-# In[36]:
-
-
+# %%
 plt.plot(pnp['fenics_cell_c_ref'].concentration[0])
 
-
-# In[37]:
-
-
+# %%
 plt.plot(pnp['fenics_cell_c_ref'].concentration[1])
 
-
+# %% [markdown]
 # # Stern layer cell boundary conditions
 
-# In[38]:
-
-
+# %%
 # Test case parameters   oö
 c=[1000.0, 1000.0]
 z=[ 1, -1]
@@ -931,19 +844,13 @@ lambda_S=5e-11
 # lambda_S=1
 delta_u=0.8 # V
 
-
-# In[39]:
-
-
+# %%
 pnp['fenics_stern_layer_cell'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u, N = 200, lambda_S=lambda_S)
 pnp['fenics_stern_layer_cell'].useSternLayerCellBC()
 uij, nij, lamj = pnp['fenics_stern_layer_cell'].solve()
 
-
-# In[40]:
-
-
+# %%
 # analytic Poisson-Boltzmann distribution and numerical solution to full Poisson-Nernst-Planck system
 x = np.linspace(0,L,100)
 phi = potential(x, c, z, delta_u) 
@@ -1024,10 +931,3 @@ ax3.legend(loc='lower left',  bbox_to_anchor=(1.3,-0.02), fontsize=12, frameon=F
 
 fig.tight_layout()
 plt.show()
-
-
-# In[ ]:
-
-
-
-

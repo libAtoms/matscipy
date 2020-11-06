@@ -1,35 +1,41 @@
-#!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
+# ---
+# jupyter:
+#   jupytext:
+#     formats: ipynb,py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.6.0
+#   kernelspec:
+#     display_name: Python 3
+#     language: python
+#     name: python3
+# ---
 
+# %% [markdown]
 # # Steric correction
-# 
+#
 # *Johannes Hörmann, 2020*
-# 
+#
 # Impose steric radii on a sample point distribution by minizing pseudo-potential.
 # Pseudo-ptential follows formalism described in
-# 
+#
 # *L. Martinez, R. Andrade, E. G. Birgin, and J. M. Martínez, “PACKMOL: A package for building initial configurations for molecular dynamics simulations,” J. Comput. Chem., vol. 30, no. 13, pp. 2157–2164, 2009, doi: 10/chm6f7.*
-# 
+#
 
-# In[1]:
-
-
+# %%
 # for dynamic module reload during testing, code modifications take immediate effect
-get_ipython().run_line_magic('load_ext', 'autoreload')
-get_ipython().run_line_magic('autoreload', '2')
+# %load_ext autoreload
+# %autoreload 2
 
-
-# In[2]:
-
-
+# %%
 # stretching notebook width across whole window
 from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:100% !important; }</style>"))
 
-
-# In[3]:
-
-
+# %%
 # basics & utilities
 import itertools                # dealing with combinations and permutations
 import logging                  # easy and neat handlin of log outpu
@@ -41,34 +47,22 @@ import scipy.spatial.distance   # quick methods for computing pairwise distances
 import time                     # timing performance
 import timeit                   # same purpose
 
-
-# In[4]:
-
-
+# %%
 # electrochemistry basics
 from matscipy.electrochemistry import debye, ionic_strength
 
-
-# In[5]:
-
-
+# %%
 # Poisson-Bolzmann distribution
 from matscipy.electrochemistry.poisson_boltzmann_distribution import gamma, potential, concentration, charge_density
 
-
-# In[6]:
-
-
+# %%
 # sampling
 from scipy import interpolate
 from matscipy.electrochemistry import continuous2discrete
 from matscipy.electrochemistry import get_histogram
 from matscipy.electrochemistry.utility import plot_dist
 
-
-# In[7]:
-
-
+# %%
 # steric correction
 
 # target functions
@@ -83,18 +77,12 @@ from matscipy.electrochemistry.steric_correction import scipy_distance_based_clo
 
 from matscipy.electrochemistry.steric_correction import apply_steric_correction
 
-
-# In[8]:
-
-
+# %%
 # 3rd party file output
 import ase
 import ase.io
 
-
-# In[9]:
-
-
+# %%
 # matscipy.electrochemistry makes extensive use of Python's logging module
 
 # configure logging: verbosity level and format as desired
@@ -123,35 +111,24 @@ ch.setFormatter(formatter)
 ch.setLevel(standard_loglevel)
 logger.addHandler(ch)
 
-
-# In[10]:
-
-
+# %%
 # Test 1
 logging.info("Root logger")
 
-
-# In[11]:
-
-
+# %%
 # Test 2
 logger.info("Root Logger")
 
-
-# In[12]:
-
-
+# %%
 # Debug Test
 logging.debug("Root logger")
 
-
+# %% [markdown]
 # ## Step 1: Solve for continuous concentration distributions
 # See other sample case notebboks for details
-# 
+#
 
-# In[13]:
-
-
+# %%
 # measures of box
 xsize = ysize = 5e-9 # nm, SI units
 zsize = 20e-9         # nm, SI units
@@ -167,9 +144,7 @@ C   = concentration(x, c, z, u)
 rho = charge_density(x, c, z, u)
 
 
-# In[14]:
-
-
+# %%
 # potential and concentration distributions analytic solution 
 # based on Poisson-Boltzmann equation for 0.1 mM NaCl aqueous solution 
 # at interface 
@@ -215,12 +190,10 @@ ax3.legend(loc='lower right', bbox_to_anchor=(-0.1, -0.02), fontsize=15)
 fig.tight_layout()
 plt.show()
 
-
+# %% [markdown]
 # ## Step 2: Sample from distribution
 
-# In[15]:
-
-
+# %%
 # create distribution functions
 distributions = [interpolate.interp1d(x,c) for c in C]
 
@@ -228,10 +201,7 @@ distributions = [interpolate.interp1d(x,c) for c in C]
 box3 = np.array([xsize, ysize, zsize])
 sample_size = 200
 
-
-# In[16]:
-
-
+# %%
 samples = [ continuous2discrete(distribution=d, box=box3, count=sample_size) for d in distributions ]
 species = ['Na+','Cl-']
 for ion,sample,d in zip(species,samples,distributions):
@@ -243,14 +213,13 @@ for ion,sample,d in zip(species,samples,distributions):
     plot_dist(histz, 'Distribution of {:s} ions in z-direction'.format(ion), 
               reference_distribution=d)
 
-
+# %% [markdown]
 # ## Step 3: Enforce steric radii
 
+# %% [markdown]
 # Initial state of system:
 
-# In[17]:
-
-
+# %%
 # need all coordinates in one N x 3 array
 xstacked = np.vstack(samples)
 
@@ -272,10 +241,7 @@ logger.info("Minimum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*p
 logger.info("Maximum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmax))
 logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box6[1]))
 
-
-# In[19]:
-
-
+# %%
 # apply penalty for steric overlap
 
 # stats: method, x, res, dt, mind, p1, p2 , pmin, pmax
@@ -337,35 +303,25 @@ stats_df = pd.DataFrame( [ {
 
 print(stats_df.to_string(float_format='%8.6g'))
 
-
+# %% [markdown]
 # L-BFGS-B fastest.
 
-# In[20]:
-
-
+# %%
 # Check difference between initial and final configuration, use last result (L-BFGS-B)
 np.count_nonzero(xstacked - x1) # that many coordinates modified
 
-
-# In[21]:
-
-
+# %%
 # Check difference between initial and final configuration, use last result (L-BFGS-B)
 np.linalg.norm(xstacked - x1) # euclidean distance between two sets
 
-
+# %% [markdown]
 # ## Step 4: Visualize results
 
-# In[22]:
-
-
+# %%
 # pick last result and split by species
 steric_samples = [ x1[:sample_size,:], x1[sample_size:,:] ]
 
-
-# In[23]:
-
-
+# %%
 nbins = 101
 for ion,sample,d in zip(species,steric_samples,distributions):
     histx, histy, histz = get_histogram(sample, box=box3, n_bins=nbins)
@@ -376,10 +332,7 @@ for ion,sample,d in zip(species,steric_samples,distributions):
     plot_dist(histz, 'Distribution of {:s} ions in z-direction'.format(ion), 
               reference_distribution=d)
 
-
-# In[24]:
-
-
+# %%
 # Distribution of corrections
 for ion,sample,steric_sample,d in zip(species,samples,steric_samples,distributions):
     hists = get_histogram(sample, box=box3, n_bins=nbins)    
@@ -389,20 +342,15 @@ for ion,sample,steric_sample,d in zip(species,samples,steric_samples,distributio
     for ax, h in zip( ['x','y','z'], diff_hists ):
         plot_dist(h, 'Difference from non-steric to steric {:s} ion sample in {:s}-direction'.format(ion, ax))
 
-
+# %% [markdown]
 # ## Step 5: Write to file
 # We utilize ASE to export it to some standard format, i.e. LAMMPS data file.
 # ASE speaks Ångström per default, thus we convert SI units:
 
-# In[18]:
-
-
+# %%
 symbols = ['Na','Cl']
 
-
-# In[19]:
-
-
+# %%
 system = ase.Atoms(
     cell=np.diag(box3/sc.angstrom),
     pbc=[True,True,False]) 
@@ -413,16 +361,10 @@ for symbol, sample, charge in zip(symbols,samples,z):
         positions=sample/sc.angstrom)
 system
 
-
-# In[20]:
-
-
+# %%
 ase.io.write('NaCl_200_0.05V_5x5x20nm_at_interface_pb_distributed.lammps',system,format='lammps-data',units="real",atom_style='full')
 
-
-# In[29]:
-
-
+# %%
 steric_system = ase.Atoms(
     cell=np.diag(box3/sc.angstrom),
     pbc=[True,True,False]) 
@@ -433,24 +375,22 @@ for symbol, sample, charge in zip(symbols,steric_samples,z):
         positions=sample/sc.angstrom)
 steric_system
 
-
-# In[30]:
-
-
+# %%
 ase.io.write('NaCl_200_0.05V_5x5x20nm_at_interface_pb_distributed_steric_correction_2Ang.lammps',steric_system,format='lammps-data',units="real",atom_style='full')
 
-
+# %% [markdown]
 # Displacement visualization between non-steric and steric sample with Ovito:
 
+# %% [markdown]
 # ![Steric correction on 200 NaCl](steric_correction_on_200_NaCl_300px.png)
 
+# %% [markdown]
 # ## Other performance tests
 
+# %% [markdown]
 # ### Comparing target function implementations
 
-# In[31]:
-
-
+# %%
 # prepare coordinates and get system dimensions
 xstacked = np.vstack(samples)
 
@@ -488,15 +428,14 @@ labeled_stats = np.array(stats,dtype=dtypes)
 stats_df = pd.DataFrame(labeled_stats)
 print(stats_df.to_string(float_format='%8.6g'))
 
-
+# %% [markdown]
 # Scipy-based target function fastest.
 
+# %% [markdown]
 # ### Comparing closest pair implementations
 # See https://www.researchgate.net/publication/266617010_NumPy_SciPy_Recipes_for_Data_Science_Squared_Euclidean_Distance_Matrices
 
-# In[32]:
-
-
+# %%
 # test minimum distance function implementations on random samples
 
 N = 1000
@@ -531,29 +470,14 @@ labeled_stats = np.array(stats,dtype=dtypes)
 stats_df = pd.DataFrame(labeled_stats)
 print(stats_df.T.to_string(float_format='%8.6g'))
 
-
+# %% [markdown]
 # Scipy-based implementation fastest.
 
-# In[26]:
-
-
+# %%
 print('{}'.format(system.symbols))
 
-
-# In[28]:
-
-
+# %%
 system.cell.array
 
-
-# In[33]:
-
-
+# %%
 np.array(system.get_cell_lengths_and_angles())
-
-
-# In[ ]:
-
-
-
-

@@ -3,4 +3,6 @@
 *.txt
 *.npz
 **/jitfailure*
+*.xyz
 *.lammps
+*.ipynb
