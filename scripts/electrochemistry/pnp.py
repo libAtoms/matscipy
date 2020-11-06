@@ -188,14 +188,14 @@ def main():
         import fenics
         from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
             import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
-        import dolfing
-        dolfin.cpp.common.set_log_level(loglevel)
+        import dolfin
+        dolfin.cpp.log.set_log_level(loglevel)
         logger.info("Will use FEniCS finite element solver.")
     except ModuleNotFoundError:
         logger.warning(
-            ("No FEniCS finite element solver found,",
-             " falling back to internal controlled-volume implementation.",
-             " ATTENTION: Number conservation not exact."))
+            "No FEniCS finite element solver found,"
+            " falling back to internal controlled-volume implementation."
+            " ATTENTION: Number conservation not exact.")
         from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
     # set up system
