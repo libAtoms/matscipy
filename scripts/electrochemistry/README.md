@@ -3,17 +3,17 @@
 * `pnp.py`: Command line interface to `poisson_boltzmann_distribution.py`
 * `stericify.py`: Command line interface to `steric_correction.py`
 
-The following assumes you have made these scripts available for execution, 
+The following assumes you have made these scripts available for execution,
 i.e. by adding this directory to your `PATH`
 or creating suitable symbolic links somewhere else.
 
 ### Usage
-`pnp.py` (Poisson-Nernst-Planck), `c2d.py` (continuous2discrete) and 
-`stericiy.py` executable scripts offer simple command line interfaces 
-to solve arbitrary (1D) Poisson-Nernst-Planck systems, to sample 
+`pnp.py` (Poisson-Nernst-Planck), `c2d.py` (continuous2discrete) and
+`stericiy.py` executable scripts offer simple command line interfaces
+to solve arbitrary (1D) Poisson-Nernst-Planck systems, to sample
 discrete coordinate sets from continuous distributions, and to
-assure steric radii for all coordinate points in a sample. 
-Type `pnp.py --help`, `c2d.py --help`, and `stericiy.py --help` 
+assure steric radii for all coordinate points in a sample.
+Type `pnp.py --help`, `c2d.py --help`, and `stericiy.py --help`
 for usage information.
 
 A simple sample usage to generate a discrete coordinate set from
@@ -46,7 +46,7 @@ via command line interface.
     pnp.py -c 0.1 0.1 -u 0.05 -l 1.0e-7 --lambda-s 5.0e-10 -bc cell-robin --verbose NaCl.npz
 
 In order to impose a steric radius to the coordinates in some data file, use
-    
+
     stericify.py --verbose -r 2.0 -- NaCl.lammps stericNaCl.lammps
 
 Headers (docstrings) of scripts contain more examples.

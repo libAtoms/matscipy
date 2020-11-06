@@ -103,7 +103,7 @@ def main():
                 parser, namespace, parsed_value, option_string)
 
     parser = argparse.ArgumentParser(description=__doc__,
-        formatter_class=ArgumentDefaultsAndRawDescriptionHelpFormatter)
+                                     formatter_class=ArgumentDefaultsAndRawDescriptionHelpFormatter)
 
     parser.add_argument('infile', metavar='IN', nargs='?',
                         help='.xyz or .lammps (LAMMPS data) format input file')
@@ -114,13 +114,13 @@ def main():
                         action=StoreAsNumpyArray,
                         metavar=('R'), required=False, dest="radii",
                         help=('Steric radii, either one for all or '
-                            'species-wise. Same units as distances in input.'))
+                              'species-wise. Same units as distances in input.'))
 
     parser.add_argument('--box', '-b', default=None, nargs=3,
                         action=StoreAsNumpyArray,
                         metavar=('X', 'Y', 'Z'), required=False, type=float,
                         dest="box", help=('Bounding box, overrides cell from'
-                            'input. Same units as distances in input.'))
+                                          'input. Same units as distances in input.'))
 
     parser.add_argument('--names', default=None, type=str, nargs='+',
                         metavar=('NAME'), required=False, dest="names",
@@ -194,7 +194,8 @@ def main():
     logger.setLevel(loglevel)
 
     # remove all handlers
-    for h in logger.handlers: logger.removeHandler(h)
+    for h in logger.handlers:
+        logger.removeHandler(h)
 
     # create and append custom handles
     ch = logging.StreamHandler()
@@ -209,7 +210,7 @@ def main():
         fh.setLevel(loglevel)
         logger.addHandler(fh)
 
-    logger.info('This is `{}` : `{}`.'.format(__file__,__name__))
+    logger.info('This is `{}` : `{}`.'.format(__file__, __name__))
 
     logger.debug('Args: {}'.format(args))
 
@@ -221,18 +222,18 @@ def main():
         infile = args.infile
         _, infile_format = os.path.splitext(infile)
 
-    logger.info('Input format {} from {}.'.format(infile_format,infile))
+    logger.info('Input format {} from {}.'.format(infile_format, infile))
 
     if infile_format == '.lammps':
         system = ase.io.read(
-            infile,format='lammps-data',units="real",style='full')
-    else: # elif outfile_format == '.xyz'
-        system = ase.io.read(infile,format='xyz')
+            infile, format='lammps-data', units="real", style='full')
+    else:  # elif outfile_format == '.xyz'
+        system = ase.io.read(infile, format='xyz')
 
-    n = len(system) # total number of particles
+    n = len(system)  # total number of particles
     logger.info('Read "{}" system within bounding box'.format(system.symbols))
     for l in system.cell:
-      logger.info('    [ {:> 8.2e},{:> 8.2e},{:> 8.2e} ]'.format(*l))
+        logger.info('    [ {:> 8.2e},{:> 8.2e},{:> 8.2e} ]'.format(*l))
 
     species_atomic_numbers = np.unique(system.get_atomic_numbers())
     species_symbols = [
@@ -242,7 +243,7 @@ def main():
     logger.info('    containing {:d} particles of {:d} species'.format(
         n, n_species))
     if not isinstance(args.radii, np.ndarray):
-        args.radii = np.array(args.radii,ndmin=1)
+        args.radii = np.array(args.radii, ndmin=1)
 
     r = np.zeros(n)
     if len(args.radii) == 1:
@@ -251,19 +252,19 @@ def main():
         r[:] = args.radii[0]
 
     elif len(args.radii) == n_species:
-        for i, (a, s) in enumerate(zip(species_atomic_numbers,species_symbols)):
+        for i, (a, s) in enumerate(zip(species_atomic_numbers, species_symbols)):
             logger.info(
                 'Applying steric radius r = {:.2e} for species {:s}.'.format(
-                    args.radii[i],s))
-            r[ system.get_atomic_numbers() == a ] = args.radii[i]
+                    args.radii[i], s))
+            r[system.get_atomic_numbers() == a] = args.radii[i]
     else:
         raise ValueError(
-        """Steric radii must either be one value for all species or one value
-        per species, i.e. {:d} values in your case.""".format(n_species) )
+            """Steric radii must either be one value for all species or one value
+            per species, i.e. {:d} values in your case.""".format(n_species))
 
     if args.box is not None:
         if not isinstance(args.box, np.ndarray):
-            args.box = np.array(args.box,ndmin=1)
+            args.box = np.array(args.box, ndmin=1)
 
         logger.info('Box specified on command line')
         logger.info('   [ {:> 8.2e},{:> 8.2e},{:> 8.2e} ]'.format(*args.box))
@@ -272,26 +273,27 @@ def main():
 
     if args.charges is not None:
         logger.info('Charges specified on command line reassign input charges to')
-        new_charges = np.ndarray(n,dtype=int)
+        new_charges = np.ndarray(n, dtype=int)
 
-        for a, s, c in zip(species_atomic_numbers,species_symbols,args.charges):
+        for a, s, c in zip(species_atomic_numbers, species_symbols, args.charges):
             logger.info(
                 '    {:s} -> {}'.format(s, c))
-            new_charges[ system.get_atomic_numbers() == a ] = c
+            new_charges[system.get_atomic_numbers() == a] = c
         system.set_initial_charges(new_charges)
 
     if args.names is not None:
         new_species_symbols = args.names
         new_species_atomic_numbers = [
-            ase.data.atomic_numbers[name] for name in new_species_symbols ]
+            ase.data.atomic_numbers[name] for name in new_species_symbols]
         logger.info('Species specified on command line reassign input species to')
-        new_atomic_numbers = np.ndarray(n,dtype=int)
+        new_atomic_numbers = np.ndarray(n, dtype=int)
         for aold, anew, sold, snew in zip(species_atomic_numbers,
-            new_species_atomic_numbers,species_symbols,new_species_symbols):
+                                          new_species_atomic_numbers,
+                                          species_symbols, new_species_symbols):
             logger.info(
                 '    {:s} -> {:s}'.format(sold, snew))
 
-            new_atomic_numbers[ system.get_atomic_numbers() == aold ] = anew
+            new_atomic_numbers[system.get_atomic_numbers() == aold] = anew
         system.set_atomic_numbers(new_atomic_numbers)
         species_atomic_numbers = new_species_atomic_numbers
         species_symbols = new_species_symbols
@@ -305,7 +307,7 @@ def main():
 
     # only works for orthogonal box
     box3 = np.array(system.get_cell_lengths_and_angles())[0:3]
-    box6 = np.array([[0.,0.,0], box3])  # needs lower corner
+    box6 = np.array([[0., 0., 0], box3])  # needs lower corner
 
     # n = x0.shape[0], set above
     # dim = x0.shape[1]
@@ -325,7 +327,7 @@ def main():
 
     t0 = time.perf_counter()
     x1, res = apply_steric_correction(x0, box=box6, r=r,
-        method=args.method, options=args.options)
+                                      method=args.method, options=args.options)
     # use default method and options
 
     t1 = time.perf_counter()
@@ -348,8 +350,8 @@ def main():
     logger.info("Maximum coordinates in sample: ({:8.4e},{:8.4e},{:8.4e})".format(*pmax))
     logger.info("Box upper boundary:            ({:8.4e},{:8.4e},{:8.4e})".format(*box6[1]))
 
-    diff     = x1 - x0
-    n_diff   = np.count_nonzero(diff)
+    diff = x1 - x0
+    n_diff = np.count_nonzero(diff)
     diffnorm = np.linalg.norm(diff)
     logger.info(
       '{:d} coords. differ numerically in final and initial config.'.format(
@@ -360,27 +362,25 @@ def main():
 
     system.set_positions(x1)
 
-    #logger.info('Writing output ...')
-
     if not args.outfile:
         outfile = sys.stdout
-        outfile_format  = 'xyz'
+        outfile_format = 'xyz'
     else:
         outfile = args.outfile
         _, outfile_format = os.path.splitext(outfile)
 
-    logger.info('Output format {} to {}.'.format(outfile_format,outfile))
-
+    logger.info('Output format {} to {}.'.format(outfile_format, outfile))
 
     if outfile_format == '.lammps':
         ase.io.write(
             outfile, system,
             format='lammps-data', units="real", atom_style='full',
             specorder=specorder)
-    else: # elif outfile_format == '.xyz'
+    else:  # elif outfile_format == '.xyz'
         ase.io.write(outfile, system, format='xyz')
 
     logger.info('Done.')
+
 
 if __name__ == '__main__':
     # Execute everything else

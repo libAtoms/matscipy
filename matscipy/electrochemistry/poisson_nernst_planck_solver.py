@@ -48,9 +48,10 @@ logger = logging.getLogger(__name__)
 
 def B(x):
     """Bernoulli function."""
-    return np.where( np.abs(x) < 1e-9,
-        1 - x/2 + x**2/12 - x**4/720, # Taylor
-        x / ( np.exp(x) - 1 ) )
+    return np.where(
+        np.abs(x) < 1e-9,
+        1 - x/2 + x**2/12 - x**4/720,  # Taylor
+        x / (np.exp(x) - 1))
 
 
 # "lazy" Ansatz for approximating Jacobian
@@ -81,7 +82,7 @@ def jacobian(f, x0, dx=np.NaN):
     if np.isnan(dx).any():
         res = np.finfo('float64').resolution
         dx = np.abs(x0) * np.sqrt(res)
-        dx[ dx < res ] = res
+        dx[dx < res] = res
 
     if np.isscalar(dx):
         dx = np.ones(N) * dx
@@ -1056,7 +1057,7 @@ class PoissonNernstPlanckSystem:
         # no time unit for now, only steady state
         # self.t_unit = self.l_unit**2 / self.Dn # fixes Dn_scaled = 1
 
-        self.u_unit = self.R * self.T / self.F # thermal voltage
+        self.u_unit = self.R * self.T / self.F  # thermal voltage
 
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
             'spatial unit [l]', self.l_unit, lwidth=self.label_width))

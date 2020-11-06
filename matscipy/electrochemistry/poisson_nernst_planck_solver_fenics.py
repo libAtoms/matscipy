@@ -26,7 +26,6 @@ University of Freiburg
 Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
 """
-import logging
 import numpy as np
 import scipy.interpolate
 import fenics as fn
@@ -53,7 +52,7 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
 
     @property
     def X(self):
-        return self.mesh.coordinates().flatten() # only 1D
+        return self.mesh.coordinates().flatten()  # only 1D
 
     def solve(self):
         """Evoke FEniCS FEM solver.
@@ -96,15 +95,15 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         # constraints set up elsewhere
         F = poisson + nernst_planck + self.constraints
 
-        fn.solve(F==0, self.w, self.boundary_conditions)
+        fn.solve(F == 0, self.w, self.boundary_conditions)
 
         # store results:
 
         wij = np.array([self.w(x) for x in self.X]).T
 
-        self.uij  = wij[0,:]             # potential
-        self.nij  = wij[1:(self.M+1),:]  # concentrations
-        self.lamj = wij[(self.M+1):]     # Lagrange multipliers
+        self.uij = wij[0, :]  # potential
+        self.nij = wij[1:(self.M+1), :]  # concentrations
+        self.lamj = wij[(self.M+1):]  # Lagrange multipliers
 
         return self.uij, self.nij, self.lamj
 
@@ -123,32 +122,32 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
     def applyLeftPotentialDirichletBC(self, u0):
         """FEniCS Dirichlet BC u0 for potential at left boundary."""
         self.boundary_conditions.extend([
-            fn.DirichletBC(self.W.sub(0),u0,
-                lambda x, on_boundary: self.boundary_L(x, on_boundary)) ] )
+            fn.DirichletBC(self.W.sub(0), u0,
+                           lambda x, on_boundary: self.boundary_L(x, on_boundary))])
 
     def applyRightPotentialDirichletBC(self, u0):
         """FEniCS Dirichlet BC u0 for potential at right boundary."""
         self.boundary_conditions.extend([
-            fn.DirichletBC(self.W.sub(0),u0,
-                lambda x, on_boundary: self.boundary_R(x, on_boundary)) ] )
+            fn.DirichletBC(self.W.sub(0), u0,
+                           lambda x, on_boundary: self.boundary_R(x, on_boundary))])
 
     def applyLeftConcentrationDirichletBC(self, k, c0):
         """FEniCS Dirichlet BC c0 for k'th ion species at left boundary."""
         self.boundary_conditions.extend([
-          fn.DirichletBC(self.W.sub(k+1),c0,
-              lambda x, on_boundary: self.boundary_L(x, on_boundary)) ] )
+            fn.DirichletBC(self.W.sub(k+1), c0,
+                           lambda x, on_boundary: self.boundary_L(x, on_boundary))])
 
     def applyRightConcentrationDirichletBC(self, k, c0):
         """FEniCS Dirichlet BC c0 for k'th ion species at right boundary."""
         self.boundary_conditions.extend([
-          fn.DirichletBC(self.W.sub(k+1),c0,
-              lambda x, on_boundary: self.boundary_R(x, on_boundary)) ] )
+            fn.DirichletBC(self.W.sub(k+1), c0,
+                           lambda x, on_boundary: self.boundary_R(x, on_boundary))])
 
     def applyCentralReferenceConcentrationConstraint(self, k, c0):
         """FEniCS Dirichlet BC c0 for k'th ion species at right boundary."""
         self.boundary_conditions.extend([
-          fn.DirichletBC(self.W.sub(k+1),c0,
-              lambda x, on_boundary: self.boundary_C(x, on_boundary)) ] )
+            fn.DirichletBC(self.W.sub(k+1), c0,
+                           lambda x, on_boundary: self.boundary_C(x, on_boundary))])
 
     # TODO: Robin BC!
     def applyLeftPotentialRobinBC(self, u0, lam0):
@@ -183,14 +182,15 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         self.u0 = self.delta_u_scaled
         self.u1 = 0
 
-        self.logger.info('Left hand side Dirichlet boundary condition:                               u0 = {:> 8.4g}'.format(self.u0))
-        self.logger.info('Right hand side Dirichlet boundary condition:                              u1 = {:> 8.4g}'.format(self.u1))
+        self.logger.info('Left hand side Dirichlet boundary condition:  u0 = {:> 8.4g}'.format(self.u0))
+        self.logger.info('Right hand side Dirichlet boundary condition: u1 = {:> 8.4g}'.format(self.u1))
 
         self.applyPotentialDirichletBC(self.u0, self.u1)
 
         for k in range(self.M):
-            self.logger.info('Ion species {:02d} right hand side concentration Dirichlet boundary condition: c1 = {:> 8.4g}'.format(k,self.c_scaled[k]))
-            self.applyRightConcentrationDirichletBC(k,self.c_scaled[k])
+            self.logger.info(('Ion species {:02d} right hand side concentration '
+                              'Dirichlet boundary condition: c1 = {:> 8.4g}').format(k, self.c_scaled[k]))
+            self.applyRightConcentrationDirichletBC(k, self.c_scaled[k])
 
     def useStandardCellBC(self):
         """
@@ -215,7 +215,7 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
 
         # Number conservation constraints
         self.constraints = 0
-        N0 = self.L_scaled*self.c_scaled # total amount of species in cell
+        N0 = self.L_scaled*self.c_scaled  # total amount of species in cell
         for k in range(self.M):
             self.logger.info('{:>{lwidth}s} N0 = {:<8.4g}'.format(
                 'Ion species {:02d} number conservation constraint'.format(k),
@@ -241,24 +241,13 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         self.logger.info('{:>{lwidth}s} u1 = {:< 8.4g}'.format(
           'Right hand side Dirichlet boundary condition', self.u1, lwidth=self.label_width))
 
-        self.applyPotentialDirichletBC(self.u0,self.u1)
-
-        # Number conservation constraints
-
-        window = fn.Expression('(x[0] >= xref - tol) && (x[0] <= xref + tol) ? 1 : 0',
-            degree=0, xref=(self.x0_scaled + self.x1_scaled)/2., tol=self.bctol)
+        self.applyPotentialDirichletBC(self.u0, self.u1)
 
         for k in range(self.M):
-            # self.logger.info('{:>{lwidth}s} N0 = {:<8.4g}'.format(
-            #    'Ion species {:02d} number conservation constraint'.format(k),
-            #    N0[k], lwidth=self.label_width))
-            # self.applyNumberConservationConstraint(k,self.c_scaled[k])
             self.logger.info(
                 'Ion species {:02d} reference concentration condition: c1 = {:> 8.4g} at cell center'.format(
                     k, self.c_scaled[k]))
-            self.applyCentralReferenceConcentrationConstraint(k,self.c_scaled[k])
-            # self.constraints += window*self.lam[k]*self.q[k]*fn.dx \
-            #    + window*(self.p[k]-self.c_scaled[k])*self.mu[k]*fn.dx
+            self.applyCentralReferenceConcentrationConstraint(k, self.c_scaled[k])
 
     def useSternLayerCellBC(self):
         """
@@ -280,8 +269,8 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
             'size_t', self.mesh, self.mesh.topology().dim()-1)
 
         bx = [
-            Boundary(x0=self.x0_scaled,tol=self.bctol),
-            Boundary(x0=self.x1_scaled,tol=self.bctol)]
+            Boundary(x0=self.x0_scaled, tol=self.bctol),
+            Boundary(x0=self.x1_scaled, tol=self.bctol)]
 
         # Boundary.mark crashes the kernel if Boundary is internal class
         for i, b in enumerate(bx):
@@ -365,16 +354,16 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
             self.u0_func = fn.Function(P)
             self.u0_func.vector()[:] = ui0(self.X)[dof2vtx]
             fn.assign(self.w.sub(0),
-                fn.interpolate(self.u0_func, self.W.sub(0).collapse()))
+                      fn.interpolate(self.u0_func, self.W.sub(0).collapse()))
 
         if self.ni0 is not None:
             x = np.linspace(self.x0_scaled, self.x1_scaled, self.ni0.shape[1])
             ni0 = scipy.interpolate.interp1d(x, self.ni0)
             self.p0_func = [fn.Function(P)]*self.ni0.shape[0]
             for k in range(self.ni0.shape[0]):
-                self.p0_func[k].vector()[:] = ni0(self.X)[k,:][dof2vtx]
-                fn.assign( self.w.sub(1+k),
-                    fn.interpolate(self.p0_func[k], self.W.sub(k+1).collapse()))
+                self.p0_func[k].vector()[:] = ni0(self.X)[k, :][dof2vtx]
+                fn.assign(self.w.sub(1+k),
+                          fn.interpolate(self.p0_func[k], self.W.sub(k+1).collapse()))
 
         # u represents voltage , p concentrations
         uplam = fn.split(self.w)
@@ -386,12 +375,11 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         self.v, self.q, self.mu = (
             vqmu[0], [*vqmu[1:(self.M+1)]], [*vqmu[(self.M+1):]])
 
-
     def __init__(self, *args, **kwargs):
         self.init(*args, **kwargs)
 
-        # tolerance for identifying boundaries
-        self.bctol = 1e-14    # tolerance for identifying domain boundaries
-        self.K     = 0        # number of Lagrange multipliers (constraints)
+        # TODO: don't hard code btcol
+        self.bctol = 1e-14  # tolerance for identifying domain boundaries
+        self.K = 0  # number of Lagrange multipliers (constraints)
         self.constraints = 0  # holds constraint kernels
         self.discretize()

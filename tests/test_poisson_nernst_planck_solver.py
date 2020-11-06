@@ -24,7 +24,7 @@ class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
 
         self.assertArrayAlmostEqual(pnp.grid, self.ref_data ['x'])
         self.assertArrayAlmostEqual(pnp.potential, self.ref_data ['u'])
-        self.assertArrayAlmostEqual(pnp.concentration, self.ref_data ['c'])
+        self.assertArrayAlmostEqual(pnp.concentration, self.ref_data ['c'], 1e-6)
 
 if __name__ == '__main__':
     unittest.main()
