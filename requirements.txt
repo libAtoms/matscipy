@@ -2,3 +2,4 @@ numpy>=1.16.0
 ase>=3.17.0
 scipy>=1.2.3
 sphinxcontrib-napoleon
+sphinx_rtd_theme

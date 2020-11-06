@@ -42,7 +42,10 @@ from spatial_correlation_function import *
 from test_io import *
 from crack_tests import *
 from mcfm_test import *
-
+from hessian_finite_differences import * 
+from eam_calculator_forces_and_hessian import *
+from pair_potential_calculator import *
+from polydisperse_calculator import *
 
 if sys.version_info.major > 2:
     from test_c2d import *
@@ -64,17 +67,18 @@ else:
     # from rotation_of_elastic_constants import *
 
 
-try:
-    from scipy.optimize import minimize
-    import matplotlib.pyplot
-    import atomman
-except:
-    print('One of these missing: scipy.optimize.minimise, matplotlib.pyplot, '
-          ' atomman. Skipping dislocation test.')
-else:
-    from test_dislocation import *
+# tests requiring these imports are skipped individually with unittest.skipIf()
+# try:
+#     from scipy.optimize import minimize
+#     import matplotlib.pyplot
+#     import atomman
+# except:
+#     print('One of these missing: scipy.optimize.minimize, matplotlib.pyplot, '
+#           ' atomman. Skipping dislocation test.')
+# else:
+from test_dislocation import *
+from test_pressurecoupling import *
 
 ###
 
 unittest.main()
-

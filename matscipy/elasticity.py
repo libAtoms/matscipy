@@ -773,6 +773,9 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
     """
 
     if isinstance(a, Atoms):
+        if a.constraints:
+            raise ValueError('Atoms passed to fit_elastic_constants() '
+                             'has constraints attached')
         # we've been passed a single Atoms object: use it to generate
         # set of strained configurations according to symmetry
         strained_configs = generate_strained_configs(a, symmetry, N_steps, delta)

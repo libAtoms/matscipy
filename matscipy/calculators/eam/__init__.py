@@ -18,8 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
+"""Implements the Embedded Atom Method"""
 
 from __future__ import absolute_import
 
 from .calculator import EAM
 from .io import mix_eam, read_eam, write_eam
+from .average_atom import average_potential

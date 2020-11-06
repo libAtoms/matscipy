@@ -5,7 +5,7 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = ../../matscipy-docs
+BUILDDIR      = _build
 
 
 # User-friendly check for sphinx-build
