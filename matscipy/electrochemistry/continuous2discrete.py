@@ -21,7 +21,7 @@
 """
 Generates atomic structure following a given distribution.
 
-Copyright 2019 IMTEK Simulation
+Copyright 2019, 2020 IMTEK Simulation
 University of Freiburg
 
 Authors:
@@ -62,18 +62,6 @@ def pdf_to_cdf(pdf):
 
     return cdf
 
-
-def get_centers(bins):
-    """Return the center of the provided bins.
-
-    Example:
-    >>> get_centers(bins=np.array([0.0, 1.0, 2.0]))
-    array([ 0.5,  1.5])
-    """
-    bins = bins.astype(float)
-    return (bins[:-1] + bins[1:]) / 2
-
-
 def get_nearest_pos(array, value):
     """Find the value of an array clostest to the second argument.
 
@@ -100,28 +88,6 @@ def get_histogram(struc, box, n_bins=100):
 
         histograms += [(hist, bins)]
     return histograms
-
-
-# def plot_dist(histogram, name, reference_distribution=None):
-#     """Plot histogram with an optional reference distribution."""
-#     hist, bins = histogram
-#     width = 1 * (bins[1] - bins[0])
-#     centers = get_centers(bins)
-#
-#     fi, ax = plt.subplots()
-#     ax.bar( centers, hist, align='center', width=width, label='Empirical distribution',
-#             edgecolor="none")
-#
-#     if reference_distribution is not None:
-#         ref = reference_distribution(centers)
-#         ref /= sum(ref)
-#         ax.plot(centers, ref, color='red', label='Target distribution')
-#
-#     plt.title(name)
-#     plt.legend()
-#     plt.xlabel('Distance ' + name)
-#     plt.savefig(name + '.png')
-
 
 def quartile_function(distribution, p, support=None):
     """Inverts a distribution x->p, and returns the x-value belonging to the provided p.
@@ -253,7 +219,7 @@ def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000, scale_M=
                 return sample
 
     raise RuntimeError('Maximum of attempts max_tries {} exceeded!'.format(max_tries))
-
+    
 
 def generate_structure(
     distribution, box=np.array([50, 50, 100]),

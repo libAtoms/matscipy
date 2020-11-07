@@ -264,8 +264,28 @@ setup(name='matscipy',
                 'matscipy.calculators.mcfm',
                 'matscipy.calculators.mcfm.mcfm_parallel',
                 'matscipy.calculators.mcfm.neighbour_list_mcfm',
-                'matscipy.calculators.mcfm.qm_cluster_tools'],
+                'matscipy.calculators.mcfm.qm_cluster_tools',
+                'matscipy.cli.electrochemistry',
+            ],
       scripts=scripts,
+      extras_require={
+            'cli': [],
+            'fenics': [
+                'fenics-dijitso',
+                'fenics-dolfin',
+                'fenics-ffc',
+                'fenics-fiat',
+                'fenics-ufl',
+                'mshr',
+            ]
+      },
+      entry_points={
+            'console_scripts': [
+                'c2d = matscipy.cli.electrochemistry.c2d:main [cli]',
+                'pnp = matscipy.cli.electrochemistry.pnp:main [cli]',
+                'stericify = matscipy.cli.electrochemistry.stericify:main [cli]'
+            ],
+        },
       ext_modules=[
         Extension(
             '_matscipy',
