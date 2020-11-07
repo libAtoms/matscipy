@@ -35,7 +35,7 @@ Dependencies
 The package requires :
 
 -  **numpy** - http://www.numpy.org/
--  **scipy** (optional) - http://www.scipy.org/
+-  **scipy** - http://www.scipy.org/
 -  **ASE** - https://wiki.fysik.dtu.dk/ase/
 
 Optional packages :
