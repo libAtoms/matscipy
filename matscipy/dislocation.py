@@ -1968,7 +1968,14 @@ def read_dislo_QMMM(filename=None, image=None):
 
 class CubicCrystalDislocation:
     def __init__(self, unit_cell, C11, C12, C44,
-                 axes, burgers, shift, parity):
+                 axes, burgers, shift=None, parity=None):
+        """
+        This class represents a dislocation in a cubic crystal
+        
+        The dislocation is defined by the crystal unit cell,
+        elastic constants C11, C12 and C44, crystal axes,
+        burgers vector and optional shift and parity vectors.
+        """        
         self.unit_cell = unit_cell.copy()        
         self.C11 = C11
         self.C12 = C12
@@ -1976,7 +1983,11 @@ class CubicCrystalDislocation:
 
         self.axes = axes
         self.burgers = burgers
+        if shift is None:
+            shift = np.zeroes(3)
         self.shift = shift
+        if parity is None:
+            parity = np.zeros(2, dtype=int)
         self.parity = parity
         
         from atomman import ElasticConstants
@@ -1986,7 +1997,7 @@ class CubicCrystalDislocation:
 
     def displacements(self, bulk_positions, center, self_consistent=True, 
                       tol=1e-6, max_iter=100, verbose=True):
-        disp1 = self.stroh.displacement(bulk_positions - center)
+        disp1 = np.real(self.stroh.displacement(bulk_positions - center))
         if not self_consistent:
             return disp1
 
@@ -1994,7 +2005,7 @@ class CubicCrystalDislocation:
         i = 0
         while res > tol:
             disloc_positions = bulk_positions + disp1
-            disp2 = self.stroh.displacement(disloc_positions - center)
+            disp2 = np.real(self.stroh.displacement(disloc_positions - center))
             res = np.abs(disp1 - disp2).max()
             disp1 = disp2
             if verbose:
@@ -2026,8 +2037,8 @@ class CubicCrystalDislocation:
 
         # disloc is a copy of bulk with displacements applied
         disloc = bulk.copy()
-        disloc.positions += np.real(self.displacements(bulk.positions, center,
-                                                       self_consistent=self_consistent))
+        disloc.positions += self.displacements(bulk.positions, center,
+                                               self_consistent=self_consistent)
         r = r[mask]
         fix_mask = r > radius - fix_width
         disloc.set_array('fix_mask', fix_mask)
@@ -2059,7 +2070,8 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
                          [1, -1, 0],
                          [1, 1, -2]])
         burgers = alat * np.array([1, 1, 1]) / 2.0
-        shift = alat * np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 0.25 * np.sqrt(2.0), 0 ])
+        shift = alat * np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 
+                                 0.25 * np.sqrt(2.0), 0 ])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
