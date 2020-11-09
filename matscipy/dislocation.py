@@ -1978,15 +1978,15 @@ class CubicCrystalDislocation:
         self.burgers = burgers
         self.shift = shift
         self.parity = parity
-
-    def displacements(self, bulk_positions, center, self_consistent=True, 
-                      tol=1e-6, max_iter=100, verbose=True):
+        
         from atomman import ElasticConstants
         from atomman.defect import Stroh
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)        
-        stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
+        self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
 
-        disp1 = stroh.displacement(bulk_positions - center)
+    def displacements(self, bulk_positions, center, self_consistent=True, 
+                      tol=1e-6, max_iter=100, verbose=True):
+        disp1 = self.stroh.displacement(bulk_positions - center)
         if not self_consistent:
             return disp1
 
@@ -1994,7 +1994,7 @@ class CubicCrystalDislocation:
         i = 0
         while res > tol:
             disloc_positions = bulk_positions + disp1
-            disp2 = stroh.displacement(disloc_positions - center)
+            disp2 = self.stroh.displacement(disloc_positions - center)
             res = np.abs(disp1 - disp2).max()
             disp1 = disp2
             if verbose:
@@ -2003,12 +2003,12 @@ class CubicCrystalDislocation:
             if i > max_iter:
                 raise RuntimeError(f'Self-consistency did not converge in {max_iter} cycles')
         return disp2
-    
+
     def build_cylinder(self, radius, fix_width=10.0, self_consistent=True):
         extent = np.array([2 * radius + 10., 2 * radius + 10., 1.])
         repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
         repeat[2] = 1  # exactly one cell in the periodic direction
-        
+
         # ensure correct parity in x and y directions
         if repeat[0] % 2 != self.parity[0]:
             repeat[0] += 1
