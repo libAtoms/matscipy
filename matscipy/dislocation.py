@@ -2015,7 +2015,7 @@ class CubicCrystalDislocation:
         if repeat[1] % 2 != self.parity[1]:
             repeat[1] += 1
 
-        bulk = self.unit_cell * repeat   
+        bulk = self.unit_cell * repeat
         bulk.positions += self.shift
 
         # build a bulk cylinder
