@@ -276,7 +276,7 @@ def make_edge_cyl(alat, C11, C12, C44,
 
 
 def plot_vitek(dislo, bulk,
-               alat=3.16, xyscale=10):
+               alat=3.16, plot_axes=None, xyscale=10):
     """Plots vitek map from ase configurations.
 
     Parameters
@@ -326,13 +326,14 @@ def plot_vitek(dislo, bulk,
     # distance between atoms on the plot
     plot_scale = 1.885618083
 
-    return differential_displacement(base_system, disl_system,
-                                     burgers,
-                                     cutoff=neighborListCutoff,
-                                     xlim=plot_range[0],
-                                     ylim=plot_range[1],
-                                     zlim=plot_range[2],
-                                     plot_scale=plot_scale)
+    fig = differential_displacement(base_system, disl_system,
+                                    burgers,
+                                    cutoff=neighborListCutoff,
+                                    xlim=plot_range[0],
+                                    ylim=plot_range[1],
+                                    zlim=plot_range[2],
+                                    plot_axes=plot_axes,
+                                    plot_scale=plot_scale)
 
 def show_NEB_configurations(images, bulk, xyscale=7,
                             show=True, core_positions=None):
