@@ -362,7 +362,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
-    def check_disloc(self, cls, angle, tol=5.0):
+    def check_disloc(self, cls, ref_angle, tol=5.0):
         alat = 3.14339177996466
         C11 = 523.0266819809012
         C12 = 202.1786296941397
@@ -383,19 +383,22 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         for line in lines:
             t_hat = line / np.linalg.norm(line)
             dot = np.abs(np.dot(t_hat, b_hat))
-            assert abs(np.degrees(np.arccos(dot)) - angle) < tol
+            angle = np.degrees(np.arccos(dot))
+            err = angle - ref_angle
+            print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
+            assert abs(err) < tol
 
     @unittest.skipIf("atomman" not in sys.modules or 
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_screw_dislocation(self):
-        self.check_disloc(sd.BCCScrew111Dislocation, 180.0)
+        self.check_disloc(sd.BCCScrew111Dislocation, 0.0)
 
     @unittest.skipIf("atomman" not in sys.modules or 
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_edge_dislocation(self):        
-        self.check_disloc(sd.BCCEdge111Dislocation, 0.0)
+        self.check_disloc(sd.BCCEdge111Dislocation, 90.0)
 
     @unittest.skipIf("atomman" not in sys.modules or 
                      "ovito" not in sys.modules,
