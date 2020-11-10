@@ -303,7 +303,7 @@ def plot_vitek(dislo, bulk,
     None
 
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman`
+    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import load
     from atomman.defect import differential_displacement
 
@@ -928,7 +928,7 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         Error for optimisation (result from `compare_configurations` function)
 
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman`    
+    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1090,7 +1090,7 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
         positions around dislocation core.
 
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman`    
+    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1213,7 +1213,7 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     # TODO: Make one function for impurities and pass factory to it:
     # TODO: i.e. octahedral or terahedral
 
-    # install with `pip install git+https://github.com/pgrigorev/atomman`    
+    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1825,7 +1825,7 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disp : np.array
         Corresponding displacement.
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman`    
+    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
@@ -1993,7 +1993,7 @@ class CubicCrystalDislocation:
             parity = np.zeros(2, dtype=int)
         self.parity = parity
         
-        # install with `pip install git+https://github.com/pgrigorev/atomman`    
+    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
         from atomman import ElasticConstants
         from atomman.defect import Stroh
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)        
