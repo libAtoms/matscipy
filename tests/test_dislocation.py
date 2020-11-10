@@ -362,7 +362,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
-    def check_disloc(self, cls, ref_angle, tol=5.0):
+    def check_disloc(self, cls, ref_angle, tol=10.0):
         alat = 3.14339177996466
         C11 = 523.0266819809012
         C12 = 202.1786296941397
