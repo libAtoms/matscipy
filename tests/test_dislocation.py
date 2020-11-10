@@ -362,86 +362,47 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
-    @unittest.skipIf("atomman" not in sys.modules or 
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_screw_dislocation(self):        
-
+    def check_disloc(self, cls, angle, tol=5.0):
         alat = 3.14339177996466
         C11 = 523.0266819809012
         C12 = 202.1786296941397
         C44 = 160.88179872237012
 
-        d = sd.BCCScrew111Dislocation(alat, C11, C12, C44)
+        d = cls(alat, C11, C12, C44)
         bulk, disloc = d.build_cylinder(20.0)
         assert len(bulk) == len(disloc)
         del disloc.arrays['fix_mask']  # logical properties not supported by Ovito
         b, length, segment = ovito_dxa(disloc)
-        self.assertArrayAlmostEqual(np.abs(b), 0.5 * np.array([1.0, 1.0, 1.0])) # 1/2[111], signs can change
+        self.assertArrayAlmostEqual(np.abs(b), 0.5 * np.array([1.0, 1.0, 1.0]))  # 1/2[111], signs can change
         assert abs(length - disloc.cell[2, 2]) < 0.01
-        b_spatial = np.array(segment.spatial_burgers_vector)
-        b_spatial /= np.linalg.norm(b_spatial)
-        self.assertArrayAlmostEqual(np.abs(b_spatial), np.array([0., 0., 1.]))
+        
+        b_hat = np.array(segment.spatial_burgers_vector)
+        b_hat /= np.linalg.norm(b_hat)
+        
         lines = np.diff(segment.points, axis=0)
         for line in lines:
-            t = line
-            t /= np.linalg.norm(t)
-            dot = np.abs(np.dot(t, b_spatial))
-            assert dot > 0.99
+            t_hat = line / np.linalg.norm(line)
+            dot = np.abs(np.dot(t_hat, b_hat))
+            assert abs(np.degrees(np.arccos(dot)) - angle) < tol
+
+    @unittest.skipIf("atomman" not in sys.modules or 
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_screw_dislocation(self):
+        self.check_disloc(sd.BCCScrew111Dislocation, 180.0)
 
     @unittest.skipIf("atomman" not in sys.modules or 
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_edge_dislocation(self):        
-
-        alat = 3.14339177996466
-        C11 = 523.0266819809012
-        C12 = 202.1786296941397
-        C44 = 160.88179872237012
-
-        d = sd.BCCEdge111Dislocation(alat, C11, C12, C44)
-        bulk, disloc = d.build_cylinder(20.0)
-        assert len(bulk) == len(disloc)
-        del disloc.arrays['fix_mask']  # logical properties not supported by Ovito
-        b, length, segment = ovito_dxa(disloc)
-        self.assertArrayAlmostEqual(np.abs(b), 0.5 * np.array([1.0, 1.0, 1.0])) # 1/2[111], signs can change
-        assert abs(length - disloc.cell[2, 2]) < 0.01
-        b_spatial = np.array(segment.spatial_burgers_vector)
-        b_spatial /= np.linalg.norm(b_spatial)
-        lines = np.diff(segment.points, axis=0)
-        for line in lines:
-            t = line
-            t /= np.linalg.norm(t)
-            dot = np.abs(np.dot(t, b_spatial))
-            assert dot < 0.1 # check t close to perp to b  
+        self.check_disloc(sd.BCCEdge111Dislocation, 0.0)
 
     @unittest.skipIf("atomman" not in sys.modules or 
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_mixed_dislocation(self):
+        self.check_disloc(sd.BCCMixed111Dislocation, 70.5)
 
-        alat = 3.14339177996466
-        C11 = 523.0266819809012
-        C12 = 202.1786296941397
-        C44 = 160.88179872237012
-
-        d = sd.BCCMixed111Dislocation(alat, C11, C12, C44)
-        bulk, disloc = d.build_cylinder(20.0)
-        disloc.write('mixed.xyz')
-        assert len(bulk) == len(disloc)
-        del disloc.arrays['fix_mask']  # logical properties not supported by Ovito
-        b, length, segment = ovito_dxa(disloc)
-        self.assertArrayAlmostEqual(np.abs(b), 0.5 * np.array([1.0, 1.0, 1.0])) # 1/2[111], signs can change
-        assert abs(length - disloc.cell[2, 2]) < 0.01
-        b_spatial = np.array(segment.spatial_burgers_vector)
-        b_spatial /= np.linalg.norm(b_spatial)
-        self.assertArrayAlmostEqual(b_spatial, np.array([-0.94279654, 0.0014948, -0.33336535])) # FIXME get this from geometry
-        lines = np.diff(segment.points, axis=0)
-        for line in lines:
-            t = line
-            t /= np.linalg.norm(t)
-            dot = np.abs(np.dot(t, b_spatial))
-            assert dot > 0.1 and dot < 0.5 # FIXME tighten up tolerance on angle here
 
 if __name__ == '__main__':
     unittest.main()
