@@ -14,6 +14,7 @@ from ase.io import read
 from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
 
+
 def make_screw_cyl(alat, C11, C12, C44,
                    cylinder_r=10, cutoff=5.5,
                    hard_core=False,
@@ -59,7 +60,7 @@ def make_screw_cyl(alat, C11, C12, C44,
     u : np.array
         displacement per atom.
     """
-    # https://github.com/usnistgov/atomman
+    # install with `pip install git+https://github.com/pgrigorev/atomman`
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -190,7 +191,7 @@ def make_edge_cyl(alat, C11, C12, C44,
         Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
         default is "W" for tungsten
     '''
-    # https://github.com/usnistgov/atomman
+    # install with `pip install git+https://github.com/pgrigorev/atomman`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
@@ -302,6 +303,7 @@ def plot_vitek(dislo, bulk,
     None
 
     """
+    # install with `pip install git+https://github.com/pgrigorev/atomman`
     from atomman import load
     from atomman.defect import differential_displacement
 
@@ -926,7 +928,7 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         Error for optimisation (result from `compare_configurations` function)
 
     """
-    # https://github.com/usnistgov/atomman
+    # install with `pip install git+https://github.com/pgrigorev/atomman`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1088,7 +1090,7 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
         positions around dislocation core.
 
     """
-    # https://github.com/usnistgov/atomman
+    # install with `pip install git+https://github.com/pgrigorev/atomman`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1211,7 +1213,7 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     # TODO: Make one function for impurities and pass factory to it:
     # TODO: i.e. octahedral or terahedral
 
-    # https://github.com/usnistgov/atomman
+    # install with `pip install git+https://github.com/pgrigorev/atomman`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1823,7 +1825,7 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disp : np.array
         Corresponding displacement.
     """
-    # https://github.com/usnistgov/atomman
+    # install with `pip install git+https://github.com/pgrigorev/atomman`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
@@ -1991,6 +1993,7 @@ class CubicCrystalDislocation:
             parity = np.zeros(2, dtype=int)
         self.parity = parity
         
+        # install with `pip install git+https://github.com/pgrigorev/atomman`    
         from atomman import ElasticConstants
         from atomman.defect import Stroh
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)        
