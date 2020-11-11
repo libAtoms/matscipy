@@ -27,7 +27,7 @@ alpha0 = parameter('alpha0', 0.0) # initial guess for crack position
 dump = parameter('dump', False)
 precon = parameter('precon', False)
 prerelax = parameter('prerelax', False)
-lbfgs = parameter('lbfgs', False)
+lbfgs = parameter('lbfgs', not flexible) # use LBGS by default if not flexible
 
 # compute elastic constants
 cryst = params.cryst.copy()
@@ -95,7 +95,6 @@ for i, k in enumerate(ks):
     if fit_alpha:
         sc.alpha, = sc.fit_cle(variable_alpha=True, variable_k=False)
         print(f'Fitted value of alpha: {sc.alpha}')
-
     print(f'k = {sc.k / k1g} * k1g')
     print(f'alpha = {sc.alpha}')
 
