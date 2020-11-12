@@ -28,7 +28,7 @@
 #include <numpy/arrayobject.h>
 
 #include <limits.h>
-#include <float.h>
+#include <float.h> 
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -642,11 +642,14 @@ py_neighbour_list(PyObject *self, PyObject *args)
 /*
  * Construct seed array that points to start of rows: O(n)
  */
-
 void
 first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed)
 {
     int k;
+
+    for (k = 0; k < n; k++) {
+        seed[k] = -1;
+    }
 
     seed[i_n[0]] = 0;
 
@@ -658,10 +661,12 @@ first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed)
             }
         }
     }
+    // seed[n] = nn;
     for (k = i_n[nn-1]+1; k <= n; k++) {
         seed[k] = nn;
     }
 }
+
 
 /*
  * Python wrapper for seed array calculation
