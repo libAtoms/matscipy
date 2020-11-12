@@ -20,12 +20,11 @@ class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
             c=[0.1,0.1], z=[1,-1], L=1e-7, delta_u=0.05,
             N=200, e=1e-12, maxit=20)
         pnp.useStandardInterfaceBC()
-        pnp.init()
         pnp.solve()
 
         self.assertArrayAlmostEqual(pnp.grid, self.ref_data ['x'])
         self.assertArrayAlmostEqual(pnp.potential, self.ref_data ['u'])
-        self.assertArrayAlmostEqual(pnp.concentration, self.ref_data ['c'])
+        self.assertArrayAlmostEqual(pnp.concentration, self.ref_data ['c'], 1e-6)
 
 if __name__ == '__main__':
     unittest.main()

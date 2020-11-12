@@ -61,7 +61,7 @@ def f(k, alpha):
 
 alpha_range = parameter('alpha_range', np.linspace(-1.0, 1.0, 100))
 # look for a solution to f(k, alpha) = 0 close to alpha = 0.
-k = k0 # initial guess for k
+k = k0  # initial guess for k
 traj = []
 for alpha in alpha_range:
     (k,) = fsolve(f, k, args=(alpha,))

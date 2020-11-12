@@ -796,12 +796,12 @@ class SinclairCrack:
             u = u.reshape(self.N1, 3)
         offset = 3 * self.N1
         if self.variable_alpha:
-            alpha = x[offset]
+            alpha = float(x[offset])
             offset += 1
         else:
             alpha = defaults.get('alpha', self.alpha)
         if self.variable_k:
-            k = x[offset]
+            k = float(x[offset])
         else:
             k = defaults.get('k', self.k)
         return u, alpha, k
@@ -837,7 +837,8 @@ class SinclairCrack:
         u = np.c_[ux, uy, np.zeros_like(ux)] # convert to 3D field
         return u
 
-    def fit_cle(self, r_fit=20.0, variable_alpha=True, variable_k=True):
+    def fit_cle(self, r_fit=20.0, variable_alpha=True, variable_k=True, x0=None,
+                grid=None):
         def residuals(x, mask):
             idx = 0
             if variable_alpha:
@@ -855,15 +856,25 @@ class SinclairCrack:
             du = (self.k * self.u_cle(self.alpha) + u - k * self.u_cle(alpha))
             return du[mask, :].reshape(-1)
 
-        x0 = []
         mask = self.r < r_fit
-        if variable_alpha:
-            x0.append(self.alpha)
-        if variable_k:
-            x0.append(self.k)
-        res, ier = leastsq(residuals, x0, args=(mask,))
-        if ier not in [1, 2, 3, 4]:
-            raise RuntimeError('CLE fit failed')
+        if x0 is None:
+            x0 = []
+            if variable_alpha:
+                x0.append(self.alpha)
+            if variable_k:
+                x0.append(self.k)
+        if grid:
+            alpha_grid, k_grid = grid
+            vals = np.zeros((len(alpha_grid), len(k_grid)))
+            for i, alpha in enumerate(alpha_grid):
+                for j, k in enumerate(k_grid):
+                    vals[i, j] = (residuals([alpha, k], mask) ** 2).sum()
+            i_min, j_min = np.unravel_index(vals.argmin(), vals.shape)
+            return alpha_grid[i_min], k_grid[j_min]
+        else:
+            res, ier = leastsq(residuals, x0, args=(mask,))
+            if ier not in [1, 2, 3, 4]:
+                raise RuntimeError('CLE fit failed')
         return res
 
     def update_atoms(self):
@@ -888,7 +899,10 @@ class SinclairCrack:
 
     def set_atoms(self, atoms):
         N1_in = (atoms.arrays['region'] == 1).sum()
-        self.alpha = atoms.info['alpha']
+        if 'alpha' in atoms.info:
+            self.alpha = atoms.info['alpha']
+        else:
+            self.alpha = 0.0
         self.k = atoms.info['k']
         self.u[:] = np.zeros(3, self.N1)
         self.update_atoms()  # now we have same u_cle in atoms and self.atoms

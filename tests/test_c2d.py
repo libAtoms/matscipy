@@ -62,7 +62,6 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
         self.myenv["PATH"] = os.pathsep.join((
             self.bin_path.name, self.myenv["PATH"]))
 
-
     def tearDown(self):
         self.bin_path.cleanup()
 
@@ -128,9 +127,10 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             test_npz = np.load(os.path.join(tmpdir,'out.npz'))
 
-            self.assertArrayAlmostEqual(test_npz['x'],self.ref_npz['x'])
-            self.assertArrayAlmostEqual(test_npz['u'],self.ref_npz['u'])
-            self.assertArrayAlmostEqual(test_npz['c'],self.ref_npz['c'])
+            # depending on which solver is used for the tests, absolute values might deviate more than the default tolerance
+            self.assertArrayAlmostEqual(test_npz['x'], self.ref_npz['x'], tol=1e-7)
+            self.assertArrayAlmostEqual(test_npz['u'], self.ref_npz['u'], tol=1e-5)
+            self.assertArrayAlmostEqual(test_npz['c'], self.ref_npz['c'], tol=1e-3)
 
     def test_pnp_output_format_txt(self):
         """pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell NaCl.txt"""
@@ -144,21 +144,10 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             test_txt = np.loadtxt(os.path.join(tmpdir,'out.txt'), unpack=True)
 
-            self.assertArrayAlmostEqual(test_txt[0,:],self.ref_txt[0,:]) # x
-            self.assertArrayAlmostEqual(test_txt[1,:],self.ref_txt[1,:]) # u
-            self.assertArrayAlmostEqual(test_txt[2:,:],self.ref_txt[2:,:]) # c
-
-            # dx = test_txt[0,:] - ref_x
-            # du = test_txt[1,:] - ref_u
-            # dc = test_txt[2:,:] - ref_c
-            #
-            # rel_err_norm_x = np.linalg.norm(dx)/np.linalg.norm(ref_x)
-            # rel_err_norm_u = np.linalg.norm(du)/np.linalg.norm(ref_u)
-            # rel_err_norm_c = np.linalg.norm(dc)/np.linalg.norm(ref_c)
-            #
-            # assert rel_err_norm_x < rel_err_norm_tol
-            # assert rel_err_norm_u < rel_err_norm_tol
-            # assert rel_err_norm_c < rel_err_norm_tol
+            # depending on which solver is used for the tests, absolute values might deviate more than the default tolerance
+            self.assertArrayAlmostEqual(test_txt[0,:], self.ref_txt[0,:], tol=1e-5) # x
+            self.assertArrayAlmostEqual(test_txt[1,:],self.ref_txt[1,:], tol=1e-5) # u
+            self.assertArrayAlmostEqual(test_txt[2:,:],self.ref_txt[2:,:], tol=1e-3) # c
 
     def test_pnp_c2d_pipeline_mode(self):
         """pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell | c2d > NaCl.xyz"""

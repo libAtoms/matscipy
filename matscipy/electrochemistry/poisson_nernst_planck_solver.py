@@ -16,9 +16,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================"""
-""" Compute ion concentrations consistent with general
-Poisson-Nernst-Planck (PNP) equations.
+# ======================================================================
+"""
+Compute ion concentrations with general Poisson-Nernst-Planck (PNP) equations.
 
 Copyright 2019 IMTEK Simulation
 University of Freiburg
@@ -26,10 +26,11 @@ University of Freiburg
 Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
 """
-import logging, os, sys
+import logging
+import time
 import numpy as np
 import scipy.constants as sc
-# import matplotlib.pyplot as plt
+import scipy.optimize
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +44,15 @@ logger = logging.getLogger(__name__)
 # and Simulation of Semiconductor Devices, Spriger 1984) wird eine noch
 # aufwendigere stueckweise Definition empfohlen, allerdings werden wir im
 # Folgenden sehen, dass unser Ansatz fuer dieses stationaere Problem genuegt.
+
+
 def B(x):
-    """Bernoulli function"""
-    return np.where( np.abs(x) < 1e-9,
-        1 - x/2 + x**2/12 - x**4/720, # Taylor
-        x / ( np.exp(x) - 1 ) )
+    """Bernoulli function."""
+    return np.where(
+        np.abs(x) < 1e-9,
+        1 - x/2 + x**2/12 - x**4/720,  # Taylor
+        x / (np.exp(x) - 1))
+
 
 # "lazy" Ansatz for approximating Jacobian
 def jacobian(f, x0, dx=np.NaN):
@@ -77,7 +82,7 @@ def jacobian(f, x0, dx=np.NaN):
     if np.isnan(dx).any():
         res = np.finfo('float64').resolution
         dx = np.abs(x0) * np.sqrt(res)
-        dx[ dx < res ] = res
+        dx[dx < res] = res
 
     if np.isscalar(dx):
         dx = np.ones(N) * dx
@@ -108,15 +113,20 @@ class PoissonNernstPlanckSystem:
 
     @property
     def concentration(self):
-        return self.nij*self.c_unit
+        return np.where(self.nij > np.finfo('float64').resolution,
+            self.nij*self.c_unit, 0.0)
 
     @property
     def charge_density(self):
         return np.sum(self.F * self.concentration.T * self.z,axis=1)
 
+    @property
+    def x1_scaled(self):
+        return self.x0_scaled + self.L_scaled
+
     #TODO:  replace "didactic" Newton solver from IMTEK Simulation course with
     #       some standard package
-    def newton(self,f,xij):
+    def newton(self,f,xij,**kwargs):
         """Newton solver expects system f and initial value xij
 
         Parameters
@@ -141,28 +151,6 @@ class PoissonNernstPlanckSystem:
 
         i = 0
         delta_rel = 2*self.e
-
-        # if self.output:
-        #     fig = plt.figure(figsize=(16,15))
-        #     ax1 = plt.subplot(221)
-        #     ax1.set_ylabel('u')
-        #     ax1.set_xlabel('x')
-        #     ax1.set_title('potential u')
-        #
-        #     ax2 = plt.subplot(322)
-        #     ax2.set_ylabel('n')
-        #     ax2.set_xlabel('x')
-        #     ax2.set_title('density n')
-        #
-        #     ax3 = plt.subplot(325)
-        #     ax3.set_ylabel('du')
-        #     ax3.set_xlabel('x')
-        #     ax3.set_title('step du')
-        #
-        #     ax4 = plt.subplot(326)
-        #     ax4.set_ylabel('dn')
-        #     ax4.set_xlabel('x')
-        #     ax4.set_title('step dn')
 
         self.logger.info("Convergence criterion: norm(dx) < {:4.2e}".format(self.e))
 
@@ -210,25 +198,6 @@ class PoissonNernstPlanckSystem:
             self.convergenceResidualAbsolute[i] = normF
             self.logger.info("Step {:4d}: norm(dx)/norm(x) = {:4.2e}, norm(dx) = {:4.2e}, norm(F) = {:4.2e}".format(
                 i, delta_rel, delta, normF) )
-            # if i % self.outfreq == 0 and self.output:
-            #
-            #     duij = dxij[:self.Ni]
-            #     dnij = dxij[self.Ni:(self.M+1)*self.Ni].reshape(self.M,self.Ni)
-            #
-            #     uij = xij[:self.Ni]
-            #     nij = xij[self.Ni:(self.M+1)*self.Ni].reshape(self.M,self.Ni)
-            #
-            #     ax1.plot(self.X, uij, '-', label='u step {:02d}'.format(i))
-            #     for k in range(self.M):
-            #       ax2.plot(self.X, nij[k,:], '-', label='n step {:02d}, species {:02d}'.format(i,k))
-            #     ax3.plot(self.X, duij, '-', label='du step {:02d}'.format(i))
-            #     for k in range(self.M):
-            #       ax4.plot(self.X, dnij[k,:], '-', label='dn step {:02d}, species {:02d}'.format(i,k))
-            #
-            #     ax1.legend(loc='best')
-            #     ax2.legend(loc='best')
-            #     ax3.legend(loc='best')
-            #     ax4.legend(loc='best')
 
             i += 1
 
@@ -237,30 +206,60 @@ class PoissonNernstPlanckSystem:
             self.converged = False
 
         self.logger.info("Ended after {:d} steps.".format(i))
-        # if self.output:
-        #     fig = plt.figure(figsize=(16,10))
-        #     ax1 = plt.subplot(221)
-        #     ax1.set_ylabel(r'$\epsilon = \frac{|x_j - x_{j-1}|}{|x_{j-1}}$')
-        #     ax1.set_xlabel('j')
-        #     ax1.set_title('step convergence, relative')
-        #     ax2 = plt.subplot(222)
-        #     ax2.set_ylabel(r'\epsilon = $|x_j - x_{j-1}|')
-        #     ax2.set_xlabel('j')
-        #     ax2.set_title('step convergence, absolute')
-        #     ax3 = plt.subplot(223)
-        #     ax3.set_ylabel(r'$R = F(x_j)$')
-        #     ax3.set_xlabel('j')
-        #     ax3.set_title('residue convergence, absolute')
-        #     ax1.plot(self.convergenceStepRelative[:i])
-        #     ax2.plot(self.convergenceStepAbsolute[:i])
-        #     ax3.plot(self.convergenceResidualAbsolute[:i])
 
         self.convergenceStepAbsolute = self.convergenceStepAbsolute[:i]
         self.convergenceStepRelative = self.convergenceStepRelative[:i]
         self.convergenceResidualAbsolute = self.convergenceResidualAbsolute[:i]
         return xij
 
-    def init(self):
+    def solver_callback(self, xij, *_):
+        """Callback function that can be used by optimizers of scipy.optimize.
+        The second argument "*_" makes sure that it still works when the
+        optimizer calls the callback function with more than one argument. See
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
+        """
+        if self.callback_count == 0:
+            logger.info(
+                "{:>12s} {:>12s} {:>12s} {:>12s} {:>12s} {:>12s}".format(
+                    "#callback","residual norm","abs dx norm", "rel dx norm",
+                    "timing, step", "timing, tot.") )
+            self.xij = [ self.xi0 ]
+
+            self.converged = True # TODO remove (?)
+            self.convergenceStepAbsolute = []
+            self.convergenceStepRelative = []
+            self.convergenceResidualAbsolute = []
+
+
+            dxij = np.zeros(self.N)
+
+        self.xij.append(xij)
+        dxij = xij - self.xij[self.callback_count]
+
+        delta = np.linalg.norm(dxij)
+        delta_rel = delta / np.linalg.norm(xij)
+
+        fj = self.G(xij)
+        norm_fj = np.linalg.norm(fj)
+
+        self.convergenceStepAbsolute.append(delta)
+        self.convergenceStepRelative.append(delta_rel)
+        self.convergenceResidualAbsolute.append(norm_fj)
+
+        t1 = time.perf_counter()
+        dt = t1 - self.tj
+        dT = t1 - self.t0
+        self.tj = t1
+
+        logger.info(
+            "{:12d} {:12.5e} {:12.5e} {:12.5e} {:12.5e} {:12.5e}".format(
+                self.callback_count, norm_fj, delta , delta_rel, dt, dT))
+
+        self.callback_count += 1
+        return
+
+
+    def discretize(self):
         """Sets up discretization scheme and initial value"""
         # indices
         self.Ni = self.N+1
@@ -273,20 +272,9 @@ class PoissonNernstPlanckSystem:
 
         # discretization
         self.dx      = self.L_scaled / self.N # spatial step
-        # maximum time step allowed
-        # (irrelevant for our steady state case)
-        # D * dt / dx^2 <= 1/2
-        # dt <= dx^2 / ( 2*D )
-        # dt_max = dx**2 / 2 # since D = 1
-        # dt_max = dx**2 / (2*self.Dn_scaled)
-
-        # dx2overtau = dx**2 / self.tau_scaled
-        self.dx2overtau = 10.0
 
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
           'dx', self.dx, lwidth=self.label_width))
-        self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'dx2overtau', self.dx2overtau, lwidth=self.label_width))
 
         # positions (scaled)
         self.X = self.x0_scaled + I*self.dx
@@ -302,10 +290,12 @@ class PoissonNernstPlanckSystem:
         # initial concentrations equal to bulk concentrations
 
         # Kronecker product, M rows (ion species), Ni cols (grid points),
-        self.ni0 = np.kron( self.c_scaled, np.ones((self.Ni,1)) ).T
-        self.zi0 = np.kron( self.z, np.ones((self.Ni,1)) ).T # does not change
+        if self.ni0 is None:
+            self.ni0 = np.kron( self.c_scaled, np.ones((self.Ni,1)) ).T
+        if self.zi0 is None:
+            self.zi0 = np.kron( self.z, np.ones((self.Ni,1)) ).T # does not change
 
-        self.initial_values()
+        # self.initial_values()
 
     def initial_values(self):
         """
@@ -313,9 +303,6 @@ class PoissonNernstPlanckSystem:
         """
 
         zini0 = self.zi0*self.ni0 # z*n
-        #rhoi0 = np.zeros( self.Ni ) # initial charge distribution (dimensionless)
-        #for k in range(0,self.M):
-        #  rhoi0 += zini0[(k*self.Ni):((k+1)*self.Ni)]
         # shape: ion species (rows), grid points (cols), sum over ion species (along rows)
         rhoi0 = 0.5*zini0.sum(axis=0)
 
@@ -338,7 +325,7 @@ class PoissonNernstPlanckSystem:
 
     # evokes Newton solver
     def solve(self):
-        """Evokes newton solver
+        """Evokes solver
 
         Returns
         -------
@@ -350,12 +337,41 @@ class PoissonNernstPlanckSystem:
             value of L Lagrange multipliers (not implemented, empty)
         """
 
-        if len(self.g) > 0:
-          self.xi0 = np.concatenate([self.ui0, self.ni0.flatten(), np.zeros(len(self.g))])
-        else:
-          self.xi0 = np.concatenate([self.ui0, self.ni0.flatten()])
+        # if not yet done, set up initial values
+        if self.ui0 is None:
+            self.initial_values()
 
-        self.xij1 = self.newton(self.G,self.xi0.copy())
+        if len(self.g) > 0:
+            self.xi0 = np.concatenate([self.ui0, self.ni0.flatten(), np.zeros(len(self.g))])
+        else:
+            self.xi0 = np.concatenate([self.ui0, self.ni0.flatten()])
+
+        self.callback_count = 0
+        self.t0 = time.perf_counter()
+        self.tj = self.t0 # previosu callback timer value
+
+        # neat lecture on scipy optimizers
+        # http://scipy-lectures.org/advanced/mathematical_optimization/
+        if isinstance(self.solver, str) and self.solver in [
+            'hybr','lm','broyden1','broyden2','anderson','linearmixing',
+            'diagbroyden','excitingmixing','krylov','df-sane']:
+            res = scipy.optimize.root(self.G,self.xi0,
+                method=self.solver,callback=self.solver_callback,
+                options = self.options)
+            self.xij1 = res.x
+            if not res.success:
+                logger.warn(res.message)
+        elif isinstance( self.solver, str):
+            f = lambda x: np.linalg.norm(self.G(x))
+            res = scipy.optimize.minimize(f,self.xi0.copy(),
+                method=self.solver,callback=self.solver_callback,
+                options=self.options)
+            self.xij1 = res.x
+            if not res.success:
+                logger.warn(res.message)
+        else:
+            self.xij1 = self.solver(self.G,self.xi0.copy(),
+                callback=self.solver_callback, options=self.options)
 
         # store results:
         self.uij  = self.xij1[:self.Ni] # potential
@@ -376,8 +392,8 @@ class PoissonNernstPlanckSystem:
         self.logger.info('Right hand side Dirichlet boundary condition:                              u1 = {:> 8.4g}'.format(self.u1))
 
         self.boundary_conditions.extend([
-          lambda x: self.leftPotentialDirichletBC(x,self.u0),
-          lambda x: self.rightPotentialDirichletBC(x,self.u1) ])
+            lambda x: self.leftPotentialDirichletBC(x,self.u0),
+            lambda x: self.rightPotentialDirichletBC(x,self.u1) ])
         # self.rightPotentialBC = lambda x: self.rightPotentialDirichletBC(x,self.u1)
 
         #self.rightConcentrationBC = []
@@ -423,17 +439,18 @@ class PoissonNernstPlanckSystem:
 
     def useSternLayerCellBC(self, implicit=False):
         """Interfaces at left hand side and right hand side,
-        Stern layer either by prescirbing linear potential regime between cell
-        boundary and outer Helmholtz plane (PHP), or by cropping the domain at
-        OHP and applying Robin BC; zero flux BC on all ion species.
+        Stern layer either by prescribing linear potential regime between cell
+        boundary and outer Helmholtz plane (OHP), or by applying Robin BC;
+        zero flux BC on all ion species.
 
         Parameters
         ----------
         implicit : bool, optional
-            If true, then computation domain is cropped by
-            twice the Stern layer thickness lambda_S and true Robin BC
-            are applied. Otherwise, enforces constant potential gradient across
-            Stern layer region of thickness lambda_S. (default:False)
+            If true, then true Robin BC are applied. Attention:
+            if desired, domain must be cropped by manually by twice the Stern
+            layer thickness lambda_S. Otherwise, enforces
+            constant potential gradient across Stern layer region of thickness
+            lambda_S. (default:False)
         """
         self.boundary_conditions = []
 
@@ -443,19 +460,6 @@ class PoissonNernstPlanckSystem:
 
         if implicit: # implicitly treat Stern layer via Robin BC
             self.logger.info('Implicitly treating Stern layer via Robin BC')
-
-            self.L_scaled        = self.L_scaled - 2*self.lambda_S_scaled
-            self.x0_scaled       = self.x0_scaled + self.lambda_S_scaled
-
-            # no left and right hand side outer Helmholtz plane
-            # self.lhs_ohp = self.x0_scaled
-            # self.rhs_ohp = self.x0_scaled + self.L_scaled
-
-            # print scaled quantities to log
-            self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-              'reduced cropped domain size L*', self.L_scaled, lwidth=self.label_width))
-            self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-              'shifted reduced reference position x0*', self.x0_scaled, lwidth=self.label_width))
 
             self.logger.info('{:>{lwidth}s} u0 + lambda_S*dudx = {:< 8.4g}'.format(
               'Left hand side Robin boundary condition', self.u0, lwidth=self.label_width))
@@ -468,7 +472,7 @@ class PoissonNernstPlanckSystem:
         else: # explicitly treat Stern layer via linear regime
             self.logger.info('Explicitly treating Stern layer as uniformly charged regions')
 
-            # set eft and right hand side outer Helmholtz plane
+            # set left and right hand side outer Helmholtz plane
             self.lhs_ohp = self.x0_scaled + self.lambda_S_scaled
             self.rhs_ohp = self.x0_scaled + self.L_scaled - self.lambda_S_scaled
 
@@ -673,6 +677,9 @@ class PoissonNernstPlanckSystem:
         """N0: total amount of species, k: ion species"""
         nijk = x[(k+1)*self.Ni:(k+2)*self.Ni]
 
+        ## TODO: this integration scheme assumes constant concentrations within
+        ## an interval. Adapt to controlled volume scheme!
+
         # rescale to fit interval
         N = np.sum(nijk*self.dx) * self.N / self.Ni
         constraint_val = N - N0
@@ -715,23 +722,23 @@ class PoissonNernstPlanckSystem:
         for k in range(self.M):
           self.logger.debug(
             'ion species {:02d} concentration range [c_min, c_max] = [ {:>.4g}, {:>.4g} ]'.format(
-              k,np.min(nijk1[k,:]),np.max(nijk1[k,:]) ) )
+              k,np.min(nijk1[k,:]),np.max(nijk1[k,:])))
 
         # M rows (ion species), N_i cols (grid points)
         zi0nijk1 = self.zi0*nijk1 # z_ik*n_ijk
         for k in range(self.M):
           self.logger.debug(
             'ion species {:02d} charge range [z*c_min, z*c_max] = [ {:>.4g}, {:>.4g} ]'.format(
-              k,np.min(zi0nijk1[k,:]),np.max(zi0nijk1[k,:]) ) )
+              k,np.min(zi0nijk1[k,:]), np.max(zi0nijk1[k,:])))
 
         # charge density sum_k=1^M (z_ik*n_ijk)
         rhoij1 = zi0nijk1.sum(axis=0)
         self.logger.debug(
           'charge density range [rho_min, rho_max] = [ {:>.4g}, {:>.4g} ]'.format(
-            np.min(rhoij1),np.max(rhoij1) ) )
+            np.min(rhoij1),np.max(rhoij1)))
 
         # reduced Poisson equation: d2udx2 = rho
-        Fu = - ( np.roll(uij1, -1) - 2*uij1 + np.roll(uij1, 1) ) - 0.5 * rhoij1*self.dx**2
+        Fu = -(np.roll(uij1, -1)-2*uij1+np.roll(uij1, 1))-0.5*rhoij1*self.dx**2
 
         # linear potential regime due to steric effects incorporated here
         # TODO: incorporate "spatially finite" BC into Robin BC functions
@@ -877,6 +884,7 @@ class PoissonNernstPlanckSystem:
 
         return F
 
+    @property
     def I(self): # ionic strength
         """Compute the system's ionic strength from charges and concentrations.
 
@@ -888,6 +896,7 @@ class PoissonNernstPlanckSystem:
         """
         return 0.5*np.sum( np.square(self.z) * self.c )
 
+    @property
     def lambda_D(self):
         """Compute the system's Debye length.
 
@@ -898,10 +907,10 @@ class PoissonNernstPlanckSystem:
         """
         return np.sqrt(
             self.relative_permittivity*self.vacuum_permittivity*self.R*self.T/(
-                2.0*self.F**2*self.I() ) )
+                2.0*self.F**2*self.I ) )
 
     # default 0.1 mM (i.e. mol/m^3) NaCl aqueous solution
-    def __init__(self,
+    def init(self,
         c = np.array([0.1,0.1]),
         z = np.array([1,-1]),
         L = 100e-9, # 100 nm
@@ -915,7 +924,11 @@ class PoissonNernstPlanckSystem:
         F = sc.value('Faraday constant'),
         N = 200, # number of grid segments, number of grid points Ni = N + 1
         e = 1e-10, # absolute tolerance, TODO: switch to standaradized measure
-        maxit = 20 ): # maximum number of Newton iterations
+        maxit = 20, # maximum number of Newton iterations
+        solver = None,
+        options = None,
+        potential0 = None,
+        concentration0 = None ):
         """Initializes a 1D Poisson-Nernst-Planck system description.
 
         Expects quantities in SI units per default.
@@ -951,6 +964,12 @@ class PoissonNernstPlanckSystem:
             absolute tolerance for Newton solver convergence (default: 1e-10)
         maxit : int, optional
             maximum number of Newton iterations (default: 20)
+        solver: func( funx(x), x0), optional
+            solver to use (default: None, will use own simple Newton solver)
+        potential0: (N+1,) ndarray, optional (default: None)
+            potential initial values
+        concentration0: (M,N+1) ndarray, optional (default: None)
+            concentration initial values
         """
 
         self.logger = logging.getLogger(__name__)
@@ -997,55 +1016,55 @@ class PoissonNernstPlanckSystem:
         self.R                     = R
         self.F                     = F
 
-        self.f                     = F / (R*T) # for convenience
+        self.f                     = F / (R*T)  # for convenience
 
         # print all quantities to log
-        for i, (c, z) in enumerate(zip(self.c,self.z)):
-          self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-            "ion species {:02d} concentration c".format(i), c, lwidth=self.label_width))
-          self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-            "ion species {:02d} number charge z".format(i), z, lwidth=self.label_width))
+        for i, (c, z) in enumerate(zip(self.c, self.z)):
+            self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
+                "ion species {:02d} concentration c".format(i), c, lwidth=self.label_width))
+            self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
+                "ion species {:02d} number charge z".format(i), z, lwidth=self.label_width))
 
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'temperature T', self.T, lwidth=self.label_width))
+            'temperature T', self.T, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'domain size L', self.L, lwidth=self.label_width))
+            'domain size L', self.L, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'compact layer thickness lambda_S', self.lambda_S, lwidth=self.label_width))
+            'compact layer thickness lambda_S', self.lambda_S, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'reference position x0', self.x0, lwidth=self.label_width))
+            'reference position x0', self.x0, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'potential difference delta_u', self.delta_u, lwidth=self.label_width))
+            'potential difference delta_u', self.delta_u, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'relative permittivity eps_R', self.relative_permittivity, lwidth=self.label_width))
+            'relative permittivity eps_R', self.relative_permittivity, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'vacuum permittivity eps_0', self.vacuum_permittivity, lwidth=self.label_width))
+            'vacuum permittivity eps_0', self.vacuum_permittivity, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'universal gas constant R', self.R, lwidth=self.label_width))
+            'universal gas constant R', self.R, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'Faraday constant F', self.F, lwidth=self.label_width))
+            'Faraday constant F', self.F, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'f = F / (RT)', self.f, lwidth=self.label_width))
+            'f = F / (RT)', self.f, lwidth=self.label_width))
 
         # scaled units for dimensionless formulation
 
         # length unit chosen as Debye length lambda
-        self.l_unit = self.lambda_D()
+        self.l_unit = self.lambda_D
 
         # concentration unit is ionic strength
-        self.c_unit =  self.I()
+        self.c_unit = self.I
 
         # no time unit for now, only steady state
         # self.t_unit = self.l_unit**2 / self.Dn # fixes Dn_scaled = 1
 
-        self.u_unit = self.R * self.T / self.F # thermal voltage
+        self.u_unit = self.R * self.T / self.F  # thermal voltage
 
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'spatial unit [l]', self.l_unit, lwidth=self.label_width))
+            'spatial unit [l]', self.l_unit, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'concentration unit [c]', self.c_unit, lwidth=self.label_width))
+            'concentration unit [c]', self.c_unit, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'potential unit [u]', self.u_unit, lwidth=self.label_width))
+            'potential unit [u]', self.u_unit, lwidth=self.label_width))
 
         # domain
         self.L_scaled = self.L / self.l_unit
@@ -1062,29 +1081,60 @@ class PoissonNernstPlanckSystem:
         # potential difference
         self.delta_u_scaled = self.delta_u / self.u_unit
 
-
-        # relaxation time
-        # self.tau_scaled   = self.tau / self.t_unit
-
-        # Dn_scaled    = Dn * t_unit / l_unit**2
-
         # print scaled quantities to log
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'reduced domain size L*', self.L_scaled, lwidth=self.label_width))
+            'reduced domain size L*', self.L_scaled, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-           'reduced compact layer thickness lambda_S*', self.lambda_S_scaled, lwidth=self.label_width))
+            'reduced compact layer thickness lambda_S*', self.lambda_S_scaled, lwidth=self.label_width))
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-           'reduced reference position x0*', self.x0_scaled, lwidth=self.label_width))
+            'reduced reference position x0*', self.x0_scaled, lwidth=self.label_width))
 
         for i, c_scaled in enumerate(self.c_scaled):
-          self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-            "ion species {:02d} reduced concentration c*".format(i),
-            c_scaled, lwidth=self.label_width))
+            self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
+                "ion species {:02d} reduced concentration c*".format(i),
+                c_scaled, lwidth=self.label_width))
 
         self.logger.info('{:<{lwidth}s} {:> 8.4g}'.format(
-          'reduced potential delta_u*', self.delta_u_scaled, lwidth=self.label_width))
-
+            'reduced potential delta_u*', self.delta_u_scaled, lwidth=self.label_width))
 
         # per default, no outer Helmholtz plane
         self.lhs_ohp = np.nan
         self.rhs_ohp = np.nan
+
+        # self.xi0 = None
+        # initialize initial value arrays
+        if potential0 is not None:
+            self.ui0 = potential0 / self.u_unit
+        else:
+            self.ui0 = None
+
+        if concentration0 is not None:
+            self.ni0 = concentration0 / self.c_unit
+        else:
+            self.ni0 = None
+
+        self.zi0 = None
+
+    def __init__(self, *args, **kwargs):
+        """Constructor, see init doc string for arguments.
+
+        Additional Parameters
+        ---------------------
+        solver: str or func (default: None)
+            solver to use. If str, then selected from scipy optimizers.
+        options: dict, optional (default: None)
+            options object for scipy solver
+        """
+        self.init(*args, **kwargs)
+
+        if 'solver' in kwargs:
+            self.solver = kwargs['solver']
+        else:
+            self.solver = self.newton
+
+        if 'options' in kwargs:
+            self.options = kwargs['options']
+        else:
+            self.options = None
+
+        self.discretize()
