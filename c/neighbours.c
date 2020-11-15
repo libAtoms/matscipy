@@ -28,7 +28,7 @@
 #include <numpy/arrayobject.h>
 
 #include <limits.h>
-#include <float.h>
+#include <float.h> 
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -318,9 +318,17 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
 #if PY_MAJOR_VERSION >= 3
     PyObject *py_bquantities = PyUnicode_AsASCIIString(py_quantities);
+    if (!py_bquantities) {
+        PyErr_SetString(PyExc_TypeError, "Conversion to ASCII string failed.");
+        goto fail;
+    }
     char *quantities = PyBytes_AS_STRING(py_bquantities);
 #else
-    char *quantities = PyString_AS_STRING(py_quantities);
+    char *quantities = PyString_AsString(py_quantities);
+    if (!quantities) {
+        PyErr_SetString(PyExc_TypeError, "Conversion to string failed.");
+        goto fail;
+    }
 #endif
     i = 0;
     npy_intp dims[2] = { neighsize, 3 };
@@ -611,42 +619,45 @@ py_neighbour_list(PyObject *self, PyObject *args)
     Py_DECREF(py_inv_cell);
     Py_DECREF(py_pbc);
     Py_DECREF(py_r);
-    if (py_types)  Py_DECREF(py_types);
+    Py_XDECREF(py_types);
 
     return py_ret;
 
     fail:
     /* Cleanup. Sorry for the goto. */
 #if PY_MAJOR_VERSION >= 3
-    Py_DECREF(py_bquantities);
+    Py_XDECREF(py_bquantities);
 #endif
     Py_XDECREF(py_cutoffs);
-    Py_DECREF(py_cell_origin);
-    Py_DECREF(py_cell);
-    Py_DECREF(py_inv_cell);
-    Py_DECREF(py_pbc);
-    Py_DECREF(py_r);
-    if (py_types)  Py_DECREF(py_types);
+    Py_XDECREF(py_cell_origin);
+    Py_XDECREF(py_cell);
+    Py_XDECREF(py_inv_cell);
+    Py_XDECREF(py_pbc);
+    Py_XDECREF(py_r);
+    Py_DECREF(py_types);
 
     if (seed)  free(seed);
     if (next)  free(next);
     if (cutoffs_sq)  free(cutoffs_sq);
-    if (py_first)  Py_DECREF(py_first);
-    if (py_secnd)  Py_DECREF(py_secnd);
-    if (py_distvec)  Py_DECREF(py_distvec);
-    if (py_absdist)  Py_DECREF(py_absdist);
-    if (py_shift)  Py_DECREF(py_shift);
+    Py_XDECREF(py_first);
+    Py_XDECREF(py_secnd);
+    Py_XDECREF(py_distvec);
+    Py_XDECREF(py_absdist);
+    Py_XDECREF(py_shift);
     return NULL;
 }
 
 /*
  * Construct seed array that points to start of rows: O(n)
  */
-
 void
 first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed)
 {
     int k;
+
+    for (k = 0; k < n; k++) {
+        seed[k] = -1;
+    }
 
     seed[i_n[0]] = 0;
 
@@ -658,10 +669,12 @@ first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed)
             }
         }
     }
+    // seed[n] = nn;
     for (k = i_n[nn-1]+1; k <= n; k++) {
         seed[k] = nn;
     }
 }
+
 
 /*
  * Python wrapper for seed array calculation
