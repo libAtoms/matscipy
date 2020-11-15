@@ -52,7 +52,7 @@ class TestEnergyRelease(unittest.TestCase):
         """
 
         if not atomistica:
-            print 'Atomistica not available. Skipping test.'
+            print('Atomistica not available. Skipping test.')
             return
 
         nx = 128
@@ -66,7 +66,7 @@ class TestEnergyRelease(unittest.TestCase):
 #                           [0,1,0]),
 #              math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.05, 12)
             ]:
-            print '{} atoms.'.format(len(a0))
+            print('{} atoms.'.format(len(a0)))
 
             crack = CubicCrystalCrack(C11, C12, C44, [1,0,0], [0,1,0])
 
@@ -81,7 +81,7 @@ class TestEnergyRelease(unittest.TestCase):
             r0 = ref.positions
 
             a.set_calculator(calc)
-            print 'epot = {}'.format(a.get_potential_energy())
+            print('epot = {}'.format(a.get_potential_energy()))
 
             sx, sy, sz = a.cell.diagonal()
             tip_x = sx/2
@@ -114,7 +114,7 @@ class TestEnergyRelease(unittest.TestCase):
                                                         tip_x, tip_y, k1g,
                                                         mask=g!=0)
 
-                print tip_x, tip_y
+                print(tip_x, tip_y)
 
             # Get atomic strain
             i, j = neighbour_list("ij", a, cutoff=1.3)
@@ -131,12 +131,12 @@ class TestEnergyRelease(unittest.TestCase):
             eref = np.zeros_like(epot)
 
             for r1, r2 in [(r1, r2), (r1/2, r2/2), (r1/2, r2)]:
-                print 'r1 = {}, r2 = {}'.format(r1, r2)
+                print('r1 = {}, r2 = {}'.format(r1, r2))
 
                 J = J_integral(a, deformation_gradient, virial, epot, eref,
                                tip_x, tip_y, r1, r2)
 
-                print '2*gamma = {0}, J = {1}'.format(2*surface_energy, J)
+                print('2*gamma = {0}, J = {1}'.format(2*surface_energy, J))
 
 ###
 

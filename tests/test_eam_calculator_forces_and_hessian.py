@@ -31,8 +31,7 @@ import numpy as np
 import ase.io as io
 
 import matscipytest
-#from matscipy.calculators.eam import EAM
-from eam_calculator import EAM
+from matscipy.calculators.eam import EAM
 
 from ase.phonons import Phonons
 
