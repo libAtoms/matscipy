@@ -26,6 +26,7 @@ See: Falk, Langer, Phys. Rev. E 57, 7192 (1998)
 """
 
 import numpy as np
+import scipy
 
 from matscipy.neighbours import mic, neighbour_list
 
@@ -69,20 +70,14 @@ def array_inverse(A):
     This is faster than calling numpy.linalg.inv for each matrix.
     """
     A = np.ascontiguousarray(A, dtype=float)
-    b = np.identity(A.shape[2], dtype=A.dtype)
-
     n_eq = A.shape[1]
-    n_rhs = A.shape[2]
-    pivots = np.zeros(n_eq, np.intc)
     identity = np.eye(n_eq)
     def lapack_inverse(a):
         b = np.copy(identity)
-        pivots = np.zeros(n_eq, np.intc)
-        results = np.linalg.lapack_lite.dgesv(n_eq, n_rhs, a, n_eq, pivots, b,
-                                              n_eq, 0)
-        if results['info'] > 0:
+        lu, piv, x, info = scipy.linalg.lapack.dgesv(a, b)
+        if info > 0:
             raise np.linalg.LinAlgError('Singular matrix')
-        return b
+        return x
 
     return np.array([lapack_inverse(a) for a in A])
 
