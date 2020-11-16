@@ -300,5 +300,7 @@ setup(name='matscipy',
             )
         ],
       download_url=download_url,
-      url="https://github.com/libAtoms/matscipy"
+      url="https://github.com/libAtoms/matscipy",
+      setup_requires=['pytest-runner'],
+      test_require=['pytest']
       )
