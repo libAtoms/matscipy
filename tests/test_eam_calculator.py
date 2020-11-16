@@ -213,7 +213,8 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
                 id type x y z fx fy fz &
                 modify sort id format float "%.14g"
         """
-        atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump-text")
+        format = "lammps-dump" if "lammps-dump" in io.formats.all_formats.keys() else "lammps-dump-text"
+        atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format=format)
         old_atomic_numbers = atoms.get_atomic_numbers()
         sel, = np.where(old_atomic_numbers == 1)
         new_atomic_numbers = np.zeros_like(old_atomic_numbers)
