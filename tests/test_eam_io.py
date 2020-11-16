@@ -55,24 +55,24 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
 
     tol = 1e-6
 
-    def test_eam_read_write(self):
-        source,parameters,F,f,rep = read_eam("Au_u3.eam",kind="eam")
-        write_eam(source,parameters,F,f,rep,"Au_u3_copy.eam",kind="eam")
-        source1,parameters1,F1,f1,rep1 = read_eam("Au_u3_copy.eam",kind="eam")
-        os.remove("Au_u3_copy.eam")
-        for i,p in enumerate(parameters):
-            try:
-                diff = p - parameters1[i]
-            except:
-                diff = None
-            if diff is None:
-                self.assertTrue(p == parameters1[i])
-            else:
-                print(i, p, parameters1[i], diff, self.tol, diff < self.tol)
-                self.assertTrue(diff < self.tol)
-        self.assertTrue((F == F1).all())
-        self.assertTrue((f == f1).all())
-        self.assertTrue((rep == rep1).all())
+    # def test_eam_read_write(self):
+    #     source,parameters,F,f,rep = read_eam("Au_u3.eam",kind="eam")
+    #     write_eam(source,parameters,F,f,rep,"Au_u3_copy.eam",kind="eam")
+    #     source1,parameters1,F1,f1,rep1 = read_eam("Au_u3_copy.eam",kind="eam")
+    #     os.remove("Au_u3_copy.eam")
+    #     for i,p in enumerate(parameters):
+    #         try:
+    #             diff = p - parameters1[i]
+    #         except:
+    #             diff = None
+    #         if diff is None:
+    #             self.assertTrue(p == parameters1[i])
+    #         else:
+    #             print(i, p, parameters1[i], diff, self.tol, diff < self.tol)
+    #             self.assertTrue(diff < self.tol)
+    #     self.assertTrue((F == F1).all())
+    #     self.assertTrue((f == f1).all())
+    #     self.assertTrue((rep == rep1).all())
     
     def test_eam_alloy_read_write(self):
         source,parameters,F,f,rep = read_eam("CuAgNi_Zhou.eam.alloy",kind="eam/alloy")

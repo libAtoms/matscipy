@@ -31,6 +31,7 @@ import numpy as np
 from numpy.linalg import norm
 
 import ase.io as io
+from ase.calculators.test import numeric_force
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
@@ -56,8 +57,12 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
             a.center(vacuum=10.0)
             a.set_calculator(calc)
             f = a.get_forces()
-            fn = calc.calculate_numerical_forces(a)
-            self.assertArrayAlmostEqual(f, fn, tol=self.tol)
+            for i in range(9):
+                atindex = i*100
+                fn = [numeric_force(a, atindex, 0, self.disp),
+                      numeric_force(a, atindex, 1, self.disp),
+                      numeric_force(a, atindex, 2, self.disp)]
+                self.assertArrayAlmostEqual(f[atindex], fn, tol=self.tol)
 
     def test_stress(self):
         a = FaceCenteredCubic('Au', size=[2,2,2])
@@ -208,7 +213,8 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
                 id type x y z fx fy fz &
                 modify sort id format float "%.14g"
         """
-        atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump")
+        format = "lammps-dump" if "lammps-dump" in io.formats.all_formats.keys() else "lammps-dump-text"
+        atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format=format)
         old_atomic_numbers = atoms.get_atomic_numbers()
         sel, = np.where(old_atomic_numbers == 1)
         new_atomic_numbers = np.zeros_like(old_atomic_numbers)

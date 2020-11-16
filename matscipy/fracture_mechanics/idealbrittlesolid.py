@@ -71,7 +71,8 @@ class IdealBrittleSolid(Calculator):
     Described in Marder, Int. J. Fract. 130, 517-555 (2004)
     """
 
-    implemented_properties = ['energy', 'energies', 'stress', 'forces']
+    implemented_properties = ['energy', 'free_energy', 'energies', 'stress',
+                              'forces']
 
     default_parameters = {'a': 1.0, # lattice constant
                           'rc': 1.01, # cutoff
@@ -149,9 +150,10 @@ class IdealBrittleSolid(Calculator):
             b = atoms.get_array('stokes')
             forces -= (velocities.T*b).T
 
-        self.results = {'energy':   energy,
+        self.results = {'energy': energy,
+                        'free_energy': energy,
                         'energies': energies,
-                        'forces':   forces}
+                        'forces': forces}
 
         # Virial
         if not linear:

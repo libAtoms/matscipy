@@ -31,8 +31,7 @@ import numpy as np
 import ase.io as io
 
 import matscipytest
-#from matscipy.calculators.eam import EAM
-from eam_calculator import EAM
+from matscipy.calculators.eam import EAM
 
 from ase.phonons import Phonons
 
@@ -76,12 +75,8 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
                 id type x y z fx fy fz &
                 modify sort id format float "%.14g"
         """
-        if "lammps-dump" in io.formats.all_formats.keys():
-            atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump")
-        elif "lammps-dump-text" in io.formats.all_formats.keys():
-            atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format="lammps-dump-text")
-        else:
-            raise KeyError("ase.io can read neither 'lammps-dump' nor 'lammps-dump-text'")
+        format = "lammps-dump" if "lammps-dump" in io.formats.all_formats.keys() else "lammps-dump-text"
+        atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format=format)
         old_atomic_numbers = atoms.get_atomic_numbers()
         sel, = np.where(old_atomic_numbers == 1)
         new_atomic_numbers = np.zeros_like(old_atomic_numbers)
