@@ -86,10 +86,11 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
                                 [[1,1,1], [-1,-1,2], [1,-1,0]] ]:
                 a, b, c = directions
 
-                directions = np.array([ np.array(x)/np.linalg.norm(x) 
-                                        for x in directions ])
                 a = make_atoms(latticeconstant, directions)
                 a.set_calculator(calc)
+
+                directions = np.array([ np.array(x)/np.linalg.norm(x)
+                                        for x in directions ])
 
                 C = el.rotate(directions)
                 C_check = el._rotate_explicit(directions)
