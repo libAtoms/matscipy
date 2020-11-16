@@ -851,11 +851,12 @@ py_get_jump_indicies(PyObject *self, PyObject *args)
     /* calculate number of jumps */
     npy_int *sorted = PyArray_DATA((PyArrayObject *) py_sorted);
     int n = 0;
-    for (int i = 0; i < nn; i++) {
-        if (sorted[i] != sorted[i+1]) {
-	    n++;
-	}
+    for (int i = 0; i < nn-1; i++) {
+            if (sorted[i] != sorted[i+1]) {
+            n++;
+        }
     }
+    n++;
 
     /* Create seed array of length n */
     npy_intp n1 = n+1;

@@ -239,6 +239,7 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         assert np.all(first_triplets == first_triplets_comp)
         first_triplets = get_jump_indicies([0])
         first_triplets_comp = [0, 1]
+        print(first_triplets, first_triplets_comp)
         assert np.all(first_triplets == first_triplets_comp)
 
     def test_triplet_list(self):
