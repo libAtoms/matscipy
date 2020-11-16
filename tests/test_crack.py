@@ -23,8 +23,6 @@ try:
 except ImportError:
     have_atomistica = False
 
-import sys
-
 if have_atomistica:
 
     class TestConstantStrain(unittest.TestCase):
@@ -63,7 +61,7 @@ if have_atomistica:
             dynamics.run(100)
 
             # tests
-            if rigid_constraints == True:
+            if rigid_constraints:
                 answer = 0
                 temp_answer = 238.2066417638124
             else:
@@ -73,10 +71,10 @@ if have_atomistica:
             newpos = atoms.get_positions()
             current_height = newpos[:, 1].max() - newpos[:, 1].min()
             diff_height = (current_height - orig_height)
-            self.assertAlmostEqual(diff_height, answer)
+            self.assertAlmostEqual(diff_height, answer, places=3)
 
             temperature = (atoms.get_kinetic_energy()/(1.5*units.kB*len(atoms)))
-            self.assertAlmostEqual(temperature, temp_answer)
+            self.assertAlmostEqual(temperature, temp_answer, places=2)
 
         def test_embedding_size_convergence(self):
             calc = Tersoff(**Tersoff_PRB_39_5566_Si_C)
