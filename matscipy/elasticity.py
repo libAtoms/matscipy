@@ -680,7 +680,7 @@ def generate_strained_configs(at0, symmetry='triclinic', N_steps=5, delta=1e-2):
             at = at0.copy()
             if at0.get_calculator() is not None:
                 at.set_calculator(at0.get_calculator())
-            T = Voigt_6_to_full_3x3_strain(strain)
+            T = np.eye(3) + Voigt_6_to_full_3x3_strain(strain)
             at.set_cell(np.dot(T, at.cell.T).T, scale_atoms=False)
             at.positions[:] = np.dot(T, at.positions.T).T
             at.info['strain'] = T
