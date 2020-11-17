@@ -529,11 +529,11 @@ def write_eam(source, parameters, F, f, rep, out_file, kind="eam"):
         # --- Writing new EAM alloy pot file --- #
         # write header and file parameters
         potfile = open(out_file,'wb')
-        # write F and f tables
+        # write F and pair charge tables
         np.savetxt(potfile, F, fmt='%.16e', header=potheader, comments='')
-        np.savetxt(potfile, f, fmt='%.16e')
-        # write pair interactions tables
         np.savetxt(potfile, rep, fmt='%.16e')
+        # write electron density tables
+        np.savetxt(potfile, f, fmt='%.16e')
         potfile.close()  
     elif kind == "eam/alloy":
         num_elements = len(elements)
