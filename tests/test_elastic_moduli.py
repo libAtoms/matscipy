@@ -25,56 +25,44 @@ import unittest
 
 import numpy as np
 
-# from ase.calculators.eam import EAM
-# from ase.constraints import StrainFilter
-# from ase.lattice.cubic import Diamond, FaceCenteredCubic
-# from ase.optimize import FIRE
-from ase.units import GPa
+from matscipy.elasticity import elastic_moduli
 
-import matscipytest
-from matscipy.elasticity import (rotate_elastic_constants,
-                                 elastic_moduli)
 
 ###
 
+def test_rotation():
+    Cs = [
+        np.array([
+            [165.7, 63.9, 63.9, 0, 0, 0],
+            [63.9, 165.7, 63.9, 0, 0, 0],
+            [63.9, 63.9, 165.7, 0, 0, 0],
+            [0, 0, 0, 79.6, 0, 0],
+            [0, 0, 0, 0, 79.6, 0],
+            [0, 0, 0, 0, 0, 79.6],
+        ])
+    ]
+    l = [np.array([1, 0, 0]), np.array([1, 1, 0])]
+    EM = [
+        {'E': np.array([130, 130, 130]),
+         'nu': np.array([0.28, 0.28, 0.28]),
+         'G': np.array([79.6, 79.6, 79.6])},
+        {'E': np.array([169, 169, 130]),
+         'nu': np.array([0.36, 0.28, 0.064]),
+         'G': np.array([79.6, 79.6, 50.9])}
+    ]
+    for C in Cs:
+        for i, directions in enumerate(l):
+            directions = directions / np.linalg.norm(directions)
 
-class TestElasticModuli(matscipytest.MatSciPyTestCase):
+            E, nu, Gm, B, K = elastic_moduli(C, l=directions)
 
-    fmax = 1e-6
-    delta = 1e-6
+            nu_v = np.array([nu[1, 2], nu[2, 0], nu[0, 1]])
+            G = np.array([Gm[1, 2], Gm[2, 0], Gm[0, 1]])
 
-    def test_rotation(self):
-        Cs = [
-             np.array([
-             [165.7, 63.9, 63.9, 0, 0, 0],
-             [63.9, 165.7, 63.9, 0, 0, 0],
-             [63.9, 63.9, 165.7, 0, 0, 0],
-             [0, 0, 0, 79.6, 0, 0],
-             [0, 0, 0, 0, 79.6, 0],
-             [0, 0, 0, 0, 0, 79.6],
-             ])
-             ]
-        l = [np.array([1, 0, 0]), np.array([1, 1, 0])]
-        EM = [
-              {'E': np.array([130, 130, 130]),
-              'nu': np.array([0.28, 0.28, 0.28]),
-              'G': np.array([79.6, 79.6, 79.6])},
-              {'E': np.array([169, 169, 130]),
-              'nu': np.array([0.36, 0.28, 0.064]),
-              'G': np.array([79.6, 79.6, 50.9])}
-              ]
-        for C in Cs:
-            for i, directions in enumerate(l):
-                directions = directions/np.linalg.norm(directions)
+            np.testing.assert_array_almost_equal(E, EM[i]['E'], decimal=1)
+            np.testing.assert_array_almost_equal(nu_v, EM[i]['nu'], decimal=2)
+            np.testing.assert_array_almost_equal(G, EM[i]['G'], decimal=9)
 
-                E, nu, Gm, B, K = elastic_moduli(C, l=directions)
-
-                nu_v = np.array([nu[1, 2], nu[2, 0], nu[0, 1]])
-                G = np.array([Gm[1, 2], Gm[2, 0], Gm[0, 1]])
-
-                self.assertArrayAlmostEqual(E, EM[i]['E'], tol=1e0)
-                self.assertArrayAlmostEqual(nu_v, EM[i]['nu'], tol=1e-2)
-                self.assertArrayAlmostEqual(G, EM[i]['G'], tol=1e-1)
 
 ###
 
