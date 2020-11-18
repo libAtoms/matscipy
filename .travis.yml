@@ -1,12 +1,11 @@
 # Travis auto-virtualenv isn't supported on OS X
 language: generic
 dist: xenial
-sudo: required
-matrix:
+os: linux
+jobs:
   include:
     - python: 3.6
       language: python
-      python: "3.6"
       os: linux
       env: PYTHON=/usr/bin/python3.6
 before_install:
