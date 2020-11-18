@@ -32,7 +32,7 @@ from ase.lattice.cubic import Diamond
 from ase.optimize import FIRE
 
 try:
-    import quippy
+    import quippy.potential
 except ImportError:
     quippy = None
 
@@ -51,7 +51,7 @@ if quippy is not None:
         """
 
         def setUp(self):
-            self.pot = quippy.Potential('IP SW', param_str="""
+            self.pot = quippy.potential.Potential('IP SW', param_str="""
             <SW_params n_types="2" label="PRB_31_plus_H">
             <comment> Stillinger and Weber, Phys. Rev. B  31 p 5262 (1984), extended for other elements </comment>
             <per_type_data type="1" atomic_num="1" />
