@@ -6,7 +6,6 @@ jobs:
   include:
     - python: 3.6
       language: python
-      os: linux
       env: PYTHON=/usr/bin/python3.6
 before_install:
   - source .travis.before_install.bash
@@ -20,8 +19,6 @@ notifications:
   email:
     - lars.pastewka@imtek.uni-freiburg.de
     - j.r.kermode@warwick.ac.uk
-    - adrien.gola@kit.edu
-    - richard.jana@kit.edu
     - andreas.klemenz@iwm.fraunhofer.de
     - thomas.reichenbach@iwm.fraunhofer.de
     - gianpietro.moras@iwm.fraunhofer.de
