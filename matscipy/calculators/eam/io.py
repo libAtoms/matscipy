@@ -550,7 +550,8 @@ def write_eam(source, parameters, F, f, rep, out_file, kind="eam"):
     if kind == "eam":
         # parameters unpacked
         # FIXME: atomic numbers etc are now arrays, and not scalars
-        atline = f"{int(atomic_numbers)} {float(atomic_masses)}  {float(lattice_parameters)} {str(crystal_structures)}"
+        crystal_structures_str = ' '.join(s for s in crystal_structures)
+        atline = f"{int(atomic_numbers)} {float(atomic_masses)}  {float(lattice_parameters)} {crystal_structures_str}"
         parameterline = f'{int(Nrho)}\t{float(drho):.16e}\t{int(Nr)}\t{float(dr):.16e}\t{float(cutoff):.10e}'
         potheader = f"# EAM potential from : # {source} \n {atline} \n {parameterline}"
         # --- Writing new EAM alloy pot file --- #
