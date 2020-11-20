@@ -235,6 +235,51 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         forces_dump = dump[:, 5:8]
         self.assertArrayAlmostEqual(forces, forces_dump, tol=1e-3) 
 
+    def test_funcfl(self):
+        """Test eam kind 'eam' (DYNAMO funcfl format)
+
+            variable da   equal 0.02775
+            variable amin equal 2.29888527117067752084
+            variable amax equal 5.55*sqrt(2.0)
+            variable i loop 201
+                label loop_head
+                clear
+                variable lattice_parameter equal ${amin}+${da}*${i}
+                units metal
+                atom_style atomic
+                boundary p p p
+                lattice fcc ${lattice_parameter}
+                region box block 0 5 0 5 0 5
+                create_box 1 box
+                pair_style eam
+                pair_coeff * * Au_u3.eam
+                create_atoms 1 box
+                thermo 1
+                run 0
+                variable x equal pe
+                variable potential_energy_fmt format x "%.14f"
+                print "#a,E: ${lattice_parameter} ${potential_energy_fmt}"
+                next i
+                jump SELF loop_head
+            # use
+            # grep '^#a,E' log.lammps  | awk '{print $2,$3}' > aE.txt
+            # to extract info from log file
+
+        The reference data was calculated using Lammps 
+        (git commit a73f1d4f037f670cd4295ecc1a576399a31680d2).
+        """
+        da   = 0.02775
+        amin = 2.29888527117067752084
+        amax = 5.55 * np.sqrt(2.0)
+        for i in range(1, 202):
+            latticeconstant = amin + i * da
+            atoms = FaceCenteredCubic(symbol='Au', size=[5,5,5], pbc=(1,1,1), latticeconstant=latticeconstant)
+            calc = EAM('Au-Grochola-JCP05.eam.alloy')
+            atoms.set_calculator(calc)
+            energy = atoms.get_potential_energy()
+            print(energy)
+
+
 ###
 
 if __name__ == '__main__':
