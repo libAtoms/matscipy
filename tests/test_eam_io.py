@@ -72,7 +72,7 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
                 self.assertTrue(diff < self.tol)
         self.assertTrue((F == F1).all())
         self.assertTrue((f == f1).all())
-        self.assertTrue((rep == rep1).all())
+        self.assertArrayAlmostEqual(rep, rep1)
     
     def test_eam_alloy_read_write(self):
         source,parameters,F,f,rep = read_eam("CuAgNi_Zhou.eam.alloy",kind="eam/alloy")
