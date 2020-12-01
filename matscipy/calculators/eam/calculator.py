@@ -216,8 +216,9 @@ class EAM(Calculator):
         self.results = {'energy': epot, 'free_energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
                         'forces': forces_ic}
-
-    def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
+    
+    def calculate_hessian_matrix(self, atoms, divide_by_masses=False
+                                 , terms = 0b11111111):
         r"""Compute the Hessian matrix
 
         The Hessian matrix is the matrix of second derivatives 
@@ -318,6 +319,9 @@ class EAM(Calculator):
         atoms : ase.Atoms
         divide_by_masses : bool
             Divide block :math:`\nu\mu` by :math:`m_\nu{}m_\mu{}` to obtain the dynamical matrix
+        terms : number 
+            number between 0 and 255 to select which terms should be calculated
+            the bit-representation is used to select which terms should be calculated 
 
         Returns
         -------
@@ -473,40 +477,48 @@ class EAM(Calculator):
                 i_n, weights=df_n_e_nc_outer_product[:, x], minlength=nat
             )
         df_n_e_nc_outer_product = None
-
-        D += self._calculate_hessian_embedding_term_1(
-            nat, ddemb_i, df_e_ni, 
-            divide_by_masses, masses_i
-        )
-        D += self._calculate_hessian_embedding_term_2(
-            nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni, 
-            divide_by_masses, geom_mean_mass_n
-        )
-        D += self._calculate_hessian_embedding_term_3(
-            nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni, 
-            divide_by_masses, geom_mean_mass_n
-        )
+        
+        if (terms & 0b00000001) > 0:
+            D += self._calculate_hessian_embedding_term_1(
+                nat, ddemb_i, df_e_ni, 
+                divide_by_masses, masses_i
+           )
+        if (terms & 0b00000010) > 0:
+            D += self._calculate_hessian_embedding_term_2(
+                nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni, 
+                divide_by_masses, geom_mean_mass_n
+            )
+        if (terms & 0b00000100) > 0:
+            D += self._calculate_hessian_embedding_term_3(
+                nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni, 
+                divide_by_masses, geom_mean_mass_n
+            )
         df_e_ni = None
-        D += self._calculate_hessian_embedding_terms_4_and_5(
-            nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
-            divide_by_masses, masses_i, geom_mean_mass_n
-        )
+        if (terms & 0b00011000) > 0:
+            D += self._calculate_hessian_embedding_terms_4_and_5(
+                nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
+                divide_by_masses, masses_i, geom_mean_mass_n, calculate_term_4= terms & 0b00001000,
+                calculate_term_5= terms  & 0b00010000
+            )
         outer_e_ncc = None
         ddf_i_n = None
         ddf_n = None
-        D += self._calculate_hessian_embedding_terms_6_and_7(
-            nat, i_n, j_n, first_i, abs_dr_n, eye_minus_outer_e_ncc, demb_i_n, demb_j_n, df_n, df_i_n,
-            divide_by_masses, masses_i, geom_mean_mass_n
-        )
+        if (terms & 0b01100000) > 0:
+            D += self._calculate_hessian_embedding_terms_6_and_7(
+                nat, i_n, j_n, first_i, abs_dr_n, eye_minus_outer_e_ncc, demb_i_n, demb_j_n, df_n, df_i_n,
+                divide_by_masses, masses_i, geom_mean_mass_n, calculate_term_6= terms & 0b00100000,
+                calculate_term_7= terms  & 0b01000000
+            )
         eye_minus_outer_e_ncc = None
         df_n = None
         demb_i_n = None
         demb_j_n = None
         abs_dr_n = None
-        D += self._calculate_hessian_embedding_term_8(
-            nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
-            divide_by_masses, masses_i, geom_mean_mass_n
-        )
+        if (terms & 0b10000000) > 0:
+            D += self._calculate_hessian_embedding_term_8(
+                nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
+                divide_by_masses, masses_i, geom_mean_mass_n
+            )
         return D
 
     def _calculate_hessian_pair_term(
@@ -716,7 +728,8 @@ class EAM(Calculator):
     
     def _calculate_hessian_embedding_terms_4_and_5(
         self, nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
-        divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
+        divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False,
+        calculate_term_4 = True, calculate_term_5 = True):
         """Calculate term 4 and 5 in the embedding part of the Hessian matrix.
 
         .. math::
@@ -761,34 +774,43 @@ class EAM(Calculator):
             geometric mean of masses of pairs of atoms
         symmetry_check : bool
             Check if the terms are symmetric
+        calculate_term_4 : bool
+            Calclulate term 4 if True
+        calculate_term_5 : bool
+            Calculate term 5 if True
 
         Returns
         -------
         D : scipy.sparse.bsr_matrix
         """
+        matrix_term_4_or_5 = bsr_matrix((3*nat, 3*nat))
         tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_e_ncc.T).T 
         # We don't immediately add term 4 to the matrix, because it would have 
         # to be normalized by the masses if divide_by_masses is true. However,
         # for construction of term 5, we need term 4 without normalization
-        tmp_1_summed = np.empty((nat, 3, 3), dtype=tmp_1.dtype)
-        for x in range(3):
-            for y in range(3):
-                tmp_1_summed[:, x, y] = -np.bincount(i_n, weights=tmp_1[:, x, y]) 
-        if divide_by_masses:
-            tmp_1_summed /= masses_i
-        term_5 = bsr_matrix((tmp_1_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
-        if symmetry_check: 
-            print("check term 5", np.linalg.norm(term_5.todense() - term_5.todense().T))
-        if divide_by_masses:
-            tmp_1 /= geom_mean_mass_n
-        term_4 = bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
-        if symmetry_check: 
-            print("check term 4", np.linalg.norm(term_4.todense() - term_4.todense().T))
-        return term_4 + term_5
+        
+        if calculate_term_5 :
+            tmp_1_summed = np.empty((nat, 3, 3), dtype=tmp_1.dtype)
+            for x in range(3):
+                for y in range(3):
+                    tmp_1_summed[:, x, y] = -np.bincount(i_n, weights=tmp_1[:, x, y]) 
+            if divide_by_masses:
+                tmp_1_summed /= masses_i
+            matrix_term_4_or_5 += bsr_matrix((tmp_1_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+            if symmetry_check: 
+                print("check term 5", np.linalg.norm(term_5.todense() - term_5.todense().T))
+        if calculate_term_4 :        
+            if divide_by_masses:
+                tmp_1 /= geom_mean_mass_n
+            matrix_term_4_or_5 += bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
+            if symmetry_check: 
+                print("check term 4", np.linalg.norm(term_4.todense() - term_4.todense().T))
+        return matrix_term_4_or_5
     
     def _calculate_hessian_embedding_terms_6_and_7(
         self, nat, i_n, j_n, first_i, abs_dr_n, eye_minus_outer_e_ncc, demb_i_n, demb_j_n, df_n, df_i_n,
-        divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
+        divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False,
+        calculate_term_6 = True, calculate_term_7 = True):
         """Calculate term 6 and 7 in the embedding part of the Hessian matrix.
 
         .. math::
@@ -840,6 +862,10 @@ class EAM(Calculator):
             geometric mean of masses of pairs of atoms
         symmetry_check : bool
             Check if the terms are symmetric
+        calculate_term_6 : bool
+            Calclulate term 6 if True
+        calculate_term_7 : bool
+            Calculate term 7 if True
 
         Returns
         -------
@@ -847,22 +873,25 @@ class EAM(Calculator):
         """
         # Like term 4, which was needed to construct term 5, we don't add 
         # term 6 immediately, because it is needed for construction of term 7
+        matrix_term_6_or_7 = bsr_matrix((3*nat, 3*nat))
         tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * eye_minus_outer_e_ncc.T).T
-        tmp_2_summed = np.empty((nat, 3, 3), dtype=tmp_2.dtype)
-        for x in range(3):
-            for y in range(3):
-                tmp_2_summed[:, x, y] = -np.bincount(i_n, weights=tmp_2[:, x, y]) 
-        if divide_by_masses:
-            tmp_2_summed /= masses_i
-        term_7 = bsr_matrix((tmp_2_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
-        if symmetry_check: 
-            print("check term 7", np.linalg.norm(term_7.todense() - term_7.todense().T))
-        if divide_by_masses:
-            tmp_2 /= geom_mean_mass_n
-        term_6 = bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
-        if symmetry_check: 
-            print("check term 6", np.linalg.norm(term_6.todense() - term_6.todense().T))
-        return term_6 + term_7
+        if calculate_term_7:
+            tmp_2_summed = np.empty((nat, 3, 3), dtype=tmp_2.dtype)
+            for x in range(3):
+                for y in range(3):
+                    tmp_2_summed[:, x, y] = -np.bincount(i_n, weights=tmp_2[:, x, y]) 
+            if divide_by_masses:
+                tmp_2_summed /= masses_i
+            matrix_term_6_or_7 += bsr_matrix((tmp_2_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+            if symmetry_check: 
+                print("check term 7", np.linalg.norm(term_7.todense() - term_7.todense().T))
+        if calculate_term_6:
+            if divide_by_masses:
+                tmp_2 /= geom_mean_mass_n
+            matrix_term_6_or_7 += bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
+            if symmetry_check: 
+                print("check term 6", np.linalg.norm(term_6.todense() - term_6.todense().T))
+        return matrix_term_6_or_7
     
     def _calculate_hessian_embedding_term_8(self, nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
