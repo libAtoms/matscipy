@@ -218,7 +218,7 @@ class EAM(Calculator):
                         'forces': forces_ic}
     
     def calculate_hessian_matrix(self, atoms, divide_by_masses=False
-                                 , terms = 0b11111111):
+                                 , terms = 0b11111111, calculate_pair_term = True):
         r"""Compute the Hessian matrix
 
         The Hessian matrix is the matrix of second derivatives 
@@ -322,6 +322,9 @@ class EAM(Calculator):
         terms : number 
             number between 0 and 255 to select which terms should be calculated
             the bit-representation is used to select which terms should be calculated 
+        calculate_pair_term: boolean
+            If True calculate the pair term contribution to the hesssian,
+            if false then not
 
         Returns
         -------
@@ -442,11 +445,14 @@ class EAM(Calculator):
         e_nc = (dr_nc.T / abs_dr_n).T # normalized distance vectors r_i^{\mu\nu}
         outer_e_ncc = e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3)
         eye_minus_outer_e_ncc = np.eye(3, dtype=e_nc.dtype) - outer_e_ncc
-        D = self._calculate_hessian_pair_term(
-            nat, i_n, j_n, abs_dr_n, first_i, 
-            drep_n, ddrep_n, outer_e_ncc, eye_minus_outer_e_ncc, 
-            divide_by_masses, geom_mean_mass_n, masses_i
-        )
+        
+        D = bsr_matrix(shape =(3*nat, 3*nat), dtype = e_nc.dtype)
+        if calculate_pair_term:
+            D += self._calculate_hessian_pair_term(
+                nat, i_n, j_n, abs_dr_n, first_i, 
+                drep_n, ddrep_n, outer_e_ncc, eye_minus_outer_e_ncc, 
+                divide_by_masses, geom_mean_mass_n, masses_i
+                )
         drep_n = None
         ddrep_n = None
 
@@ -783,8 +789,8 @@ class EAM(Calculator):
         -------
         D : scipy.sparse.bsr_matrix
         """
-        matrix_term_4_or_5 = bsr_matrix((3*nat, 3*nat))
         tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_e_ncc.T).T 
+        matrix_term_4_or_5 = bsr_matrix(shape =(3*nat, 3*nat), dtype = tmp_1.dtype)
         # We don't immediately add term 4 to the matrix, because it would have 
         # to be normalized by the masses if divide_by_masses is true. However,
         # for construction of term 5, we need term 4 without normalization
@@ -873,8 +879,8 @@ class EAM(Calculator):
         """
         # Like term 4, which was needed to construct term 5, we don't add 
         # term 6 immediately, because it is needed for construction of term 7
-        matrix_term_6_or_7 = bsr_matrix((3*nat, 3*nat))
         tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * eye_minus_outer_e_ncc.T).T
+        matrix_term_6_or_7 = bsr_matrix(shape=(3*nat, 3*nat), dtype= tmp_2.dtype)
         if calculate_term_7:
             tmp_2_summed = np.empty((nat, 3, 3), dtype=tmp_2.dtype)
             for x in range(3):
@@ -967,6 +973,7 @@ class EAM(Calculator):
         if symmetry_check:
             print("check term 8", np.linalg.norm(term_8.todense() - term_8.todense().T))
         return term_8
+
 
     @property
     def cutoff(self):
