@@ -446,7 +446,7 @@ class EAM(Calculator):
         outer_e_ncc = e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3)
         eye_minus_outer_e_ncc = np.eye(3, dtype=e_nc.dtype) - outer_e_ncc
         
-        D = bsr_matrix(shape =(3*nat, 3*nat), dtype = e_nc.dtype)
+        D = bsr_matrix((3*nat, 3*nat), dtype = e_nc.dtype)
         if calculate_pair_term:
             D += self._calculate_hessian_pair_term(
                 nat, i_n, j_n, abs_dr_n, first_i, 
@@ -790,7 +790,7 @@ class EAM(Calculator):
         D : scipy.sparse.bsr_matrix
         """
         tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_e_ncc.T).T 
-        matrix_term_4_or_5 = bsr_matrix(shape =(3*nat, 3*nat), dtype = tmp_1.dtype)
+        matrix_term_4_or_5 = bsr_matrix((3*nat, 3*nat), dtype = tmp_1.dtype)
         # We don't immediately add term 4 to the matrix, because it would have 
         # to be normalized by the masses if divide_by_masses is true. However,
         # for construction of term 5, we need term 4 without normalization
@@ -880,7 +880,7 @@ class EAM(Calculator):
         # Like term 4, which was needed to construct term 5, we don't add 
         # term 6 immediately, because it is needed for construction of term 7
         tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * eye_minus_outer_e_ncc.T).T
-        matrix_term_6_or_7 = bsr_matrix(shape=(3*nat, 3*nat), dtype= tmp_2.dtype)
+        matrix_term_6_or_7 = bsr_matrix((3*nat, 3*nat), dtype= tmp_2.dtype)
         if calculate_term_7:
             tmp_2_summed = np.empty((nat, 3, 3), dtype=tmp_2.dtype)
             for x in range(3):
