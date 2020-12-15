@@ -34,9 +34,8 @@ import matscipytest
 from matscipy.calculators.bop import AbellTersoffBrenner 
 from matscipy.calculators.bop.explicit_forms import KumagaiTersoff
 from ase import Atoms
-# TODO: should be replaced by finite difference method
-from ase.phonons import Phonons
-
+from ase import io
+from matscipy.hessian_finite_differences import fd_hessian
 
 class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
 
@@ -46,8 +45,11 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
         small.center(vacuum=10.0)
         small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
         small2.center(vacuum=10.0)
+        self.compute_forces_and_hessian(small, KumagaiTersoff())
 
-        aSi = ase.io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
+        self.compute_forces_and_hessian(small2, KumagaiTersoff())
+
+        aSi = io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
         self.compute_forces_and_hessian(aSi, KumagaiTersoff())
 
     def compute_forces_and_hessian(self, a, par):
@@ -64,10 +66,7 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
         """
         calculator = AbellTersoffBrenner(**par)
         a.set_calculator(calculator)
-        # test_parameterization(par)
-        
-        ph = Phonons(a, calculator, supercell=(1, 1, 1), delta=1e-5)
-        
+
         print('FORCES')
         ana_forces = a.get_forces()
         num_forces = calculator.calculate_numerical_forces(a, d=1e-5)
@@ -75,26 +74,11 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
         print('ana\n', ana_forces)
         assert np.allclose(ana_forces, num_forces, rtol=1e-3)
         
-        # if 'ref' in parameters:
-        #     a.set_calculator(parameters['ref'])
-        #     ref_forces = a.get_forces()
-        #     num_ref_forces = a.get_forces()
-        #     print('ref\n', ref_forces)
-        #     print('num_ref\n', num_ref_forces)
-        #     # assert np.allclose(ana_forces, ref_forces)
         print('HESSIAN')
-        ph.run()
-        ph.read(acoustic=False)
-        ph.clean()
         ana_hessian = calculator.calculate_hessian_matrix(a).todense()
-        num_hessian = ph.get_force_constant()[0, :, :]
+        num_hessian = fd_hessian(a, dx=1e-5, indices=None).todense()
         print('ana\n', ana_hessian)
         print('num\n', num_hessian)
         print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
-        #mask = abs(ana_hessian - num_hessian) > 1e-3
-        # print(i, 'ana\n', ana_hessian[mask])
-        # print(i, 'num\n', num_hessian[mask])
-        # print(i, 'ana - num\n', (ana_hessian - num_hessian)[mask])
-        # print(num_hessian/ana_hessian)
         assert np.allclose(ana_hessian, ana_hessian.T, atol=1e-6)
         assert np.allclose(ana_hessian, num_hessian, atol=1e-3)

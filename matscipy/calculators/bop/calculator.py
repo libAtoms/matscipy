@@ -217,7 +217,6 @@ class AbellTersoffBrenner(Calculator):
                 H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
         H_pcc += H_temp_pcc
         
-
         
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
 
@@ -245,18 +244,7 @@ class AbellTersoffBrenner(Calculator):
         
         d2F_p = self.d2F(r_p, xi_p)
         d2F_p[mask_p] = 0.0
-
-        # d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
-
-        # H_temp_t = (d2F_p[ij_t] * d22G_tcc.T).T 
-
-        # H_temp_pcc = np.empty_like(H_temp_pcc)
-        # for x in range(3):
-        #     for y in range(3):
-        #         H_temp_pcc[:, x, y] = - np.bincount(ik_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
-        #         # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
-        # H_pcc += H_temp_pcc
-        
+ 
         d2y2yG_t = self.d2y2yG(r_pc[ij_t], r_pc[ik_t])
         d2x2xG_t = self.d2x2xG(r_pc[ij_t], r_pc[ik_t])
         d2z2zG_t = self.d2z2zG(r_pc[ij_t], r_pc[ik_t])
