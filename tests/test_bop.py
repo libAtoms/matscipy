@@ -52,6 +52,127 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
         aSi = io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
         self.compute_forces_and_hessian(aSi, KumagaiTersoff())
 
+    def test_generic_potential_form(self):
+        self.test_cutoff = 2.4
+        d = 2.0  # Si2 bondlength
+        small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
+        small.center(vacuum=10.0)
+        small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
+        small2.center(vacuum=10.0)
+        self.compute_forces_and_hessian(small, self.term1())
+        self.compute_forces_and_hessian(small, self.term4())
+        self.compute_forces_and_hessian(small, self.d11_term5())
+        self.compute_forces_and_hessian(small, self.d22_term5())
+
+        self.compute_forces_and_hessian(small2, self.term1())
+        self.compute_forces_and_hessian(small2, self.term4())
+        self.compute_forces_and_hessian(small2, self.d11_term5())
+        self.compute_forces_and_hessian(small2, self.d22_term5())
+
+    # 0 - Tests Hessian term #4 (with all other terms turned off)
+    def term4(self):
+        return {'F': lambda x, y: x,
+        'G': lambda x, y: np.ones_like(x[:, 0]),
+        'd1F': lambda x, y: np.ones_like(x),
+        'd11F': lambda x, y: np.zeros_like(x),
+        'd2F': lambda x, y: np.zeros_like(y),
+        'd22F': lambda x, y: np.zeros_like(y),
+        'd12F': lambda x, y: np.zeros_like(y),
+        'd1G': lambda x, y: np.zeros_like(y),
+        'd2G': lambda x, y: np.zeros_like(y),
+        'd1x2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1x2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1x2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd11G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3), #if beta <= 1 else beta*(beta-1)*x.**(beta-2) * y[:, 2]**gamma,
+        'd12G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'd22G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'cutoff': self.test_cutoff}
+    
+    # 1 - Tests Hessian term #1 (and #4, with all other terms turned off)
+    def term1(self):
+        return {'F': lambda x, y: x**2,
+        'G': lambda x, y: np.ones_like(x[:, 0]),
+        'd1F': lambda x, y: 2*x,
+        'd11F': lambda x, y: 2*np.ones_like(x),
+        'd2F': lambda x, y: np.zeros_like(y),
+        'd22F': lambda x, y: np.zeros_like(y),
+        'd12F': lambda x, y: np.zeros_like(y),
+        'd1G': lambda x, y: np.zeros_like(x),
+        'd2G': lambda x, y: np.zeros_like(y),
+        'd1x2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1x2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1x2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd11G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'd12G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'd22G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'd1y2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'cutoff': self.test_cutoff}
+
+    # 2 - Tests D_11 parts of Hessian term #5
+    def d11_term5(self):
+        return {
+        'F': lambda x, y: y,
+        'G': lambda x, y: np.sum(x**2, axis=1),
+        'd1F': lambda x, y: np.zeros_like(x),
+        'd11F': lambda x, y: np.zeros_like(x),
+        'd2F': lambda x, y: np.ones_like(x),
+        'd22F': lambda x, y: np.zeros_like(x),
+        'd12F': lambda x, y: np.zeros_like(x),
+        'd1G': lambda x, y: 2*x,
+        'd2G': lambda x, y: np.zeros_like(y),
+        'd1x2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1x2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1x2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd11G': lambda x, y: np.array([2*np.eye(3)]*x.shape[0]),#np.ones_like(x).reshape(-1,3,1)*np.ones_like(y).reshape(-1,1,3), #if beta <= 1 else beta*(beta-1)*x.**(beta-2) * y[:, 2]**gamma,
+        'd12G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'd22G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'cutoff': self.test_cutoff}
+    
+    # 3 - Tests D_22 parts of Hessian term #5
+    def d22_term5(self):
+        return {
+        'F': lambda x, y: y,
+        'G': lambda x, y: np.sum(y**2, axis=1),
+        'd1F': lambda x, y: np.zeros_like(x),
+        'd11F': lambda x, y: np.zeros_like(x),
+        'd2F': lambda x, y: np.ones_like(x),
+        'd22F': lambda x, y: np.zeros_like(x),
+        'd12F': lambda x, y: np.zeros_like(x),
+        'd2G' : lambda x, y: 2*y,
+        'd1G' : lambda x, y: np.zeros_like(x),
+        'd1x2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1x2zG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1x2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2yG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1z2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd1y2xG': lambda x, y: np.zeros_like(x[:, 0]),
+        'd22G': lambda x, y: np.array([2*np.eye(3)]*x.shape[0]),#np.ones_like(x).reshape(-1,3,1)*np.ones_like(y).reshape(-1,1,3), #if beta <= 1 else beta*(beta-1)*x.**(beta-2) * y[:, 2]**gamma,
+        'd12G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'd11G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
+        'cutoff': self.test_cutoff}
+
+
+
     def compute_forces_and_hessian(self, a, par):
         """ function to test the bop AbellTersoffBrenner class on
             a potential given by the form defined in par

@@ -189,8 +189,6 @@ def KumagaiTersoff():
          + dg(costh(rij, rik)) * dc12(rij, rik).T).T    
     
     G = lambda rij, rik: g(costh(rij, rik)) * hf(rij, rik)
-    # d1qG = lambda rij, rik, q: Dh1q(rij, rik, q) * g(costh(rij, rik)) + hf(rij, rik) * Dg1q(rij, rik, q)
-    # d2qG = lambda rij, rik, q: Dh2q(rij, rik, q) * g(costh(rij, rik)) + hf(rij, rik) * Dg2q(rij, rik, q)
     
     d1G = lambda rij, rik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
     d2G = lambda rij, rik: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T

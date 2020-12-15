@@ -54,25 +54,12 @@ class AbellTersoffBrenner(Calculator):
         self.d11F = d11F
         self.d22F = d22F
         self.d12F = d12F
-        # self.d1x1xG = d1x1xG
-        # self.d1y1yG = d1y1yG
-        # self.d1z1zG = d1z1zG
-        # self.d1y1zG = d1y1zG
-        # self.d1x1zG = d1x1zG
-        # self.d1x1yG = d1x1yG
-        
         self.d2G = d2G
         self.d1G = d1G
         self.d22G = d22G
         self.d11G = d11G
         self.d12G = d12G
         
-        #self.d2x2xG = d2x2xG
-        #self.d2y2yG = d2y2yG
-        #self.d2z2zG = d2z2zG
-        #self.d2y2zG = d2y2zG
-        #self.d2x2zG = d2x2zG
-        #self.d2x2yG = d2x2yG
         self.d1x2xG = d1x2xG
         self.d1y2yG = d1y2yG
         self.d1z2zG = d1z2zG
