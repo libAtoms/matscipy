@@ -1,6 +1,7 @@
 import numpy as np
 
 def TersoffIII():
+    # TODO: not compatible with vectorized version yet !!!
     A = 1.8308e3
     B = 4.7118e2
     chi = 1.0
@@ -173,4 +174,28 @@ def TersoffIII():
         'd1z2xG': lambda rij, rik: d1q2tG(rij, rik, 2, 0),
         'd1y2xG': lambda rij, rik: d1q2tG(rij, rik, 1, 0),
         'cutoff': r2
+    }
+    return {
+        'F': F,
+        'G': G,
+        'd1F': d1F,
+        'd2F': d2F,
+        'd11F': d11F,
+        'd12F': d12F,
+        'd22F': d22F,
+        'd1G': d1G,
+        'd2G': d2G,
+        'd11G': d11G,
+        'd22G': d22G,
+        'd12G': d12G,
+        'd1x2xG': lambda rij, rik: d1q2tG(rij, rik, 0, 0),
+        'd1y2yG': lambda rij, rik: d1q2tG(rij, rik, 1, 1),
+        'd1z2zG': lambda rij, rik: d1q2tG(rij, rik, 2, 2),
+        'd1y2zG': lambda rij, rik: d1q2tG(rij, rik, 1, 2),
+        'd1x2zG': lambda rij, rik: d1q2tG(rij, rik, 0, 2),
+        'd1x2yG': lambda rij, rik: d1q2tG(rij, rik, 0, 1),
+        'd1z2yG': lambda rij, rik: d1q2tG(rij, rik, 2, 1),
+        'd1z2xG': lambda rij, rik: d1q2tG(rij, rik, 2, 0),
+        'd1y2xG': lambda rij, rik: d1q2tG(rij, rik, 1, 0),
+        'cutoff': R_2,
     }

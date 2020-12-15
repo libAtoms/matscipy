@@ -32,7 +32,7 @@ import ase
 import matscipytest
 
 from matscipy.calculators.bop import AbellTersoffBrenner 
-from matscipy.calculators.bop.explicit_forms import KumagaiTersoff
+from matscipy.calculators.bop.explicit_forms import KumagaiTersoff, TersoffIII
 from ase import Atoms
 from ase import io
 from matscipy.hessian_finite_differences import fd_hessian
@@ -51,6 +51,21 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
 
         aSi = io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
         self.compute_forces_and_hessian(aSi, KumagaiTersoff())
+
+    def tersoffIII(self):
+        # not marked as test yet. TersoffIII not vectorized yet.
+        d = 2.0  # Si2 bondlength
+        small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
+        small.center(vacuum=10.0)
+        small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
+        small2.center(vacuum=10.0)
+        self.compute_forces_and_hessian(small, TersoffIII())
+
+        self.compute_forces_and_hessian(small2, TersoffIII())
+
+        aSi = io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
+        self.compute_forces_and_hessian(aSi, TersoffIII())
+
 
     def test_generic_potential_form(self):
         self.test_cutoff = 2.4
