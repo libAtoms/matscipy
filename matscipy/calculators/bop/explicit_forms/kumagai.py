@@ -5,11 +5,6 @@ def ab(x):
     return np.linalg.norm(x, axis=1)
 
 def KumagaiTersoff():
-    """
-    functional form of the Kumagai Tersoff bond order potential:
-        "T. Kumagai, S. Izumi, S. Hara, and S. Sakai,
-         Comput. Mater. Sci. 39, 457 (2007)"
-    """
     A = 3281.5905
     B = 121.00047
     lambda_1 = 3.2300135
@@ -55,10 +50,6 @@ def KumagaiTersoff():
     fA = lambda r: -B*np.exp(-lambda_2 * r)
     dfA = lambda r: -lambda_2 * fA(r)
     ddfA = lambda r: lambda_2**2 * fA(r)
-
-    ########
-    # TODO # use num_forces with  dx = 1e-5 for proper results 
-    ########
 
     b = lambda xi: 1/((1+xi**eta)**(delta))
     db = lambda xi: -delta*eta*xi**(eta-1)*(xi**eta+1)**(-delta-1)
@@ -127,25 +118,25 @@ def KumagaiTersoff():
     c2 = lambda rij, rik: ((rij.T/ab(rij) - rik.T/ab(rik) * costh(rij, rik)) / ab(rik)).T
 
     dc11 = lambda rij, rik: \
-        (((- (rij.T/ab(rij)).reshape(-1, 3, 1) * (rik.T/ab(rik)).reshape(-1, 1, 3) \
-        - (c1(rij, rik).reshape(-1, 3, 1) * rij.reshape(-1, 1, 3))).T
-        - (costh(rij, rik) * (np.eye(3) - ((rij.reshape(-1, 3, 1)*rij.reshape(-1, 1, 3)).T/ab(rij)**2).T*2).T)
-        )/ab(rij)**2).T
+        ((- c1(rij, rik).reshape(-1, 3, 1) * rij.reshape(-1, 1, 3) \
+         - rij.reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3) \
+         - (costh(rij, rik) * (np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T).T \
+        ).T/ab(rij)**2).T
     dc22 = lambda rij, rik: \
-        (((- (rik.T/ab(rik)).reshape(-1, 3, 1) * (rij.T/ab(rij)).reshape(-1, 1, 3) \
-        - (c2(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3))).T
-        - (costh(rij, rik) * (np.eye(3) - ((rik.reshape(-1, 3, 1)*rik.reshape(-1, 1, 3)).T/ab(rik)**2).T*2).T)
-        )/ab(rik)**2).T
-        
+        ((- c2(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3) \
+         - rik.reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3) \
+         - (costh(rij, rik) * (np.eye(3) -  ((rik.reshape(-1, 1, 3)*rik.reshape(-1, 3, 1)).T/ab(rik)**2).T).T).T \
+        ).T/ab(rik)**2).T
+    
     dc12 = lambda rij, rik: \
-        (((np.eye(3) - (rij.reshape(-1, 3, 1)*rij.reshape(-1, 1, 3)).T/ab(rij)**2)/ab(rij)
+        (((np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T/ab(rij)
          - (c1(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik) \
         )/ab(rik)).T
+
 
     Dh1q = lambda rij, rik, q: d1h(rij, rik) * (rij[:, q] / ab(rij))
     Dh2q = lambda rij, rik, q: d2h(rij, rik) * (rik[:, q] / ab(rik))
     
-    # new
     Dh2 = lambda rij, rik: (d2h(rij, rik) * rik.T / ab(rik)).T
     Dh1 = lambda rij, rik: (d1h(rij, rik) * rij.T / ab(rij)).T
 
@@ -158,22 +149,16 @@ def KumagaiTersoff():
     Dh1q2t = lambda rij, rik, q, t: \
         d12h(rij, rik) * rij[:, q]/ab(rij) * rik[:, t]/ab(rik)
 
-    # new 
     Dh11 = lambda rij, rik: \
-        (d11h(rij, rik) * ((rij.T/ab(rij)).reshape(-1, 3, 1) * (rij.T/ab(rij)).reshape(-1, 1, 3)).T \
-         + d1h(rij, rik) * (np.eye(3) - (rij.T/ab(rij)).reshape(-1, 3, 1) * (rij.T/ab(rij)).reshape(-1, 1, 3)).T/ab(rij)).T
-        # (d11h(rij, rik) * ((rij.T/ab(rij)).reshape(-1, 3, 1) * (rij.T/ab(rij)).reshape(-1, 1, 3)).T \
-        # + d1h(rij, rik) * (np.eye(3) - (rij.T/ab(rij)).reshape(-1, 3, 1) * (rij.T/ab(rij)).reshape(-1, 1, 3)).T/ab(rij)).T
+        (d11h(rij, rik) * (((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T \
+         + d1h(rij, rik) * ((np.eye(3) - ((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T/ab(rij))).T
     Dh22 = lambda rij, rik: \
         (d22h(rij, rik) * (((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T \
-         + d2h(rij, rik) * ((np.eye(3) - ((rik.reshape(-1, 3, 1)*rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T/ab(rik))).T
-           # (np.eye(3) -   ((rik.T/ab(rik)).reshape(-1, 3, 1) * (rik.T/ab(rik)).reshape(-1, 1, 3))).T/ab(rik)).T
-        #d22h(rij, rik) * rik[:, q]/ab(rik) * rik[:, t]/ab(rik) \
-        # + d2h(rij, rik) * (int(q == t) - rik[:, q]/ab(rik) * rik[:, t]/ab(rik))/ab(rik)
+         + d2h(rij, rik) * ((np.eye(3) - ((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T/ab(rik))).T
     Dh12 = lambda rij, rik: \
-        (d12h(rij, rik) * (rij.T/ab(rij)).reshape(-1, 3, 1) * (rik.T/ab(rik)).reshape(-1, 1, 3)).T
-        #d12h(rij, rik) * rij[:, q]/ab(rij) * rik[:, t]/ab(rik)
+        (d12h(rij, rik) * (rij.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/(ab(rij)*ab(rik))).T
 
+    # d12G depends on
     Dg1q = lambda rij, rik, q: dg(costh(rij, rik)) * c1q(rij, rik, q)
     Dg2q = lambda rij, rik, q: dg(costh(rij, rik)) * c2q(rij, rik, q)    
 
@@ -186,52 +171,44 @@ def KumagaiTersoff():
     Dg1q2t = lambda rij, rik, q, t: \
         (ddg(costh(rij, rik)) * c1q(rij, rik, q) * c2q(rij, rik, t)
          + dg(costh(rij, rik)) * dc1q2t(rij, rik, q, t))
+    
+    ###############
 
-    # new
     Dg2 = lambda rij, rik: (dg(costh(rij, rik)) * c2(rij, rik).T).T
     Dg1 = lambda rij, rik: (dg(costh(rij, rik)) * c1(rij, rik).T).T
 
     Dg11 = lambda rij, rik: \
         (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)).T
          + dg(costh(rij, rik)) * dc11(rij, rik).T).T
-
+    
     Dg22 = lambda rij, rik: \
         (ddg(costh(rij, rik)) * (c2(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
          + dg(costh(rij, rik)) * dc22(rij, rik).T).T
-
     Dg12 = lambda rij, rik: \
         (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
-         + dg(costh(rij, rik)) * dc12(rij, rik).T).T
-        
-    G = lambda rij, rik: g(costh(rij, rik)) * hf(rij, rik)
-    d1qG = lambda rij, rik, q: Dh1q(rij, rik, q) * g(costh(rij, rik)) + hf(rij, rik) * Dg1q(rij, rik, q)
-    d2qG = lambda rij, rik, q: Dh2q(rij, rik, q) * g(costh(rij, rik)) + hf(rij, rik) * Dg2q(rij, rik, q)
+         + dg(costh(rij, rik)) * dc12(rij, rik).T).T    
     
-    # new 
+    G = lambda rij, rik: g(costh(rij, rik)) * hf(rij, rik)
+    # d1qG = lambda rij, rik, q: Dh1q(rij, rik, q) * g(costh(rij, rik)) + hf(rij, rik) * Dg1q(rij, rik, q)
+    # d2qG = lambda rij, rik, q: Dh2q(rij, rik, q) * g(costh(rij, rik)) + hf(rij, rik) * Dg2q(rij, rik, q)
+    
     d1G = lambda rij, rik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
     d2G = lambda rij, rik: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
 
-    d1q1tG = lambda rij, rik, q, t: \
-        Dg1q(rij, rik, q) * Dh1q(rij, rik, t) + Dg1q(rij, rik, t) * Dh1q(rij, rik, q) \
-        + g(costh(rij, rik)) * Dh1q1t(rij, rik, q, t) + hf(rij, rik) * Dg1q1t(rij, rik, q, t)
-    d2q2tG = lambda rij, rik, q, t: \
-        Dg2q(rij, rik, q) * Dh2q(rij, rik, t) + Dg2q(rij, rik, t) * Dh2q(rij, rik, q) \
-        + g(costh(rij, rik)) * Dh2q2t(rij, rik, q, t) + hf(rij, rik) * Dg2q2t(rij, rik, q, t)
+    # TODO
     d1q2tG = lambda rij, rik, q, t: \
-        Dg1q(rij, rik, q) * Dh2q(rij, rik, t) + Dg2q(rij, rik, t) * Dh1q(rij, rik, q) \
+        Dg1q(rij, rik, q) * Dh2q(rij, rik, t) + Dh1q(rij, rik, q) * Dg2q(rij, rik, t) \
         + g(costh(rij, rik)) * Dh1q2t(rij, rik, q, t) + hf(rij, rik) * Dg1q2t(rij, rik, q, t)
 
     d11G = lambda rij, rik: \
-        (Dg1(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
-        + (g(costh(rij, rik)) * Dh11(rij, rik).T + hf(rij, rik) * Dg11(rij, rik).T).T)
-
+        Dg1(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
+        + ((g(costh(rij, rik)) * Dh11(rij, rik).T).T + (hf(rij, rik) * Dg11(rij, rik).T).T)
     d22G = lambda rij, rik: \
         Dg2(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh2(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh22(rij, rik).T).T + (hf(rij, rik) * Dg22(rij, rik).T).T)
-
     d12G = lambda rij, rik: \
-        ((Dg1(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dg2(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3)).T \
-        + g(costh(rij, rik)) * Dh12(rij, rik).T + hf(rij, rik) * Dg12(rij, rik).T).T
+        Dg1(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) *0* Dg2(rij, rik).reshape(-1, 1, 3) \
+        + ((g(costh(rij, rik)) * Dh12(rij, rik).T).T + (hf(rij, rik) * Dg12(rij, rik).T).T)
 
     return {
         'F': F,
@@ -246,18 +223,6 @@ def KumagaiTersoff():
         'd11G': d11G,
         'd22G': d22G,
         'd12G': d12G,
-        'd1x1xG': lambda rij, rik: d1q1tG(rij, rik, 0, 0),
-        'd1y1yG': lambda rij, rik: d1q1tG(rij, rik, 1, 1),
-        'd1z1zG': lambda rij, rik: d1q1tG(rij, rik, 2, 2),
-        'd1y1zG': lambda rij, rik: d1q1tG(rij, rik, 1, 2),
-        'd1x1zG': lambda rij, rik: d1q1tG(rij, rik, 0, 2),
-        'd1x1yG': lambda rij, rik: d1q1tG(rij, rik, 0, 1),
-        'd2x2xG': lambda rij, rik: d2q2tG(rij, rik, 0, 0),
-        'd2y2yG': lambda rij, rik: d2q2tG(rij, rik, 1, 1),
-        'd2z2zG': lambda rij, rik: d2q2tG(rij, rik, 2, 2),
-        'd2y2zG': lambda rij, rik: d2q2tG(rij, rik, 1, 2),
-        'd2x2zG': lambda rij, rik: d2q2tG(rij, rik, 0, 2),
-        'd2x2yG': lambda rij, rik: d2q2tG(rij, rik, 0, 1),
         'd1x2xG': lambda rij, rik: d1q2tG(rij, rik, 0, 0),
         'd1y2yG': lambda rij, rik: d1q2tG(rij, rik, 1, 1),
         'd1z2zG': lambda rij, rik: d1q2tG(rij, rik, 2, 2),
@@ -268,6 +233,4 @@ def KumagaiTersoff():
         'd1z2xG': lambda rij, rik: d1q2tG(rij, rik, 2, 0),
         'd1y2xG': lambda rij, rik: d1q2tG(rij, rik, 1, 0),
         'cutoff': R_2,
-        'a' : Dh1q1t,
-        'b' : Dh11
     }

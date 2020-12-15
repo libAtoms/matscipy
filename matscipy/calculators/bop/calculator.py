@@ -41,12 +41,11 @@ class AbellTersoffBrenner(Calculator):
     def __init__(self, F, G,
                  d1F, d2F, d11F, d22F, d12F,
                  d1G,
-                 d1x1xG, d1y1yG, d1z1zG, d1y1zG, d1x1zG, d1x1yG, d11G,
+                 d11G,
                  d2G,
-                 d2x2xG, d2y2yG, d2z2zG, d2y2zG, d2x2zG, d2x2yG, d22G,
+                 d22G,
                  d1x2xG, d1y2yG, d1z2zG, d1y2zG, d1x2zG, d1x2yG, d1z2yG, d1z2xG, d1y2xG, d12G,
-                 cutoff,
-                 a,b):
+                 cutoff):
         Calculator.__init__(self)
         self.F = F
         self.G = G
@@ -55,12 +54,12 @@ class AbellTersoffBrenner(Calculator):
         self.d11F = d11F
         self.d22F = d22F
         self.d12F = d12F
-        self.d1x1xG = d1x1xG
-        self.d1y1yG = d1y1yG
-        self.d1z1zG = d1z1zG
-        self.d1y1zG = d1y1zG
-        self.d1x1zG = d1x1zG
-        self.d1x1yG = d1x1yG
+        # self.d1x1xG = d1x1xG
+        # self.d1y1yG = d1y1yG
+        # self.d1z1zG = d1z1zG
+        # self.d1y1zG = d1y1zG
+        # self.d1x1zG = d1x1zG
+        # self.d1x1yG = d1x1yG
         
         self.d2G = d2G
         self.d1G = d1G
@@ -68,12 +67,12 @@ class AbellTersoffBrenner(Calculator):
         self.d11G = d11G
         self.d12G = d12G
         
-        self.d2x2xG = d2x2xG
-        self.d2y2yG = d2y2yG
-        self.d2z2zG = d2z2zG
-        self.d2y2zG = d2y2zG
-        self.d2x2zG = d2x2zG
-        self.d2x2yG = d2x2yG
+        #self.d2x2xG = d2x2xG
+        #self.d2y2yG = d2y2yG
+        #self.d2z2zG = d2z2zG
+        #self.d2y2zG = d2y2zG
+        #self.d2x2zG = d2x2zG
+        #self.d2x2yG = d2x2yG
         self.d1x2xG = d1x2xG
         self.d1y2yG = d1y2yG
         self.d1z2zG = d1z2zG
@@ -201,8 +200,7 @@ class AbellTersoffBrenner(Calculator):
         d11F_p[mask_p] = 0.0
         H_temp_pcc = (d11F_p * (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3)).T).T
         H_pcc -= H_temp_pcc 
-        print('shape: ', H_pcc.shape)
-       
+        
         # Hessian term #2
         d12F_p = self.d12F(r_p, xi_p)
         d12F_p[mask_p] = 0.0
@@ -217,17 +215,41 @@ class AbellTersoffBrenner(Calculator):
                 H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
         H_pcc += H_temp_pcc
         
-        
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
 
         H_temp_t = (d12F_p[ij_t] * (d1G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T      
 
-        H_temp_pcc = np.empty_like(H_temp_pcc)
         for x in range(3):
             for y in range(3):
                 H_temp_pcc[:, x, y] = - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
         H_pcc += H_temp_pcc
+
+        # Hessian term #5
+        d2F_p = self.d2F(r_p, xi_p)
+        d2F_p[mask_p] = 0.0
+
+        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
+
+        H_temp_t = (d2F_p[ij_t] * d22G_tcc.T).T
+
+        for x in range(3):
+            for y in range(3):
+                H_temp_pcc[:, x, y] = - np.bincount(ik_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
+                # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
+        H_pcc += H_temp_pcc
         
+        
+        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
+
+        H_temp_t = (d2F_p[ij_t] * d11G_tcc.T).T 
+
+        for x in range(3):
+            for y in range(3):
+                H_temp_pcc[:, x, y] = - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
+                # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
+        H_pcc += H_temp_pcc
+
+
         Hxx_p = + H_pcc[:,0,0]
         Hyy_p = + H_pcc[:,1,1]
         Hzz_p = + H_pcc[:,2,2]
@@ -238,65 +260,6 @@ class AbellTersoffBrenner(Calculator):
         Hzx_p = + H_pcc[:,2,0]
         Hyx_p = + H_pcc[:,1,0]
         
-        #######################################################################
-
-        # Hessian term #5
-        
-        d2F_p = self.d2F(r_p, xi_p)
-        d2F_p[mask_p] = 0.0
- 
-        d2y2yG_t = self.d2y2yG(r_pc[ij_t], r_pc[ik_t])
-        d2x2xG_t = self.d2x2xG(r_pc[ij_t], r_pc[ik_t])
-        d2z2zG_t = self.d2z2zG(r_pc[ij_t], r_pc[ik_t])
-        d2y2zG_t = self.d2y2zG(r_pc[ij_t], r_pc[ik_t])
-        d2x2zG_t = self.d2x2zG(r_pc[ij_t], r_pc[ik_t])
-        d2x2yG_t = self.d2x2yG(r_pc[ij_t], r_pc[ik_t])
-                
-        Hxx_t = d2F_p[ij_t] * d2x2xG_t
-        Hyy_t = d2F_p[ij_t] * d2y2yG_t
-        Hzz_t = d2F_p[ij_t] * d2z2zG_t
-        Hyz_t = d2F_p[ij_t] * d2y2zG_t
-        Hxz_t = d2F_p[ij_t] * d2x2zG_t
-        Hxy_t = d2F_p[ij_t] * d2x2yG_t
-        Hzy_t = d2F_p[ij_t] * d2y2zG_t
-        Hzx_t = d2F_p[ij_t] * d2x2zG_t
-        Hyx_t = d2F_p[ij_t] * d2x2yG_t
-        Hxx_p -= np.bincount(ik_t, weights=Hxx_t, minlength=nb_pairs)
-        Hyy_p -= np.bincount(ik_t, weights=Hyy_t, minlength=nb_pairs)
-        Hzz_p -= np.bincount(ik_t, weights=Hzz_t, minlength=nb_pairs)
-        Hyz_p -= np.bincount(ik_t, weights=Hyz_t, minlength=nb_pairs)
-        Hxz_p -= np.bincount(ik_t, weights=Hxz_t, minlength=nb_pairs)
-        Hxy_p -= np.bincount(ik_t, weights=Hxy_t, minlength=nb_pairs)
-        Hzy_p -= np.bincount(ik_t, weights=Hzy_t, minlength=nb_pairs)
-        Hzx_p -= np.bincount(ik_t, weights=Hzx_t, minlength=nb_pairs)
-        Hyx_p -= np.bincount(ik_t, weights=Hyx_t, minlength=nb_pairs)
-
-        d1x1xG_t = self.d1x1xG(r_pc[ij_t], r_pc[ik_t])
-        d1y1yG_t = self.d1y1yG(r_pc[ij_t], r_pc[ik_t])
-        d1z1zG_t = self.d1z1zG(r_pc[ij_t], r_pc[ik_t])
-        d1y1zG_t = self.d1y1zG(r_pc[ij_t], r_pc[ik_t])
-        d1x1zG_t = self.d1x1zG(r_pc[ij_t], r_pc[ik_t])
-        d1x1yG_t = self.d1x1yG(r_pc[ij_t], r_pc[ik_t])
-        Hxx_t = d2F_p[ij_t] * d1x1xG_t
-        Hyy_t = d2F_p[ij_t] * d1y1yG_t
-        Hzz_t = d2F_p[ij_t] * d1z1zG_t
-        Hyz_t = d2F_p[ij_t] * d1y1zG_t
-        Hxz_t = d2F_p[ij_t] * d1x1zG_t
-        Hxy_t = d2F_p[ij_t] * d1x1yG_t
-        Hzy_t = d2F_p[ij_t] * d1y1zG_t
-        Hzx_t = d2F_p[ij_t] * d1x1zG_t
-        Hyx_t = d2F_p[ij_t] * d1x1yG_t
-        Hxx_p -= np.bincount(ij_t, weights=Hxx_t, minlength=nb_pairs)
-        Hyy_p -= np.bincount(ij_t, weights=Hyy_t, minlength=nb_pairs)
-        Hzz_p -= np.bincount(ij_t, weights=Hzz_t, minlength=nb_pairs)
-        Hyz_p -= np.bincount(ij_t, weights=Hyz_t, minlength=nb_pairs)
-        Hxz_p -= np.bincount(ij_t, weights=Hxz_t, minlength=nb_pairs)
-        Hxy_p -= np.bincount(ij_t, weights=Hxy_t, minlength=nb_pairs)
-        Hzy_p -= np.bincount(ij_t, weights=Hzy_t, minlength=nb_pairs)
-        Hzx_p -= np.bincount(ij_t, weights=Hzx_t, minlength=nb_pairs)
-        Hyx_p -= np.bincount(ij_t, weights=Hyx_t, minlength=nb_pairs)
-
-
         d1x2xG_t = self.d1x2xG(r_pc[ij_t], r_pc[ik_t])
         d1y2yG_t = self.d1y2yG(r_pc[ij_t], r_pc[ik_t])
         d1z2zG_t = self.d1z2zG(r_pc[ij_t], r_pc[ik_t])
@@ -315,7 +278,6 @@ class AbellTersoffBrenner(Calculator):
         Hzy_t = d2F_p[ij_t] * d1z2yG_t
         Hzx_t = d2F_p[ij_t] * d1z2xG_t
         Hyx_t = d2F_p[ij_t] * d1y2xG_t
-
         Hxx_p += np.bincount(jk_t, weights=Hxx_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hxx_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hxx_t, minlength=nb_pairs)
         Hyy_p += np.bincount(jk_t, weights=Hyy_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hyy_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hyy_t, minlength=nb_pairs)
         Hzz_p += np.bincount(jk_t, weights=Hzz_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hzz_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hzz_t, minlength=nb_pairs)
@@ -333,20 +295,16 @@ class AbellTersoffBrenner(Calculator):
 
         d22F_p = self.d22F(r_p, xi_p)
         d22F_p[mask_p] = 0.0
+        
+
         d1xG_p = np.bincount(ij_t, weights=d1G_t[:, 0], minlength=nb_pairs)
         d1yG_p = np.bincount(ij_t, weights=d1G_t[:, 1], minlength=nb_pairs)
         d1zG_p = np.bincount(ij_t, weights=d1G_t[:, 2], minlength=nb_pairs)
 
-        Hxx_p -= d22F_p * d1xG_p * d1xG_p
-        Hyy_p -= d22F_p * d1yG_p * d1yG_p
-        Hzz_p -= d22F_p * d1zG_p * d1zG_p
-        Hyz_p -= d22F_p * d1yG_p * d1zG_p
-        Hxz_p -= d22F_p * d1xG_p * d1zG_p
-        Hxy_p -= d22F_p * d1xG_p * d1yG_p
-        Hzy_p -= d22F_p * d1zG_p * d1yG_p
-        Hzx_p -= d22F_p * d1zG_p * d1xG_p
-        Hyx_p -= d22F_p * d1yG_p * d1xG_p
+        d1G_p = np.transpose([d1xG_p, d1yG_p, d1zG_p])
+        H_pcc = - (d22F_p * (d1G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
 
+        
         ## Terms involving D_2 * D_2
         d2G_t = self.d2G(r_pc[ij_t], r_pc[ik_t])
 
@@ -355,15 +313,25 @@ class AbellTersoffBrenner(Calculator):
         d2yG_p = np.bincount(ij_t, weights=d2G_t[:, 1], minlength=nb_pairs)
         d2zG_p = np.bincount(ij_t, weights=d2G_t[:, 2], minlength=nb_pairs)
 
-        Hxx_p -= np.bincount(ik_t, weights=(d22F_p * d2xG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
-        Hyy_p -= np.bincount(ik_t, weights=(d22F_p * d2yG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzz_p -= np.bincount(ik_t, weights=(d22F_p * d2zG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hyz_p -= np.bincount(ik_t, weights=(d22F_p * d2yG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hxz_p -= np.bincount(ik_t, weights=(d22F_p * d2xG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hxy_p -= np.bincount(ik_t, weights=(d22F_p * d2xG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzy_p -= np.bincount(ik_t, weights=(d22F_p * d2zG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzx_p -= np.bincount(ik_t, weights=(d22F_p * d2zG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
-        Hyx_p -= np.bincount(ik_t, weights=(d22F_p * d2yG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
+        d2G_p = np.transpose([d2xG_p, d2yG_p, d2zG_p])
+        
+        Q = ((d22F_p * d2G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
+        H_temp_pcc = np.zeros_like(H_temp_pcc)
+        for x in range(3):
+            for y in range(3):
+                H_temp_pcc[:, x, y] = - np.bincount(ik_t, weights=Q[:, x, y], minlength=nb_pairs)
+                # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
+        H_pcc += H_temp_pcc
+
+        Hxx_p += H_pcc[:,0,0]
+        Hyy_p += H_pcc[:,1,1]
+        Hzz_p += H_pcc[:,2,2]
+        Hyz_p += H_pcc[:,1,2]
+        Hxz_p += H_pcc[:,0,2]
+        Hxy_p += H_pcc[:,0,1]
+        Hzy_p += H_pcc[:,2,1]
+        Hzx_p += H_pcc[:,2,0]
+        Hyx_p += H_pcc[:,1,0]
 
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
@@ -388,36 +356,26 @@ class AbellTersoffBrenner(Calculator):
 
         ## Terms involving D_1 * D_2
         # Was d2*d1
-        Hxx_p += np.bincount(jk_t, weights=(d22F_p * d1xG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
-        Hyy_p += np.bincount(jk_t, weights=(d22F_p * d1yG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzz_p += np.bincount(jk_t, weights=(d22F_p * d1zG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hyz_p += np.bincount(jk_t, weights=(d22F_p * d1yG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hxz_p += np.bincount(jk_t, weights=(d22F_p * d1xG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hxy_p += np.bincount(jk_t, weights=(d22F_p * d1xG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzy_p += np.bincount(jk_t, weights=(d22F_p * d1zG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzx_p += np.bincount(jk_t, weights=(d22F_p * d1zG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
-        Hyx_p += np.bincount(jk_t, weights=(d22F_p * d1yG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
+        Q = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
+        
+        H_temp_pcc = np.zeros_like(H_temp_pcc)
+        for x in range(3):
+            for y in range(3):
+                H_temp_pcc[:, x, y] = np.bincount(jk_t, weights=Q[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q[:, x, y], minlength=nb_pairs)
+                # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
+        H_pcc = H_temp_pcc
 
-        # Was d2*d1
-        Hxx_p -= np.bincount(ik_t, weights=(d22F_p * d1xG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
-        Hyy_p -= np.bincount(ik_t, weights=(d22F_p * d1yG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzz_p -= np.bincount(ik_t, weights=(d22F_p * d1zG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hyz_p -= np.bincount(ik_t, weights=(d22F_p * d1yG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hxz_p -= np.bincount(ik_t, weights=(d22F_p * d1xG_p)[ij_t] * d2G_t[:, 2], minlength=nb_pairs)
-        Hxy_p -= np.bincount(ik_t, weights=(d22F_p * d1xG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzy_p -= np.bincount(ik_t, weights=(d22F_p * d1zG_p)[ij_t] * d2G_t[:, 1], minlength=nb_pairs)
-        Hzx_p -= np.bincount(ik_t, weights=(d22F_p * d1zG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
-        Hyx_p -= np.bincount(ik_t, weights=(d22F_p * d1yG_p)[ij_t] * d2G_t[:, 0], minlength=nb_pairs)
+        H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
 
-        Hxx_p -= d22F_p * d2xG_p * d1xG_p
-        Hyy_p -= d22F_p * d2yG_p * d1yG_p
-        Hzz_p -= d22F_p * d2zG_p * d1zG_p
-        Hyz_p -= d22F_p * d2yG_p * d1zG_p
-        Hxz_p -= d22F_p * d2xG_p * d1zG_p
-        Hxy_p -= d22F_p * d2xG_p * d1yG_p
-        Hzy_p -= d22F_p * d2zG_p * d1yG_p
-        Hzx_p -= d22F_p * d2zG_p * d1xG_p
-        Hyx_p -= d22F_p * d2yG_p * d1xG_p
+        Hxx_p += H_pcc[:,0,0]
+        Hyy_p += H_pcc[:,1,1]
+        Hzz_p += H_pcc[:,2,2]
+        Hyz_p += H_pcc[:,1,2]
+        Hxz_p += H_pcc[:,0,2]
+        Hxy_p += H_pcc[:,0,1]
+        Hzy_p += H_pcc[:,2,1]
+        Hzx_p += H_pcc[:,2,0]
+        Hyx_p += H_pcc[:,1,0]
 
         # Add the conjugate terms (symmetrize Hessian)
         Hxx_p += Hxx_p[tr_p]
