@@ -34,7 +34,7 @@ import matscipytest
 from matscipy.calculators.bop import AbellTersoffBrenner 
 from matscipy.calculators.bop.explicit_forms import KumagaiTersoff, TersoffIII
 from ase import Atoms
-from ase import io
+import ase.io
 from matscipy.hessian_finite_differences import fd_hessian
 
 class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
@@ -49,7 +49,7 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
 
         self.compute_forces_and_hessian(small2, KumagaiTersoff())
 
-        aSi = io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
+        aSi = ase.io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
         self.compute_forces_and_hessian(aSi, KumagaiTersoff())
 
     def tersoffIII(self):
@@ -63,7 +63,7 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
 
         self.compute_forces_and_hessian(small2, TersoffIII())
 
-        aSi = io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
+        aSi = ase.io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
         self.compute_forces_and_hessian(aSi, TersoffIII())
 
 
