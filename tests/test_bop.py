@@ -49,7 +49,7 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
 
         self.compute_forces_and_hessian(small2, KumagaiTersoff())
 
-        aSi = ase.io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
+        aSi = ase.io.read('aSi.cfg')
         self.compute_forces_and_hessian(aSi, KumagaiTersoff())
 
     def tersoffIII(self):
@@ -63,7 +63,7 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
 
         self.compute_forces_and_hessian(small2, TersoffIII())
 
-        aSi = ase.io.read('aSi.structure_minimum_65atoms_pot_energy.nc')
+        aSi = ase.io.read('aSi.cfg')
         self.compute_forces_and_hessian(aSi, TersoffIII())
 
 

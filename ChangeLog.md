@@ -1,8 +1,21 @@
 Change log
 ==========
 
+v0.8.0 (not yet released)
+-------------------------
+
+- Calculator for bond-order potentials
+- Hessian calculation for bond-order potentials
+- Specific parameterization for Kumagai and Tersoff
+
+v0.7.0 (17Nov20)
+----------------
+
+- CLI for electrochemistry functions
+- Proper molecular id numbering in electrochemistry
+
 v0.6.0 (10Sep20)
------------------------
+----------------
 
 - Numerical computation of the Hessian matrix 
 - Calculator for polydisperse systems in which particles interact via a pair potential 
