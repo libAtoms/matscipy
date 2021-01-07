@@ -8,11 +8,14 @@ import numpy as np
 import h5py
 import ase.io
 from ase.units import GPa
+from ase.constraints import FixAtoms
+from ase.optimize.precon import PreconLBFGS
 
 from matscipy import parameter
 from matscipy.elasticity import  fit_elastic_constants
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 
+from scipy.optimize import fsolve, fminbound
 from scipy.optimize.nonlin import NoConvergence
 
 import sys
@@ -28,6 +31,7 @@ flexible = parameter('flexible', True)
 continuation = parameter('continuation', False)
 ds = parameter('ds', 1e-2)
 nsteps = parameter('nsteps', 10)
+a0 = parameter('a0') # lattice constant
 k0 = parameter('k0', 1.0)
 extended_far_field = parameter('extended_far_field', False)
 alpha0 = parameter('alpha0', 0.0) # initial guess for crack position
@@ -77,41 +81,82 @@ if not continuation:
     traj = None
     dk = parameter('dk', 1e-4)
     dalpha = parameter('dalpha', 1e-3)
-    k1 = k0 + dk
-
-    # obtain one solution x0 = (u_0, alpha_0, k_0)
 
     # reuse output from sinclair_crack.py if possible
     if os.path.exists(f'k_{int(k0 * 1000):04d}.xyz'):
         print(f'Reading atoms from k_{int(k0 * 1000):04d}.xyz')
         a = ase.io.read(f'k_{int(k0 * 1000):04d}.xyz')
         sc.set_atoms(a)
-    try:
-        print(f'k = {k0} * k1g, alpha = {sc.alpha}')
 
-        if prerelax:
-            print('Pre-relaxing with Conjugate-Gradients')
-            sc.optimize(ftol=1e-5, steps=max_steps, dump=dump, method='cg')
-        else:
-            sc.optimize(fmax, steps=max_steps, dump=dump,
-                        precon=precon, method='krylov')
-    except NoConvergence:
-        sc.atoms.write('dump.xyz')
-        raise
+    mask = sc.regionI | sc.regionII
+    if extended_far_field:
+        mask = sc.regionI | sc.regionII | sc.regionIII
+
+    # first use the CLE-only approximation`: define a function f_alpha0(k, alpha)
+    def f(k, alpha):
+        sc.k = k * k1g
+        sc.alpha = alpha
+        sc.update_atoms()
+        return sc.get_crack_tip_force(mask=mask)
+
+    # identify approximate range of stable k
+    alpha_range = parameter('alpha_range', np.linspace(-a0, a0, 100))
+    k = k0  # initial guess for k
+    alpha_k = []
+    for alpha in alpha_range:
+        # look for solution to f(k, alpha) = 0 close to alpha = alpha
+        (k,) = fsolve(f, k, args=(alpha,))
+        print(f'alpha={alpha:.3f} k={k:.3f} ')
+        alpha_k.append((alpha, k))
+    alpha_k = np.array(alpha_k)
+    kmin, kmax = alpha_k[:, 1].min(), alpha_k[:, 1].max()
+    print(f'Estimated stable K range is {kmin} < k / k_G < {kmax}')
+
+    # define a function to relax with static scheme at a given value of k
+    # note that we use a looser fmax of 1e-3 and reduced max steps of 50
+    def g(k):
+        print(f'Static minimisation with k={k}, alpha={alpha0}.')
+        sc.k = k * k1g
+        sc.alpha = alpha0
+        sc.variable_alpha = False
+        sc.variable_k = False
+        sc.update_atoms()
+        atoms = sc.atoms.copy()
+        atoms.calc = sc.calc
+        atoms.set_constraint(FixAtoms(mask=~sc.regionI))
+        opt = PreconLBFGS(atoms, logfile=None)
+        opt.run(fmax=1e-5)
+        sc.set_atoms(atoms)
+        f_alpha = sc.get_crack_tip_force(mask=mask)
+        print(f'Static minimisation with k={k}, alpha={alpha0} --> f_alpha={f_alpha}')
+        return abs(f_alpha)
+
+    # minimise g(k) in [kmin, kmax]
+    kopt, falpha_min, ierr, funccalls = fminbound(g, kmin, kmax, xtol=1e-8, full_output=True)
+    print(f'Brent minimisation yields f_alpha={falpha_min} for k = {kopt} after {funccalls} calls')
+
+    # re-optimize, first with static scheme, then flexible scheme
+    sc.k = kopt * k1g
+    sc.alpha = alpha0
+    sc.variable_alpha = False
+    sc.optimize(ftol=1e-3, steps=max_steps)
+
+    # finally, we revert to target fmax precision
+    sc.variable_alpha = flexible
+    sc.optimize(ftol=fmax, steps=max_steps)
+
     sc.atoms.write('x0.xyz')
     x0 = np.r_[sc.get_dofs(), k0 * k1g]
     alpha0 = sc.alpha
 
     # obtain a second solution x1 = (u_1, alpha_1, k_1) where
     # k_1 ~= k_0 and alpha_1 ~= alpha_0
+
     print(f'Rescaling K_I from {sc.k} to {sc.k + dk * k1g}')
+    k1 = k0 + dk
     sc.rescale_k(k1 * k1g)
-    if prerelax:
-        print('Pre-relaxing with Conjugate-Gradients')
-        sc.optimize(ftol=1e-5, steps=max_steps, dump=dump, method='cg')
-    else:
-        sc.optimize(fmax, steps=max_steps, dump=dump,
-                    precon=precon, method='krylov')
+
+
     sc.atoms.write('x1.xyz')
     x1 = np.r_[sc.get_dofs(), k1 * k1g]
     # check crack tip didn't jump too far

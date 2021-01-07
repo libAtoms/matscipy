@@ -915,8 +915,6 @@ class SinclairCrack:
         self.update_atoms()
 
     def get_crack_tip_force(self, forces=None, mask=None):
-        assert self.variable_alpha
-
         # V_alpha = -\nabla_1 U_CLE(alpha)
         tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
