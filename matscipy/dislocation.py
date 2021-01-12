@@ -2035,8 +2035,10 @@ class CubicCrystalDislocation:
                 raise RuntimeError(f'Self-consistency did not converge in {max_iter} cycles')
         return disp2
 
-    def build_cylinder(self, radius, fix_width=10.0, self_consistent=True):
-        extent = np.array([2 * radius + 10., 2 * radius + 10., 1.])
+    def build_cylinder(self, radius, core_position=[0., 0., 0.],
+                       fix_width=10.0, self_consistent=True):
+        extent = np.array([2 * (radius + fix_width) + core_position[0],
+                           2 * (radius + fix_width) + core_position[1], 1.])
         repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
         repeat[2] = 1  # exactly one cell in the periodic direction
 
@@ -2051,18 +2053,31 @@ class CubicCrystalDislocation:
 
         # build a bulk cylinder
         center = np.diag(bulk.cell) / 2
-        r = np.sqrt(((bulk.positions[:, [0, 1]] - center[[0, 1]])**2).sum(axis=1))
+        r = np.sqrt(((bulk.positions[:, [0, 1]]
+                      - center[[0, 1]])**2).sum(axis=1))
         mask = r < radius
-        bulk = bulk[mask]
+
+        core_position = np.array(core_position)
+        shifted_center = center + core_position
+        shifted_r = np.sqrt(((bulk.positions[:, [0, 1]]
+                              - shifted_center[[0, 1]])**2).sum(axis=1))
+        shifted_mask = shifted_r < radius
+
+        final_mask = mask | shifted_mask
+        bulk = bulk[final_mask]
 
         # disloc is a copy of bulk with displacements applied
         disloc = bulk.copy()
-        disloc.positions += self.displacements(bulk.positions, center,
+        disloc.positions += self.displacements(bulk.positions, shifted_center,
                                                self_consistent=self_consistent)
         r = r[mask]
         fix_mask = r > radius - fix_width
-        disloc.set_array('fix_mask', fix_mask)
-        disloc.set_constraint(FixAtoms(mask=fix_mask))
+        shifted_r = shifted_r[shifted_mask]
+        shifted_fix_max = shifted_r > radius - fix_width
+
+        final_fix_mask = fix_mask & shifted_fix_max
+        disloc.set_array('fix_mask', final_fix_mask)
+        disloc.set_constraint(FixAtoms(mask=final_fix_mask))
         disloc.center(vacuum=2 * fix_width, axis=(0, 1))
 
         return bulk, disloc
