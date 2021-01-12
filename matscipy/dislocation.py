@@ -1971,14 +1971,30 @@ def read_dislo_QMMM(filename=None, image=None):
 
 class CubicCrystalDislocation:
     def __init__(self, unit_cell, C11, C12, C44,
-                 axes, burgers, shift=None, parity=None):
+                 axes, burgers, unit_cell_core_position=None, parity=None):
         """
         This class represents a dislocation in a cubic crystal
-        
+
         The dislocation is defined by the crystal unit cell,
         elastic constants C11, C12 and C44, crystal axes,
         burgers vector and optional shift and parity vectors.
-        """        
+
+        Parameters
+        ----------
+        unit_cell : unit cell to build the dislocation configuration
+        C11 : elastic constants
+        C12
+        C44
+        axes : cell axes (b is normally along z direction)
+        burgers : burgers vector of the dislocation1
+        unit_cell_core_position : dislocation core position in the unit cell
+                                  used to shift atomic positions to
+                                   make the dislocation core the center
+                                   of the cell
+        parity
+
+        """
+
         self.unit_cell = unit_cell.copy()        
         self.C11 = C11
         self.C12 = C12
@@ -1986,9 +2002,9 @@ class CubicCrystalDislocation:
 
         self.axes = axes
         self.burgers = burgers
-        if shift is None:
-            shift = np.zeroes(3)
-        self.shift = shift
+        if unit_cell_core_position is None:
+            unit_cell_core_position = np.zeroes(3)
+        self.unit_cell_core_position = unit_cell_core_position
         if parity is None:
             parity = np.zeros(2, dtype=int)
         self.parity = parity
@@ -2031,7 +2047,7 @@ class CubicCrystalDislocation:
             repeat[1] += 1
 
         bulk = self.unit_cell * repeat
-        bulk.positions += self.shift
+        bulk.positions += self.unit_cell_core_position
 
         # build a bulk cylinder
         center = np.diag(bulk.cell) / 2
@@ -2058,14 +2074,14 @@ class BCCScrew111Dislocation(CubicCrystalDislocation):
                          [-1, 1, 0],
                          [1, 1, 1]])
         burgers = alat * np.array([1, 1, 1]) / 2.0
-        shift = alat * np.array([np.sqrt(6.)/6.0,  np.sqrt(2.)/6.0, 0])
+        unit_cell_core_position = alat * np.array([np.sqrt(6.)/6.0,  np.sqrt(2.)/6.0, 0])
         parity = [0, 1]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
                                       pbc=True,
                                       latticeconstant=alat)
         super().__init__(unit_cell, C11, C12, C44,
-                         axes, burgers, shift, parity)
+                         axes, burgers, unit_cell_core_position, parity)
 
         
 class BCCEdge111Dislocation(CubicCrystalDislocation):
@@ -2074,7 +2090,7 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
                          [1, -1, 0],
                          [1, 1, -2]])
         burgers = alat * np.array([1, 1, 1]) / 2.0
-        shift = alat * np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 
+        unit_cell_core_position = alat * np.array([(1.0/3.0) * np.sqrt(3.0)/2.0,
                                  0.25 * np.sqrt(2.0), 0 ])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
@@ -2082,7 +2098,7 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
                                       pbc=True,
                                       latticeconstant=alat)
         super().__init__(unit_cell, C11, C12, C44,
-                         axes, burgers, shift, parity)
+                         axes, burgers, unit_cell_core_position, parity)
 
 
 class BCCMixed111Dislocation(CubicCrystalDislocation):
@@ -2091,11 +2107,11 @@ class BCCMixed111Dislocation(CubicCrystalDislocation):
                          [1, 1, 0],
                          [1, -1, 1]])
         burgers = alat * np.array([1, -1, -1]) / 2.0
-        shift = alat * np.array([-0.05, 0.0, 0.0])
+        unit_cell_core_position = alat * np.array([-0.05, 0.0, 0.0])
         parity = [1, 1]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
                                       pbc=True,
                                       latticeconstant=alat)
         super().__init__(unit_cell, C11, C12, C44,
-                         axes, burgers, shift, parity)
+                         axes, burgers, unit_cell_core_position, parity)
