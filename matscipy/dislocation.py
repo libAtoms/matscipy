@@ -555,7 +555,7 @@ def make_barrier_configurations(elastic_param=None,
     fixed_atoms_indices = FixAtoms.get_indices()
 
     # make the average position of fixed atoms
-    # between initial and the lastlast position
+    # between initial and the last position
     ini_fix_pos = disloc_ini.get_positions()[fixed_atoms_indices]
     fin_fix_pos = disloc_fin.get_positions()[fixed_atoms_indices]
 
@@ -1970,8 +1970,9 @@ def read_dislo_QMMM(filename=None, image=None):
 
 
 class CubicCrystalDislocation:
-    def __init__(self, unit_cell, C11, C12, C44,
-                 axes, burgers, unit_cell_core_position=None, parity=None):
+    def __init__(self, unit_cell, C11, C12, C44, axes, burgers,
+                 unit_cell_core_position=None,
+                 parity=None, glide_distance=None):
         """
         This class represents a dislocation in a cubic crystal
 
@@ -1992,6 +1993,8 @@ class CubicCrystalDislocation:
                                    make the dislocation core the center
                                    of the cell
         parity
+        glide_distance : distance to the next equivalent
+                         core position in the glide direction
 
         """
 
@@ -2008,7 +2011,10 @@ class CubicCrystalDislocation:
         if parity is None:
             parity = np.zeros(2, dtype=int)
         self.parity = parity
-        
+        if glide_distance is None:
+            self.glide_distance = 0.0
+        self.glide_distance = glide_distance
+
     # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
         from atomman import ElasticConstants
         from atomman.defect import Stroh
@@ -2079,11 +2085,11 @@ class CubicCrystalDislocation:
         disloc = bulk.copy()
         disloc.positions += self.displacements(bulk.positions, shifted_center,
                                                self_consistent=self_consistent)
-        r = r[mask]
+        r = r[final_mask]
         fix_mask = r > radius - fix_width
-        shifted_r = shifted_r[shifted_mask]
+        shifted_r = shifted_r[final_mask]
         shifted_fix_max = shifted_r > radius - fix_width
-        extended_r = extended_r[extended_mask]
+        extended_r = extended_r[final_mask]
         extended_fix_max = extended_r > radius - fix_width
 
         final_fix_mask = fix_mask & shifted_fix_max & extended_fix_max
@@ -2093,6 +2099,39 @@ class CubicCrystalDislocation:
 
         return bulk, disloc
 
+    def build_glide_configurations(self, radius, **kwargs):
+
+        final_core_position = [self.glide_distance, 0.0, 0.0]
+
+        bulk_ini, disloc_ini = self.build_cylinder(radius,
+                                                   extension=final_core_position,
+                                                   **kwargs)
+
+        _, disloc_fin = self.build_cylinder(radius,
+                                            core_position=final_core_position,
+                                            **kwargs)
+
+        # get the fixed atoms constrain
+        FixAtoms = disloc_ini.constraints[0]
+        # get the indices of fixed atoms
+        fixed_atoms_indices = FixAtoms.get_indices()
+
+        # make the average position of fixed atoms
+        # between initial and the last position
+        ini_fix_pos = disloc_ini.get_positions()[fixed_atoms_indices]
+        fin_fix_pos = disloc_fin.get_positions()[fixed_atoms_indices]
+
+        new_av_pos = (ini_fix_pos + fin_fix_pos) / 2.0
+
+        positions = disloc_ini.get_positions()
+        positions[fixed_atoms_indices] = new_av_pos
+        disloc_ini.set_positions(positions, apply_constraint=False)
+
+        positions = disloc_fin.get_positions()
+        positions[fixed_atoms_indices] = new_av_pos
+        disloc_fin.set_positions(positions, apply_constraint=False)
+
+        return bulk_ini, disloc_ini, disloc_fin
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='W'):
@@ -2106,8 +2145,10 @@ class BCCScrew111Dislocation(CubicCrystalDislocation):
                                       size=(1, 1, 1), symbol=symbol,
                                       pbc=True,
                                       latticeconstant=alat)
+        glide_distance = alat * np.linalg.norm(axes[0]) / 3.0
         super().__init__(unit_cell, C11, C12, C44,
-                         axes, burgers, unit_cell_core_position, parity)
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance)
 
         
 class BCCEdge111Dislocation(CubicCrystalDislocation):
@@ -2117,7 +2158,7 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
                          [1, 1, -2]])
         burgers = alat * np.array([1, 1, 1]) / 2.0
         unit_cell_core_position = alat * np.array([(1.0/3.0) * np.sqrt(3.0)/2.0,
-                                 0.25 * np.sqrt(2.0), 0 ])
+                                 0.25 * np.sqrt(2.0), 0])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,

@@ -406,6 +406,25 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_mixed_dislocation(self):
         self.check_disloc(sd.BCCMixed111Dislocation, 70.5)
 
+    def check_glide_configs(self, cls):
+        alat = 3.14339177996466
+        C11 = 523.0266819809012
+        C12 = 202.1786296941397
+        C44 = 160.88179872237012
+
+        d = cls(alat, C11, C12, C44)
+        bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40)
+
+        assert len(bulk) == len(disloc_ini)
+        assert len(disloc_ini) == len(disloc_fin)
+
+        assert all(disloc_ini.get_array("fix_mask") ==
+                   disloc_fin.get_array("fix_mask"))
+
+    @unittest.skipIf("atomman" not in sys.modules,
+                     "requires atomman")
+    def test_screw_glide(self):
+        self.check_glide_configs(sd.BCCScrew111Dislocation)
 
 if __name__ == '__main__':
     unittest.main()
