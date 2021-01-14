@@ -426,5 +426,15 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_screw_glide(self):
         self.check_glide_configs(sd.BCCScrew111Dislocation)
 
+    @unittest.skipIf("atomman" not in sys.modules,
+                     "requires atomman")
+    def test_edge_glide(self):
+        self.check_glide_configs(sd.BCCEdge111Dislocation)
+
+    @unittest.skipIf("atomman" not in sys.modules,
+                     "requires atomman")
+    def test_mixed_glide(self):
+        self.check_glide_configs(sd.BCCMixed111Dislocation)
+
 if __name__ == '__main__':
     unittest.main()
