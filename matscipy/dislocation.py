@@ -2164,7 +2164,8 @@ class BCCScrew111Dislocation(CubicCrystalDislocation):
                          [-1, 1, 0],
                          [1, 1, 1]])
         burgers = alat * np.array([1, 1, 1]) / 2.0
-        unit_cell_core_position = alat * np.array([np.sqrt(6.)/6.0,  np.sqrt(2.)/6.0, 0])
+        unit_cell_core_position = alat * np.array([np.sqrt(6.)/6.0,
+                                                   np.sqrt(2.)/6.0, 0])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
@@ -2201,7 +2202,10 @@ class BCCMixed111Dislocation(CubicCrystalDislocation):
                          [1, 1, 0],
                          [1, -1, 1]])
         burgers = alat * np.array([1, -1, -1]) / 2.0
-        unit_cell_core_position = alat * np.array([-0.05, 0.0, 0.0])
+        # close as the screw dislocation i. e. center of the triangle
+        # empirically obtained values
+        unit_cell_core_position = alat * np.array([0.45329139,
+                                                   0.20247456, 0])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
