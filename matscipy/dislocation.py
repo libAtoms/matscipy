@@ -2146,7 +2146,7 @@ class BCCScrew111Dislocation(CubicCrystalDislocation):
                          [1, 1, 1]])
         burgers = alat * np.array([1, 1, 1]) / 2.0
         unit_cell_core_position = alat * np.array([np.sqrt(6.)/6.0,  np.sqrt(2.)/6.0, 0])
-        parity = [0, 1]
+        parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
                                       pbc=True,
