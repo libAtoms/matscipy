@@ -362,7 +362,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
-    def check_disloc(self, cls, ref_angle, tol=10.0):
+    def check_disloc(self, cls, ref_angle,
+                     burgers=0.5 * np.array([1.0, 1.0, 1.0]), tol=10.0):
         alat = 3.14339177996466
         C11 = 523.0266819809012
         C12 = 202.1786296941397
@@ -383,7 +384,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         del disloc.arrays['fix_mask']  # logical properties not supported by Ovito
         b, length, segment = ovito_dxa(disloc)
-        self.assertArrayAlmostEqual(np.abs(b), 0.5 * np.array([1.0, 1.0, 1.0]))  # 1/2[111], signs can change
+        self.assertArrayAlmostEqual(np.abs(b), burgers)  # 1/2[111], signs can change
         assert abs(length - disloc.cell[2, 2]) < 0.01
         
         b_hat = np.array(segment.spatial_burgers_vector)
@@ -410,11 +411,19 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_edge_dislocation(self):        
         self.check_disloc(sd.BCCEdge111Dislocation, 90.0)
 
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge100_dislocation(self,):
+        self.check_disloc(sd.BCCEdge100Dislocation, 90.0,
+                          burgers=np.array([1.0, 0.0, 0.0]))
+
     @unittest.skipIf("atomman" not in sys.modules or 
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_mixed_dislocation(self):
         self.check_disloc(sd.BCCMixed111Dislocation, 70.5)
+
 
     def check_glide_configs(self, cls):
         alat = 3.14339177996466
@@ -445,6 +454,11 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                      "requires atomman")
     def test_mixed_glide(self):
         self.check_glide_configs(sd.BCCMixed111Dislocation)
+
+    @unittest.skipIf("atomman" not in sys.modules,
+                     "requires atomman")
+    def test_edge100_glide(self):
+        self.check_glide_configs(sd.BCCEdge100Dislocation)
 
 if __name__ == '__main__':
     unittest.main()
