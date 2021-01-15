@@ -371,6 +371,16 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         d = cls(alat, C11, C12, C44)
         bulk, disloc = d.build_cylinder(20.0)
         assert len(bulk) == len(disloc)
+        # test the consistency
+        # displacement = disloc.positions - bulk.positions
+        stroh_displacement = d.displacements(bulk.positions,
+                                             np.diag(bulk.cell) / 2.0,
+                                             self_consistent=True)
+
+        displacement = disloc.positions - bulk.positions
+
+        np.testing.assert_array_almost_equal(displacement, stroh_displacement)
+
         del disloc.arrays['fix_mask']  # logical properties not supported by Ovito
         b, length, segment = ovito_dxa(disloc)
         self.assertArrayAlmostEqual(np.abs(b), 0.5 * np.array([1.0, 1.0, 1.0]))  # 1/2[111], signs can change

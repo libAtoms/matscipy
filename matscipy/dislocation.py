@@ -2098,7 +2098,13 @@ class CubicCrystalDislocation:
         final_fix_mask = fix_mask & shifted_fix_max & extended_fix_max
         disloc.set_array('fix_mask', final_fix_mask)
         disloc.set_constraint(FixAtoms(mask=final_fix_mask))
-        disloc.center(vacuum=2 * fix_width, axis=(0, 1))
+
+        # adding vacuum and centering breaks consistency
+        # of displacement =  dislo.positions - bulk.positions
+        # which is essential for plot_vitek and other tools
+        # I could not find a way to add vacuum to both disloc and bulk
+        # without spoiling the displacement
+        # disloc.center(vacuum=2 * fix_width, axis=(0, 1))
 
         return bulk, disloc
 
