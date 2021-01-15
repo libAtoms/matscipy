@@ -2044,11 +2044,22 @@ class CubicCrystalDislocation:
     def build_cylinder(self, radius,
                        core_position=[0., 0., 0.], extension=[0., 0., 0.],
                        fix_width=10.0, self_consistent=True):
-        extent = np.array([(2 * (radius + fix_width) +
-                            core_position[0] + extension[0]),
-                           (2 * (radius + fix_width) +
-                            core_position[1] + extension[1]), 1.])
+        extent = np.array([2 * (radius + fix_width),
+                           2 * (radius + fix_width), 1.])
         repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
+
+        # if the extension and core position is
+        # within the unit cell, do not add extra unit cells
+        repeat_extension = np.floor(extension /
+                                    np.diag(self.unit_cell.cell)).astype(int)
+        repeat_core_position = np.floor(core_position /
+                                    np.diag(self.unit_cell.cell)).astype(int)
+
+        extra_repeat = np.stack((repeat_core_position,
+                                 repeat_extension)).max(axis=0)
+
+        repeat += extra_repeat
+
         repeat[2] = 1  # exactly one cell in the periodic direction
 
         # ensure correct parity in x and y directions
