@@ -2058,7 +2058,9 @@ class CubicCrystalDislocation:
             repeat[1] += 1
 
         bulk = self.unit_cell * repeat
-        bulk.positions += self.unit_cell_core_position
+        # in order to get center from an atom to the desired position
+        # we have to move the atoms in the opposite direction
+        bulk.positions -= self.unit_cell_core_position
 
         # build a bulk cylinder
         center = np.diag(bulk.cell) / 2
