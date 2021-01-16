@@ -2234,3 +2234,22 @@ class BCCEdge100Dislocation(CubicCrystalDislocation):
         super().__init__(unit_cell, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance)
+
+
+class BCCEdge100110Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, 0, 0],
+                         [0, 1, 1],
+                         [0, -1, 1]])
+        burgers = alat * np.array([1, 0, 0])
+        unit_cell_core_position = alat * np.array([0.5,
+                                                   np.sqrt(2.) / 6.0, 0])
+        parity = [0, 0]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)
+        glide_distance = 0.5 * alat
+        super().__init__(unit_cell, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance)

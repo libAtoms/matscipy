@@ -418,6 +418,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.check_disloc(sd.BCCEdge100Dislocation, 90.0,
                           burgers=np.array([1.0, 0.0, 0.0]))
 
+    def test_edge100110_dislocation(self,):
+        self.check_disloc(sd.BCCEdge100110Dislocation, 90.0,
+                          burgers=np.array([1.0, 0.0, 0.0]))
+
     @unittest.skipIf("atomman" not in sys.modules or 
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
@@ -459,6 +463,11 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                      "requires atomman")
     def test_edge100_glide(self):
         self.check_glide_configs(sd.BCCEdge100Dislocation)
+
+    @unittest.skipIf("atomman" not in sys.modules,
+                         "requires atomman")
+    def test_edge100110_glide(self):
+            self.check_glide_configs(sd.BCCEdge100110Dislocation)
 
 if __name__ == '__main__':
     unittest.main()
