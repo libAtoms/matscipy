@@ -2257,15 +2257,19 @@ class BCCMixed111Dislocation(CubicCrystalDislocation):
                          [1, 1, 0],
                          [1, -1, 1]])
         burgers = alat * np.array([1, -1, -1]) / 2.0
-        # close as the screw dislocation i. e. center of the triangle
-        # empirically obtained values
-        unit_cell_core_position = alat * np.array([0.45329139,
-                                                   0.20247456, 0])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
                                       pbc=True,
                                       latticeconstant=alat)
+
+        # middle of the right edge of the first upward triangle
+        core_position = (unit_cell.positions[1] +
+                         unit_cell.positions[2]) / 2.0
+
+        unit_cell_core_position = np.array([core_position[0],
+                                            core_position[1], 0])
+
         glide_distance = alat * np.linalg.norm(axes[0]) / 3.0
         super().__init__(unit_cell, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
@@ -2278,7 +2282,7 @@ class BCCEdge100Dislocation(CubicCrystalDislocation):
                          [0, 0, -1],
                          [0, 1, 0]])
         burgers = alat * np.array([1, 0, 0])
-        unit_cell_core_position = alat * np.array([0.5,
+        unit_cell_core_position = alat * np.array([0.25,
                                                    0.25, 0])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
@@ -2298,7 +2302,7 @@ class BCCEdge100110Dislocation(CubicCrystalDislocation):
                          [0, -1, 1]])
         burgers = alat * np.array([1, 0, 0])
         unit_cell_core_position = alat * np.array([0.5,
-                                                   np.sqrt(2.) / 6.0, 0])
+                                                   np.sqrt(2.) / 4.0, 0])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
