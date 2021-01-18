@@ -27,8 +27,8 @@ def StillingerWeber():
     df = lambda r: 0 * r
 
     F = lambda r, xi: f(r) * (U2(r) + lambda1 * b(xi))
-    d1F = lambda r, xi: f(r) * dU2(r) + df(r) * (U2(r) + lambda*b(xi))
-    d2F = lambda r, xi: lambda * f(r) * 1
+    d1F = lambda r, xi: f(r) * dU2(r) + df(r) * (U2(r) + lambda1*b(xi))
+    d2F = lambda r, xi: lambda1 * f(r) * 1
 
     G = lambda rij, rik: hf(rij, rik) * g(costh(rij, rik))
     d1G = lambda rij, rik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T 
