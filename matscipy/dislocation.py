@@ -307,7 +307,6 @@ def plot_vitek(dislo, bulk,
     from atomman import load
     from atomman.defect import differential_displacement
 
-
     lengthB = 0.5*np.sqrt(3.)*alat
     burgers = np.array([0.0, 0.0, lengthB])
 
@@ -1969,6 +1968,30 @@ def read_dislo_QMMM(filename=None, image=None):
     return dislo_QMMM, qm_mask
 
 
+def plot_bulk(atoms, n_planes=3, ax=None, ms=200):
+    """
+    Plots x, y coordinates of atoms colored according
+    to non-equivalent planes in z plane
+    """
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    x, y, z = atoms.positions.T
+
+    zlim = atoms.cell[2, 2] / n_planes
+
+    bins = np.linspace(zlim, atoms.cell[2, 2], num=n_planes)
+    bins -= atoms.cell[2, 2] / (2.0 * n_planes)
+
+    plane_ids = np.digitize(z, bins=bins)
+
+    for plane_id in np.unique(plane_ids):
+        mask = plane_id == plane_ids
+        ax.scatter(x[mask], y[mask], s=ms, edgecolor="k")
+
+
 class CubicCrystalDislocation:
     def __init__(self, unit_cell, C11, C12, C44, axes, burgers,
                  unit_cell_core_position=None,
@@ -2020,6 +2043,38 @@ class CubicCrystalDislocation:
         from atomman.defect import Stroh
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)        
         self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
+
+
+    def plot_unit_cell(self, ms=250, ax=None):
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, ax = plt.subplots()
+
+        plot_bulk(self.unit_cell, ax=ax, ms=ms)
+
+        x_core, y_core, _ = self.unit_cell_core_position
+        ax.scatter(x_core, y_core, marker="x", s=ms, c="red")
+        ax.scatter(x_core + self.glide_distance, y_core, marker="x", s=ms,
+                   c="blue")
+        ax.set_aspect('equal')
+
+        x0, y0, _ = np.diag(self.unit_cell.cell)
+
+        ax.plot([0.0, 0.0, x0, x0, 0.0],
+                [0.0, y0, y0, 0.0, 0.0], color="black", zorder=0)
+
+        W_atoms = ax.scatter([], [], color="w", edgecolor="k",
+                             label="lattice atoms")
+        core1 = ax.scatter([], [], marker="x", label="initial core position",
+                           c="r")
+        core2 = ax.scatter([], [], marker="x", label="glide core position",
+                           c="b")
+
+        ax.legend(handles=[W_atoms, core1, core2], fontsize=12)
+        ax.set_xlabel("$\AA$")
+        ax.set_ylabel("$\AA$")
+
 
     def displacements(self, bulk_positions, center, self_consistent=True, 
                       tol=1e-6, max_iter=100, verbose=True):
