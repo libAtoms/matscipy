@@ -1995,7 +1995,7 @@ def plot_bulk(atoms, n_planes=3, ax=None, ms=200):
 class CubicCrystalDislocation:
     def __init__(self, unit_cell, C11, C12, C44, axes, burgers,
                  unit_cell_core_position=None,
-                 parity=None, glide_distance=None):
+                 parity=None, glide_distance=None, n_planes=None):
         """
         This class represents a dislocation in a cubic crystal
 
@@ -2018,7 +2018,8 @@ class CubicCrystalDislocation:
         parity
         glide_distance : distance to the next equivalent
                          core position in the glide direction
-
+        n_planes : int
+            number of non equivalent planes in z direction
         """
 
         self.unit_cell = unit_cell.copy()        
@@ -2035,8 +2036,11 @@ class CubicCrystalDislocation:
             parity = np.zeros(2, dtype=int)
         self.parity = parity
         if glide_distance is None:
-            self.glide_distance = 0.0
+            glide_distance = 0.0
         self.glide_distance = glide_distance
+        if n_planes is None:
+            n_planes = 3
+        self.n_planes = n_planes
 
     # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
         from atomman import ElasticConstants
@@ -2051,7 +2055,7 @@ class CubicCrystalDislocation:
         if ax is None:
             fig, ax = plt.subplots()
 
-        plot_bulk(self.unit_cell, ax=ax, ms=ms)
+        plot_bulk(self.unit_cell, self.n_planes, ax=ax, ms=ms)
 
         x_core, y_core, _ = self.unit_cell_core_position
         ax.scatter(x_core, y_core, marker="x", s=ms, c="red")
@@ -2064,14 +2068,14 @@ class CubicCrystalDislocation:
         ax.plot([0.0, 0.0, x0, x0, 0.0],
                 [0.0, y0, y0, 0.0, 0.0], color="black", zorder=0)
 
-        W_atoms = ax.scatter([], [], color="w", edgecolor="k",
+        bulk_atoms = ax.scatter([], [], color="w", edgecolor="k",
                              label="lattice atoms")
         core1 = ax.scatter([], [], marker="x", label="initial core position",
                            c="r")
         core2 = ax.scatter([], [], marker="x", label="glide core position",
                            c="b")
 
-        ax.legend(handles=[W_atoms, core1, core2], fontsize=12)
+        ax.legend(handles=[bulk_atoms, core1, core2], fontsize=12)
         ax.set_xlabel("$\AA$")
         ax.set_ylabel("$\AA$")
 
@@ -2246,9 +2250,10 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
                                       pbc=True,
                                       latticeconstant=alat)
         glide_distance = np.linalg.norm(burgers) / 3.0
+        n_planes = 6
         super().__init__(unit_cell, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
-                         glide_distance)
+                         glide_distance, n_planes=n_planes)
 
 
 class BCCMixed111Dislocation(CubicCrystalDislocation):
@@ -2290,9 +2295,10 @@ class BCCEdge100Dislocation(CubicCrystalDislocation):
                                       pbc=True,
                                       latticeconstant=alat)
         glide_distance = alat
+        n_planes = 2
         super().__init__(unit_cell, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
-                         glide_distance)
+                         glide_distance, n_planes=n_planes)
 
 
 class BCCEdge100110Dislocation(CubicCrystalDislocation):
@@ -2309,6 +2315,7 @@ class BCCEdge100110Dislocation(CubicCrystalDislocation):
                                       pbc=True,
                                       latticeconstant=alat)
         glide_distance = 0.5 * alat
+        n_planes = 2
         super().__init__(unit_cell, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
-                         glide_distance)
+                         glide_distance, n_planes=n_planes)
