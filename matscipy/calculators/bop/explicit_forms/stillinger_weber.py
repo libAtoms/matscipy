@@ -45,6 +45,21 @@ def StillingerWeber():
     Dg1 = lambda rij, rik: (dg(costh(rij, rik)) * c1(rij, rik).T).T 
     Dg2 = lambda rij, rik: (dg(costh(rij, rik)) * c2(rij, rik).T).T
 
+    d11G = lambda rij, rik: \
+        Dg1(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
+        + ((g(costh(rij, rik)) * Dh11(rij, rik).T).T + (hf(rij, rik) * Dg11(rij, rik).T).T)
+
+    Dh11 = lambda rij, rik: \
+        (d11h(rij, rik) * (((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T \
+         + d1h(rij, rik) * ((np.eye(3) - ((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T/ab(rij))).T
+
+    Dg11 = lambda rij, rik: \
+        (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)).T
+         + dg(costh(rij, rik)) * dc11(rij, rik).T).T
+
+    # Next d12G, d22G
+
+
     U2 = lambda r: A * epsilon * (B*np.power(sigma/r,p) - 1) * np.exp(sigma/(r-a*sigma))   
     dU2 = lambda r: -A * epsilon * (sigma/np.power(r-a*sigma,2) * (B*np.power(sigma/r, p) - 1) + B*p/r*np.power(sigma/r, p))* np.exp(sigma/(r-a*sigma))
     ddU2 = lambda r: A * B * P * epsilon * ((sigma /(r * np.power(r-a*sigma, 2)) + (P + 1)/np.power(r, 2)) * np.power(sigma/r, P)) * np.exp(sigma/(r-a*sigma)) - \
@@ -56,15 +71,21 @@ def StillingerWeber():
 
     g = lambda cost: np.power(cost+costheta0, 2)
     dg = lambda cost: 2 * (cost + costheta0)
+    ddg = lambda cost: 2 * cost**0
 
     hf = lambda rij, rik: epsilon * f(ab(rik)) * np.exp(gamma*sigma/(ab(rij)-a*sigma)) * np.exp(gamma*sigma/(ab(rik)-a*sigma)) 
     d1h = lambda rij, rik: - gamma * sigma / np.power(ab(rij)-a*sigma, 2) * hf(rij, rik)
     d2h = lambda rij, rik: - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * hf(rij, rik) + epsilon*np.exp(gamma*sigma/(ab(rij) - a*sigma) * np.exp(gamma*sigma/(ab(rik)-a*sigma)))*df(ab(rik))
-
+    d11h = lambda rij, rik: -2 * gamma * sigma / np.power(ab(rij)-a*sigma, 3) * hf(rij, rik) + np.power(gamma*sigma, 2) / np.power(ab(rij)-a*sigma, 4) * hf(rij, rik)
 
     # Helping functions 
     c1 = lambda rij, rik: ((rik.T/ab(rik) - rij.T/ab(rij) * costh(rij, rik)) / ab(rij)).T
     c2 = lambda rij, rik: ((rij.T/ab(rij) - rik.T/ab(rik) * costh(rij, rik)) / ab(rik)).T
+    dc11 = lambda rij, rik: \
+        ((- c1(rij, rik).reshape(-1, 3, 1) * rij.reshape(-1, 1, 3) \
+         - rij.reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3) \
+         - (costh(rij, rik) * (np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T).T \
+        ).T/ab(rij)**2).T
 
     costh = lambda rij, rik: np.sum(rij*rik, axis=1) / (ab(rij)*ab(rik))    
 
@@ -78,7 +99,7 @@ def StillingerWeber():
         'd22F': d22F,
         'd1G': d1G,
         'd2G': d2G,
-        'd11G': 0,
+        'd11G': d11G,
         'd22G': 0,
         'd12G': 0,
         'd1x2xG': 0,
