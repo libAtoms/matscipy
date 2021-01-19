@@ -25,11 +25,14 @@ def StillingerWeber():
 
     f = lambda r: np.where(r < a*sigma, 1.0, 0)
     df = lambda r: 0 * r
+    ddf = lambda r: 0 * r
 
     F = lambda r, xi: f(r) * (U2(r) + lambda1 * b(xi))
-
     d1F = lambda r, xi: f(r) * dU2(r) + df(r) * (U2(r) + lambda1*b(xi))
     d2F = lambda r, xi: lambda1 * f(r) * 1
+    d11F = lambda r, xi: f(r) * ddU2(r) + 2 * dU2(r) * df(r) + ddf(r) * (U2(r) + lambda1 * b(xi))
+    d12F = lambda r, xi: lambda1 * df(r)
+    d22F = lambda r, xi: r*0
 
     G = lambda rij, rik: hf(rij, rik) * g(costh(rij, rik))
 
@@ -44,6 +47,9 @@ def StillingerWeber():
 
     U2 = lambda r: A * epsilon * (B*np.power(sigma/r,p) - 1) * np.exp(sigma/(r-a*sigma))   
     dU2 = lambda r: -A * epsilon * (sigma/np.power(r-a*sigma,2) * (B*np.power(sigma/r, p) - 1) + B*p/r*np.power(sigma/r, p))* np.exp(sigma/(r-a*sigma))
+    ddU2 = lambda r: A * B * P * epsilon * ((sigma /(r * np.power(r-a*sigma, 2)) + (P + 1)/np.power(r, 2)) * np.power(sigma/r, P)) * np.exp(sigma/(r-a*sigma)) - \
+                     A * epsilon * sigma * (2/np.power(r-a*sigma, 3) + sigma/np.power(r-a*sigma, 4)) * np.exp(sigma/(r-a*sigma)) + \
+                     A * B * epsilon * sigma * np.power(sigma/r, P) * (P/(r*np.power(r-a*sigma,2)) + 2/np.power(r-a*sigma,3) + sigma/np.power(r-a*sigma, 4)) * np.exp(sigma/(r-a*sigma))
 
     b = lambda xi: xi
     db = lambda xi: xi**0
@@ -67,9 +73,9 @@ def StillingerWeber():
         'G': G,
         'd1F': d1F,
         'd2F': d2F,
-        'd11F': 0,
-        'd12F': 0,
-        'd22F': 0,
+        'd11F': d11F,
+        'd12F': d12F,
+        'd22F': d22F,
         'd1G': d1G,
         'd2G': d2G,
         'd11G': 0,
