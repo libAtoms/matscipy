@@ -6,6 +6,7 @@ def ab(x):
 
 def StillingerWeber():
     """
+    Implementation of the Stillinger-Weber potential for silicon.
 
     Reference
     ------------
@@ -90,7 +91,6 @@ def StillingerWeber():
         (d22h(rij, rik) * (((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T \
          + d2h(rij, rik) * ((np.eye(3) - ((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T/ab(rik))).T
 
-    ###### This is the only thing i changed !!
     d12G = lambda rij, rik: \
         Dg2(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh2(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh12(rij, rik).T).T + (hf(rij, rik) * Dg12(rij, rik).T).T)
@@ -101,8 +101,6 @@ def StillingerWeber():
     Dg12 = lambda rij, rik: \
          (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
          + dg(costh(rij, rik)) * dc12(rij, rik).T).T    
-
-    ######
 
     dc1q1t = lambda rij, rik, q, t: \
         (- c1q(rij, rik, q) * rij[:, t] \
