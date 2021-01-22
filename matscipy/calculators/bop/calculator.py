@@ -23,7 +23,7 @@
 Bond Order Potential.
 """
 import numpy as np
-
+import sys
 import ase
 from scipy.sparse import bsr_matrix
 

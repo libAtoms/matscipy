@@ -29,9 +29,9 @@ def StillingerWeber():
 
     U2 = lambda r: A * epsilon * (B*np.power(sigma/r,p) - 1) * np.exp(sigma/(r-a*sigma))   
     dU2 = lambda r: -A * epsilon * (sigma/np.power(r-a*sigma,2) * (B*np.power(sigma/r, p) - 1) + B*p/r*np.power(sigma/r, p))* np.exp(sigma/(r-a*sigma))
-    ddU2 = lambda r: A * B * P * epsilon * ((sigma /(r * np.power(r-a*sigma, 2)) + (P + 1)/np.power(r, 2)) * np.power(sigma/r, P)) * np.exp(sigma/(r-a*sigma)) - \
+    ddU2 = lambda r: A * B * p * epsilon * ((sigma /(r * np.power(r-a*sigma, 2)) + (p + 1)/np.power(r, 2)) * np.power(sigma/r, p)) * np.exp(sigma/(r-a*sigma)) - \
                      A * epsilon * sigma * (2/np.power(r-a*sigma, 3) + sigma/np.power(r-a*sigma, 4)) * np.exp(sigma/(r-a*sigma)) + \
-                     A * B * epsilon * sigma * np.power(sigma/r, P) * (P/(r*np.power(r-a*sigma,2)) + 2/np.power(r-a*sigma,3) + sigma/np.power(r-a*sigma, 4)) * np.exp(sigma/(r-a*sigma))
+                     A * B * epsilon * sigma * np.power(sigma/r, p) * (p/(r*np.power(r-a*sigma,2)) + 2/np.power(r-a*sigma,3) + sigma/np.power(r-a*sigma, 4)) * np.exp(sigma/(r-a*sigma))
 
     b = lambda xi: xi
     db = lambda xi: xi**0
@@ -42,9 +42,9 @@ def StillingerWeber():
 
     hf = lambda rij, rik: epsilon * f(ab(rik)) * np.exp(gamma*sigma/(ab(rij)-a*sigma)) * np.exp(gamma*sigma/(ab(rik)-a*sigma)) 
     d1h = lambda rij, rik: - gamma * sigma / np.power(ab(rij)-a*sigma, 2) * hf(rij, rik)
-    d2h = lambda rij, rik: - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * hf(rij, rik) + epsilon*np.exp(gamma*sigma/(ab(rij) - a*sigma) * np.exp(gamma*sigma/(ab(rik)-a*sigma)))*df(ab(rik))
+    d2h = lambda rij, rik: - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * hf(rij, rik) + epsilon * np.exp(gamma*sigma/(ab(rij) - a*sigma)) * np.exp(gamma*sigma/(ab(rik)-a*sigma))*df(ab(rik))
     d11h = lambda rij, rik: -2 * gamma * sigma / np.power(ab(rij)-a*sigma, 3) * hf(rij, rik) + np.power(gamma*sigma, 2) / np.power(ab(rij)-a*sigma, 4) * hf(rij, rik)
-    d22h = lambda rij, rik: epsilon * (ddf(ab(rik)) - 2*df(ab(rik))*gamma*sigma/np.power(ab(rik)-a*sigma,2) + 2*f(ab(rik))*gamma*sigma/np.power(ab(rik)-a*sigma,3) + fc(ab(rik))*np.power(gamma*sigma,2)/np.power(ab(rik)-a*sigma,4)) * np.exp(gamma*sigma/(ab(rik)-a*sigma)) * np.exp(gamma*sigma/(ab(rij)-a*sigma)) 
+    d22h = lambda rij, rik: epsilon * (ddf(ab(rik)) - 2*df(ab(rik))*gamma*sigma/np.power(ab(rik)-a*sigma,2) + 2*f(ab(rik))*gamma*sigma/np.power(ab(rik)-a*sigma,3) + f(ab(rik))*np.power(gamma*sigma,2)/np.power(ab(rik)-a*sigma,4)) * np.exp(gamma*sigma/(ab(rik)-a*sigma)) * np.exp(gamma*sigma/(ab(rij)-a*sigma)) 
     d12h = lambda rij, rik: - gamma * sigma * epsilon / np.power(ab(rij)-a*sigma, 2) * (df(ab(rik)) - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * f(ab(rik))) * np.exp(gamma*sigma/(ab(rij)-a*sigma)) * np.exp(gamma*sigma/(ab(rij)-a*sigma))
 
 
