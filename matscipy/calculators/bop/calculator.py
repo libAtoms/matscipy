@@ -186,7 +186,6 @@ class AbellTersoffBrenner(Calculator):
         d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
         H_temp3_t = (d12F_p[ij_t] * (d2G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T
         
-        H_temp_pcc = np.empty_like(H_pcc)
         
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
 
@@ -210,26 +209,9 @@ class AbellTersoffBrenner(Calculator):
 
         H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
 
-        H_temp_pcc = np.zeros_like(H_pcc)
-        for x in range(3):
-            for y in range(3):
-                H_temp_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
-                H_temp_pcc[:, y, x] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
-                H_temp_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
-                H_temp_pcc[:, x, y] += np.bincount(tr_p[jk_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs)
-                H_temp_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp4_t[:, x, y], minlength=nb_pairs) + np.bincount(tr_p[ij_t], weights=H_temp4_t[:, x, y], minlength=nb_pairs)
-        H_pcc += H_temp_pcc
-
-        Hxx_p = + H_pcc[:,0,0]
-        Hyy_p = + H_pcc[:,1,1]
-        Hzz_p = + H_pcc[:,2,2]
-        Hyz_p = + H_pcc[:,1,2]
-        Hxz_p = + H_pcc[:,0,2]
-        Hxy_p = + H_pcc[:,0,1]
-        Hzy_p = + H_pcc[:,2,1]
-        Hzx_p = + H_pcc[:,2,0]
-        Hyx_p = + H_pcc[:,1,0]
-
+        
+        H_temp_pcc = np.empty_like(H_pcc)
+        
         # Hessian term #3
 
         ## Terms involving D_1 * D_1
@@ -244,7 +226,7 @@ class AbellTersoffBrenner(Calculator):
         d1zG_p = np.bincount(ij_t, weights=d1G_t[:, 2], minlength=nb_pairs)
 
         d1G_p = np.transpose([d1xG_p, d1yG_p, d1zG_p])
-        H_pcc = - (d22F_p * (d1G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
+        H_pcc -= (d22F_p * (d1G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
 
         
         ## Terms involving D_2 * D_2
@@ -257,24 +239,25 @@ class AbellTersoffBrenner(Calculator):
 
         d2G_p = np.transpose([d2xG_p, d2yG_p, d2zG_p])
         
-        Q = ((d22F_p * d2G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
-        H_temp_pcc = np.zeros_like(H_temp_pcc)
+        Q1 = ((d22F_p * d2G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
+        ## Terms involving D_1 * D_2
+        # Was d2*d1
+        Q2 = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
         for x in range(3):
             for y in range(3):
-                H_temp_pcc[:, x, y] = - np.bincount(ik_t, weights=Q[:, x, y], minlength=nb_pairs)
-                # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
-        H_pcc += H_temp_pcc
+                H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
+                H_pcc[:, y, x] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
+                H_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
+                H_pcc[:, x, y] += np.bincount(tr_p[jk_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs)
+                H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp4_t[:, x, y], minlength=nb_pairs) + np.bincount(tr_p[ij_t], weights=H_temp4_t[:, x, y], minlength=nb_pairs)
+                H_pcc[:, x, y] -= np.bincount(ik_t, weights=Q1[:, x, y], minlength=nb_pairs)
+                H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
+        
+        
+        H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
+        
 
-        Hxx_p += H_pcc[:,0,0]
-        Hyy_p += H_pcc[:,1,1]
-        Hzz_p += H_pcc[:,2,2]
-        Hyz_p += H_pcc[:,1,2]
-        Hxz_p += H_pcc[:,0,2]
-        Hxy_p += H_pcc[:,0,1]
-        Hzy_p += H_pcc[:,2,1]
-        Hzx_p += H_pcc[:,2,0]
-        Hyx_p += H_pcc[:,1,0]
-
+        
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
             im = ik_t[il_im]
@@ -285,54 +268,21 @@ class AbellTersoffBrenner(Calculator):
                     r_p_ij = np.array([r_pc[ij]])
                     r_p_il = np.array([r_pc[il]])
                     r_p_im = np.array([r_pc[im]])
-                    H_pcc = (0.5 * d22F_p[ij] * (self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1, 3)).T).T
-                    Hxx_p[lm] += H_pcc[:, 0, 0]
-                    Hyy_p[lm] += H_pcc[:, 1, 1]
-                    Hzz_p[lm] += H_pcc[:, 2, 2]
-                    Hyz_p[lm] += H_pcc[:, 1, 2]
-                    Hxz_p[lm] += H_pcc[:, 0, 2]
-                    Hxy_p[lm] += H_pcc[:, 0, 1]
-                    Hzy_p[lm] += H_pcc[:, 2, 1]
-                    Hzx_p[lm] += H_pcc[:, 2, 0]
-                    Hyx_p[lm] += H_pcc[:, 1, 0]
+                    H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1, 3)).T).T.squeeze()
 
-        ## Terms involving D_1 * D_2
-        # Was d2*d1
-        Q = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
-        
-        H_temp_pcc = np.zeros_like(H_temp_pcc)
-        for x in range(3):
-            for y in range(3):
-                H_temp_pcc[:, x, y] = np.bincount(jk_t, weights=Q[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q[:, x, y], minlength=nb_pairs)
-                # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
-        H_pcc = H_temp_pcc
-
-        H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
-
-        Hxx_p += H_pcc[:,0,0]
-        Hyy_p += H_pcc[:,1,1]
-        Hzz_p += H_pcc[:,2,2]
-        Hyz_p += H_pcc[:,1,2]
-        Hxz_p += H_pcc[:,0,2]
-        Hxy_p += H_pcc[:,0,1]
-        Hzy_p += H_pcc[:,2,1]
-        Hzx_p += H_pcc[:,2,0]
-        Hyx_p += H_pcc[:,1,0]
 
         # Add the conjugate terms (symmetrize Hessian)
-        Hxx_p += Hxx_p[tr_p]
-        Hyy_p += Hyy_p[tr_p]
-        Hzz_p += Hzz_p[tr_p]
-        tmp = Hyz_p.copy()
-        Hyz_p += Hzy_p[tr_p]
-        Hzy_p += tmp[tr_p]
-        tmp = Hxz_p.copy()
-        Hxz_p += Hzx_p[tr_p]
-        Hzx_p += tmp[tr_p]
-        tmp = Hxy_p.copy()
-        Hxy_p += Hyx_p[tr_p]
-        Hyx_p += tmp[tr_p]
+        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p, :, :]
 
+        Hxx_p =+ H_pcc[:,0,0]
+        Hyy_p =+ H_pcc[:,1,1]
+        Hzz_p =+ H_pcc[:,2,2]
+        Hyz_p =+ H_pcc[:,1,2]
+        Hxz_p =+ H_pcc[:,0,2]
+        Hxy_p =+ H_pcc[:,0,1]
+        Hzy_p =+ H_pcc[:,2,1]
+        Hzx_p =+ H_pcc[:,2,0]
+        Hyx_p =+ H_pcc[:,1,0]
         
         # Construct diagonal terms from off-diagonal terms
         Hxx_a = -np.bincount(i_p, weights=Hxx_p)
@@ -346,9 +296,9 @@ class AbellTersoffBrenner(Calculator):
         Hyx_a = -np.bincount(i_p, weights=Hyx_p)
 
         # Construct full off-diagonal term
-        H_pcc = np.transpose([[Hxx_p, Hyx_p, Hzx_p],
-                              [Hxy_p, Hyy_p, Hzy_p],
-                              [Hxz_p, Hyz_p, Hzz_p]])
+        # H_pcc = np.transpose([[Hxx_p, Hyx_p, Hzx_p],
+        #                       [Hxy_p, Hyy_p, Hzy_p],
+        #                       [Hxz_p, Hyz_p, Hzz_p]])
 
         # Construct full diagonal term
         H_acc = np.transpose([[Hxx_a, Hxy_a, Hxz_a],
