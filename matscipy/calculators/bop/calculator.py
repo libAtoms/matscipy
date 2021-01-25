@@ -217,25 +217,30 @@ class AbellTersoffBrenner(Calculator):
 
         d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
 
-        H_temp_t = (d2F_p[ij_t] * d22G_tcc.T).T
+        H_temp2_t = (d2F_p[ij_t] * d22G_tcc.T).T
 
-        for x in range(3):
-            for y in range(3):
-                H_temp_pcc[:, x, y] = - np.bincount(ik_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
-                # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
-        H_pcc += H_temp_pcc
+        # for x in range(3):
+        #     for y in range(3):
+        #         H_temp_pcc[:, x, y] = - np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
+        # H_pcc += H_temp_pcc
         
         
         d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
 
         H_temp_t = (d2F_p[ij_t] * d11G_tcc.T).T 
 
+        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
+
+
+        H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
+
+        H_temp_pcc = np.zeros_like(H_temp_pcc)
         for x in range(3):
             for y in range(3):
-                H_temp_pcc[:, x, y] = - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
-                # H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
+                H_temp_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
+                H_temp_pcc[:, y, x] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
+                H_temp_pcc[:, x, y] -=  np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
         H_pcc += H_temp_pcc
-
 
         Hxx_p = + H_pcc[:,0,0]
         Hyy_p = + H_pcc[:,1,1]
@@ -246,34 +251,6 @@ class AbellTersoffBrenner(Calculator):
         Hzy_p = + H_pcc[:,2,1]
         Hzx_p = + H_pcc[:,2,0]
         Hyx_p = + H_pcc[:,1,0]
-        
-        d1x2xG_t = self.d1x2xG(r_pc[ij_t], r_pc[ik_t])
-        d1y2yG_t = self.d1y2yG(r_pc[ij_t], r_pc[ik_t])
-        d1z2zG_t = self.d1z2zG(r_pc[ij_t], r_pc[ik_t])
-        d1y2zG_t = self.d1y2zG(r_pc[ij_t], r_pc[ik_t])
-        d1x2zG_t = self.d1x2zG(r_pc[ij_t], r_pc[ik_t])
-        d1x2yG_t = self.d1x2yG(r_pc[ij_t], r_pc[ik_t])
-        d1z2yG_t = self.d1z2yG(r_pc[ij_t], r_pc[ik_t])
-        d1z2xG_t = self.d1z2xG(r_pc[ij_t], r_pc[ik_t])
-        d1y2xG_t = self.d1y2xG(r_pc[ij_t], r_pc[ik_t])
-        Hxx_t = d2F_p[ij_t] * d1x2xG_t
-        Hyy_t = d2F_p[ij_t] * d1y2yG_t
-        Hzz_t = d2F_p[ij_t] * d1z2zG_t
-        Hyz_t = d2F_p[ij_t] * d1y2zG_t
-        Hxz_t = d2F_p[ij_t] * d1x2zG_t
-        Hxy_t = d2F_p[ij_t] * d1x2yG_t
-        Hzy_t = d2F_p[ij_t] * d1z2yG_t
-        Hzx_t = d2F_p[ij_t] * d1z2xG_t
-        Hyx_t = d2F_p[ij_t] * d1y2xG_t
-        Hxx_p += np.bincount(jk_t, weights=Hxx_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hxx_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hxx_t, minlength=nb_pairs)
-        Hyy_p += np.bincount(jk_t, weights=Hyy_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hyy_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hyy_t, minlength=nb_pairs)
-        Hzz_p += np.bincount(jk_t, weights=Hzz_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hzz_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hzz_t, minlength=nb_pairs)
-        Hyz_p += np.bincount(jk_t, weights=Hyz_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hyz_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hyz_t, minlength=nb_pairs)
-        Hxz_p += np.bincount(jk_t, weights=Hxz_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hxz_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hxz_t, minlength=nb_pairs)
-        Hxy_p += np.bincount(jk_t, weights=Hxy_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hxy_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hxy_t, minlength=nb_pairs)
-        Hzy_p += np.bincount(jk_t, weights=Hzy_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hzy_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hzy_t, minlength=nb_pairs)
-        Hzx_p += np.bincount(jk_t, weights=Hzx_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hzx_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hzx_t, minlength=nb_pairs)
-        Hyx_p += np.bincount(jk_t, weights=Hyx_t, minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=Hyx_t, minlength=nb_pairs) - np.bincount(ik_t, weights=Hyx_t, minlength=nb_pairs)
 
         # Hessian term #3
 
