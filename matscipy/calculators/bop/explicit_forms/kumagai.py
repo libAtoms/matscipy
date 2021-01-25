@@ -135,12 +135,8 @@ def KumagaiTersoff():
     d1G = lambda rij, rik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
     d2G = lambda rij, rik: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
 
-    Dh1q = lambda rij, rik, q: d1h(rij, rik) * (rij[:, q] / ab(rij))
-    Dh2q = lambda rij, rik, q: d2h(rij, rik) * (rik[:, q] / ab(rik))
-    
     Dh2 = lambda rij, rik: (d2h(rij, rik) * rik.T / ab(rik)).T
     Dh1 = lambda rij, rik: (d1h(rij, rik) * rij.T / ab(rij)).T
-
 
     Dh11 = lambda rij, rik: \
         (d11h(rij, rik) * (((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T \
@@ -150,55 +146,6 @@ def KumagaiTersoff():
          + d2h(rij, rik) * ((np.eye(3) - ((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T/ab(rik))).T
     Dh12 = lambda rij, rik: \
         (d12h(rij, rik) * (rik.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/(ab(rij)*ab(rik))).T
-
-    # d12G depends on
-    dc1q1t = lambda rij, rik, q, t: \
-        (- c1q(rij, rik, q) * rij[:, t] \
-         - rij[:, q] * c1q(rij, rik, t) \
-         - costh(rij, rik) * (int(q == t) - rij[:, q]*rij[:, t]/ab(rij)**2) \
-        )/ab(rij)**2
-    dc2q2t = lambda rij, rik, q, t: \
-        (- c2q(rij, rik, q) * rik[:, t] \
-         - rik[:, q] * c2q(rij, rik, t) \
-         - costh(rij, rik) * (int(q == t) - rik[:, q]*rik[:, t]/ab(rik)**2) \
-        )/ab(rik)**2
-    dc1q2t = lambda rij, rik, q, t: \
-        ((int(q == t) - rij[:, q]*rij[:, t]/ab(rij)**2)/ab(rij)
-         - c1q(rij, rik, q) * rik[:, t]/ab(rik) \
-        )/ab(rik)
-
-    Dh1q1t = lambda rij, rik, q, t: \
-        d11h(rij, rik) * rij[:, q]/ab(rij) * rij[:, t]/ab(rij) \
-         + d1h(rij, rik) * (int(q == t) - rij[:, q]/ab(rij) * rij[:, t]/ab(rij))/ab(rij)
-    Dh2q2t = lambda rij, rik, q, t: \
-        d22h(rij, rik) * rik[:, q]/ab(rik) * rik[:, t]/ab(rik) \
-         + d2h(rij, rik) * (int(q == t) - rik[:, q]/ab(rik) * rik[:, t]/ab(rik))/ab(rik)
-    Dh1q2t = lambda rij, rik, q, t: \
-        d12h(rij, rik) * rij[:, q]/ab(rij) * rik[:, t]/ab(rik)
-
-    c1q = lambda rij, rik, q: (rik[:, q]/ab(rik) - rij[:, q]/ab(rij) * costh(rij, rik)) / ab(rij)
-    c2q = lambda rij, rik, q: (rij[:, q]/ab(rij) - rik[:, q]/ab(rik) * costh(rij, rik)) / ab(rik)
-    
-    Dg1q = lambda rij, rik, q: dg(costh(rij, rik)) * c1q(rij, rik, q)
-    Dg2q = lambda rij, rik, q: dg(costh(rij, rik)) * c2q(rij, rik, q)    
-
-    Dg1q1t = lambda rij, rik, q, t: \
-        (ddg(costh(rij, rik)) * c1q(rij, rik, q) * c1q(rij, rik, t)
-         + dg(costh(rij, rik)) * dc1q1t(rij, rik, q, t))
-    Dg2q2t = lambda rij, rik, q, t: \
-        (ddg(costh(rij, rik)) * c2q(rij, rik, q) * c2q(rij, rik, t)
-         + dg(costh(rij, rik)) * dc2q2t(rij, rik, q, t))
-    Dg1q2t = lambda rij, rik, q, t: \
-        (ddg(costh(rij, rik)) * c1q(rij, rik, q) * c2q(rij, rik, t)
-         + dg(costh(rij, rik)) * dc1q2t(rij, rik, q, t))
-    
-    ###############
-
-
-    # TODO
-    d1q2tG = lambda rij, rik, q, t: \
-        Dg1q(rij, rik, q) * Dh2q(rij, rik, t) + Dh1q(rij, rik, q) * Dg2q(rij, rik, t) \
-        + g(costh(rij, rik)) * Dh1q2t(rij, rik, q, t) + hf(rij, rik) * Dg1q2t(rij, rik, q, t)
 
     d11G = lambda rij, rik: \
         Dg1(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
@@ -223,14 +170,5 @@ def KumagaiTersoff():
         'd11G': d11G,
         'd22G': d22G,
         'd12G': d12G,
-        'd1x2xG': lambda rij, rik: d1q2tG(rij, rik, 0, 0),
-        'd1y2yG': lambda rij, rik: d1q2tG(rij, rik, 1, 1),
-        'd1z2zG': lambda rij, rik: d1q2tG(rij, rik, 2, 2),
-        'd1y2zG': lambda rij, rik: d1q2tG(rij, rik, 1, 2),
-        'd1x2zG': lambda rij, rik: d1q2tG(rij, rik, 0, 2),
-        'd1x2yG': lambda rij, rik: d1q2tG(rij, rik, 0, 1),
-        'd1z2yG': lambda rij, rik: d1q2tG(rij, rik, 2, 1),
-        'd1z2xG': lambda rij, rik: d1q2tG(rij, rik, 2, 0),
-        'd1y2xG': lambda rij, rik: d1q2tG(rij, rik, 1, 0),
         'cutoff': R_2,
     }

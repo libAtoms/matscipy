@@ -44,7 +44,7 @@ class AbellTersoffBrenner(Calculator):
                  d11G,
                  d2G,
                  d22G,
-                 d1x2xG, d1y2yG, d1z2zG, d1y2zG, d1x2zG, d1x2yG, d1z2yG, d1z2xG, d1y2xG, d12G,
+                 d12G,
                  cutoff):
         Calculator.__init__(self)
         self.F = F
@@ -59,16 +59,6 @@ class AbellTersoffBrenner(Calculator):
         self.d22G = d22G
         self.d11G = d11G
         self.d12G = d12G
-        
-        self.d1x2xG = d1x2xG
-        self.d1y2yG = d1y2yG
-        self.d1z2zG = d1z2zG
-        self.d1y2zG = d1y2zG
-        self.d1x2zG = d1x2zG
-        self.d1x2yG = d1x2yG
-        self.d1z2yG = d1z2yG
-        self.d1z2xG = d1z2xG
-        self.d1y2xG = d1y2xG
 
         self.cutoff = cutoff
 
@@ -179,14 +169,14 @@ class AbellTersoffBrenner(Calculator):
         # Hessian term #4
         d1F_p = self.d1F(r_p, xi_p)
         d1F_p[mask_p] = 0.0  # we need to explicitly exclude everything with r > cutoff
-        H_temp_pcc = (d1F_p * (np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
-        H_pcc = - H_temp_pcc
+        H_pcc = -(d1F_p * (np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
+        # H_pcc = - H_temp_pcc
        
         # Hessian term #1
         d11F_p = self.d11F(r_p, xi_p)
         d11F_p[mask_p] = 0.0
-        H_temp_pcc = (d11F_p * (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3)).T).T
-        H_pcc -= H_temp_pcc 
+        H_pcc -= (d11F_p * (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3)).T).T
+        # H_pcc -= H_temp_pcc 
         
         # Hessian term #2
         d12F_p = self.d12F(r_p, xi_p)
@@ -194,23 +184,15 @@ class AbellTersoffBrenner(Calculator):
         
         
         d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
-        H_temp_t = (d12F_p[ij_t] * (d2G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T
+        H_temp3_t = (d12F_p[ij_t] * (d2G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T
         
-        H_temp_pcc = np.empty_like(H_temp_pcc)
-        for x in range(3):
-            for y in range(3):
-                H_temp_pcc[:, x, y] = np.bincount(tr_p[jk_t], weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
-        H_pcc += H_temp_pcc
+        H_temp_pcc = np.empty_like(H_pcc)
         
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
 
-        H_temp_t = (d12F_p[ij_t] * (d1G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T      
+        H_temp4_t = (d12F_p[ij_t] * (d1G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T      
 
-        for x in range(3):
-            for y in range(3):
-                H_temp_pcc[:, x, y] = - np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp_t[:, x, y], minlength=nb_pairs)
-        H_pcc += H_temp_pcc
-
+        
         # Hessian term #5
         d2F_p = self.d2F(r_p, xi_p)
         d2F_p[mask_p] = 0.0
@@ -219,12 +201,6 @@ class AbellTersoffBrenner(Calculator):
 
         H_temp2_t = (d2F_p[ij_t] * d22G_tcc.T).T
 
-        # for x in range(3):
-        #     for y in range(3):
-        #         H_temp_pcc[:, x, y] = - np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
-        # H_pcc += H_temp_pcc
-        
-        
         d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
 
         H_temp_t = (d2F_p[ij_t] * d11G_tcc.T).T 
@@ -234,12 +210,14 @@ class AbellTersoffBrenner(Calculator):
 
         H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
 
-        H_temp_pcc = np.zeros_like(H_temp_pcc)
+        H_temp_pcc = np.zeros_like(H_pcc)
         for x in range(3):
             for y in range(3):
                 H_temp_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
                 H_temp_pcc[:, y, x] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
-                H_temp_pcc[:, x, y] -=  np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
+                H_temp_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
+                H_temp_pcc[:, x, y] += np.bincount(tr_p[jk_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs)
+                H_temp_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp4_t[:, x, y], minlength=nb_pairs) + np.bincount(tr_p[ij_t], weights=H_temp4_t[:, x, y], minlength=nb_pairs)
         H_pcc += H_temp_pcc
 
         Hxx_p = + H_pcc[:,0,0]
