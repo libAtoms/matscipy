@@ -78,7 +78,7 @@ class AbellTersoffBrenner(Calculator):
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
                                              cutoff=self.cutoff)
-
+        
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
@@ -95,7 +95,7 @@ class AbellTersoffBrenner(Calculator):
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
         F_p = self.F(r_p, xi_p)
         epot = 0.5 * np.sum(F_p)
-
+     
         d1G_t = self.d1G(r_pc[ij_t], r_pc[ik_t])
         d2F_d2G_t = (self.d2F(r_p[ij_t], xi_p[ij_t]) * self.d2G(r_pc[ij_t], r_pc[ik_t]).T).T
         # calculate forces (per pair)
