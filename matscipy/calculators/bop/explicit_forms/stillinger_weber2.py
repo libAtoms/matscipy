@@ -53,7 +53,7 @@ def StillingerWeber2():
 
     F = lambda r, xi: np.where(r < cutoff, U2(r) + lambda1 * b(xi), 0)
     d1F = lambda r, xi: np.where(r < cutoff, dU2(r), 0) 
-    d2F = lambda r, xi: np.where(r < cutoff, lambda1, 0)
+    d2F = lambda r, xi: np.where(r < cutoff, lambda1*r**0, 0)
     d11F = lambda r, xi: np.where(r < cutoff, ddU2(r), 0) 
     d12F = lambda r, xi: 0*r
     d22F = lambda r, xi: 0*r
