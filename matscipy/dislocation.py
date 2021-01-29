@@ -1992,6 +1992,68 @@ def plot_bulk(atoms, n_planes=3, ax=None, ms=200):
         ax.scatter(x[mask], y[mask], s=ms, edgecolor="k")
 
 
+:def ovito_dxa_straight_dislo_info(disloc, replicate_z=3):
+    """
+    A function to extract information from ovito dxa analysis.
+    Current version works for configurations containing single straight dislocation.
+    Parameters
+    ----------
+    disloc
+    replicate_z
+
+    Returns
+    -------
+    Results: np.array(position, b, line, angle)
+
+    """
+    from ovito.io.ase import ase_to_ovito
+    from ovito.modifiers import ReplicateModifier, DislocationAnalysisModifier
+    from ovito.pipeline import StaticSource, Pipeline
+
+    dxa_disloc = disloc.copy()
+    if 'fix_mask' in dxa_disloc.arrays:
+        del dxa_disloc.arrays['fix_mask']
+
+    data = ase_to_ovito(dxa_disloc)
+    pipeline = Pipeline(source=StaticSource(data=data))
+    pipeline.modifiers.append(ReplicateModifier(num_z=replicate_z))
+    dxa = DislocationAnalysisModifier(
+        input_crystal_structure=DislocationAnalysisModifier.Lattice.BCC)
+    pipeline.modifiers.append(dxa)
+
+    data = pipeline.compute()
+    results = []
+    for segment in data.dislocations.segments:
+
+        #  insure that this is a straight dislocation
+        length = segment.length / replicate_z
+        assert abs(length - dxa_disloc.cell[2, 2]) < 0.01
+
+        b = segment.true_burgers_vector
+
+        b_hat = np.array(segment.spatial_burgers_vector)
+        b_hat /= np.linalg.norm(b_hat)
+
+        lines = np.diff(segment.points, axis=0)
+        angles = []
+        positions = []
+        for point in segment.points:
+            positions.append(point[:2])
+
+        for line in lines:
+            t_hat = line / np.linalg.norm(line)
+            dot = np.abs(np.dot(t_hat, b_hat))
+            angle = np.degrees(np.arccos(dot))
+            angles.append(angle)
+
+        position = np.array(positions).mean(axis=0)
+        line = np.array(lines).mean(axis=0)
+        angle = np.array(angles).mean()
+        results.append([position, b, line, angle])
+
+        return np.array(results)
+
+
 class CubicCrystalDislocation:
     def __init__(self, unit_cell, C11, C12, C44, axes, burgers,
                  unit_cell_core_position=None,
