@@ -31,22 +31,6 @@ except ImportError:
     print("ovito not found: skipping some tests")
 
 
-def ovito_dxa(atoms, replicate_z=3):
-    from ovito.io.ase import ase_to_ovito
-    from ovito.modifiers import ReplicateModifier, DislocationAnalysisModifier
-    from ovito.pipeline import StaticSource, Pipeline
-    
-    data = ase_to_ovito(atoms)
-    pipeline = Pipeline(source=StaticSource(data=data))
-    pipeline.modifiers.append(ReplicateModifier(num_z=replicate_z))
-    dxa = DislocationAnalysisModifier(input_crystal_structure=DislocationAnalysisModifier.Lattice.BCC)
-    pipeline.modifiers.append(dxa)
-
-    data = pipeline.compute()
-    return (np.array(data.dislocations.segments[0].true_burgers_vector),
-            data.dislocations.segments[0].length / replicate_z,
-            data.dislocations.segments[0])
-
 class TestDislocation(matscipytest.MatSciPyTestCase):
     """Class to store test for dislocation.py module."""
 
@@ -382,22 +366,14 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         np.testing.assert_array_almost_equal(displacement, stroh_displacement)
 
-        del disloc.arrays['fix_mask']  # logical properties not supported by Ovito
-        b, length, segment = ovito_dxa(disloc)
+        results = sd.ovito_dxa_straight_dislo_info(disloc)
+        assert len(results) == 1
+        position, b, line, angle = results[0]
         self.assertArrayAlmostEqual(np.abs(b), burgers)  # 1/2[111], signs can change
-        assert abs(length - disloc.cell[2, 2]) < 0.01
-        
-        b_hat = np.array(segment.spatial_burgers_vector)
-        b_hat /= np.linalg.norm(b_hat)
-        
-        lines = np.diff(segment.points, axis=0)
-        for line in lines:
-            t_hat = line / np.linalg.norm(line)
-            dot = np.abs(np.dot(t_hat, b_hat))
-            angle = np.degrees(np.arccos(dot))
-            err = angle - ref_angle
-            print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
-            assert abs(err) < tol
+
+        err = angle - ref_angle
+        print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
+        assert abs(err) < tol
 
     @unittest.skipIf("atomman" not in sys.modules or 
                      "ovito" not in sys.modules,
