@@ -423,6 +423,21 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         assert all(disloc_ini.get_array("fix_mask") ==
                    disloc_fin.get_array("fix_mask"))
 
+        results = sd.ovito_dxa_straight_dislo_info(disloc_ini)
+        assert len(results) == 1
+        ini_x_position = results[0][0][0]
+
+        results = sd.ovito_dxa_straight_dislo_info(disloc_fin)
+        assert len(results) == 1
+        fin_x_position = results[0][0][0]
+        # test that difference between initial and final positions are
+        # roughly equal to glide distance.
+        # Since the configurations are unrelaxed dxa gives
+        # a very rough estimation (especially for edge dislcoations)
+        # thus tolerance is taken to be ~1 Angstom
+        np.testing.assert_almost_equal(fin_x_position - ini_x_position,
+                                       d.glide_distance, decimal=0)
+
     @unittest.skipIf("atomman" not in sys.modules,
                      "requires atomman")
     def test_screw_glide(self):

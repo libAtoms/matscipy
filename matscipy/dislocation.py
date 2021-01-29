@@ -1995,7 +1995,8 @@ def plot_bulk(atoms, n_planes=3, ax=None, ms=200):
 def ovito_dxa_straight_dislo_info(disloc, replicate_z=3):
     """
     A function to extract information from ovito dxa analysis.
-    Current version works for configurations containing single straight dislocation.
+    Current version works for 1b thick configurations
+    containing straight dislocations.
     Parameters
     ----------
     disloc
@@ -2025,9 +2026,10 @@ def ovito_dxa_straight_dislo_info(disloc, replicate_z=3):
     results = []
     for segment in data.dislocations.segments:
 
-        #  insure that this is a straight dislocation
+        #  insure that this is a straight dislocation in a 1b thick cell
         length = segment.length / replicate_z
-        assert abs(length - dxa_disloc.cell[2, 2]) < 0.01
+        np.testing.assert_almost_equal(length, dxa_disloc.cell[2, 2],
+                                       decimal=2)
 
         b = segment.true_burgers_vector
 
