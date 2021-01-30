@@ -273,8 +273,6 @@ class AbellTersoffBrenner(Calculator):
             for y in range(3):
                 H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y])
 
-        print(H_acc.shape)
-
         if divide_by_masses:
             mass_nat = atoms.get_masses()
             geom_mean_mass_n = np.sqrt(mass_nat[i_p]*mass_nat[j_p])
