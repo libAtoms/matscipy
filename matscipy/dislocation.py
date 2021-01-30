@@ -2287,7 +2287,8 @@ class CubicCrystalDislocation:
     def build_impuruty_cylinder(self, disloc, impurity, radius,
                                 imp_symbol="H",
                                 core_position=[0., 0., 0.],
-                                extension=[0., 0., 0.]):
+                                extension=[0., 0., 0.],
+                                self_consistent=True):
 
         extent = np.array([2 * radius, 2 * radius, 1.])
         repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
@@ -2312,12 +2313,55 @@ class CubicCrystalDislocation:
         if repeat[1] % 2 != self.parity[1]:
             repeat[1] += 1
 
-        impurities = impurity(directions=self.axes.tolist(),
-                              size=(1, 1, 1),
-                              symbol=imp_symbol,
-                              pbc=(False, False, True),
-                              latticeconstant=self.alat)
+        impurities_inut_cell = impurity(directions=self.axes.tolist(),
+                                        size=(1, 1, 1),
+                                        symbol=imp_symbol,
+                                        pbc=(False, False, True),
+                                        latticeconstant=self.alat)
 
+        impurities_bulk = impurities_inut_cell * repeat
+        # in order to get center from an atom to the desired position
+        # we have to move the atoms in the opposite direction
+        impurities_bulk.positions -= self.unit_cell_core_position
+
+        # disloc is a copy of bulk with displacements applied
+        impurities_disloc = impurities_bulk.copy()
+
+        center = np.diag(impurities_bulk.cell) / 2
+        shifted_center = center + core_position
+        impurities_disloc.positions += (self.displacements(impurities_bulk.positions,
+                                                          shifted_center,
+                                                          self_consistent=self_consistent))
+
+        # build a bulk impurities cylinder
+        center = np.diag(impurities_disloc.cell) / 2
+
+        r = np.sqrt(((impurities_disloc.positions[:, [0, 1]]
+                      - center[[0, 1]]) ** 2).sum(axis=1))
+        mask = r < radius
+
+        core_position = np.array(core_position)
+        shifted_center = center + core_position
+        shifted_r = np.sqrt(((impurities_disloc.positions[:, [0, 1]] -
+                              shifted_center[[0, 1]]) ** 2).sum(axis=1))
+        shifted_mask = shifted_r < radius
+
+        extension = np.array(extension)
+        extended_center = center + extension
+        extended_r = np.sqrt(((impurities_disloc.positions[:, [0, 1]] -
+                               extended_center[[0, 1]]) ** 2).sum(axis=1))
+        extended_mask = extended_r < radius
+
+        final_mask = mask | shifted_mask | extended_mask
+        impurities_disloc = impurities_disloc[final_mask]
+
+        disloc_center = np.diag(disloc.cell) / 2
+        delta = disloc_center - center
+        delta[2] = 0.0
+        impurities_disloc.positions += delta
+        impurities_disloc.cell = disloc.cell
+
+        return impurities_disloc
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='W'):
