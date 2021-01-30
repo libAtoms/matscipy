@@ -1146,7 +1146,7 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
     # leave only atoms inside the cylinder
     bulk_tetra = bulk_tetra[final_mask]
 
-    # Create a Stroh ojbect with junk data
+    # Create a Stroh object with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
                   np.array([0, 0, 1]))
 
@@ -2057,7 +2057,7 @@ def ovito_dxa_straight_dislo_info(disloc, replicate_z=3):
 
 
 class CubicCrystalDislocation:
-    def __init__(self, unit_cell, C11, C12, C44, axes, burgers,
+    def __init__(self, unit_cell, alat, C11, C12, C44, axes, burgers,
                  unit_cell_core_position=None,
                  parity=None, glide_distance=None, n_planes=None):
         """
@@ -2070,6 +2070,7 @@ class CubicCrystalDislocation:
         Parameters
         ----------
         unit_cell : unit cell to build the dislocation configuration
+        alat : lattice constant
         C11 : elastic constants
         C12
         C44
@@ -2077,8 +2078,8 @@ class CubicCrystalDislocation:
         burgers : burgers vector of the dislocation1
         unit_cell_core_position : dislocation core position in the unit cell
                                   used to shift atomic positions to
-                                   make the dislocation core the center
-                                   of the cell
+                                  make the dislocation core the center
+                                  of the cell
         parity
         glide_distance : distance to the next equivalent
                          core position in the glide direction
@@ -2086,7 +2087,8 @@ class CubicCrystalDislocation:
             number of non equivalent planes in z direction
         """
 
-        self.unit_cell = unit_cell.copy()        
+        self.unit_cell = unit_cell.copy()
+        self.alat = alat
         self.C11 = C11
         self.C12 = C12
         self.C44 = C44
@@ -2281,6 +2283,42 @@ class CubicCrystalDislocation:
 
         return bulk_ini, disloc_ini, disloc_fin
 
+
+    def build_impuruty_cylinder(self, disloc, impurity, radius,
+                                imp_symbol="H",
+                                core_position=[0., 0., 0.],
+                                extension=[0., 0., 0.]):
+
+        extent = np.array([2 * radius, 2 * radius, 1.])
+        repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
+
+        # if the extension and core position is
+        # within the unit cell, do not add extra unit cells
+        repeat_extension = np.floor(extension /
+                                    np.diag(self.unit_cell.cell)).astype(int)
+        repeat_core_position = np.floor(core_position /
+                                    np.diag(self.unit_cell.cell)).astype(int)
+
+        extra_repeat = np.stack((repeat_core_position,
+                                 repeat_extension)).max(axis=0)
+
+        repeat += extra_repeat
+
+        repeat[2] = 1  # exactly one cell in the periodic direction
+
+        # ensure correct parity in x and y directions
+        if repeat[0] % 2 != self.parity[0]:
+            repeat[0] += 1
+        if repeat[1] % 2 != self.parity[1]:
+            repeat[1] += 1
+
+        impurities = impurity(directions=self.axes.tolist(),
+                              size=(1, 1, 1),
+                              symbol=imp_symbol,
+                              pbc=(False, False, True),
+                              latticeconstant=self.alat)
+
+
 class BCCScrew111Dislocation(CubicCrystalDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='W'):
         axes = np.array([[1, 1, -2],
@@ -2295,7 +2333,7 @@ class BCCScrew111Dislocation(CubicCrystalDislocation):
                                       pbc=True,
                                       latticeconstant=alat)
         glide_distance = alat * np.linalg.norm(axes[0]) / 3.0
-        super().__init__(unit_cell, C11, C12, C44,
+        super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance)
 
@@ -2315,7 +2353,7 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
                                       latticeconstant=alat)
         glide_distance = np.linalg.norm(burgers) / 3.0
         n_planes = 6
-        super().__init__(unit_cell, C11, C12, C44,
+        super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance, n_planes=n_planes)
 
@@ -2340,7 +2378,7 @@ class BCCMixed111Dislocation(CubicCrystalDislocation):
                                             core_position[1], 0])
 
         glide_distance = alat * np.linalg.norm(axes[0]) / 3.0
-        super().__init__(unit_cell, C11, C12, C44,
+        super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance)
 
@@ -2360,7 +2398,7 @@ class BCCEdge100Dislocation(CubicCrystalDislocation):
                                       latticeconstant=alat)
         glide_distance = alat
         n_planes = 2
-        super().__init__(unit_cell, C11, C12, C44,
+        super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance, n_planes=n_planes)
 
@@ -2380,6 +2418,6 @@ class BCCEdge100110Dislocation(CubicCrystalDislocation):
                                       latticeconstant=alat)
         glide_distance = 0.5 * alat
         n_planes = 2
-        super().__init__(unit_cell, C11, C12, C44,
+        super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance, n_planes=n_planes)
