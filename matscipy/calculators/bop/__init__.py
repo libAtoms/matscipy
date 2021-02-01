@@ -22,4 +22,4 @@
 from __future__ import absolute_import
 
 from .calculator import AbellTersoffBrenner
-from .explicit_forms import KumagaiTersoff, TersoffIII
+from .explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber

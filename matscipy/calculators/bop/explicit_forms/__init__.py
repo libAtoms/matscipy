@@ -24,5 +24,3 @@ from __future__ import absolute_import
 from .kumagai import KumagaiTersoff
 from .tersoff3 import TersoffIII
 from .stillinger_weber import StillingerWeber
-from .stillinger_weber1 import StillingerWeber1
-from .stillinger_weber2 import StillingerWeber2

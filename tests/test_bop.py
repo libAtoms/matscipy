@@ -32,7 +32,7 @@ import ase
 import matscipytest
 
 from matscipy.calculators.bop import AbellTersoffBrenner 
-from matscipy.calculators.bop.explicit_forms import KumagaiTersoff, TersoffIII
+from matscipy.calculators.bop.explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber3
 from ase import Atoms
 import ase.io
 from matscipy.hessian_finite_differences import fd_hessian
@@ -66,6 +66,18 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
         aSi = ase.io.read('aSi.cfg')
         self.compute_forces_and_hessian(aSi, TersoffIII())
 
+    def stillinger_weber(self):
+        d = 2.0  # Si2 bondlength
+        small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
+        small.center(vacuum=10.0)
+        small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
+        small2.center(vacuum=10.0)
+        self.compute_forces_and_hessian(small, StillingerWeber3())
+
+        self.compute_forces_and_hessian(small2, StillingerWeber3())
+
+        aSi = ase.io.read('aSi.cfg')
+        self.compute_forces_and_hessian(aSi, StillingerWeber3())
 
     def test_generic_potential_form(self):
         self.test_cutoff = 2.4
