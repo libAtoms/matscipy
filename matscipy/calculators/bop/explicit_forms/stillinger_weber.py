@@ -4,7 +4,7 @@ def ab(x):
     """Compute absolute value (norm) of an array of vectors"""
     return np.linalg.norm(x, axis=1)
 
-def StillingerWeber():
+def StillingerWeber3():
     """
     Implementation of the Stillinger-Weber potential for silicon.
 
@@ -24,7 +24,6 @@ def StillingerWeber():
     a = 1.80           
     lambda1 = 21.0
     gamma = 1.20   
-    cutoff = a*sigma
 
     fR = lambda r: A * epsilon * (B*np.power(sigma/r, p) - 1) * np.exp(sigma/(r-a*sigma))
     dfR = lambda r: - A*epsilon*B*p/r * np.power(sigma/r, p) * np.exp(sigma/(r-a*sigma)) - sigma/np.power(r-a*sigma, 2)*fR(r)
@@ -35,7 +34,7 @@ def StillingerWeber():
     dfA = lambda r: - gamma * sigma / np.power(r - a*sigma, 2) * fA(r)
     ddfA = lambda r: 2 * gamma * sigma / np.power(r-a*sigma, 3) * fA(r) - gamma * sigma / np.power(r-a*sigma, 2) * dfA(r)
 
-    hf = lambda rik: np.where(ab(rik)<cutoff, np.exp(gamma*sigma/(ab(rik)-a*sigma)), 0) 
+    hf = lambda rik: np.where(ab(rik)<a*sigma, np.exp(gamma*sigma/(ab(rik)-a*sigma)), 0) 
     d2h = lambda rik: -gamma * sigma / np.power(ab(rik)-a*sigma, 2) * hf(rik)
     d22h = lambda rik: 2 * gamma * sigma / np.power(ab(rik)-a*sigma, 3) * hf(rik) - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * d2h(rik)
 
@@ -43,12 +42,12 @@ def StillingerWeber():
     dg = lambda cost: 2 * (cost + costheta0)
     ddg = lambda cost: 2*cost**0
 
-    F = lambda r, xi: np.where(r < cutoff, fR(r) + lambda1 * epsilon * fA(r) * xi , 0)
-    d1F = lambda r, xi: np.where(r < cutoff, dfR(r) + lambda1 * epsilon * xi * dfA(r), 0)
-    d2F = lambda r, xi: np.where(r < cutoff, lambda1 * epsilon * fA(r), 0)
-    d11F = lambda r, xi: np.where(r < cutoff, ddfR(r) + lambda1 * epsilon * xi * ddfA(r), 0)
-    d22F = lambda r, xi: np.where(r < cutoff, 0 * r, 0 )
-    d12F = lambda r, xi: np.where(r < cutoff, lambda1 * epsilon * dfA(r), 0) 
+    F = lambda r, xi: np.where(r < a*sigma, fR(r) + lambda1 * epsilon * fA(r) * xi , 0)
+    d1F = lambda r, xi: np.where(r < a*sigma, dfR(r) + lambda1 * epsilon * xi * dfA(r), 0)
+    d2F = lambda r, xi: np.where(r < a*sigma, lambda1 * epsilon * fA(r), 0)
+    d11F = lambda r, xi: np.where(r < a*sigma, ddfR(r) + lambda1 * epsilon * xi * ddfA(r), 0)
+    d22F = lambda r, xi: np.where(r < a*sigma, 0 * r, 0 )
+    d12F = lambda r, xi: np.where(r < a*sigma, lambda1 * epsilon * dfA(r), 0) 
 
     G = lambda rij, rik: hf(rik) * g(costh(rij, rik))
 
