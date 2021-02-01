@@ -152,6 +152,7 @@ class AbellTersoffBrenner(Calculator):
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
                                              cutoff=2*self.cutoff)
+
         mask_p = r_p > self.cutoff
 
         nb_atoms = len(self.atoms)

@@ -13,6 +13,7 @@ def StillingerWeber2():
     F. Stillinger and T. Weber, Physical review B 31.8 5262 (1985)
 
     """
+
     epsilon = 2.1683         
     sigma = 2.0951         
     costheta0 = 0.333333333333
@@ -44,12 +45,12 @@ def StillingerWeber2():
     g = lambda cost: np.power(cost+costheta0, 2)
     dg = lambda cost: 2 * (cost + costheta0)
 
-    hf = lambda rij, rik: np.where((ab(rij)<cutoff) & (ab(rik)<cutoff), epsilon * np.exp(gamma*sigma/(ab(rij)-a*sigma)) * np.exp(gamma*sigma/(ab(rik)-a*sigma)), 0) 
-    d1h = lambda rij, rik: np.where((ab(rij)<cutoff) & (ab(rik)<cutoff), - gamma * sigma / np.power(ab(rij)-a*sigma, 2) * hf(rij, rik), 0)
-    d2h = lambda rij, rik: np.where((ab(rij)<cutoff) & (ab(rik)<cutoff), - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * hf(rij, rik), 0)  
-    d11h = lambda rij, rik: np.where((ab(rij)<cutoff) & (ab(rik)<cutoff), -2 * gamma * sigma / np.power(ab(rij)-a*sigma, 3) * hf(rij, rik) - gamma * sigma / np.power(ab(rij)-a*sigma, 2) * d1h(rij, rik), 0)
-    d22h = lambda rij, rik: np.where((ab(rij)<cutoff) & (ab(rik)<cutoff), gamma * sigma / np.power(ab(rik)-a*sigma, 3) * hf(rij, rik) - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * d2h(rij, rik), 0) 
-    d12h = lambda rij, rik: np.where((ab(rij)<cutoff) & (ab(rik)<cutoff), -gamma * sigma / np.power(ab(rij)-a*sigma, 2) * d2h(rij, rik), 0)
+    hf = lambda rij, rik: np.where(ab(rik)<cutoff, epsilon * np.exp(gamma*sigma/(ab(rij)-a*sigma)) * np.exp(gamma*sigma/(ab(rik)-a*sigma)), 0) 
+    d1h = lambda rij, rik: np.where(ab(rik)<cutoff, - gamma * sigma / np.power(ab(rij)-a*sigma, 2) * hf(rij, rik), 0)
+    d2h = lambda rij, rik: np.where(ab(rik)<cutoff, - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * hf(rij, rik), 0)  
+    d11h = lambda rij, rik: np.where(ab(rik)<cutoff, -2 * gamma * sigma / np.power(ab(rij)-a*sigma, 3) * hf(rij, rik) - gamma * sigma / np.power(ab(rij)-a*sigma, 2) * d1h(rij, rik), 0)
+    d22h = lambda rij, rik: np.where(ab(rik)<cutoff, gamma * sigma / np.power(ab(rik)-a*sigma, 3) * hf(rij, rik) - gamma * sigma / np.power(ab(rik)-a*sigma, 2) * d2h(rij, rik), 0) 
+    d12h = lambda rij, rik: np.where(ab(rik)<cutoff, -gamma * sigma / np.power(ab(rij)-a*sigma, 2) * d2h(rij, rik), 0)
 
     F = lambda r, xi: np.where(r < cutoff, U2(r) + lambda1 * b(xi), 0)
     d1F = lambda r, xi: np.where(r < cutoff, dU2(r), 0) 
