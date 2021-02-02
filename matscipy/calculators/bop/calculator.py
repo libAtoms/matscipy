@@ -166,6 +166,8 @@ class AbellTersoffBrenner(Calculator):
         G_t = self.G(r_pc[ij_t], r_pc[ik_t])
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
         F_p = self.F(r_p, xi_p)
+        np.save("pairs", np.stack((i_p, j_p, r_p), axis=1))
+        np.save("xi_p", xi_p)
 
         # Hessian term #4
         d1F_p = self.d1F(r_p, xi_p)
@@ -189,7 +191,6 @@ class AbellTersoffBrenner(Calculator):
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
         H_temp4_t = (d12F_p[ij_t] * (d1G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T      
 
-        
         # Hessian term #5
         d2F_p = self.d2F(r_p, xi_p)
         d2F_p[mask_p] = 0.0
@@ -211,7 +212,7 @@ class AbellTersoffBrenner(Calculator):
 
         d22F_p = self.d22F(r_p, xi_p)
         d22F_p[mask_p] = 0.0
-        
+
         # TODO: bincount multiaxis
         d1xG_p = np.bincount(ij_t, weights=d1G_t[:, 0], minlength=nb_pairs)
         d1yG_p = np.bincount(ij_t, weights=d1G_t[:, 1], minlength=nb_pairs)
