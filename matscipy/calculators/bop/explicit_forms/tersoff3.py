@@ -69,16 +69,9 @@ def TersoffIII():
     ddb = lambda xi: -0.5 * beta**2 * (n-1) * (beta * xi)**(-2 + n) * (1 + (beta * xi)**n)**(-1-1/(2*n)) - \
         0.5 * beta**2 * n * (beta * xi)**(-2 + 2*n) * ( -1 - 1/(2*n)) * (1 + (beta * xi)**n)**(-2-1/(2*n))
 
-    F = lambda r, xi: f(r) * (fR(r) + b(xi) * fA(r))
-    d1F = lambda r, xi: df(r) * (fR(r) + b(xi) * fA(r)) + f(r) * (dfR(r) + b(xi) * dfA(r))
-    d2F = lambda r, xi: f(r) * fA(r) * db(xi)
-    d11F = lambda r, xi: f(r) * (ddfR(r) + b(xi) * ddfA(r)) + 2 * df(r) * (dfR(r) + b(xi) * dfA(r)) + ddf(r) * (fR(r) + b(xi) * fA(r))
-    d22F = lambda r, xi:  f(r) * fA(r) * ddb(xi)
-    d12F = lambda r, xi: f(r) * dfA(r) * db(xi) + fA(r) * df(r) * db(xi)
-
     g = lambda cost: 1 + c**2 / d**2 - c**2 / (d**2 + (h - cost)**2)
     dg = lambda cost: -2 * c**2 * (h - cost) / (d**2 + (h - cost)**2)**2
-    ddg = lambda cost: 2 * c**2 / (d**2 + (h - cost)**2)**2 - 8 * c**2 * (h - cost)**2 / (d**2 + (h - cost)**2)**3
+    ddg = lambda cost: 2 * c**2 / (d**2 + (h - cost)**2)**2 - 8 * c**2 * (h - cost)**2 / (d**2 + (h - cost)**2)**3        
 
     hf = lambda rij, rik: f(ab(rik)) * np.exp(lam3*(ab(rij)-ab(rik))**delta)
     d1h = lambda rij, rik: lam3 * hf(rij, rik)
@@ -93,46 +86,64 @@ def TersoffIII():
          + 2 * (lam3*delta)*np.exp(lam3*(ab(rij)-ab(rik))**delta)*df(ab(rik))
          + lam3**2 * hf(rij, rik))
 
-    Dg2 = lambda rij, rik: (dg(costh(rij, rik)) * c2(rij, rik).T).T
-    Dg1 = lambda rij, rik: (dg(costh(rij, rik)) * c1(rij, rik).T).T
 
-    Dg11 = lambda rij, rik: \
-        (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)).T
-         + dg(costh(rij, rik)) * dc11(rij, rik).T).T
-    
-    Dg22 = lambda rij, rik: \
-        (ddg(costh(rij, rik)) * (c2(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
-         + dg(costh(rij, rik)) * dc22(rij, rik).T).T
-    Dg12 = lambda rij, rik: \
-        (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
-         + dg(costh(rij, rik)) * dc12(rij, rik).T).T
-        
+    F = lambda r, xi: f(r) * (fR(r) + b(xi) * fA(r))
+    d1F = lambda r, xi: df(r) * (fR(r) + b(xi) * fA(r)) + f(r) * (dfR(r) + b(xi) * dfA(r))
+    d2F = lambda r, xi: f(r) * fA(r) * db(xi)
+    d11F = lambda r, xi: f(r) * (ddfR(r) + b(xi) * ddfA(r)) + 2 * df(r) * (dfR(r) + b(xi) * dfA(r)) + ddf(r) * (fR(r) + b(xi) * fA(r))
+    d22F = lambda r, xi:  f(r) * fA(r) * ddb(xi)
+    d12F = lambda r, xi: f(r) * dfA(r) * db(xi) + fA(r) * df(r) * db(xi)
+
+
     G = lambda rij, rik: g(costh(rij, rik)) * hf(rij, rik)
     
     d1G = lambda rij, rik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
     d2G = lambda rij, rik: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
 
-    Dh2 = lambda rij, rik: (d2h(rij, rik) * rik.T / ab(rik)).T
     Dh1 = lambda rij, rik: (d1h(rij, rik) * rij.T / ab(rij)).T
+    Dh2 = lambda rij, rik: (d2h(rij, rik) * rik.T / ab(rik)).T
+
+    Dg1 = lambda rij, rik: (dg(costh(rij, rik)) * c1(rij, rik).T).T
+    Dg2 = lambda rij, rik: (dg(costh(rij, rik)) * c2(rij, rik).T).T
+
+   
+    d11G = lambda rij, rik: \
+        Dg1(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
+        + ((g(costh(rij, rik)) * Dh11(rij, rik).T).T + (hf(rij, rik) * Dg11(rij, rik).T).T)
 
     Dh11 = lambda rij, rik: \
         (d11h(rij, rik) * (((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T \
          + d1h(rij, rik) * ((np.eye(3) - ((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T/ab(rij))).T
+
+    Dg11 = lambda rij, rik: \
+        (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)).T
+         + dg(costh(rij, rik)) * dc11(rij, rik).T).T
+
+
+    d22G = lambda rij, rik: \
+        Dg2(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh2(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
+        + ((g(costh(rij, rik)) * Dh22(rij, rik).T).T + (hf(rij, rik) * Dg22(rij, rik).T).T)       
+
     Dh22 = lambda rij, rik: \
         (d22h(rij, rik) * (((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T \
          + d2h(rij, rik) * ((np.eye(3) - ((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T/ab(rik))).T
-    Dh12 = lambda rij, rik: \
-        (d12h(rij, rik) * (rij.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/(ab(rij)*ab(rik))).T
-        
-    d11G = lambda rij, rik: \
-        Dg1(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
-        + ((g(costh(rij, rik)) * Dh11(rij, rik).T).T + (hf(rij, rik) * Dg11(rij, rik).T).T)
-    d22G = lambda rij, rik: \
-        Dg2(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh2(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
-        + ((g(costh(rij, rik)) * Dh22(rij, rik).T).T + (hf(rij, rik) * Dg22(rij, rik).T).T)
+
+    Dg22 = lambda rij, rik: \
+        (ddg(costh(rij, rik)) * (c2(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
+         + dg(costh(rij, rik)) * dc22(rij, rik).T).T
+
+
     d12G = lambda rij, rik: \
         Dg1(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh12(rij, rik).T).T + (hf(rij, rik) * Dg12(rij, rik).T).T)
+
+    Dh12 = lambda rij, rik: \
+        (d12h(rij, rik) * (rij.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/(ab(rij)*ab(rik))).T
+   
+    Dg12 = lambda rij, rik: \
+        (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
+         + dg(costh(rij, rik)) * dc12(rij, rik).T).T
+
 
     # 
     costh = lambda rij, rik: np.sum(rij*rik, axis=1) / (ab(rij)*ab(rik))
