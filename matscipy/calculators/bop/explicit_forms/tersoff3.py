@@ -1,7 +1,20 @@
 import numpy as np
 
+
+def ab(x):
+    """Compute absolute value (norm) of an array of vectors"""
+    return np.linalg.norm(x, axis=1)
+
 def TersoffIII():
-    # TODO: not compatible with vectorized version yet !!!
+    """
+    Implementation of the T3 potential for silicon.
+
+    Reference
+    ------------
+    J. Tersoff, Physical review B 39.8 (1989): 5566.
+
+    """
+
     A = 1.8308e3
     B = 4.7118e2
     chi = 1.0
@@ -23,7 +36,7 @@ def TersoffIII():
         np.ones_like(r),
         np.where(r > R_2,
             np.zeros_like(r),
-            (1 + np.cos((np.pi*(r-R_1)/(R_2-r1))))/2
+            (1 + np.cos((np.pi*(r-R_1)/(R_2-R_1))))/2
             )
         )
     df = lambda r: np.where(
@@ -80,27 +93,6 @@ def TersoffIII():
          + 2 * (lam3*delta)*np.exp(lam3*(ab(rij)-ab(rik))**delta)*df(ab(rik))
          + lam3**2 * hf(rij, rik))
 
-    costh = lambda rij, rik: np.sum(rij*rik, axis=1) / (ab(rij)*ab(rik))
-
-    c1 = lambda rij, rik: ((rik.T/ab(rik) - rij.T/ab(rij) * costh(rij, rik)) / ab(rij)).T
-    c2 = lambda rij, rik: ((rij.T/ab(rij) - rik.T/ab(rik) * costh(rij, rik)) / ab(rik)).T
-
-    dc11 = lambda rij, rik: \
-        ((- c1(rij, rik).reshape(-1, 3, 1) * rij.reshape(-1, 1, 3) \
-         - rij.reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3) \
-         - (costh(rij, rik) * (np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T).T \
-        ).T/ab(rij)**2).T
-    dc22 = lambda rij, rik: \
-        ((- c2(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3) \
-         - rik.reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3) \
-         - (costh(rij, rik) * (np.eye(3) -  ((rik.reshape(-1, 1, 3)*rik.reshape(-1, 3, 1)).T/ab(rik)**2).T).T).T \
-        ).T/ab(rik)**2).T
-    
-    dc12 = lambda rij, rik: \
-        (((np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T/ab(rij)
-         - (c1(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik) \
-        )/ab(rik)).T
-
     Dg2 = lambda rij, rik: (dg(costh(rij, rik)) * c2(rij, rik).T).T
     Dg1 = lambda rij, rik: (dg(costh(rij, rik)) * c1(rij, rik).T).T
 
@@ -141,6 +133,28 @@ def TersoffIII():
     d12G = lambda rij, rik: \
         Dg1(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh12(rij, rik).T).T + (hf(rij, rik) * Dg12(rij, rik).T).T)
+
+    # 
+    costh = lambda rij, rik: np.sum(rij*rik, axis=1) / (ab(rij)*ab(rik))
+
+    c1 = lambda rij, rik: ((rik.T/ab(rik) - rij.T/ab(rij) * costh(rij, rik)) / ab(rij)).T
+    c2 = lambda rij, rik: ((rij.T/ab(rij) - rik.T/ab(rik) * costh(rij, rik)) / ab(rik)).T
+
+    dc11 = lambda rij, rik: \
+        ((- c1(rij, rik).reshape(-1, 3, 1) * rij.reshape(-1, 1, 3) \
+         - rij.reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3) \
+         - (costh(rij, rik) * (np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T).T \
+        ).T/ab(rij)**2).T
+    dc22 = lambda rij, rik: \
+        ((- c2(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3) \
+         - rik.reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3) \
+         - (costh(rij, rik) * (np.eye(3) -  ((rik.reshape(-1, 1, 3)*rik.reshape(-1, 3, 1)).T/ab(rik)**2).T).T).T \
+        ).T/ab(rik)**2).T
+    
+    dc12 = lambda rij, rik: \
+        (((np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T/ab(rij)
+         - (c1(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik) \
+        )/ab(rik)).T
 
     return {
         'F': F,

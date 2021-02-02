@@ -4,7 +4,7 @@ def ab(x):
     """Compute absolute value (norm) of an array of vectors"""
     return np.linalg.norm(x, axis=1)
 
-def StillingerWeber3():
+def StillingerWeber():
     """
     Implementation of the Stillinger-Weber potential for silicon.
 
