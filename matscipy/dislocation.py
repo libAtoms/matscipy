@@ -10,6 +10,7 @@ from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
 from ase.lattice.cubic import SimpleCubicFactory
 from ase.io import read
+from ase.geometry import get_distances
 
 from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
@@ -1304,12 +1305,12 @@ class BodyCenteredCubicOctahedralFactory(SimpleCubicFactory):
     """A factory for creating octahedral lattices in bcc structure"""
     xtal_name = "bcc_octahedral"
 
-    bravais_basis = [[0.0, 0.0, 0.5],
+    bravais_basis = [[0.5, 0.5, 0.0],
+                     [0.0, 0.0, 0.5],
                      [0.5, 0.0, 0.0],
                      [0.5, 0.0, 0.5],
                      [0.0, 0.5, 0.0],
-                     [0.0, 0.5, 0.5],
-                     [0.5, 0.5, 0.0]]
+                     [0.0, 0.5, 0.5]]
 
 
 def dipole_displacement_angle(W_bulk, dislo_coord_left, dislo_coord_right,
@@ -2056,6 +2057,46 @@ def ovito_dxa_straight_dislo_info(disloc, replicate_z=3):
         return np.array(results)
 
 
+def get_centering_mask(atoms, radius,
+                       core_position=[0., 0., 0.],
+                       extension=[0., 0., 0.],):
+
+    center = np.diag(atoms.cell) / 2
+
+    r = np.sqrt(((atoms.positions[:, [0, 1]]
+                  - center[[0, 1]]) ** 2).sum(axis=1))
+    mask = r < radius
+
+    core_position = np.array(core_position)
+    shifted_center = center + core_position
+    shifted_r = np.sqrt(((atoms.positions[:, [0, 1]] -
+                          shifted_center[[0, 1]]) ** 2).sum(axis=1))
+    shifted_mask = shifted_r < radius
+
+    extension = np.array(extension)
+    extended_center = center + extension
+    extended_r = np.sqrt(((atoms.positions[:, [0, 1]] -
+                           extended_center[[0, 1]]) ** 2).sum(axis=1))
+    extended_mask = extended_r < radius
+
+    final_mask = mask | shifted_mask | extended_mask
+
+    return final_mask
+
+
+def check_duplicates(atoms, distance=0.1):
+    """
+    Returns a mask of atoms that have at least one other atom closer than distance
+    """
+    mask = atoms.get_all_distances() < distance
+    duplicates = np.full_like(atoms, False)
+    for i, row in enumerate(mask):
+        if any(row[i+1:]):
+            duplicates[i] = True
+    # print(f"found {duplicates.sum()} duplicates")
+    return duplicates.astype(np.bool)
+
+
 class CubicCrystalDislocation:
     def __init__(self, unit_cell, alat, C11, C12, C44, axes, burgers,
                  unit_cell_core_position=None,
@@ -2167,7 +2208,8 @@ class CubicCrystalDislocation:
         return disp2
 
     def build_cylinder(self, radius,
-                       core_position=[0., 0., 0.], extension=[0., 0., 0.],
+                       core_position=np.array([0., 0., 0.]),
+                       extension=np.array([0., 0., 0.]),
                        fix_width=10.0, self_consistent=True):
         extent = np.array([2 * (radius + fix_width),
                            2 * (radius + fix_width), 1.])
@@ -2247,7 +2289,7 @@ class CubicCrystalDislocation:
     def build_glide_configurations(self, radius,
                                    average_positions=False, **kwargs):
 
-        final_core_position = [self.glide_distance, 0.0, 0.0]
+        final_core_position = np.array([self.glide_distance, 0.0, 0.0])
 
         bulk_ini, disloc_ini = self.build_cylinder(radius,
                                                    extension=final_core_position,
@@ -2283,14 +2325,16 @@ class CubicCrystalDislocation:
 
         return bulk_ini, disloc_ini, disloc_fin
 
-
     def build_impuruty_cylinder(self, disloc, impurity, radius,
                                 imp_symbol="H",
-                                core_position=[0., 0., 0.],
-                                extension=[0., 0., 0.],
-                                self_consistent=True):
+                                core_position=np.array([0., 0., 0.]),
+                                extension=np.array([0., 0., 0.]),
+                                self_consistent=False,
+                                extra_bulk_at_core=False,
+                                shift=np.array([0.0, 0.0, 0.0])):
 
-        extent = np.array([2 * radius, 2 * radius, 1.])
+        extent = np.array([2 * radius + np.linalg.norm(self.burgers),
+                           2 * radius + np.linalg.norm(self.burgers), 1.])
         repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
 
         # if the extension and core position is
@@ -2313,49 +2357,65 @@ class CubicCrystalDislocation:
         if repeat[1] % 2 != self.parity[1]:
             repeat[1] += 1
 
-        impurities_inut_cell = impurity(directions=self.axes.tolist(),
+        impurities_unit_cell = impurity(directions=self.axes.tolist(),
                                         size=(1, 1, 1),
                                         symbol=imp_symbol,
                                         pbc=(False, False, True),
                                         latticeconstant=self.alat)
 
-        impurities_bulk = impurities_inut_cell * repeat
+        impurities_unit_cell.cell = self.unit_cell.cell
+        impurities_unit_cell.wrap(pbc=True)
+        duplicates = check_duplicates(impurities_unit_cell)
+        impurities_unit_cell = impurities_unit_cell[np.logical_not(duplicates)]
+
+        impurities_bulk = impurities_unit_cell * repeat
         # in order to get center from an atom to the desired position
         # we have to move the atoms in the opposite direction
         impurities_bulk.positions -= self.unit_cell_core_position
 
-        # disloc is a copy of bulk with displacements applied
-        impurities_disloc = impurities_bulk.copy()
+        # build a bulk impurities cylinder
+        mask = get_centering_mask(impurities_bulk,
+                                  radius + np.linalg.norm(self.burgers),
+                                  core_position, extension)
+
+        impurities_bulk = impurities_bulk[mask]
 
         center = np.diag(impurities_bulk.cell) / 2
         shifted_center = center + core_position
-        impurities_disloc.positions += (self.displacements(impurities_bulk.positions,
+
+        # use stroh displacement for impurities
+        # disloc is a copy of bulk with displacements applied
+        impurities_disloc = impurities_bulk.copy()
+
+        core_mask = get_centering_mask(impurities_bulk,
+                                       0.5,
+                                       core_position, extension)
+
+        print(f"Ignoring {core_mask.sum()} core impurities")
+        non_core_mask = np.logical_not(core_mask)
+
+        displacemets = self.displacements(impurities_bulk.positions[non_core_mask],
                                                           shifted_center,
-                                                          self_consistent=self_consistent))
+                                                          self_consistent=self_consistent)
 
-        # build a bulk impurities cylinder
-        center = np.diag(impurities_disloc.cell) / 2
+        impurities_disloc.positions[non_core_mask] += displacemets
 
-        r = np.sqrt(((impurities_disloc.positions[:, [0, 1]]
-                      - center[[0, 1]]) ** 2).sum(axis=1))
-        mask = r < radius
+        if extra_bulk_at_core:  # add extra bulk positions at dislocation core
+            bulk_mask = get_centering_mask(impurities_bulk,
+                                           1.1 * self.unit_cell_core_position[1],
+                                           core_position + shift, extension)
 
-        core_position = np.array(core_position)
-        shifted_center = center + core_position
-        shifted_r = np.sqrt(((impurities_disloc.positions[:, [0, 1]] -
-                              shifted_center[[0, 1]]) ** 2).sum(axis=1))
-        shifted_mask = shifted_r < radius
+            print(f"Adding {bulk_mask.sum()} extra atoms")
+            impurities_disloc.extend(impurities_bulk[bulk_mask])
 
-        extension = np.array(extension)
-        extended_center = center + extension
-        extended_r = np.sqrt(((impurities_disloc.positions[:, [0, 1]] -
-                               extended_center[[0, 1]]) ** 2).sum(axis=1))
-        extended_mask = extended_r < radius
+        mask = get_centering_mask(impurities_disloc,
+                                  radius,
+                                  core_position,
+                                  extension)
 
-        final_mask = mask | shifted_mask | extended_mask
-        impurities_disloc = impurities_disloc[final_mask]
+        impurities_disloc = impurities_disloc[mask]
 
-        disloc_center = np.diag(disloc.cell) / 2
+        disloc_center = np.diag(disloc.cell) / 2.
         delta = disloc_center - center
         delta[2] = 0.0
         impurities_disloc.positions += delta
