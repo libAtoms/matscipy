@@ -4,9 +4,9 @@ Change log
 v0.8.0 (not yet released)
 -------------------------
 
-- Calculator for bond-order potentials
-- Hessian calculation for bond-order potentials
-- Specific parameterization for Kumagai and Tersoff
+- Calculator for bond-order potentials and Stillinger-Weber
+- Hessian calculation for bond-order potentials and Stillinger-Weber
+- Specific bond-order parameterization for Kumagai and Tersoff3
 
 v0.7.0 (17Nov20)
 ----------------

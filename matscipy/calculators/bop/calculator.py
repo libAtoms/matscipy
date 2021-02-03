@@ -34,7 +34,7 @@ from matscipy.neighbours import find_indices_of_reversed_pairs, first_neighbours
     neighbour_list, triplet_list
 
 class AbellTersoffBrenner(Calculator):
-    implemented_properties = ['energy', 'forces']
+    implemented_properties = ['energy', 'stress', 'forces']
     default_parameters = {}
     name = 'ThreeBodyPotential'
 
@@ -110,9 +110,17 @@ class AbellTersoffBrenner(Calculator):
         fz_n = 0.5*(np.bincount(i_p, weights=fz_p) -
                     np.bincount(j_p, weights=fz_p))
 
-        f_n = np.transpose([fx_n, fy_n, fz_n])
+        f_nc = np.transpose([fx_n, fy_n, fz_n])
 
-        self.results = {'energy': epot, 'forces': f_n}
+        # Virial 
+        virial_v = - np.array([r_pc[:, 0]*f_nc[:, 0],               # xx
+                               r_pc[., 1]*f_nc[:, 1],               # yy
+                               r_pc[:, 2]*f_nc[:, 2],               # zz
+                               r_pc[:, 1]*f_nc[:, 2],               # yz
+                               r_pc[:, 0]*f_nc[:, 2],               # xz
+                               r_pc[:, 0]*f_nc[:, 1]]).sum(axis=1)  # xy 
+
+        self.results = {'energy': epot, 'stress': virial_v/self.atoms.get_volume(), 'forces': f_nc}
 
     def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
         """
@@ -166,8 +174,6 @@ class AbellTersoffBrenner(Calculator):
         G_t = self.G(r_pc[ij_t], r_pc[ik_t])
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
         F_p = self.F(r_p, xi_p)
-        np.save("pairs", np.stack((i_p, j_p, r_p), axis=1))
-        np.save("xi_p", xi_p)
 
         # Hessian term #4
         d1F_p = self.d1F(r_p, xi_p)
