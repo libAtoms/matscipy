@@ -1,5 +1,4 @@
 import numpy as np
-import collections
 
 # Original parametrization: F. Stillinger and T. Weber, Physical review B 31.8 5262 (1985)
 original_SW = {"epsilon": 2.1683, "sigma": 2.0951, "costheta0": 0.333333333333, "A": 7.049556277, "B": 0.6022245584, "p": 4, "a": 1.80, "lambda1": 21.0, "gamma": 1.20}
@@ -147,7 +146,6 @@ def StillingerWeber(parameters=original_SW):
         )/ab(rik)).T
 
     costh = lambda rij, rik: np.sum(rij*rik, axis=1) / (ab(rij)*ab(rik))    
-
 
     return {
         'F': F,

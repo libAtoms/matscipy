@@ -33,7 +33,7 @@ from ase.calculators.calculator import Calculator
 from matscipy.neighbours import find_indices_of_reversed_pairs, first_neighbours, \
     neighbour_list, triplet_list
 
-class AbellTersoffBrenner(Calculator):
+class AbellTersoffBrennerStillingerWeber(Calculator):
     implemented_properties = ['energy', 'stress', 'forces']
     default_parameters = {}
     name = 'ThreeBodyPotential'

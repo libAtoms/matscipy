@@ -31,13 +31,13 @@ import ase
 
 import matscipytest
 
-from matscipy.calculators.bop import AbellTersoffBrenner 
-from matscipy.calculators.bop.explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber
+from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber 
+from matscipy.calculators.bop_sw.explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber
 from ase import Atoms
 import ase.io
 from matscipy.hessian_finite_differences import fd_hessian
 
-class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
+class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
     def test_hessian_divide_by_masses(self):
         """
@@ -46,13 +46,12 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
         atoms = ase.io.read('aSi.cfg')
         masses_n = np.random.randint(1, 10, size=len(atoms))
         atoms.set_masses(masses=masses_n)
-        calc = AbellTersoffBrenner(**KumagaiTersoff())
+        calc = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff())
         D_ana = calc.calculate_hessian_matrix(atoms, divide_by_masses=True).todense()
         H_ana = calc.calculate_hessian_matrix(atoms).todense()
         masses_nc = masses_n.repeat(3)
         H_ana /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
         self.assertArrayAlmostEqual(D_ana, H_ana, tol=1e-4)
-
 
     def test_kumagai_tersoff(self):
         """
@@ -185,8 +184,6 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
         'd11G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
         'cutoff': self.test_cutoff}
 
-
-
     def compute_forces_and_hessian(self, a, par):
         """ function to test the bop AbellTersoffBrenner class on
             a potential given by the form defined in par
@@ -199,7 +196,7 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
             defines the explicit form of the bond order potential
         
         """
-        calculator = AbellTersoffBrenner(**par)
+        calculator = AbellTersoffBrennerStillingerWeber(**par)
         a.set_calculator(calculator)
 
         ana_forces = a.get_forces()
