@@ -113,12 +113,12 @@ class AbellTersoffBrenner(Calculator):
         f_nc = np.transpose([fx_n, fy_n, fz_n])
 
         # Virial 
-        virial_v = - np.array([r_pc[:, 0]*f_nc[:, 0],               # xx
-                               r_pc[., 1]*f_nc[:, 1],               # yy
-                               r_pc[:, 2]*f_nc[:, 2],               # zz
-                               r_pc[:, 1]*f_nc[:, 2],               # yz
-                               r_pc[:, 0]*f_nc[:, 2],               # xz
-                               r_pc[:, 0]*f_nc[:, 1]]).sum(axis=1)  # xy 
+        virial_v = - np.array([r_pc[:, 0]*fx_p,               # xx
+                               r_pc[:, 1]*fy_p,               # yy
+                               r_pc[:, 2]*fz_p,               # zz
+                               r_pc[:, 1]*fz_p,               # yz
+                               r_pc[:, 0]*fz_p,               # xz
+                               r_pc[:, 0]*fy_p]).sum(axis=1)  # xy 
 
         self.results = {'energy': epot, 'stress': virial_v/self.atoms.get_volume(), 'forces': f_nc}
 
@@ -146,6 +146,8 @@ class AbellTersoffBrenner(Calculator):
         ----------
         This method is currently only implemented for three dimensional systems
         """
+        if self.atoms is None:
+            self.atoms = atoms
 
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,

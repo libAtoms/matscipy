@@ -1,29 +1,43 @@
 import numpy as np
+import collections
+
+# Original parametrization: F. Stillinger and T. Weber, Physical review B 31.8 5262 (1985)
+original_SW = {"epsilon": 2.1683, "sigma": 2.0951, "costheta0": 0.333333333333, "A": 7.049556277, "B": 0.6022245584, "p": 4, "a": 1.80, "lambda1": 21.0, "gamma": 1.20}
+
+# D. Holland and M. Marder Physical Review Letters 80.4 (1998): 746.
+brittle_fracture_SW = {"epsilon": 2.1683, "sigma": 2.0951, "costheta0": 0.333333333333, "A": 7.049556277, "B": 0.6022245584, "p": 4, "a": 1.80, "lambda1": 42.0, "gamma": 1.20}
+
+# RLC Vink et al. Journal of non-crystalline solids 282.2-3 (2001): 248-255.
+aSi_SW = {"epsilon": 1.64833, "sigma": 2.0951, "costheta0": 0.333333333333, "A": 7.049556277, "B": 0.6022245584, "p": 4, "a": 1.80, "lambda1": 31.5, "gamma": 1.20}
 
 def ab(x):
     """Compute absolute value (norm) of an array of vectors"""
     return np.linalg.norm(x, axis=1)
 
-def StillingerWeber():
+def StillingerWeber(parameters=original_SW):
     """
-    Implementation of the Stillinger-Weber potential for silicon.
+    Implementation of the functional form of the Stillinger-Weber potential.
 
     Reference
     ------------
     F. Stillinger and T. Weber, Physical review B 31.8 5262 (1985)
 
     """
-
-    epsilon = 2.1683         
-    sigma = 2.0951         
-    costheta0 = 0.333333333333
-    A = 7.049556277    
-    B = 0.6022245584   
-    p = 4              
-    q = 0              
-    a = 1.80           
-    lambda1 = 21.0
-    gamma = 1.20   
+    if len(parameters) == 9:
+        try:
+            epsilon = parameters["epsilon"]
+            sigma = parameters["sigma"]
+            costheta0 = parameters["costheta0"]
+            A = parameters["A"]
+            B = parameters["B"]
+            p = parameters["p"]
+            a = parameters["a"]
+            lambda1 = parameters["lambda1"]
+            gamma = parameters["gamma"]
+        except KeyError:
+            raise KeyError("One or some necessary parameters are missing!")
+    else:
+        raise AssertionError("Either a parameter is missing or not enough parameters are given!")
 
     fR = lambda r: A * epsilon * (B*np.power(sigma/r, p) - 1) * np.exp(sigma/(r-a*sigma))
     dfR = lambda r: - A*epsilon*B*p/r * np.power(sigma/r, p) * np.exp(sigma/(r-a*sigma)) - sigma/np.power(r-a*sigma, 2)*fR(r)
@@ -42,12 +56,41 @@ def StillingerWeber():
     dg = lambda cost: 2 * (cost + costheta0)
     ddg = lambda cost: 2*cost**0
 
+    """
     F = lambda r, xi: np.where(r < a*sigma, fR(r) + lambda1 * epsilon * fA(r) * xi , 0)
     d1F = lambda r, xi: np.where(r < a*sigma, dfR(r) + lambda1 * epsilon * xi * dfA(r), 0)
     d2F = lambda r, xi: np.where(r < a*sigma, lambda1 * epsilon * fA(r), 0)
     d11F = lambda r, xi: np.where(r < a*sigma, ddfR(r) + lambda1 * epsilon * xi * ddfA(r), 0)
-    d22F = lambda r, xi: np.where(r < a*sigma, 0 * r, 0 )
+    d22F = lambda r, xi: np.zeros_like(r)
     d12F = lambda r, xi: np.where(r < a*sigma, lambda1 * epsilon * dfA(r), 0) 
+    """
+    def F(r, xi):
+        mask = (r < a*sigma)
+        F_n = np.zeros_like(r)
+        F_n[mask] = fR(r[mask]) + lambda1 * epsilon * fA(r[mask]) * xi[mask]
+        return F_n
+    def d1F(r, xi):
+        mask = (r < a*sigma)
+        d1F_n = np.zeros_like(r)
+        d1F_n[mask] = dfR(r[mask]) + lambda1 * epsilon * xi[mask] * dfA(r[mask])
+        return d1F_n
+    def d2F(r, xi):
+        mask = (r < a*sigma)
+        d2F_n = np.zeros_like(r)
+        d2F_n[mask] = lambda1 * epsilon * fA(r[mask])     
+        return d2F_n
+    def d11F(r, xi):
+        mask = (r < a*sigma)
+        d11F_n = np.zeros_like(r)
+        d11F_n[mask] = ddfR(r[mask]) + lambda1 * epsilon * xi[mask] * ddfA(r[mask])   
+        return d11F_n
+    def d22F(r, xi):
+        return np.zeros_like(r)
+    def d12F(r, xi):
+        mask = (r < a*sigma)
+        d12F_n = np.zeros_like(r)
+        d12F_n[mask] = lambda1 * epsilon * dfA(r[mask])
+        return d12F_n
 
     G = lambda rij, rik: hf(rik) * g(costh(rij, rik))
 

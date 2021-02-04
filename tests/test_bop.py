@@ -32,52 +32,75 @@ import ase
 import matscipytest
 
 from matscipy.calculators.bop import AbellTersoffBrenner 
-from matscipy.calculators.bop.explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber3
+from matscipy.calculators.bop.explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber
 from ase import Atoms
 import ase.io
 from matscipy.hessian_finite_differences import fd_hessian
 
 class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
 
-    def test_kumagai_tersoff(self):
-        d = 2.0  # Si2 bondlength
-        small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
-        small.center(vacuum=10.0)
-        small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
-        small2.center(vacuum=10.0)
-        self.compute_forces_and_hessian(small, KumagaiTersoff())
+    def test_hessian_divide_by_masses(self):
+        """
+        Test the computation of dynamical matrix
+        """
+        atoms = ase.io.read('aSi.cfg')
+        masses_n = np.random.randint(1, 10, size=len(atoms))
+        atoms.set_masses(masses=masses_n)
+        calc = AbellTersoffBrenner(**KumagaiTersoff())
+        D_ana = calc.calculate_hessian_matrix(atoms, divide_by_masses=True).todense()
+        H_ana = calc.calculate_hessian_matrix(atoms).todense()
+        masses_nc = masses_n.repeat(3)
+        H_ana /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
+        self.assertArrayAlmostEqual(D_ana, H_ana, tol=1e-4)
 
-        self.compute_forces_and_hessian(small2, KumagaiTersoff())
+
+    def test_kumagai_tersoff(self):
+        """
+        Test forces and hessian matrix for Kumagai  
+        """
+        for d in np.arange(1.0, 2.3, 0.15):
+            small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
+            small.center(vacuum=10.0)
+            small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
+            small2.center(vacuum=10.0)
+
+            self.compute_forces_and_hessian(small, KumagaiTersoff())
+            self.compute_forces_and_hessian(small2, KumagaiTersoff())
 
         aSi = ase.io.read('aSi.cfg')
         self.compute_forces_and_hessian(aSi, KumagaiTersoff())
 
-    def tersoffIII(self):
-        # not marked as test yet. TersoffIII not vectorized yet.
-        d = 2.0  # Si2 bondlength
-        small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
-        small.center(vacuum=10.0)
-        small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
-        small2.center(vacuum=10.0)
-        self.compute_forces_and_hessian(small, TersoffIII())
-
-        self.compute_forces_and_hessian(small2, TersoffIII())
+    def test_tersoffIII(self):
+        """
+        Test forces and hessian matrix for Tersoff3
+        """
+        for d in np.arange(1.0, 2.3, 0.15):        
+            small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
+            small.center(vacuum=10.0)
+            small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
+            small2.center(vacuum=10.0)
+        
+            self.compute_forces_and_hessian(small, TersoffIII())
+            self.compute_forces_and_hessian(small2, TersoffIII())
 
         aSi = ase.io.read('aSi.cfg')
         self.compute_forces_and_hessian(aSi, TersoffIII())
 
-    def stillinger_weber(self):
-        d = 2.0  # Si2 bondlength
-        small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
-        small.center(vacuum=10.0)
-        small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
-        small2.center(vacuum=10.0)
-        self.compute_forces_and_hessian(small, StillingerWeber3())
-
-        self.compute_forces_and_hessian(small2, StillingerWeber3())
+    def test_stillinger_weber(self):
+        """
+        Test forces and hessian matrix for Stillinger-Weber
+        """
+        for d in np.arange(1.0, 1.8, 0.15):  
+            small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
+            small.center(vacuum=10.0)
+            small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
+            small2.center(vacuum=10.0)
+        
+            self.compute_forces_and_hessian(small, StillingerWeber())
+            self.compute_forces_and_hessian(small2, StillingerWeber())
 
         aSi = ase.io.read('aSi.cfg')
-        self.compute_forces_and_hessian(aSi, StillingerWeber3())
+        self.compute_forces_and_hessian(aSi, StillingerWeber())
 
     def test_generic_potential_form(self):
         self.test_cutoff = 2.4
@@ -179,18 +202,16 @@ class TestAbellTersoffBrenner(matscipytest.MatSciPyTestCase):
         calculator = AbellTersoffBrenner(**par)
         a.set_calculator(calculator)
 
-        print('FORCES')
         ana_forces = a.get_forces()
         num_forces = calculator.calculate_numerical_forces(a, d=1e-5)
-        print('num\n', num_forces)
-        print('ana\n', ana_forces)
+        #print('num\n', num_forces)
+        #print('ana\n', ana_forces)
         assert np.allclose(ana_forces, num_forces, rtol=1e-3)
         
-        print('HESSIAN')
         ana_hessian = calculator.calculate_hessian_matrix(a).todense()
         num_hessian = fd_hessian(a, dx=1e-5, indices=None).todense()
-        print('ana\n', ana_hessian)
-        print('num\n', num_hessian)
-        print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
+        #print('ana\n', ana_hessian)
+        #print('num\n', num_hessian)
+        #print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
         assert np.allclose(ana_hessian, ana_hessian.T, atol=1e-6)
-        assert np.allclose(ana_hessian, num_hessian, atol=1e-3)
+        assert np.allclose(ana_hessian, num_hessian, atol=1e-4)
