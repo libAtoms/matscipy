@@ -32,6 +32,9 @@ import ase
 import matscipytest
 
 from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber 
+import matscipy.calculators.bop_sw.explicit_forms.stillinger_weber as sw
+import matscipy.calculators.bop_sw.explicit_forms.kumagai as kum
+import matscipy.calculators.bop_sw.explicit_forms.tersoff3 as t3
 from matscipy.calculators.bop_sw.explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber
 from ase import Atoms
 import ase.io
@@ -46,7 +49,8 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         atoms = ase.io.read('aSi.cfg')
         masses_n = np.random.randint(1, 10, size=len(atoms))
         atoms.set_masses(masses=masses_n)
-        calc = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff())
+        kumagai_potential = kum.kumagai
+        calc = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         D_ana = calc.calculate_hessian_matrix(atoms, divide_by_masses=True).todense()
         H_ana = calc.calculate_hessian_matrix(atoms).todense()
         masses_nc = masses_n.repeat(3)
@@ -57,49 +61,52 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         """
         Test forces and hessian matrix for Kumagai  
         """
+        kumagai_potential = kum.kumagai
         for d in np.arange(1.0, 2.3, 0.15):
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
             small.center(vacuum=10.0)
             small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
             small2.center(vacuum=10.0)
 
-            self.compute_forces_and_hessian(small, KumagaiTersoff())
-            self.compute_forces_and_hessian(small2, KumagaiTersoff())
+            self.compute_forces_and_hessian(small, KumagaiTersoff(kumagai_potential))
+            self.compute_forces_and_hessian(small2, KumagaiTersoff(kumagai_potential))
 
         aSi = ase.io.read('aSi.cfg')
-        self.compute_forces_and_hessian(aSi, KumagaiTersoff())
+        self.compute_forces_and_hessian(aSi, KumagaiTersoff(kumagai_potential))
 
     def test_tersoffIII(self):
         """
         Test forces and hessian matrix for Tersoff3
         """
+        T3_Si_potential = t3.tersoff3_Si
         for d in np.arange(1.0, 2.3, 0.15):        
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
             small.center(vacuum=10.0)
             small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
             small2.center(vacuum=10.0)
         
-            self.compute_forces_and_hessian(small, TersoffIII())
-            self.compute_forces_and_hessian(small2, TersoffIII())
+            self.compute_forces_and_hessian(small, TersoffIII(T3_Si_potential))
+            self.compute_forces_and_hessian(small2, TersoffIII(T3_Si_potential))
 
         aSi = ase.io.read('aSi.cfg')
-        self.compute_forces_and_hessian(aSi, TersoffIII())
+        self.compute_forces_and_hessian(aSi, TersoffIII(T3_Si_potential))
 
     def test_stillinger_weber(self):
         """
         Test forces and hessian matrix for Stillinger-Weber
         """
+        SW_potential = sw.original_SW
         for d in np.arange(1.0, 1.8, 0.15):  
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
             small.center(vacuum=10.0)
             small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
             small2.center(vacuum=10.0)
         
-            self.compute_forces_and_hessian(small, StillingerWeber())
-            self.compute_forces_and_hessian(small2, StillingerWeber())
+            self.compute_forces_and_hessian(small, StillingerWeber(SW_potential))
+            self.compute_forces_and_hessian(small2, StillingerWeber(SW_potential))
 
         aSi = ase.io.read('aSi.cfg')
-        self.compute_forces_and_hessian(aSi, StillingerWeber())
+        self.compute_forces_and_hessian(aSi, StillingerWeber(SW_potential))
 
     def test_generic_potential_form(self):
         self.test_cutoff = 2.4
