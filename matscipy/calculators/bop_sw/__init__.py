@@ -21,5 +21,5 @@
 
 from __future__ import absolute_import
 
-from .kumagai import KumagaiTersoff
-from .tersoff3 import TersoffIII
+from .calculator import AbellTersoffBrennerStillingerWeber
+from .explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber

@@ -25,7 +25,7 @@ from .eam import EAM
 from .pair_potential import PairPotential
 from .supercell_calculator import SupercellCalculator
 from .polydisperse import Polydisperse
-from .bop import AbellTersoffBrenner
+from .bop_sw import AbellTersoffBrennerStillingerWeber
 
 try:
     import scipy.sparse as sp

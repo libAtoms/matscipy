@@ -23,7 +23,7 @@
 Bond Order Potential.
 """
 import numpy as np
-
+import sys
 import ase
 from scipy.sparse import bsr_matrix
 
@@ -33,8 +33,8 @@ from ase.calculators.calculator import Calculator
 from matscipy.neighbours import find_indices_of_reversed_pairs, first_neighbours, \
     neighbour_list, triplet_list
 
-class AbellTersoffBrenner(Calculator):
-    implemented_properties = ['energy', 'forces']
+class AbellTersoffBrennerStillingerWeber(Calculator):
+    implemented_properties = ['energy', 'stress', 'forces']
     default_parameters = {}
     name = 'ThreeBodyPotential'
 
@@ -68,7 +68,7 @@ class AbellTersoffBrenner(Calculator):
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
                                              cutoff=self.cutoff)
-
+        
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
@@ -85,7 +85,7 @@ class AbellTersoffBrenner(Calculator):
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
         F_p = self.F(r_p, xi_p)
         epot = 0.5 * np.sum(F_p)
-
+     
         d1G_t = self.d1G(r_pc[ij_t], r_pc[ik_t])
         d2F_d2G_t = (self.d2F(r_p[ij_t], xi_p[ij_t]) * self.d2G(r_pc[ij_t], r_pc[ik_t]).T).T
         # calculate forces (per pair)
@@ -110,9 +110,17 @@ class AbellTersoffBrenner(Calculator):
         fz_n = 0.5*(np.bincount(i_p, weights=fz_p) -
                     np.bincount(j_p, weights=fz_p))
 
-        f_n = np.transpose([fx_n, fy_n, fz_n])
+        f_nc = np.transpose([fx_n, fy_n, fz_n])
 
-        self.results = {'energy': epot, 'forces': f_n}
+        # Virial 
+        virial_v = - np.array([r_pc[:, 0]*fx_p,               # xx
+                               r_pc[:, 1]*fy_p,               # yy
+                               r_pc[:, 2]*fz_p,               # zz
+                               r_pc[:, 1]*fz_p,               # yz
+                               r_pc[:, 0]*fz_p,               # xz
+                               r_pc[:, 0]*fy_p]).sum(axis=1)  # xy 
+
+        self.results = {'energy': epot, 'stress': virial_v/self.atoms.get_volume(), 'forces': f_nc}
 
     def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
         """
@@ -138,10 +146,13 @@ class AbellTersoffBrenner(Calculator):
         ----------
         This method is currently only implemented for three dimensional systems
         """
+        if self.atoms is None:
+            self.atoms = atoms
 
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
                                              cutoff=2*self.cutoff)
+
         mask_p = r_p > self.cutoff
 
         nb_atoms = len(self.atoms)
@@ -188,7 +199,6 @@ class AbellTersoffBrenner(Calculator):
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
         H_temp4_t = (d12F_p[ij_t] * (d1G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T      
 
-        
         # Hessian term #5
         d2F_p = self.d2F(r_p, xi_p)
         d2F_p[mask_p] = 0.0
@@ -210,7 +220,7 @@ class AbellTersoffBrenner(Calculator):
 
         d22F_p = self.d22F(r_p, xi_p)
         d22F_p[mask_p] = 0.0
-        
+
         # TODO: bincount multiaxis
         d1xG_p = np.bincount(ij_t, weights=d1G_t[:, 0], minlength=nb_pairs)
         d1yG_p = np.bincount(ij_t, weights=d1G_t[:, 1], minlength=nb_pairs)
