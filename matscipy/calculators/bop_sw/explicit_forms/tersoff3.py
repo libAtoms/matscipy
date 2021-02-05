@@ -8,7 +8,9 @@ tersoff3_Si = T3_parameters(A=1.8308e3, B=4.7118e2, chi=1.0, lam=2.4799e0, mu=1.
                d=1.6217e1, h=-5.9825e-1, R_1=2.70, R_2=3.00, lam3=0.0, delta=3)
 
 def ab(x):
-    """Compute absolute value (norm) of an array of vectors"""
+    """
+    Compute absolute value (norm) of an array of vectors
+    """
     return np.linalg.norm(x, axis=1)
 
 def TersoffIII(parameters=tersoff3_Si):
@@ -35,8 +37,8 @@ def TersoffIII(parameters=tersoff3_Si):
         R_2 = parameters.R_2
         lam3 = parameters.lam3
         delta = parameters.delta
-    except KeyError:
-        raise KeyError("One or some necessary parameters are missing!")
+    except AttributeError:
+        raise AttributeError("Parameters need to be a namedtuple of type T3_parameters!")
 
     f = lambda r: np.where(
         r < R_1,

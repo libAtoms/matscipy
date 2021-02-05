@@ -40,6 +40,8 @@ from ase import Atoms
 import ase.io
 from matscipy.hessian_finite_differences import fd_hessian
 
+###
+
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
     def test_hessian_divide_by_masses(self):
@@ -219,3 +221,8 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         #print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
         assert np.allclose(ana_hessian, ana_hessian.T, atol=1e-6)
         assert np.allclose(ana_hessian, num_hessian, atol=1e-4)
+
+###
+
+if __name__ == '__main__':
+    unittest.main()

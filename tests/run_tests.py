@@ -46,7 +46,7 @@ from hessian_finite_differences import *
 from eam_calculator_forces_and_hessian import *
 from pair_potential_calculator import *
 from polydisperse_calculator import *
-from bop_calculator import *
+from bopsw import *
 
 if sys.version_info.major > 2:
     from test_c2d import *

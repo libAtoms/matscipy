@@ -21,7 +21,9 @@ glassforming_SW = SW_parameters(epsilon=1.64833, sigma=2.0951, costheta0=0.33333
                             p=4, a=1.80, lambda1=18.75, gamma=1.20)
 
 def ab(x):
-    """Compute absolute value (norm) of an array of vectors"""
+    """
+    Compute absolute value (norm) of an array of vectors
+    """
     return np.linalg.norm(x, axis=1)
 
 def StillingerWeber(parameters=original_SW):
@@ -44,7 +46,7 @@ def StillingerWeber(parameters=original_SW):
         lambda1 = parameters.lambda1
         gamma = parameters.gamma
     except AttributeError:
-        raise AttributeError("One or some necessary parameters are missing!")
+        raise AttributeError("Parameters need to be a namedtuple of type SW_parameters!")
 
     fR = lambda r: A * epsilon * (B*np.power(sigma/r, p) - 1) * np.exp(sigma/(r-a*sigma))
     dfR = lambda r: - A*epsilon*B*p/r * np.power(sigma/r, p) * np.exp(sigma/(r-a*sigma)) - sigma/np.power(r-a*sigma, 2)*fR(r)
@@ -63,14 +65,6 @@ def StillingerWeber(parameters=original_SW):
     dg = lambda cost: 2 * (cost + costheta0)
     ddg = lambda cost: 2*cost**0
 
-    """
-    F = lambda r, xi: np.where(r < a*sigma, fR(r) + lambda1 * epsilon * fA(r) * xi , 0)
-    d1F = lambda r, xi: np.where(r < a*sigma, dfR(r) + lambda1 * epsilon * xi * dfA(r), 0)
-    d2F = lambda r, xi: np.where(r < a*sigma, lambda1 * epsilon * fA(r), 0)
-    d11F = lambda r, xi: np.where(r < a*sigma, ddfR(r) + lambda1 * epsilon * xi * ddfA(r), 0)
-    d22F = lambda r, xi: np.zeros_like(r)
-    d12F = lambda r, xi: np.where(r < a*sigma, lambda1 * epsilon * dfA(r), 0) 
-    """
     def F(r, xi):
         mask = (r < a*sigma)
         F_n = np.zeros_like(r)
