@@ -218,7 +218,7 @@ class EAM(Calculator):
                         'forces': forces_ic}
     
     def calculate_hessian_matrix(self, atoms, divide_by_masses=False
-                                 , terms = 0b11111111, calculate_pair_term = True):
+                                 , terms=["pair", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"]):
         r"""Compute the Hessian matrix
 
         The Hessian matrix is the matrix of second derivatives 
@@ -319,12 +319,10 @@ class EAM(Calculator):
         atoms : ase.Atoms
         divide_by_masses : bool
             Divide block :math:`\nu\mu` by :math:`m_\nu{}m_\mu{}` to obtain the dynamical matrix
-        terms : number 
-            number between 0 and 255 to select which terms should be calculated
-            the bit-representation is used to select which terms should be calculated 
-        calculate_pair_term: boolean
-            If True calculate the pair term contribution to the hesssian,
-            if false then not
+        terms : list of strings 
+            The list of the terms, that should be calculated.
+            For the pair term the string "pair" should be in the list and for
+            term x the string "Tx" has to be in the list.
 
         Returns
         -------
@@ -369,60 +367,65 @@ class EAM(Calculator):
                                                    self._db_cutoff)
 
         # Calculate derivatives of the pair energy
-        drep_n = np.zeros_like(abs_dr_n)  # first derivative
-        ddrep_n = np.zeros_like(abs_dr_n) # second derivative
-        for atidx1, atnum1 in enumerate(self._db_atomic_numbers):
-            rep1 = self.rep[atidx1]
-            drep1 = self.drep[atidx1]
-            ddrep1 = self.ddrep[atidx1]
-            mask1 = atnums[i_n]==atnum1
-            if mask1.sum() > 0:
-                for atidx2, atnum2 in enumerate(self._db_atomic_numbers):
-                    rep = rep1[atidx2]
-                    drep = drep1[atidx2]
-                    ddrep = ddrep1[atidx2]
-                    mask = np.logical_and(mask1, atnums[j_n]==atnum2)
-                    if mask.sum() > 0:
-                        r = rep(abs_dr_n[mask])/abs_dr_n[mask]
-                        drep_n[mask] = (drep(abs_dr_n[mask])-r) / abs_dr_n[mask]
-                        ddrep_n[mask] = (ddrep(abs_dr_n[mask]) - 2.0 * drep_n[mask]) / abs_dr_n[mask]
-        # Calculate electron density and its derivatives
-        f_n = np.zeros_like(abs_dr_n)
-        df_n = np.zeros_like(abs_dr_n)  # first derivative
-        ddf_n = np.zeros_like(abs_dr_n) # second derivative
-        for atidx1, atnum1 in enumerate(self._db_atomic_numbers):
-            f1 = self.f[atidx1]     
-            df1 = self.df[atidx1]   
-            ddf1 = self.ddf[atidx1] 
-            mask1 = atnums[j_n]==atnum1
-            if mask1.sum() > 0:
-                if type(f1) == list:
+        # if the pair term should be calculated
+        if "pair" in terms:
+            drep_n = np.zeros_like(abs_dr_n)  # first derivative
+            ddrep_n = np.zeros_like(abs_dr_n) # second derivative
+            for atidx1, atnum1 in enumerate(self._db_atomic_numbers):
+                rep1 = self.rep[atidx1]
+                drep1 = self.drep[atidx1]
+                ddrep1 = self.ddrep[atidx1]
+                mask1 = atnums[i_n]==atnum1
+                if mask1.sum() > 0:
                     for atidx2, atnum2 in enumerate(self._db_atomic_numbers):
-                        f = f1[atidx2]
-                        df = df1[atidx2]
-                        ddf = ddf1[atidx2]
-                        mask = np.logical_and(mask1, atnums[i_n]==atnum2)
+                        rep = rep1[atidx2]
+                        drep = drep1[atidx2]
+                        ddrep = ddrep1[atidx2]
+                        mask = np.logical_and(mask1, atnums[j_n]==atnum2)
                         if mask.sum() > 0:
-                            f_n[mask] = f(abs_dr_n[mask])
-                            df_n[mask] = df(abs_dr_n[mask])
-                            ddf_n[mask] = ddf(abs_dr_n[mask])
-                else:
-                    f_n[mask1] = f1(abs_dr_n[mask1])
-                    df_n[mask1] = df1(abs_dr_n[mask1])
-                    ddf_n[mask1] = ddf1(abs_dr_n[mask1])
-        # Accumulate density contributions
-        density_i = np.bincount(i_n, weights=f_n, minlength=nat)
-        # Calculate the derivatives of the embedding energy
-        demb_i = np.zeros(nat)   # first derivative
-        ddemb_i = np.zeros(nat)  # second derivative
-        for atidx, atnum in enumerate(self._db_atomic_numbers):
-            F = self.F[atidx]
-            dF = self.dF[atidx]
-            ddF = self.ddF[atidx]
-            mask = atnums==atnum
-            if mask.sum() > 0:
-                demb_i[mask] += dF(density_i[mask])
-                ddemb_i[mask] += ddF(density_i[mask])
+                            r = rep(abs_dr_n[mask])/abs_dr_n[mask]
+                            drep_n[mask] = (drep(abs_dr_n[mask])-r) / abs_dr_n[mask]
+                            ddrep_n[mask] = (ddrep(abs_dr_n[mask]) - 2.0 * drep_n[mask]) / abs_dr_n[mask]
+        # Calculate electron density and its derivatives
+        # if at least one of the embedded terms should be calculated
+        embedded_terms_list = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"]
+        if any(term in embedded_terms_list for term in terms):
+            f_n = np.zeros_like(abs_dr_n)
+            df_n = np.zeros_like(abs_dr_n)  # first derivative
+            ddf_n = np.zeros_like(abs_dr_n) # second derivative
+            for atidx1, atnum1 in enumerate(self._db_atomic_numbers):
+                f1 = self.f[atidx1]     
+                df1 = self.df[atidx1]   
+                ddf1 = self.ddf[atidx1] 
+                mask1 = atnums[j_n]==atnum1
+                if mask1.sum() > 0:
+                    if type(f1) == list:
+                        for atidx2, atnum2 in enumerate(self._db_atomic_numbers):
+                            f = f1[atidx2]
+                            df = df1[atidx2]
+                            ddf = ddf1[atidx2]
+                            mask = np.logical_and(mask1, atnums[i_n]==atnum2)
+                            if mask.sum() > 0:
+                                f_n[mask] = f(abs_dr_n[mask])
+                                df_n[mask] = df(abs_dr_n[mask])
+                                ddf_n[mask] = ddf(abs_dr_n[mask])
+                    else:
+                        f_n[mask1] = f1(abs_dr_n[mask1])
+                        df_n[mask1] = df1(abs_dr_n[mask1])
+                        ddf_n[mask1] = ddf1(abs_dr_n[mask1])
+            # Accumulate density contributions
+            density_i = np.bincount(i_n, weights=f_n, minlength=nat)
+            # Calculate the derivatives of the embedding energy
+            demb_i = np.zeros(nat)   # first derivative
+            ddemb_i = np.zeros(nat)  # second derivative
+            for atidx, atnum in enumerate(self._db_atomic_numbers):
+                F = self.F[atidx]
+                dF = self.dF[atidx]
+                ddF = self.ddF[atidx]
+                mask = atnums==atnum
+                if mask.sum() > 0:
+                    demb_i[mask] += dF(density_i[mask])
+                    ddemb_i[mask] += ddF(density_i[mask])
 
         # There are two ways to divide the Hessian by atomic masses, either
         # during or after construction. The former is preferable with regard
@@ -447,7 +450,8 @@ class EAM(Calculator):
         eye_minus_outer_e_ncc = np.eye(3, dtype=e_nc.dtype) - outer_e_ncc
         
         D = bsr_matrix((3*nat, 3*nat), dtype = e_nc.dtype)
-        if calculate_pair_term:
+        # Only calculate the pair term if "pair" is in terms
+        if "pair" in terms:
             D += self._calculate_hessian_pair_term(
                 nat, i_n, j_n, abs_dr_n, first_i, 
                 drep_n, ddrep_n, outer_e_ncc, eye_minus_outer_e_ncc, 
@@ -458,73 +462,74 @@ class EAM(Calculator):
 
         #------------------------------------------------------------------------ 
         # Calculate contribution of embedding term
-        #------------------------------------------------------------------------ 
-        # For each pair in the neighborlist, create arrays which store the 
-        # derivatives of the embedding energy of the corresponding atoms.
-        demb_i_n = np.take(demb_i, i_n)
-        demb_j_n = np.take(demb_i, j_n)
-
-        # Let r be an index into the neighbor list. df_n[r] contains the the
-        # contribution from atom j_n[r] to the derivative of the electron
-        # density of atom i_n[r]. We additionally need the contribution of
-        # i_n[r] to the derivative of j_n[r]. This value is also in df_n,
-        # but at a different position. reverse[r] gives the new index s
-        # where we find this value. The same indexing applies to ddf_n.
-        reverse = find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n)
-        df_i_n = np.take(df_n, reverse)
-        ddf_i_n = np.take(ddf_n, reverse)
-        #we already have ddf_j_n = ddf_n 
-        reverse = None
-
-        df_n_e_nc_outer_product = (df_n * e_nc.T).T
-        df_e_ni = np.empty((nat, 3), dtype=df_n.dtype)
-        for x in range(3):
-            df_e_ni[:, x] = np.bincount(
-                i_n, weights=df_n_e_nc_outer_product[:, x], minlength=nat
-            )
-        df_n_e_nc_outer_product = None
+        #------------------------------------------------------------------------
         
-        if (terms & 0b00000001) > 0:
-            D += self._calculate_hessian_embedding_term_1(
-                nat, ddemb_i, df_e_ni, 
-                divide_by_masses, masses_i
-           )
-        if (terms & 0b00000010) > 0:
-            D += self._calculate_hessian_embedding_term_2(
-                nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni, 
-                divide_by_masses, geom_mean_mass_n
-            )
-        if (terms & 0b00000100) > 0:
-            D += self._calculate_hessian_embedding_term_3(
-                nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni, 
-                divide_by_masses, geom_mean_mass_n
-            )
-        df_e_ni = None
-        if (terms & 0b00011000) > 0:
-            D += self._calculate_hessian_embedding_terms_4_and_5(
-                nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
-                divide_by_masses, masses_i, geom_mean_mass_n, calculate_term_4= terms & 0b00001000,
-                calculate_term_5= terms  & 0b00010000
-            )
-        outer_e_ncc = None
-        ddf_i_n = None
-        ddf_n = None
-        if (terms & 0b01100000) > 0:
-            D += self._calculate_hessian_embedding_terms_6_and_7(
-                nat, i_n, j_n, first_i, abs_dr_n, eye_minus_outer_e_ncc, demb_i_n, demb_j_n, df_n, df_i_n,
-                divide_by_masses, masses_i, geom_mean_mass_n, calculate_term_6= terms & 0b00100000,
-                calculate_term_7= terms  & 0b01000000
-            )
-        eye_minus_outer_e_ncc = None
-        df_n = None
-        demb_i_n = None
-        demb_j_n = None
-        abs_dr_n = None
-        if (terms & 0b10000000) > 0:
-            D += self._calculate_hessian_embedding_term_8(
-                nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
-                divide_by_masses, masses_i, geom_mean_mass_n
-            )
+        # Check if at least one of the embedding terms should be calculated
+        if any(term in embedded_terms_list for term in terms):
+            # For each pair in the neighborlist, create arrays which store the 
+            # derivatives of the embedding energy of the corresponding atoms.
+            demb_i_n = np.take(demb_i, i_n)
+            demb_j_n = np.take(demb_i, j_n)
+    
+            # Let r be an index into the neighbor list. df_n[r] contains the the
+            # contribution from atom j_n[r] to the derivative of the electron
+            # density of atom i_n[r]. We additionally need the contribution of
+            # i_n[r] to the derivative of j_n[r]. This value is also in df_n,
+            # but at a different position. reverse[r] gives the new index s
+            # where we find this value. The same indexing applies to ddf_n.
+            reverse = find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n)
+            df_i_n = np.take(df_n, reverse)
+            ddf_i_n = np.take(ddf_n, reverse)
+            # we already have ddf_j_n = ddf_n 
+            reverse = None
+    
+            df_n_e_nc_outer_product = (df_n * e_nc.T).T
+            df_e_ni = np.empty((nat, 3), dtype=df_n.dtype)
+            for x in range(3):
+                df_e_ni[:, x] = np.bincount(
+                    i_n, weights=df_n_e_nc_outer_product[:, x], minlength=nat
+                )
+            df_n_e_nc_outer_product = None
+            
+            if "T1" in terms:
+                D += self._calculate_hessian_embedding_term_1(
+                    nat, ddemb_i, df_e_ni, 
+                    divide_by_masses, masses_i
+               )
+            if "T2" in terms:
+                D += self._calculate_hessian_embedding_term_2(
+                    nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni, 
+                    divide_by_masses, geom_mean_mass_n
+                )
+            if "T3" in terms:
+                D += self._calculate_hessian_embedding_term_3(
+                    nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni, 
+                    divide_by_masses, geom_mean_mass_n
+                )
+            df_e_ni = None
+            if "T4" in terms or "T5" in terms:
+                D += self._calculate_hessian_embedding_terms_4_and_5(
+                    nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
+                    divide_by_masses, masses_i, geom_mean_mass_n, terms=terms
+                )
+            outer_e_ncc = None
+            ddf_i_n = None
+            ddf_n = None
+            if "T6" in terms or "T7" in terms:
+                D += self._calculate_hessian_embedding_terms_6_and_7(
+                    nat, i_n, j_n, first_i, abs_dr_n, eye_minus_outer_e_ncc, demb_i_n, demb_j_n, df_n, df_i_n,
+                    divide_by_masses, masses_i, geom_mean_mass_n, terms=terms
+                )
+            eye_minus_outer_e_ncc = None
+            df_n = None
+            demb_i_n = None
+            demb_j_n = None
+            abs_dr_n = None
+            if "T8" in terms:
+                D += self._calculate_hessian_embedding_term_8(
+                    nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
+                    divide_by_masses, masses_i, geom_mean_mass_n
+                )
         return D
 
     def _calculate_hessian_pair_term(
@@ -735,7 +740,7 @@ class EAM(Calculator):
     def _calculate_hessian_embedding_terms_4_and_5(
         self, nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False,
-        calculate_term_4 = True, calculate_term_5 = True):
+        terms=["T4", "T5"]):
         """Calculate term 4 and 5 in the embedding part of the Hessian matrix.
 
         .. math::
@@ -780,43 +785,44 @@ class EAM(Calculator):
             geometric mean of masses of pairs of atoms
         symmetry_check : bool
             Check if the terms are symmetric
-        calculate_term_4 : bool
-            Calclulate term 4 if True
-        calculate_term_5 : bool
-            Calculate term 5 if True
+        terms: list of strings
+            The list of the terms, that should be calculated.
+            For term 4 "T4" and for term 5 "T5".
 
         Returns
         -------
         D : scipy.sparse.bsr_matrix
         """
-        tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_e_ncc.T).T 
-        matrix_term_4_or_5 = bsr_matrix((3*nat, 3*nat), dtype = tmp_1.dtype)
         # We don't immediately add term 4 to the matrix, because it would have 
         # to be normalized by the masses if divide_by_masses is true. However,
         # for construction of term 5, we need term 4 without normalization
+        tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_e_ncc.T).T 
+        matrix_contribution_of_t4_and_t5 = bsr_matrix((3*nat, 3*nat), dtype = tmp_1.dtype)
         
-        if calculate_term_5 :
+        # Calculate term 5 if "T5" is in terms 
+        if "T5" in terms:
             tmp_1_summed = np.empty((nat, 3, 3), dtype=tmp_1.dtype)
             for x in range(3):
                 for y in range(3):
                     tmp_1_summed[:, x, y] = -np.bincount(i_n, weights=tmp_1[:, x, y]) 
             if divide_by_masses:
                 tmp_1_summed /= masses_i
-            matrix_term_4_or_5 += bsr_matrix((tmp_1_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+            matrix_contribution_of_t4_and_t5 += bsr_matrix((tmp_1_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
             if symmetry_check: 
                 print("check term 5", np.linalg.norm(term_5.todense() - term_5.todense().T))
-        if calculate_term_4 :        
+        # If term 4 should be calculated add it the the matrix
+        if "T4" in terms:        
             if divide_by_masses:
                 tmp_1 /= geom_mean_mass_n
-            matrix_term_4_or_5 += bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
+            matrix_contribution_of_t4_and_t5 += bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
             if symmetry_check: 
                 print("check term 4", np.linalg.norm(term_4.todense() - term_4.todense().T))
-        return matrix_term_4_or_5
+        return matrix_contribution_of_t4_and_t5
     
     def _calculate_hessian_embedding_terms_6_and_7(
         self, nat, i_n, j_n, first_i, abs_dr_n, eye_minus_outer_e_ncc, demb_i_n, demb_j_n, df_n, df_i_n,
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False,
-        calculate_term_6 = True, calculate_term_7 = True):
+        terms=["T6", "T7"]):
         """Calculate term 6 and 7 in the embedding part of the Hessian matrix.
 
         .. math::
@@ -868,10 +874,9 @@ class EAM(Calculator):
             geometric mean of masses of pairs of atoms
         symmetry_check : bool
             Check if the terms are symmetric
-        calculate_term_6 : bool
-            Calclulate term 6 if True
-        calculate_term_7 : bool
-            Calculate term 7 if True
+        terms: list of strings
+            The list of the terms, that should be calculated.
+            For term 6 "T6" and for term 7 "T7".
 
         Returns
         -------
@@ -880,24 +885,28 @@ class EAM(Calculator):
         # Like term 4, which was needed to construct term 5, we don't add 
         # term 6 immediately, because it is needed for construction of term 7
         tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * eye_minus_outer_e_ncc.T).T
-        matrix_term_6_or_7 = bsr_matrix((3*nat, 3*nat), dtype= tmp_2.dtype)
-        if calculate_term_7:
+        matrix_contribution_of_t6_and_t7 = bsr_matrix((3*nat, 3*nat), dtype= tmp_2.dtype)
+        
+        # Calculate term 7 if "T7" is in terms
+        if "T7" in terms:
             tmp_2_summed = np.empty((nat, 3, 3), dtype=tmp_2.dtype)
             for x in range(3):
                 for y in range(3):
                     tmp_2_summed[:, x, y] = -np.bincount(i_n, weights=tmp_2[:, x, y]) 
             if divide_by_masses:
                 tmp_2_summed /= masses_i
-            matrix_term_6_or_7 += bsr_matrix((tmp_2_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+            matrix_contribution_of_t6_and_t7 += bsr_matrix((tmp_2_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
             if symmetry_check: 
                 print("check term 7", np.linalg.norm(term_7.todense() - term_7.todense().T))
-        if calculate_term_6:
+                
+        # Add term 6 to the matrix, if it should be calculated
+        if "T6" in terms:
             if divide_by_masses:
                 tmp_2 /= geom_mean_mass_n
-            matrix_term_6_or_7 += bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
+            matrix_contribution_of_t6_and_t7 += bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
             if symmetry_check: 
                 print("check term 6", np.linalg.norm(term_6.todense() - term_6.todense().T))
-        return matrix_term_6_or_7
+        return matrix_contribution_of_t6_and_t7
     
     def _calculate_hessian_embedding_term_8(self, nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
