@@ -2331,6 +2331,7 @@ class CubicCrystalDislocation:
                                 extension=np.array([0., 0., 0.]),
                                 self_consistent=False,
                                 extra_bulk_at_core=False,
+                                core_radius=0.5,
                                 shift=np.array([0.0, 0.0, 0.0])):
 
         extent = np.array([2 * radius + np.linalg.norm(self.burgers),
@@ -2388,7 +2389,7 @@ class CubicCrystalDislocation:
         impurities_disloc = impurities_bulk.copy()
 
         core_mask = get_centering_mask(impurities_bulk,
-                                       0.5,
+                                       core_radius,
                                        core_position, extension)
 
         print(f"Ignoring {core_mask.sum()} core impurities")
