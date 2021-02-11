@@ -2029,8 +2029,12 @@ def ovito_dxa_straight_dislo_info(disloc, replicate_z=3):
 
         #  insure that this is a straight dislocation in a 1b thick cell
         length = segment.length / replicate_z
-        np.testing.assert_almost_equal(length, dxa_disloc.cell[2, 2],
-                                       decimal=2)
+        try:
+            np.testing.assert_almost_equal(length, dxa_disloc.cell[2, 2],
+                                           decimal=2)
+        except AssertionError as error:
+            print("Dislocation might not be straight:")
+            print(error)
 
         b = segment.true_burgers_vector
 
