@@ -147,14 +147,14 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                                                      cylinder_r=cylinder_r,
                                                      l_extend=center)
 
-        disloc_ini.set_calculator(lammps)
+        disloc_ini.calc = lammps
         ini_toten = disloc_ini.get_potential_energy()
         self.assertAlmostEqual(ini_toten, target_toten, places=4)
 
         disloc_fin, __, __ = sd.make_screw_cyl(alat, C11, C12, C44,
                                                cylinder_r=cylinder_r,
                                                center=center)
-        disloc_fin.set_calculator(lammps)
+        disloc_fin.calc = lammps
         fin_toten = disloc_fin.get_potential_energy()
         self.assertAlmostEqual(fin_toten, target_toten, places=4)
         os.remove("lammps.log")
