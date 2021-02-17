@@ -438,28 +438,33 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         np.testing.assert_almost_equal(fin_x_position - ini_x_position,
                                        d.glide_distance, decimal=0)
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                     "requires atomman")
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_screw_glide(self):
         self.check_glide_configs(sd.BCCScrew111Dislocation)
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                     "requires atomman")
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_edge_glide(self):
         self.check_glide_configs(sd.BCCEdge111Dislocation)
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                     "requires atomman")
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_mixed_glide(self):
         self.check_glide_configs(sd.BCCMixed111Dislocation)
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                     "requires atomman")
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_edge100_glide(self):
         self.check_glide_configs(sd.BCCEdge100Dislocation)
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                         "requires atomman")
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_edge100110_glide(self):
             self.check_glide_configs(sd.BCCEdge100110Dislocation)
 
