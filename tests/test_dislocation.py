@@ -242,7 +242,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         alat = 3.14
         C11 = 523.0
-        C12 = 202.0
+        C12 = 202.05
         C44 = 160.49
 
         # A = 2. * C44 / (C11 - C12)
@@ -260,8 +260,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         u_volterra = np.arctan2(y, x) * burgers / (2.0 * np.pi)
 
         # compare x and y components with zeros - isotropic solution
-        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 0], tol=1e-5)
-        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 1], tol=1e-5)
+        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 0], tol=1e-4)
+        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 1], tol=1e-4)
         #  compare z component with simple Volterra solution
         self.assertArrayAlmostEqual(u_volterra, u_stroh[:, 2])
 
