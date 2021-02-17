@@ -2104,7 +2104,8 @@ def check_duplicates(atoms, distance=0.1):
 class CubicCrystalDislocation:
     def __init__(self, unit_cell, alat, C11, C12, C44, axes, burgers,
                  unit_cell_core_position=None,
-                 parity=None, glide_distance=None, n_planes=None):
+                 parity=None, glide_distance=None, n_planes=None,
+                 self_consistent=None):
         """
         This class represents a dislocation in a cubic crystal
 
@@ -2130,6 +2131,8 @@ class CubicCrystalDislocation:
                          core position in the glide direction
         n_planes : int
             number of non equivalent planes in z direction
+        self_consistent : float
+            default value for the displacement calcualtion
         """
 
         self.unit_cell = unit_cell.copy()
@@ -2152,6 +2155,10 @@ class CubicCrystalDislocation:
         if n_planes is None:
             n_planes = 3
         self.n_planes = n_planes
+        if self_consistent is None:
+            self_consistent = True
+        self.self_consistent = self_consistent
+
 
     # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
         from atomman import ElasticConstants
@@ -2214,7 +2221,11 @@ class CubicCrystalDislocation:
     def build_cylinder(self, radius,
                        core_position=np.array([0., 0., 0.]),
                        extension=np.array([0., 0., 0.]),
-                       fix_width=10.0, self_consistent=True):
+                       fix_width=10.0, self_consistent=None):
+
+        if self_consistent is None:
+            self_consistent = self.self_consistent
+
         extent = np.array([2 * (radius + fix_width),
                            2 * (radius + fix_width), 1.])
         repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
@@ -2532,7 +2543,7 @@ class BCCEdge100110Dislocation(CubicCrystalDislocation):
                          glide_distance, n_planes=n_planes)
 
 
-class DiamondGlide30degree(CubicCrystalDislocation):
+class DiamondGlide30degreePartial(CubicCrystalDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
         axes = np.array([[1, 1, -2],
                          [1, 1, 1],
@@ -2561,7 +2572,7 @@ class DiamondGlide30degree(CubicCrystalDislocation):
                          glide_distance, n_planes=n_planes)
 
 
-class DiamondGlide90degree(CubicCrystalDislocation):
+class DiamondGlide90degreePartial(CubicCrystalDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
         axes = np.array([[1, 1, -2],
                          [1, 1, 1],
