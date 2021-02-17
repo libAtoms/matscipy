@@ -367,7 +367,7 @@ def show_NEB_configurations(images, bulk, xyscale=7,
     fig2 = plt.figure(figsize=(n_images * 4, 4))
 
     for i, image in enumerate(images):
-        ax1 = fig2.add_subplot("1%i%i" % (n_images, i+1))
+        ax1 = fig2.add_subplot(1, n_images, i + 1)
         plot_vitek(image, bulk, plot_axes=ax1, xyscale=xyscale)
         if core_positions is not None:
             x, y = core_positions[i]
@@ -534,7 +534,7 @@ def make_barrier_configurations(elastic_param=None,
         alat, C11, C12, C44 = elastic_param
         cutoff = 5.5
 
-    cent_x = np.sqrt(6.0)*alat/3.0
+    cent_x = np.sqrt(6.0) * alat / 3.0
     center = [cent_x, 0.0, 0.0]
 
     disloc_ini, bulk_ini, __ = make_screw_cyl(alat, C11, C12, C44,
