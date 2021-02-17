@@ -369,7 +369,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
         assert len(results) == 1
         position, b, line, angle = results[0]
-        self.assertArrayAlmostEqual(np.abs(b), burgers)  # 1/2[111], signs can change
+        self.assertArrayAlmostEqual(np.abs(b), burgers)  # signs can change
 
         err = angle - ref_angle
         print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
@@ -406,6 +406,22 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                      "requires atomman and ovito")
     def test_mixed_dislocation(self):
         self.check_disloc(sd.BCCMixed111Dislocation, 70.5)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_30degree_diamond_partial_dislocation(self,):
+        self.check_disloc(sd.DiamondGlide30degreePartial, 30.0,
+                          structure="Diamond",
+                          burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_90degree_diamond_partial_dislocation(self,):
+        self.check_disloc(sd.DiamondGlide90degreePartial, 90.0,
+                          structure="Diamond",
+                          burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]))
 
 
     def check_glide_configs(self, cls):
@@ -459,7 +475,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.check_glide_configs(sd.BCCEdge100Dislocation)
 
     @unittest.skipIf("atomman" not in sys.modules,
-                         "requires atomman")
+                     "requires atomman")
     def test_edge100110_glide(self):
             self.check_glide_configs(sd.BCCEdge100110Dislocation)
 
