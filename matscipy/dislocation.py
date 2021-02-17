@@ -8,7 +8,7 @@ from ase.optimize import FIRE
 from ase.build import bulk
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
-from ase.lattice.cubic import SimpleCubicFactory
+from ase.lattice.cubic import SimpleCubicFactory, Diamond
 from ase.io import read
 from ase.geometry import get_distances
 
@@ -2120,7 +2120,7 @@ class CubicCrystalDislocation:
         C12
         C44
         axes : cell axes (b is normally along z direction)
-        burgers : burgers vector of the dislocation1
+        burgers : burgers vector of the dislocation
         unit_cell_core_position : dislocation core position in the unit cell
                                   used to shift atomic positions to
                                   make the dislocation core the center
@@ -2526,6 +2526,64 @@ class BCCEdge100110Dislocation(CubicCrystalDislocation):
                                       pbc=True,
                                       latticeconstant=alat)
         glide_distance = 0.5 * alat
+        n_planes = 2
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes)
+
+
+class DiamondGlide30degree(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='C'):
+        axes = np.array([[1, 1, -2],
+                         [1, 1, 1],
+                         [1, -1, 0]])
+
+        burgers = alat * np.array([1, -2, 1.]) / 6.
+
+        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
+        # 1/4 + 1/2 * (1/3 - 1/4) - to be in the middle of the glide set
+        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        parity = [0, 0]
+
+        unit_cell = Diamond(symbol, directions=axes.tolist(),
+                            pbc=(False, False, True),
+                            latticeconstant=alat)
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 2
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes)
+
+
+class DiamondGlide90degree(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='C'):
+        axes = np.array([[1, 1, -2],
+                         [1, 1, 1],
+                         [1, -1, 0]])
+
+        burgers = alat * np.array([1., 1., -2.]) / 6.
+
+        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
+        # 1/4 + 1/2 * (1/3 - 1/4) - to be in the middle of the glide set
+        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        parity = [0, 0]
+
+        unit_cell = Diamond(symbol, directions=axes.tolist(),
+                            pbc=(False, False, True),
+                            latticeconstant=alat)
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
         n_planes = 2
         super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
