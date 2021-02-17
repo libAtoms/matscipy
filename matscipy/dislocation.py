@@ -2571,9 +2571,16 @@ class DiamondGlide30degreePartial(CubicCrystalDislocation):
         glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
 
         n_planes = 2
+        # There is very small distance between atomic planes in glide configuration.
+        # Due to significant anisotropy application of the self consistent
+        # displacement field leads to deformation of the atomic planes.
+        # This leads to the cut plane crossing one of the atomic planes and
+        # thus breaking the stacking fault.
+        self_consistent = False
         super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes)
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
 
 
 class DiamondGlide90degreePartial(CubicCrystalDislocation):
@@ -2600,6 +2607,13 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
         glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
 
         n_planes = 2
+        # There is very small distance between atomic planes in glide configuration.
+        # Due to significant anisotropy application of the self consistent
+        # displacement field leads to deformation of the atomic planes.
+        # This leads to the cut plane crossing one of the atomic planes and
+        # thus breaking the stacking fault.
+        self_consistent = False
         super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes)
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
