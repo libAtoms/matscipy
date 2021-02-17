@@ -346,7 +346,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
-    def check_disloc(self, cls, ref_angle,
+    def check_disloc(self, cls, ref_angle, structure="BCC",
                      burgers=0.5 * np.array([1.0, 1.0, 1.0]), tol=10.0):
         alat = 3.14339177996466
         C11 = 523.0266819809012
@@ -366,7 +366,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         np.testing.assert_array_almost_equal(displacement, stroh_displacement)
 
-        results = sd.ovito_dxa_straight_dislo_info(disloc)
+        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
         assert len(results) == 1
         position, b, line, angle = results[0]
         self.assertArrayAlmostEqual(np.abs(b), burgers)  # 1/2[111], signs can change

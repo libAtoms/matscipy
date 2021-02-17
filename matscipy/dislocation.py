@@ -1993,7 +1993,7 @@ def plot_bulk(atoms, n_planes=3, ax=None, ms=200):
         ax.scatter(x[mask], y[mask], s=ms, edgecolor="k")
 
 
-def ovito_dxa_straight_dislo_info(disloc, replicate_z=3):
+def ovito_dxa_straight_dislo_info(disloc, structure="BCC", replicate_z=3):
     """
     A function to extract information from ovito dxa analysis.
     Current version works for 1b thick configurations
@@ -2016,11 +2016,15 @@ def ovito_dxa_straight_dislo_info(disloc, replicate_z=3):
     if 'fix_mask' in dxa_disloc.arrays:
         del dxa_disloc.arrays['fix_mask']
 
+    input_crystal_structures = {"BCC": DislocationAnalysisModifier.Lattice.BCC,
+                                "FCC": DislocationAnalysisModifier.Lattice.FCC,
+                                "Diamond": DislocationAnalysisModifier.Lattice.CubicDiamond}
+
     data = ase_to_ovito(dxa_disloc)
     pipeline = Pipeline(source=StaticSource(data=data))
     pipeline.modifiers.append(ReplicateModifier(num_z=replicate_z))
     dxa = DislocationAnalysisModifier(
-        input_crystal_structure=DislocationAnalysisModifier.Lattice.BCC)
+          input_crystal_structure=input_crystal_structures[structure])
     pipeline.modifiers.append(dxa)
 
     data = pipeline.compute()
