@@ -360,7 +360,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # displacement = disloc.positions - bulk.positions
         stroh_displacement = d.displacements(bulk.positions,
                                              np.diag(bulk.cell) / 2.0,
-                                             self_consistent=True)
+                                             self_consistent=d.self_consistent)
 
         displacement = disloc.positions - bulk.positions
 
@@ -424,7 +424,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                           burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]))
 
 
-    def check_glide_configs(self, cls):
+    def check_glide_configs(self, cls, structure="BCC"):
         alat = 3.14339177996466
         C11 = 523.0266819809012
         C12 = 202.1786296941397
@@ -439,11 +439,13 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         assert all(disloc_ini.get_array("fix_mask") ==
                    disloc_fin.get_array("fix_mask"))
 
-        results = sd.ovito_dxa_straight_dislo_info(disloc_ini)
+        results = sd.ovito_dxa_straight_dislo_info(disloc_ini,
+                                                   structure=structure)
         assert len(results) == 1
         ini_x_position = results[0][0][0]
 
-        results = sd.ovito_dxa_straight_dislo_info(disloc_fin)
+        results = sd.ovito_dxa_straight_dislo_info(disloc_fin,
+                                                   structure=structure)
         assert len(results) == 1
         fin_x_position = results[0][0][0]
         # test that difference between initial and final positions are
@@ -479,5 +481,16 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_edge100110_glide(self):
             self.check_glide_configs(sd.BCCEdge100110Dislocation)
 
+    @unittest.skipIf("atomman" not in sys.modules,
+                     "requires atomman")
+    def test_30degree_diamond_partial_glide(self):
+            self.check_glide_configs(sd.DiamondGlide30degreePartial,
+                                     structure="Diamond")
+
+    @unittest.skipIf("atomman" not in sys.modules,
+                     "requires atomman")
+    def test_90degree_diamond_partial_glide(self):
+            self.check_glide_configs(sd.DiamondGlide90degreePartial,
+                                     structure="Diamond")
 if __name__ == '__main__':
     unittest.main()
