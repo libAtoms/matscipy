@@ -334,7 +334,7 @@ def plot_vitek(dislo, bulk,
                                     xlim=plot_range[0],
                                     ylim=plot_range[1],
                                     zlim=plot_range[2],
-                                    plot_axes=plot_axes,
+                                    matplotlib_axes=plot_axes,
                                     plot_scale=plot_scale)
 
 def show_NEB_configurations(images, bulk, xyscale=7,
