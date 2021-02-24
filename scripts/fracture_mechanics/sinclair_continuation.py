@@ -25,7 +25,8 @@ import params
 
 calc = parameter('calc')
 fmax = parameter('fmax', 1e-3)
-max_steps = parameter('max_steps', 100)
+max_opt_steps = parameter('max_opt_steps', 100)
+max_arc_steps = parameter('max_arc_steps', 10)
 vacuum = parameter('vacuum', 10.0)
 flexible = parameter('flexible', True)
 continuation = parameter('continuation', False)
@@ -39,6 +40,7 @@ dump = parameter('dump', False)
 precon = parameter('precon', False)
 prerelax = parameter('prerelax', False)
 traj_file = parameter('traj_file', 'x_traj.h5')
+restart_file = parameter('restart_file', traj_file)
 traj_interval = parameter('traj_interval', 1)
 direction = parameter('direction', +1)
 
@@ -60,11 +62,11 @@ print('Griffith k1 = %f' % k1g)
 
 cluster = params.cluster.copy()
 
-if continuation and not os.path.exists(traj_file):
+if continuation and not os.path.exists(restart_file):
     continuation = False
 
 if continuation:
-    with h5py.File(traj_file, 'r') as hf:
+    with h5py.File(restart_file, 'r') as hf:
         x = hf['x']
         restart_index = parameter('restart_index', x.shape[0] - 1)
         x0 = x[restart_index-1, :]
@@ -99,22 +101,24 @@ if not continuation:
         sc.update_atoms()
         return sc.get_crack_tip_force(mask=mask)
 
-    # identify approximate range of stable k
-    alpha_range = parameter('alpha_range', np.linspace(-a0, a0, 100))
-    k = k0  # initial guess for k
-    alpha_k = []
-    for alpha in alpha_range:
-        # look for solution to f(k, alpha) = 0 close to alpha = alpha
-        (k,) = fsolve(f, k, args=(alpha,))
-        print(f'alpha={alpha:.3f} k={k:.3f} ')
-        alpha_k.append((alpha, k))
-    alpha_k = np.array(alpha_k)
-    kmin, kmax = alpha_k[:, 1].min(), alpha_k[:, 1].max()
-    print(f'Estimated stable K range is {kmin} < k / k_G < {kmax}')
+    # # identify approximate range of stable k
+    # alpha_range = parameter('alpha_range', np.linspace(-a0, a0, 100))
+    # k = k0  # initial guess for k
+    # alpha_k = []
+    # for alpha in alpha_range:
+    #     # look for solution to f(k, alpha) = 0 close to alpha = alpha
+    #     (k,) = fsolve(f, k, args=(alpha,))
+    #     print(f'alpha={alpha:.3f} k={k:.3f} ')
+    #     alpha_k.append((alpha, k))
+    # alpha_k = np.array(alpha_k)
+    # kmin, kmax = alpha_k[:, 1].min(), alpha_k[:, 1].max()
+    # print(f'Estimated stable K range is {kmin} < k / k_G < {kmax}')
 
     # define a function to relax with static scheme at a given value of k
-    # note that we use a looser fmax of 1e-3 and reduced max steps of 50
-    def g(k):
+
+    traj = open("traj.xyz", "w")
+
+    def g(k, do_abs=True):
         print(f'Static minimisation with k={k}, alpha={alpha0}.')
         sc.k = k * k1g
         sc.alpha = alpha0
@@ -126,24 +130,38 @@ if not continuation:
         atoms.set_constraint(FixAtoms(mask=~sc.regionI))
         opt = PreconLBFGS(atoms, logfile=None)
         opt.run(fmax=1e-5)
+        atoms.write(traj, format="extxyz")
         sc.set_atoms(atoms)
         f_alpha = sc.get_crack_tip_force(mask=mask)
         print(f'Static minimisation with k={k}, alpha={alpha0} --> f_alpha={f_alpha}')
-        return abs(f_alpha)
+        if do_abs:
+            f_alpha = abs(f_alpha)
+        return f_alpha
+
+    # ks = np.linspace(0.7, 1.3, 20)
+    # f_alphas = []
+    # for k in ks:
+    #     f_alphas.append(g(k, do_abs=False))
+    # np.savetxt('k_alpha.txt', np.c_[ks, f_alphas])
 
     # minimise g(k) in [kmin, kmax]
-    kopt, falpha_min, ierr, funccalls = fminbound(g, kmin, kmax, xtol=1e-8, full_output=True)
-    print(f'Brent minimisation yields f_alpha={falpha_min} for k = {kopt} after {funccalls} calls')
+    # kopt, falpha_min, ierr, funccalls = fminbound(g, kmin, kmax, xtol=1e-8, full_output=True)
+    # print(f'Brent minimisation yields f_alpha={falpha_min} for k = {kopt} after {funccalls} calls')
+
+    (kopt,) = fsolve(g, k0)
+    print(f'Line minimisation yields k = {kopt}')
+
+    traj.close()
 
     # re-optimize, first with static scheme, then flexible scheme
     sc.k = kopt * k1g
     sc.alpha = alpha0
     sc.variable_alpha = False
-    sc.optimize(ftol=1e-3, steps=max_steps)
+    sc.optimize(ftol=1e-3, steps=max_opt_steps)
 
     # finally, we revert to target fmax precision
     sc.variable_alpha = flexible
-    sc.optimize(ftol=fmax, steps=max_steps)
+    sc.optimize(ftol=fmax, steps=max_opt_steps)
 
     sc.atoms.write('x0.xyz')
     x0 = np.r_[sc.get_dofs(), k0 * k1g]
@@ -172,9 +190,11 @@ scv = SinclairCrack(crk, cluster, calc, k0 * k1g,
                     extended_far_field=extended_far_field)
 
 scv.arc_length_continuation(x0, x1, N=nsteps,
-                            ds=ds, ftol=fmax, steps=max_steps,
+                            ds=ds, ftol=fmax, max_steps=max_arc_steps,
                             direction=direction,
                             continuation=continuation,
                             traj_file=traj_file,
                             traj_interval=traj_interval,
-                            precon=precon)
+                            precon=precon,
+                            ds_max=parameter('ds_max', 0.1),
+                            ds_aggressiveness=parameter('ds_aggressiveness', 2))

@@ -1198,6 +1198,7 @@ class SinclairCrack:
 
         if res.success:
             self.set_dofs(res.x)
+            return res.nit
         else:
             self.atoms.write('no_convergence.xyz')
             raise NoConvergence
@@ -1238,10 +1239,13 @@ class SinclairCrack:
                           z - ref_z][self.regionI, :]
 
     def arc_length_continuation(self, x0, x1, N=10, ds=0.01, ftol=1e-2,
-                                direction=1, steps=100,
+                                direction=1, max_steps=10,
                                 continuation=False, traj_file='x_traj.h5',
                                 traj_interval=1,
-                                precon=False):
+                                precon=False,
+                                ds_max=np.inf,
+                                ds_aggressiveness=2,
+                                cos_alpha_min=0.9):
         import h5py
         assert self.variable_k  # only makes sense if K can vary
 
@@ -1270,20 +1274,38 @@ class SinclairCrack:
                 x_traj.attrs['traj_interval'] = traj_interval
             row = x_traj.shape[0]
 
-        for i in range(N):
+        i = 0
+        while i < N:
             x2 = x1 + ds * xdot1
             print(f'ARC LENGTH step={i} ds={ds}, k1 = {x1[-1]:.3f}, k2 = {x2[-1]:.3f}, '
                   f' |F| = {np.linalg.norm(self.get_forces(x1=x1, xdot1=xdot1, ds=ds)):.4f}')
             self.set_dofs(x2)
-            self.optimize(ftol, steps, args=(x1, xdot1, ds), precon=precon)
+            try:
+                num_steps = self.optimize(ftol, max_steps, args=(x1, xdot1, ds), precon=precon)
+                print(f'Corrector converged in {num_steps}/{max_steps} steps')
+            except NoConvergence:
+                ds *= 0.5
+                print(f'Corrector failed to converge, reducing step size to ds={ds}')
+                continue
+
             x2 = self.get_dofs()
             xdot2 = self.get_xdot(x1, x2, ds)
 
-            # monitor sign of \dot{alpha} and flip if necessary
             if self.variable_alpha:
-                _, alphadot2, _ = self.unpack(xdot2)
+                # monitor sign of \dot{alpha} and flip if necessary
+                udot1, alphadot1, kdot1 = self.unpack(xdot1)
+                udot2, alphadot2, kdot2 = self.unpack(xdot2)
                 if direction * np.sign(alphadot2) < 0:
-                    xdot2 = -xdot2
+                    xdot2 = -xdot2            
+
+            # cos_alpha = np.dot(xdot1, xdot2) / np.linalg.norm(xdot1) / np.linalg.norm(xdot2)
+            # print(f'cos_alpha = {cos_alpha}')
+            # if cos_alpha < cos_alpha_min:
+            #     print("Angle between subsequent predictors too large "
+            #           f"(cos(alpha) = {cos_alpha} < {cos_alpha_min}). "
+            #            "Restart with smaller step size.")
+            #     ds *= 0.5
+            #     continue
 
             if i % traj_interval == 0:
                 for nattempt in range(1000):
@@ -1303,6 +1325,16 @@ class SinclairCrack:
 
             x1[:] = x2
             xdot1[:] = xdot2
+
+            # Stepsize update -
+            # adapted from https://github.com/nschloe/pacopy/blob/main/pacopy/euler_newton.py
+            ds *= (
+                1
+                + ds_aggressiveness
+                * ((max_steps - num_steps) / (max_steps - 1)) ** 2
+            )
+            ds = min(ds_max, ds)
+            i += 1
 
     def plot(self, ax=None, regions='1234', styles=None, bonds=None, cutoff=2.8,
              tip=False, atoms_args=None, bonds_args=None, tip_args=None):
