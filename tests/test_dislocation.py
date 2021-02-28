@@ -346,7 +346,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
-    def check_disloc(self, cls, ref_angle, structure="BCC",
+    def check_disloc(self, cls, ref_angle, structure="BCC", test_u=True,
                      burgers=0.5 * np.array([1.0, 1.0, 1.0]), tol=10.0):
         alat = 3.14339177996466
         C11 = 523.0266819809012
@@ -356,15 +356,17 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         d = cls(alat, C11, C12, C44)
         bulk, disloc = d.build_cylinder(20.0)
         assert len(bulk) == len(disloc)
-        # test the consistency
-        # displacement = disloc.positions - bulk.positions
-        stroh_displacement = d.displacements(bulk.positions,
-                                             np.diag(bulk.cell) / 2.0,
-                                             self_consistent=d.self_consistent)
 
-        displacement = disloc.positions - bulk.positions
+        if test_u:
+            # test the consistency
+            # displacement = disloc.positions - bulk.positions
+            stroh_displacement = d.displacements(bulk.positions,
+                                                 np.diag(bulk.cell) / 2.0,
+                                                 self_consistent=d.self_consistent)
 
-        np.testing.assert_array_almost_equal(displacement, stroh_displacement)
+            displacement = disloc.positions - bulk.positions
+
+            np.testing.assert_array_almost_equal(displacement, stroh_displacement)
 
         results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
         assert len(results) == 1
@@ -423,6 +425,14 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                           structure="Diamond",
                           burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]))
 
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_screw_diamond_dislocation(self,):
+        self.check_disloc(sd.DiamondGlideScrew, 0.0,
+                          structure="Diamond", test_u=False,
+                          burgers=(1.0 / 2.0) * np.array([0.0, 1.0, 1.0]))
 
     def check_glide_configs(self, cls, structure="BCC"):
         alat = 3.14339177996466
