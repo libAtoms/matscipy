@@ -2163,12 +2163,23 @@ class CubicCrystalDislocation:
             self_consistent = True
         self.self_consistent = self_consistent
 
+        self.init_stroh()
 
-    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
+    def init_stroh(self):
+
+        # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`
         from atomman import ElasticConstants
         from atomman.defect import Stroh
-        c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)        
+        c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
         self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
+
+        c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
+        self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
+
+
+    def set_burgers(self, burgers):
+        self.burgers = burgers
+        self.init_stroh()
 
 
     def plot_unit_cell(self, ms=250, ax=None):
