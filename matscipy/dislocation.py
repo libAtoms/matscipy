@@ -2173,9 +2173,6 @@ class CubicCrystalDislocation:
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
         self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
 
-        c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
-        self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
-
 
     def set_burgers(self, burgers):
         self.burgers = burgers
@@ -2723,10 +2720,11 @@ class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
         # another 30 degree
         burgers_right = alat * np.array([1, -2, 1.]) / 6.
         right30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
-
+        self_consistent = False
         super().__init__(left30, right30, unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes)
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
 
 
 class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
@@ -2762,7 +2760,8 @@ class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
         # 90 degree
         burgers_right = alat * np.array([1, 1, -2.]) / 6.
         right90 = DiamondGlide90degreePartial(alat, C11, C12, C44)
-
+        self_consistent = False
         super().__init__(left30, right90, unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes)
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
