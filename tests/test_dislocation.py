@@ -499,34 +499,41 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_edge100_glide(self):
         self.check_glide_configs(sd.BCCEdge100Dislocation)
 
+
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_edge100110_glide(self):
             self.check_glide_configs(sd.BCCEdge100110Dislocation)
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                     "requires atomman")
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_30degree_diamond_partial_glide(self):
             self.check_glide_configs(sd.DiamondGlide30degreePartial,
                                      structure="Diamond")
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                     "requires atomman")
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_90degree_diamond_partial_glide(self):
             self.check_glide_configs(sd.DiamondGlide90degreePartial,
                                      structure="Diamond")
 
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                     "requires atomman")
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_screw_diamond_partial_glide(self):
             self.check_glide_configs(sd.DiamondGlideScrew,
                                      structure="Diamond")
 
 
-    @unittest.skipIf("atomman" not in sys.modules,
-                     "requires atomman")
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_60_diamond_partial_glide(self):
             self.check_glide_configs(sd.DiamondGlide60Degree,
                                      structure="Diamond")
