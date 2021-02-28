@@ -2062,7 +2062,7 @@ def ovito_dxa_straight_dislo_info(disloc, structure="BCC", replicate_z=3):
         angle = np.array(angles).mean()
         results.append([position, b, line, angle])
 
-        return np.array(results)
+    return results
 
 
 def get_centering_mask(atoms, radius,
