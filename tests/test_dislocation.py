@@ -434,6 +434,15 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                           structure="Diamond", test_u=False,
                           burgers=(1.0 / 2.0) * np.array([0.0, 1.0, 1.0]))
 
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_60degree_diamond_dislocation(self,):
+        self.check_disloc(sd.DiamondGlide60Degree, 60.0,
+                          structure="Diamond", test_u=False,
+                          burgers=(1.0 / 2.0) * np.array([1.0, 0.0, 1.0]))
+
     def check_glide_configs(self, cls, structure="BCC"):
         alat = 3.14339177996466
         C11 = 523.0266819809012
