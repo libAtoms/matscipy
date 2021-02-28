@@ -528,7 +528,7 @@ def make_barrier_configurations(elastic_param=None,
 
     elif calculator is not None:
         alat, C11, C12, C44 = get_elastic_constants(calculator=calculator)
-        cutoff = 5.0  # the value for trainig data for GAP from paper
+        cutoff = 5.0  # the value for training data for GAP from paper
 
     elif elastic_param is not None:
         alat, C11, C12, C44 = elastic_param
@@ -2136,7 +2136,7 @@ class CubicCrystalDislocation:
         n_planes : int
             number of non equivalent planes in z direction
         self_consistent : float
-            default value for the displacement calcualtion
+            default value for the displacement calculation
         """
 
         self.unit_cell = unit_cell.copy()

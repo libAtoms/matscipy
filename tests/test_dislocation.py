@@ -534,7 +534,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
-    def test_60_diamond_partial_glide(self):
+    def test_60degree_diamond_partial_glide(self):
             self.check_glide_configs(sd.DiamondGlide60Degree,
                                      structure="Diamond")
 
