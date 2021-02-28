@@ -2630,11 +2630,69 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
                          self_consistent=self_consistent)
 
 
-class DiamondGlideScrew(CubicCrystalDislocation):
+class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
+    """
+        A class to create dissociated dislocations
+        with b = b_left + b_right.
+        left_dislocation and right_dislocations are expected
+        to be instances of classes derived from CubicCrystalDislocation class.
+    """
+    def __init__(self, left_dislocation, right_dislocation,
+                 *args, **kwargs):
+
+        self.left_dislocation = left_dislocation
+        self.right_dislocation = right_dislocation
+
+        super().__init__(*args, **kwargs)
+
+
+    def build_cylinder(self, radius, partial_distance=0,
+                       core_position=np.array([0., 0., 0.]),
+                       extension=np.array([0., 0., 0.]),
+                       fix_width=10.0, self_consistent=None):
+        """
+        Overloaded function to make dissociated dislocations.
+        Partial distance is provided as an integer to define number
+        of glide distances between two partials.
+
+        Parameters
+        ----------
+        radius: float
+            radius of the cell
+        partial_distance: int
+            distance between partials (SF length) in number of glide distances.
+            Default is 0 -> non dissociated dislocation
+            with b = b_left + b_right is produced
+        """
+
+        if self_consistent is None:
+            self_consistent = self.self_consistent
+
+        partial_distance_Angstrom = np.array(
+            [self.glide_distance * partial_distance, 0.0, 0.0])
+
+        bulk, disloc = self.left_dislocation.build_cylinder(radius,
+                                                  extension=partial_distance_Angstrom,
+                                                  fix_width=fix_width,
+                                                  self_consistent=self_consistent)
+
+        _, disloc_right = self.right_dislocation.build_cylinder(radius,
+                                                      core_position=partial_distance_Angstrom,
+                                                      fix_width=fix_width,
+                                                      self_consistent=self_consistent)
+
+        u_right = disloc_right.positions - bulk.positions
+        disloc.positions += u_right
+
+        return bulk, disloc
+
+
+class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
+
         axes = np.array([[1, 1, -2],
-                                 [1, 1, 1],
-                                 [1, -1, 0]])
+                        [1, 1, 1],
+                        [1, -1, 0]])
 
         # aiming for the resulting burgers vector
         burgers = alat * np.array([1, -1, 0]) / 2.
@@ -2658,58 +2716,18 @@ class DiamondGlideScrew(CubicCrystalDislocation):
 
         # 30 degree
         burgers_left = alat * np.array([2., -1., -1.]) / 6.
-        self.left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
-        self.left30.set_burgers(burgers_left)
+        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+        left30.set_burgers(burgers_left)
         # another 30 degree
         burgers_right = alat * np.array([1, -2, 1.]) / 6.
-        self.right30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+        right30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
 
-        super().__init__(unit_cell, alat, C11, C12, C44,
+        super().__init__(left30, right30, unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance, n_planes=n_planes)
 
 
-    def build_cylinder(self, radius, partial_distance=0,
-                       core_position=np.array([0., 0., 0.]),
-                       extension=np.array([0., 0., 0.]),
-                       fix_width=10.0, self_consistent=None):
-        """
-        Overloaded function to make dissociated dislocations.
-        Partial distance is provided as an integer to define number
-        of glide distances between two partials.
-
-        Parameters
-        ----------
-        radius: float
-            radius of the cell
-        partial_distance: int
-            distance between partials (SF length) in number of glide distances.
-            Default is 0 -> non dissociated dislocation is produced
-        """
-
-        if self_consistent is None:
-            self_consistent = self.self_consistent
-
-        partial_distance_Angstrom = np.array(
-            [self.glide_distance * partial_distance, 0.0, 0.0])
-
-        bulk, disloc = self.left30.build_cylinder(radius,
-                                                  extension=partial_distance_Angstrom,
-                                                  fix_width=fix_width,
-                                                  self_consistent=self_consistent)
-
-        _, disloc_right = self.right30.build_cylinder(radius,
-                                                      core_position=partial_distance_Angstrom,
-                                                      fix_width=fix_width,
-                                                      self_consistent=self_consistent)
-
-        u_right = disloc_right.positions - bulk.positions
-        disloc.positions += u_right
-
-        return bulk, disloc
-
-
-class DiamondGlide60Degree(CubicCrystalDislocation):
+class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
         axes = np.array([[1, 1, -2],
                          [1, 1, 1],
@@ -2737,52 +2755,12 @@ class DiamondGlide60Degree(CubicCrystalDislocation):
 
         # 30 degree
         burgers_left = alat * np.array([2., -1., -1.]) / 6.
-        self.left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
-        self.left30.set_burgers(burgers_left)
+        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+        left30.set_burgers(burgers_left)
         # 90 degree
         burgers_right = alat * np.array([1, 1, -2.]) / 6.
-        self.right90 = DiamondGlide90degreePartial(alat, C11, C12, C44)
+        right90 = DiamondGlide90degreePartial(alat, C11, C12, C44)
 
-        super().__init__(unit_cell, alat, C11, C12, C44,
+        super().__init__(left30, right90, unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance, n_planes=n_planes)
-
-
-    def build_cylinder(self, radius, partial_distance=0,
-                       core_position=np.array([0., 0., 0.]),
-                       extension=np.array([0., 0., 0.]),
-                       fix_width=10.0, self_consistent=None):
-        """
-        Overloaded function to make dissociated dislocations.
-        Partial distance is provided as an integer to define number
-        of glide distances between two partials.
-
-        Parameters
-        ----------
-        radius: float
-               radius of the cell
-        partial_distance: int
-               distance between partials (SF length) in number of glide distances.
-                Default is 0 -> non dissociated dislocation is produced
-        """
-
-        if self_consistent is None:
-            self_consistent = self.self_consistent
-
-        partial_distance_Angstrom = np.array(
-            [self.glide_distance * partial_distance, 0.0, 0.0])
-
-        bulk, disloc = self.left30.build_cylinder(radius,
-                                                  extension=partial_distance_Angstrom,
-                                                  fix_width=fix_width,
-                                                  self_consistent=self_consistent)
-
-        _, disloc_right = self.right90.build_cylinder(radius,
-                                                      core_position=partial_distance_Angstrom,
-                                                      fix_width=fix_width,
-                                                      self_consistent=self_consistent)
-
-        u_right = disloc_right.positions - bulk.positions
-        disloc.positions += u_right
-
-        return bulk, disloc
