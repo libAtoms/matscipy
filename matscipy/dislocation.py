@@ -2632,7 +2632,7 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
 
 class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
     """
-        A class to create dissociated dislocations
+        A parent class to create dissociated dislocations
         with b = b_left + b_right.
         left_dislocation and right_dislocations are expected
         to be instances of classes derived from CubicCrystalDislocation class.
@@ -2672,12 +2672,14 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
             [self.glide_distance * partial_distance, 0.0, 0.0])
 
         bulk, disloc = self.left_dislocation.build_cylinder(radius,
-                                                  extension=partial_distance_Angstrom,
+                                                  extension=extension + partial_distance_Angstrom,
+                                                  core_position=core_position,
                                                   fix_width=fix_width,
                                                   self_consistent=self_consistent)
 
         _, disloc_right = self.right_dislocation.build_cylinder(radius,
-                                                      core_position=partial_distance_Angstrom,
+                                                      core_position=core_position + partial_distance_Angstrom,
+                                                      extension=extension,
                                                       fix_width=fix_width,
                                                       self_consistent=self_consistent)
 

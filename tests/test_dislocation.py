@@ -511,5 +511,20 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_90degree_diamond_partial_glide(self):
             self.check_glide_configs(sd.DiamondGlide90degreePartial,
                                      structure="Diamond")
+
+
+    @unittest.skipIf("atomman" not in sys.modules,
+                     "requires atomman")
+    def test_screw_diamond_partial_glide(self):
+            self.check_glide_configs(sd.DiamondGlideScrew,
+                                     structure="Diamond")
+
+
+    @unittest.skipIf("atomman" not in sys.modules,
+                     "requires atomman")
+    def test_60_diamond_partial_glide(self):
+            self.check_glide_configs(sd.DiamondGlide60Degree,
+                                     structure="Diamond")
+
 if __name__ == '__main__':
     unittest.main()
