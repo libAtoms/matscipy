@@ -2270,7 +2270,17 @@ class CubicCrystalDislocation:
         center = np.diag(bulk.cell) / 2
         shifted_center = center + core_position
 
-        final_mask = get_centering_mask(bulk, radius, core_position, extension)
+        cylinder_mask = get_centering_mask(bulk, radius, core_position, extension)
+
+        # add square borders for the case of large extension or core position
+        x, y, _ = bulk.positions.T
+        x_mask = x - center[0] < extension[0] + core_position[0]
+        x_mask = x_mask * (x - center[0] > 0)
+        y_mask = np.abs(y - center[1]) < radius
+        square_mask = y_mask & x_mask
+
+        final_mask = square_mask | cylinder_mask
+
         bulk = bulk[final_mask]
 
         # disloc is a copy of bulk with displacements applied
@@ -2293,8 +2303,16 @@ class CubicCrystalDislocation:
         extended_r = np.sqrt(((bulk.positions[:, [0, 1]] -
                                extended_center[[0, 1]]) ** 2).sum(axis=1))
         extended_fix_max = extended_r > radius - fix_width
-
         final_fix_mask = fix_mask & shifted_fix_max & extended_fix_max
+
+        x, y, _ = bulk.positions.T
+        x_mask = x - center[0] < extension[0] + core_position[0]
+        x_mask = x_mask * (x - center[0] > 0)
+        y_mask = np.abs(y - center[1]) > radius - fix_width
+
+        # change mask only between the centers of the cylinders
+        final_fix_mask[x_mask] = y_mask[x_mask]
+
         disloc.set_array('fix_mask', final_fix_mask)
         disloc.set_constraint(FixAtoms(mask=final_fix_mask))
 
