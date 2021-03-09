@@ -2267,37 +2267,31 @@ class CubicCrystalDislocation:
         # we have to move the atoms in the opposite direction
         bulk.positions -= self.unit_cell_core_position
 
-        # build a bulk cylinder
         center = np.diag(bulk.cell) / 2
-
-        r = np.sqrt(((bulk.positions[:, [0, 1]]
-                      - center[[0, 1]])**2).sum(axis=1))
-        mask = r < radius
-
-        core_position = np.array(core_position)
         shifted_center = center + core_position
-        shifted_r = np.sqrt(((bulk.positions[:, [0, 1]] -
-                              shifted_center[[0, 1]])**2).sum(axis=1))
-        shifted_mask = shifted_r < radius
 
-        extension = np.array(extension)
-        extended_center = center + extension
-        extended_r = np.sqrt(((bulk.positions[:, [0, 1]] -
-                               extended_center[[0, 1]])**2).sum(axis=1))
-        extended_mask = extended_r < radius
-
-        final_mask = mask | shifted_mask | extended_mask
+        final_mask = get_centering_mask(bulk, radius, core_position, extension)
         bulk = bulk[final_mask]
 
         # disloc is a copy of bulk with displacements applied
         disloc = bulk.copy()
+
         disloc.positions += self.displacements(bulk.positions, shifted_center,
                                                self_consistent=self_consistent)
-        r = r[final_mask]
+
+        r = np.sqrt(((bulk.positions[:, [0, 1]]
+                      - center[[0, 1]])**2).sum(axis=1))
+
         fix_mask = r > radius - fix_width
-        shifted_r = shifted_r[final_mask]
+
+        shifted_r = np.sqrt(((bulk.positions[:, [0, 1]] -
+                              shifted_center[[0, 1]]) ** 2).sum(axis=1))
+
         shifted_fix_max = shifted_r > radius - fix_width
-        extended_r = extended_r[final_mask]
+        extension = np.array(extension)
+        extended_center = center + extension
+        extended_r = np.sqrt(((bulk.positions[:, [0, 1]] -
+                               extended_center[[0, 1]]) ** 2).sum(axis=1))
         extended_fix_max = extended_r > radius - fix_width
 
         final_fix_mask = fix_mask & shifted_fix_max & extended_fix_max
