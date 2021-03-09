@@ -2244,9 +2244,9 @@ class CubicCrystalDislocation:
 
         # if the extension and core position is
         # within the unit cell, do not add extra unit cells
-        repeat_extension = np.floor(extension /
+        repeat_extension = np.floor(2.0 * extension /
                                     np.diag(self.unit_cell.cell)).astype(int)
-        repeat_core_position = np.floor(core_position /
+        repeat_core_position = np.floor(2.0 * core_position /
                                     np.diag(self.unit_cell.cell)).astype(int)
 
         extra_repeat = np.stack((repeat_core_position,
