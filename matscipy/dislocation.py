@@ -2798,8 +2798,44 @@ class FixedLineAtoms:
 
 
 def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
-               size=[2, 2, 2], n_dots=11, factor=15,
-               relax=True, fmax=1.0e-2, return_slabs=False):
+               size=[2, 2, 2], factor=15, n_dots=11,
+               relax=True, fmax=1.0e-2, return_images=False):
+    """
+    Parameters
+    ----------
+    unit_cell: ase.Atoms
+        Unit cell to construct gamma surface from.
+        Should gave calc in order to perform relaxation.
+    calc: ase.calculator
+        of unit_cell.calc is None set unit_cell.calc to celc
+    shift_dir: int
+        index of unit_cell axes to shift atoms
+    surface: int
+        index of unit_cell axes to be the surface normal direction
+    size: list of ints
+        start size of the cell
+    factor: int
+        factor to increase the size of the cell along
+        the surface normal direction
+    n_dots: int
+        number of images along the gamma line
+    relax: bool
+        flag to perform relaxation
+    fmax: float
+        maximum force value for relaxation
+    return_images: bool
+        flag to control if the atomic configurations are returned
+        together with the results
+
+    Returns
+    -------
+    deltas: np.array
+        shift distance of every image in Angstroms
+    totens: np.array
+        gamma surface energy in eV / Angstroms^2
+    images: list of ase.Atoms
+            images along the gamma surface. Returned if return_images is True
+    """
 
     from ase.optimize import LBFGSLineSearch
 
@@ -2822,31 +2858,31 @@ def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
     slab.pbc = (~surface_direction).tolist()
     slab.center(axis=surface, vacuum=10)
 
-    slabs = []
+    images = []
     totens = []
     deltas = []
 
     for delta in np.linspace(0.0, period, num=n_dots):
 
-        config = slab.copy()
-        config.positions[:, shift_dir][top_mask] += delta
+        image = slab.copy()
+        image.positions[:, shift_dir][top_mask] += delta
 
-        select_all = np.full_like(config, True, dtype=bool)
-        config.set_constraint(
+        select_all = np.full_like(image, True, dtype=bool)
+        image.set_constraint(
             FixedLineAtoms(select_all, surface_direction.astype(int)))
-        config.calc = unit_cell.calc
+        image.calc = unit_cell.calc
 
-        if config.get_forces().max() < fmax:
+        if image.get_forces().max() < fmax:
             raise RuntimeError(
                 "Initial max force is smaller than fmax! Check surface direction")
 
         if relax:
-            opt = LBFGSLineSearch(config)
+            opt = LBFGSLineSearch(image)
             opt.run(fmax=fmax)
-            slabs.append(config)
+            images.append(image)
 
         deltas.append(delta)
-        totens.append(config.get_potential_energy())
+        totens.append(image.get_potential_energy())
 
     totens = np.array(totens)
     totens -= totens[0]
@@ -2857,7 +2893,7 @@ def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
 
     totens /= surface_area  # results in eV/A^2
 
-    if return_slabs:
-        return np.array(deltas), totens, slabs
+    if return_images:
+        return np.array(deltas), totens, images
     else:
         return np.array(deltas), totens
