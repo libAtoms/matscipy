@@ -2777,3 +2777,21 @@ class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance, n_planes=n_planes,
                          self_consistent=self_consistent)
+
+
+class FixedLineAtoms:
+    """Constrain atoms to move along a given direction only."""
+    def __init__(self, a, direction):
+        self.a = a
+        self.dir = direction / np.sqrt(np.dot(direction, direction))
+
+    def adjust_positions(self, atoms, newpositions):
+        steps = newpositions[self.a] - atoms.positions[self.a]
+        steps = np.dot(steps, self.dir)
+        newpositions[self.a] = np.array([position + step * self.dir
+                                         for (position, step) in
+                                         zip(atoms.positions[self.a], steps)])
+
+    def adjust_forces(self, atoms, forces):
+        forces[self.a] = np.array([self.dir * np.dot(force, self.dir)
+                                   for force in forces[self.a]])

@@ -538,5 +538,36 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             self.check_glide_configs(sd.DiamondGlide60Degree,
                                      structure="Diamond")
 
+    def test_fixed_line_atoms(self):
+
+        from ase.build import bulk
+
+        pot_name = "w_eam4.fs"
+        calc_EAM = EAM(pot_name)
+        # slightly pressurised cell to avoid exactly zero forces
+        W = bulk("W", a=0.9 * 3.143392, cubic=True)
+
+        W = W * [2, 2, 2]
+        del W[0]
+        W.calc = calc_EAM
+        for line_direction in [[1, 0, 0],
+                               [0, 1, 0],
+                               [0, 0, 1],
+                               [1, 1, 0],
+                               [0, 1, 1],
+                               [1, 0, 1],
+                               [1, 1, 1]]:
+
+            fixed_mask = W.positions.T[0] > W.cell[0, 0] / 2.0 - 0.1
+            W.set_constraint(sd.FixedLineAtoms(fixed_mask, line_direction))
+
+            line_dir_mask = np.array(line_direction, dtype=bool)
+            # forces in direction other than line dir are zero
+            assert (W.get_forces()[fixed_mask].T[~line_dir_mask] == 0.0).all()
+            # forces in line direction are non zero
+            assert (W.get_forces()[fixed_mask].T[line_dir_mask] != 0.0).all()
+            # forces on unconstrained atoms are non zero
+            assert (W.get_forces()[~fixed_mask] != 0.0).all()
+
 if __name__ == '__main__':
     unittest.main()
