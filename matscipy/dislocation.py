@@ -2813,13 +2813,14 @@ def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
     directions = np.array([0, 1, 2])
 
     period = unit_cell.cell[shift_dir, shift_dir]
-    surface_direction = directions == surface
-    size[surface_direction] *= factor
+    size[surface] *= factor
     slab = unit_cell * size.tolist()
 
     top_mask = slab.positions.T[surface] > slab.cell[surface, surface] / 2.0
+
+    surface_direction = directions == surface
     slab.pbc = (~surface_direction).tolist()
-    slab.center(axis=(surface), vacuum=10)
+    slab.center(axis=surface, vacuum=10)
 
     slabs = []
     totens = []
