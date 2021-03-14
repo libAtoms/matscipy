@@ -2799,7 +2799,7 @@ class FixedLineAtoms:
 
 def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
                size=[2, 2, 2], n_dots=11, factor=15,
-               relax=True, fmax=1.0e-2):
+               relax=True, fmax=1.0e-2, return_slabs=False):
 
     from ase.optimize import LBFGSLineSearch
 
@@ -2857,4 +2857,7 @@ def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
 
     totens /= surface_area  # results in eV/A^2
 
-    return np.array(deltas), totens
+    if return_slabs:
+        return np.array(deltas), totens, slabs
+    else:
+        return np.array(deltas), totens
