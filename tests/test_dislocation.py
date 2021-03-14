@@ -569,5 +569,43 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             # forces on unconstrained atoms are non zero
             assert (W.get_forces()[~fixed_mask] != 0.0).all()
 
+
+    @unittest.skipIf("lammps" not in sys.modules,
+                     "LAMMPS installation is required and thus is not good for automated testing")
+    def test_gamma_line(self):
+
+        # eam_4 parameters
+        eam4_elastic_param = 3.143392, 527.025604, 206.34803, 165.092165
+        dislocation = sd.BCCEdge111Dislocation(*eam4_elastic_param)
+        unit_cell = dislocation.unit_cell
+
+        pot_name = "w_eam4.fs"
+        # calc_EAM = EAM(pot_name) eam calculator is way too slow
+        lammps = LAMMPSlib(lmpcmds=["pair_style eam/fs",
+                                    "pair_coeff * * %s W" % pot_name],
+                           atom_types={'W': 1}, keep_alive=True,
+                           log_file="lammps.log")
+
+        unit_cell.calc = lammps
+        shift, E = sd.gamma_line(unit_cell, surface=1, factor=5)
+
+        # target values corresponding to fig 2(a) of
+        # J.Phys.: Condens.Matter 25(2013) 395502
+        # http://iopscience.iop.org/0953-8984/25/39/395502
+        target_E = [0.00000000e+00, 1.57258669e-02,
+                    5.31974533e-02, 8.01241031e-02,
+                    9.37911067e-02, 9.54010452e-02,
+                    9.37911067e-02, 8.01241032e-02,
+                    5.31974533e-02, 1.57258664e-02,
+                    4.33907234e-14]
+
+        target_shift = [0., 0.27222571, 0.54445143, 0.81667714,
+                        1.08890285, 1.36112857, 1.63335428,
+                        1.90557999, 2.17780571, 2.45003142,
+                        2.72225714]
+
+        np.testing.assert_almost_equal(E, target_E, decimal=3)
+        np.testing.assert_almost_equal(shift, target_shift, decimal=3)
+
 if __name__ == '__main__':
     unittest.main()

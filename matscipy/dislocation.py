@@ -2795,3 +2795,65 @@ class FixedLineAtoms:
     def adjust_forces(self, atoms, forces):
         forces[self.a] = np.array([self.dir * np.dot(force, self.dir)
                                    for force in forces[self.a]])
+
+
+def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
+               size=[2, 2, 2], n_dots=11, factor=15,
+               relax=True, fmax=1.0e-2):
+
+    from ase.optimize import LBFGSLineSearch
+
+    if unit_cell.calc is None:
+        if calc is None:
+            raise RuntimeError("Please set atoms calculator or provide calc")
+        else:
+            unit_cell.calc = calc
+
+    size = np.array(size)
+    directions = np.array([0, 1, 2])
+
+    period = unit_cell.cell[shift_dir, shift_dir]
+    surface_direction = directions == surface
+    size[surface_direction] *= factor
+    slab = unit_cell * size.tolist()
+
+    top_mask = slab.positions.T[surface] > slab.cell[surface, surface] / 2.0
+    slab.pbc = (~surface_direction).tolist()
+    slab.center(axis=(surface), vacuum=10)
+
+    slabs = []
+    totens = []
+    deltas = []
+
+    for delta in np.linspace(0.0, period, num=n_dots):
+
+        config = slab.copy()
+        config.positions[:, shift_dir][top_mask] += delta
+
+        select_all = np.full_like(config, True, dtype=bool)
+        config.set_constraint(
+            FixedLineAtoms(select_all, surface_direction.astype(int)))
+        config.calc = unit_cell.calc
+
+        if config.get_forces().max() < fmax:
+            raise RuntimeError(
+                "Initial max force is smaller than fmax! Check surface direction")
+
+        if relax:
+            opt = LBFGSLineSearch(config)
+            opt.run(fmax=fmax)
+            slabs.append(config)
+
+        deltas.append(delta)
+        totens.append(config.get_potential_energy())
+
+    totens = np.array(totens)
+    totens -= totens[0]
+
+    surface_area_dirs = directions[~(directions == surface)]
+    surface_area = (slab.cell.lengths()[surface_area_dirs[0]] *
+                    slab.cell.lengths()[surface_area_dirs[1]])
+
+    totens /= surface_area  # results in eV/A^2
+
+    return np.array(deltas), totens
