@@ -2792,8 +2792,7 @@ class FixedLineAtoms:
                                 x[:, np.newaxis] * self.dir)
 
     def adjust_forces(self, atoms, forces):
-        forces[self.a] = np.array([self.dir * np.dot(force, self.dir)
-                                   for force in forces[self.a]])
+        forces[self.a] = np.dot(forces[self.a], self.dir)[:, np.newaxis] * self.dir
 
 
 def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
