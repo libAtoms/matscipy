@@ -2787,10 +2787,9 @@ class FixedLineAtoms:
 
     def adjust_positions(self, atoms, newpositions):
         steps = newpositions[self.a] - atoms.positions[self.a]
-        steps = np.dot(steps, self.dir)
-        newpositions[self.a] = np.array([position + step * self.dir
-                                         for (position, step) in
-                                         zip(atoms.positions[self.a], steps)])
+        x = np.dot(steps, self.dir)
+        newpositions[self.a] = (atoms.positions[self.a] +
+                                x[:, np.newaxis] * self.dir)
 
     def adjust_forces(self, atoms, forces):
         forces[self.a] = np.array([self.dir * np.dot(force, self.dir)
