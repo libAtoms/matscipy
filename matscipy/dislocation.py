@@ -2787,12 +2787,11 @@ class FixedLineAtoms:
 
     def adjust_positions(self, atoms, newpositions):
         steps = newpositions[self.a] - atoms.positions[self.a]
-        x = np.dot(steps, self.dir)
         newpositions[self.a] = (atoms.positions[self.a] +
-                                x[:, np.newaxis] * self.dir)
+                                np.einsum("ij,j,k", steps, self.dir, self.dir))
 
     def adjust_forces(self, atoms, forces):
-        forces[self.a] = np.dot(forces[self.a], self.dir)[:, np.newaxis] * self.dir
+        forces[self.a] = np.einsum("ij,j,k", forces[self.a], self.dir, self.dir)
 
 
 def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
