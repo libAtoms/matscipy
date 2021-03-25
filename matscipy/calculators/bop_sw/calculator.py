@@ -113,12 +113,12 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         f_nc = np.transpose([fx_n, fy_n, fz_n])
 
         # Virial 
-        virial_v = - np.array([r_pc[:, 0]*fx_p,               # xx
-                               r_pc[:, 1]*fy_p,               # yy
-                               r_pc[:, 2]*fz_p,               # zz
-                               r_pc[:, 1]*fz_p,               # yz
-                               r_pc[:, 0]*fz_p,               # xz
-                               r_pc[:, 0]*fy_p]).sum(axis=1)  # xy 
+        virial_v = -0.5*np.array([r_pc[:, 0]*fx_p,               # xx
+                                  r_pc[:, 1]*fy_p,               # yy
+                                  r_pc[:, 2]*fz_p,               # zz
+                                  r_pc[:, 1]*fz_p,               # yz
+                                  r_pc[:, 0]*fz_p,               # xz
+                                  r_pc[:, 0]*fy_p]).sum(axis=1)  # xy 
 
         self.results = {'energy': epot, 'stress': virial_v/self.atoms.get_volume(), 'forces': f_nc}
 
