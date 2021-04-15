@@ -61,7 +61,6 @@ def make_screw_cyl(alat, C11, C12, C44,
     u : np.array
         displacement per atom.
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman`
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -192,7 +191,6 @@ def make_edge_cyl(alat, C11, C12, C44,
         Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
         default is "W" for tungsten
     '''
-    # install with `pip install git+https://github.com/pgrigorev/atomman`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
@@ -304,7 +302,6 @@ def plot_vitek(dislo, bulk,
     None
 
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import load
     from atomman.defect import differential_displacement
 
@@ -928,7 +925,6 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         Error for optimisation (result from `compare_configurations` function)
 
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1090,7 +1086,6 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
         positions around dislocation core.
 
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1213,7 +1208,6 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     # TODO: Make one function for impurities and pass factory to it:
     # TODO: i.e. octahedral or terahedral
 
-    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1825,10 +1819,9 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disp : np.array
         Corresponding displacement.
     """
-    # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`    
     from atomman import ElasticConstants
     from atomman.defect import Stroh
-    # Create a Stroh ojbect with junk data
+    # Create a Stroh object with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
                   np.array([0, 0, 1]))
 
@@ -1840,7 +1833,6 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     burgers = a0 * np.array([1., 0., 0.])
 
     # Solving a new problem with Stroh.solve
-    # Does not work with the new version of atomman
     stroh.solve(c, burgers, axes=axes)
 
     unit_cell = BodyCenteredCubic(directions=axes.tolist(),
@@ -1909,9 +1901,10 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
 
 def read_dislo_QMMM(filename=None, image=None):
 
-    """Reads extended xyz file with QMMM configuration
-       Uses "region" for mapping of QM, MM and fixed atoms
-       Sets ase.constraints.FixAtoms constraint on fixed atoms
+    """
+    Reads extended xyz file with QMMM configuration
+    Uses "region" for mapping of QM, MM and fixed atoms
+    Sets ase.constraints.FixAtoms constraint on fixed atoms
 
     Parameters
     ----------
@@ -1998,10 +1991,15 @@ def ovito_dxa_straight_dislo_info(disloc, structure="BCC", replicate_z=3):
     A function to extract information from ovito dxa analysis.
     Current version works for 1b thick configurations
     containing straight dislocations.
+
     Parameters
     ----------
-    disloc
-    replicate_z
+    disloc: ase.Atoms
+        Atoms object containing the atomic configuration to analyse
+    replicate_z: int
+        Specifies number of times to replicate the configuration
+        along the dislocation line.
+        Ovito dxa analysis needs at least 3b thick cell to work.
 
     Returns
     -------
@@ -2167,7 +2165,6 @@ class CubicCrystalDislocation:
 
     def init_stroh(self):
 
-        # install with `pip install git+https://github.com/pgrigorev/atomman@plot_axes`
         from atomman import ElasticConstants
         from atomman.defect import Stroh
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
@@ -2364,7 +2361,7 @@ class CubicCrystalDislocation:
 
         return bulk_ini, disloc_ini, disloc_fin
 
-    def build_impuruty_cylinder(self, disloc, impurity, radius,
+    def build_impurity_cylinder(self, disloc, impurity, radius,
                                 imp_symbol="H",
                                 core_position=np.array([0., 0., 0.]),
                                 extension=np.array([0., 0., 0.]),
@@ -2591,7 +2588,8 @@ class DiamondGlide30degreePartial(CubicCrystalDislocation):
         glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
 
         n_planes = 2
-        # There is very small distance between atomic planes in glide configuration.
+        # There is very small distance between
+        # atomic planes in glide configuration.
         # Due to significant anisotropy application of the self consistent
         # displacement field leads to deformation of the atomic planes.
         # This leads to the cut plane crossing one of the atomic planes and
@@ -2627,7 +2625,8 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
         glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
 
         n_planes = 2
-        # There is very small distance between atomic planes in glide configuration.
+        # There is very small distance between
+        # atomic planes in glide configuration.
         # Due to significant anisotropy application of the self consistent
         # displacement field leads to deformation of the atomic planes.
         # This leads to the cut plane crossing one of the atomic planes and
@@ -2641,9 +2640,9 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
 
 class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
     """
-        A parent class to create dissociated dislocations
+        This class represents a dissociated dislocation in a cubic crystal
         with b = b_left + b_right.
-        left_dislocation and right_dislocations are expected
+        'left_dislocation' and 'right_dislocations' are expected
         to be instances of classes derived from CubicCrystalDislocation class.
     """
     def __init__(self, left_dislocation, right_dislocation,
@@ -2798,13 +2797,26 @@ def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
                size=[2, 2, 2], factor=15, n_dots=11,
                relax=True, fmax=1.0e-2, return_images=False):
     """
+    This function performs a calculation of a cross-sections in 'shift_dir`
+    of the generalized stacking fault (GSF) gamma
+    surface with `surface` orientation.
+    *A gamma surface is defined as the energy variation when the
+    crystal is cut along a particular plane and then one of the
+    resulting parts is displaced along a particular direction. This
+    quantity is related to the energy landscape of dislocations and
+    provides data out of equilibrium, preserving the crystal state.*
+    For examples for the case of W and more details see section 4.2
+    and figure 2 in [J. Phys.: Condens. Matter 25 (2013) 395502 (15pp)]\
+                    (http://iopscience.iop.org/0953-8984/25/39/395502)
+
     Parameters
     ----------
     unit_cell: ase.Atoms
         Unit cell to construct gamma surface from.
-        Should gave calc in order to perform relaxation.
+        Should have a ase.calculator attached as calc
+        in order to perform relaxation.
     calc: ase.calculator
-        of unit_cell.calc is None set unit_cell.calc to celc
+        if unit_cell.calc is None set unit_cell.calc to calc
     shift_dir: int
         index of unit_cell axes to shift atoms
     surface: int
