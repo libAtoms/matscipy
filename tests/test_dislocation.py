@@ -114,10 +114,11 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
 
     # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
-    @unittest.skipIf("lammps" not in sys.modules,
-                     "LAMMPS installation is required and thus is not good for automated testing")
+    @unittest.skipIf("lammps" not in sys.modules or
+                     "atomman" not in sys.modules,
+                     "LAMMPS installation and Stroh solution are required")
     def test_screw_cyl_lammpslib(self):
-        """Test make_crew_cyl() and call lammpslib caclulator.
+        """Test make_crew_cyl() and call lammpslib calculator.
 
         If lammps crashes, check "lammps.log" file in the tests directory
         See lammps and ASE documentation on how to make lammpslib work
