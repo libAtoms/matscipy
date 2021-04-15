@@ -2161,7 +2161,7 @@ class CubicCrystalDislocation:
             self_consistent = True
         self.self_consistent = self_consistent
 
-        self.init_stroh()
+        self.stroh = None
 
     def init_stroh(self):
 
@@ -2173,7 +2173,8 @@ class CubicCrystalDislocation:
 
     def set_burgers(self, burgers):
         self.burgers = burgers
-        self.init_stroh()
+        if self.stroh is None:
+            self.init_stroh()
 
 
     def plot_unit_cell(self, ms=250, ax=None):
@@ -2209,6 +2210,9 @@ class CubicCrystalDislocation:
 
     def displacements(self, bulk_positions, center, self_consistent=True, 
                       tol=1e-6, max_iter=100, verbose=True):
+        if self.stroh is None:
+            self.init_stroh()
+
         disp1 = np.real(self.stroh.displacement(bulk_positions - center))
         if not self_consistent:
             return disp1
