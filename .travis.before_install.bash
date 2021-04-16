@@ -20,7 +20,7 @@ pip install numpy==1.16.0
 pip install ase==3.17.0
 pip install scipy==1.2.3
 pip install ovito==3.3.0
-pip install git+https://github.com/pgrigorev/atomman@plot_axes
+pip install atomman==1.3.7
 #if [ "$TRAVIS_OS_NAME" == "linux" ]; then
 #  pip install atomistica
 #fi
