@@ -540,3 +540,64 @@ class PairPotential(Calculator):
             H += Hdiag_ncc
 
             return H
+
+    def compute_stress(self, atoms):
+        """
+        Compute the microscopic stress tensor
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+
+        f = self.f
+        dict = self.dict
+        df = self.df
+        df2 = self.df2
+
+        nat = len(atoms)
+        atnums = atoms.numbers
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+        first_i = first_neighbours(nat, i_n)
+
+        e_n = np.zeros_like(abs_dr_n)
+        de_n = np.zeros_like(abs_dr_n)
+        dde_n = np.zeros_like(abs_dr_n)
+        for params, pair in enumerate(dict):
+            if pair[0] == pair[1]:
+                mask1 = atnums[i_n] == pair[0]
+                mask2 = atnums[j_n] == pair[0]
+                mask = np.logical_and(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+            if pair[0] != pair[1]:
+                mask1 = np.logical_and(
+                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                mask2 = np.logical_and(
+                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                mask = np.logical_or(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+        stress_ncc = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
+        return (0.5/self.atoms.get_volume()) * np.sum(stress_ncc, axis=0)
+
+
+    def elastic_constants_born(self, atoms):
+        """
+        Compute the microscopic stress tensor
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
