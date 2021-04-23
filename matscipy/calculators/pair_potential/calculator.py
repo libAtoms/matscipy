@@ -588,12 +588,13 @@ class PairPotential(Calculator):
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
 
         stress_ncc = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
-        return (0.5/self.atoms.get_volume()) * np.sum(stress_ncc, axis=0)
+
+        return (0.5/atoms.get_volume()) * np.sum(stress_ncc, axis=0)
 
 
     def elastic_constants_born(self, atoms):
         """
-        Compute the microscopic stress tensor
+        Compute the Born term of the elasticity tensor. 
 
         Parameters
         ----------
@@ -601,3 +602,110 @@ class PairPotential(Calculator):
             Atomic configuration in a local or global minima.
 
         """
+        if self.atoms is None:
+            self.atoms = atoms
+
+        f = self.f
+        dict = self.dict
+        df = self.df
+        df2 = self.df2
+
+        nat = len(atoms)
+        atnums = atoms.numbers
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+        first_i = first_neighbours(nat, i_n)
+
+        e_n = np.zeros_like(abs_dr_n)
+        de_n = np.zeros_like(abs_dr_n)
+        dde_n = np.zeros_like(abs_dr_n)
+        for params, pair in enumerate(dict):
+            if pair[0] == pair[1]:
+                mask1 = atnums[i_n] == pair[0]
+                mask2 = atnums[j_n] == pair[0]
+                mask = np.logical_and(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+            if pair[0] != pair[1]:
+                mask1 = np.logical_and(
+                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                mask2 = np.logical_and(
+                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                mask = np.logical_or(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+        #  
+        e_nc = (dr_nc.T/abs_dr_n).T
+        elastic_coeffs_n = dde_n*np.power(abs_dr_n, 2) - de_n*abs_dr_n 
+        tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
+        tensor4_ncc = tensor2_ncc.reshape(-1,9,1) * tensor2_ncc.reshape(-1,9,1)
+        C_ncc = (tensor4_ncc*tensor4_ncc.T).T
+        C = (0.5/atoms.get_volume()) * np.sum(C_ncc, axis=0)
+
+
+    def elastic_constants_stress(self, atoms):
+        """
+        Compute the correction to the elastic constants due to stresses in the reference cell.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+
+    def elastic_constants_non_affine(self, atoms):
+        """
+        Compute the correctionf of non-affine displacements to the elasticity tensor.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+        f = self.f
+        dict = self.dict
+        df = self.df
+        df2 = self.df2
+
+        nat = len(atoms)
+        atnums = atoms.numbers
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+        first_i = first_neighbours(nat, i_n)
+
+        e_n = np.zeros_like(abs_dr_n)
+        de_n = np.zeros_like(abs_dr_n)
+        dde_n = np.zeros_like(abs_dr_n)
+        for params, pair in enumerate(dict):
+            if pair[0] == pair[1]:
+                mask1 = atnums[i_n] == pair[0]
+                mask2 = atnums[j_n] == pair[0]
+                mask = np.logical_and(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+            if pair[0] != pair[1]:
+                mask1 = np.logical_and(
+                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                mask2 = np.logical_and(
+                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                mask = np.logical_or(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+        # To do: Derive without taking into account the delta function
+        prefactor_n = 0.5*(dde_n - de_n/abs_dr_n)/abs_dr_n**2
+        tensor2_ncc = dr_nc.reshape(-1,3,1) * dr_nc.reshape(-1,1,3) 
+        tensor3_nncc = dr_nc.reshape(len(i_n),3,1,1) tensor2_ncc.reshape(len(i_n),1,3,3)
