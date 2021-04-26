@@ -541,56 +541,6 @@ class PairPotential(Calculator):
 
             return H
 
-    def compute_stress(self, atoms):
-        """
-        Compute the microscopic stress tensor
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
-
-        f = self.f
-        dict = self.dict
-        df = self.df
-        df2 = self.df2
-
-        nat = len(atoms)
-        atnums = atoms.numbers
-
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-        first_i = first_neighbours(nat, i_n)
-
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
-        dde_n = np.zeros_like(abs_dr_n)
-        for params, pair in enumerate(dict):
-            if pair[0] == pair[1]:
-                mask1 = atnums[i_n] == pair[0]
-                mask2 = atnums[j_n] == pair[0]
-                mask = np.logical_and(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-            if pair[0] != pair[1]:
-                mask1 = np.logical_and(
-                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
-                mask2 = np.logical_and(
-                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
-                mask = np.logical_or(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-        stress_ncc = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
-
-        return (0.5/atoms.get_volume()) * np.sum(stress_ncc, axis=0)
-
 
     def elastic_constants_born(self, atoms):
         """
@@ -644,12 +594,12 @@ class PairPotential(Calculator):
         e_nc = (dr_nc.T/abs_dr_n).T
         elastic_coeffs_n = dde_n*np.power(abs_dr_n, 2) - de_n*abs_dr_n 
         tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
-        tensor4_ncc = tensor2_ncc.reshape(-1,9,1) * tensor2_ncc.reshape(-1,9,1)
-        C_ncc = (tensor4_ncc*tensor4_ncc.T).T
-        C = (0.5/atoms.get_volume()) * np.sum(C_ncc, axis=0)
+        tensor4_ncccc = tensor2_ncc.reshape(-1,3,3,1,1) * tensor2_ncc.reshape(-1,1,1,3,3)
+        C_ncccc = (elastic_coeffs_n*tensor4_ncccc.T).T
+        C_cccc = (0.5/atoms.get_volume()) * np.sum(C_ncccc, axis=0)
+        return C_cccc
 
-
-    def elastic_constants_stress(self, atoms):
+    def elastic_constants_stress_contribution(self, atoms):
         """
         Compute the correction to the elastic constants due to stresses in the reference cell.
 
@@ -659,17 +609,9 @@ class PairPotential(Calculator):
             Atomic configuration in a local or global minima.
 
         """
+        if self.atoms is None:
+            self.atoms = atoms
 
-    def elastic_constants_non_affine(self, atoms):
-        """
-        Compute the correctionf of non-affine displacements to the elasticity tensor.
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
         f = self.f
         dict = self.dict
         df = self.df
@@ -705,7 +647,158 @@ class PairPotential(Calculator):
                 de_n[mask] = df[pair](abs_dr_n[mask])
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
 
-        # To do: Derive without taking into account the delta function
-        prefactor_n = 0.5*(dde_n - de_n/abs_dr_n)/abs_dr_n**2
-        tensor2_ncc = dr_nc.reshape(-1,3,1) * dr_nc.reshape(-1,1,3) 
-        tensor3_nncc = dr_nc.reshape(len(i_n),3,1,1) tensor2_ncc.reshape(len(i_n),1,3,3)
+        # 
+        stress_ncc = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
+        stress_cc = (0.5/atoms.get_volume()) * np.sum(stress_ncc, axis=0)
+        C_cccc = np.einsum("bm, ag -> abgm", stress_cc, np.identity(3)) + np.einsum("am, bg -> abgm", stress_cc, np.identity(3))
+        return C_cccc
+
+    def non_affine_forces(self, atoms):
+        """
+        Compute the correctionf of non-affine displacements to the elasticity tensor.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+        if self.atoms is None:
+            self.atoms = atoms
+
+        try:
+            from scipy import linalg
+        except ImportError:
+            raise ImportError(
+                "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
+
+
+        f = self.f
+        dict = self.dict
+        df = self.df
+        df2 = self.df2
+
+        nat = len(atoms)
+        atnums = atoms.numbers
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+        first_i = first_neighbours(nat, i_n)
+
+        e_n = np.zeros_like(abs_dr_n)
+        de_n = np.zeros_like(abs_dr_n)
+        dde_n = np.zeros_like(abs_dr_n)
+        for params, pair in enumerate(dict):
+            if pair[0] == pair[1]:
+                mask1 = atnums[i_n] == pair[0]
+                mask2 = atnums[j_n] == pair[0]
+                mask = np.logical_and(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+            if pair[0] != pair[1]:
+                mask1 = np.logical_and(
+                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                mask2 = np.logical_and(
+                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                mask = np.logical_or(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+        # Non-affine forces
+        e_nc = (dr_nc.T/abs_dr_n).T
+        force_coeffs_n = 0.5*(dde_n*abs_dr_n - de_n)
+        tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
+        tensor3_nccc = e_nc.reshape(-1,3,1,1) * tensor2_ncc.reshape(-1,1,3,3)
+        forces_nccc = (force_coeffs_n * tensor3_nccc.T).T
+        forces_natccc = np.zeros((nat,3,3,3))
+        for i in range(0,3):
+            for j in range(0,3):
+                for k in range(0,3):
+                    forces_natccc[:,i,j,k] = np.bincount(j_n, weights=forces_nccc[:,i,j,k], minlength=nat) - \
+                        np.bincount(i_n, weights=forces_nccc[:,i,j,k], minlength=nat) 
+
+        return forces_natccc
+
+
+    def elastic_constants_non_affine_contribution(self, atoms):
+        """
+        Compute the correctionf of non-affine displacements to the elasticity tensor.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+        if self.atoms is None:
+            self.atoms = atoms
+
+        try:
+            from scipy import linalg
+        except ImportError:
+            raise ImportError(
+                "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
+
+
+        f = self.f
+        dict = self.dict
+        df = self.df
+        df2 = self.df2
+
+        nat = len(atoms)
+        atnums = atoms.numbers
+
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+        first_i = first_neighbours(nat, i_n)
+
+        e_n = np.zeros_like(abs_dr_n)
+        de_n = np.zeros_like(abs_dr_n)
+        dde_n = np.zeros_like(abs_dr_n)
+        for params, pair in enumerate(dict):
+            if pair[0] == pair[1]:
+                mask1 = atnums[i_n] == pair[0]
+                mask2 = atnums[j_n] == pair[0]
+                mask = np.logical_and(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+            if pair[0] != pair[1]:
+                mask1 = np.logical_and(
+                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                mask2 = np.logical_and(
+                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                mask = np.logical_or(mask1, mask2)
+
+                e_n[mask] = f[pair](abs_dr_n[mask])
+                de_n[mask] = df[pair](abs_dr_n[mask])
+                dde_n[mask] = df2[pair](abs_dr_n[mask])
+
+        # Non-affine forces
+        e_nc = (dr_nc.T/abs_dr_n).T
+        force_coeffs_n = 0.5*(dde_n*abs_dr_n - de_n)
+        tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
+        tensor3_nccc = e_nc.reshape(-1,3,1,1) * tensor2_ncc.reshape(-1,1,3,3)
+        forces_nccc = (force_coeffs_n * tensor3_nccc.T).T
+        forces_natccc = np.zeros((nat,3,3,3))
+        for i in range(0,3):
+            for j in range(0,3):
+                for k in range(0,3):
+                    forces_natccc[:,i,j,k] = np.bincount(j_n, weights=forces_nccc[:,i,j,k], minlength=nat) - \
+                        np.bincount(i_n, weights=forces_nccc[:,i,j,k], minlength=nat)    
+
+        # Inverse of Hessian matrix
+        calc = atoms.get_calculator()
+        Hinv_nn = linalg.inv(calc.calculate_hessian_matrix(atoms))
+        Hinv_nncc = Hinv_nn.reshape(nat, 3, nat, 3).swapaxes(1,2)
+
+        # Perform the contraction along gamma 
+        first_sum = np.einsum("igab, ijgk -> jkab", forces_natccc, Hinv_nncc)
+        second_sum = np.einsum("jkab, jknm -> abnm", first_sum, forces_natccc)
+
+        return second_sum
