@@ -146,25 +146,25 @@ def full_3x3x3x3_to_Voigt_6x6(C):
 
             # Check symmetries
             assert abs(Voigt[i,j]-C[m,n,k,l]) < tol, \
-                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                '1 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
                 .format(i, j, Voigt[i,j], m, n, k, l, C[m,n,k,l])
             assert abs(Voigt[i,j]-C[l,k,m,n]) < tol, \
-                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-                .format(i, j, Voigt[i,j], k, l, m, n, C[l,k,m,n])
+                '2 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                .format(i, j, Voigt[i,j], l, k, m, n, C[l,k,m,n])
             assert abs(Voigt[i,j]-C[k,l,n,m]) < tol, \
-                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                '3 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
                 .format(i, j, Voigt[i,j], k, l, n, m, C[k,l,n,m])
             assert abs(Voigt[i,j]-C[m,n,l,k]) < tol, \
-                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                '4 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
                 .format(i, j, Voigt[i,j], m, n, l, k, C[m,n,l,k])
             assert abs(Voigt[i,j]-C[n,m,k,l]) < tol, \
-                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                '5 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
                 .format(i, j, Voigt[i,j], n, m, k, l, C[n,m,k,l])
             assert abs(Voigt[i,j]-C[l,k,n,m]) < tol, \
-                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                '6 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
                 .format(i, j, Voigt[i,j], l, k, n, m, C[l,k,n,m])
             assert abs(Voigt[i,j]-C[n,m,l,k]) < tol, \
-                'Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                '7 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
                 .format(i, j, Voigt[i,j], n, m, l, k, C[n,m,l,k])
 
     return Voigt

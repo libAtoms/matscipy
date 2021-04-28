@@ -100,32 +100,54 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
                 atoms, "dense", limits=[128, 256])
             self.assertArrayAlmostEqual(
                 np.sum(np.sum(H_full-H_0to128-H_128to256, axis=1)), 0, tol=0)
-    """
+
     def test_elastic_born_crystal(self):
         for calc in [{(1, 1): calculator.LennardJonesQuadratic(1.0, 1.0, 2.5)}]:
             b = calculator.PairPotential(calc)
             # Stress is minimal at latticeconstant=1.5695. For larger/smaller stresses at elastic constants deviate
-            atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.5695)
+            atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.1)
             atoms.set_calculator(b)
-            Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=None, verbose=False)
+            Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
             Cana = b.elastic_constants_born(atoms)
+            print(Cana-Cana.T)
             Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana)
-            print(atoms.get_stress())
+            #print(atoms.get_stress())
+            print(Cnum)
+            print(Cana_voigt)
             print("Absolute Difference: \n", Cnum-Cana_voigt)
             #self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=2)
-"""
-    def test_elastic_born_crystal(self):
+
+    def test_non_affine_forces_glass(self):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
             atoms = io.read('KA256_Min.xyz')
             atoms.center(vacuum=5.0)
             b = calculator.PairPotential(calc)
             atoms.set_calculator(b)
+            print(atoms.get_forces()[0,:])
+            dyn = FIRE(atoms)
+            dyn.run(fmax=1e-7)
+            print(atoms.get_forces()[0,:])
             naForces_num = b.numerical_non_affine_forces(atoms, d=1e-6)
             print(naForces_num[0,:,:,:])
             naForces_ana = b.non_affine_forces(atoms)    
             print(naForces_ana[0,:,:,:])    
-            self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=2)     
-"""
+            self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.01)   
+    """
+    def test_elastic_constants(self):
+        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
+            atoms = io.read('KA256_Min.xyz')
+            atoms.center(vacuum=0.01)
+            b = calculator.PairPotential(calc)
+            atoms.set_calculator(b)
+            dyn = FIRE(atoms)
+            dyn.run(fmax=1e-7)
+            C_num, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-2, optimizer=FIRE, fmax=1e-6, verbose=False)
+            Cna_ana = b.elastic_constants_non_affine_contribution(atoms)
+            Cb = b.elastic_constants_born(atoms)
+            print("C_num: \n", C_num)
+            print("C_ana: \n", full_3x3x3x3_to_Voigt_6x6(Cna_ana + Cb))
+            #self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.01)   
+
 ###
 
 

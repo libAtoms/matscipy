@@ -602,17 +602,21 @@ class PairPotential(Calculator):
         C_gmab = (0.5/atoms.get_volume()) * np.sum(C_gmab, axis=0)
 
         # Correction due to stress in the reference cell 
-        #stress_ab = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
-        #stress_ab = (0.5/atoms.get_volume()) * np.sum(stress_ab, axis=0)
-        #Cstress_gmab = np.einsum("bm, ag -> gmab", stress_ab, np.identity(3))
+        stress_ab = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
+        stress_ab = (0.5/atoms.get_volume()) * np.sum(stress_ab, axis=0)
+        Cstress_gmab = 0.5 * (np.einsum("ik, jl -> ijkl", np.identity(3), stress_ab) + \
+                       np.einsum("jk, il -> ijkl", np.identity(3), stress_ab) + \
+                       np.einsum("il, jk -> ijkl", np.identity(3), stress_ab) + \
+                       np.einsum("jl, ik -> ijkl", np.identity(3),  stress_ab) - \
+                       2 * np.einsum("kl, ij -> ijkl", np.identity(3),  stress_ab))
 
-        #return C_gmab + Cstress_gmab
-        return C_gmab
+        return C_gmab + Cstress_gmab
 
 
     def non_affine_forces(self, atoms):
         """
         Compute the correctionf of non-affine displacements to the elasticity tensor.
+        Note that we compute the non-affine forces under the restricton of zero force on the atoms.
 
         Parameters
         ----------
@@ -671,11 +675,6 @@ class PairPotential(Calculator):
         tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
         tensor3_nccc = e_nc.reshape(-1,3,1,1) * tensor2_ncc.reshape(-1,1,3,3)
         forces_nccc = (force_coeffs_n * tensor3_nccc.T).T
-
-        # Add the non-zero stress part
-        stress_part_ncc = e_nc.reshape(-1,1,3,1) * (np.zeros((len(i_n),1,3,3)) + np.eye(3)).reshape(-1,3,1,3)
-        stress_part_ncc += e_nc.reshape(-1,1,1,3) * (np.zeros((len(i_n),1,3,3)) + np.eye(3)).reshape(-1,3,3,1)
-        forces_nccc += (de_n * stress_part_ncc.T).T
 
         forces_natccc = np.zeros((nat,3,3,3))
         for i in range(0,3):
@@ -706,57 +705,12 @@ class PairPotential(Calculator):
             raise ImportError(
                 "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
 
-
-        f = self.f
-        dict = self.dict
-        df = self.df
-        df2 = self.df2
-
-        nat = len(atoms)
-        atnums = atoms.numbers
-
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-        first_i = first_neighbours(nat, i_n)
-
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
-        dde_n = np.zeros_like(abs_dr_n)
-        for params, pair in enumerate(dict):
-            if pair[0] == pair[1]:
-                mask1 = atnums[i_n] == pair[0]
-                mask2 = atnums[j_n] == pair[0]
-                mask = np.logical_and(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-            if pair[0] != pair[1]:
-                mask1 = np.logical_and(
-                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
-                mask2 = np.logical_and(
-                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
-                mask = np.logical_or(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
+        calc = atoms.get_calculator()
 
         # Non-affine forces
-        e_nc = (dr_nc.T/abs_dr_n).T
-        force_coeffs_n = 0.5*(dde_n*abs_dr_n - de_n)
-        tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
-        tensor3_nccc = e_nc.reshape(-1,3,1,1) * tensor2_ncc.reshape(-1,1,3,3)
-        forces_nccc = (force_coeffs_n * tensor3_nccc.T).T
-        forces_natccc = np.zeros((nat,3,3,3))
-        for i in range(0,3):
-            for j in range(0,3):
-                for k in range(0,3):
-                    forces_natccc[:,i,j,k] = np.bincount(j_n, weights=forces_nccc[:,i,j,k], minlength=nat) - \
-                        np.bincount(i_n, weights=forces_nccc[:,i,j,k], minlength=nat)    
+        forces_natccc = calc.non_affine_forces(atoms)
 
         # Inverse of Hessian matrix
-        calc = atoms.get_calculator()
         Hinv_nn = linalg.inv(calc.calculate_hessian_matrix(atoms))
         Hinv_nncc = Hinv_nn.reshape(nat, 3, nat, 3).swapaxes(1,2)
 
@@ -770,7 +724,13 @@ class PairPotential(Calculator):
     def numerical_non_affine_forces(self, atoms, d=1e-6):
         """
 
-        Calculate numerical non-affine forces using finite differences
+        Calculate numerical non-affine forces using central finite differences.
+        This is done by deforming the box, rescaling atoms and measure the force.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
         
         """
 
