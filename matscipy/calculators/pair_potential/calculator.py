@@ -596,16 +596,19 @@ class PairPotential(Calculator):
         #  
         e_nc = (dr_nc.T/abs_dr_n).T
         elastic_coeffs_n = dde_n*np.power(abs_dr_n, 2) - de_n*abs_dr_n 
-        tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
-        tensor4_ncccc = tensor2_ncc.reshape(-1,3,3,1,1) * tensor2_ncc.reshape(-1,1,1,3,3)
-        C_ncccc = (elastic_coeffs_n*tensor4_ncccc.T).T
-        C_cccc = (0.5/atoms.get_volume()) * np.sum(C_ncccc, axis=0)
+        tensor2_nab = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
+        tensor4_gmab = tensor2_nab.reshape(-1,3,3,1,1) * tensor2_nab.reshape(-1,1,1,3,3)
+        C_gmab = (elastic_coeffs_n*tensor4_gmab.T).T
+        C_gmab = (0.5/atoms.get_volume()) * np.sum(C_gmab, axis=0)
 
         # Correction due to stress in the reference cell 
-        # stress_ncc = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
-        # stress_cc = (0.5/atoms.get_volume()) * np.sum(stress_ncc, axis=0)
-        # Cstress_cccc = np.einsum("mg, ab -> abmg", stress_cc, np.identity(3))
-        return C_cccc 
+        #stress_ab = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
+        #stress_ab = (0.5/atoms.get_volume()) * np.sum(stress_ab, axis=0)
+        #Cstress_gmab = np.einsum("bm, ag -> gmab", stress_ab, np.identity(3))
+
+        #return C_gmab + Cstress_gmab
+        return C_gmab
+
 
     def non_affine_forces(self, atoms):
         """

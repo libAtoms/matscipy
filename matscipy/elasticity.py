@@ -133,16 +133,16 @@ def full_3x3x3x3_to_Voigt_6x6(C):
             m, n = Voigt_notation[j]
             Voigt[i,j] = C[k,l,m,n]
 
-            #print '---'
-            #print k,l,m,n, C[k,l,m,n]
-            #print m,n,k,l, C[m,n,k,l]
-            #print l,k,m,n, C[l,k,m,n]
-            #print k,l,n,m, C[k,l,n,m]
-            #print m,n,l,k, C[m,n,l,k]
-            #print n,m,k,l, C[n,m,k,l]
-            #print l,k,n,m, C[l,k,n,m]
-            #print n,m,l,k, C[n,m,l,k]
-            #print '---'
+            print('---')
+            print("k,l,m,n", C[k,l,m,n])
+            print("m,n,k,l", C[m,n,k,l])
+            print("l,k,m,n", C[l,k,m,n])
+            print("k,l,n,m", C[k,l,n,m])
+            print("m,n,l,k", C[m,n,l,k])
+            print("n,m,k,l", C[n,m,k,l])
+            print("l,k,n,m", C[l,k,n,m])
+            print("n,m,l,k", C[n,m,l,k])
+            print('---')
 
             # Check symmetries
             assert abs(Voigt[i,j]-C[m,n,k,l]) < tol, \

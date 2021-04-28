@@ -111,8 +111,6 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             Cana = b.elastic_constants_born(atoms)
             Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana)
             print(atoms.get_stress())
-            #print(Cnum)
-            #print(Cana_voigt)
             print("Absolute Difference: \n", Cnum-Cana_voigt)
             #self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=2)
 """
