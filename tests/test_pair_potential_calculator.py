@@ -40,6 +40,7 @@ from ase.units import GPa
 
 import matscipytest
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut, LennardJonesQuadratic
+from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6
 import matscipy.calculators.pair_potential as calculator
 from matscipy.hessian_finite_differences import fd_hessian
 
@@ -49,7 +50,7 @@ from matscipy.hessian_finite_differences import fd_hessian
 class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
     tol = 1e-4
-
+    """
     def test_forces(self):
         for calc in [PairPotential({(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)})]:
             a = io.read('KA256.xyz')
@@ -99,8 +100,32 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
                 atoms, "dense", limits=[128, 256])
             self.assertArrayAlmostEqual(
                 np.sum(np.sum(H_full-H_0to128-H_128to256, axis=1)), 0, tol=0)
-
-
+    """
+    def test_elastic_born_crystal(self):
+        for calc in [{(1, 1): calculator.LennardJonesQuadratic(1.0, 1.0, 2.5)}]:
+            b = calculator.PairPotential(calc)
+            atoms = FaceCenteredCubic('H', size=[4,4,4], latticeconstant=1.56)
+            atoms.set_calculator(b)
+            Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, fmax=1e-5, verbose=False)
+            Cana = b.elastic_constants_born(atoms)
+            Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana)
+            print(atoms.get_stress())
+            print(Cnum)
+            print(Cana_voigt)
+            self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=2)
+"""
+    def test_elastic_born_crystal(self):
+        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
+            atoms = io.read('KA256_Min.xyz')
+            atoms.center(vacuum=5.0)
+            b = calculator.PairPotential(calc)
+            atoms.set_calculator(b)
+            naForces_num = b.numerical_non_affine_forces(atoms, d=1e-6)
+            print(naForces_num[0,:,:,:])
+            naForces_ana = b.non_affine_forces(atoms)    
+            print(naForces_ana[0,:,:,:])    
+            self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=2)     
+"""
 ###
 
 

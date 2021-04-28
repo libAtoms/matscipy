@@ -34,6 +34,9 @@ import time
 import numpy as np
 
 import ase
+
+from ase.optimize import FIRE
+
 from ase.calculators.calculator import Calculator
 
 from matscipy.neighbours import neighbour_list, first_neighbours
@@ -597,61 +600,12 @@ class PairPotential(Calculator):
         tensor4_ncccc = tensor2_ncc.reshape(-1,3,3,1,1) * tensor2_ncc.reshape(-1,1,1,3,3)
         C_ncccc = (elastic_coeffs_n*tensor4_ncccc.T).T
         C_cccc = (0.5/atoms.get_volume()) * np.sum(C_ncccc, axis=0)
-        return C_cccc
 
-    def elastic_constants_stress_contribution(self, atoms):
-        """
-        Compute the correction to the elastic constants due to stresses in the reference cell.
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
-        if self.atoms is None:
-            self.atoms = atoms
-
-        f = self.f
-        dict = self.dict
-        df = self.df
-        df2 = self.df2
-
-        nat = len(atoms)
-        atnums = atoms.numbers
-
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-        first_i = first_neighbours(nat, i_n)
-
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
-        dde_n = np.zeros_like(abs_dr_n)
-        for params, pair in enumerate(dict):
-            if pair[0] == pair[1]:
-                mask1 = atnums[i_n] == pair[0]
-                mask2 = atnums[j_n] == pair[0]
-                mask = np.logical_and(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-            if pair[0] != pair[1]:
-                mask1 = np.logical_and(
-                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
-                mask2 = np.logical_and(
-                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
-                mask = np.logical_or(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-        # 
-        stress_ncc = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
-        stress_cc = (0.5/atoms.get_volume()) * np.sum(stress_ncc, axis=0)
-        C_cccc = np.einsum("bm, ag -> abgm", stress_cc, np.identity(3)) + np.einsum("am, bg -> abgm", stress_cc, np.identity(3))
-        return C_cccc
+        # Correction due to stress in the reference cell 
+        # stress_ncc = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
+        # stress_cc = (0.5/atoms.get_volume()) * np.sum(stress_ncc, axis=0)
+        # Cstress_cccc = np.einsum("mg, ab -> abmg", stress_cc, np.identity(3))
+        return C_cccc 
 
     def non_affine_forces(self, atoms):
         """
@@ -714,6 +668,12 @@ class PairPotential(Calculator):
         tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
         tensor3_nccc = e_nc.reshape(-1,3,1,1) * tensor2_ncc.reshape(-1,1,3,3)
         forces_nccc = (force_coeffs_n * tensor3_nccc.T).T
+
+        # Add the non-zero stress part
+        stress_part_ncc = e_nc.reshape(-1,1,3,1) * (np.zeros((len(i_n),1,3,3)) + np.eye(3)).reshape(-1,3,1,3)
+        stress_part_ncc += e_nc.reshape(-1,1,1,3) * (np.zeros((len(i_n),1,3,3)) + np.eye(3)).reshape(-1,3,3,1)
+        forces_nccc += (de_n * stress_part_ncc.T).T
+
         forces_natccc = np.zeros((nat,3,3,3))
         for i in range(0,3):
             for j in range(0,3):
@@ -802,3 +762,53 @@ class PairPotential(Calculator):
         second_sum = np.einsum("jkab, jknm -> abnm", first_sum, forces_natccc)
 
         return second_sum
+
+
+    def numerical_non_affine_forces(self, atoms, d=1e-6):
+        """
+
+        Calculate numerical non-affine forces using finite differences
+        
+        """
+
+        nat = len(atoms)
+        cell = atoms.cell.copy()
+        V = atoms.get_volume()
+        fna_ncc = np.zeros((nat,3,3,3))
+
+        for i in range(3):
+            x = np.eye(3)
+            x[i ,i] += d
+            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+            fplus = atoms.get_forces()
+
+            x[i, i] -= 2 * d
+            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+            fminus = atoms.get_forces()
+
+            naForces_ncc = (fminus - fplus) / (2 * d)
+            fna_ncc[:,0,i,i] = naForces_ncc[:,0]   
+            fna_ncc[:,1,i,i] = naForces_ncc[:,1]   
+            fna_ncc[:,2,i,i] = naForces_ncc[:,2]   
+
+            # Off diagonal 
+            j = i - 2
+            x[i, j] = d 
+            x[j, i] = d
+            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+            fplus = atoms.get_forces()
+
+            x[i, j] = -d 
+            x[j, i] = -d
+            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+            fminus = atoms.get_forces()
+
+            naForces_ncc = (fminus - fplus) / (4 * d)
+            fna_ncc[:,0,i,j] = naForces_ncc[:,0] 
+            fna_ncc[:,0,j,i] = naForces_ncc[:,0]    
+            fna_ncc[:,1,i,j] = naForces_ncc[:,1]   
+            fna_ncc[:,1,j,i] = naForces_ncc[:,1]   
+            fna_ncc[:,2,i,j] = naForces_ncc[:,2]   
+            fna_ncc[:,2,j,i] = naForces_ncc[:,2] 
+       
+        return fna_ncc
