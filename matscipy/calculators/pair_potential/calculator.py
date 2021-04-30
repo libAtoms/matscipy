@@ -601,14 +601,25 @@ class PairPotential(Calculator):
         C_gmab = (elastic_coeffs_n*tensor4_gmab.T).T
         C_gmab = (0.5/atoms.get_volume()) * np.sum(C_gmab, axis=0)
 
+        # Symmetrize 
+        C_gmab = 0.25 * (C_gmab.transpose((2,3,0,1)) + C_gmab.transpose((2,3,1,0)) + C_gmab.transpose((3,2,0,1)) + C_gmab.transpose((3,2,1,0)))
+
         # Correction due to stress in the reference cell 
         stress_ab = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
         stress_ab = (0.5/atoms.get_volume()) * np.sum(stress_ab, axis=0)
+        stress_gmab = np.einsum("ye, xd -> xyde", stress_ab, np.identity(3))
+
+        # Symmetrize the tensor
         Cstress_gmab = 0.5 * (np.einsum("ik, jl -> ijkl", np.identity(3), stress_ab) + \
                        np.einsum("jk, il -> ijkl", np.identity(3), stress_ab) + \
                        np.einsum("il, jk -> ijkl", np.identity(3), stress_ab) + \
                        np.einsum("jl, ik -> ijkl", np.identity(3),  stress_ab) - \
                        2 * np.einsum("kl, ij -> ijkl", np.identity(3),  stress_ab))
+
+        Cstress_gmab2 = 0.25 * (stress_gmab.transpose((2,3,0,1)) + stress_gmab.transpose((2,3,1,0)) + \
+                                stress_gmab.transpose((3,2,0,1)) + stress_gmab.transpose((3,2,1,0)))
+        print("Cstress_gmab0 :\n", Cstress_gmab-Cstress_gmab2)
+        sys.exit(2)
 
         return C_gmab + Cstress_gmab
 

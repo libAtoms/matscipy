@@ -101,11 +101,11 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             self.assertArrayAlmostEqual(
                 np.sum(np.sum(H_full-H_0to128-H_128to256, axis=1)), 0, tol=0)
 
-    def test_elastic_born_crystal(self):
+    def test_elastic_born_crystal_stress_free(self):
         for calc in [{(1, 1): calculator.LennardJonesQuadratic(1.0, 1.0, 2.5)}]:
             b = calculator.PairPotential(calc)
             # Stress is minimal at latticeconstant=1.5695. For larger/smaller stresses at elastic constants deviate
-            atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.1)
+            atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.5695)
             atoms.set_calculator(b)
             Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
             Cana = b.elastic_constants_born(atoms)
@@ -117,6 +117,21 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             print("Absolute Difference: \n", Cnum-Cana_voigt)
             #self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=2)
 
+    """
+    def test_elastic_born_crystal_stress(self):
+        for calc in [{(1, 1): calculator.LennardJonesQuadratic(1.0, 1.0, 2.5)}]:
+            b = calculator.PairPotential(calc)
+            atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.2)
+            atoms.set_calculator(b)
+            Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
+            Cana = b.elastic_constants_born(atoms)
+            Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana)
+            #print(atoms.get_stress())
+            #print(Cnum)
+            #print(Cana_voigt)
+            #print("Absolute Difference: \n", Cnum-Cana_voigt)
+            #self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=2)
+    """
     def test_non_affine_forces_glass(self):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
             atoms = io.read('KA256_Min.xyz')
@@ -132,7 +147,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             naForces_ana = b.non_affine_forces(atoms)    
             print(naForces_ana[0,:,:,:])    
             self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.01)   
-    """
+
     def test_elastic_constants(self):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
             atoms = io.read('KA256_Min.xyz')
@@ -147,7 +162,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             print("C_num: \n", C_num)
             print("C_ana: \n", full_3x3x3x3_to_Voigt_6x6(Cna_ana + Cb))
             #self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.01)   
-
+    """
 ###
 
 
