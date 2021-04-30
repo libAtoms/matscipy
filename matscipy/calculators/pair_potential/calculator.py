@@ -607,17 +607,22 @@ class PairPotential(Calculator):
         # Correction due to stress in the reference cell 
         stress_ab = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
         stress_ab = (0.5/atoms.get_volume()) * np.sum(stress_ab, axis=0)
-        stress_gmab = np.einsum("ye, xd -> xyde", stress_ab, np.identity(3))
+        #stress_gmab = np.einsum("ye, xd -> xyde", stress_ab, np.identity(3))
 
-        # Symmetrize the tensor
+        # Symmetrize the tensor --> This one is working, but i don´t know ehere it comes from
         Cstress_gmab = 0.5 * (np.einsum("ik, jl -> ijkl", np.identity(3), stress_ab) + \
                        np.einsum("jk, il -> ijkl", np.identity(3), stress_ab) + \
                        np.einsum("il, jk -> ijkl", np.identity(3), stress_ab) + \
                        np.einsum("jl, ik -> ijkl", np.identity(3),  stress_ab) - \
                        2 * np.einsum("kl, ij -> ijkl", np.identity(3),  stress_ab))
+        # I know how this one is derived by it is not equal to the upper one and reults in a different elastic tensor
+        Cstress_gmab2 = 0.25 * (np.einsum("bm, ag -> gmab", stress_ab, np.identity(3)) + \
+                                np.einsum("bg, am -> gmab", stress_ab, np.identity(3)) + \
+                                np.einsum("am, bg -> gmab", stress_ab, np.identity(3)) + \
+                                np.einsum("ag, bm -> gmab", stress_ab, np.identity(3)))
 
-        Cstress_gmab2 = 0.25 * (stress_gmab.transpose((2,3,0,1)) + stress_gmab.transpose((2,3,1,0)) + \
-                                stress_gmab.transpose((3,2,0,1)) + stress_gmab.transpose((3,2,1,0)))
+        #Cstress_gmab2 = 0.25 * (stress_gmab.transpose((2,3,0,1)) + stress_gmab.transpose((2,3,1,0)) + \
+        #                        stress_gmab.transpose((3,2,0,1)) + stress_gmab.transpose((3,2,1,0)))
         print("Cstress_gmab0 :\n", Cstress_gmab-Cstress_gmab2)
         sys.exit(2)
 
