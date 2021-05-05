@@ -624,9 +624,8 @@ class PairPotential(Calculator):
         #Cstress_gmab2 = 0.25 * (stress_gmab.transpose((2,3,0,1)) + stress_gmab.transpose((2,3,1,0)) + \
         #                        stress_gmab.transpose((3,2,0,1)) + stress_gmab.transpose((3,2,1,0)))
         print("Cstress_gmab0 :\n", Cstress_gmab-Cstress_gmab2)
-        sys.exit(2)
 
-        return C_gmab + Cstress_gmab
+        return C_gmab + Cstress_gmab 
 
 
     def non_affine_forces(self, atoms):

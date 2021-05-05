@@ -129,7 +129,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             #print(atoms.get_stress())
             #print(Cnum)
             #print(Cana_voigt)
-            #print("Absolute Difference: \n", Cnum-Cana_voigt)
+            print("Absolute Difference: \n", Cnum-Cana_voigt)
             #self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=2)
     """
     def test_non_affine_forces_glass(self):
