@@ -23,23 +23,12 @@
 Simple pair potential.
 """
 
-from __future__ import division
-
-import os
-
-import sys
-
-import time
-
 import numpy as np
 
 import ase
 
-from ase.optimize import FIRE
-
-from ase.calculators.calculator import Calculator
-
-from matscipy.neighbours import neighbour_list, first_neighbours
+from ...neighbours import neighbour_list, first_neighbours
+from ..calculator import MatscipyCalculator
 
 
 ###
@@ -269,13 +258,13 @@ class LennardJones84():
 ###
 
 
-class PairPotential(Calculator):
-    implemented_properties = ['energy', 'stress', 'forces', "hessian"]
+class PairPotential(MatscipyCalculator):
+    implemented_properties = ['energy', 'free_energy', 'stress', 'forces', 'hessian']
     default_parameters = {}
     name = 'PairPotential'
 
     def __init__(self, f, cutoff=None):
-        Calculator.__init__(self)
+        MatscipyCalculator.__init__(self)
         self.f = f
 
         self.dict = {x: obj.get_cutoff() for x, obj in f.items()}
@@ -283,7 +272,7 @@ class PairPotential(Calculator):
         self.df2 = {x: obj.derivative(2) for x, obj in f.items()}
 
     def calculate(self, atoms, properties, system_changes):
-        Calculator.calculate(self, atoms, properties, system_changes)
+        MatscipyCalculator.calculate(self, atoms, properties, system_changes)
 
         nat = len(self.atoms)
         atnums = self.atoms.numbers
@@ -335,27 +324,28 @@ class PairPotential(Calculator):
                               dr_nc[:, 0]*df_nc[:, 1]]).sum(axis=1)  # xy
 
         self.results = {'energy': epot,
+                        'free_energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
                         'forces': np.transpose([fx_i, fy_i, fz_i])}
 
     ###
 
-    def calculate_hessian_matrix(self, atoms, H_format="dense", limits=None):
+    def get_hessian(self, atoms, format='dense', limits=None):
         """
         Calculate the Hessian matrix for a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
-        with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of shape (d,d), which
-        are the mixed second derivatives. The result of the derivation for a pair potential can be found in:
-        L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Ev. B 86, 075459 (2012).
+        with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of
+        shape (d,d), which are the mixed second derivatives. The result of the derivation for a pair potential can be
+        found e.g. in:
+        L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Rev. B 86, 075459 (2012).
 
         Parameters
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
 
-        H_format: "dense" or "sparse"
+        format: "sparse" or "neighbour-list"
             Output format of the hessian matrix.
-            The format "sparse" is only possible if matscipy was build with scipy.
 
         limits: list [atomID_low, atomID_up]
             Calculate the Hessian matrix only for the given atom IDs. 
@@ -366,10 +356,9 @@ class PairPotential(Calculator):
         Restrictions
         ----------
         This method is currently only implemented for three dimensional systems
-
         """
 
-        if H_format == "sparse":
+        if format == "sparse":
             try:
                 from scipy.sparse import bsr_matrix, vstack, hstack
             except ImportError:
@@ -435,7 +424,7 @@ class PairPotential(Calculator):
                         j = j+1
                 first_i[-1] = len(i_n)
 
-                if H_format == "sparse":
+                if format == "sparse":
                     # Off-diagonal elements of the Hessian matrix
                     e_nc = (dr_nc.T / abs_dr_n).T
                     H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
@@ -466,7 +455,7 @@ class PairPotential(Calculator):
 
                     return H
 
-                elif H_format == "dense":
+                elif format == "dense":
                     # Off-diagonal elements of the Hessian matrix
                     e_nc = (dr_nc.T / abs_dr_n).T
                     H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1) *
@@ -496,14 +485,14 @@ class PairPotential(Calculator):
 
                     return H
 
-        # Sparse BSR-matrix
-        elif H_format == "sparse":
-            e_nc = (dr_nc.T/abs_dr_n).T
-            H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                               * e_nc.reshape(-1, 1, 3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
-                                        - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+        e_nc = (dr_nc.T/abs_dr_n).T
+        H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
+                           * e_nc.reshape(-1, 1, 3)).T).T
+        H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
+                                    - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
+        # Sparse BSR-matrix
+        if format == "sparse":
             H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
             Hdiag_icc = np.empty((nat, 3, 3))
@@ -517,13 +506,7 @@ class PairPotential(Calculator):
             return H
 
         # Dense matrix format
-        elif H_format == "dense":
-            e_nc = (dr_nc.T/abs_dr_n).T
-            H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                               * e_nc.reshape(-1, 1, 3)).T).T
-            H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
-                                        - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
-
+        elif format == "dense":
             H = np.zeros((3*nat, 3*nat))
             for atom in range(len(i_n)):
                 H[3*i_n[atom]:3*i_n[atom]+3,
@@ -544,249 +527,6 @@ class PairPotential(Calculator):
 
             return H
 
-
-    def elastic_constants_born(self, atoms):
-        """
-        Compute the Born term of the elasticity tensor. 
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
-        if self.atoms is None:
-            self.atoms = atoms
-
-        f = self.f
-        dict = self.dict
-        df = self.df
-        df2 = self.df2
-
-        nat = len(atoms)
-        atnums = atoms.numbers
-
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-        first_i = first_neighbours(nat, i_n)
-
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
-        dde_n = np.zeros_like(abs_dr_n)
-        for params, pair in enumerate(dict):
-            if pair[0] == pair[1]:
-                mask1 = atnums[i_n] == pair[0]
-                mask2 = atnums[j_n] == pair[0]
-                mask = np.logical_and(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-            if pair[0] != pair[1]:
-                mask1 = np.logical_and(
-                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
-                mask2 = np.logical_and(
-                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
-                mask = np.logical_or(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-        #  
-        e_nc = (dr_nc.T/abs_dr_n).T
-        elastic_coeffs_n = dde_n*np.power(abs_dr_n, 2) - de_n*abs_dr_n 
-        tensor2_nab = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
-        tensor4_gmab = tensor2_nab.reshape(-1,3,3,1,1) * tensor2_nab.reshape(-1,1,1,3,3)
-        C_gmab = (elastic_coeffs_n*tensor4_gmab.T).T
-        C_gmab = (0.5/atoms.get_volume()) * np.sum(C_gmab, axis=0)
-
-        # Symmetrize 
-        C_gmab = 0.25 * (C_gmab.transpose((2,3,0,1)) + C_gmab.transpose((2,3,1,0)) + C_gmab.transpose((3,2,0,1)) + C_gmab.transpose((3,2,1,0)))
-
-        # Correction due to stress in the reference cell 
-        stress_ab = (de_n/abs_dr_n * (dr_nc.reshape(-1,3,1)*dr_nc.reshape(-1,1,3)).T).T 
-        stress_ab = (0.5/atoms.get_volume()) * np.sum(stress_ab, axis=0)
-        #stress_gmab = np.einsum("ye, xd -> xyde", stress_ab, np.identity(3))
-
-        # Symmetrize the tensor --> This one is working, but i don´t know ehere it comes from
-        Cstress_gmab = 0.5 * (np.einsum("ik, jl -> ijkl", np.identity(3), stress_ab) + \
-                       np.einsum("jk, il -> ijkl", np.identity(3), stress_ab) + \
-                       np.einsum("il, jk -> ijkl", np.identity(3), stress_ab) + \
-                       np.einsum("jl, ik -> ijkl", np.identity(3),  stress_ab) - \
-                       2 * np.einsum("kl, ij -> ijkl", np.identity(3),  stress_ab))
-        # I know how this one is derived by it is not equal to the upper one and reults in a different elastic tensor
-        Cstress_gmab2 = 0.25 * (np.einsum("bm, ag -> gmab", stress_ab, np.identity(3)) + \
-                                np.einsum("bg, am -> gmab", stress_ab, np.identity(3)) + \
-                                np.einsum("am, bg -> gmab", stress_ab, np.identity(3)) + \
-                                np.einsum("ag, bm -> gmab", stress_ab, np.identity(3)))
-
-        #Cstress_gmab2 = 0.25 * (stress_gmab.transpose((2,3,0,1)) + stress_gmab.transpose((2,3,1,0)) + \
-        #                        stress_gmab.transpose((3,2,0,1)) + stress_gmab.transpose((3,2,1,0)))
-        print("Cstress_gmab0 :\n", Cstress_gmab-Cstress_gmab2)
-
-        return C_gmab + Cstress_gmab 
-
-
-    def non_affine_forces(self, atoms):
-        """
-        Compute the correctionf of non-affine displacements to the elasticity tensor.
-        Note that we compute the non-affine forces under the restricton of zero force on the atoms.
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
-        if self.atoms is None:
-            self.atoms = atoms
-
-        try:
-            from scipy import linalg
-        except ImportError:
-            raise ImportError(
-                "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
-
-
-        f = self.f
-        dict = self.dict
-        df = self.df
-        df2 = self.df2
-
-        nat = len(atoms)
-        atnums = atoms.numbers
-
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-        first_i = first_neighbours(nat, i_n)
-
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
-        dde_n = np.zeros_like(abs_dr_n)
-        for params, pair in enumerate(dict):
-            if pair[0] == pair[1]:
-                mask1 = atnums[i_n] == pair[0]
-                mask2 = atnums[j_n] == pair[0]
-                mask = np.logical_and(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-            if pair[0] != pair[1]:
-                mask1 = np.logical_and(
-                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
-                mask2 = np.logical_and(
-                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
-                mask = np.logical_or(mask1, mask2)
-
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-        # Non-affine forces
-        e_nc = (dr_nc.T/abs_dr_n).T
-        force_coeffs_n = 0.5*(dde_n*abs_dr_n - de_n)
-        tensor2_ncc = e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)
-        tensor3_nccc = e_nc.reshape(-1,3,1,1) * tensor2_ncc.reshape(-1,1,3,3)
-        forces_nccc = (force_coeffs_n * tensor3_nccc.T).T
-
-        forces_natccc = np.zeros((nat,3,3,3))
-        for i in range(0,3):
-            for j in range(0,3):
-                for k in range(0,3):
-                    forces_natccc[:,i,j,k] = np.bincount(j_n, weights=forces_nccc[:,i,j,k], minlength=nat) - \
-                        np.bincount(i_n, weights=forces_nccc[:,i,j,k], minlength=nat) 
-
-        return forces_natccc
-
-
-    def elastic_constants_non_affine_contribution(self, atoms):
-        """
-        Compute the correctionf of non-affine displacements to the elasticity tensor.
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
-        if self.atoms is None:
-            self.atoms = atoms
-
-        try:
-            from scipy import linalg
-        except ImportError:
-            raise ImportError(
-                "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
-
-        calc = atoms.get_calculator()
-
-        # Non-affine forces
-        forces_natccc = calc.non_affine_forces(atoms)
-
-        # Inverse of Hessian matrix
-        Hinv_nn = linalg.inv(calc.calculate_hessian_matrix(atoms))
-        Hinv_nncc = Hinv_nn.reshape(nat, 3, nat, 3).swapaxes(1,2)
-
-        # Perform the contraction along gamma 
-        first_sum = np.einsum("igab, ijgk -> jkab", forces_natccc, Hinv_nncc)
-        second_sum = np.einsum("jkab, jknm -> abnm", first_sum, forces_natccc)
-
-        return second_sum
-
-
-    def numerical_non_affine_forces(self, atoms, d=1e-6):
-        """
-
-        Calculate numerical non-affine forces using central finite differences.
-        This is done by deforming the box, rescaling atoms and measure the force.
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-        
-        """
-
-        nat = len(atoms)
-        cell = atoms.cell.copy()
-        V = atoms.get_volume()
-        fna_ncc = np.zeros((nat,3,3,3))
-
-        for i in range(3):
-            x = np.eye(3)
-            x[i ,i] += d
-            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
-            fplus = atoms.get_forces()
-
-            x[i, i] -= 2 * d
-            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
-            fminus = atoms.get_forces()
-
-            naForces_ncc = (fminus - fplus) / (2 * d)
-            fna_ncc[:,0,i,i] = naForces_ncc[:,0]   
-            fna_ncc[:,1,i,i] = naForces_ncc[:,1]   
-            fna_ncc[:,2,i,i] = naForces_ncc[:,2]   
-
-            # Off diagonal 
-            j = i - 2
-            x[i, j] = d 
-            x[j, i] = d
-            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
-            fplus = atoms.get_forces()
-
-            x[i, j] = -d 
-            x[j, i] = -d
-            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
-            fminus = atoms.get_forces()
-
-            naForces_ncc = (fminus - fplus) / (4 * d)
-            fna_ncc[:,0,i,j] = naForces_ncc[:,0] 
-            fna_ncc[:,0,j,i] = naForces_ncc[:,0]    
-            fna_ncc[:,1,i,j] = naForces_ncc[:,1]   
-            fna_ncc[:,1,j,i] = naForces_ncc[:,1]   
-            fna_ncc[:,2,i,j] = naForces_ncc[:,2]   
-            fna_ncc[:,2,j,i] = naForces_ncc[:,2] 
-       
-        return fna_ncc
+        # Neighbour list format
+        elif format == "neighbour-list":
+            return H_ncc, i_n, j_n, dr_nc, abs_dr_n

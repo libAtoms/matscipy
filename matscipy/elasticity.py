@@ -25,11 +25,9 @@ import itertools
 import warnings
 
 import numpy as np
+import scipy.stats as scipy_stats
 from numpy.linalg import inv, norm
-try:
-    import scipy.stats as scipy_stats
-except:
-    scipy_stats = None
+from scipy.linalg import sqrtm
 
 import ase.units as units
 from ase.atoms import Atoms
@@ -117,13 +115,11 @@ def Voigt_6x6_to_full_3x3x3x3(C):
     return C_out
 
 
-def full_3x3x3x3_to_Voigt_6x6(C):
+def full_3x3x3x3_to_Voigt_6x6(C, tol=1e-3):
     """
     Convert from the full 3x3x3x3 representation of the stiffness matrix
     to the representation in Voigt notation. Checks symmetry in that process.
     """
-
-    tol = 1e-3
 
     C = np.asarray(C)
     Voigt = np.zeros((6,6))
@@ -473,20 +469,28 @@ def measure_triclinic_elastic_constants(a, delta=0.001, optimizer=None,
             a.set_cell(cell, scale_atoms=True)
             a.set_positions(r0)
         
-            D = np.eye(3)
-            D[i, j] += 0.5*delta
-            D[j, i] += 0.5*delta
-            a.set_cell(np.dot(D, cell.T).T, scale_atoms=True)
+            e = np.zeros((3, 3))
+            e[i, j] += 0.5*delta
+            e[j, i] += 0.5*delta
+
+            F = np.eye(3) + e
+            #F = sqrtm(np.eye(3) + 2*e)
+            a.set_cell(np.dot(F, cell.T).T, scale_atoms=True)
             if optimizer is not None:
                 optimizer(a, logfile=logfile).run(**kwargs)
+            #sp = Voigt_6_to_full_3x3_stress(a.get_stress() * volume)
             sp = Voigt_6_to_full_3x3_stress(a.get_stress()*a.get_volume())
 
-            D = np.eye(3)
-            D[i, j] -= 0.5*delta
-            D[j, i] -= 0.5*delta
-            a.set_cell(np.dot(D, cell.T).T, scale_atoms=True)
+            e = np.zeros((3, 3))
+            e[i, j] -= 0.5*delta
+            e[j, i] -= 0.5*delta
+
+            F = np.eye(3) + e
+            #F = sqrtm(np.eye(3) + 2*e)
+            a.set_cell(np.dot(F, cell.T).T, scale_atoms=True)
             if optimizer is not None:
                 optimizer(a, logfile=logfile).run(**kwargs)
+            #sm = Voigt_6_to_full_3x3_stress(a.get_stress() * volume)
             sm = Voigt_6_to_full_3x3_stress(a.get_stress()*a.get_volume())
 
             C[:,:,i,j] = (sp-sm)/(2*delta*volume)
@@ -494,7 +498,7 @@ def measure_triclinic_elastic_constants(a, delta=0.001, optimizer=None,
     a.set_cell(cell, scale_atoms=True)
     a.set_positions(r0)
 
-    return full_3x3x3x3_to_Voigt_6x6(C)
+    return C
 
 
 
