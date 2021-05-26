@@ -46,6 +46,41 @@ from matscipy.hessian_finite_differences import fd_hessian
 
 ###
 
+def measure_triclinic_elastic_constants_2nd(a, delta=0.001):
+    r0 = a.positions.copy()
+
+    cell = a.cell.copy()
+    volume = a.get_volume()
+    e0 = a.get_potential_energy()
+
+    C = np.zeros((3, 3, 3, 3), dtype=float)
+    for i in range(3):
+        for j in range(3):
+            a.set_cell(cell, scale_atoms=True)
+            a.set_positions(r0)
+
+            e = np.zeros((3, 3))
+            e[i, j] += 0.5*delta
+            e[j, i] += 0.5*delta
+            F = np.eye(3) + e
+            a.set_cell(np.matmul(F, cell.T).T, scale_atoms=True)
+            ep = a.get_potential_energy()
+
+            e = np.zeros((3, 3))
+            e[i, j] -= 0.5*delta
+            e[j, i] -= 0.5*delta
+            F = np.eye(3) + e
+            a.set_cell(np.matmul(F, cell.T).T, scale_atoms=True)
+            em = a.get_potential_energy()
+
+            C[:, :, i, j] = (ep + em - 2*e0) / (delta ** 2)
+
+    a.set_cell(cell, scale_atoms=True)
+    a.set_positions(r0)
+
+    return C
+
+###
 
 class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
@@ -163,10 +198,11 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.2)
             # Randomly deform the cell
             strain = np.random.random([3, 3]) * 0.02
-            atoms.set_cell(atoms.cell.dot(np.identity(3) + strain), scale_atoms=True)
+            atoms.set_cell(np.matmul(np.identity(3) + strain, atoms.cell), scale_atoms=True)
             atoms.set_calculator(b)
             Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
             Cnum2_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants(atoms), tol=10)
+            #Cnum3_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants_2nd(atoms), tol=10)
             Cana = b.get_born_elastic_constants(atoms)
             Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana, tol=10)
             #print(atoms.get_stress())
@@ -176,11 +212,12 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             print("Stress: \n", atoms.get_stress())
             print("Numeric (fit_elastic_constants): \n", Cnum)
             print("Numeric (measure_triclinic_elastic_constants): \n", Cnum2_voigt)
+            #print("Numeric (measure_triclinic_elastic_constants_2nd): \n", Cnum3_voigt)
             print("Analytic: \n", Cana_voigt)
             print("Absolute Difference (fit_elastic_constants): \n", Cnum-Cana_voigt)
             print("Absolute Difference (measure_triclinic_elastic_constants): \n", Cnum2_voigt-Cana_voigt)
             print("Difference between numeric results: \n", Cnum-Cnum2_voigt)
-            self.assertArrayAlmostEqual(Cnum2_voigt, Cana_voigt, tol=10)
+            self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=10)
     """
     def test_non_affine_forces_glass(self):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:

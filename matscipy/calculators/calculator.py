@@ -74,16 +74,15 @@ class MatscipyCalculator(Calculator):
         C_ncccc = H_ncc.reshape(-1, 3, 1, 3, 1) * dr_nc.reshape(-1, 1, 3, 1, 1) * dr_nc.reshape(-1, 1, 1, 1, 3)
         C_cccc = -C_ncccc.sum(axis=0) / (2*atoms.get_volume())
 
-        # Add stress term - not clear where this comes from
+        # Add stress term that comes from working with the Cauchy stress
         stress_cc = Voigt_6_to_full_3x3_stress(self.get_stress())
         delta_cc = np.identity(3)
-        C_cccc += delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3)
-
-        # If this term is included, the elastic constants are the derivative of the stress
-        #C_cccc -= delta_cc.reshape(3, 3, 1, 1) * stress_cc.reshape(1, 1, 3, 3)
+        C_cccc += delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3) -
+                  (delta_cc.reshape(3, 3, 1, 1) * stress_cc.reshape(1, 1, 3, 3) +
+                   delta_cc.reshape(1, 1, 3, 3) * stress_cc.reshape(3, 3, 1, 1)) / 2
 
         # Symmetrize elastic constant tensor
-        C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3))/4
+        C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
         # Add stress term
         #stress_cc = Voigt_6_to_full_3x3_stress(self.get_stress())
