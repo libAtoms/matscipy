@@ -25,6 +25,11 @@ jobs:
       run: |
         python3 setup.py build
         sudo python3 setup.py install
+        
+    - name: test
+      run: |
+        cd tests
+        pytest -v
 
     - name: package_dist
       run: |
