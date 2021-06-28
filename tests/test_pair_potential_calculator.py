@@ -39,9 +39,9 @@ from ase.optimize import FIRE
 from ase.units import GPa
 
 import matscipytest
-from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut, LennardJonesQuadratic
+from matscipy.calculators.pair_potential import PairPotential, LennardJonesQuadratic, LennardJonesLinear
 from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
-import matscipy.calculators.pair_potential as calculator
+from matscipy.calculators.calculator import MatscipyCalculator
 from matscipy.hessian_finite_differences import fd_hessian
 
 ###
@@ -85,91 +85,94 @@ def measure_triclinic_elastic_constants_2nd(a, delta=0.001):
 class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
     tol = 1e-4
-    """
+
     def test_forces(self):
-        for calc in [PairPotential({(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)})]:
-            a = io.read('KA256.xyz')
+        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
+            a = io.read('glass_min.xyz')
             a.center(vacuum=5.0)
-            a.set_calculator(calc)
+            b = PairPotential(calc)
+            a.set_calculator(b)
             f = a.get_forces()
-            fn = calc.calculate_numerical_forces(a, d=0.0001)
+            fn = b.calculate_numerical_forces(a, d=0.0001)
             self.assertArrayAlmostEqual(f, fn, tol=self.tol)
 
     def test_stress(self):
-        for calc in [PairPotential({(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)})]:
-            a = io.read('KA256.xyz')
+        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
+            a = io.read('glass_min.xyz')
             a.center(vacuum=5.0)
-            a.set_calculator(calc)
+            b = PairPotential(calc)
+            a.set_calculator(b)
             s = a.get_stress()
-            sn = calc.calculate_numerical_stress(a, d=0.0001)
+            sn = b.calculate_numerical_stress(a, d=0.0001)
             self.assertArrayAlmostEqual(s, sn, tol=self.tol)
 
     def test_symmetry_dense(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
-            a = io.read('KA256_Min.xyz')
+         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
+            a = io.read('glass_min.xyz')
             a.center(vacuum=5.0)
-            b = calculator.PairPotential(calc)
-            H = b.calculate_hessian_matrix(a, "dense")
+            b = PairPotential(calc)
+            H = b.get_hessian(a, "dense")
             self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
 
     def test_symmetry_sparse(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
-            a = io.read('KA256_Min.xyz')
+        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
+            a = io.read('glass_min.xyz')
             a.center(vacuum=5.0)
-            b = calculator.PairPotential(calc)
-            H = b.calculate_hessian_matrix(a, "sparse")
+            b = PairPotential(calc)
+            H = b.get_hessian(a, "sparse")
             H = H.todense()
             self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
 
     def test_hessian(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
-            atoms = io.read("KA256_Min.xyz")
+        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
+            atoms = io.read("glass_min.xyz")
             atoms.center(vacuum=5.0)
-            a = calculator.PairPotential(calc)
-            atoms.set_calculator(a)
-            H_analytical = a.calculate_hessian_matrix(atoms, "dense")
+            b = PairPotential(calc)
+            atoms.set_calculator(b)
+            H_analytical = b.get_hessian(atoms, "dense")
             H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
             H_numerical = H_numerical.todense()
             self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
 
-    def test_hessian_split(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
-            atoms = io.read("KA256_Min.xyz")
-            atoms.center(vacuum=5.0)
-            b = calculator.PairPotential(calc)
-            H_full = b.calculate_hessian_matrix(atoms, "dense")
-            H_0to128 = b.calculate_hessian_matrix(
-                atoms, "dense", limits=[0, 128])
-            H_128to256 = b.calculate_hessian_matrix(
-                atoms, "dense", limits=[128, 256])
-            self.assertArrayAlmostEqual(
-                np.sum(np.sum(H_full-H_0to128-H_128to256, axis=1)), 0, tol=0)
+    def test_born_elastic_constants(self):
+        for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:   
+            atoms = io.read("glass_min.xyz")
+            b = PairPotential(calc)
+            atoms.set_calculator(b)     
+            C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None)
+            Caf = full_3x3x3x3_to_Voigt_6x6(b.get_born_elastic_constants(atoms))
+            self.assertArrayAlmostEqual(Caf, C, tol=1) 
 
-    def test_elastic_born_crystal_stress_free(self):
-        for calc in [{(1, 1): calculator.LennardJonesQuadratic(1.0, 1.0, 2.5)}]:
-            b = calculator.PairPotential(calc)
-            # Stress is minimal at latticeconstant=1.5695. For larger/smaller stresses at elastic constants deviate
-            atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.5695)
+    def test_non_affine_elastic_constants(self):
+        for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:   
+            atoms = io.read("glass_min.xyz")
+            b = PairPotential(calc)
+            atoms.set_calculator(b)     
+            C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-6)
+            C_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
+            C_af = full_3x3x3x3_to_Voigt_6x6(b.get_born_elastic_constants(atoms))
+            self.assertArrayAlmostEqual(C_af + C_na, C, tol=1) 
+
+    def test_non_affine_forces_glass(self):
+        for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:
+            atoms = io.read("glass_min.xyz")
+            b = PairPotential(calc)
             atoms.set_calculator(b)
-            Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
-            Cana = b.get_born_elastic_constants(atoms)
-            Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana)
-            #print("Stress: \n", atoms.get_stress())
-            #print("Numeric: \n", Cnum)
-            #print("Analytic: \n", Cana_voigt)
-            #print("Absolute Difference: \n", Cnum-Cana_voigt)
-            self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=2)
-    """
+            
+            naForces_num = b.get_numerical_non_affine_forces(atoms, d=1e-5)
+            naForces_ana = b.get_nonaffine_forces(atoms)    
 
+            self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.1) 
+
+    """
     def test_elastic_born_crystal_stress(self):
         class TestPotential():
             def __init__(self, cutoff):
                 self.cutoff = cutoff
 
             def __call__(self, r):
-                """
-                Return function value (potential energy).
-                """
+                # Return function value (potential energy).
+
                 return r - self.cutoff
                 #return np.ones_like(r)
 
@@ -218,37 +221,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             print("Absolute Difference (measure_triclinic_elastic_constants): \n", Cnum2_voigt-Cana_voigt)
             print("Difference between numeric results: \n", Cnum-Cnum2_voigt)
             self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=10)
-    """
-    def test_non_affine_forces_glass(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
-            atoms = io.read('KA256_Min.xyz')
-            atoms.center(vacuum=5.0)
-            b = calculator.PairPotential(calc)
-            atoms.set_calculator(b)
-            print(atoms.get_forces()[0,:])
-            dyn = FIRE(atoms)
-            dyn.run(fmax=1e-7)
-            print(atoms.get_forces()[0,:])
-            naForces_num = b.numerical_non_affine_forces(atoms, d=1e-6)
-            print(naForces_num[0,:,:,:])
-            naForces_ana = b.non_affine_forces(atoms)    
-            print(naForces_ana[0,:,:,:])    
-            self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.01)   
-
-    def test_elastic_constants(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3), (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.4), (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.64)}]:
-            atoms = io.read('KA256_Min.xyz')
-            atoms.center(vacuum=0.01)
-            b = calculator.PairPotential(calc)
-            atoms.set_calculator(b)
-            dyn = FIRE(atoms)
-            dyn.run(fmax=1e-7)
-            C_num, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-2, optimizer=FIRE, fmax=1e-6, verbose=False)
-            Cna_ana = b.elastic_constants_non_affine_contribution(atoms)
-            Cb = b.elastic_constants_born(atoms)
-            print("C_num: \n", C_num)
-            print("C_ana: \n", full_3x3x3x3_to_Voigt_6x6(Cna_ana + Cb))
-            #self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.01)   
+ 
     """
 ###
 

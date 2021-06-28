@@ -23,17 +23,18 @@
 Bond Order Potential.
 """
 import numpy as np
-import sys
+
 import ase
+
 from scipy.sparse import bsr_matrix
 
 from ase.atoms import Atoms
-from ase.calculators.calculator import Calculator
 
-from matscipy.neighbours import find_indices_of_reversed_pairs, first_neighbours, \
+from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, \
     neighbour_list, triplet_list
+from ..calculator import MatscipyCalculator
 
-class AbellTersoffBrennerStillingerWeber(Calculator):
+class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
     implemented_properties = ['energy', 'stress', 'forces']
     default_parameters = {}
     name = 'ThreeBodyPotential'
@@ -46,7 +47,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                  d22G,
                  d12G,
                  cutoff):
-        Calculator.__init__(self)
+        MatscipyCalculator.__init__(self)
         self.F = F
         self.G = G
         self.d1F = d1F
@@ -63,7 +64,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         self.cutoff = cutoff
 
     def calculate(self, atoms, properties, system_changes):
-        Calculator.calculate(self, atoms, properties, system_changes)
+        MatscipyCalculator.calculate(self, atoms, properties, system_changes)
 
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
@@ -122,7 +123,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         self.results = {'energy': epot, 'stress': virial_v/self.atoms.get_volume(), 'forces': f_nc}
 
-    def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
+    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a bond order potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
@@ -133,6 +134,9 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
+
+        format: "sparse" or "neighbour-list"
+            Output format of the hessian matrix.
 
         divide_by_masses: bool
         	if true return the dynamic matrix else hessian matrix 
@@ -277,22 +281,26 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p, :, :]
 
-        # Construct full diagonal terms from off-diagonal terms
-        H_acc = np.zeros([nb_atoms, 3, 3])
-        for x in range(3):
-            for y in range(3):
-                H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y])
+        if format == "sparse":
+            # Construct full diagonal terms from off-diagonal terms
+            H_acc = np.zeros([nb_atoms, 3, 3])
+            for x in range(3):
+                for y in range(3):
+                    H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y])
 
-        if divide_by_masses:
-            mass_nat = atoms.get_masses()
-            geom_mean_mass_n = np.sqrt(mass_nat[i_p]*mass_nat[j_p])
-            return \
-                bsr_matrix(((H_pcc.T/(2 * geom_mean_mass_n)).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms)) \
-                + bsr_matrix(((H_acc.T/(2 * mass_nat)).T, np.arange(nb_atoms), np.arange(nb_atoms+1)),
-                     shape=(3*nb_atoms, 3*nb_atoms))
-        else:
-            return \
-                bsr_matrix((H_pcc/2, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms)) \
-                + bsr_matrix((H_acc/2, np.arange(nb_atoms), np.arange(nb_atoms+1)),
-                     shape=(3*nb_atoms, 3*nb_atoms))
+            if divide_by_masses:
+                mass_nat = atoms.get_masses()
+                geom_mean_mass_n = np.sqrt(mass_nat[i_p]*mass_nat[j_p])
+                return \
+                    bsr_matrix(((H_pcc.T/(2 * geom_mean_mass_n)).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms)) \
+                    + bsr_matrix(((H_acc.T/(2 * mass_nat)).T, np.arange(nb_atoms), np.arange(nb_atoms+1)),
+                         shape=(3*nb_atoms, 3*nb_atoms))
+            else:
+                return \
+                    bsr_matrix((H_pcc/2, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms)) \
+                    + bsr_matrix((H_acc/2, np.arange(nb_atoms), np.arange(nb_atoms+1)),
+                         shape=(3*nb_atoms, 3*nb_atoms))
 
+        # Neighbour list format
+        elif format == "neighbour-list":
+            return H_pcc/2, i_p, j_p,  r_pc, r_p

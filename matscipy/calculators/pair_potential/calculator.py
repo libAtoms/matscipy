@@ -137,7 +137,7 @@ class LennardJonesLinear():
         self.offset_force = 6/cutoff * \
             (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
 
-    def get_cutoff():
+    def get_cutoff(self):
         return self.cutoff
 
     def __call__(self, r):
@@ -330,7 +330,7 @@ class PairPotential(MatscipyCalculator):
 
     ###
 
-    def get_hessian(self, atoms, format='dense', limits=None):
+    def get_hessian(self, atoms, format='dense', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
@@ -347,16 +347,15 @@ class PairPotential(MatscipyCalculator):
         format: "sparse" or "neighbour-list"
             Output format of the hessian matrix.
 
-        limits: list [atomID_low, atomID_up]
-            Calculate the Hessian matrix only for the given atom IDs. 
-            If limits=[5,10] the Hessian matrix is computed for atom IDs 5,6,7,8,9 only.
-            The Hessian matrix will have the full shape dim(3*N,3*N) where N is the number of atoms. 
-            This ensures correct indexing of the data. 
+        divide_by_masses: bool
+            if true return the dynamic matrix else hessian matrix 
 
         Restrictions
         ----------
         This method is currently only implemented for three dimensional systems
         """
+        if self.atoms is None:
+            self.atoms = atoms
 
         if format == "sparse":
             try:
@@ -399,92 +398,7 @@ class PairPotential(MatscipyCalculator):
                 e_n[mask] = f[pair](abs_dr_n[mask])
                 de_n[mask] = df[pair](abs_dr_n[mask])
                 dde_n[mask] = df2[pair](abs_dr_n[mask])
-
-        if limits != None:
-            if limits[1] < limits[0]:
-                raise ValueError(
-                    "Value error: The upper atom id cannot be smaller than the lower atom id.")
-            else:
-                mask = np.logical_and(i_n >= limits[0], i_n < limits[1])
-                i_n = i_n[mask]
-                i_n1 = i_n - i_n[0]
-                j_n = j_n[mask]
-                dr_nc = dr_nc[mask]
-                abs_dr_n = abs_dr_n[mask]
-                e_n = e_n[mask]
-                de_n = de_n[mask]
-                dde_n = dde_n[mask]
-                nat1 = limits[1] - limits[0]
-
-                first_i = [0] * (nat1 + 1)
-                j = 1
-                for k in range(1, len(i_n)):
-                    if i_n[k] != i_n[k-1]:
-                        first_i[j] = k
-                        j = j+1
-                first_i[-1] = len(i_n)
-
-                if format == "sparse":
-                    # Off-diagonal elements of the Hessian matrix
-                    e_nc = (dr_nc.T / abs_dr_n).T
-                    H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                                       * e_nc.reshape(-1, 1, 3)).T).T
-                    H_ncc += -(de_n / abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
-                                                  - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
-
-                    H_nat1nat = bsr_matrix(
-                        (H_ncc, j_n, first_i), shape=(3*nat1, 3*nat))
-
-                    # Stack matrices in order to obtain full shape (3*nat, 3*nat)
-                    H = vstack([bsr_matrix((limits[0]*3, 3*nat)), H_nat1nat,
-                                bsr_matrix((3*nat - limits[1]*3, 3*nat))])
-
-                    # Diagonal elements of the Hessian matrix
-                    Hdiag_icc = np.empty((nat1, 3, 3))
-                    for x in range(3):
-                        for y in range(3):
-                            Hdiag_icc[:, x, y] = - \
-                                np.bincount(i_n1, weights=H_ncc[:, x, y])
-
-                    Hdiag_nat1nat = bsr_matrix((Hdiag_icc, np.arange(limits[0], limits[1]),
-                                                np.arange(nat1+1)), shape=(3*nat1, 3*nat))
-
-                    # Compute full Hessian matrix
-                    H += vstack([bsr_matrix((limits[0]*3, 3*nat)), Hdiag_nat1nat,
-                                 bsr_matrix((3*nat - limits[1]*3, 3*nat))])
-
-                    return H
-
-                elif format == "dense":
-                    # Off-diagonal elements of the Hessian matrix
-                    e_nc = (dr_nc.T / abs_dr_n).T
-                    H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1) *
-                                       e_nc.reshape(-1, 1, 3)).T).T
-                    H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
-                                                - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
-
-                    H = np.zeros((3*nat, 3*nat))
-                    for atom in range(len(i_n)):
-                        H[3*i_n[atom]:3*i_n[atom]+3,
-                          3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
-
-                    # Diagonal elements of the Hessian matrix
-                    Hdiag_icc = np.empty((nat1, 3, 3))
-                    for x in range(3):
-                        for y in range(3):
-                            Hdiag_icc[:, x, y] = - \
-                                np.bincount(i_n1, weights=H_ncc[:, x, y])
-
-                    Hdiag_ncc = np.zeros((3*nat, 3*nat))
-                    for atom in range(nat1):
-                        Hdiag_ncc[3*(atom+limits[0]):3*(atom+limits[0])+3,
-                                  3*(atom+limits[0]):3*(atom+limits[0])+3] += Hdiag_icc[atom]
-
-                    # Compute full Hessian matrix
-                    H += Hdiag_ncc
-
-                    return H
-
+        
         e_nc = (dr_nc.T/abs_dr_n).T
         H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                            * e_nc.reshape(-1, 1, 3)).T).T
@@ -493,7 +407,15 @@ class PairPotential(MatscipyCalculator):
 
         # Sparse BSR-matrix
         if format == "sparse":
-            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
+            if divide_by_masses:
+                mass_nat = self.atoms.get_masses()
+                geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])
+
+            if divide_by_masses:
+                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T, j_n, first_i), shape=(3*nat, 3*nat))
+
+            else: 
+                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
             Hdiag_icc = np.empty((nat, 3, 3))
             for x in range(3):
@@ -501,11 +423,18 @@ class PairPotential(MatscipyCalculator):
                     Hdiag_icc[:, x, y] = - \
                         np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            H += bsr_matrix((Hdiag_icc, np.arange(nat),
+            if divide_by_masses:
+                H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nat),
                              np.arange(nat+1)), shape=(3*nat, 3*nat))
+
+            else:
+                H += bsr_matrix((Hdiag_icc, np.arange(nat),
+                             np.arange(nat+1)), shape=(3*nat, 3*nat))
+
             return H
 
         # Dense matrix format
+        # To do: Divide by masses is missing
         elif format == "dense":
             H = np.zeros((3*nat, 3*nat))
             for atom in range(len(i_n)):
@@ -525,7 +454,13 @@ class PairPotential(MatscipyCalculator):
 
             H += Hdiag_ncc
 
-            return H
+            if divide_by_masses:
+                masses_nc = (self.atoms.get_masses()).repeat(3)
+                H /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
+                return H
+
+            else:
+                return H
 
         # Neighbour list format
         elif format == "neighbour-list":

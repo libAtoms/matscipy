@@ -19,21 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from __future__ import division
-
-import os
-
-import sys
-
-import time
-
 import numpy as np
 
 import ase
 
-from ase.calculators.calculator import Calculator
-
-from matscipy.neighbours import neighbour_list, first_neighbours
+from ...neighbours import neighbour_list, first_neighbours
+from ..calculator import MatscipyCalculator
 
 try:
     from scipy.special import factorial2
@@ -162,17 +153,17 @@ class InversePowerLawPotential():
 ###
 
 
-class Polydisperse(Calculator):
-    implemented_properties = ["energy", "stress", "forces"]
+class Polydisperse(MatscipyCalculator):
+    implemented_properties = ["energy", "free_energy", "stress", "forces", "hessian"]
     default_parameters = {}
     name = "Polydisperse"
 
     def __init__(self, f, cutoff=None):
-        Calculator.__init__(self)
+        MatscipyCalculator.__init__(self)
         self.f = f
 
     def calculate(self, atoms, properties, system_changes):
-        Calculator.calculate(self, atoms, properties, system_changes)
+        MatscipyCalculator.calculate(self, atoms, properties, system_changes)
 
         f = self.f
         nat = len(self.atoms)
@@ -219,12 +210,13 @@ class Polydisperse(Calculator):
                               dr_nc[:, 0]*df_nc[:, 1]]).sum(axis=1)  # xy
 
         self.results = {'energy': epot,
+                        'free_energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
                         'forces': np.transpose([fx_i, fy_i, fz_i])}
 
     ###
 
-    def hessian_matrix(self, atoms, divide_by_masses=False):
+    def hessian_matrix(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a polydisperse systems where atoms interact via a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
@@ -236,6 +228,9 @@ class Polydisperse(Calculator):
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
+
+        format: "sparse" or "neighbour-list"
+            Output format of the hessian matrix.
 
         divide_by_masses: bool
             Divide the block "l,m" by the corresponding atomic masses "sqrt(m_l, m_m)" to obtain dynamical matrix.
@@ -283,25 +278,30 @@ class Polydisperse(Calculator):
         H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
                                    - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
-        if divide_by_masses:
-            H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T,
-                            j_n, first_i), shape=(3*nat, 3*nat))
+        if format == "sparse":
+            if divide_by_masses:
+                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T,
+                                j_n, first_i), shape=(3*nat, 3*nat))
 
-        else:
-            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
+            else:
+                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
 
-        Hdiag_icc = np.empty((nat, 3, 3))
-        for x in range(3):
-            for y in range(3):
-                Hdiag_icc[:, x, y] = - \
-                    np.bincount(i_n, weights=H_ncc[:, x, y])
+            Hdiag_icc = np.empty((nat, 3, 3))
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:, x, y] = - \
+                        np.bincount(i_n, weights=H_ncc[:, x, y])
 
-        if divide_by_masses:
-            H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nat),
-                    np.arange(nat+1)), shape=(3*nat, 3*nat))         
+            if divide_by_masses:
+                H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nat),
+                        np.arange(nat+1)), shape=(3*nat, 3*nat))         
 
-        else:
-            H += bsr_matrix((Hdiag_icc, np.arange(nat),
-                     np.arange(nat+1)), shape=(3*nat, 3*nat))
+            else:
+                H += bsr_matrix((Hdiag_icc, np.arange(nat),
+                         np.arange(nat+1)), shape=(3*nat, 3*nat))
 
-        return H
+            return H
+
+        # Neighbour list format
+        elif format == "neighbour-list":
+            return H_ncc, i_n, j_n, dr_nc, abs_dr_n

@@ -25,7 +25,7 @@ from ..elasticity import Voigt_6_to_full_3x3_stress
 
 
 class MatscipyCalculator(Calculator):
-    def get_hessian(self, atoms, format='dense', limits=None, divide_by_masses=False):
+    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a pair potential. For an atomic
         configuration with N atoms in d dimensions the hessian matrix is a
@@ -44,11 +44,6 @@ class MatscipyCalculator(Calculator):
             a representation within matscipy's and ASE's neighbor list
             format, i.e. the Hessian is returned per neighbor.
             (Default: 'dense')
-        limits: list [atomID_low, atomID_up], optional
-            Calculate the Hessian matrix only for the given atom IDs.
-            If limits=[5,10] the Hessian matrix is computed for atom IDs 5,6,7,8,9 only.
-            The Hessian matrix will have the full shape dim(3*N,3*N) where N is the number of atoms.
-            This ensures correct indexing of the data.
         divide_by_masses : bool, optional
             Divided each block entry n the Hessian matrix by sqrt(m_i m_j)
             where m_i and m_j are the masses of the two atoms for the Hessian
@@ -77,8 +72,8 @@ class MatscipyCalculator(Calculator):
         # Add stress term that comes from working with the Cauchy stress
         stress_cc = Voigt_6_to_full_3x3_stress(self.get_stress())
         delta_cc = np.identity(3)
-        C_cccc += delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3) -
-                  (delta_cc.reshape(3, 3, 1, 1) * stress_cc.reshape(1, 1, 3, 3) +
+        C_cccc += delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3) - \
+                  (delta_cc.reshape(3, 3, 1, 1) * stress_cc.reshape(1, 1, 3, 3) + \
                    delta_cc.reshape(1, 1, 3, 3) * stress_cc.reshape(3, 3, 1, 1)) / 2
 
         # Symmetrize elastic constant tensor
@@ -96,8 +91,26 @@ class MatscipyCalculator(Calculator):
         return C_cccc
 
     def get_nonaffine_forces(self, atoms):
-        # Jan, implement me here
-        raise NotImplementedError
+        """
+        Compute the non-affine forces which result from an affine deformation of atoms.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+        nat = len(atoms)
+        H_ncc, i_n, j_n, dr_nc, abs_dr_n = self.get_hessian(atoms, 'neighbour-list')
+        naForces_nccc = -0.5 * H_ncc.reshape(-1, 3, 3, 1) * dr_nc.reshape(-1, 1, 1, 3)
+        naForces_natccc = np.empty((nat, 3, 3, 3))
+        for i in range(0, 3):
+            for j in range(0, 3):
+                for k in range(0, 3):
+                    naForces_natccc[:, i, j, k] = np.bincount(i_n, weights=naForces_nccc[:, i, j, k], minlength=nat) - \
+                        np.bincount(j_n, weights=naForces_nccc[:, i, j, k], minlength=nat) 
+
+        return naForces_natccc
 
     def get_non_affine_contribution_to_elastic_constants(self, atoms):
         """
@@ -109,8 +122,6 @@ class MatscipyCalculator(Calculator):
             Atomic configuration in a local or global minima.
 
         """
-        if self.atoms is None:
-            self.atoms = atoms
 
         try:
             from scipy import linalg
@@ -118,20 +129,29 @@ class MatscipyCalculator(Calculator):
             raise ImportError(
                 "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
 
+        nat = len(atoms)
         calc = atoms.get_calculator()
 
         # Non-affine forces
-        forces_natccc = calc.non_affine_forces(atoms)
+        forces_natccc = calc.get_nonaffine_forces(atoms)
 
-        # Inverse of Hessian matrix
-        Hinv_nn = linalg.inv(calc.calculate_hessian_matrix(atoms))
-        Hinv_nncc = Hinv_nn.reshape(nat, 3, nat, 3).swapaxes(1, 2)
+        # Diagonalize 
+        H_nn = calc.get_hessian(atoms, "sparse").todense()
+        eigvalues_n, eigvecs_nn = linalg.eigh(H_nn, b=None, subset_by_index=[3, 3*nat-1])
+         
+        #B_ncc = np.sum(eigvecs_nn.reshape(3*nat-3, 3*nat, 1, 1) * forces_natccc.reshape(1, 3*nat, 3, 3), axis=1)
+        #print(B_ncc.shape)
+        #B_ncc /= np.sqrt(eigvalues_n.reshape(3*nat-3, 1, 1))
+        #B_ncc = B_ncc.reshape(3*nat-3, 3, 3, 1, 1) * B_ncc.reshape(3*nat-3, 1, 1, 3, 3)
+        #C_cccc2 = np.sum(B_ncc, axis=0)
 
-        # Perform the contraction along gamma
-        first_sum = np.einsum("igab, ijgk -> jkab", forces_natccc, Hinv_nncc)
-        second_sum = np.einsum("jkab, jknm -> abnm", first_sum, forces_natccc)
+        # Compute non-affine contribution 
+        C_cccc = np.empty((3,3,3,3))
+        for index in range(0, 3*nat -3):
+            first_con = np.sum((eigvecs_nn[:,index]).reshape(3*nat, 1, 1) * forces_natccc.reshape(3*nat, 3, 3), axis=0)
+            C_cccc += (first_con.reshape(3,3,1,1) * first_con.reshape(1,1,3,3))/eigvalues_n[index]
 
-        return second_sum
+        return - C_cccc/atoms.get_volume()
 
     def get_numerical_non_affine_forces(self, atoms, d=1e-6):
         """
@@ -148,10 +168,10 @@ class MatscipyCalculator(Calculator):
 
         nat = len(atoms)
         cell = atoms.cell.copy()
-        V = atoms.get_volume()
         fna_ncc = np.zeros((nat, 3, 3, 3))
 
         for i in range(3):
+            # Diagonal 
             x = np.eye(3)
             x[i, i] += d
             atoms.set_cell(np.dot(cell, x), scale_atoms=True)
@@ -161,7 +181,7 @@ class MatscipyCalculator(Calculator):
             atoms.set_cell(np.dot(cell, x), scale_atoms=True)
             fminus = atoms.get_forces()
 
-            naForces_ncc = (fminus - fplus) / (2 * d)
+            naForces_ncc = (fplus - fminus) / (2 * d)
             fna_ncc[:, 0, i, i] = naForces_ncc[:, 0]
             fna_ncc[:, 1, i, i] = naForces_ncc[:, 1]
             fna_ncc[:, 2, i, i] = naForces_ncc[:, 2]
@@ -178,7 +198,7 @@ class MatscipyCalculator(Calculator):
             atoms.set_cell(np.dot(cell, x), scale_atoms=True)
             fminus = atoms.get_forces()
 
-            naForces_ncc = (fminus - fplus) / (4 * d)
+            naForces_ncc = (fplus - fminus) / (4 * d)
             fna_ncc[:, 0, i, j] = naForces_ncc[:, 0]
             fna_ncc[:, 0, j, i] = naForces_ncc[:, 0]
             fna_ncc[:, 1, i, j] = naForces_ncc[:, 1]

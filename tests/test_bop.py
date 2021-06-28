@@ -31,6 +31,7 @@ import ase
 
 import matscipytest
 
+import ase.io as io
 from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber 
 import matscipy.calculators.bop_sw.explicit_forms.stillinger_weber as sw
 import matscipy.calculators.bop_sw.explicit_forms.kumagai as kum
@@ -39,30 +40,49 @@ from matscipy.calculators.bop_sw.explicit_forms import KumagaiTersoff, TersoffII
 from ase import Atoms
 import ase.io
 from matscipy.hessian_finite_differences import fd_hessian
+from ase.lattice.cubic import Diamond
+from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
+from matscipy.calculators.calculator import MatscipyCalculator
+from ase.units import GPa
 
 ###
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
+    def test_affine_elastic_constants(self):
+        atoms = Diamond('Si', size=[4,4,4], latticeconstant=5.431)
+        io.write("cSi.xyz", atoms)
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        # Affine numerical 
+        C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None)
+        print("C_affine numerical: \n", -C/GPa)
+
+        C_af = full_3x3x3x3_to_Voigt_6x6(calculator.get_born_elastic_constants(atoms))
+        print("C_affine analytical: \n", C_af/GPa)
+
+        print("C_num - C_ana: \n", -C/GPa -C_af/GPa)
+    """
     def test_hessian_divide_by_masses(self):
-        """
-        Test the computation of dynamical matrix
-        """
+
+        #Test the computation of dynamical matrix
+
         atoms = ase.io.read('aSi.cfg')
         masses_n = np.random.randint(1, 10, size=len(atoms))
         atoms.set_masses(masses=masses_n)
         kumagai_potential = kum.kumagai
         calc = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        D_ana = calc.calculate_hessian_matrix(atoms, divide_by_masses=True).todense()
-        H_ana = calc.calculate_hessian_matrix(atoms).todense()
+        D_ana = calc.get_hessian(atoms, divide_by_masses=True).todense()
+        H_ana = calc.get_hessian(atoms).todense()
         masses_nc = masses_n.repeat(3)
         H_ana /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
         self.assertArrayAlmostEqual(D_ana, H_ana, tol=1e-4)
 
     def test_kumagai_tersoff(self):
-        """
-        Test forces and hessian matrix for Kumagai  
-        """
+
+        #Test forces and hessian matrix for Kumagai  
+
         kumagai_potential = kum.kumagai
         for d in np.arange(1.0, 2.3, 0.15):
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
@@ -77,9 +97,9 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         self.compute_forces_and_hessian(aSi, KumagaiTersoff(kumagai_potential))
 
     def test_tersoffIII(self):
-        """
-        Test forces and hessian matrix for Tersoff3
-        """
+
+        #Test forces and hessian matrix for Tersoff3
+
         T3_Si_potential = t3.tersoff3_Si
         for d in np.arange(1.0, 2.3, 0.15):        
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
@@ -94,9 +114,9 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         self.compute_forces_and_hessian(aSi, TersoffIII(T3_Si_potential))
 
     def test_stillinger_weber(self):
-        """
-        Test forces and hessian matrix for Stillinger-Weber
-        """
+
+        #Test forces and hessian matrix for Stillinger-Weber
+
         SW_potential = sw.original_SW
         for d in np.arange(1.0, 1.8, 0.15):  
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
@@ -194,17 +214,18 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         'cutoff': self.test_cutoff}
 
     def compute_forces_and_hessian(self, a, par):
-        """ function to test the bop AbellTersoffBrenner class on
-            a potential given by the form defined in par
 
-        Parameters
-        ----------
-        a : ase atoms object
-            passes an atomic configuration as an ase atoms object
-        par : bop explicit form
-            defines the explicit form of the bond order potential
+        #function to test the bop AbellTersoffBrenner class on
+            #a potential given by the form defined in par
+
+        #Parameters
+        #----------
+        #a : ase atoms object
+        #    passes an atomic configuration as an ase atoms object
+        #par : bop explicit form
+         #   defines the explicit form of the bond order potential
         
-        """
+
         calculator = AbellTersoffBrennerStillingerWeber(**par)
         a.set_calculator(calculator)
 
@@ -214,14 +235,14 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         #print('ana\n', ana_forces)
         assert np.allclose(ana_forces, num_forces, rtol=1e-3)
         
-        ana_hessian = calculator.calculate_hessian_matrix(a).todense()
+        ana_hessian = calculator.get_hessian(a).todense()
         num_hessian = fd_hessian(a, dx=1e-5, indices=None).todense()
         #print('ana\n', ana_hessian)
         #print('num\n', num_hessian)
         #print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
         assert np.allclose(ana_hessian, ana_hessian.T, atol=1e-6)
         assert np.allclose(ana_hessian, num_hessian, atol=1e-4)
-
+        """
 ###
 
 if __name__ == '__main__':
