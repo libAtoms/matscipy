@@ -55,16 +55,10 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         atoms.set_calculator(calculator)
-        print(calculator.get_numerical_non_affine_forces(atoms, d=1e-6))
-        print(calculator.get_non_affine_forces(atoms).shape)
-        # Affine numerical 
-        #C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None)
-        #print("C_affine numerical: \n", -C/GPa)
+        H_ana = calculator.get_hessian(atoms).todense()
+        H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
+        print("H_ana - H_ana2: \n", H_ana-H_ana2)
 
-        #C_af = full_3x3x3x3_to_Voigt_6x6(calculator.get_born_elastic_constants(atoms))
-        #print("C_affine analytical: \n", C_af/GPa)
-
-        #print("C_num - C_ana: \n", -C/GPa -C_af/GPa)
     """
     def test_hessian_divide_by_masses(self):
 

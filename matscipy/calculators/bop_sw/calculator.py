@@ -182,10 +182,10 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         F_p = self.F(r_p, xi_p)
 
         # Hessian term #4
-        d1F_p = self.d1F(r_p, xi_p)
-        d1F_p[mask_p] = 0.0  # we need to explicitly exclude everything with r > cutoff
+        # d1F_p = self.d1F(r_p, xi_p)
+        # d1F_p[mask_p] = 0.0  # we need to explicitly exclude everything with r > cutoff
         
-        H_pcc = -(d1F_p * (np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
+        # H_pcc = -(d1F_p * (np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
         
         # Hessian term #1
         d11F_p = self.d11F(r_p, xi_p)
@@ -193,6 +193,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         
         H_pcc -= (d11F_p * (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3)).T).T
         
+        """
         # Hessian term #2
         d12F_p = self.d12F(r_p, xi_p)
         d12F_p[mask_p] = 0.0
@@ -277,7 +278,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                     r_p_im = np.array([r_pc[im]])
                     H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1, 3)).T).T.squeeze()
 
-
+        """
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p, :, :]
 
@@ -305,21 +306,48 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         elif format == "neighbour-list":
             return H_pcc/2, i_p, j_p,  r_pc, r_p
 
+
+    def get_second_derivative(self, atoms, drij_da, drij_db):
+        if self.atoms is None:
+            self.atoms = atoms
+
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
+                                             cutoff=2*self.cutoff)  
+
+        # Expression 1
+        T1 = (self.d11F(rij, xi_ij) * drij_da * drij_db).sum(axis=)
+
+        return T1 
+
+    def get_hessian_from_second_derivative(self, atoms):
+        if self.atoms is None:
+            self.atoms = atoms
+
+        nb_atoms = len(self.atoms)
+
+        # construct neighbor list
+        #i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
+        #                                     cutoff=2*self.cutoff)   
+        
+        # normal vectors
+        #n_pc = (r_pc.T / r_p).T 
+
+        H_nn = np.zeros((3*nb_atoms, 3*nb_atoms))
+
+        for m in range(0, 3*nb_atoms):
+            for l in range(0, 3*nb_atoms):
+                if m != l: 
+                    drij_da = np.zeros((nb_atoms))
+                
+                    #
+                    H_nn(m,l) = get_second_derivative(atoms, drij_da, drij_db)
+                else:
+
+
+
+
+    """
     def get_non_affine_forces(self, atoms):
-        """
-        Calculate the non-affine forces for an atomic configuration.
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        Returns
-        -------
-        non_affine_forces 
-            either hessian or dynamic matrix
-
-        """ 
         if self.atoms is None:
             self.atoms = atoms
 
@@ -433,3 +461,4 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
 
 
         return naForces_natccc
+    """
