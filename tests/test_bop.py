@@ -50,19 +50,21 @@ from ase.units import GPa
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
     def test_affine_elastic_constants(self):
-        atoms = Diamond('Si', size=[4,4,4], latticeconstant=5.431)
+        atoms = Diamond('Si', size=[2,2,2], latticeconstant=5.431)
         io.write("cSi.xyz", atoms)
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         atoms.set_calculator(calculator)
+        print(calculator.get_numerical_non_affine_forces(atoms, d=1e-6))
+        print(calculator.get_non_affine_forces(atoms).shape)
         # Affine numerical 
-        C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None)
-        print("C_affine numerical: \n", -C/GPa)
+        #C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None)
+        #print("C_affine numerical: \n", -C/GPa)
 
-        C_af = full_3x3x3x3_to_Voigt_6x6(calculator.get_born_elastic_constants(atoms))
-        print("C_affine analytical: \n", C_af/GPa)
+        #C_af = full_3x3x3x3_to_Voigt_6x6(calculator.get_born_elastic_constants(atoms))
+        #print("C_affine analytical: \n", C_af/GPa)
 
-        print("C_num - C_ana: \n", -C/GPa -C_af/GPa)
+        #print("C_num - C_ana: \n", -C/GPa -C_af/GPa)
     """
     def test_hessian_divide_by_masses(self):
 
