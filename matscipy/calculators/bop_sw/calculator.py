@@ -191,9 +191,8 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         d11F_p = self.d11F(r_p, xi_p)
         d11F_p[mask_p] = 0.0
         
-        H_pcc -= (d11F_p * (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3)).T).T
+        H_pcc = -(d11F_p * (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3)).T).T
         
-        """
         # Hessian term #2
         d12F_p = self.d12F(r_p, xi_p)
         d12F_p[mask_p] = 0.0
@@ -204,6 +203,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
         H_temp4_t = (d12F_p[ij_t] * (d1G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T      
 
+        """
         # Hessian term #5
         d2F_p = self.d2F(r_p, xi_p)
         d2F_p[mask_p] = 0.0
@@ -249,20 +249,21 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         
         ## Terms involving D_1 * D_2
         Q2 = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
-        
+        """
+
         # TODO: bincount multiaxis
         for x in range(3):
             for y in range(3):
-                H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
+                #H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
                 # here
-                H_pcc[:, x, y] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
+                #H_pcc[:, x, y] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
+                #H_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] += np.bincount(tr_p[jk_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp4_t[:, x, y], minlength=nb_pairs) + np.bincount(tr_p[ij_t], weights=H_temp4_t[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] -= np.bincount(ik_t, weights=Q1[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
+                #H_pcc[:, x, y] -= np.bincount(ik_t, weights=Q1[:, x, y], minlength=nb_pairs)
+                #H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
         
-        
+        """        
         H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
         
         
@@ -307,12 +308,13 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
             return H_pcc/2, i_p, j_p,  r_pc, r_p
 
 
-    def get_second_derivative(self, atoms, drij_da, drij_db):
+    def get_second_derivative(self, atoms, drda_pc, drdb_pc, i_p=None, j_p=None, r_p=None, r_pc=None):
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
-                                             cutoff=2*self.cutoff)  
+        if i_p is None or j_p is None or r_p is None or r_pc is None:
+            # We need to construct the neighbor list ourselves
+            i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2*self.cutoff)
 
         mask_p = r_p > self.cutoff
 
@@ -322,6 +324,10 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         # normal vectors
         n_pc = (r_pc.T / r_p).T
         nx_p, ny_p, nz_p = n_pc.T
+
+        # derivative of the lengths of distance vectors
+        drda_p = (n_pc * drda_pc).sum(axis=1)
+        drdb_p = (n_pc * drdb_pc).sum(axis=1)
 
         # construct triplet list
         first_i = first_neighbours(nb_atoms, i_p)
@@ -333,37 +339,50 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
         F_p = self.F(r_p, xi_p)
 
-        # Expression 1
+        # Term 1
         d11F_p = self.d11F(r_p, xi_p)
         d11F_p[mask_p] = 0.0
-        
-        # missing normal vectors
-        # Das brauche ich ja eigentlich auch nur noch für ein paar ij
-        T1 = (d11F_p * drij_da * drij_db).sum(axis=)
+        T1 = (d11F_p * drda_p * drdb_p).sum()
 
-        return T1 
+        # Term 2
+        d12F_p = self.d12F(r_p, xi_p)
+        d12F_p[mask_p] = 0.0
+
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
+        T2 = (d12F_p[ij_t] * (d2G_tc * drda_pc[ik_t]).sum(axis=1) * drdb_p[ij_t]).sum()
+        T2 += (d12F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * drda_p[ij_t]).sum()
+
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
+        T2 += (d12F_p[ij_t] * (d1G_tc * drda_pc[ij_t]).sum(axis=1) * drdb_p[ij_t]).sum()
+        T2 += (d12F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * drda_p[ij_t]).sum()
+
+        return T1 + T2
 
     def get_hessian_from_second_derivative(self, atoms):
         if self.atoms is None:
             self.atoms = atoms
 
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
+
         nb_atoms = len(self.atoms)
+        nb_pairs = len(i_p)
 
-        H_nn = np.zeros((3*nb_atoms, 3*nb_atoms))
+        H_nn = np.zeros((3 * nb_atoms, 3 * nb_atoms))
 
-        for m in range(0, 3*nb_atoms):
-            for l in range(0, 3*nb_atoms):
-                # Fall m=l wäre Paar 0=0, 1=1, ... müsste doch ignoriert werden?
-                if m != l: 
-                    drij_da = np.zeros((nb_atoms))
-                
-                    #
-                    H_nn(m,l) = get_second_derivative(atoms, drij_da, drij_db)
+        for m in range(0, nb_atoms):
+            for cm in range(3):
+                drda_pc = np.zeros((nb_pairs, 3))
+                drda_pc[i_p == m, cm] = 1
+                drda_pc[j_p == m, cm] = -1
+                for l in range(0, nb_atoms):
+                    for cl in range(3):
+                        drdb_pc = np.zeros((nb_pairs, 3))
+                        drdb_pc[i_p == l, cl] = 1
+                        drdb_pc[j_p == l, cl] = -1
+                        H_nn[3 * m + cm, 3 * l + cl] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
+                                                                                  i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
 
-                else:
-
-
-
+        return H_nn / 2
 
     """
     def get_non_affine_forces(self, atoms):

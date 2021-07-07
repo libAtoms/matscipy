@@ -50,14 +50,18 @@ from ase.units import GPa
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
     def test_affine_elastic_constants(self):
-        atoms = Diamond('Si', size=[2,2,2], latticeconstant=5.431)
+        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
         io.write("cSi.xyz", atoms)
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         atoms.set_calculator(calculator)
         H_ana = calculator.get_hessian(atoms).todense()
         H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
-        print("H_ana - H_ana2: \n", H_ana-H_ana2)
+        print("H_ana: \n", H_ana[0])
+        print("H_ana2: \n", H_ana2[0])
+        print("H_ana - H_ana2: \n", H_ana[0]-H_ana2[0])
+
+        self.assertArrayAlmostEqual(H_ana, H_ana2)
 
     """
     def test_hessian_divide_by_masses(self):
