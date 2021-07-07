@@ -314,8 +314,32 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
                                              cutoff=2*self.cutoff)  
 
+        mask_p = r_p > self.cutoff
+
+        nb_atoms = len(self.atoms)
+        nb_pairs = len(i_p)
+
+        # normal vectors
+        n_pc = (r_pc.T / r_p).T
+        nx_p, ny_p, nz_p = n_pc.T
+
+        # construct triplet list
+        first_i = first_neighbours(nb_atoms, i_p)
+        ij_t, ik_t, jk_t = triplet_list(first_i, r_p, self.cutoff, i_p, j_p)
+        first_ij = first_neighbours(len(i_p), ij_t)
+
+        # basic triplet and pair terms
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t])
+        xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
+        F_p = self.F(r_p, xi_p)
+
         # Expression 1
-        T1 = (self.d11F(rij, xi_ij) * drij_da * drij_db).sum(axis=)
+        d11F_p = self.d11F(r_p, xi_p)
+        d11F_p[mask_p] = 0.0
+        
+        # missing normal vectors
+        # Das brauche ich ja eigentlich auch nur noch für ein paar ij
+        T1 = (d11F_p * drij_da * drij_db).sum(axis=)
 
         return T1 
 
@@ -325,22 +349,17 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
 
         nb_atoms = len(self.atoms)
 
-        # construct neighbor list
-        #i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
-        #                                     cutoff=2*self.cutoff)   
-        
-        # normal vectors
-        #n_pc = (r_pc.T / r_p).T 
-
         H_nn = np.zeros((3*nb_atoms, 3*nb_atoms))
 
         for m in range(0, 3*nb_atoms):
             for l in range(0, 3*nb_atoms):
+                # Fall m=l wäre Paar 0=0, 1=1, ... müsste doch ignoriert werden?
                 if m != l: 
                     drij_da = np.zeros((nb_atoms))
                 
                     #
                     H_nn(m,l) = get_second_derivative(atoms, drij_da, drij_db)
+
                 else:
 
 
