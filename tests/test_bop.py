@@ -212,6 +212,7 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         'd12G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
         'd11G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
         'cutoff': self.test_cutoff}
+    """
 
     def compute_forces_and_hessian(self, a, par):
 
@@ -242,7 +243,7 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         #print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
         assert np.allclose(ana_hessian, ana_hessian.T, atol=1e-6)
         assert np.allclose(ana_hessian, num_hessian, atol=1e-4)
-        """
+
 ###
 
 if __name__ == '__main__':
