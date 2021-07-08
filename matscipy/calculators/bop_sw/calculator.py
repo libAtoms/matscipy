@@ -219,7 +219,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
         H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
         
-        """
+
         # Hessian term #3
 
         ## Terms involving D_1 * D_1
@@ -254,7 +254,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
 
         H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
         
-        """
+
         # TODO: bincount multiaxis
         for x in range(3):
             for y in range(3):
@@ -263,10 +263,10 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                 H_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] += np.bincount(tr_p[jk_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp4_t[:, x, y], minlength=nb_pairs) + np.bincount(tr_p[ij_t], weights=H_temp4_t[:, x, y], minlength=nb_pairs)
-                #H_pcc[:, x, y] -= np.bincount(ik_t, weights=Q1[:, x, y], minlength=nb_pairs)
-                #H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
+                H_pcc[:, x, y] -= np.bincount(ik_t, weights=Q1[:, x, y], minlength=nb_pairs)
+                H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
         
-        """     
+   
         
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
@@ -280,7 +280,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                     r_p_im = np.array([r_pc[im]])
                     H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1, 3)).T).T.squeeze()
         
-        """
+
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p, :, :]
 
@@ -335,6 +335,8 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         ij_t, ik_t, jk_t = triplet_list(first_i, r_p, self.cutoff, i_p, j_p)
         first_ij = first_neighbours(len(i_p), ij_t)
 
+        nb_triplets = len(ij_t)
+
         # basic triplet and pair terms
         G_t = self.G(r_pc[ij_t], r_pc[ik_t])
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
@@ -363,12 +365,32 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         d22F_p = self.d22F(r_p, xi_p)
         d22F_p[mask_p] = 0.0
 
-        # Die zweite Summe über kn fehlt
-        T3 =  (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * (d1G_tc * drda_pc[ij_t]).sum(axis=1)
+        Ex1_t =  (d1G_tc * drdb_pc[ij_t]).sum(axis=1) 
+        #Ex1_t =  (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * (d1G_tc * drda_pc[ij_t]).sum(axis=1)
         #T3 = (d22F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * (d1G_tc * drda_pc[ij_t]).sum(axis=1)).sum()
         #T3 += (d22F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * (d2G_tc * drda_pc[ik_t]).sum(axis=1)).sum()
         #T3 += (d22F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * (d1G_tc * drda_pc[ij_t]).sum(axis=1)).sum()
         #T3 += (d22F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * (d2G_tc * drda_pc[ik_t]).sum(axis=1)).sum()
+
+        T3_p = np.zeros((len(i_p)))
+        # Sum over pairs kn 
+        for il_im in range(nb_triplets):
+            il = ij_t[il_im]
+            im = ik_t[il_im]
+            lm = jk_t[il_im]
+            for t in range(first_ij[il], first_ij[il+1]):
+                ij = ik_t[t]
+                #print("ij_t: ", ij_t)
+                if ij != il and ij != im:
+                    r_p_ij = np.array([r_pc[ij]])
+                    r_p_il = np.array([r_pc[il]])
+                    r_p_im = np.array([r_pc[im]])
+                    T3_p[i_p[lm]] += (self.d1G(r_p_ij, r_p_il) * drdb_pc[ij]).sum(axis=1) * (self.d1G(r_p_ij, r_p_im) * drda_pc[ij]).sum(axis=1)
+                    T3_p[i_p[lm]] += (self.d1G(r_p_ij, r_p_il) * drdb_pc[ij]).sum(axis=1) * (self.d2G(r_p_ij, r_p_im) * drda_pc[im]).sum(axis=1)
+                    T3_p[i_p[lm]] += (self.d2G(r_p_ij, r_p_il) * drdb_pc[im]).sum(axis=1) * (self.d1G(r_p_ij, r_p_im) * drda_pc[ij]).sum(axis=1)
+                    T3_p[i_p[lm]] += (self.d2G(r_p_ij, r_p_il) * drdb_pc[il]).sum(axis=1) * (self.d2G(r_p_ij, r_p_im) * drda_pc[im]).sum(axis=1)
+        
+        T3 = (d22F_p * T3_p).sum()
 
         # Term 4
         d1F_p = self.d1F(r_p, xi_p)
@@ -392,7 +414,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         T5 += (d2F_p[ij_t] * ((drda_pc[ik_t].reshape(-1,3,1) * d12G_tcc).sum(axis=1) * drdb_pc[ij_t]).sum(axis=1)).sum()
         
 
-        return T1 + T2 + T4 + T5 
+        return T1 + T2 + T3 + T4 + T5 
 
     def get_hessian_from_second_derivative(self, atoms):
         if self.atoms is None:
