@@ -251,13 +251,14 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         
         ## Terms involving D_1 * D_2
         Q2 = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
+
+        H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
         
         """
         # TODO: bincount multiaxis
         for x in range(3):
             for y in range(3):
                 H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
-                # here
                 H_pcc[:, x, y] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] += np.bincount(tr_p[jk_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs)
@@ -266,8 +267,6 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                 #H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
         
         """     
-        H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
-        
         
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
@@ -359,11 +358,13 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         T2 += (d12F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * drda_p[ij_t]).sum()
         
         # Term 3
-        #d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
-        #d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
-        #d22F_p = self.d22F(r_p, xi_p)
-        #d22F_p[mask_p] = 0.0
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
+        d22F_p = self.d22F(r_p, xi_p)
+        d22F_p[mask_p] = 0.0
 
+        # Die zweite Summe über kn fehlt
+        T3 =  (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * (d1G_tc * drda_pc[ij_t]).sum(axis=1)
         #T3 = (d22F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * (d1G_tc * drda_pc[ij_t]).sum(axis=1)).sum()
         #T3 += (d22F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * (d2G_tc * drda_pc[ik_t]).sum(axis=1)).sum()
         #T3 += (d22F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * (d1G_tc * drda_pc[ij_t]).sum(axis=1)).sum()
