@@ -49,6 +49,20 @@ from ase.units import GPa
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
+    def test_non_affine_forces(self):
+        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
+        io.write("cSi.xyz", atoms)
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        naF_ana = calculator.get_non_affine_forces_from_second_derivative(atoms)
+        naF_num = calculator.get_numerical_non_affine_forces(atoms, d=1e-5)
+        print("naF_ana: \n", naF_ana[0])
+        print("naF_ana: \n", naF_num[0])
+        self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
+
+
+    """
     def test_affine_elastic_constants(self):
         atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
         #io.write("cSi.xyz", atoms)
@@ -57,13 +71,9 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         atoms.set_calculator(calculator)
         H_ana = calculator.get_hessian(atoms).todense()
         H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
-        print("H_ana: \n", H_ana[0])
-        print("H_ana2: \n", H_ana2[0])
-        print("H_ana - H_ana2: \n", H_ana[0]-H_ana2[0])
 
         self.assertArrayAlmostEqual(H_ana, H_ana2)
 
-    """
     def test_hessian_divide_by_masses(self):
 
         #Test the computation of dynamical matrix
