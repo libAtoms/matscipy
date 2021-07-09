@@ -51,7 +51,7 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
     def test_affine_elastic_constants(self):
         atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
-        io.write("cSi.xyz", atoms)
+        #io.write("cSi.xyz", atoms)
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         atoms.set_calculator(calculator)

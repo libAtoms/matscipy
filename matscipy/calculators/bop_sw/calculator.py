@@ -189,7 +189,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         d1F_p[mask_p] = 0.0  # we need to explicitly exclude everything with r > cutoff
 
         H_pcc = -(d1F_p * (np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
-
+        
         # Hessian term #1
         d11F_p = self.d11F(r_p, xi_p)
         d11F_p[mask_p] = 0.0
@@ -233,7 +233,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         d1zG_p = np.bincount(ij_t, weights=d1G_t[:, 2], minlength=nb_pairs)
 
         d1G_p = np.transpose([d1xG_p, d1yG_p, d1zG_p])
-        H_pcc = (d22F_p * (d1G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
+        H_pcc -= (d22F_p * (d1G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
 
         ## Terms involving D_2 * D_2
         d2G_t = self.d2G(r_pc[ij_t], r_pc[ik_t])
@@ -251,7 +251,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         Q2 = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
 
         H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
-
+        
         # TODO: bincount multiaxis
         for x in range(3):
             for y in range(3):
@@ -265,6 +265,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                 H_pcc[:, x, y] -= np.bincount(ik_t, weights=Q1[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
 
+        
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
             im = ik_t[il_im]
@@ -391,8 +392,8 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         T5 += (d2F_p[ij_t] * ((drda_pc[ik_t].reshape(-1, 3, 1) * d12G_tcc).sum(axis=1) * drdb_pc[ij_t]).sum(
             axis=1)).sum()
 
-        #return T1 + T2 + T3 + T4 + T5
-        return T3
+        return T1 + T2 + T3 + T4 + T5
+        #return T3
 
     def get_hessian_from_second_derivative(self, atoms):
         if self.atoms is None:
