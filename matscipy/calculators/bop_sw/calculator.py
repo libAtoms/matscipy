@@ -184,7 +184,6 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
         F_p = self.F(r_p, xi_p)
 
-        """
         # Hessian term #4
         d1F_p = self.d1F(r_p, xi_p)
         d1F_p[mask_p] = 0.0  # we need to explicitly exclude everything with r > cutoff
@@ -219,7 +218,6 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
 
         d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
         H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
-        """
 
         # Hessian term #3
 
@@ -257,27 +255,15 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         # TODO: bincount multiaxis
         for x in range(3):
             for y in range(3):
-                """
                 H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(
-                    tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t,
-                                                                                              weights=H_temp1_t[:, x,
-                                                                                                      y],
-                                                                                              minlength=nb_pairs)
+                    tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] += np.bincount(tr_p[jk_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(
-                    ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t],
-                                                                                        weights=H_temp3_t[:, x, y],
-                                                                                        minlength=nb_pairs)
-                H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp4_t[:, x, y], minlength=nb_pairs) + np.bincount(
-                    tr_p[ij_t], weights=H_temp4_t[:, x, y], minlength=nb_pairs)
-                """
+                    ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs)
+                H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp4_t[:, x, y], minlength=nb_pairs) + np.bincount(tr_p[ij_t], weights=H_temp4_t[:, x, y], minlength=nb_pairs)
                 H_pcc[:, x, y] -= np.bincount(ik_t, weights=Q1[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t,
-                                                                                                           weights=Q2[:,
-                                                                                                                   x,
-                                                                                                                   y],
-                                                                                                           minlength=nb_pairs)
+                H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
 
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
@@ -290,8 +276,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                     r_p_il = np.array([r_pc[il]])
                     r_p_im = np.array([r_pc[im]])
                     H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (
-                            self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1,
-                                                                                                          3)).T).T.squeeze()
+                            self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1, 3)).T).T.squeeze()
 
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p, :, :]
@@ -335,7 +320,6 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
 
         # normal vectors
         n_pc = (r_pc.T / r_p).T
-        nx_p, ny_p, nz_p = n_pc.T
 
         # derivative of the lengths of distance vectors
         drda_p = (n_pc * drda_pc).sum(axis=1)
