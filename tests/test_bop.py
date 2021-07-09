@@ -49,6 +49,20 @@ from ase.units import GPa
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
+
+    def test_born_elastic_constants(self):
+        atoms = Diamond('Si', size=[2,2,2], latticeconstant=5.431)
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=None)
+        C_ana = calculator.get_born_elastic_constants_from_second_derivative(atoms)
+        print("C_num: \n", C_num)
+        print("C_ana: \n", C_ana)
+        print("C_ana: \n", full_3x3x3x3_to_Voigt_6x6(C_ana))
+        self.assertArrayAlmostEqual(C_num, C_ana, tol=1) 
+
+    """
     def test_non_affine_forces(self):
         atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
         io.write("cSi.xyz", atoms)
@@ -62,8 +76,20 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
 
 
-    """
-    def test_affine_elastic_constants(self):
+    def test_non_affine_forces(self):
+        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
+        io.write("cSi.xyz", atoms)
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        naF_ana = calculator.get_non_affine_forces_from_second_derivative(atoms)
+        naF_num = calculator.get_numerical_non_affine_forces(atoms, d=1e-5)
+        print("naF_ana: \n", naF_ana[0])
+        print("naF_ana: \n", naF_num[0])
+        self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
+
+
+    def test_computation_of_hessian(self):
         atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
         #io.write("cSi.xyz", atoms)
         kumagai_potential = kum.kumagai

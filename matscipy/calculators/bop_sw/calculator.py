@@ -443,10 +443,33 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                 for alpha in range(3):
                     for beta in range(3):       
                         drda_pc = np.zeros((nb_pairs, 3))
-                        drda_pc[first_i[m]:first_i[m+1], beta] = r_pc[first_i[m]:first_i[m+1], alpha]  
+                        drda_pc[first_i[m]:first_i[m+1], alpha] = r_pc[first_i[m]:first_i[m+1], beta]  
                         naF_nccc[m, cm, alpha, beta] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
                                                                                   i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc) 
         return naF_nccc
+
+    def get_born_elastic_constants_from_second_derivative(self, atoms):
+        if self.atoms is None:
+            self.atoms = atoms 
+
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
+
+        nb_atoms = len(self.atoms)
+        nb_pairs = len(i_p)
+
+        C_cccc = np.zeros((3, 3, 3, 3))
+        
+        for alpha in range(3):
+            for beta in range(3):
+                drdb_pc = np.zeros((nb_pairs, 3))
+                drdb_pc[:, alpha] = r_pc[:, beta]
+                for nu in range(3):
+                    for mu in range(3):
+                        drda_pc = np.zeros((nb_pairs, 3))
+                        drda_pc[:, mu] = r_pc[:, nu]    
+                        C_cccc[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
+
+        return C_cccc/ (2 * atoms.get_volume())
 
 """
     def get_non_affine_forces(self, atoms):
