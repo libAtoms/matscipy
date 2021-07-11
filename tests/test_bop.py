@@ -51,15 +51,18 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
     def test_born_elastic_constants(self):
         atoms = Diamond('Si', size=[4,4,4], latticeconstant=5.431)
+        io.write("cSi.xyz", atoms)
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         atoms.set_calculator(calculator)
         C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-2, optimizer=None)
         #C_ana = calculator.get_birch_coefficients(atoms)
         C_ana = calculator.get_born_elastic_constants_from_second_derivative(atoms)
+        naC_ana = calculator.get_non_affine_contribution_to_elastic_constants(atoms)
         print("Stress: \n", atoms.get_stress())
         print("C_num: \n", -C_num)
         print("C_ana: \n", full_3x3x3x3_to_Voigt_6x6(C_ana))
+        print("naC_ana: \n", full_3x3x3x3_to_Voigt_6x6(naC_ana))
         self.assertArrayAlmostEqual(-C_num, full_3x3x3x3_to_Voigt_6x6(C_ana), tol=1) 
 
     """

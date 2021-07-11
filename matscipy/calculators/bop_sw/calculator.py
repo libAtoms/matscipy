@@ -504,6 +504,47 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
 
         return bornC_cccc + stressC_cccc
 
+    def get_non_affine_contribution_to_elastic_constants(self, atoms):
+        """
+        Compute the correction of non-affine displacements to the elasticity tensor.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+
+        try:
+            from scipy import linalg
+        except ImportError:
+            raise ImportError(
+                "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
+
+        nat = len(atoms)
+        calculator = atoms.get_calculator()
+
+        # Non-affine forces
+        forces_natccc = calculator.get_nonaffine_forces(atoms)
+
+        # Diagonalize 
+        H_nn = calculator.get_hessian(atoms, "sparse").todense()
+        eigvalues_n, eigvecs_nn = linalg.eigh(H_nn, b=None, subset_by_index=[3, 3*nat-1])
+         
+        #B_ncc = np.sum(eigvecs_nn.reshape(3*nat-3, 3*nat, 1, 1) * forces_natccc.reshape(1, 3*nat, 3, 3), axis=1)
+        #print(B_ncc.shape)
+        #B_ncc /= np.sqrt(eigvalues_n.reshape(3*nat-3, 1, 1))
+        #B_ncc = B_ncc.reshape(3*nat-3, 3, 3, 1, 1) * B_ncc.reshape(3*nat-3, 1, 1, 3, 3)
+        #C_cccc2 = np.sum(B_ncc, axis=0)
+
+        # Compute non-affine contribution 
+        C_cccc = np.empty((3,3,3,3))
+        for index in range(0, 3*nat -3):
+            first_con = np.sum((eigvecs_nn[:,index]).reshape(3*nat, 1, 1) * forces_natccc.reshape(3*nat, 3, 3), axis=0)
+            C_cccc += (first_con.reshape(3,3,1,1) * first_con.reshape(1,1,3,3))/eigvalues_n[index]
+
+        return - C_cccc/atoms.get_volume()
+
 """
     def get_non_affine_forces(self, atoms):
         if self.atoms is None:
