@@ -140,7 +140,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             b = PairPotential(calc)
             atoms.set_calculator(b)     
             C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None)
-            Caf = full_3x3x3x3_to_Voigt_6x6(b.get_born_elastic_constants(atoms))
+            Caf = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
             self.assertArrayAlmostEqual(Caf, C, tol=1) 
 
     def test_non_affine_elastic_constants(self):
@@ -150,7 +150,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms.set_calculator(b)     
             C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-6)
             C_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
-            C_af = full_3x3x3x3_to_Voigt_6x6(b.get_born_elastic_constants(atoms))
+            C_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
             self.assertArrayAlmostEqual(C_af + C_na, C, tol=1) 
 
     def test_non_affine_forces_glass(self):
