@@ -34,7 +34,10 @@ from ase.atoms import Atoms
 
 from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, \
     neighbour_list, triplet_list
+
 from ..calculator import MatscipyCalculator
+
+from ...elasticity import Voigt_6_to_full_3x3_stress
 
 
 class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
@@ -430,8 +433,6 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
-        first_i = first_neighbours(nb_atoms, i_p)
-
         naF_nccc = np.zeros((nb_atoms, 3, 3, 3))
 
         for m in range(0, nb_atoms):
@@ -439,14 +440,13 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                 drdb_pc = np.zeros((nb_pairs, 3))
                 drdb_pc[i_p == m, cm] = 1
                 drdb_pc[j_p == m, cm] = -1
-
                 for alpha in range(3):
                     for beta in range(3):       
-                        drda_pc = np.zeros((nb_pairs, 3))
-                        drda_pc[first_i[m]:first_i[m+1], alpha] = r_pc[first_i[m]:first_i[m+1], beta]  
+                        drda_pc = np.zeros((nb_pairs, 3)) 
+                        drda_pc[:, alpha] = r_pc[:, beta]  
                         naF_nccc[m, cm, alpha, beta] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
                                                                                   i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc) 
-        return naF_nccc
+        return naF_nccc / 2
 
     def get_born_elastic_constants_from_second_derivative(self, atoms):
         if self.atoms is None:
@@ -468,8 +468,20 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                         drda_pc = np.zeros((nb_pairs, 3))
                         drda_pc[:, mu] = r_pc[:, nu]    
                         C_cccc[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
+        
+        C_cccc /= (2 * atoms.get_volume())
 
-        return C_cccc/ (2 * atoms.get_volume())
+        # Add stress term that comes from working with the Cauchy stress
+        stress_cc = Voigt_6_to_full_3x3_stress(self.get_stress())
+        delta_cc = np.identity(3)
+        C_cccc += delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3) - \
+                  (delta_cc.reshape(3, 3, 1, 1) * stress_cc.reshape(1, 1, 3, 3) + \
+                   delta_cc.reshape(1, 1, 3, 3) * stress_cc.reshape(3, 3, 1, 1)) / 2
+
+        # Symmetrize elastic constant tensor
+        C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3)) / 4
+
+        return C_cccc
 
 """
     def get_non_affine_forces(self, atoms):
