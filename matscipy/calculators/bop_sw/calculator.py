@@ -461,12 +461,12 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         
         for alpha in range(3):
             for beta in range(3):
-                drdb_pc = np.zeros((nb_pairs, 3))
-                drdb_pc[:, alpha] = r_pc[:, beta]
+                drda_pc = np.zeros((nb_pairs, 3))
+                drda_pc[:, alpha] = r_pc[:, beta]
                 for nu in range(3):
                     for mu in range(3):
-                        drda_pc = np.zeros((nb_pairs, 3))
-                        drda_pc[:, mu] = r_pc[:, nu]    
+                        drdb_pc = np.zeros((nb_pairs, 3))
+                        drdb_pc[:, nu] = r_pc[:, mu]    
                         C_cccc[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
         
         C_cccc /= (2 * atoms.get_volume())
@@ -486,6 +486,8 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         C_cccc = delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3) - \
                   (delta_cc.reshape(3, 3, 1, 1) * stress_cc.reshape(1, 1, 3, 3) + \
                    delta_cc.reshape(1, 1, 3, 3) * stress_cc.reshape(3, 3, 1, 1)) / 2
+
+        C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
         return C_cccc
 
