@@ -41,7 +41,7 @@ from ...elasticity import Voigt_6_to_full_3x3_stress
 
 
 class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
-    implemented_properties = ['energy', 'stress', 'forces']
+    implemented_properties = ['free_energy', 'energy', 'stress', 'forces']
     default_parameters = {}
     name = 'ThreeBodyPotential'
 
@@ -120,14 +120,14 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         f_nc = np.transpose([fx_n, fy_n, fz_n])
 
         # Virial 
-        virial_v = -0.5 * np.array([r_pc[:, 0] * fx_p,  # xx
-                                    r_pc[:, 1] * fy_p,  # yy
-                                    r_pc[:, 2] * fz_p,  # zz
-                                    r_pc[:, 1] * fz_p,  # yz
-                                    r_pc[:, 0] * fz_p,  # xz
-                                    r_pc[:, 0] * fy_p]).sum(axis=1)  # xy
+        virial_v = 0.5 * np.array([r_pc[:, 0] * fx_p,  # xx
+                                   r_pc[:, 1] * fy_p,  # yy
+                                   r_pc[:, 2] * fz_p,  # zz
+                                   r_pc[:, 1] * fz_p,  # yz
+                                   r_pc[:, 0] * fz_p,  # xz
+                                   r_pc[:, 0] * fy_p]).sum(axis=1)  # xy
 
-        self.results = {'energy': epot, 'stress': virial_v / self.atoms.get_volume(), 'forces': f_nc}
+        self.results = {'free_energy': epot, 'energy': epot, 'stress': virial_v / self.atoms.get_volume(), 'forces': f_nc}
 
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
@@ -442,8 +442,8 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
                 drdb_pc[j_p == m, cm] = -1
                 for alpha in range(3):
                     for beta in range(3):       
-                        drda_pc = np.zeros((nb_pairs, 3)) 
-                        drda_pc[:, alpha] = r_pc[:, beta]  
+                        drda_pc = np.zeros((nb_pairs, 3))
+                        drda_pc[:, alpha] = r_pc[:, beta]
                         naF_nccc[m, cm, alpha, beta] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
                                                                                   i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc) 
         return naF_nccc / 2
@@ -462,17 +462,19 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         for alpha in range(3):
             for beta in range(3):
                 drda_pc = np.zeros((nb_pairs, 3))
-                drda_pc[:, alpha] = r_pc[:, beta]
+                drda_pc[:, alpha] = r_pc[:, beta]/2
+                drda_pc[:, beta] += r_pc[:, alpha]/2
                 for nu in range(3):
                     for mu in range(3):
                         drdb_pc = np.zeros((nb_pairs, 3))
-                        drdb_pc[:, nu] = r_pc[:, mu]    
+                        drdb_pc[:, nu] = r_pc[:, mu]/2
+                        drdb_pc[:, mu] += r_pc[:, nu]/2
                         C_cccc[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
         
         C_cccc /= (2 * atoms.get_volume())
 
         # Symmetrize elastic constant tensor
-        C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        #C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
         return C_cccc
 

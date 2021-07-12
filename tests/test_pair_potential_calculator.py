@@ -143,6 +143,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             Caf = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
             self.assertArrayAlmostEqual(Caf, C, tol=1) 
 
+    """
     def test_non_affine_elastic_constants(self):
         for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:   
             atoms = io.read("glass_min.xyz")
@@ -152,6 +153,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             C_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
             C_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
             self.assertArrayAlmostEqual(C_af + C_na, C, tol=1) 
+    """
 
     def test_non_affine_forces_glass(self):
         for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:
@@ -164,7 +166,6 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
             self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.1) 
 
-    """
     def test_elastic_born_crystal_stress(self):
         class TestPotential():
             def __init__(self, cutoff):
@@ -195,9 +196,9 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
                     raise ValueError(
                         "Don't know how to compute {}-th derivative.".format(n))
 
-        for calc in [{(1, 1): calculator.LennardJonesQuadratic(1.0, 1.0, 2.5)}]:
+        for calc in [{(1, 1): LennardJonesQuadratic(1.0, 1.0, 2.5)}]:
         #for calc in [{(1, 1): TestPotential(2.5)}]:
-            b = calculator.PairPotential(calc)
+            b = PairPotential(calc)
             atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.2)
             # Randomly deform the cell
             strain = np.random.random([3, 3]) * 0.02
@@ -206,7 +207,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
             Cnum2_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants(atoms), tol=10)
             #Cnum3_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants_2nd(atoms), tol=10)
-            Cana = b.get_born_elastic_constants(atoms)
+            Cana = b.get_birch_coefficients(atoms)
             Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana, tol=10)
             #print(atoms.get_stress())
             #print(Cnum)
@@ -222,7 +223,6 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             print("Difference between numeric results: \n", Cnum-Cnum2_voigt)
             self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=10)
  
-    """
 ###
 
 
