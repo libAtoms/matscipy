@@ -48,17 +48,17 @@ from ase.units import GPa
 ###
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
+    def test_computation_of_hessian(self):
+        atoms = ase.io.read('aSi_N8.xyz')
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        H_ana = calculator.get_hessian(atoms).todense()
+        H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
 
-    def test_stress(self):
-        for a0 in [5.2, 5.3, 5.4, 5.5]:
-            atoms = Diamond('Si', size=[1,1,1], latticeconstant=a0)
-            kumagai_potential = kum.kumagai
-            calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-            atoms.set_calculator(calculator)
-            s = atoms.get_stress()
-            sn = calculator.calculate_numerical_stress(atoms, d=0.0001)
-            self.assertArrayAlmostEqual(s, sn, tol=1e-6)
+        self.assertArrayAlmostEqual(H_ana, H_ana2)
 
+    """
     def test_born_elastic_constants(self):
         atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
         io.write("cSi.xyz", atoms)
@@ -100,21 +100,16 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         print("naF_num: \n", naF_num[0])
         self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
 
-    def test_computation_of_hessian(self):
-        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
-        atoms.positions[0, 0] += 0.1
-        atoms.positions[0, 1] -= 0.1
-        atoms.positions[0, 2] += 0.2
-        #io.write("cSi.xyz", atoms)
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        atoms.set_calculator(calculator)
-        H_ana = calculator.get_hessian(atoms).todense()
-        H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
+    def test_stress(self):
+        for a0 in [5.2, 5.3, 5.4, 5.5]:
+            atoms = Diamond('Si', size=[1,1,1], latticeconstant=a0)
+            kumagai_potential = kum.kumagai
+            calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+            atoms.set_calculator(calculator)
+            s = atoms.get_stress()
+            sn = calculator.calculate_numerical_stress(atoms, d=0.0001)
+            self.assertArrayAlmostEqual(s, sn, tol=1e-6)
 
-        self.assertArrayAlmostEqual(H_ana, H_ana2)
-
-    """
     def test_hessian_divide_by_masses(self):
 
         #Test the computation of dynamical matrix
@@ -129,7 +124,6 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         masses_nc = masses_n.repeat(3)
         H_ana /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
         self.assertArrayAlmostEqual(D_ana, H_ana, tol=1e-4)
-    """
 
     def test_kumagai_tersoff(self):
 
@@ -148,7 +142,6 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         aSi = ase.io.read('aSi.cfg')
         self.compute_forces_and_hessian(aSi, KumagaiTersoff(kumagai_potential))
 
-    """
     def test_tersoffIII(self):
 
         #Test forces and hessian matrix for Tersoff3

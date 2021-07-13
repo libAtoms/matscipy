@@ -32,15 +32,16 @@ from scipy.sparse import bsr_matrix
 
 from ase.atoms import Atoms
 
+from ase.calculators.calculator import Calculator
+
 from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, \
     neighbour_list, triplet_list
 
-from ..calculator import MatscipyCalculator
 
 from ...elasticity import Voigt_6_to_full_3x3_stress
 
 
-class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
+class AbellTersoffBrennerStillingerWeber(Calculator):
     implemented_properties = ['free_energy', 'energy', 'stress', 'forces']
     default_parameters = {}
     name = 'ThreeBodyPotential'
@@ -70,7 +71,7 @@ class AbellTersoffBrennerStillingerWeber(MatscipyCalculator):
         self.cutoff = cutoff
 
     def calculate(self, atoms, properties, system_changes):
-        MatscipyCalculator.calculate(self, atoms, properties, system_changes)
+        Calculator.calculate(self, atoms, properties, system_changes)
 
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
