@@ -48,6 +48,24 @@ from ase.units import GPa
 ###
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
+    def test_born_elastic_constants(self):
+        #print("aSi 8 atoms!")
+        #atoms = ase.io.read('aSi_N64.xyz')
+        atoms = Diamond('Si', size=[4,4,4], latticeconstant=5.031)
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
+        C_ana = calculator.get_born_elastic_constants_from_second_derivative(atoms)
+        B_ana = calculator.get_birch_coefficients(atoms)
+        #naC_ana = calculator.get_non_affine_contribution_to_elastic_constants(atoms)
+        print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
+        print("C_ana: \n", full_3x3x3x3_to_Voigt_6x6(C_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(C_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(C_ana)[3, 3])
+        print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
+        self.assertArrayAlmostEqual(-C_num, full_3x3x3x3_to_Voigt_6x6(C_ana), tol=1e-6)
+
+
+    """
     def test_computation_of_hessian(self):
         print("aSi 8 atoms!")
         atoms = ase.io.read('aSi_N8.xyz')
@@ -56,11 +74,11 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         atoms.set_calculator(calculator)
         H_ana = calculator.get_hessian(atoms).todense()
         H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
-        print('A:', H_ana[0])
-        print('B:', H_ana2[0])
+        print('A:', H_ana[:6,:6])
+        print('B:', H_ana2[:6,:6])
         self.assertArrayAlmostEqual(H_ana, H_ana2, tol=1e-3)
 
-    """
+
     def test_born_elastic_constants(self):
         atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
         io.write("cSi.xyz", atoms)
