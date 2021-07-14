@@ -56,7 +56,8 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         atoms.set_calculator(calculator)
         H_ana = calculator.get_hessian(atoms).todense()
         H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
-
+        print('A:', H_ana[0])
+        print('B:', H_ana2[0])
         self.assertArrayAlmostEqual(H_ana, H_ana2, tol=1e-3)
 
     """
