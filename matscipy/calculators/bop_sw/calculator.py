@@ -310,6 +310,30 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
             return H_pcc / 2, i_p, j_p, r_pc, r_p
 
     def get_second_derivative(self, atoms, drda_pc, drdb_pc, i_p=None, j_p=None, r_p=None, r_pc=None):
+        """
+        Calculate the second derivative of the energy with respect to arbitrary variables a and b.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        drda_pc/drdb_pc: array_like
+            Derivative of atom positions with respect to variable a/b.
+
+        i_p: array
+            First atom index
+
+        j_p: array
+            Second atom index
+
+        r_p: array
+            Absolute distance 
+
+        r_pc: array 
+            Distance vector
+
+        """
         if self.atoms is None:
             self.atoms = atoms
 
@@ -392,9 +416,19 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         T5_t += ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
         T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
 
-        return T1 + T2 + T3 + T4 + T5 
+        return T1 + T2 + T3 + T4 + T5
 
     def get_hessian_from_second_derivative(self, atoms):
+        """
+        Compute the Hessian matrix from second derivatives.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+
         if self.atoms is None:
             self.atoms = atoms
 
@@ -421,6 +455,16 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         return H_nn / 2
 
     def get_non_affine_forces_from_second_derivative(self, atoms):
+        """
+        Compute the analytical non-affine forces.  
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+
         if self.atoms is None:
             self.atoms = atoms
 
@@ -445,6 +489,16 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         return naF_nccc / 2
 
     def get_born_elastic_constants_from_second_derivative(self, atoms):
+        """
+        Compute the Born elastic constants. 
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+
         if self.atoms is None:
             self.atoms = atoms 
 
@@ -475,6 +529,16 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         return C_cccc
 
     def get_stress_contribution_to_elastic_constants(self, atoms):
+        """
+        Compute the correction to the elastic constants due to non-zero stress in the configuration.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+        
         if self.atoms is None:
             self.atoms = atoms
 
@@ -490,6 +554,16 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         return C_cccc
 
     def get_birch_coefficients(self, atoms):
+        """
+        Compute the Birch coefficients (Effective elastic constants at non-zero stress). 
+        
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+
         if self.atoms is None:
             self.atoms = atoms
 

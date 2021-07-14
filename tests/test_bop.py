@@ -49,6 +49,7 @@ from ase.units import GPa
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
     def test_computation_of_hessian(self):
+        print("aSi 8 atoms!")
         atoms = ase.io.read('aSi_N8.xyz')
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
@@ -56,7 +57,7 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         H_ana = calculator.get_hessian(atoms).todense()
         H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
 
-        self.assertArrayAlmostEqual(H_ana, H_ana2)
+        self.assertArrayAlmostEqual(H_ana, H_ana2, tol=1e-3)
 
     """
     def test_born_elastic_constants(self):
