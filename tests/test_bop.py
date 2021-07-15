@@ -51,8 +51,19 @@ from ase.units import GPa
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
-    """
+    def test_non_affine_forces_glass(self):
+        atoms = ase.io.read('aSi_N8.xyz')
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        calc = MatscipyCalculator()
+        atoms.set_calculator(calculator)
+        naF_ana1 = calculator.get_non_affine_forces_from_second_derivative(atoms)
+        naF_ana2 = calculator.get_non_affine_forces(atoms)
+        print("naF_ana1[0]: \n", naF_ana1[0])
+        print("naF_ana2[0]: \n", naF_ana2[0])        
+        #self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
 
+    """
     def test_born_elastic_constants(self):
         atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
         io.write("cSi.xyz", atoms)
@@ -83,7 +94,7 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         atoms.set_calculator(calculator)
-        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-6, verbose=False)
+        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=FIRE, fmax=1e-6, verbose=False)
         B_ana = calculator.get_birch_coefficients(atoms)
         C_na = calculator.get_non_affine_contribution_to_elastic_constants(atoms)
         print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])

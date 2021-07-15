@@ -418,6 +418,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
 
         return T1 + T2 + T3 + T4 + T5
+        #return T1 + T4 + T5
 
     def get_hessian_from_second_derivative(self, atoms):
         """
@@ -578,7 +579,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         return bornC_cccc + stressC_cccc
 
-    def get_non_affine_contribution_to_elastic_constants(self, atoms):
+    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None):
         """
         Compute the correction of non-affine displacements to the elasticity tensor.
 
@@ -601,9 +602,9 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # Non-affine forces
         forces_natccc = calculator.get_non_affine_forces_from_second_derivative(atoms)
 
-        # Diagonalize 
-        H_nn = calculator.get_hessian(atoms, "sparse").todense()
-        eigvalues_n, eigvecs_nn = linalg.eigh(H_nn, b=None, subset_by_index=[3, 3*nat-1])
+        if eigenvalues is None or eigenvectors is None:  
+            H_nn = calculator.get_hessian(atoms, "sparse").todense()
+            eigenvalues, eigenvectors = linalg.eigh(H_nn, b=None, subset_by_index=[3, 3*nat-1])
          
         #B_ncc = np.sum(eigvecs_nn.reshape(3*nat-3, 3*nat, 1, 1) * forces_natccc.reshape(1, 3*nat, 3, 3), axis=1)
         #print(B_ncc.shape)
@@ -614,8 +615,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # Compute non-affine contribution 
         C_cccc = np.empty((3,3,3,3))
         for index in range(0, 3*nat -3):
-            first_con = np.sum((eigvecs_nn[:,index]).reshape(3*nat, 1, 1) * forces_natccc.reshape(3*nat, 3, 3), axis=0)
-            C_cccc += (first_con.reshape(3,3,1,1) * first_con.reshape(1,1,3,3))/eigvalues_n[index]
+            first_con = np.sum((eigenvectors[:,index]).reshape(3*nat, 1, 1) * forces_natccc.reshape(3*nat, 3, 3), axis=0)
+            C_cccc += (first_con.reshape(3,3,1,1) * first_con.reshape(1,1,3,3))/eigenvalues[index]
 
         return - C_cccc/atoms.get_volume()
 
@@ -637,6 +638,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # normal vectors
         n_pc = (r_pc.T / r_p).T
+        dn_pcc = ((np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
 
         # construct triplet list
         first_i = first_neighbours(nb_atoms, i_p)
@@ -653,18 +655,84 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # 
         naForces_natccc = np.zeros((nb_atoms, 3, 3, 3))
 
-        # Expression 1
+        # Term 1
         d11F_p = self.d11F(r_p, xi_p)
         d11F_p[mask_p] = 0.0
 
         naF1_nccc =  d11F_p.reshape(-1, 1, 1, 1) * (n_pc.reshape(-1, 3, 1, 1) * n_pc.reshape(-1, 1, 3, 1) * r_pc.reshape(-1, 1, 1, 3))
 
+        # Term 2
+        d12F_p = self.d12F(r_p, xi_p)
+        d12F_p[mask_p] = 0.0
+
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
+
+        naF21_tccc = n_pc[ij_t].reshape(-1,3,1,1) * d1G_tc.reshape(-1,1,3,1) * r_pc[ij_t].reshape(-1,1,1,3) \
+                     + n_pc[ij_t].reshape(-1,3,1,1) * d2G_tc.reshape(-1,1,3,1) * r_pc[ik_t].reshape(-1,1,1,3) \
+                     + d1G_tc.reshape(-1,3,1,1) * n_pc[ij_t].reshape(-1,1,3,1) * r_pc[ij_t].reshape(-1,1,1,3)
+        
+
+        naF22_tccc = d2G_tc.reshape(-1,3,1,1) * n_pc[ij_t].reshape(-1,1,3,1) * r_pc[ij_t].reshape(-1,1,1,3)
+
+
+        # Term 4
+        d1F_p = self.d1F(r_p, xi_p)
+        d1F_p[mask_p] = 0.0
+
+        naF4_nccc = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1) * r_pc.reshape(-1, 1, 1, 3)).T).T
+
+        # Term 5
+        d2F_p = self.d2F(r_p, xi_p)
+        d2F_p[mask_p] = 0.0
+
+        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
+        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
+        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
+
+        naF51_tccc = (d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)) 
+                    #+ d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3))
+        naF52_tccc = d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)
+
+        #naF52_nccc = d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) 
+                   #+ d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3))
+
+
         for i in range(0, 3):
             for j in range(0, 3):
                 for k in range(0, 3):
-                    naForces_natccc[:, i, j, k] += np.bincount(j_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) - \
-                        np.bincount(i_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) 
+                    # Term 1
+                    naForces_natccc[:, i, j, k] += np.bincount(i_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) - \
+                        np.bincount(j_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) 
 
+                    # Term 2 
+                    #naF21_nccc = (d12F_p * np.bincount(ij_t, weights=naF21_tccc[:, i, j, k], minlength=nb_pairs).T).T
+                    #naForces_natccc[:, i, j, k] += np.bincount(i_p, weights=naF21_nccc, minlength=nb_atoms) - \
+                    #    np.bincount(j_p, weights=naF21_nccc, minlength=nb_atoms)         
+
+                    #naF22_nccc = np.bincount(ij_t, weights=naF22_tccc[:, i, j, k], minlength=nb_pairs) - \
+                    #    np.bincount(jk_t, weights=naF22_tccc[:, i, j, k], minlength=nb_pairs)
+                    #naForces_natccc[:, i, j, k] += np.bincount(j_p, weights=(d12F_p * naF22_nccc.T).T, minlength=nb_atoms)                                   
+
+                    # Term 4
+                    naForces_natccc[:, i, j, k] += np.bincount(i_p, weights=naF4_nccc[:, i, j, k], minlength=nb_atoms) - \
+                        np.bincount(j_p, weights=naF4_nccc[:, i, j, k], minlength=nb_atoms)
+
+                    # Term 5 
+                    #naF51_nccc = (d2F_p * np.bincount(ij_t, weights=naF51_tccc[:, i, j, k], minlength=nb_pairs).T).T
+                    #naForces_natccc[:, i, j, k] += np.bincount(i_p, weights=naF51_nccc, minlength=nb_atoms) - \
+                    #    np.bincount(j_p, weights=naF51_nccc, minlength=nb_atoms)
+
+                    #naF521_nccc = np.bincount(ij_t, weights=naF52_tccc[:, i, j, k], minlength=nb_pairs)
+                    #naF522_nccc = np.bincount(ij_t, weights=naF52_tccc[:, i, j, k], minlength=nb_pairs)  
+                    #    np.bincount(ik_t, weights=naF52_tccc[:, i, j, k], minlength=nb_pairs) 
+                    #naForces_natccc[:, i, j, k] += np.bincount(i_p, weights=(d2F_p * naF52_nccc.T).T, minlength=nb_atoms)
+
+
+
+        return naForces_natccc / 2
+
+        """
 
         # Expression 2
         d12F_p = self.d12F(r_p, xi_p)
@@ -732,3 +800,4 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
 
         return naForces_natccc
+        """
