@@ -32,6 +32,8 @@ import ase
 import matscipytest
 
 import ase.io as io
+from ase.optimize import FIRE
+from matscipy.calculators.calculator import MatscipyCalculator
 from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber 
 import matscipy.calculators.bop_sw.explicit_forms.stillinger_weber as sw
 import matscipy.calculators.bop_sw.explicit_forms.kumagai as kum
@@ -49,39 +51,7 @@ from ase.units import GPa
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
-    def test_birch_elastic_constants_glass(self):
-        atoms = ase.io.read('aSi_N64.xyz')
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        atoms.set_calculator(calculator)
-        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
-        B_ana = calculator.get_birch_coefficients(atoms)
-        #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
-        #print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
-        self.assertArrayAlmostEqual(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), tol=0.1)
-
     """
-    def test_birch_elastic_constants_crystal(self):
-        for a0 in [5.2, 5.3, 5.4, 5.5]:
-            atoms = Diamond('Si', size=[3,3,3], latticeconstant=a0)
-            kumagai_potential = kum.kumagai
-            calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-            atoms.set_calculator(calculator)
-            C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
-            B_ana = calculator.get_birch_coefficients(atoms)
-            #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
-            #print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
-            self.assertArrayAlmostEqual(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), tol=0.1)
-
-    def test_computation_of_hessian(self):
-        atoms = ase.io.read('aSi_N8.xyz')
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        atoms.set_calculator(calculator)
-        H_ana = calculator.get_hessian(atoms).todense()
-        H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
-        self.assertArrayAlmostEqual(H_ana, H_ana2, tol=1e-3)
-
 
     def test_born_elastic_constants(self):
         atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
@@ -108,21 +78,78 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         #print("naC_ana: \n", full_3x3x3x3_to_Voigt_6x6(naC_ana))
         self.assertArrayAlmostEqual(-C_num, full_3x3x3x3_to_Voigt_6x6(C_ana), tol=1e-6)
 
-    def test_non_affine_forces(self):
-        #atoms = ase.io.read('aSi.cfg')
-        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
-        atoms.positions[0, 0] += 0.1
-        atoms.positions[0, 1] -= 0.1
-        atoms.positions[0, 2] += 0.2
-        io.write("cSi.xyz", atoms)
+    def test_non_affine_elastic_constants_glass(self):
+        atoms = ase.io.read('aSi_N8.xyz')
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         atoms.set_calculator(calculator)
+        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-6, verbose=False)
+        B_ana = calculator.get_birch_coefficients(atoms)
+        C_na = calculator.get_non_affine_contribution_to_elastic_constants(atoms)
+        print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
+        print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
+        self.assertArrayAlmostEqual(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana+C_na), tol=0.1)
+
+    def test_non_affine_forces_glass(self):
+        atoms = ase.io.read('aSi_N8.xyz')
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        calc = MatscipyCalculator()
+        atoms.set_calculator(calculator)
         naF_ana = calculator.get_non_affine_forces_from_second_derivative(atoms)
-        naF_num = calculator.get_numerical_non_affine_forces(atoms, d=1e-5)
-        print("naF_ana: \n", naF_ana[0])
-        print("naF_num: \n", naF_num[0])
+        naF_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
         self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
+
+    def test_non_affine_forces_crystal(self):
+        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        calc = MatscipyCalculator()
+        atoms.set_calculator(calculator)
+        naF_ana = calculator.get_non_affine_forces_from_second_derivative(atoms)
+        naF_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
+        self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
+
+    def test_birch_elastic_constants_glass(self):
+        atoms = ase.io.read('aSi_N64.xyz')
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
+        B_ana = calculator.get_birch_coefficients(atoms)
+        #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
+        #print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
+        self.assertArrayAlmostEqual(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), tol=0.1)
+
+    def test_birch_elastic_constants_crystal(self):
+        for a0 in [5.2, 5.3, 5.4, 5.5]:
+            atoms = Diamond('Si', size=[3,3,3], latticeconstant=a0)
+            kumagai_potential = kum.kumagai
+            calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+            atoms.set_calculator(calculator)
+            C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
+            B_ana = calculator.get_birch_coefficients(atoms)
+            #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
+            #print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
+            self.assertArrayAlmostEqual(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), tol=0.1)
+
+    def test_computation_of_hessian_crystal(self):
+        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        H_ana = calculator.get_hessian(atoms).todense()
+        H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
+        self.assertArrayAlmostEqual(H_ana, H_ana2, tol=1e-4)
+
+    def test_computation_of_hessian_glass(self):
+        atoms = ase.io.read('aSi_N8.xyz')
+        kumagai_potential = kum.kumagai
+        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
+        atoms.set_calculator(calculator)
+        H_ana = calculator.get_hessian(atoms).todense()
+        H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
+        self.assertArrayAlmostEqual(H_ana, H_ana2, tol=1e-4)
 
     def test_stress(self):
         for a0 in [5.2, 5.3, 5.4, 5.5]:

@@ -82,7 +82,6 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # normal vectors
         n_pc = (r_pc.T / r_p).T
-        nx_p, ny_p, nz_p = n_pc.T
 
         # construct triplet list
         first_i = first_neighbours(nb_atoms, i_p)
@@ -174,7 +173,6 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # normal vectors
         n_pc = (r_pc.T / r_p).T
-        nx_p, ny_p, nz_p = n_pc.T
 
         # construct triplet list
         first_i = first_neighbours(nb_atoms, i_p)
@@ -418,10 +416,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         T5_t += ((drdb_pc[ij_t].reshape(-1, 3, 1) * d12G_tcc).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
         T5_t += ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
         T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
-        #T5 = (d2F_p[ij_t] * T5_t).sum()
 
         return T1 + T2 + T3 + T4 + T5
-        #return T5
 
     def get_hessian_from_second_derivative(self, atoms):
         """
@@ -524,7 +520,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                         drdb_pc = np.zeros((nb_pairs, 3))
                         drdb_pc[:, nu] = r_pc[:, mu]/2
                         drdb_pc[:, mu] += r_pc[:, nu]/2
-                        C_cccc[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
+                        C_cccc[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
+                                                                                 i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
         
         C_cccc /= (2 * atoms.get_volume())
 
@@ -602,7 +599,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         calculator = atoms.get_calculator()
 
         # Non-affine forces
-        forces_natccc = calculator.get_nonaffine_forces(atoms)
+        forces_natccc = calculator.get_non_affine_forces_from_second_derivative(atoms)
 
         # Diagonalize 
         H_nn = calculator.get_hessian(atoms, "sparse").todense()
@@ -622,7 +619,6 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         return - C_cccc/atoms.get_volume()
 
-"""
     def get_non_affine_forces(self, atoms):
         if self.atoms is None:
             self.atoms = atoms
@@ -641,7 +637,6 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # normal vectors
         n_pc = (r_pc.T / r_p).T
-        nx_p, ny_p, nz_p = n_pc.T
 
         # construct triplet list
         first_i = first_neighbours(nb_atoms, i_p)
@@ -656,7 +651,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         F_p = self.F(r_p, xi_p)
 
         # 
-        naForces_natccc = np.empty((nb_atoms, 3, 3, 3))
+        naForces_natccc = np.zeros((nb_atoms, 3, 3, 3))
 
         # Expression 1
         d11F_p = self.d11F(r_p, xi_p)
@@ -737,4 +732,3 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
 
         return naForces_natccc
-    """
