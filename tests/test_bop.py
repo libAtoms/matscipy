@@ -53,6 +53,7 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
     def test_non_affine_forces_glass(self):
         atoms = ase.io.read('aSi_N8.xyz')
+        atoms.center(vacuum=10.0)
         kumagai_potential = kum.kumagai
         calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
         calc = MatscipyCalculator()
