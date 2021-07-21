@@ -715,19 +715,23 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         naF53_tcab = (d2F_p[ij_t] * (self.d12G(r_pc[ij_t], r_pc[ik_t]).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
         naF54_tcab = (d2F_p[jk_t] * (self.d12G(r_pc[jk_t], r_pc[tr_p[ij_t]]).reshape(-1,3,3,1) * r_pc[jk_t].reshape(-1,1,1,3)).T).T
 
-        naForces_natcab = np.zeros((nb_atoms, 3, 3, 3))
+        # Term 2
+        naForces_natcab = \
+            mabincount(i_p[ij_t], naF21_tcab, minlength=nb_atoms) + \
+            mabincount(j_p[ij_t], naF22_tcab, minlength=nb_atoms) + \
+            mabincount(j_p[ik_t], naF23_tcab, minlength=nb_atoms)
 
-        for i in range(0, 3):
-            for j in range(0, 3):
-                for k in range(0, 3):
+        #for i in range(0, 3):
+        #    for j in range(0, 3):
+        #        for k in range(0, 3):
                     # Term 1 --> Works!
                     #naForces_natcab[:, i, j, k] += np.bincount(i_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) - \
                     #    np.bincount(j_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms)
 
                     # Term 2
-                    naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF21_tcab[:, i, j, k], minlength=nb_atoms)
-                    naForces_natcab[:, i, j, k] += np.bincount(j_p[ij_t], weights=naF22_tcab[:, i, j, k], minlength=nb_atoms)
-                    naForces_natcab[:, i, j, k] += np.bincount(j_p[ik_t], weights=naF23_tcab[:, i, j, k], minlength=nb_atoms)
+                    #naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF21_tcab[:, i, j, k], minlength=nb_atoms)
+                    #naForces_natcab[:, i, j, k] += np.bincount(j_p[ij_t], weights=naF22_tcab[:, i, j, k], minlength=nb_atoms)
+                    #naForces_natcab[:, i, j, k] += np.bincount(j_p[ik_t], weights=naF23_tcab[:, i, j, k], minlength=nb_atoms)
 
                     # Term 3
                    
