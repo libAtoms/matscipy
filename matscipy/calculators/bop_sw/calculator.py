@@ -22,7 +22,9 @@
 """
 Bond Order Potential.
 """
+
 import sys
+import itertools
 
 import numpy as np
 
@@ -39,6 +41,13 @@ from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, \
 
 
 from ...elasticity import Voigt_6_to_full_3x3_stress
+
+
+def mabincount(x, weights, minlength=None):
+    result = np.zeros((minlength,) + weights.shape[1:], dtype=weights.dtype)
+    for c in itertools.product(*(range(s) for s in weights.shape[1:])):
+        result.T[c] = np.bincount(x, weights=weights.T[c], minlength=minlength)
+    return result
 
 
 class AbellTersoffBrennerStillingerWeber(Calculator):
@@ -377,11 +386,11 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
         T2 = (d12F_p[ij_t] * (d2G_tc * drda_pc[ik_t]).sum(axis=1) * drdb_p[ij_t]).sum()
-        #T2 += (d12F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * drda_p[ij_t]).sum()
+        T2 += (d12F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * drda_p[ij_t]).sum()
 
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
-        #T2 += (d12F_p[ij_t] * (d1G_tc * drda_pc[ij_t]).sum(axis=1) * drdb_p[ij_t]).sum()
-        #T2 += (d12F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * drda_p[ij_t]).sum()
+        T2 += (d12F_p[ij_t] * (d1G_tc * drda_pc[ij_t]).sum(axis=1) * drdb_p[ij_t]).sum()
+        T2 += (d12F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * drda_p[ij_t]).sum()
 
         # Term 3
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
@@ -652,7 +661,6 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
         F_p = self.F(r_p, xi_p)
 
-
         # Term 1
         d11F_p = self.d11F(r_p, xi_p)
         d11F_p[mask_p] = 0.0
@@ -663,16 +671,16 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         d12F_p = self.d12F(r_p, xi_p)
         d12F_p[mask_p] = 0.0
 
-        naF21_tcab = (d12F_p[ij_t] * (0*n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
-                                   + n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
-                                   + 0*self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
-                                   + 0*self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
+        naF21_tcab = (d12F_p[ij_t] * (n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
+                                    + n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
+                                    + self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
+                                    + self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
 
-        naF22_tcab = -(d12F_p[tr_p[ij_t]] * (0*n_pc[tr_p[ij_t]].reshape(-1, 3, 1, 1) * self.d1G(r_pc[tr_p[ij_t]], r_pc[jk_t]).reshape(-1, 1, 3, 1) * r_pc[tr_p[ij_t]].reshape(-1, 1, 1, 3) \
-                                           + n_pc[tr_p[ij_t]].reshape(-1, 3, 1, 1) * self.d2G(r_pc[tr_p[ij_t]], r_pc[jk_t]).reshape(-1, 1, 3, 1) * r_pc[jk_t].reshape(-1, 1, 1, 3) \
-                                           + 0*self.d1G(r_pc[tr_p[ij_t]], r_pc[jk_t]).reshape(-1, 3, 1, 1) * n_pc[tr_p[ij_t]].reshape(-1, 1, 3, 1) * r_pc[tr_p[ij_t]].reshape(-1, 1, 1, 3)).T).T
-       
-        naF23_tcab = -(d12F_p[jk_t] * (0*self.d2G(r_pc[jk_t], r_pc[tr_p[ij_t]]).reshape(-1, 3, 1, 1) * n_pc[jk_t].reshape(-1, 1, 3, 1) * r_pc[jk_t].reshape(-1, 1, 1, 3)).T).T
+        naF22_tcab = -(d12F_p[ij_t] * (n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
+                                     + n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
+                                     + self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
+
+        naF23_tcab = -(d12F_p[ij_t] * (self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
 
         # Term 3
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
@@ -719,7 +727,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                     # Term 2
                     naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF21_tcab[:, i, j, k], minlength=nb_atoms)
                     naForces_natcab[:, i, j, k] += np.bincount(j_p[ij_t], weights=naF22_tcab[:, i, j, k], minlength=nb_atoms)
-                    naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF23_tcab[:, i, j, k], minlength=nb_atoms)
+                    naForces_natcab[:, i, j, k] += np.bincount(j_p[ik_t], weights=naF23_tcab[:, i, j, k], minlength=nb_atoms)
 
                     # Term 3
                    
