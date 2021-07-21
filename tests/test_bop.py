@@ -60,8 +60,8 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         atoms.set_calculator(calculator)
         naF_ana1 = calculator.get_non_affine_forces_from_second_derivative(atoms)
         naF_ana2 = calculator.get_non_affine_forces(atoms)
-        print("naF_ana1[0]: \n", naF_ana1[0])
-        print("naF_ana2[0]: \n", naF_ana2[0])        
+        print("naF_ana1[0]: \n", naF_ana1[1])
+        print("naF_ana2[0]: \n", naF_ana2[1])
         #self.assertArrayAlmostEqual(naF_ana1, naF_ana2, tol=1e-2)
 
     """

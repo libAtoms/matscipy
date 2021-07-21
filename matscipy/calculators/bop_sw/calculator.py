@@ -377,11 +377,11 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
         T2 = (d12F_p[ij_t] * (d2G_tc * drda_pc[ik_t]).sum(axis=1) * drdb_p[ij_t]).sum()
-        T2 += (d12F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * drda_p[ij_t]).sum()
+        #T2 += (d12F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * drda_p[ij_t]).sum()
 
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
-        T2 += (d12F_p[ij_t] * (d1G_tc * drda_pc[ij_t]).sum(axis=1) * drdb_p[ij_t]).sum()
-        T2 += (d12F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * drda_p[ij_t]).sum()
+        #T2 += (d12F_p[ij_t] * (d1G_tc * drda_pc[ij_t]).sum(axis=1) * drdb_p[ij_t]).sum()
+        #T2 += (d12F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * drda_p[ij_t]).sum()
 
         # Term 3
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
@@ -414,11 +414,11 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         #T5_t =  ((d11G_tcc * drdb_pc[ij_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ij_t]).sum(axis=1)
         #T5_t = ((drdb_pc[ik_t].reshape(-1, 1, 3) * d12G_tcc).sum(axis=2) * drda_pc[ij_t]).sum(axis=1)
         T5_t = ((drdb_pc[ij_t].reshape(-1, 3, 1) * d12G_tcc).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
-        #T5_t = ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
+        #T5_t += ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
         T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
 
         #return T1 + T2 + T3 + T4 + T5
-        return T5
+        return T2
 
     def get_hessian_from_second_derivative(self, atoms):
         """
@@ -439,7 +439,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
-        H_nn = np.zeros((3 * nb_atoms, 3 * nb_atoms))
+        H_ab = np.zeros((3 * nb_atoms, 3 * nb_atoms))
 
         for m in range(0, nb_atoms):
             for cm in range(3):
@@ -451,10 +451,10 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                         drdb_pc = np.zeros((nb_pairs, 3))
                         drdb_pc[i_p == l, cl] = 1
                         drdb_pc[j_p == l, cl] = -1
-                        H_nn[3 * m + cm, 3 * l + cl] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
+                        H_ab[3 * m + cm, 3 * l + cl] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
                                                                                   i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
 
-        return H_nn / 2
+        return H_ab / 2
 
     def get_non_affine_forces_from_second_derivative(self, atoms):
         """
@@ -475,7 +475,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
-        naF_nccc = np.zeros((nb_atoms, 3, 3, 3))
+        naF_ncab = np.zeros((nb_atoms, 3, 3, 3))
 
         for m in range(0, nb_atoms):
             for cm in range(3):
@@ -486,9 +486,9 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                     for beta in range(3):       
                         drda_pc = np.zeros((nb_pairs, 3))
                         drda_pc[:, alpha] = r_pc[:, beta]
-                        naF_nccc[m, cm, alpha, beta] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
+                        naF_ncab[m, cm, alpha, beta] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
                                                                                   i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc) 
-        return naF_nccc / 2
+        return naF_ncab / 2
 
     def get_born_elastic_constants_from_second_derivative(self, atoms):
         """
@@ -600,13 +600,13 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         calculator = atoms.get_calculator()
 
         # Non-affine forces
-        forces_natccc = calculator.get_non_affine_forces_from_second_derivative(atoms)
+        forces_natcab = calculator.get_non_affine_forces_from_second_derivative(atoms)
 
         if eigenvalues is None or eigenvectors is None:  
             H_nn = calculator.get_hessian(atoms, "sparse").todense()
             eigenvalues, eigenvectors = linalg.eigh(H_nn, b=None, subset_by_index=[3, 3*nat-1])
          
-        #B_ncc = np.sum(eigvecs_nn.reshape(3*nat-3, 3*nat, 1, 1) * forces_natccc.reshape(1, 3*nat, 3, 3), axis=1)
+        #B_ncc = np.sum(eigvecs_nn.reshape(3*nat-3, 3*nat, 1, 1) * forces_natcab.reshape(1, 3*nat, 3, 3), axis=1)
         #print(B_ncc.shape)
         #B_ncc /= np.sqrt(eigvalues_n.reshape(3*nat-3, 1, 1))
         #B_ncc = B_ncc.reshape(3*nat-3, 3, 3, 1, 1) * B_ncc.reshape(3*nat-3, 1, 1, 3, 3)
@@ -615,7 +615,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # Compute non-affine contribution 
         C_cccc = np.empty((3,3,3,3))
         for index in range(0, 3*nat -3):
-            first_con = np.sum((eigenvectors[:,index]).reshape(3*nat, 1, 1) * forces_natccc.reshape(3*nat, 3, 3), axis=0)
+            first_con = np.sum((eigenvectors[:,index]).reshape(3*nat, 1, 1) * forces_natcab.reshape(3*nat, 3, 3), axis=0)
             C_cccc += (first_con.reshape(3,3,1,1) * first_con.reshape(1,1,3,3))/eigenvalues[index]
 
         return - C_cccc/atoms.get_volume()
@@ -663,16 +663,16 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         d12F_p = self.d12F(r_p, xi_p)
         d12F_p[mask_p] = 0.0
 
-        naF21_tccc = (d12F_p[ij_t] * (n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
+        naF21_tcab = (d12F_p[ij_t] * (0*n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
                                    + n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
-                                   + self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
-                                   - self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
+                                   + 0*self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
+                                   + 0*self.d2G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
 
-        naF22_tccc = (d12F_p[ij_t] * (n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1,1,3,1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
-                                     + n_pc[ij_t].reshape(-1, 3, 1, 1) * self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 1, 3, 1) * r_pc[jk_t].reshape(-1, 1, 1, 3) \
-                                     + self.d1G(r_pc[ij_t], r_pc[ik_t]).reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
+        naF22_tcab = -(d12F_p[tr_p[ij_t]] * (0*n_pc[tr_p[ij_t]].reshape(-1, 3, 1, 1) * self.d1G(r_pc[tr_p[ij_t]], r_pc[jk_t]).reshape(-1, 1, 3, 1) * r_pc[tr_p[ij_t]].reshape(-1, 1, 1, 3) \
+                                           + n_pc[tr_p[ij_t]].reshape(-1, 3, 1, 1) * self.d2G(r_pc[tr_p[ij_t]], r_pc[jk_t]).reshape(-1, 1, 3, 1) * r_pc[jk_t].reshape(-1, 1, 1, 3) \
+                                           + 0*self.d1G(r_pc[tr_p[ij_t]], r_pc[jk_t]).reshape(-1, 3, 1, 1) * n_pc[tr_p[ij_t]].reshape(-1, 1, 3, 1) * r_pc[tr_p[ij_t]].reshape(-1, 1, 1, 3)).T).T
        
-        naF23_tccc = (d12F_p[jk_t] * (self.d2G(r_pc[jk_t], r_pc[tr_p[ij_t]]).reshape(-1, 3, 1, 1) * n_pc[jk_t].reshape(-1, 1, 3, 1) * r_pc[jk_t].reshape(-1, 1, 1, 3)).T).T
+        naF23_tcab = -(d12F_p[jk_t] * (0*self.d2G(r_pc[jk_t], r_pc[tr_p[ij_t]]).reshape(-1, 3, 1, 1) * n_pc[jk_t].reshape(-1, 1, 3, 1) * r_pc[jk_t].reshape(-1, 1, 1, 3)).T).T
 
         # Term 3
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
@@ -699,47 +699,47 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
         d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
 
-        #naF51_tccc = (d2F_p[ij_t] * (d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
+        #naF51_tcab = (d2F_p[ij_t] * (d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
         #                            d12G_tcc.reshape(-1, )            ).T)
 
-        naF51_tccc = (d2F_p[ij_t] * (d11G_tcc.reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
-        naF52_tccc = (d2F_p[ij_t] * (d22G_tcc.reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T
-        naF53_tccc = (d2F_p[ij_t] * (self.d12G(r_pc[ij_t], r_pc[ik_t]).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
-        naF54_tccc = (d2F_p[jk_t] * (self.d12G(r_pc[jk_t], r_pc[tr_p[ij_t]]).reshape(-1,3,3,1) * r_pc[jk_t].reshape(-1,1,1,3)).T).T
+        naF51_tcab = (d2F_p[ij_t] * (d11G_tcc.reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
+        naF52_tcab = (d2F_p[ij_t] * (d22G_tcc.reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T
+        naF53_tcab = (d2F_p[ij_t] * (self.d12G(r_pc[ij_t], r_pc[ik_t]).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
+        naF54_tcab = (d2F_p[jk_t] * (self.d12G(r_pc[jk_t], r_pc[tr_p[ij_t]]).reshape(-1,3,3,1) * r_pc[jk_t].reshape(-1,1,1,3)).T).T
 
-        naForces_natccc = np.zeros((nb_atoms, 3, 3, 3))
+        naForces_natcab = np.zeros((nb_atoms, 3, 3, 3))
 
         for i in range(0, 3):
             for j in range(0, 3):
                 for k in range(0, 3):
                     # Term 1 --> Works!
-                    #naForces_natccc[:, i, j, k] += np.bincount(i_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) - \
-                    #    np.bincount(j_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) 
+                    #naForces_natcab[:, i, j, k] += np.bincount(i_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) - \
+                    #    np.bincount(j_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms)
 
-                    # Term 2 
-                    #naForces_natccc[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF21_tccc[:, i, j ,k], minlength=nb_atoms)
-                    #naForces_natccc[:, i, j, k] -= np.bincount(j_p[ij_t], weights=naF22_tccc[:, i, j ,k], minlength=nb_atoms)
-                    #naForces_natccc[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF23_tccc[:, i, j ,k], minlength=nb_atoms)
+                    # Term 2
+                    naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF21_tcab[:, i, j, k], minlength=nb_atoms)
+                    naForces_natcab[:, i, j, k] += np.bincount(j_p[ij_t], weights=naF22_tcab[:, i, j, k], minlength=nb_atoms)
+                    naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF23_tcab[:, i, j, k], minlength=nb_atoms)
 
                     # Term 3
                    
                     # Term 4 --> Works! 
-                    #naForces_natccc[:, i, j, k] += np.bincount(i_p, weights=naF4_nccc[:, i, j, k], minlength=nb_atoms) - \
+                    #naForces_natcab[:, i, j, k] += np.bincount(i_p, weights=naF4_nccc[:, i, j, k], minlength=nb_atoms) - \
                     #    np.bincount(j_p, weights=naF4_nccc[:, i, j, k], minlength=nb_atoms)
 
                     # Term 5 
                     # Delta11 --> Works 
-                    #naForces_natccc[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF51_tccc[:, i, j, k], minlength=nb_atoms) 
-                    #naForces_natccc[:, i, j, k] -= np.bincount(j_p[ij_t], weights=naF51_tccc[:, i, j, k], minlength=nb_atoms)
+                    #naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF51_tcab[:, i, j, k], minlength=nb_atoms)
+                    #naForces_natcab[:, i, j, k] -= np.bincount(j_p[ij_t], weights=naF51_tcab[:, i, j, k], minlength=nb_atoms)
                     
                     # Delta22 --> Works
-                    #naForces_natccc[:, i, j, k] += np.bincount(i_p[ik_t], weights=naF52_tccc[:, i, j, k], minlength=nb_atoms)
-                    #naForces_natccc[:, i, j, k] -= np.bincount(j_p[ik_t], weights=naF52_tccc[:, i, j, k], minlength=nb_atoms) 
+                    #naForces_natcab[:, i, j, k] += np.bincount(i_p[ik_t], weights=naF52_tcab[:, i, j, k], minlength=nb_atoms)
+                    #naForces_natcab[:, i, j, k] -= np.bincount(j_p[ik_t], weights=naF52_tcab[:, i, j, k], minlength=nb_atoms)
                     
                     # Delta12 --- > ? 
-                    naForces_natccc[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF53_tccc[:, i, j, k], minlength=nb_atoms)
-                    naForces_natccc[:, i, j, k] -= np.bincount(i_p[ij_t], weights=(naF54_tccc.swapaxes(1,2))[:, i, j, k], minlength=nb_atoms) 
+                    #naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF53_tcab[:, i, j, k], minlength=nb_atoms)
+                    #naForces_natcab[:, i, j, k] -= np.bincount(i_p[ij_t], weights=naF54_tcab[:, i, j, k], minlength=nb_atoms)
 
                     # Delta21 
 
-        return naForces_natccc / 2
+        return naForces_natcab / 2
