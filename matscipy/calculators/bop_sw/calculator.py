@@ -420,14 +420,14 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
         d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
 
-        #T5_t =  ((d11G_tcc * drdb_pc[ij_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ij_t]).sum(axis=1)
-        #T5_t = ((drdb_pc[ik_t].reshape(-1, 1, 3) * d12G_tcc).sum(axis=2) * drda_pc[ij_t]).sum(axis=1)
-        T5_t = ((drdb_pc[ij_t].reshape(-1, 3, 1) * d12G_tcc).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
-        #T5_t += ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
+        T5_t =  ((d11G_tcc * drdb_pc[ij_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ij_t]).sum(axis=1)
+        T5_t += ((drdb_pc[ik_t].reshape(-1, 1, 3) * d12G_tcc).sum(axis=2) * drda_pc[ij_t]).sum(axis=1)
+        T5_t += ((drdb_pc[ij_t].reshape(-1, 3, 1) * d12G_tcc).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
+        T5_t += ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
         T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
 
         #return T1 + T2 + T3 + T4 + T5
-        return T2
+        return T1 + T2 + T4 
 
     def get_hessian_from_second_derivative(self, atoms):
         """
@@ -665,7 +665,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         d11F_p = self.d11F(r_p, xi_p)
         d11F_p[mask_p] = 0.0
 
-        naF1_nccc =  d11F_p.reshape(-1, 1, 1, 1) * (n_pc.reshape(-1, 3, 1, 1) * n_pc.reshape(-1, 1, 3, 1) * r_pc.reshape(-1, 1, 1, 3))
+        naF1_ncab =  d11F_p.reshape(-1, 1, 1, 1) * (n_pc.reshape(-1, 3, 1, 1) * n_pc.reshape(-1, 1, 3, 1) * r_pc.reshape(-1, 1, 1, 3))
 
         # Term 2
         d12F_p = self.d12F(r_p, xi_p)
@@ -697,61 +697,35 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         d1F_p = self.d1F(r_p, xi_p)
         d1F_p[mask_p] = 0.0
 
-        naF4_nccc = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1) * r_pc.reshape(-1, 1, 1, 3)).T).T
+        naF4_ncab = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1) * r_pc.reshape(-1, 1, 1, 3)).T).T
 
         # Term 5
         d2F_p = self.d2F(r_p, xi_p)
         d2F_p[mask_p] = 0.0
 
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
 
-        #naF51_tcab = (d2F_p[ij_t] * (d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
-        #                            d12G_tcc.reshape(-1, )            ).T)
+        naF51_tcab = (d2F_p[ij_t] * ((self.d11G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3) + \
+                                     (self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3) + \
+                                     ((self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1)) * r_pc[ij_t].reshape(-1,1,1,3) + \
+                                     (self.d22G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T
 
-        naF51_tcab = (d2F_p[ij_t] * (d11G_tcc.reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
-        naF52_tcab = (d2F_p[ij_t] * (d22G_tcc.reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T
-        naF53_tcab = (d2F_p[ij_t] * (self.d12G(r_pc[ij_t], r_pc[ik_t]).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
-        naF54_tcab = (d2F_p[jk_t] * (self.d12G(r_pc[jk_t], r_pc[tr_p[ij_t]]).reshape(-1,3,3,1) * r_pc[jk_t].reshape(-1,1,1,3)).T).T
+        naF52_tcab = -(d2F_p[ij_t] * ((self.d11G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3) +\
+                                     (self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1)* r_pc[ik_t].reshape(-1,1,1,3)).T).T 
+        
+        naF53_tcab = -(d2F_p[ij_t] * (((self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1)) * r_pc[ik_t].reshape(-1,1,1,3) +\
+                                     (self.d22G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T 
 
-        # Term 2
+        # Term 1 + 2 + 4
         naForces_natcab = \
+            mabincount(i_p, naF1_ncab, minlength=nb_atoms) - \
+            mabincount(j_p, naF1_ncab, minlength=nb_atoms) + \
             mabincount(i_p[ij_t], naF21_tcab, minlength=nb_atoms) + \
             mabincount(j_p[ij_t], naF22_tcab, minlength=nb_atoms) + \
-            mabincount(j_p[ik_t], naF23_tcab, minlength=nb_atoms)
-
-        #for i in range(0, 3):
-        #    for j in range(0, 3):
-        #        for k in range(0, 3):
-                    # Term 1 --> Works!
-                    #naForces_natcab[:, i, j, k] += np.bincount(i_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms) - \
-                    #    np.bincount(j_p, weights=naF1_nccc[:, i, j, k], minlength=nb_atoms)
-
-                    # Term 2
-                    #naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF21_tcab[:, i, j, k], minlength=nb_atoms)
-                    #naForces_natcab[:, i, j, k] += np.bincount(j_p[ij_t], weights=naF22_tcab[:, i, j, k], minlength=nb_atoms)
-                    #naForces_natcab[:, i, j, k] += np.bincount(j_p[ik_t], weights=naF23_tcab[:, i, j, k], minlength=nb_atoms)
-
-                    # Term 3
-                   
-                    # Term 4 --> Works! 
-                    #naForces_natcab[:, i, j, k] += np.bincount(i_p, weights=naF4_nccc[:, i, j, k], minlength=nb_atoms) - \
-                    #    np.bincount(j_p, weights=naF4_nccc[:, i, j, k], minlength=nb_atoms)
-
-                    # Term 5 
-                    # Delta11 --> Works 
-                    #naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF51_tcab[:, i, j, k], minlength=nb_atoms)
-                    #naForces_natcab[:, i, j, k] -= np.bincount(j_p[ij_t], weights=naF51_tcab[:, i, j, k], minlength=nb_atoms)
-                    
-                    # Delta22 --> Works
-                    #naForces_natcab[:, i, j, k] += np.bincount(i_p[ik_t], weights=naF52_tcab[:, i, j, k], minlength=nb_atoms)
-                    #naForces_natcab[:, i, j, k] -= np.bincount(j_p[ik_t], weights=naF52_tcab[:, i, j, k], minlength=nb_atoms)
-                    
-                    # Delta12 --- > ? 
-                    #naForces_natcab[:, i, j, k] += np.bincount(i_p[ij_t], weights=naF53_tcab[:, i, j, k], minlength=nb_atoms)
-                    #naForces_natcab[:, i, j, k] -= np.bincount(i_p[ij_t], weights=naF54_tcab[:, i, j, k], minlength=nb_atoms)
-
-                    # Delta21 
+            mabincount(j_p[ik_t], naF23_tcab, minlength=nb_atoms) + \
+            mabincount(i_p, naF4_ncab, minlength=nb_atoms) - \
+            mabincount(j_p, naF4_ncab, minlength=nb_atoms) 
+            #mabincount(i_p[ij_t], naF51_tcab, minlength=nb_atoms) + \
+            #mabincount(j_p[ij_t], naF52_tcab, minlength=nb_atoms) + \
+            #mabincount(j_p[ik_t], naF53_tcab, minlength=nb_atoms) 
 
         return naForces_natcab / 2
