@@ -219,30 +219,17 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # Hessian term #3
 
         ## Terms involving D_1 * D_1
-
-        # TODO: bincount multiaxis
-        d1xG_p = np.bincount(ij_t, weights=d1G_tc[:, 0], minlength=nb_pairs)
-        d1yG_p = np.bincount(ij_t, weights=d1G_tc[:, 1], minlength=nb_pairs)
-        d1zG_p = np.bincount(ij_t, weights=d1G_tc[:, 2], minlength=nb_pairs)
-
-        d1G_p = np.transpose([d1xG_p, d1yG_p, d1zG_p])
-        H_pcc -= (d22F_p * (d1G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
+        d1G_pc = mabincount(ij_t, d1G_tc, nb_pairs)
+        H_pcc -= (d22F_p * (d1G_pc.reshape(-1, 3, 1) * d1G_pc.reshape(-1, 1, 3)).T).T
 
         ## Terms involving D_2 * D_2
-
-        # TODO: bincount multiaxis
-        d2xG_p = np.bincount(ij_t, weights=d2G_tc[:, 0], minlength=nb_pairs)
-        d2yG_p = np.bincount(ij_t, weights=d2G_tc[:, 1], minlength=nb_pairs)
-        d2zG_p = np.bincount(ij_t, weights=d2G_tc[:, 2], minlength=nb_pairs)
-
-        d2G_p = np.transpose([d2xG_p, d2yG_p, d2zG_p])
-
-        Q1 = ((d22F_p * d2G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_tc.reshape(-1, 1, 3))
+        d2G_pc = mabincount(ij_t, d2G_tc, nb_pairs)
+        Q1 = ((d22F_p * d2G_pc.T).T[ij_t].reshape(-1, 3, 1) * d2G_tc.reshape(-1, 1, 3))
 
         ## Terms involving D_1 * D_2
-        Q2 = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_tc.reshape(-1, 1, 3))
+        Q2 = ((d22F_p * d1G_pc.T).T[ij_t].reshape(-1, 3, 1) * d2G_tc.reshape(-1, 1, 3))
 
-        H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
+        H_pcc -= (d22F_p * (d2G_pc.reshape(-1, 3, 1) * d1G_pc.reshape(-1, 1, 3)).T).T
 
         H_pcc += \
             - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
@@ -273,7 +260,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                             self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1, 3)).T).T.squeeze()
 
         # Add the conjugate terms (symmetrize Hessian)
-        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p, :, :]
+        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
 
         if format == "sparse":
             # Construct full diagonal terms from off-diagonal terms
