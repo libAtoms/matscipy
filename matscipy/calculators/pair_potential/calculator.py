@@ -25,6 +25,8 @@ Simple pair potential.
 
 import numpy as np
 
+from scipy.sparse import bsr_matrix, vstack, hstack
+
 import ase
 
 from ...neighbours import neighbour_list, first_neighbours
@@ -356,13 +358,6 @@ class PairPotential(MatscipyCalculator):
         """
         if self.atoms is None:
             self.atoms = atoms
-
-        if format == "sparse":
-            try:
-                from scipy.sparse import bsr_matrix, vstack, hstack
-            except ImportError:
-                raise ImportError(
-                    "Import error: Can not output the hessian matrix since scipy.sparse could not be loaded!")
 
         f = self.f
         dict = self.dict

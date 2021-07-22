@@ -1,11 +1,38 @@
 import numpy as np
 from collections import namedtuple 
 
-T3_parameters  = namedtuple("T3_parameters", ["A", "B", "chi", "lam", "mu", "beta", "n", "c", "d", "h", "R_1", "R_2", "lam3", "delta"])
+T3_parameters  = namedtuple("T3_parameters", 
+                            ["A", 
+                             "B", 
+                             "chi", 
+                             "lam", 
+                             "mu", 
+                             "beta", 
+                             "n", 
+                             "c", 
+                             "d", 
+                             "h", 
+                             "R_1",
+                             "R_2", 
+                             "lam3", 
+                             "delta"])
 
 # J. Tersoff, Physical review B 39.8 (1989): 5566.
-tersoff3_Si = T3_parameters(A=1.8308e3, B=4.7118e2, chi=1.0, lam=2.4799e0, mu=1.7322e0, beta=1.1000e-6, n=7.8734e-1, c=1.0039e5,
-               d=1.6217e1, h=-5.9825e-1, R_1=2.70, R_2=3.00, lam3=0.0, delta=3)
+tersoff3_Si = T3_parameters(
+    A=1.8308e3, 
+    B=4.7118e2, 
+    chi=1.0, 
+    lam=2.4799e0, 
+    mu=1.7322e0, 
+    beta=1.1000e-6, 
+    n=7.8734e-1, 
+    c=1.0039e5,
+    d=1.6217e1, 
+    h=-5.9825e-1, 
+    R_1=2.70, 
+    R_2=3.00, 
+    lam3=0.0, 
+    delta=3)
 
 def ab(x):
     """

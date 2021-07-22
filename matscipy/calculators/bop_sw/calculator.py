@@ -37,6 +37,8 @@ Bond Order Potential.
 
 import numpy as np
 
+from scipy import linalg
+
 import ase
 
 from scipy.sparse import bsr_matrix
@@ -229,16 +231,16 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         ## Terms involving D_1 * D_1
         d1G_pc = mabincount(ij_t, d1G_tc, nb_pairs)
-        H_pcc -= (d22F_p * (d1G_pc.reshape(-1, 3, 1) * d1G_pc.reshape(-1, 1, 3)).T).T
+        H_pcc -= (d22F_p * _o(d1G_pc, d1G_pc).T).T
 
         ## Terms involving D_2 * D_2
         d2G_pc = mabincount(ij_t, d2G_tc, nb_pairs)
-        Q1 = ((d22F_p * d2G_pc.T).T[ij_t].reshape(-1, 3, 1) * d2G_tc.reshape(-1, 1, 3))
+        Q1 = _o((d22F_p * d2G_pc.T).T[ij_t], d2G_tc)
 
         ## Terms involving D_1 * D_2
-        Q2 = ((d22F_p * d1G_pc.T).T[ij_t].reshape(-1, 3, 1) * d2G_tc.reshape(-1, 1, 3))
+        Q2 = _o((d22F_p * d1G_pc.T).T[ij_t], d2G_tc)
 
-        H_pcc -= (d22F_p * (d2G_pc.reshape(-1, 3, 1) * d1G_pc.reshape(-1, 1, 3)).T).T
+        H_pcc -= (d22F_p * _o(d2G_pc, d1G_pc).T).T
 
         H_pcc += \
             - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
@@ -266,7 +268,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                     r_p_il = np.array([r_pc[il]])
                     r_p_im = np.array([r_pc[im]])
                     H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (
-                            self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1, 3)).T).T.squeeze()
+                            _o(self.d2G(r_p_ij, r_p_il), self.d2G(r_p_ij, r_p_im))).T).T.squeeze()
 
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
@@ -384,7 +386,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
               np.bincount(ij_t, weights=dxidb_t, minlength=nb_pairs)).sum()
 
         # Term 4
-        Q_pcc = ((np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
+        Q_pcc = ((np.eye(3) - _o(n_pc, n_pc)).T / r_p).T
 
         T4 = (d1F_p * ((Q_pcc * drda_pc.reshape(-1, 3, 1)).sum(axis=1) * drdb_pc).sum(axis=1)).sum()
 
@@ -564,12 +566,6 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         """
 
-        try:
-            from scipy import linalg
-        except ImportError:
-            raise ImportError(
-                "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
-
         nat = len(atoms)
         calculator = atoms.get_calculator()
 
@@ -609,7 +605,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # normal vectors
         n_pc = (r_pc.T / r_p).T
-        dn_pcc = ((np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
+        dn_pcc = ((np.eye(3) - _o(n_pc, n_pc)).T / r_p).T
 
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
@@ -639,24 +635,24 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # Derivative of xi with respect to the deformation gradient
         dxidF_pab = mabincount(
             ij_t,
-            d1G_tc.reshape(-1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 3) + \
-            d2G_tc.reshape(-1, 3, 1) * r_pc[ik_t].reshape(-1, 1, 3),
+            _o(d1G_tc, r_pc[ij_t]) + \
+            _o(d2G_tc, r_pc[ik_t]),
             minlength=nb_pairs)
 
         # Term 1
-        naF1_ncab =  d11F_p.reshape(-1, 1, 1, 1) * (n_pc.reshape(-1, 3, 1, 1) * n_pc.reshape(-1, 1, 3, 1) * r_pc.reshape(-1, 1, 1, 3))
+        naF1_ncab =  d11F_p.reshape(-1, 1, 1, 1) * _o(n_pc, n_pc, r_pc)
 
         # Term 2
-        naF21_tcab = (d12F_p[ij_t] * (n_pc[ij_t].reshape(-1, 3, 1, 1) * d1G_tc.reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
-                                    + n_pc[ij_t].reshape(-1, 3, 1, 1) * d2G_tc.reshape(-1, 1, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
-                                    + d1G_tc.reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
-                                    + d2G_tc.reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
+        naF21_tcab = (d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t]) \
+                                    + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t]) \
+                                    + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t]) \
+                                    + _o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
-        naF22_tcab = -(d12F_p[ij_t] * (n_pc[ij_t].reshape(-1, 3, 1, 1) * d1G_tc.reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
-                                     + n_pc[ij_t].reshape(-1, 3, 1, 1) * d2G_tc.reshape(-1, 1, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
-                                     + d1G_tc.reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
+        naF22_tcab = -(d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t]) \
+                                     + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t]) \
+                                     + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
-        naF23_tcab = -(d12F_p[ij_t] * (d2G_tc.reshape(-1, 3, 1, 1) * n_pc[ij_t].reshape(-1, 1, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
+        naF23_tcab = -(d12F_p[ij_t] * (_o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
         # Term 3
         naF31_tcab = d22F_p[ij_t].reshape(-1, 1, 1, 1) * d1G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)

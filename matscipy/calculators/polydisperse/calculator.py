@@ -21,16 +21,13 @@
 
 import numpy as np
 
+from scipy.special import factorial2
+from scipy.sparse import bsr_matrix
+
 import ase
 
 from ...neighbours import neighbour_list, first_neighbours
 from ..calculator import MatscipyCalculator
-
-try:
-    from scipy.special import factorial2
-    from scipy.sparse import bsr_matrix
-except ImportError:
-    warnings.warn('Warning: no scipy')
 
 ###
 

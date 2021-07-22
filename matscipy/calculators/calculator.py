@@ -19,6 +19,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 import numpy as np
+
+from scipy import linalg
+
 from ase.calculators.calculator import Calculator
 
 from ..elasticity import Voigt_6_to_full_3x3_stress
@@ -149,12 +152,6 @@ class MatscipyCalculator(Calculator):
             Atomic configuration in a local or global minima.
 
         """
-
-        try:
-            from scipy import linalg
-        except ImportError:
-            raise ImportError(
-                "Import error: Can not compute non-affine elastic constants! Scipy is needed!")
 
         nat = len(atoms)
         calc = atoms.get_calculator()

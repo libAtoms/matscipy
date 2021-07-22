@@ -1,24 +1,65 @@
 import numpy as np
 from collections import namedtuple 
 
-SW_parameters  = namedtuple("SW_parameters", ["epsilon", "sigma", "costheta0", "A", "B", "p", "a", "lambda1", "gamma"])
+SW_parameters  = namedtuple("SW_parameters",
+                            ["epsilon",
+                             "sigma",
+                             "costheta0",
+                             "A", 
+                             "B", 
+                             "p", 
+                             "a", 
+                             "lambda1", 
+                             "gamma"])
 
-# Original parametrization: F. Stillinger and T. Weber, Physical review B 31.8 5262 (1985)
-original_SW = SW_parameters(epsilon=2.1683, sigma=2.0951, costheta0=0.333333333333, A=7.049556277, B=0.6022245584,
-                            p=4, a=1.80, lambda1=21.0, gamma=1.20)
+# Original parametrization: F. Stillinger and T. Weber, Phys. Rev. B 31.8 5262 (1985)
+original_SW = SW_parameters(
+    epsilon=2.1683, 
+    sigma=2.0951, 
+    costheta0=0.333333333333, 
+    A=7.049556277, 
+    B=0.6022245584,
+    p=4, 
+    a=1.80, 
+    lambda1=21.0, 
+    gamma=1.20)
 
-# D. Holland and M. Marder Physical Review Letters 80.4 (1998): 746.
-brittle_fracture_SW = SW_parameters(epsilon=2.1683, sigma=2.0951, costheta0=0.333333333333, A=7.049556277, B=0.6022245584,
-                            p=4, a=1.80, lambda1=42.0, gamma=1.20)
+# D. Holland and M. Marder Phys. Rev. Lett. 80.4 (1998): 746.
+brittle_fracture_SW = SW_parameters(
+    epsilon=2.1683, 
+    sigma=2.0951, 
+    costheta0=0.333333333333, 
+    A=7.049556277, 
+    B=0.6022245584,
+    p=4, 
+    a=1.80, 
+    lambda1=42.0, 
+    gamma=1.20)
 
-# RLC Vink et al. Journal of non-crystalline solids 282.2-3 (2001): 248-255.
-aSi_SW = SW_parameters(epsilon=1.64833, sigma=2.0951, costheta0=0.333333333333, A=7.049556277, B=0.6022245584,
-                            p=4, a=1.80, lambda1=31.5, gamma=1.20)
+# RLC Vink et al. J. Non-Cryst. Solids 282.2-3 (2001): 248-255.
+aSi_SW = SW_parameters(
+    epsilon=1.64833, 
+    sigma=2.0951, 
+    costheta0=0.333333333333, 
+    A=7.049556277, 
+    B=0.6022245584,
+    p=4, 
+    a=1.80, 
+    lambda1=31.5, 
+    gamma=1.20)
 
-# J. Russo et. al. Physical Review X 8.2 (2018): 021040.
-# D. Richard et al. Physical Review Letters 125.8 (2020): 085502.
-glassforming_SW = SW_parameters(epsilon=1.64833, sigma=2.0951, costheta0=0.333333333333, A=7.049556277, B=0.6022245584,
-                            p=4, a=1.80, lambda1=18.75, gamma=1.20)
+# J. Russo et. al. Phys. Rev. X 8.2 (2018): 021040.
+# D. Richard et al. Phys. Rev. Lett. 125.8 (2020): 085502.
+glassforming_SW = SW_parameters(
+    epsilon=1.64833, 
+    sigma=2.0951, 
+    costheta0=0.333333333333, 
+    A=7.049556277, 
+    B=0.6022245584,
+    p=4, 
+    a=1.80, 
+    lambda1=18.75, 
+    gamma=1.20)
 
 def ab(x):
     """
