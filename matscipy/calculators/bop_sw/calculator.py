@@ -104,14 +104,14 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # potential-dependent functions
         G_t = self.G(r_pc[ij_t], r_pc[ik_t])
         d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
         F_p = self.F(r_p, xi_p)
         d1F_p = self.d1F(r_p, xi_p)
         d2F_p = self.d2F(r_p, xi_p)
-
-        d2F_d2G_t = (self.d2F(r_p[ij_t], xi_p[ij_t]) * self.d2G(r_pc[ij_t], r_pc[ik_t]).T).T
+        d2F_d2G_t = (d2F_p[ij_t] * d2G_tc.T).T
 
         # calculate energy
         epot = 0.5 * np.sum(F_p)
@@ -627,6 +627,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         d1F_p = self.d1F(r_p, xi_p)
         d1F_p[mask_p] = 0.0
+        d2F_p = self.d2F(r_p, xi_p)
+        d2F_p[mask_p] = 0.0
         d11F_p = self.d11F(r_p, xi_p)
         d11F_p[mask_p] = 0.0
         d12F_p = self.d12F(r_p, xi_p)
@@ -664,9 +666,6 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         naF4_ncab = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1) * r_pc.reshape(-1, 1, 1, 3)).T).T
 
         # Term 5
-        d2F_p = self.d2F(r_p, xi_p)
-        d2F_p[mask_p] = 0.0
-
         naF51_tcab = (d2F_p[ij_t] * (d11G_tcc.reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3) + \
                                      d12G_tcc.reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3) + \
                                      d22G_tcc.reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3) + \
