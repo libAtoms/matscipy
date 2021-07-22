@@ -266,18 +266,20 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
         
-        # TODO: bincount multiaxis
-        for x in range(3):
-            for y in range(3):
-                H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp_t[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] += np.bincount(jk_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(
-                    tr_p[ij_t], weights=H_temp1_t[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=H_temp1_t[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] -= np.bincount(ik_t, weights=H_temp2_t[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] += np.bincount(tr_p[jk_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(
-                    ij_t, weights=H_temp3_t[:, x, y], minlength=nb_pairs) - np.bincount(tr_p[ik_t], weights=H_temp3_t[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] -= np.bincount(ij_t, weights=H_temp4_t[:, x, y], minlength=nb_pairs) + np.bincount(tr_p[ij_t], weights=H_temp4_t[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] -= np.bincount(ik_t, weights=Q1[:, x, y], minlength=nb_pairs)
-                H_pcc[:, x, y] += np.bincount(jk_t, weights=Q2[:, x, y], minlength=nb_pairs) - np.bincount(ik_t, weights=Q2[:, x, y], minlength=nb_pairs)
+        H_pcc += \
+            - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
+            + mabincount(jk_t, weights=H_temp1_t, minlength=nb_pairs) \
+            - mabincount(tr_p[ij_t], weights=H_temp1_t, minlength=nb_pairs) \
+            - mabincount(ik_t, weights=H_temp1_t, minlength=nb_pairs) \
+            - mabincount(ik_t, weights=H_temp2_t, minlength=nb_pairs) \
+            + mabincount(tr_p[jk_t], weights=H_temp3_t, minlength=nb_pairs) \
+            - mabincount(ij_t, weights=H_temp3_t, minlength=nb_pairs) \
+            - mabincount(tr_p[ik_t], weights=H_temp3_t, minlength=nb_pairs) \
+            - mabincount(ij_t, weights=H_temp4_t, minlength=nb_pairs) \
+            - mabincount(tr_p[ij_t], weights=H_temp4_t, minlength=nb_pairs) \
+            - mabincount(ik_t, weights=Q1, minlength=nb_pairs) \
+            + mabincount(jk_t, weights=Q2, minlength=nb_pairs) \
+            - mabincount(ik_t, weights=Q2, minlength=nb_pairs)
 
         for il_im in range(nb_triplets):
             il = ij_t[il_im]

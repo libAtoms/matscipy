@@ -61,6 +61,7 @@ def mabincount(x, weights, minlength, axis=0):
     for c in itertools.product(*(range(s) for s in iter_shape)):
         axis_slice = list(c)
         axis_slice.insert(axis, slice(None))
+        axis_slice = tuple(axis_slice)
         result[axis_slice] = np.bincount(x, weights=weights[axis_slice], minlength=minlength)
 
     # Return results
