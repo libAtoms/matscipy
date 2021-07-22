@@ -83,8 +83,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         Calculator.calculate(self, atoms, properties, system_changes)
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
-                                             cutoff=self.cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=self.cutoff)
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -163,8 +162,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
             self.atoms = atoms
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
-                                             cutoff=2 * self.cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
 
         mask_p = r_p > self.cutoff
 
@@ -222,7 +220,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         H_temp2_t = (d2F_p[ij_t] * d22G_tcc.T).T
         H_temp_t = (d2F_p[ij_t] * d11G_tcc.T).T
         H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
-    
+
         # Hessian term #3
 
         ## Terms involving D_1 * D_1
@@ -250,7 +248,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         Q2 = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
 
         H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
-        
+
         H_pcc += \
             - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
             + mabincount(jk_t, weights=H_temp1_t, minlength=nb_pairs) \
@@ -278,7 +276,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                     r_p_im = np.array([r_pc[im]])
                     H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (
                             self.d2G(r_p_ij, r_p_il).reshape(-1, 3, 1) * self.d2G(r_p_ij, r_p_im).reshape(-1, 1, 3)).T).T.squeeze()
-        
+
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p, :, :]
 
@@ -380,7 +378,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # Term 1
         T1 = (d11F_p * drda_p * drdb_p).sum()
-        
+
         # Term 2
         T2 = (d12F_p[ij_t] * (d2G_tc * drda_pc[ik_t]).sum(axis=1) * drdb_p[ij_t]).sum()
         T2 += (d12F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * drda_p[ij_t]).sum()
@@ -471,7 +469,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                 drdb_pc[i_p == m, cm] = 1
                 drdb_pc[j_p == m, cm] = -1
                 for alpha in range(3):
-                    for beta in range(3):       
+                    for beta in range(3):
                         drda_pc = np.zeros((nb_pairs, 3))
                         drda_pc[:, alpha] = r_pc[:, beta]
                         naF_ncab[m, cm, alpha, beta] = \
@@ -490,7 +488,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         """
 
         if self.atoms is None:
-            self.atoms = atoms 
+            self.atoms = atoms
 
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
 
@@ -498,7 +496,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         nb_pairs = len(i_p)
 
         C_abab = np.zeros((3, 3, 3, 3))
-        
+
         for alpha in range(3):
             for beta in range(3):
                 drda_pc = np.zeros((nb_pairs, 3))
@@ -511,7 +509,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                         drdb_pc[:, mu] += r_pc[:, nu]/2
                         C_abab[alpha, beta, nu, mu] = \
                             self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
-        
+
         C_abab /= (2 * atoms.get_volume())
 
         return C_abab
@@ -526,7 +524,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
             Atomic configuration in a local or global minima.
 
         """
-        
+
         if self.atoms is None:
             self.atoms = atoms
 
@@ -587,10 +585,10 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # Non-affine forces
         forces_icab = calculator.get_non_affine_forces_from_second_derivative(atoms)
 
-        if eigenvalues is None or eigenvectors is None:  
+        if eigenvalues is None or eigenvectors is None:
             H_nn = calculator.get_hessian(atoms, "sparse").todense()
             eigenvalues, eigenvectors = linalg.eigh(H_nn, b=None, subset_by_index=[3, 3*nat-1])
-         
+
         #B_ncc = np.sum(eigvecs_nn.reshape(3*nat-3, 3*nat, 1, 1) * forces_icab.reshape(1, 3*nat, 3, 3), axis=1)
         #print(B_ncc.shape)
         #B_ncc /= np.sqrt(eigvalues_n.reshape(3*nat-3, 1, 1))
