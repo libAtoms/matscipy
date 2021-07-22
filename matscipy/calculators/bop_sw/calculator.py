@@ -35,8 +35,6 @@ Bond Order Potential.
 #   - b: Cartesian index for the second dimension of the deformation gradient, array dimension of length 3
 #
 
-import itertools
-
 import numpy as np
 
 import ase
@@ -92,8 +90,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         n_pc = (r_pc.T / r_p).T
 
         # construct triplet list
-        first_i = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t = triplet_list(first_i)
+        first_n = first_neighbours(nb_atoms, i_p)
+        ij_t, ik_t = triplet_list(first_n)
 
         # potential-dependent functions
         G_t = self.G(r_pc[ij_t], r_pc[ik_t])
@@ -176,16 +174,15 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         n_pc = (r_pc.T / r_p).T
 
         # construct triplet list
-        first_i = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_i, r_p, self.cutoff, i_p, j_p)
-        first_ij = first_neighbours(len(i_p), ij_t)
+        first_n = first_neighbours(nb_atoms, i_p)
+        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
+        first_p = first_neighbours(len(i_p), ij_t)
 
         nb_triplets = len(ij_t)
 
         # potential-dependent functions
         G_t = self.G(r_pc[ij_t], r_pc[ik_t])
-        d1G_t = self.d1G(r_pc[ij_t], r_pc[ik_t])
-        d2G_t = self.d2G(r_pc[ij_t], r_pc[ik_t])
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
         d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
         d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
         d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
@@ -212,8 +209,6 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # Hessian term #2
         H_temp3_t = (d12F_p[ij_t] * (d2G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T
-
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
         H_temp4_t = (d12F_p[ij_t] * (d1G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T
 
         # Hessian term #5
@@ -226,9 +221,9 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         ## Terms involving D_1 * D_1
 
         # TODO: bincount multiaxis
-        d1xG_p = np.bincount(ij_t, weights=d1G_t[:, 0], minlength=nb_pairs)
-        d1yG_p = np.bincount(ij_t, weights=d1G_t[:, 1], minlength=nb_pairs)
-        d1zG_p = np.bincount(ij_t, weights=d1G_t[:, 2], minlength=nb_pairs)
+        d1xG_p = np.bincount(ij_t, weights=d1G_tc[:, 0], minlength=nb_pairs)
+        d1yG_p = np.bincount(ij_t, weights=d1G_tc[:, 1], minlength=nb_pairs)
+        d1zG_p = np.bincount(ij_t, weights=d1G_tc[:, 2], minlength=nb_pairs)
 
         d1G_p = np.transpose([d1xG_p, d1yG_p, d1zG_p])
         H_pcc -= (d22F_p * (d1G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
@@ -236,16 +231,16 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         ## Terms involving D_2 * D_2
 
         # TODO: bincount multiaxis
-        d2xG_p = np.bincount(ij_t, weights=d2G_t[:, 0], minlength=nb_pairs)
-        d2yG_p = np.bincount(ij_t, weights=d2G_t[:, 1], minlength=nb_pairs)
-        d2zG_p = np.bincount(ij_t, weights=d2G_t[:, 2], minlength=nb_pairs)
+        d2xG_p = np.bincount(ij_t, weights=d2G_tc[:, 0], minlength=nb_pairs)
+        d2yG_p = np.bincount(ij_t, weights=d2G_tc[:, 1], minlength=nb_pairs)
+        d2zG_p = np.bincount(ij_t, weights=d2G_tc[:, 2], minlength=nb_pairs)
 
         d2G_p = np.transpose([d2xG_p, d2yG_p, d2zG_p])
 
-        Q1 = ((d22F_p * d2G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
+        Q1 = ((d22F_p * d2G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_tc.reshape(-1, 1, 3))
 
         ## Terms involving D_1 * D_2
-        Q2 = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_t.reshape(-1, 1, 3))
+        Q2 = ((d22F_p * d1G_p.T).T[ij_t].reshape(-1, 3, 1) * d2G_tc.reshape(-1, 1, 3))
 
         H_pcc -= (d22F_p * (d2G_p.reshape(-1, 3, 1) * d1G_p.reshape(-1, 1, 3)).T).T
 
@@ -268,7 +263,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
             il = ij_t[il_im]
             im = ik_t[il_im]
             lm = jk_t[il_im]
-            for t in range(first_ij[il], first_ij[il + 1]):
+            for t in range(first_p[il], first_p[il + 1]):
                 ij = ik_t[t]
                 if ij != il and ij != im:
                     r_p_ij = np.array([r_pc[ij]])
@@ -291,12 +286,12 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                 mass_nat = atoms.get_masses()
                 geom_mean_mass_n = np.sqrt(mass_nat[i_p] * mass_nat[j_p])
                 return \
-                    bsr_matrix(((H_pcc.T / (2 * geom_mean_mass_n)).T, j_p, first_i), shape=(3 * nb_atoms, 3 * nb_atoms)) \
+                    bsr_matrix(((H_pcc.T / (2 * geom_mean_mass_n)).T, j_p, first_n), shape=(3 * nb_atoms, 3 * nb_atoms)) \
                     + bsr_matrix(((H_acc.T / (2 * mass_nat)).T, np.arange(nb_atoms), np.arange(nb_atoms + 1)),
                                  shape=(3 * nb_atoms, 3 * nb_atoms))
             else:
                 return \
-                    bsr_matrix((H_pcc / 2, j_p, first_i), shape=(3 * nb_atoms, 3 * nb_atoms)) \
+                    bsr_matrix((H_pcc / 2, j_p, first_n), shape=(3 * nb_atoms, 3 * nb_atoms)) \
                     + bsr_matrix((H_acc / 2, np.arange(nb_atoms), np.arange(nb_atoms + 1)),
                                  shape=(3 * nb_atoms, 3 * nb_atoms))
 
@@ -349,9 +344,9 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         drdb_p = (n_pc * drdb_pc).sum(axis=1)
 
         # construct triplet list
-        first_i = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_i, r_p, self.cutoff, i_p, j_p)
-        first_ij = first_neighbours(len(i_p), ij_t)
+        first_n = first_neighbours(nb_atoms, i_p)
+        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
+        first_p = first_neighbours(len(i_p), ij_t)
 
         nb_triplets = len(ij_t)
 
@@ -621,8 +616,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         dn_pcc = ((np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
 
         # construct triplet list
-        first_i = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_i, r_p, self.cutoff, i_p, j_p)
+        first_n = first_neighbours(nb_atoms, i_p)
+        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
 
         # potential-dependent functions
         G_t = self.G(r_pc[ij_t], r_pc[ik_t])
