@@ -496,8 +496,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                     for beta in range(3):       
                         drda_pc = np.zeros((nb_pairs, 3))
                         drda_pc[:, alpha] = r_pc[:, beta]
-                        naF_ncab[m, cm, alpha, beta] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
-                                                                                  i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc) 
+                        naF_ncab[m, cm, alpha, beta] = \
+                            elf.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
         return naF_ncab / 2
 
     def get_born_elastic_constants(self, atoms):
