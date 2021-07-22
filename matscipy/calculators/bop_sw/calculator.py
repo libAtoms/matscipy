@@ -48,6 +48,14 @@ from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, neig
 from ...numpy_tricks import mabincount
 
 
+def _o(x, y, z=None):
+    """Outer product"""
+    if z is None:
+        return x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3)
+    else:
+        return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
+
+
 class AbellTersoffBrennerStillingerWeber(Calculator):
     implemented_properties = ['free_energy', 'energy', 'stress', 'forces']
     default_parameters = {}
@@ -202,14 +210,15 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         d22F_p[mask_p] = 0.0
 
         # Hessian term #4
-        H_pcc = -(d1F_p * (np.eye(3) - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T / r_p).T
+        nn_pcc = _o(n_pc, n_pc)
+        H_pcc = -(d1F_p * (np.eye(3) - nn_pcc).T / r_p).T
 
         # Hessian term #1
-        H_pcc -= (d11F_p * (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3)).T).T
+        H_pcc -= (d11F_p * nn_pcc.T).T
 
         # Hessian term #2
-        H_temp3_t = (d12F_p[ij_t] * (d2G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T
-        H_temp4_t = (d12F_p[ij_t] * (d1G_tc.reshape(-1, 3, 1) * n_pc[ij_t].reshape(-1, 1, 3)).T).T
+        H_temp3_t = (d12F_p[ij_t] * _o(d2G_tc, n_pc[ij_t]).T).T
+        H_temp4_t = (d12F_p[ij_t] * _o(d1G_tc, n_pc[ij_t]).T).T
 
         # Hessian term #5
         H_temp2_t = (d2F_p[ij_t] * d22G_tcc.T).T
