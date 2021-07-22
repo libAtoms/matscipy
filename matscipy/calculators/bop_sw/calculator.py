@@ -461,8 +461,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                         drdb_pc = np.zeros((nb_pairs, 3))
                         drdb_pc[i_p == l, cl] = 1
                         drdb_pc[j_p == l, cl] = -1
-                        H_ab[3 * m + cm, 3 * l + cl] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
-                                                                                  i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
+                        H_ab[3 * m + cm, 3 * l + cl] = \
+                            self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
 
         return H_ab / 2
 
