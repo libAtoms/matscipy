@@ -427,7 +427,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
 
         #return T1 + T2 + T3 + T4 + T5
-        return T1 + T2 + T4 
+        return T1 + T2 + T4 + T5 
 
     def get_hessian_from_second_derivative(self, atoms):
         """
@@ -703,19 +703,19 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         d2F_p = self.d2F(r_p, xi_p)
         d2F_p[mask_p] = 0.0
 
-
         naF51_tcab = (d2F_p[ij_t] * ((self.d11G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3) + \
                                      (self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3) + \
-                                     ((self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1)) * r_pc[ij_t].reshape(-1,1,1,3) + \
-                                     (self.d22G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T
+                                     (self.d22G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3) + \
+                                    ((self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1)).swapaxes(1,2) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
 
-        naF52_tcab = -(d2F_p[ij_t] * ((self.d11G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3) +\
+        naF52_tcab = -(d2F_p[ij_t] * ((self.d11G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3) + \
                                      (self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1)* r_pc[ik_t].reshape(-1,1,1,3)).T).T 
         
-        naF53_tcab = -(d2F_p[ij_t] * (((self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1)) * r_pc[ik_t].reshape(-1,1,1,3) +\
-                                     (self.d22G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T 
+        naF53_tcab = -(d2F_p[ij_t] * (((self.d12G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1)).swapaxes(1,2) * r_pc[ij_t].reshape(-1,1,1,3) + \
+                                      (self.d22G(r_pc[ij_t], r_pc[ik_t])).reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T  
 
-        # Term 1 + 2 + 4
+
+        # Term 1 + 2 + 4 + 5
         naForces_natcab = \
             mabincount(i_p, naF1_ncab, minlength=nb_atoms) - \
             mabincount(j_p, naF1_ncab, minlength=nb_atoms) + \
@@ -723,9 +723,10 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
             mabincount(j_p[ij_t], naF22_tcab, minlength=nb_atoms) + \
             mabincount(j_p[ik_t], naF23_tcab, minlength=nb_atoms) + \
             mabincount(i_p, naF4_ncab, minlength=nb_atoms) - \
-            mabincount(j_p, naF4_ncab, minlength=nb_atoms) 
-            #mabincount(i_p[ij_t], naF51_tcab, minlength=nb_atoms) + \
-            #mabincount(j_p[ij_t], naF52_tcab, minlength=nb_atoms) + \
-            #mabincount(j_p[ik_t], naF53_tcab, minlength=nb_atoms) 
+            mabincount(j_p, naF4_ncab, minlength=nb_atoms) + \
+            mabincount(i_p[ij_t], naF51_tcab, minlength=nb_atoms) + \
+            mabincount(j_p[ij_t], naF52_tcab, minlength=nb_atoms) + \
+            mabincount(j_p[ik_t], naF53_tcab, minlength=nb_atoms) 
+
 
         return naForces_natcab / 2
