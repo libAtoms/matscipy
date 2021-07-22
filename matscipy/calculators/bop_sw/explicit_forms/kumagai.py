@@ -1,11 +1,61 @@
+# ======================================================================
+# matscipy - Python materials science tools
+# https://github.com/libAtoms/matscipy
+#
+# Copyright (2014-2018) James Kermode, King's College London
+#                       Lars Pastewka, University of Freiburg
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ======================================================================
+
 import numpy as np
 from collections import namedtuple 
 
-kumagai_parameters = namedtuple("kumagai_parameters", ["A", "B", "lambda_1", "lambda_2", "eta", "delta", "alpha", "c_1", "c_2", "c_3", "c_4", "c_5", "h", "R_1", "R_2"])
+kumagai_parameters = namedtuple("kumagai_parameters",
+                                ["A",
+                                 "B",
+                                 "lambda_1",
+                                 "lambda_2",
+                                 "eta",
+                                 "delta",
+                                 "alpha",
+                                 "c_1",
+                                 "c_2",
+                                 "c_3",
+                                 "c_4",
+                                 "c_5",
+                                 "h",
+                                 "R_1",
+                                 "R_2"])
 
-# T. Kumagai et. al., Computational materials science 39.2 (2007): 457-464.
-kumagai = kumagai_parameters(A=3281.5905, B=121.00047, lambda_1=3.2300135, lambda_2=1.3457970, eta=1.0000000, delta=0.53298909, alpha=2.3890327,
-                        c_1=0.20173476, c_2=730418.72, c_3=1000000.0, c_4=1.0000000, c_5=26.000000, h=-0.36500000, R_1=2.70, R_2=3.30)
+# T. Kumagai et. al., Comput. Mater. Sci. 39.2 (2007): 457-464.
+kumagai = kumagai_parameters(
+    A=3281.5905,
+    B=121.00047,
+    lambda_1=3.2300135,
+    lambda_2=1.3457970,
+    eta=1.0000000,
+    delta=0.53298909,
+    alpha=2.3890327,
+    c_1=0.20173476,
+    c_2=730418.72,
+    c_3=1000000.0,
+    c_4=1.0000000,
+    c_5=26.000000,
+    h=-0.36500000,
+    R_1=2.70,
+    R_2=3.30)
 
 def ab(x):
     """
