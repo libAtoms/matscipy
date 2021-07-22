@@ -62,7 +62,7 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         naF_ana2 = calculator.get_non_affine_forces(atoms)
         print("naF_ana1[0]: \n", naF_ana1[1])
         print("naF_ana2[0]: \n", naF_ana2[1])
-        #self.assertArrayAlmostEqual(naF_ana1, naF_ana2, tol=1e-2)
+        self.assertArrayAlmostEqual(naF_ana1, naF_ana2, tol=1e-2)
 
     """
     def test_born_elastic_constants(self):
