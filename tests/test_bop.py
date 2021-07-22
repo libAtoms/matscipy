@@ -51,118 +51,6 @@ from ase.units import GPa
 
 class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
-    def test_non_affine_forces_glass(self):
-        atoms = ase.io.read('aSi_N8.xyz')
-        atoms.center(vacuum=10.0)
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        calc = MatscipyCalculator()
-        atoms.set_calculator(calculator)
-        naF_ana1 = calculator.get_non_affine_forces_from_second_derivative(atoms)
-        naF_ana2 = calculator.get_non_affine_forces(atoms)
-        print("naF_ana1[0]: \n", naF_ana1[1])
-        print("naF_ana2[0]: \n", naF_ana2[1])
-        self.assertArrayAlmostEqual(naF_ana1, naF_ana2, tol=1e-2)
-
-    """
-    def test_born_elastic_constants(self):
-        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
-        io.write("cSi.xyz", atoms)
-        kumagai_potential = kum.kumagai
-        kumagai_potential = kum.kumagai_parameters(A=3281.5905, B=121.00047, lambda_1=3.2300135, lambda_2=1.3457970, eta=1.0000000, delta=0.53298909, alpha=0,
-                    c_1=0.20173476, c_2=730418.72, c_3=1000000.0, c_4=1.0000000, c_5=26.000000, h=-0.36500000, R_1=2.70, R_2=3.30)
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        atoms.set_calculator(calculator)
-        print(atoms.get_potential_energy() / len(atoms))
-        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
-        C_num2 = measure_triclinic_elastic_constants(atoms, delta=1e-4)
-        #C_ana = calculator.get_birch_coefficients(atoms)
-        C_ana = calculator.get_born_elastic_constants_from_second_derivative(atoms)
-        #C_ana2 = calculator.get_born_elastic_constants(atoms)
-        B_ana = calculator.get_birch_coefficients(atoms)
-        #naC_ana = calculator.get_non_affine_contribution_to_elastic_constants(atoms)
-        print("Stress: \n", atoms.get_stress())
-        print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
-        print("C (measure_triclinic_elastic_constants): \n", full_3x3x3x3_to_Voigt_6x6(C_num2)[0, 0], full_3x3x3x3_to_Voigt_6x6(C_num2)[0, 1], full_3x3x3x3_to_Voigt_6x6(C_num2)[3, 3])
-        print("C_ana: \n", full_3x3x3x3_to_Voigt_6x6(C_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(C_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(C_ana)[3, 3])
-        #print("C_ana2: \n", full_3x3x3x3_to_Voigt_6x6(C_ana2))
-        print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
-        #print("naC_ana: \n", full_3x3x3x3_to_Voigt_6x6(naC_ana))
-        self.assertArrayAlmostEqual(-C_num, full_3x3x3x3_to_Voigt_6x6(C_ana), tol=1e-6)
-
-    def test_non_affine_elastic_constants_glass(self):
-        atoms = ase.io.read('aSi_N8.xyz')
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        atoms.set_calculator(calculator)
-        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=FIRE, fmax=1e-6, verbose=False)
-        B_ana = calculator.get_birch_coefficients(atoms)
-        C_na = calculator.get_non_affine_contribution_to_elastic_constants(atoms)
-        print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
-        print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
-        self.assertArrayAlmostEqual(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana+C_na), tol=0.1)
-
-    def test_non_affine_forces_glass(self):
-        atoms = ase.io.read('aSi_N8.xyz')
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        calc = MatscipyCalculator()
-        atoms.set_calculator(calculator)
-        naF_ana = calculator.get_non_affine_forces_from_second_derivative(atoms)
-        naF_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
-        self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
-
-    def test_non_affine_forces_crystal(self):
-        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        calc = MatscipyCalculator()
-        atoms.set_calculator(calculator)
-        naF_ana = calculator.get_non_affine_forces_from_second_derivative(atoms)
-        naF_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
-        self.assertArrayAlmostEqual(naF_ana, naF_num, tol=1e-2)
-
-    def test_birch_elastic_constants_glass(self):
-        atoms = ase.io.read('aSi_N64.xyz')
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        atoms.set_calculator(calculator)
-        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
-        B_ana = calculator.get_birch_coefficients(atoms)
-        #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
-        #print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
-        self.assertArrayAlmostEqual(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), tol=0.1)
-
-    def test_birch_elastic_constants_crystal(self):
-        for a0 in [5.2, 5.3, 5.4, 5.5]:
-            atoms = Diamond('Si', size=[3,3,3], latticeconstant=a0)
-            kumagai_potential = kum.kumagai
-            calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-            atoms.set_calculator(calculator)
-            C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
-            B_ana = calculator.get_birch_coefficients(atoms)
-            #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
-            #print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
-            self.assertArrayAlmostEqual(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), tol=0.1)
-
-    def test_computation_of_hessian_crystal(self):
-        atoms = Diamond('Si', size=[1,1,1], latticeconstant=5.431)
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        atoms.set_calculator(calculator)
-        H_ana = calculator.get_hessian(atoms).todense()
-        H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
-        self.assertArrayAlmostEqual(H_ana, H_ana2, tol=1e-4)
-
-    def test_computation_of_hessian_glass(self):
-        atoms = ase.io.read('aSi_N8.xyz')
-        kumagai_potential = kum.kumagai
-        calculator = AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential))
-        atoms.set_calculator(calculator)
-        H_ana = calculator.get_hessian(atoms).todense()
-        H_ana2 = calculator.get_hessian_from_second_derivative(atoms)
-        self.assertArrayAlmostEqual(H_ana, H_ana2, tol=1e-4)
-
     def test_stress(self):
         for a0 in [5.2, 5.3, 5.4, 5.5]:
             atoms = Diamond('Si', size=[1,1,1], latticeconstant=a0)
@@ -197,13 +85,27 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
             small.center(vacuum=10.0)
             small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
-            small2.center(vacuum=10.0)
+            small2.center(vacuum=10.0) 
 
             self.compute_forces_and_hessian(small, KumagaiTersoff(kumagai_potential))
             self.compute_forces_and_hessian(small2, KumagaiTersoff(kumagai_potential))
 
-        aSi = ase.io.read('aSi.cfg')
+
+        # Test forces, hessian, non-affine forces and elastic constants for a Si crystal 
+        for a0 in [5.2, 5.3, 5.4, 5.5]:
+            Si_crystal =  Diamond('Si', size=[1,1,1], latticeconstant=a0)
+            self.compute_forces_and_hessian(Si_crystal, KumagaiTersoff(kumagai_potential))
+            self.compute_elastic_constants(Si_crystal, KumagaiTersoff(kumagai_potential))
+
+        # Tests for amorphous Si 
+        aSi = ase.io.read('aSi_N8.xyz')  
+        aSi.set_calculator(AbellTersoffBrennerStillingerWeber(**KumagaiTersoff(kumagai_potential)))  
+        # Non-zero forces and Hessian 
+        self.compute_forces_and_hessian(aSi, KumagaiTersoff(kumagai_potential)) 
+        # Test forces, hessian, non-affine forces and elastic constants for amorphous Si  
+        FIRE(aSi).run(fmax=1e-5, steps=1e3) 
         self.compute_forces_and_hessian(aSi, KumagaiTersoff(kumagai_potential))
+        self.compute_elastic_constants(aSi, KumagaiTersoff(kumagai_potential))
 
     def test_tersoffIII(self):
 
@@ -219,11 +121,23 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
             self.compute_forces_and_hessian(small, TersoffIII(T3_Si_potential))
             self.compute_forces_and_hessian(small2, TersoffIII(T3_Si_potential))
 
-        aSi = ase.io.read('aSi.cfg')
+        # Test forces, hessian, non-affine forces and elastic constants for a Si crystal 
+        for a0 in [5.2, 5.3, 5.4, 5.5]:
+            Si_crystal =  Diamond('Si', size=[1,1,1], latticeconstant=a0)
+            self.compute_forces_and_hessian(Si_crystal, TersoffIII(T3_Si_potential))
+            self.compute_elastic_constants(Si_crystal, TersoffIII(T3_Si_potential))
+
+        # Tests for amorphous Si 
+        aSi = ase.io.read('aSi_N8.xyz')  
+        aSi.set_calculator(AbellTersoffBrennerStillingerWeber(**TersoffIII(T3_Si_potential)))  
+        # Non-zero forces and Hessian 
         self.compute_forces_and_hessian(aSi, TersoffIII(T3_Si_potential))
+        # Test forces, hessian, non-affine forces and elastic constants for amorphous Si    
+        FIRE(aSi).run(fmax=1e-5, steps=1e3)     
+        self.compute_forces_and_hessian(aSi, TersoffIII(T3_Si_potential))
+        self.compute_elastic_constants(aSi, TersoffIII(T3_Si_potential))
 
     def test_stillinger_weber(self):
-
         #Test forces and hessian matrix for Stillinger-Weber
 
         SW_potential = sw.original_SW
@@ -232,12 +146,25 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
             small.center(vacuum=10.0)
             small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
             small2.center(vacuum=10.0)
-        
+
             self.compute_forces_and_hessian(small, StillingerWeber(SW_potential))
             self.compute_forces_and_hessian(small2, StillingerWeber(SW_potential))
 
-        aSi = ase.io.read('aSi.cfg')
+        # Test forces, hessian, non-affine forces and elastic constants for a Si crystal 
+        for a0 in [5.2, 5.3, 5.4, 5.5]:         
+            Si_crystal =  Diamond('Si', size=[1,1,1], latticeconstant=a0)
+            self.compute_forces_and_hessian(Si_crystal, StillingerWeber(SW_potential))
+            self.compute_elastic_constants(Si_crystal, StillingerWeber(SW_potential))
+
+        # Tests for amorphous Si 
+        aSi = ase.io.read('aSi_N8.xyz')  
+        aSi.set_calculator(AbellTersoffBrennerStillingerWeber(**StillingerWeber(SW_potential)))  
+        # Non-zero forces and Hessian 
         self.compute_forces_and_hessian(aSi, StillingerWeber(SW_potential))
+        # Test forces, hessian, non-affine forces and elastic constants for amorphous Si 
+        FIRE(aSi).run(fmax=1e-5, steps=1e3)     
+        self.compute_forces_and_hessian(aSi, StillingerWeber(SW_potential))
+        self.compute_elastic_constants(aSi, StillingerWeber(SW_potential))
 
     def test_generic_potential_form(self):
         self.test_cutoff = 2.4
@@ -321,7 +248,7 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         'd12G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
         'd11G': lambda x, y: 0*x.reshape(-1,3,1)*y.reshape(-1,1,3),
         'cutoff': self.test_cutoff}
-    """
+
 
     def compute_forces_and_hessian(self, a, par):
 
@@ -339,12 +266,14 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         calculator = AbellTersoffBrennerStillingerWeber(**par)
         a.set_calculator(calculator)
 
+        # Forces 
         ana_forces = a.get_forces()
         num_forces = calculator.calculate_numerical_forces(a, d=1e-5)
         #print('num\n', num_forces)
         #print('ana\n', ana_forces)
-        assert np.allclose(ana_forces, num_forces, rtol=1e-3)
+        assert np.allclose(ana_forces, num_forces, atol=1e-3)
         
+        # Hessian
         ana_hessian = calculator.get_hessian(a).todense()
         num_hessian = fd_hessian(a, dx=1e-5, indices=None).todense()
         #print('ana\n', ana_hessian)
@@ -352,6 +281,52 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         #print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
         assert np.allclose(ana_hessian, ana_hessian.T, atol=1e-6)
         assert np.allclose(ana_hessian, num_hessian, atol=1e-4)
+
+        ana2_hessian = calculator.get_hessian_from_second_derivative(a)
+        assert np.allclose(ana2_hessian, ana2_hessian.T, atol=1e-6)
+        assert np.allclose(ana_hessian, ana2_hessian, atol=1e-5)
+
+
+    def compute_elastic_constants(self, a, par):
+
+        #function to test the bop AbellTersoffBrenner class on
+            #a potential given by the form defined in par
+
+        #Parameters
+        #----------
+        #a : ase atoms object
+        #    passes an atomic configuration as an ase atoms object
+        #par : bop explicit form
+         #   defines the explicit form of the bond order potential
+        
+
+        calculator = AbellTersoffBrennerStillingerWeber(**par)
+        a.set_calculator(calculator)
+
+        # Non-affine forces 
+        num_naF =  MatscipyCalculator().get_numerical_non_affine_forces(a, d=1e-5)
+        ana_naF1 = calculator.get_non_affine_forces_from_second_derivative(a)
+        ana_naF2 = calculator.get_non_affine_forces(a)
+        #print("num_naF[0]: \n", num_naF[0])
+        #print("ana_naF1[0]: \n", ana_naF1[0])
+        #print("ana_naF2[0]: \n", ana_naF2[0])
+        assert np.allclose(ana_naF1, num_naF, atol=0.01)  
+        assert np.allclose(ana_naF1, ana_naF2, atol=1e-4) 
+
+        # Birch elastic constants
+        C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None, verbose=False)
+        B_ana = calculator.get_birch_coefficients(a)
+        #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
+        #print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
+        assert np.allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), atol=0.1) 
+
+        # Non-affine elastic constants 
+        C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
+        B_ana = calculator.get_birch_coefficients(a)
+        C_na = calculator.get_non_affine_contribution_to_elastic_constants(a)
+        #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
+        #print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
+        assert np.allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana+C_na), atol=0.1) 
 
 ###
 
