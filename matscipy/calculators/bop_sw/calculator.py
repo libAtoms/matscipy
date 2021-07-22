@@ -27,7 +27,7 @@ Bond Order Potential.
 # Coding convention
 # * All numpy arrays are suffixed with the array dimensions
 # * The suffix stands for a certain type of dimension:
-#   - i: Atomic index, i.e. array dimension of length nb_atoms
+#   - n: Atomic index, i.e. array dimension of length nb_atoms
 #   - p: Pair index, i.e. array dimension of length nb_pairs
 #   - t: Triplet index, i.e. array dimension of length nb_triplets
 #   - c: Cartesian index, array dimension of length 3
@@ -98,7 +98,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # potential-dependent functions
         G_t = self.G(r_pc[ij_t], r_pc[ik_t])
-        d1G_t = self.d1G(r_pc[ij_t], r_pc[ik_t])
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
@@ -112,38 +112,25 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         epot = 0.5 * np.sum(F_p)
 
         # calculate forces (per pair)
-        fx_p = \
-            d1F_p * n_pc[:, 0] + \
-            d2F_p * np.bincount(ij_t, d1G_t[:, 0], minlength=nb_pairs) + \
-            np.bincount(ik_t, d2F_d2G_t[:, 0], minlength=nb_pairs)
-        fy_p = \
-            d1F_p * n_pc[:, 1] + \
-            d2F_p * np.bincount(ij_t, d1G_t[:, 1], minlength=nb_pairs) + \
-            np.bincount(ik_t, d2F_d2G_t[:, 1], minlength=nb_pairs)
-        fz_p = \
-            d1F_p * n_pc[:, 2] + \
-            d2F_p * np.bincount(ij_t, d1G_t[:, 2], minlength=nb_pairs) + \
-            np.bincount(ik_t, d2F_d2G_t[:, 2], minlength=nb_pairs)
+        f_pc = (d1F_p * n_pc.T
+                + d2F_p * mabincount(ij_t, d1G_tc, nb_pairs).T
+                + mabincount(ik_t, d2F_d2G_t, nb_pairs).T).T
 
         # collect atomic forces
-        fx_n = 0.5 * (np.bincount(i_p, weights=fx_p) -
-                      np.bincount(j_p, weights=fx_p))
-        fy_n = 0.5 * (np.bincount(i_p, weights=fy_p) -
-                      np.bincount(j_p, weights=fy_p))
-        fz_n = 0.5 * (np.bincount(i_p, weights=fz_p) -
-                      np.bincount(j_p, weights=fz_p))
-
-        f_nc = np.transpose([fx_n, fy_n, fz_n])
+        f_nc = 0.5 * (mabincount(i_p, f_pc, nb_atoms) - mabincount(j_p, f_pc, nb_atoms))
 
         # Virial 
-        virial_v = 0.5 * np.array([r_pc[:, 0] * fx_p,  # xx
-                                   r_pc[:, 1] * fy_p,  # yy
-                                   r_pc[:, 2] * fz_p,  # zz
-                                   r_pc[:, 1] * fz_p,  # yz
-                                   r_pc[:, 0] * fz_p,  # xz
-                                   r_pc[:, 0] * fy_p]).sum(axis=1)  # xy
+        virial_v = 0.5 * np.array([r_pc[:, 0] * f_pc.T[0],  # xx
+                                   r_pc[:, 1] * f_pc.T[1],  # yy
+                                   r_pc[:, 2] * f_pc.T[2],  # zz
+                                   r_pc[:, 1] * f_pc.T[2],  # yz
+                                   r_pc[:, 0] * f_pc.T[2],  # xz
+                                   r_pc[:, 0] * f_pc.T[1]]).sum(axis=1)  # xy
 
-        self.results = {'free_energy': epot, 'energy': epot, 'stress': virial_v / self.atoms.get_volume(), 'forces': f_nc}
+        self.results = {'free_energy': epot,
+                        'energy': epot,
+                        'stress': virial_v / self.atoms.get_volume(),
+                        'forces': f_nc}
 
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
