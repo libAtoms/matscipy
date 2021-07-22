@@ -531,8 +531,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                         drdb_pc = np.zeros((nb_pairs, 3))
                         drdb_pc[:, nu] = r_pc[:, mu]/2
                         drdb_pc[:, mu] += r_pc[:, nu]/2
-                        C_abab[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
-                                                                                 i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
+                        C_abab[alpha, beta, nu, mu] = \
+                            self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
         
         C_abab /= (2 * atoms.get_volume())
 
