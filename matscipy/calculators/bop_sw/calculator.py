@@ -23,7 +23,18 @@
 Bond Order Potential.
 """
 
-import sys
+#
+# Coding convention
+# * All numpy arrays are suffixed with the array dimensions
+# * The suffix stands for a certain type of dimension:
+#   - i: Atomic index, i.e. array dimension of length nb_atoms
+#   - p: Pair index, i.e. array dimension of length nb_pairs
+#   - t: Triplet index, i.e. array dimension of length nb_triplets
+#   - c: Cartesian index, array dimension of length 3
+#   - a: Cartesian index for the first dimension of the deformation gradient, array dimension of length 3
+#   - b: Cartesian index for the second dimension of the deformation gradient, array dimension of length 3
+#
+
 import itertools
 
 import numpy as np
@@ -32,22 +43,11 @@ import ase
 
 from scipy.sparse import bsr_matrix
 
-from ase.atoms import Atoms
-
 from ase.calculators.calculator import Calculator
 
-from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, \
-    neighbour_list, triplet_list
-
-
 from ...elasticity import Voigt_6_to_full_3x3_stress
-
-
-def mabincount(x, weights, minlength=None):
-    result = np.zeros((minlength,) + weights.shape[1:], dtype=weights.dtype)
-    for c in itertools.product(*(range(s) for s in weights.shape[1:])):
-        result.T[c] = np.bincount(x, weights=weights.T[c], minlength=minlength)
-    return result
+from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, neighbour_list, triplet_list
+from ...numpy_tricks import mabincount
 
 
 class AbellTersoffBrennerStillingerWeber(Calculator):
@@ -498,7 +498,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                                                                                   i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc) 
         return naF_ncab / 2
 
-    def get_born_elastic_constants_from_second_derivative(self, atoms):
+    def get_born_elastic_constants(self, atoms):
         """
         Compute the Born elastic constants. 
 
@@ -517,7 +517,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
-        C_cccc = np.zeros((3, 3, 3, 3))
+        C_abab = np.zeros((3, 3, 3, 3))
         
         for alpha in range(3):
             for beta in range(3):
@@ -529,15 +529,12 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
                         drdb_pc = np.zeros((nb_pairs, 3))
                         drdb_pc[:, nu] = r_pc[:, mu]/2
                         drdb_pc[:, mu] += r_pc[:, nu]/2
-                        C_cccc[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
+                        C_abab[alpha, beta, nu, mu] = self.get_second_derivative(atoms, drda_pc, drdb_pc,
                                                                                  i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
         
-        C_cccc /= (2 * atoms.get_volume())
+        C_abab /= (2 * atoms.get_volume())
 
-        # Symmetrize elastic constant tensor
-        #C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3)) / 4
-
-        return C_cccc
+        return C_abab
 
     def get_stress_contribution_to_elastic_constants(self, atoms):
         """
@@ -580,7 +577,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
 
         # Born (affine) elastic constants
         calculator = atoms.get_calculator()
-        bornC_cccc = calculator.get_born_elastic_constants_from_second_derivative(atoms)
+        bornC_cccc = calculator.get_born_elastic_constants(atoms)
 
         # Stress contribution to elastic constants
         stressC_cccc = calculator.get_stress_contribution_to_elastic_constants(atoms)
