@@ -26,6 +26,8 @@ from ase.calculators.calculator import Calculator
 
 from ..elasticity import Voigt_6_to_full_3x3_stress
 
+from ..numpy_tricks import mabincount
+
 
 class MatscipyCalculator(Calculator):
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
@@ -66,58 +68,69 @@ class MatscipyCalculator(Calculator):
         raise NotImplementedError
 
     def get_born_elastic_constants(self, atoms):
-        H_ncc, i_n, j_n, dr_nc, abs_dr_n = self.get_hessian(atoms, 'neighbour-list')
+        """
+        Compute the Born elastic constants. 
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+        H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.get_hessian(atoms, 'neighbour-list')
 
         # Second derivative
-        C_ncccc = H_ncc.reshape(-1, 3, 1, 3, 1) * dr_nc.reshape(-1, 1, 3, 1, 1) * dr_nc.reshape(-1, 1, 1, 1, 3)
-        C_cccc = -C_ncccc.sum(axis=0) / (2*atoms.get_volume())
-
-        # Add stress term that comes from working with the Cauchy stress
-        #stress_cc = Voigt_6_to_full_3x3_stress(self.get_stress())
-        #delta_cc = np.identity(3)
-        #C_cccc += delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3) - \
-        #          (delta_cc.reshape(3, 3, 1, 1) * stress_cc.reshape(1, 1, 3, 3) + \
-        #           delta_cc.reshape(1, 1, 3, 3) * stress_cc.reshape(3, 3, 1, 1)) / 2
+        C_pabab = H_pcc.reshape(-1, 3, 1, 3, 1) * dr_pc.reshape(-1, 1, 3, 1, 1) * dr_pc.reshape(-1, 1, 1, 1, 3)
+        C_abab = -C_pabab.sum(axis=0) / (2*atoms.get_volume())
 
         # Symmetrize elastic constant tensor
-        C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
-        # Add stress term
-        #stress_cc = Voigt_6_to_full_3x3_stress(self.get_stress())
-        #delta_cc = np.identity(3)
-        #C_cccc += (delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3)
-        #           + delta_cc.reshape(1, 3, 3, 1) * stress_cc.reshape(3, 1, 1, 3)
-        #           + delta_cc.reshape(3, 1, 1, 3) * stress_cc.reshape(1, 3, 3, 1)
-        #           + delta_cc.reshape(1, 3, 1, 3) * stress_cc.reshape(3, 1, 3, 1)
-        #           - 2 * delta_cc.reshape(1, 1, 3, 3) * stress_cc.reshape(3, 3, 1, 1))/2
-
-        return C_cccc
+        return C_abab
 
     def get_stress_contribution_to_elastic_constants(self, atoms):
-        # Add stress term that comes from working with the Cauchy stress
+        """
+        Compute the correction to the elastic constants due to non-zero stress in the configuration.
+        Stress term  results from working with the Cauchy stress.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
         stress_cc = Voigt_6_to_full_3x3_stress(self.get_stress())
         delta_cc = np.identity(3)
-        C_cccc = delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3) - \
+        C_abab = delta_cc.reshape(3, 1, 3, 1) * stress_cc.reshape(1, 3, 1, 3) - \
                   (delta_cc.reshape(3, 3, 1, 1) * stress_cc.reshape(1, 1, 3, 3) + \
                    delta_cc.reshape(1, 1, 3, 3) * stress_cc.reshape(3, 3, 1, 1)) / 2
 
         # Symmetrize elastic constant tensor
-        C_cccc = (C_cccc + C_cccc.swapaxes(0, 1) + C_cccc.swapaxes(2, 3) + C_cccc.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
-        return C_cccc
+        return C_abab
 
     def get_birch_coefficients(self, atoms):
+        """
+        Compute the Birch coefficients (Effective elastic constants at non-zero stress). 
+        
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
         if self.atoms is None:
             self.atoms = atoms
 
         # Born (affine) elastic constants
         calculator = atoms.get_calculator()
-        bornC_cccc = calculator.get_born_elastic_constants(atoms)
+        bornC_abab = calculator.get_born_elastic_constants(atoms)
 
         # Stress contribution to elastic constants
-        stressC_cccc = calculator.get_stress_contribution_to_elastic_constants(atoms)
+        stressC_abab = calculator.get_stress_contribution_to_elastic_constants(atoms)
 
-        return bornC_cccc + stressC_cccc
+        return bornC_abab + stressC_abab
         
 
     def get_nonaffine_forces(self, atoms):
@@ -131,16 +144,14 @@ class MatscipyCalculator(Calculator):
 
         """
         nat = len(atoms)
-        H_ncc, i_n, j_n, dr_nc, abs_dr_n = self.get_hessian(atoms, 'neighbour-list')
-        naForces_nccc = -0.5 * H_ncc.reshape(-1, 3, 3, 1) * dr_nc.reshape(-1, 1, 1, 3)
-        naForces_natccc = np.empty((nat, 3, 3, 3))
-        for i in range(0, 3):
-            for j in range(0, 3):
-                for k in range(0, 3):
-                    naForces_natccc[:, i, j, k] = np.bincount(i_n, weights=naForces_nccc[:, i, j, k], minlength=nat) - \
-                        np.bincount(j_n, weights=naForces_nccc[:, i, j, k], minlength=nat) 
 
-        return naForces_natccc
+        H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.get_hessian(atoms, 'neighbour-list')
+
+        naF_pcab = -0.5 * H_pcc.reshape(-1, 3, 3, 1) * dr_pc.reshape(-1, 1, 1, 3)
+
+        naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
+  
+        return naforces_icab
 
     def get_non_affine_contribution_to_elastic_constants(self, atoms):
         """

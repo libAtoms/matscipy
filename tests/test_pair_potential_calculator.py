@@ -85,7 +85,7 @@ def measure_triclinic_elastic_constants_2nd(a, delta=0.001):
 class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
 
     tol = 1e-4
-
+    """
     def test_forces(self):
         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
             a = io.read('glass_min.xyz')
@@ -134,6 +134,17 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             H_numerical = H_numerical.todense()
             self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
 
+    def test_non_affine_forces_glass(self):
+        for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:
+            atoms = io.read("glass_min.xyz")
+            b = PairPotential(calc)
+            atoms.set_calculator(b)
+            
+            naForces_num = b.get_numerical_non_affine_forces(atoms, d=1e-5)
+            naForces_ana = b.get_nonaffine_forces(atoms)    
+
+            self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.1) 
+
     def test_born_elastic_constants(self):
         for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:   
             atoms = io.read("glass_min.xyz")
@@ -149,23 +160,11 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms = io.read("glass_min.xyz")
             b = PairPotential(calc)
             atoms.set_calculator(b)     
-            C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-6)
+            C, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5)
             C_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
             C_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
             self.assertArrayAlmostEqual(C_af + C_na, C, tol=1) 
     """
-
-    def test_non_affine_forces_glass(self):
-        for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:
-            atoms = io.read("glass_min.xyz")
-            b = PairPotential(calc)
-            atoms.set_calculator(b)
-            
-            naForces_num = b.get_numerical_non_affine_forces(atoms, d=1e-5)
-            naForces_ana = b.get_nonaffine_forces(atoms)    
-
-            self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.1) 
-
     def test_elastic_born_crystal_stress(self):
         class TestPotential():
             def __init__(self, cutoff):
@@ -213,16 +212,17 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             #print(Cnum)
             #print(Cana_voigt)
             np.set_printoptions(precision=3)
-            print("Stress: \n", atoms.get_stress())
-            print("Numeric (fit_elastic_constants): \n", Cnum)
-            print("Numeric (measure_triclinic_elastic_constants): \n", Cnum2_voigt)
+            #print("Stress: \n", atoms.get_stress())
+            #print("Numeric (fit_elastic_constants): \n", Cnum)
+            #print("Numeric (measure_triclinic_elastic_constants): \n", Cnum2_voigt)
             #print("Numeric (measure_triclinic_elastic_constants_2nd): \n", Cnum3_voigt)
-            print("Analytic: \n", Cana_voigt)
-            print("Absolute Difference (fit_elastic_constants): \n", Cnum-Cana_voigt)
-            print("Absolute Difference (measure_triclinic_elastic_constants): \n", Cnum2_voigt-Cana_voigt)
-            print("Difference between numeric results: \n", Cnum-Cnum2_voigt)
+            #print("Analytic: \n", Cana_voigt)
+            #print("Absolute Difference (fit_elastic_constants): \n", Cnum-Cana_voigt)
+            #print("Absolute Difference (measure_triclinic_elastic_constants): \n", Cnum2_voigt-Cana_voigt)
+            #print("Difference between numeric results: \n", Cnum-Cnum2_voigt)
             self.assertArrayAlmostEqual(Cnum, Cana_voigt, tol=10)
- 
+
+    """
 ###
 
 

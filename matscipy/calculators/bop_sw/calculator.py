@@ -57,7 +57,6 @@ def _o(x, y, z=None):
     else:
         return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
 
-
 class AbellTersoffBrennerStillingerWeber(Calculator):
     implemented_properties = ['free_energy', 'energy', 'stress', 'forces']
     default_parameters = {}
@@ -510,6 +509,8 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
     def get_stress_contribution_to_elastic_constants(self, atoms):
         """
         Compute the correction to the elastic constants due to non-zero stress in the configuration.
+        Stress term  results from working with the Cauchy stress.
+
 
         Parameters
         ----------
