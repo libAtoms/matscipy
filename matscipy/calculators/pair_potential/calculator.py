@@ -319,11 +319,11 @@ class PairPotential(MatscipyCalculator):
 
         # Virial
         virial_v = -np.array([dr_nc[:, 0]*df_nc[:, 0],               # xx
-                              dr_nc[:, 1]*df_nc[:, 1],               # yy
-                              dr_nc[:, 2]*df_nc[:, 2],               # zz
-                              dr_nc[:, 1]*df_nc[:, 2],               # yz
-                              dr_nc[:, 0]*df_nc[:, 2],               # xz
-                              dr_nc[:, 0]*df_nc[:, 1]]).sum(axis=1)  # xy
+                             dr_nc[:, 1]*df_nc[:, 1],               # yy
+                             dr_nc[:, 2]*df_nc[:, 2],               # zz
+                             dr_nc[:, 1]*df_nc[:, 2],               # yz
+                             dr_nc[:, 0]*df_nc[:, 2],               # xz
+                             dr_nc[:, 0]*df_nc[:, 1]]).sum(axis=1)  # xy
 
         self.results = {'energy': epot,
                         'free_energy': epot,

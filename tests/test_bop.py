@@ -57,6 +57,8 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
             atoms.set_calculator(calculator)
             s = atoms.get_stress()
             sn = calculator.calculate_numerical_stress(atoms, d=0.0001)
+            #print(s)
+            #print(sn)
             self.assertArrayAlmostEqual(s, sn, tol=1e-6)
 
     def test_hessian_divide_by_masses(self):
