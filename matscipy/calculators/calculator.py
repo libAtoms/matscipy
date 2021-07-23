@@ -168,7 +168,7 @@ class MatscipyCalculator(Calculator):
         calc = atoms.get_calculator()
 
         # Non-affine forces
-        forces_natccc = calc.get_nonaffine_forces(atoms)
+        naforces_icab = calc.get_nonaffine_forces(atoms)
 
         # Diagonalize 
         H_nn = calc.get_hessian(atoms, "sparse").todense()
@@ -181,12 +181,12 @@ class MatscipyCalculator(Calculator):
         #C_cccc2 = np.sum(B_ncc, axis=0)
 
         # Compute non-affine contribution 
-        C_cccc = np.empty((3,3,3,3))
+        C_abab = np.empty((3,3,3,3))
         for index in range(0, 3*nat -3):
-            first_con = np.sum((eigvecs_nn[:,index]).reshape(3*nat, 1, 1) * forces_natccc.reshape(3*nat, 3, 3), axis=0)
-            C_cccc += (first_con.reshape(3,3,1,1) * first_con.reshape(1,1,3,3))/eigvalues_n[index]
+            first_con = np.sum((eigvecs_nn[:,index]).reshape(3*nat, 1, 1) * naforces_icab.reshape(3*nat, 3, 3), axis=0)
+            C_abab += (first_con.reshape(3,3,1,1) * first_con.reshape(1,1,3,3))/eigvalues_n[index]
 
-        return - C_cccc/atoms.get_volume()
+        return - C_abab/atoms.get_volume()
 
     def get_numerical_non_affine_forces(self, atoms, d=1e-6):
         """
