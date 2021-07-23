@@ -26,7 +26,6 @@
 # Code imports the file 'params.py' from current working directory. params.py
 # contains simulation parameters. Some parameters can be omitted, see below.
 
-from __future__ import division
 from math import sqrt
 
 import os

@@ -39,8 +39,6 @@ options:
     b: on: True
 '''
 
-from __future__ import division
-
 import numpy as np
 from math import floor, ceil
 from matscipy.neighbours import neighbour_list

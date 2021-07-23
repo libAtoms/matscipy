@@ -19,8 +19,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from __future__ import absolute_import
-
 from .kumagai import KumagaiTersoff
 from .tersoff3 import TersoffIII
 from .stillinger_weber import StillingerWeber

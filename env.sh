@@ -6,7 +6,7 @@ if [ -z "$PYTHON" ]; then
 fi
 
 ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PLATFORM=`$PYTHON -c "from __future__ import print_function ; from distutils.util import get_platform ; from distutils.sysconfig import get_python_version ; print('{0}-{1}'.format(get_platform(), get_python_version()))"`
+PLATFORM=`$PYTHON -c "from distutils.util import get_platform ; from distutils.sysconfig import get_python_version ; print('{0}-{1}'.format(get_platform(), get_python_version()))"`
 
 echo "Setting Python environment"
 echo "--------------------------"
