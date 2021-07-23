@@ -30,8 +30,6 @@
  Adrien Gola // 4.11.2015                                                                        
 """
 
-from __future__ import print_function
-
 import numpy as np
 import matplotlib
 matplotlib.rcParams['backend'] = "Qt4Agg"

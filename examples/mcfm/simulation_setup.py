@@ -1,5 +1,5 @@
 """This script sets up a simulation of a 10 monomer polypropylene chain"""
-from __future__ import absolute_import, division, print_function, unicode_literals
+
 import numpy as np
 
 import ase.io

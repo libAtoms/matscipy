@@ -1,8 +1,6 @@
 """Copy of ASE Morse calculator that supports per-atom potential energy.
 Also extra utilities"""
 
-from __future__ import division
-
 import numpy as np
 from math import exp, sqrt
 
