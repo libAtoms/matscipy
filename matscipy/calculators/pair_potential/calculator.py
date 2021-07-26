@@ -23,6 +23,15 @@
 Simple pair potential.
 """
 
+#
+# Coding convention
+# * All numpy arrays are suffixed with the array dimensions
+# * The suffix stands for a certain type of dimension:
+#   - n: Atomic index, i.e. array dimension of length nb_atoms
+#   - p: Pair index, i.e. array dimension of length nb_pairs
+#   - c: Cartesian index, array dimension of length 3
+#
+
 import numpy as np
 
 from scipy.sparse import bsr_matrix, vstack, hstack
@@ -31,6 +40,7 @@ import ase
 
 from ...neighbours import neighbour_list, first_neighbours
 from ..calculator import MatscipyCalculator
+from ...numpy_tricks import mabincount
 
 
 ###
@@ -276,59 +286,52 @@ class PairPotential(MatscipyCalculator):
     def calculate(self, atoms, properties, system_changes):
         MatscipyCalculator.calculate(self, atoms, properties, system_changes)
 
-        nat = len(self.atoms)
+        nb_atoms = len(self.atoms)
         atnums = self.atoms.numbers
         atnums_in_system = set(atnums)
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list(
-            'ijDd', self.atoms, self.dict)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
 
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
+        e_p = np.zeros_like(r_p)
+        de_p = np.zeros_like(r_p)
         for params, pair in enumerate(self.dict):
             if pair[0] == pair[1]:
-                mask1 = atnums[i_n] == pair[0]
-                mask2 = atnums[j_n] == pair[0]
+                mask1 = atnums[i_p] == pair[0]
+                mask2 = atnums[j_p] == pair[0]
                 mask = np.logical_and(mask1, mask2)
 
-                e_n[mask] = self.f[pair](abs_dr_n[mask])
-                de_n[mask] = self.df[pair](abs_dr_n[mask])
+                e_p[mask] = self.f[pair](r_p[mask])
+                de_p[mask] = self.df[pair](r_p[mask])
 
             if pair[0] != pair[1]:
                 mask1 = np.logical_and(
-                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                    atnums[i_p] == pair[0], atnums[j_p] == pair[1])
                 mask2 = np.logical_and(
-                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                    atnums[i_p] == pair[1], atnums[j_p] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
-                e_n[mask] = self.f[pair](abs_dr_n[mask])
-                de_n[mask] = self.df[pair](abs_dr_n[mask])
+                e_p[mask] = self.f[pair](r_p[mask])
+                de_p[mask] = self.df[pair](r_p[mask])
 
-        epot = 0.5*np.sum(e_n)
+        epot = 0.5*np.sum(e_p)
 
         # Forces
-        df_nc = -0.5*de_n.reshape(-1, 1)*dr_nc/abs_dr_n.reshape(-1, 1)
+        df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1)
 
-        # Sum for each atom
-        fx_i = np.bincount(j_n, weights=df_nc[:, 0], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:, 0], minlength=nat)
-        fy_i = np.bincount(j_n, weights=df_nc[:, 1], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:, 1], minlength=nat)
-        fz_i = np.bincount(j_n, weights=df_nc[:, 2], minlength=nat) - \
-            np.bincount(i_n, weights=df_nc[:, 2], minlength=nat)
+        f_nc = mabincount(j_p, df_pc, nb_atoms) - mabincount(i_p, df_pc, nb_atoms)
 
         # Virial
-        virial_v = -np.array([dr_nc[:, 0]*df_nc[:, 0],               # xx
-                             dr_nc[:, 1]*df_nc[:, 1],               # yy
-                             dr_nc[:, 2]*df_nc[:, 2],               # zz
-                             dr_nc[:, 1]*df_nc[:, 2],               # yz
-                             dr_nc[:, 0]*df_nc[:, 2],               # xz
-                             dr_nc[:, 0]*df_nc[:, 1]]).sum(axis=1)  # xy
+        virial_v = -np.array([r_pc[:, 0] * df_pc[:, 0],               # xx
+                              r_pc[:, 1] * df_pc[:, 1],               # yy
+                              r_pc[:, 2] * df_pc[:, 2],               # zz
+                              r_pc[:, 1] * df_pc[:, 2],               # yz
+                              r_pc[:, 0] * df_pc[:, 2],               # xz
+                              r_pc[:, 0] * df_pc[:, 1]]).sum(axis=1)  # xy
 
         self.results = {'energy': epot,
                         'free_energy': epot,
                         'stress': virial_v/self.atoms.get_volume(),
-                        'forces': np.transpose([fx_i, fy_i, fz_i])}
+                        'forces': f_nc}
 
     ###
 
@@ -364,11 +367,12 @@ class PairPotential(MatscipyCalculator):
         df = self.df
         df2 = self.df2
 
-        nat = len(atoms)
+        nb_atoms = len(atoms)
         atnums = atoms.numbers
 
+
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-        first_i = first_neighbours(nat, i_n)
+        first_i = first_neighbours(nb_atoms, i_n)
 
         e_n = np.zeros_like(abs_dr_n)
         de_n = np.zeros_like(abs_dr_n)
@@ -407,43 +411,42 @@ class PairPotential(MatscipyCalculator):
                 geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])
 
             if divide_by_masses:
-                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T, j_n, first_i), shape=(3*nat, 3*nat))
+                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T, j_n, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             else: 
-                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
+                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
-            Hdiag_icc = np.empty((nat, 3, 3))
+            Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
                         np.bincount(i_n, weights=H_ncc[:, x, y])
 
             if divide_by_masses:
-                H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nat),
-                             np.arange(nat+1)), shape=(3*nat, 3*nat))
+                H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nb_atoms),
+                             np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
 
             else:
-                H += bsr_matrix((Hdiag_icc, np.arange(nat),
-                             np.arange(nat+1)), shape=(3*nat, 3*nat))
+                H += bsr_matrix((Hdiag_icc, np.arange(nb_atoms),
+                             np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
 
             return H
 
         # Dense matrix format
-        # To do: Divide by masses is missing
         elif format == "dense":
-            H = np.zeros((3*nat, 3*nat))
+            H = np.zeros((3*nb_atoms, 3*nb_atoms))
             for atom in range(len(i_n)):
                 H[3*i_n[atom]:3*i_n[atom]+3,
                   3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
 
-            Hdiag_icc = np.empty((nat, 3, 3))
+            Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
                         np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            Hdiag_ncc = np.zeros((3*nat, 3*nat))
-            for atom in range(nat):
+            Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
+            for atom in range(nb_atoms):
                 Hdiag_ncc[3*atom:3*atom+3,
                           3*atom:3*atom+3] += Hdiag_icc[atom]
 

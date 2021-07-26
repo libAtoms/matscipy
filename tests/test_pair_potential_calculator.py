@@ -85,6 +85,9 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
     tol = 1e-4
 
     def test_forces(self):
+        """
+        Test the computation of forces for a crystal and a glass
+        """
         calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5)}
         atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.0) 
         atoms.rattle(0.1)
@@ -105,8 +108,10 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         fn = b.calculate_numerical_forces(atoms, d=0.0001)
         np.allclose(f, fn, atol=self.tol)
 
-
     def test_stress(self):
+        """
+        Test the computation of stresses for a crystal and a glass
+        """
         calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5)}
         for a0 in [1.0, 1.5, 2.0, 2.5, 3.0]:
             atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=a0) 
@@ -126,43 +131,79 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_calculator(b)
         s = atoms.get_stress()
         sn = b.calculate_numerical_stress(atoms, d=0.0001)
-        self.assertArrayAlmostEqual(s, sn, tol=self.tol)
-
-    def test_symmetry_dense(self):
-        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-        a = io.read('glass_min.xyz')
-        a.center(vacuum=5.0)
-        b = PairPotential(calc)
-        H = b.get_hessian(a, "dense")
-        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
-
-    def test_symmetry_sparse(self):
-        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-        a = io.read('glass_min.xyz')
-        a.center(vacuum=5.0)
-        b = PairPotential(calc)
-        H = b.get_hessian(a, "sparse")
-        H = H.todense()
-        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
+        np.allclose(s, sn, atol=self.tol)
 
     def test_hessian(self):
+        """
+        Test the computation of the Hessian matrix 
+        """
         calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
                 (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
                 (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
         atoms = io.read("glass_min.xyz")
-        atoms.center(vacuum=5.0)
         b = PairPotential(calc)
         atoms.set_calculator(b)
-        H_analytical = b.get_hessian(atoms, "dense")
         H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
         H_numerical = H_numerical.todense()
-        self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
+        H_analytical = b.get_hessian(atoms, "dense")
+        np.allclose(H_analytical, H_numerical, atol=self.tol)
+        H_analytical = b.get_hessian(atoms, "sparse")
+        H_analytical = H_analytical.todense()
+        np.allclose(H_analytical, H_numerical, atol=self.tol)
+
+    def test_symmetry_dense(self):
+        """
+        Test the symmetry of the dense Hessian matrix 
+        """
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        a = io.read('glass_min.xyz')
+        #a.center(vacuum=5.0)
+        b = PairPotential(calc)
+        H = b.get_hessian(a, "dense")
+        np.allclose(np.sum(np.abs(H-H.T)), 0, atol=1e-10)
+
+    def test_symmetry_sparse(self):
+        """
+        Test the symmetry of the dense Hessian matrix 
+
+        """
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        a = io.read('glass_min.xyz')
+        #a.center(vacuum=5.0)
+        b = PairPotential(calc)
+        H = b.get_hessian(a, "sparse")
+        H = H.todense()
+        np.allclose(np.sum(np.abs(H-H.T)), 0, atol=1e-10)
+
+    def test_hessian_divide_by_masses(self):
+        """
+        Test the computation of the Dynamical matrix 
+        """
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+
+        atoms = io.read("glass_min.xyz")
+        b = PairPotential(calc)
+        atoms.set_calculator(b)
+        masses_n = np.random.randint(1, 10, size=len(atoms))
+        atoms.set_masses(masses=masses_n)       
+        D_analytical = b.get_hessian(atoms, "sparse", divide_by_masses=True)
+        D_analytical = D_analytical.todense()
+        H_analytical = b.get_hessian(atoms, "sparse", divide_by_masses=False)
+        H_analytical = H_analytical.todense()                         
+        masses_nc = masses_n.repeat(3)
+        H_analytical /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
+        np.allclose(H_analytical, D_analytical, atol=self.tol)
 
     def test_non_affine_forces_glass(self):
+        """
+        Test the computation of the non-affine forces 
+        """
         calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
                 (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
                 (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
@@ -173,10 +214,13 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         naForces_num = b.get_numerical_non_affine_forces(atoms, d=1e-5)
         naForces_ana = b.get_nonaffine_forces(atoms)    
 
-        self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.1) 
+        np.allclose(naForces_num, naForces_ana, atol=0.1) 
 
 
-    def test_born_elastic_constants(self):
+    def test_birch_elastic_constants(self):
+        """
+        Test the Birch elastic constants
+        """
         calc = {(1, 1): LennardJonesLinear(1, 1, 2.5)}
         for a0 in [1.0, 1.5, 2.0, 2.5, 3.0]:
             atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=a0) 
@@ -199,6 +243,9 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         np.allclose(C_num, C_ana, atol=0.1)
 
     def test_non_affine_elastic_constants(self):
+        """
+        Test the computation of Birch elastic constants and correction due to non-affine displacements
+        """
         calc = {(1, 1): LennardJonesLinear(1, 1, 2.5)}
         atoms = FaceCenteredCubic('H', size=[3,3,3], latticeconstant=2.5) 
         b = PairPotential(calc)
