@@ -85,118 +85,141 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
     tol = 1e-4
 
     def test_forces(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 2.5)}]:
-            atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.0) 
-            atoms.rattle(0.1)
-            b = PairPotential(calc)
-            atoms.set_calculator(b)
-            f = atoms.get_forces()
-            fn = b.calculate_numerical_forces(atoms, d=0.0001)
-            np.allclose(f, fn, atol=self.tol)
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5)}
+        atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.0) 
+        atoms.rattle(0.1)
+        b = PairPotential(calc)
+        atoms.set_calculator(b)
+        f = atoms.get_forces()
+        fn = b.calculate_numerical_forces(atoms, d=0.0001)
+        np.allclose(f, fn, atol=self.tol)
 
-            atoms = io.read('glass_min.xyz')
-            atoms.rattle(0.1)
-            b = PairPotential(calc)
-            atoms.set_calculator(b)
-            f = atoms.get_forces()
-            fn = b.calculate_numerical_forces(atoms, d=0.0001)
-            np.allclose(f, fn, atol=self.tol)
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        atoms = io.read('glass_min.xyz')
+        atoms.rattle(0.1)
+        b = PairPotential(calc)
+        atoms.set_calculator(b)
+        f = atoms.get_forces()
+        fn = b.calculate_numerical_forces(atoms, d=0.0001)
+        np.allclose(f, fn, atol=self.tol)
+
 
     def test_stress(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
-            for a0 in [1.0, 1.5, 2.0, 2.5, 3.0]:
-                atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=a0) 
-                b = PairPotential(calc)
-                atoms.set_calculator(b)
-                s = atoms.get_stress()
-                sn = b.calculate_numerical_stress(atoms, d=0.0001)
-                print(s)
-                print(sn)
-                np.allclose(s, sn, atol=self.tol)
-                
-            atoms = io.read('glass_min.xyz')
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5)}
+        for a0 in [1.0, 1.5, 2.0, 2.5, 3.0]:
+            atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=a0) 
             b = PairPotential(calc)
             atoms.set_calculator(b)
             s = atoms.get_stress()
             sn = b.calculate_numerical_stress(atoms, d=0.0001)
-            self.assertArrayAlmostEqual(s, sn, tol=self.tol)
+            #print(s)
+            #print(sn)
+            np.allclose(s, sn, atol=self.tol)
+
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        atoms = io.read('glass_min.xyz')
+        b = PairPotential(calc)
+        atoms.set_calculator(b)
+        s = atoms.get_stress()
+        sn = b.calculate_numerical_stress(atoms, d=0.0001)
+        self.assertArrayAlmostEqual(s, sn, tol=self.tol)
 
     def test_symmetry_dense(self):
-         for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
-            a = io.read('glass_min.xyz')
-            a.center(vacuum=5.0)
-            b = PairPotential(calc)
-            H = b.get_hessian(a, "dense")
-            self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        a = io.read('glass_min.xyz')
+        a.center(vacuum=5.0)
+        b = PairPotential(calc)
+        H = b.get_hessian(a, "dense")
+        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
 
     def test_symmetry_sparse(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
-            a = io.read('glass_min.xyz')
-            a.center(vacuum=5.0)
-            b = PairPotential(calc)
-            H = b.get_hessian(a, "sparse")
-            H = H.todense()
-            self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        a = io.read('glass_min.xyz')
+        a.center(vacuum=5.0)
+        b = PairPotential(calc)
+        H = b.get_hessian(a, "sparse")
+        H = H.todense()
+        self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=0)
 
     def test_hessian(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 3)}]:
-            atoms = io.read("glass_min.xyz")
-            atoms.center(vacuum=5.0)
-            b = PairPotential(calc)
-            atoms.set_calculator(b)
-            H_analytical = b.get_hessian(atoms, "dense")
-            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
-            H_numerical = H_numerical.todense()
-            self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        atoms = io.read("glass_min.xyz")
+        atoms.center(vacuum=5.0)
+        b = PairPotential(calc)
+        atoms.set_calculator(b)
+        H_analytical = b.get_hessian(atoms, "dense")
+        H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+        H_numerical = H_numerical.todense()
+        self.assertArrayAlmostEqual(H_analytical, H_numerical, tol=self.tol)
 
     def test_non_affine_forces_glass(self):
-        for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]:
-            atoms = io.read("glass_min.xyz")
-            b = PairPotential(calc)
-            atoms.set_calculator(b)
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        atoms = io.read("glass_min.xyz")
+        b = PairPotential(calc)
+        atoms.set_calculator(b)
             
-            naForces_num = b.get_numerical_non_affine_forces(atoms, d=1e-5)
-            naForces_ana = b.get_nonaffine_forces(atoms)    
+        naForces_num = b.get_numerical_non_affine_forces(atoms, d=1e-5)
+        naForces_ana = b.get_nonaffine_forces(atoms)    
 
-            self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.1) 
+        self.assertArrayAlmostEqual(naForces_num, naForces_ana, tol=0.1) 
 
 
     def test_born_elastic_constants(self):
-        for calc in [{(1, 1): LennardJonesLinear(1, 1, 2.5)}]: 
-            for a0 in [1.0, 1.5, 2.0, 2.5, 3.0]:
-                atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=a0) 
-                b = PairPotential(calc)
-                atoms.set_calculator(b)
-                C_num, Cerr = fit_elastic_constants(atoms, symmetry="cubic", N_steps=7, delta=1e-4, optimizer=None, verbose=False)
-                C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
-                np.allclose(C_num, C_ana, atol=0.1)
-
-            atoms = io.read("glass_min.xyz")
+        calc = {(1, 1): LennardJonesLinear(1, 1, 2.5)}
+        for a0 in [1.0, 1.5, 2.0, 2.5, 3.0]:
+            atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=a0) 
             b = PairPotential(calc)
-            atoms.set_calculator(b)     
-            C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None, verbose=False)
+            atoms.set_calculator(b)
+            C_num, Cerr = fit_elastic_constants(atoms, symmetry="cubic", N_steps=7, delta=1e-4, optimizer=None, verbose=False)
             C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
             np.allclose(C_num, C_ana, atol=0.1)
 
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
+        atoms = io.read("glass_min.xyz")
+        b = PairPotential(calc)
+        atoms.set_calculator(b)     
+        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None, verbose=False)
+        C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
+        #print("C_ana: \n", C_ana)
+        #print("C_num: \n", C_num)
+        np.allclose(C_num, C_ana, atol=0.1)
+
     def test_non_affine_elastic_constants(self):
-        for calc in [{(1, 1): LennardJonesQuadratic(1, 1, 2.5)}]:  
-            atoms = FaceCenteredCubic('H', size=[3,3,3], latticeconstant=2.5) 
-            b = PairPotential(calc)
-            atoms.set_calculator(b)    
-            C_num, Cerr = fit_elastic_constants(atoms, symmetry="cubic", N_steps=5, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
-            anaC_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
-            anaC_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
-            #print("C_num: \n", C_num)
-            #print("C_ana: \n", anaC_af + anaC_na)
-            np.allclose(C_num, anaC_af + anaC_na, atol=0.1)
-          
-            atoms = io.read("glass_min.xyz")
-            b = PairPotential(calc)
-            atoms.set_calculator(b)     
-            C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=5, delta=1e-4, optimizer=FIRE, fmax=1e-4, verbose=False)
-            anaC_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
-            anaC_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
-            np.allclose(C_num, anaC_af + anaC_na, atol=0.1)
+        calc = {(1, 1): LennardJonesLinear(1, 1, 2.5)}
+        atoms = FaceCenteredCubic('H', size=[3,3,3], latticeconstant=2.5) 
+        b = PairPotential(calc)
+        atoms.set_calculator(b)    
+        C_num, Cerr = fit_elastic_constants(atoms, symmetry="cubic", N_steps=5, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
+        anaC_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5))
+        anaC_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
+        #print("C_num: \n", C_num)
+        #print("C_ana: \n", anaC_af + anaC_na)
+        np.allclose(C_num, anaC_af + anaC_na, atol=0.1)
+
+        calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
+                (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+                (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}          
+        atoms = io.read("glass_min.xyz")
+        b = PairPotential(calc)
+        atoms.set_calculator(b)     
+        C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=5, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
+        anaC_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5))
+        anaC_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
+        np.allclose(C_num, anaC_af + anaC_na, atol=0.1)
 
     def test_elastic_born_crystal_stress(self):
         class TestPotential():

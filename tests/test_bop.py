@@ -79,7 +79,6 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
     def test_kumagai_tersoff(self):
 
         #Test forces and hessian matrix for Kumagai  
-        print("Here!")
         kumagai_potential = kum.kumagai
         for d in np.arange(1.0, 2.3, 0.15):
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))

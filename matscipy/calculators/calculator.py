@@ -20,7 +20,7 @@
 # ======================================================================
 import numpy as np
 
-from scipy import linalg
+from scipy.sparse.linalg import cg
 
 from ase.calculators.calculator import Calculator
 
@@ -150,43 +150,66 @@ class MatscipyCalculator(Calculator):
         naF_pcab = -0.5 * H_pcc.reshape(-1, 3, 3, 1) * dr_pc.reshape(-1, 1, 1, 3)
 
         naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
-  
+
         return naforces_icab
 
-    def get_non_affine_contribution_to_elastic_constants(self, atoms):
+    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, tol=1e-5):
         """
         Compute the correction of non-affine displacements to the elasticity tensor.
+        The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.
+
+        If eigenvalues and and eigenvectors are given the inverse of the Hessian can be easily computed.
+
 
         Parameters
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
 
+        eigenvalues: array
+            Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
+            If given 
+
+        eigenvectors: array
+            Eigenvectors corresponding to eigenvalues.
+
+        tol: float
+            Tolerance for the conjugate-gradient solver. 
+
         """
 
         nat = len(atoms)
+
         calc = atoms.get_calculator()
 
-        # Non-affine forces
-        naforces_icab = calc.get_nonaffine_forces(atoms)
+        C_abab = np.zeros((3,3,3,3))        
 
-        # Diagonalize 
-        H_nn = calc.get_hessian(atoms, "sparse").todense()
-        eigvalues_n, eigvecs_nn = linalg.eigh(H_nn, b=None, subset_by_index=[3, 3*nat-1])
-         
-        #B_ncc = np.sum(eigvecs_nn.reshape(3*nat-3, 3*nat, 1, 1) * forces_natccc.reshape(1, 3*nat, 3, 3), axis=1)
-        #print(B_ncc.shape)
-        #B_ncc /= np.sqrt(eigvalues_n.reshape(3*nat-3, 1, 1))
-        #B_ncc = B_ncc.reshape(3*nat-3, 3, 3, 1, 1) * B_ncc.reshape(3*nat-3, 1, 1, 3, 3)
-        #C_cccc2 = np.sum(B_ncc, axis=0)
+        if (eigenvalues is not None) and (eigenvectors is not None):
+            naforces_icab = calc.get_nonaffine_forces(atoms)
 
-        # Compute non-affine contribution 
-        C_abab = np.empty((3,3,3,3))
-        for index in range(0, 3*nat -3):
-            first_con = np.sum((eigvecs_nn[:,index]).reshape(3*nat, 1, 1) * naforces_icab.reshape(3*nat, 3, 3), axis=0)
-            C_abab += (first_con.reshape(3,3,1,1) * first_con.reshape(1,1,3,3))/eigvalues_n[index]
+            G_incc = (eigenvectors.T).reshape(-1, 3*nat, 1, 1) * naforces_icab.reshape(1, 3*nat, 3, 3)
+            G_incc = (G_incc.T/np.sqrt(eigenvalues)).T
+            G_icc  = np.sum(G_incc, axis=1)
+            C_abab = np.sum(G_icc.reshape(-1,3,3,1,1) * G_icc.reshape(-1,1,1,3,3), axis=0)
 
-        return - C_abab/atoms.get_volume()
+        else:
+            H_nn = calc.get_hessian(atoms, "sparse")
+            naforces_icab = calc.get_nonaffine_forces(atoms)
+
+            D_iab = np.zeros((3*nat, 3, 3))
+            for i in range(3):
+                for j in range(3):
+                    x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), atol=tol)
+                    if info != 0:
+                        raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
+                    D_iab[:,i,j] = x
+
+            C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
+        
+        # Symmetrize 
+        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4             
+
+        return -C_abab/atoms.get_volume()
 
     def get_numerical_non_affine_forces(self, atoms, d=1e-6):
         """
