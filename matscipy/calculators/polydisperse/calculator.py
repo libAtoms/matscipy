@@ -243,8 +243,7 @@ class Polydisperse(MatscipyCalculator):
             raise AttributeError(
                 "Attribute error: Unable to load atom sizes from atoms object! Probably missing size array.")
 
-        i_p, j_p, r_pc, r_p = neighbour_list(
-            "ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
+        i_p, j_p, r_pc, r_p = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
         ijsize = f.mix_sizes(size[i_p], size[j_p])
 
         # Mask neighbour list to consider only true neighbors
@@ -257,34 +256,34 @@ class Polydisperse(MatscipyCalculator):
         first_i = first_neighbours(nb_atoms, i_p)
 
         if divide_by_masses:
-            mass_nb_atoms = self.atoms.get_masses()
-            geom_mean_mass_n = np.sqrt(mass_nb_atoms[i_p]*mass_nb_atoms[j_p])
+            mass_n = self.atoms.get_masses()
+            geom_mean_mass_p = np.sqrt(mass_n[i_p]*mass_n[j_p])
 
         # Hessian 
-        de_n = f.first_derivative(r_p, ijsize)
-        dde_n = f.second_derivative(r_p, ijsize)
-        e_nc = (r_pc.T/r_p).T
-        H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                           * e_nc.reshape(-1, 1, 3)).T).T
-        H_ncc += -(de_n/r_p * (np.eye(3, dtype=e_nc.dtype)
-                                   - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+        de_p = f.first_derivative(r_p, ijsize)
+        dde_p = f.second_derivative(r_p, ijsize)
+        n_pc = (r_pc.T/r_p).T
+        H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
+                           * n_pc.reshape(-1, 1, 3)).T).T
+        H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
+                                   - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
 
         if format == "sparse":
             if divide_by_masses:
-                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T,
+                H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T,
                                 j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             else:
-                H = bsr_matrix((H_ncc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
+                H = bsr_matrix((H_pcc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_p, weights=H_ncc[:, x, y])
+                        np.bincount(i_p, weights=H_pcc[:, x, y])
 
             if divide_by_masses:
-                H += bsr_matrix(((Hdiag_icc.T/mass_nb_atoms).T, np.arange(nb_atoms),
+                H += bsr_matrix(((Hdiag_icc.T/mass_n).T, np.arange(nb_atoms),
                         np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))         
 
             else:
@@ -295,4 +294,4 @@ class Polydisperse(MatscipyCalculator):
 
         # Neighbour list format
         elif format == "neighbour-list":
-            return H_ncc, i_p, j_p, r_pc, r_p
+            return H_pcc, i_p, j_p, r_pc, r_p
