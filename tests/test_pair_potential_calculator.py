@@ -196,8 +196,8 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         D_analytical = D_analytical.todense()
         H_analytical = b.get_hessian(atoms, "sparse", divide_by_masses=False)
         H_analytical = H_analytical.todense()                         
-        masses_nc = masses_n.repeat(3)
-        H_analytical /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
+        masses_p = masses_n.repeat(3)
+        H_analytical /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
         np.allclose(H_analytical, D_analytical, atol=self.tol)
 
     def test_non_affine_forces_glass(self):

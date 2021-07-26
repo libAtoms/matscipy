@@ -373,18 +373,18 @@ class PairPotential(MatscipyCalculator):
         i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', atoms, dict)
         first_i = first_neighbours(nb_atoms, i_p)
 
-        e_n = np.zeros_like(r_p)
-        de_n = np.zeros_like(r_p)
-        dde_n = np.zeros_like(r_p)
+        e_p = np.zeros_like(r_p)
+        de_p = np.zeros_like(r_p)
+        dde_p = np.zeros_like(r_p)
         for params, pair in enumerate(dict):
             if pair[0] == pair[1]:
                 mask1 = atnums[i_p] == pair[0]
                 mask2 = atnums[j_p] == pair[0]
                 mask = np.logical_and(mask1, mask2)
 
-                e_n[mask] = f[pair](r_p[mask])
-                de_n[mask] = df[pair](r_p[mask])
-                dde_n[mask] = df2[pair](r_p[mask])
+                e_p[mask] = f[pair](r_p[mask])
+                de_p[mask] = df[pair](r_p[mask])
+                dde_p[mask] = df2[pair](r_p[mask])
 
             if pair[0] != pair[1]:
                 mask1 = np.logical_and(
@@ -393,15 +393,15 @@ class PairPotential(MatscipyCalculator):
                     atnums[i_p] == pair[1], atnums[j_p] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
-                e_n[mask] = f[pair](r_p[mask])
-                de_n[mask] = df[pair](r_p[mask])
-                dde_n[mask] = df2[pair](r_p[mask])
+                e_p[mask] = f[pair](r_p[mask])
+                de_p[mask] = df[pair](r_p[mask])
+                dde_p[mask] = df2[pair](r_p[mask])
         
-        e_pc = (r_pc.T/r_p).T
-        H_pcc = -(dde_n * (e_pc.reshape(-1, 3, 1)
-                           * e_pc.reshape(-1, 1, 3)).T).T
-        H_pcc += -(de_n/r_p * (np.eye(3, dtype=e_pc.dtype)
-                                    - (e_pc.reshape(-1, 3, 1) * e_pc.reshape(-1, 1, 3))).T).T
+        n_pc = (r_pc.T/r_p).T
+        H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
+                           * n_pc.reshape(-1, 1, 3)).T).T
+        H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
+                                    - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
 
         # Sparse BSR-matrix
         if format == "sparse":
