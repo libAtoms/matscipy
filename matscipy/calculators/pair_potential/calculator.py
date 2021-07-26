@@ -370,57 +370,57 @@ class PairPotential(MatscipyCalculator):
         nb_atoms = len(atoms)
         atnums = atoms.numbers
 
+        #i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
+        i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', atoms, dict)
+        first_i = first_neighbours(nb_atoms, i_p)
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-        first_i = first_neighbours(nb_atoms, i_n)
-
-        e_n = np.zeros_like(abs_dr_n)
-        de_n = np.zeros_like(abs_dr_n)
-        dde_n = np.zeros_like(abs_dr_n)
+        e_n = np.zeros_like(r_p)
+        de_n = np.zeros_like(r_p)
+        dde_n = np.zeros_like(r_p)
         for params, pair in enumerate(dict):
             if pair[0] == pair[1]:
-                mask1 = atnums[i_n] == pair[0]
-                mask2 = atnums[j_n] == pair[0]
+                mask1 = atnums[i_p] == pair[0]
+                mask2 = atnums[j_p] == pair[0]
                 mask = np.logical_and(mask1, mask2)
 
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
+                e_n[mask] = f[pair](r_p[mask])
+                de_n[mask] = df[pair](r_p[mask])
+                dde_n[mask] = df2[pair](r_p[mask])
 
             if pair[0] != pair[1]:
                 mask1 = np.logical_and(
-                    atnums[i_n] == pair[0], atnums[j_n] == pair[1])
+                    atnums[i_p] == pair[0], atnums[j_p] == pair[1])
                 mask2 = np.logical_and(
-                    atnums[i_n] == pair[1], atnums[j_n] == pair[0])
+                    atnums[i_p] == pair[1], atnums[j_p] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
-                e_n[mask] = f[pair](abs_dr_n[mask])
-                de_n[mask] = df[pair](abs_dr_n[mask])
-                dde_n[mask] = df2[pair](abs_dr_n[mask])
+                e_n[mask] = f[pair](r_p[mask])
+                de_n[mask] = df[pair](r_p[mask])
+                dde_n[mask] = df2[pair](r_p[mask])
         
-        e_nc = (dr_nc.T/abs_dr_n).T
+        e_nc = (r_pc.T/r_p).T
         H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
                            * e_nc.reshape(-1, 1, 3)).T).T
-        H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
+        H_ncc += -(de_n/r_p * (np.eye(3, dtype=e_nc.dtype)
                                     - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
 
         # Sparse BSR-matrix
         if format == "sparse":
             if divide_by_masses:
                 mass_nat = self.atoms.get_masses()
-                geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])
+                geom_mean_mass_n = np.sqrt(mass_nat[i_p]*mass_nat[j_p])
 
             if divide_by_masses:
-                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T, j_n, first_i), shape=(3*nb_atoms, 3*nb_atoms))
+                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             else: 
-                H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nb_atoms, 3*nb_atoms))
+                H = bsr_matrix((H_ncc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_ncc[:, x, y])
+                        np.bincount(i_p, weights=H_ncc[:, x, y])
 
             if divide_by_masses:
                 H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nb_atoms),
@@ -435,15 +435,15 @@ class PairPotential(MatscipyCalculator):
         # Dense matrix format
         elif format == "dense":
             H = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(len(i_n)):
-                H[3*i_n[atom]:3*i_n[atom]+3,
-                  3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
+            for atom in range(len(i_p)):
+                H[3*i_p[atom]:3*i_p[atom]+3,
+                  3*j_p[atom]:3*j_p[atom]+3] += H_ncc[atom]
 
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_ncc[:, x, y])
+                        np.bincount(i_p, weights=H_ncc[:, x, y])
 
             Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
             for atom in range(nb_atoms):
@@ -462,4 +462,4 @@ class PairPotential(MatscipyCalculator):
 
         # Neighbour list format
         elif format == "neighbour-list":
-            return H_ncc, i_n, j_n, dr_nc, abs_dr_n
+            return H_ncc, i_p, j_p, r_pc, r_p
