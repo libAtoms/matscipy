@@ -370,7 +370,6 @@ class PairPotential(MatscipyCalculator):
         nb_atoms = len(atoms)
         atnums = atoms.numbers
 
-        #i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
         i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', atoms, dict)
         first_i = first_neighbours(nb_atoms, i_p)
 
@@ -398,32 +397,32 @@ class PairPotential(MatscipyCalculator):
                 de_n[mask] = df[pair](r_p[mask])
                 dde_n[mask] = df2[pair](r_p[mask])
         
-        e_nc = (r_pc.T/r_p).T
-        H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                           * e_nc.reshape(-1, 1, 3)).T).T
-        H_ncc += -(de_n/r_p * (np.eye(3, dtype=e_nc.dtype)
-                                    - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+        e_pc = (r_pc.T/r_p).T
+        H_pcc = -(dde_n * (e_pc.reshape(-1, 3, 1)
+                           * e_pc.reshape(-1, 1, 3)).T).T
+        H_pcc += -(de_n/r_p * (np.eye(3, dtype=e_pc.dtype)
+                                    - (e_pc.reshape(-1, 3, 1) * e_pc.reshape(-1, 1, 3))).T).T
 
         # Sparse BSR-matrix
         if format == "sparse":
             if divide_by_masses:
-                mass_nat = self.atoms.get_masses()
-                geom_mean_mass_n = np.sqrt(mass_nat[i_p]*mass_nat[j_p])
+                masses_n = self.atoms.get_masses()
+                geom_mean_mass_p = np.sqrt(masses_n[i_p]*masses_n[j_p])
 
             if divide_by_masses:
-                H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
+                H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             else: 
-                H = bsr_matrix((H_ncc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
+                H = bsr_matrix((H_pcc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_p, weights=H_ncc[:, x, y])
+                        np.bincount(i_p, weights=H_pcc[:, x, y])
 
             if divide_by_masses:
-                H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nb_atoms),
+                H += bsr_matrix(((Hdiag_icc.T/masses_n).T, np.arange(nb_atoms),
                              np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
 
             else:
@@ -437,13 +436,13 @@ class PairPotential(MatscipyCalculator):
             H = np.zeros((3*nb_atoms, 3*nb_atoms))
             for atom in range(len(i_p)):
                 H[3*i_p[atom]:3*i_p[atom]+3,
-                  3*j_p[atom]:3*j_p[atom]+3] += H_ncc[atom]
+                  3*j_p[atom]:3*j_p[atom]+3] += H_pcc[atom]
 
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_p, weights=H_ncc[:, x, y])
+                        np.bincount(i_p, weights=H_pcc[:, x, y])
 
             Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
             for atom in range(nb_atoms):
@@ -453,8 +452,8 @@ class PairPotential(MatscipyCalculator):
             H += Hdiag_ncc
 
             if divide_by_masses:
-                masses_nc = (self.atoms.get_masses()).repeat(3)
-                H /= np.sqrt(masses_nc.reshape(-1,1)*masses_nc.reshape(1,-1))
+                masses_p = (self.atoms.get_masses()).repeat(3)
+                H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
                 return H
 
             else:
@@ -462,4 +461,4 @@ class PairPotential(MatscipyCalculator):
 
         # Neighbour list format
         elif format == "neighbour-list":
-            return H_ncc, i_p, j_p, r_pc, r_p
+            return H_pcc, i_p, j_p, r_pc, r_p
