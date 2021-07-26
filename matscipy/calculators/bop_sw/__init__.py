@@ -20,4 +20,4 @@
 # ======================================================================
 
 from .calculator import AbellTersoffBrennerStillingerWeber
-from .explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber
+from .explicit_forms import KumagaiTersoff, AbellTersoffBrenner, StillingerWeber

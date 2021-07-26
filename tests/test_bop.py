@@ -31,19 +31,17 @@ import matscipytest
 
 import ase.io as io
 from ase.optimize import FIRE
-from matscipy.calculators.calculator import MatscipyCalculator
-from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber 
+from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber
 import matscipy.calculators.bop_sw.explicit_forms.stillinger_weber as sw
 import matscipy.calculators.bop_sw.explicit_forms.kumagai as kum
 import matscipy.calculators.bop_sw.explicit_forms.tersoff3 as t3
-from matscipy.calculators.bop_sw.explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber
+from matscipy.calculators.bop_sw.explicit_forms import KumagaiTersoff, AbellTersoffBrenner, StillingerWeber
 from ase import Atoms
 import ase.io
 from matscipy.hessian_finite_differences import fd_hessian
 from ase.lattice.cubic import Diamond
-from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
+from matscipy.elasticity import fit_elastic_constants, full_3x3x3x3_to_Voigt_6x6
 from matscipy.calculators.calculator import MatscipyCalculator
-from ase.units import GPa
 
 ###
 
@@ -110,31 +108,31 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
 
         #Test forces and hessian matrix for Tersoff3
 
-        T3_Si_potential = t3.tersoff3_Si
+        T3_Si_potential = t3.Tersoff_PRB_39_5566_Si_C
         for d in np.arange(1.0, 2.3, 0.15):        
             small = Atoms([14]*4, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
             small.center(vacuum=10.0)
             small2 = Atoms([14]*5, [(d, 0, d/2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
             small2.center(vacuum=10.0)
         
-            self.compute_forces_and_hessian(small, TersoffIII(T3_Si_potential))
-            self.compute_forces_and_hessian(small2, TersoffIII(T3_Si_potential))
+            self.compute_forces_and_hessian(small, AbellTersoffBrenner(T3_Si_potential))
+            self.compute_forces_and_hessian(small2, AbellTersoffBrenner(T3_Si_potential))
 
         # Test forces, hessian, non-affine forces and elastic constants for a Si crystal 
         for a0 in [5.2, 5.3, 5.4, 5.5]:
             Si_crystal =  Diamond('Si', size=[1,1,1], latticeconstant=a0)
-            self.compute_forces_and_hessian(Si_crystal, TersoffIII(T3_Si_potential))
-            self.compute_elastic_constants(Si_crystal, TersoffIII(T3_Si_potential))
+            self.compute_forces_and_hessian(Si_crystal, AbellTersoffBrenner(T3_Si_potential))
+            self.compute_elastic_constants(Si_crystal, AbellTersoffBrenner(T3_Si_potential))
 
         # Tests for amorphous Si 
         aSi = ase.io.read('aSi_N8.xyz')  
-        aSi.set_calculator(AbellTersoffBrennerStillingerWeber(**TersoffIII(T3_Si_potential)))  
+        aSi.set_calculator(AbellTersoffBrennerStillingerWeber(**AbellTersoffBrenner(T3_Si_potential)))
         # Non-zero forces and Hessian 
-        self.compute_forces_and_hessian(aSi, TersoffIII(T3_Si_potential))
+        self.compute_forces_and_hessian(aSi, AbellTersoffBrenner(T3_Si_potential))
         # Test forces, hessian, non-affine forces and elastic constants for amorphous Si    
         FIRE(aSi).run(fmax=1e-5, steps=1e3)     
-        self.compute_forces_and_hessian(aSi, TersoffIII(T3_Si_potential))
-        self.compute_elastic_constants(aSi, TersoffIII(T3_Si_potential))
+        self.compute_forces_and_hessian(aSi, AbellTersoffBrenner(T3_Si_potential))
+        self.compute_elastic_constants(aSi, AbellTersoffBrenner(T3_Si_potential))
 
     def test_stillinger_weber(self):
         #Test forces and hessian matrix for Stillinger-Weber

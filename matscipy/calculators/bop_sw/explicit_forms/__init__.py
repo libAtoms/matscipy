@@ -20,5 +20,5 @@
 # ======================================================================
 
 from .kumagai import KumagaiTersoff
-from .tersoff3 import TersoffIII
+from .tersoff3 import AbellTersoffBrenner
 from .stillinger_weber import StillingerWeber

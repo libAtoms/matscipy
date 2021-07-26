@@ -62,14 +62,7 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
     default_parameters = {}
     name = 'ThreeBodyPotential'
 
-    def __init__(self, F, G,
-                 d1F, d2F, d11F, d22F, d12F,
-                 d1G,
-                 d11G,
-                 d2G,
-                 d22G,
-                 d12G,
-                 cutoff):
+    def __init__(self, F, G, d1F, d2F, d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G, cutoff):
         Calculator.__init__(self)
         self.F = F
         self.G = G
@@ -101,17 +94,18 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t = triplet_list(first_n)
+        i_t = i_p[ij_t]
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t])
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
-        F_p = self.F(r_p, xi_p)
-        d1F_p = self.d1F(r_p, xi_p)
-        d2F_p = self.d2F(r_p, xi_p)
+        F_p = self.F(r_p, xi_p, ij_t, ik_t)
+        d1F_p = self.d1F(r_p, xi_p, ij_t, ik_t)
+        d2F_p = self.d2F(r_p, xi_p, ij_t, ik_t)
         d2F_d2G_t = (d2F_p[ij_t] * d2G_tc.T).T
 
         # calculate energy
@@ -185,29 +179,30 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
+        i_t = i_p[ij_t]
         first_p = first_neighbours(len(i_p), ij_t)
 
         nb_triplets = len(ij_t)
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t])
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
-        d1F_p = self.d1F(r_p, xi_p)
+        d1F_p = self.d1F(r_p, xi_p, ij_t, ik_t)
         d1F_p[mask_p] = 0.0  # we need to explicitly exclude everything with r > cutoff
-        d2F_p = self.d2F(r_p, xi_p)
+        d2F_p = self.d2F(r_p, xi_p, ij_t, ik_t)
         d2F_p[mask_p] = 0.0
-        d11F_p = self.d11F(r_p, xi_p)
+        d11F_p = self.d11F(r_p, xi_p, ij_t, ik_t)
         d11F_p[mask_p] = 0.0
-        d12F_p = self.d12F(r_p, xi_p)
+        d12F_p = self.d12F(r_p, xi_p, ij_t, ik_t)
         d12F_p[mask_p] = 0.0
-        d22F_p = self.d22F(r_p, xi_p)
+        d22F_p = self.d22F(r_p, xi_p, ij_t, ik_t)
         d22F_p[mask_p] = 0.0
 
         # Hessian term #4
@@ -343,29 +338,27 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
-        first_p = first_neighbours(len(i_p), ij_t)
-
-        nb_triplets = len(ij_t)
+        i_t = i_p[ij_t]
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t])
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
-        d1F_p = self.d1F(r_p, xi_p)
+        d1F_p = self.d1F(r_p, xi_p, ij_t, ik_t)
         d1F_p[mask_p] = 0.0
-        d2F_p = self.d2F(r_p, xi_p)
+        d2F_p = self.d2F(r_p, xi_p, ij_t, ik_t)
         d2F_p[mask_p] = 0.0
-        d11F_p = self.d11F(r_p, xi_p)
+        d11F_p = self.d11F(r_p, xi_p, ij_t, ik_t)
         d11F_p[mask_p] = 0.0
-        d12F_p = self.d12F(r_p, xi_p)
+        d12F_p = self.d12F(r_p, xi_p, ij_t, ik_t)
         d12F_p[mask_p] = 0.0
-        d22F_p = self.d22F(r_p, xi_p)
+        d22F_p = self.d22F(r_p, xi_p, ij_t, ik_t)
         d22F_p[mask_p] = 0.0
 
         # Term 1
@@ -611,26 +604,27 @@ class AbellTersoffBrennerStillingerWeber(Calculator):
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
+        i_t = i_p[ij_t]
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t])
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t])
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t])
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t])
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t])
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t])
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
+        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], i_t, ij_t, ik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
-        d1F_p = self.d1F(r_p, xi_p)
+        d1F_p = self.d1F(r_p, xi_p, ij_t, ik_t)
         d1F_p[mask_p] = 0.0
-        d2F_p = self.d2F(r_p, xi_p)
+        d2F_p = self.d2F(r_p, xi_p, ij_t, ik_t)
         d2F_p[mask_p] = 0.0
-        d11F_p = self.d11F(r_p, xi_p)
+        d11F_p = self.d11F(r_p, xi_p, ij_t, ik_t)
         d11F_p[mask_p] = 0.0
-        d12F_p = self.d12F(r_p, xi_p)
+        d12F_p = self.d12F(r_p, xi_p, ij_t, ik_t)
         d12F_p[mask_p] = 0.0
-        d22F_p = self.d22F(r_p, xi_p)
+        d22F_p = self.d22F(r_p, xi_p, ij_t, ik_t)
         d22F_p[mask_p] = 0.0
 
         # Derivative of xi with respect to the deformation gradient
