@@ -2,26 +2,27 @@ from math import sqrt
 
 import numpy as np
 
+import ase.data as data
+
 # The parameter sets are compatible with Atomistica.
 # See: https://github.com/Atomistica/atomistica/blob/master/src/python/atomistica/parameters.py
 
-# Generate unique pair and triplet indices for identifying parameters
 def pair_index(i, j, maxval):
-    return min(i+j*maxval, j+i*maxval)-min(i*(i+1)//2, j*(j+1)//2)
+    return np.minimum(i + j * maxval, j + i * maxval) - np.minimum(i * (i + 1) // 2, j * (j + 1) // 2)
 
 
 def triplet_index(i, maxval):
-    return k+maxval*(j+maxval*i)
+    return k + maxval * (j + maxval * i)
 
 
 # Mixing rules
 def mix(p, key, rule):
     nel = len(p['el'])
     for i in range(nel):
-        for j in range(i+1,nel):
-            ii = pair_index(i,i,nel)
-            jj = pair_index(j,j,nel)
-            ij = pair_index(i,j,nel)
+        for j in range(i + 1, nel):
+            ii = pair_index(i, i, nel)
+            jj = pair_index(j, j, nel)
+            ij = pair_index(i, j, nel)
             p[key][ij] = rule(p[key][ii], p[key][jj])
 
 
@@ -289,6 +290,18 @@ def AbellTersoffBrenner(parameters):
     lambda3 = parameters['lambda3']
     delta = parameters['delta']
 
+    # Number of elements in parameter set. We will assign a consecutive internal element number.
+    nb_elements = len(el)
+    atomic_numbers = [data.atomic_numbers[e] for e in el]
+    atomic_number_to_internal_type = np.zeros(np.max(atomic_numbers)+1, dtype=int)
+    atomic_number_to_internal_type[atomic_numbers] = np.arange(len(atomic_numbers))
+
+    # Assign internal element number given the atomic number
+    atom_type = lambda n: atomic_number_to_internal_type[n]
+
+    # Combine two internal element number into an index for a pair property
+    pair_type = lambda i, j: pair_index(i, j, nb_elements)
+
     f = lambda r, p: np.where(
         r < r1[p],
         np.ones_like(r),
@@ -326,9 +339,9 @@ def AbellTersoffBrenner(parameters):
     db = lambda xi, p:  np.where(xi == 0.0, 0.0, -0.5 * beta[p] * np.power(beta[p] * xi, n[p]-1, where=xi!=0.0) * (1 + (beta[p] * xi)**n[p])**(-1-1/(2*n[p])))
     ddb = lambda xi, p: np.where(xi == 0.0, 0.0, -0.5 * beta[p]**2 * (n[p]-1) * np.power(beta[p] * xi, n[p]-2, where=xi!=0.0) * np.power(1 + (beta[p] * xi)**n[p], -1-1/(2*n[p])) - 0.5 * beta[p]**2 * n[p] * np.power(beta[p] * xi, -2 + 2*n[p], where=xi!=0.0) * ( -1 - 1/(2*n[p])) * np.power(1 + (beta[p] * xi)**n[p], -2-1/(2*n[p])))
 
-    g = lambda cost, i, ij, ik: 1 + c[i]**2 / d[i]**2 - c[i]**2 / (d[i]**2 + (h[i] - cost)**2)
-    dg = lambda cost, i, ij, ik: -2 * c[i]**2 * (h[i] - cost) / (d[i]**2 + (h[i] - cost)**2)**2
-    ddg = lambda cost, i, ij, ik: 2 * c[i]**2 / (d[i]**2 + (h[i] - cost)**2)**2 - 8 * c**2 * (h[i] - cost)**2 / (d[i]**2 + (h[i] - cost)**2)**3
+    g = lambda cost, i, ij: 1 + c[i] ** 2 / d[i] ** 2 - c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2)
+    dg = lambda cost, i, ij: -2 * c[i] ** 2 * (h[i] - cost) / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2
+    ddg = lambda cost, i, ij: 2 * c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2 - 8 * c ** 2 * (h[i] - cost) ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 3
 
     hf = lambda rij, rik, ij, ik: f(ab(rik), ik) * np.exp(lambda3[ij]*(ab(rij)-ab(rik))**delta[ij])
     d1h = lambda rij, rik, ij, ik: lambda3[ij] * hf(rij, rik, ij, ik)
@@ -352,67 +365,67 @@ def AbellTersoffBrenner(parameters):
     d12F = lambda r, xi, p: f(r, p) * dfA(r, p) * db(xi, p) + fA(r, p) * df(r, p) * db(xi, p)
 
     # Helping functions
-    costh = lambda rij, rik: np.sum(rij*rik, axis=1) / (ab(rij)*ab(rik))
+    costh = lambda rij, rik: np.sum(rij * rik, axis=1) / (ab(rij) * ab(rik))
 
     c1 = lambda rij, rik: ((rik.T/ab(rik) - rij.T/ab(rij) * costh(rij, rik)) / ab(rij)).T
     c2 = lambda rij, rik: ((rij.T/ab(rij) - rik.T/ab(rik) * costh(rij, rik)) / ab(rik)).T
 
     dc11 = lambda rij, rik: \
         ((- c1(rij, rik).reshape(-1, 3, 1) * rij.reshape(-1, 1, 3) \
-         - rij.reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3) \
-         - (costh(rij, rik) * (np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T).T \
-        ).T/ab(rij)**2).T
+          - rij.reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3) \
+          - (costh(rij, rik) * (np.eye(3) - ((rij.reshape(-1, 1, 3) * rij.reshape(-1, 3, 1)).T / ab(rij) ** 2).T).T).T \
+          ).T / ab(rij) ** 2).T
     dc22 = lambda rij, rik: \
         ((- c2(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3) \
-         - rik.reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3) \
-         - (costh(rij, rik) * (np.eye(3) -  ((rik.reshape(-1, 1, 3)*rik.reshape(-1, 3, 1)).T/ab(rik)**2).T).T).T \
-        ).T/ab(rik)**2).T
+          - rik.reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3) \
+          - (costh(rij, rik) * (np.eye(3) - ((rik.reshape(-1, 1, 3) * rik.reshape(-1, 3, 1)).T / ab(rik) ** 2).T).T).T \
+          ).T / ab(rik) ** 2).T
 
     dc12 = lambda rij, rik: \
-        (((np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T/ab(rij)
-         - (c1(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik) \
-        )/ab(rik)).T
+        (((np.eye(3) - ((rij.reshape(-1, 1, 3) * rij.reshape(-1, 3, 1)).T / ab(rij) ** 2).T).T / ab(rij)
+          - (c1(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T / ab(rik) \
+          ) / ab(rik)).T
 
     Dh1 = lambda rij, rik, ij, ik: (d1h(rij, rik, ij, ik) * rij.T / ab(rij)).T
     Dh2 = lambda rij, rik, ij, ik: (d2h(rij, rik, ij, ik) * rik.T / ab(rik)).T
 
-    Dg1 = lambda rij, rik, i, ij, ik: (dg(costh(rij, rik), i, ij, ik) * c1(rij, rik).T).T
-    Dg2 = lambda rij, rik, i, ij, ik: (dg(costh(rij, rik), i, ij, ik) * c2(rij, rik).T).T
+    Dg1 = lambda rij, rik, i, ij: (dg(costh(rij, rik), i, ij) * c1(rij, rik).T).T
+    Dg2 = lambda rij, rik, i, ij: (dg(costh(rij, rik), i, ij) * c2(rij, rik).T).T
 
     # Derivatives of G
-    G = lambda rij, rik, i, ij, ik: g(costh(rij, rik), i, ij, ik) * hf(rij, rik, ij, ik)
+    G = lambda rij, rik, i, ij: g(costh(rij, rik), i, ij) * hf(rij, rik, ij, ik)
 
     d1G = lambda rij, rik, i, ij: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
     d2G = lambda rij, rik, i, ij: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
 
-    d11G = lambda rij, rik, i, ij, ik: \
-        Dg1(rij, rik, i, ij, ik).reshape(-1, 3, 1) * Dh1(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh1(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg1(rij, rik, i, ij, ik).reshape(-1, 1, 3) \
-        + ((g(costh(rij, rik), i, ij, ik) * Dh11(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg11(rij, rik, i, ij, ik).T).T)
+    d11G = lambda rij, rik, i, ij: \
+        Dg1(rij, rik, i, ij).reshape(-1, 3, 1) * Dh1(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh1(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg1(rij, rik, i, ij).reshape(-1, 1, 3) \
+        + ((g(costh(rij, rik), i, ij) * Dh11(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg11(rij, rik, i, ij).T).T)
 
     Dh11 = lambda rij, rik, ij, ik: \
         (d11h(rij, rik, ij, ik) * (((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T \
          + d1h(rij, rik, ij, ik) * ((np.eye(3) - ((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T/ab(rij))).T
 
-    Dg11 = lambda rij, rik, i, ij, ik: \
-        (ddg(costh(rij, rik), i, ij, ik) * (c1(rij, rik).reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)).T
-         + dg(costh(rij, rik), i, ij, ik) * dc11(rij, rik).T).T
+    Dg11 = lambda rij, rik, i, ij: \
+        (ddg(costh(rij, rik), i, ij) * (c1(rij, rik).reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)).T
+         + dg(costh(rij, rik), i, ij) * dc11(rij, rik).T).T
 
 
-    d22G = lambda rij, rik, i, ij, ik: \
-        Dg2(rij, rik, i, ij, ik).reshape(-1, 3, 1) * Dh2(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh2(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg2(rij, rik, i, ij, ik).reshape(-1, 1, 3) \
-        + ((g(costh(rij, rik), i, ij, ik) * Dh22(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg22(rij, rik, i, ij, ik).T).T)
+    d22G = lambda rij, rik, i, ij: \
+        Dg2(rij, rik, i, ij).reshape(-1, 3, 1) * Dh2(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh2(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg2(rij, rik, i, ij).reshape(-1, 1, 3) \
+        + ((g(costh(rij, rik), i, ij) * Dh22(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg22(rij, rik, i, ij).T).T)
 
     Dh22 = lambda rij, rik, ij, ik: \
         (d22h(rij, rik, ij, ik) * (((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T \
          + d2h(rij, rik, ij, ik) * ((np.eye(3) - ((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T/ab(rik))).T
 
-    Dg22 = lambda rij, rik, i, ij, ik: \
-        (ddg(costh(rij, rik), i, ij, ik) * (c2(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
-         + dg(costh(rij, rik), i, ij, ik) * dc22(rij, rik).T).T
+    Dg22 = lambda rij, rik, i, ij: \
+        (ddg(costh(rij, rik), i, ij) * (c2(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
+         + dg(costh(rij, rik), i, ij) * dc22(rij, rik).T).T
 
-    d12G = lambda rij, rik, i, ij, ik: \
-        Dg1(rij, rik, i, ij, ik).reshape(-1, 3, 1) * Dh2(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh1(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg2(rij, rik, i, ij, ik).reshape(-1, 1, 3) \
-        + ((g(costh(rij, rik), i, ij, ik) * Dh12(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg12(rij, rik, i, ij, ik).T).T)
+    d12G = lambda rij, rik, i, ij: \
+        Dg1(rij, rik, i, ij).reshape(-1, 3, 1) * Dh2(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh1(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg2(rij, rik, i, ij).reshape(-1, 1, 3) \
+        + ((g(costh(rij, rik), i, ij) * Dh12(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg12(rij, rik, i, ij).T).T)
 
     Dh12 = lambda rij, rik, ij, ik: \
         (d12h(rij, rik, ij, ik) * (rij.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/(ab(rij)*ab(rik))).T
@@ -422,6 +435,8 @@ def AbellTersoffBrenner(parameters):
          + dg(costh(rij, rik), ij, ik) * dc12(rij, rik).T).T
 
     return {
+        'atom_type': atom_type,
+        'pair_type': pair_type,
         'F': F,
         'G': G,
         'd1F': d1F,
@@ -434,5 +449,5 @@ def AbellTersoffBrenner(parameters):
         'd11G': d11G,
         'd22G': d22G,
         'd12G': d12G,
-        'cutoff': r2,
+        'cutoff': np.max(r2),  # FIXME!!! If not all elements are present, this cutoff may be too large
     }
