@@ -26,6 +26,7 @@ import pytest
 import numpy as np
 
 import ase.constraints
+from ase.lattice.cubic import Diamond
 from ase.optimize import FIRE
 from ase.units import GPa
 
@@ -36,9 +37,6 @@ from matscipy.calculators.manybody import Manybody
 from matscipy.calculators.manybody.explicit_forms import Kumagai, TersoffBrenner, StillingerWeber
 from matscipy.elasticity import full_3x3x3x3_to_Voigt_6x6
 
-
-
-from ase.lattice.cubic import Diamond
 
 ###
 
