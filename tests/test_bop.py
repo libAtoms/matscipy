@@ -25,6 +25,8 @@ import unittest
 
 import numpy as np
 
+from scipy.linalg import eigh
+
 import ase
 
 import matscipytest
@@ -322,10 +324,15 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         # Non-affine elastic constants 
         C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
         B_ana = calculator.get_birch_coefficients(a)
-        C_na = calculator.get_non_affine_contribution_to_elastic_constants(a, tol=1e-5)
+        Cana_na = calculator.get_non_affine_contribution_to_elastic_constants(a, tol=1e-5)
         #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
         #print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
-        assert np.allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana+C_na), atol=0.1) 
+        assert np.allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana+Cana_na), atol=0.1) 
+
+        H_nn = calculator.get_hessian(a, "sparse").todense()
+        eigenvalues, eigenvectors = eigh(H_nn, subset_by_index=[3,3*len(a)-1])
+        Cana2_na = calculator.get_non_affine_contribution_to_elastic_constants(a, eigenvalues, eigenvectors)
+        assert np.allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana+Cana2_na), atol=0.1) 
 
 ###
 
