@@ -106,52 +106,52 @@ def StillingerWeber(parameters=original_SW):
     dg = lambda cost: 2 * (cost + costheta0)
     ddg = lambda cost: 2*cost**0
 
-    def F(r, xi, p):
+    def F(r, xi, i, p):
         mask = (r < a*sigma)
         F_n = np.zeros_like(r)
         F_n[mask] = fR(r[mask]) + lambda1 * epsilon * fA(r[mask]) * xi[mask]
         return F_n
-    def d1F(r, xi, p):
+    def d1F(r, xi, i, p):
         mask = (r < a*sigma)
         d1F_n = np.zeros_like(r)
         d1F_n[mask] = dfR(r[mask]) + lambda1 * epsilon * xi[mask] * dfA(r[mask])
         return d1F_n
-    def d2F(r, xi, p):
+    def d2F(r, xi, i, p):
         mask = (r < a*sigma)
         d2F_n = np.zeros_like(r)
         d2F_n[mask] = lambda1 * epsilon * fA(r[mask])     
         return d2F_n
-    def d11F(r, xi, p):
+    def d11F(r, xi, i, p):
         mask = (r < a*sigma)
         d11F_n = np.zeros_like(r)
         d11F_n[mask] = ddfR(r[mask]) + lambda1 * epsilon * xi[mask] * ddfA(r[mask])   
         return d11F_n
-    def d22F(r, xi, p):
+    def d22F(r, xi, i, p):
         return np.zeros_like(r)
-    def d12F(r, xi, p):
+    def d12F(r, xi, i, p):
         mask = (r < a*sigma)
         d12F_n = np.zeros_like(r)
         d12F_n[mask] = lambda1 * epsilon * dfA(r[mask])
         return d12F_n
 
-    G = lambda rij, rik, i, ij: hf(rik) * g(costh(rij, rik))
+    G = lambda rij, rik, i, ij, ik: hf(rik) * g(costh(rij, rik))
 
-    d1G = lambda rij, rik, i, ij: (hf(rik) * Dg1(rij, rik).T).T
-    d2G = lambda rij, rik, i, ij: (Dh2(rik).T * g(costh(rij, rik)) + hf(rik) * Dg2(rij, rik).T).T
+    d1G = lambda rij, rik, i, ij, ik: (hf(rik) * Dg1(rij, rik).T).T
+    d2G = lambda rij, rik, i, ij, ik: (Dh2(rik).T * g(costh(rij, rik)) + hf(rik) * Dg2(rij, rik).T).T
 
     Dh2 = lambda rik: (d2h(rik) * rik.T / ab(rik)).T 
 
     Dg1 = lambda rij, rik: (dg(costh(rij, rik)) * c1(rij, rik).T).T 
     Dg2 = lambda rij, rik: (dg(costh(rij, rik)) * c2(rij, rik).T).T
 
-    d11G = lambda rij, rik, i, ij: \
+    d11G = lambda rij, rik, i, ij, ik: \
         ((hf(rik) * Dg11(rij, rik).T).T)
 
     Dg11 = lambda rij, rik: \
         (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)).T
          + dg(costh(rij, rik)) * dc11(rij, rik).T).T
 
-    d22G = lambda rij, rik, i, ij: \
+    d22G = lambda rij, rik, i, ij, ik: \
         Dg2(rij, rik).reshape(-1, 3, 1) * Dh2(rik).reshape(-1, 1, 3) + Dh2(rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh22(rij, rik).T).T + (hf(rik) * Dg22(rij, rik).T).T)
 
@@ -163,7 +163,7 @@ def StillingerWeber(parameters=original_SW):
         (d22h(rik) * (((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T \
          + d2h(rik) * ((np.eye(3) - ((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T/ab(rik))).T
 
-    d12G = lambda rij, rik, i, ij: \
+    d12G = lambda rij, rik, i, ij, ik: \
         Dg1(rij, rik).reshape(-1, 3, 1) * Dh2(rik).reshape(-1, 1, 3) + ((hf(rik) * Dg12(rij, rik).T).T)
 
     Dg12 = lambda rij, rik: \

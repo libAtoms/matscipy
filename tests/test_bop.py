@@ -44,7 +44,7 @@ def test_stress(a0):
     atoms = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
     kumagai_potential = kum.kumagai
     calculator = Manybody(**Kumagai(kumagai_potential))
-    atoms.set_calculator(calculator)
+    atoms.calc = calculator
     s = atoms.get_stress()
     sn = calculator.calculate_numerical_stress(atoms, d=0.0001)
     np.testing.assert_allclose(s, sn, atol=1e-6)
@@ -91,7 +91,7 @@ def test_kumagai_crystal(a0):
 def test_kumagai_amorphous():
     # Tests for amorphous Si
     aSi = ase.io.read('aSi_N8.xyz')
-    aSi.set_calculator(Manybody(**Kumagai(kum.kumagai)))
+    aSi.calc = Manybody(**Kumagai(kum.kumagai))
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, Kumagai(kum.kumagai))
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
@@ -135,7 +135,7 @@ def test_tersoff_multicomponent_crystal(a0):
 def test_tersoff_amorphous():
     # Tests for amorphous Si
     aSi = ase.io.read('aSi_N8.xyz')
-    aSi.set_calculator(Manybody(**TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C)))
+    aSi.calc = Manybody(**TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
@@ -171,7 +171,7 @@ def test_stillinger_weber_crystal(a0):
 def test_stillinger_weber_amorphous():
     # Tests for amorphous Si
     aSi = ase.io.read('aSi_N8.xyz')
-    aSi.set_calculator(Manybody(**StillingerWeber(sw.original_SW)))
+    aSi.calc = Manybody(**StillingerWeber(sw.original_SW))
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, StillingerWeber(sw.original_SW))
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
@@ -187,15 +187,15 @@ def test_generic_potential_form():
     small.center(vacuum=10.0)
     small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
     small2.center(vacuum=10.0)
-    compute_forces_and_hessian(small, term1())
-    compute_forces_and_hessian(small, term4())
-    compute_forces_and_hessian(small, d11_term5())
-    compute_forces_and_hessian(small, d22_term5())
+    compute_forces_and_hessian(small, term1(test_cutoff))
+    compute_forces_and_hessian(small, term4(test_cutoff))
+    compute_forces_and_hessian(small, d11_term5(test_cutoff))
+    compute_forces_and_hessian(small, d22_term5(test_cutoff))
 
-    compute_forces_and_hessian(small2, term1())
-    compute_forces_and_hessian(small2, term4())
-    compute_forces_and_hessian(small2, d11_term5())
-    compute_forces_and_hessian(small2, d22_term5())
+    compute_forces_and_hessian(small2, term1(test_cutoff))
+    compute_forces_and_hessian(small2, term4(test_cutoff))
+    compute_forces_and_hessian(small2, d11_term5(test_cutoff))
+    compute_forces_and_hessian(small2, d22_term5(test_cutoff))
 
 
 # 0 - Tests Hessian term #4 (with all other terms turned off)
@@ -203,19 +203,19 @@ def term4(test_cutoff):
     return {
         'atom_type': lambda n: np.zeros_like(n),
         'pair_type': lambda i, j: np.zeros_like(i),
-        'F': lambda x, y, p: x,
-        'G': lambda x, y, i, ij: np.ones_like(x[:, 0]),
-        'd1F': lambda x, y, p: np.ones_like(x),
-        'd11F': lambda x, y, p: np.zeros_like(x),
-        'd2F': lambda x, y, p: np.zeros_like(y),
-        'd22F': lambda x, y, p: np.zeros_like(y),
-        'd12F': lambda x, y, p: np.zeros_like(y),
-        'd1G': lambda x, y, i, ij: np.zeros_like(y),
-        'd2G': lambda x, y, i, ij: np.zeros_like(y),
-        'd11G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'F': lambda x, y, i, p: x,
+        'G': lambda x, y, i, ij, ik: np.ones_like(x[:, 0]),
+        'd1F': lambda x, y, i, p: np.ones_like(x),
+        'd11F': lambda x, y, i, p: np.zeros_like(x),
+        'd2F': lambda x, y, i, p: np.zeros_like(y),
+        'd22F': lambda x, y, i, p: np.zeros_like(y),
+        'd12F': lambda x, y, i, p: np.zeros_like(y),
+        'd1G': lambda x, y, i, ij, ik: np.zeros_like(y),
+        'd2G': lambda x, y, i, ij, ik: np.zeros_like(y),
+        'd11G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
         # if beta <= 1 else beta*(beta-1)*x.**(beta-2) * y[:, 2]**gamma,
-        'd12G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
-        'd22G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'd12G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'd22G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
         'cutoff': test_cutoff}
 
 
@@ -224,18 +224,18 @@ def term1(test_cutoff):
     return {
         'atom_type': lambda n: np.zeros_like(n),
         'pair_type': lambda i, j: np.zeros_like(i),
-        'F': lambda x, y, p: x ** 2,
-        'G': lambda x, y, i, ij: np.ones_like(x[:, 0]),
-        'd1F': lambda x, y, p: 2 * x,
-        'd11F': lambda x, y, p: 2 * np.ones_like(x),
-        'd2F': lambda x, y, p: np.zeros_like(y),
-        'd22F': lambda x, y, p: np.zeros_like(y),
-        'd12F': lambda x, y, p: np.zeros_like(y),
-        'd1G': lambda x, y, i, ij: np.zeros_like(x),
-        'd2G': lambda x, y, i, ij: np.zeros_like(y),
-        'd11G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
-        'd12G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
-        'd22G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'F': lambda x, y, i, p: x ** 2,
+        'G': lambda x, y, i, ij, ik: np.ones_like(x[:, 0]),
+        'd1F': lambda x, y, i, p: 2 * x,
+        'd11F': lambda x, y, i, p: 2 * np.ones_like(x),
+        'd2F': lambda x, y, i, p: np.zeros_like(y),
+        'd22F': lambda x, y, i, p: np.zeros_like(y),
+        'd12F': lambda x, y, i, p: np.zeros_like(y),
+        'd1G': lambda x, y, i, ij, ik: np.zeros_like(x),
+        'd2G': lambda x, y, i, ij, ik: np.zeros_like(y),
+        'd11G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'd12G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'd22G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
         'cutoff': test_cutoff}
 
 
@@ -244,19 +244,19 @@ def d11_term5(test_cutoff):
     return {
         'atom_type': lambda n: np.zeros_like(n),
         'pair_type': lambda i, j: np.zeros_like(i),
-        'F': lambda x, y, p: y,
-        'G': lambda x, y, i, ij: np.sum(x ** 2, axis=1),
-        'd1F': lambda x, y, p: np.zeros_like(x),
-        'd11F': lambda x, y, p: np.zeros_like(x),
-        'd2F': lambda x, y, p: np.ones_like(x),
-        'd22F': lambda x, y, p: np.zeros_like(x),
-        'd12F': lambda x, y, p: np.zeros_like(x),
-        'd1G': lambda x, y, i, ij: 2 * x,
-        'd2G': lambda x, y, i, ij: np.zeros_like(y),
-        'd11G': lambda x, y, i, ij: np.array([2 * np.eye(3)] * x.shape[0]),
+        'F': lambda x, y, i, p: y,
+        'G': lambda x, y, i, ij, ik: np.sum(x ** 2, axis=1),
+        'd1F': lambda x, y, i, p: np.zeros_like(x),
+        'd11F': lambda x, y, i, p: np.zeros_like(x),
+        'd2F': lambda x, y, i, p: np.ones_like(x),
+        'd22F': lambda x, y, i, p: np.zeros_like(x),
+        'd12F': lambda x, y, i, p: np.zeros_like(x),
+        'd1G': lambda x, y, i, ij, ik: 2 * x,
+        'd2G': lambda x, y, i, ij, ik: np.zeros_like(y),
+        'd11G': lambda x, y, i, ij, ik: np.array([2 * np.eye(3)] * x.shape[0]),
         # np.ones_like(x).reshape(-1,3,1)*np.ones_like(y).reshape(-1,1,3), #if beta <= 1 else beta*(beta-1)*x.**(beta-2) * y[:, 2]**gamma,
-        'd12G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
-        'd22G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'd12G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'd22G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
         'cutoff': test_cutoff}
 
 
@@ -265,19 +265,19 @@ def d22_term5(test_cutoff):
     return {
         'atom_type': lambda n: np.zeros_like(n),
         'pair_type': lambda i, j: np.zeros_like(i),
-        'F': lambda x, y, p: y,
-        'G': lambda x, y, i, ij: np.sum(y ** 2, axis=1),
-        'd1F': lambda x, y, p: np.zeros_like(x),
-        'd11F': lambda x, y, p: np.zeros_like(x),
-        'd2F': lambda x, y, p: np.ones_like(x),
-        'd22F': lambda x, y, p: np.zeros_like(x),
-        'd12F': lambda x, y, p: np.zeros_like(x),
-        'd2G': lambda x, y, i, ij: 2 * y,
-        'd1G': lambda x, y, i, ij: np.zeros_like(x),
-        'd22G': lambda x, y, i, ij: np.array([2 * np.eye(3)] * x.shape[0]),
+        'F': lambda x, y, i, p: y,
+        'G': lambda x, y, i, ij, ik: np.sum(y ** 2, axis=1),
+        'd1F': lambda x, y, i, p: np.zeros_like(x),
+        'd11F': lambda x, y, i, p: np.zeros_like(x),
+        'd2F': lambda x, y, i, p: np.ones_like(x),
+        'd22F': lambda x, y, i, p: np.zeros_like(x),
+        'd12F': lambda x, y, i, p: np.zeros_like(x),
+        'd2G': lambda x, y, i, ij, ik: 2 * y,
+        'd1G': lambda x, y, i, ij, ik: np.zeros_like(x),
+        'd22G': lambda x, y, i, ij, ik: np.array([2 * np.eye(3)] * x.shape[0]),
         # np.ones_like(x).reshape(-1,3,1)*np.ones_like(y).reshape(-1,1,3), #if beta <= 1 else beta*(beta-1)*x.**(beta-2) * y[:, 2]**gamma,
-        'd12G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
-        'd11G': lambda x, y, i, ij: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'd12G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
+        'd11G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
         'cutoff': test_cutoff}
 
 
@@ -293,7 +293,7 @@ def compute_forces_and_hessian(a, par):
     #   defines the explicit form of the bond order potential
 
     calculator = Manybody(**par)
-    a.set_calculator(calculator)
+    a.calc = calculator
 
     # Forces
     ana_forces = a.get_forces()
@@ -328,7 +328,7 @@ def compute_elastic_constants(a, par):
     #   defines the explicit form of the bond order potential
 
     calculator = Manybody(**par)
-    a.set_calculator(calculator)
+    a.calc = calculator
 
     # Non-affine forces
     num_naF = MatscipyCalculator().get_numerical_non_affine_forces(a, d=1e-5)
