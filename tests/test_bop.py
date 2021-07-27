@@ -31,19 +31,20 @@ import matscipytest
 
 import ase.io as io
 from ase.optimize import FIRE
-from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber
+from matscipy.calculators.calculator import MatscipyCalculator
+from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber 
 import matscipy.calculators.bop_sw.explicit_forms.stillinger_weber as sw
 import matscipy.calculators.bop_sw.explicit_forms.kumagai as kum
 import matscipy.calculators.bop_sw.explicit_forms.tersoff3 as t3
-from matscipy.calculators.bop_sw.explicit_forms import KumagaiTersoff, AbellTersoffBrenner, StillingerWeber
+from matscipy.calculators.bop_sw.explicit_forms import KumagaiTersoff, TersoffIII, StillingerWeber
 from ase import Atoms
 import ase.io
 from matscipy.hessian_finite_differences import fd_hessian
 from ase.lattice.compounds import B3
 from ase.lattice.cubic import Diamond
-from matscipy.elasticity import fit_elastic_constants, full_3x3x3x3_to_Voigt_6x6
+from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
 from matscipy.calculators.calculator import MatscipyCalculator
-
+from ase.units import GPa
 
 ###
 
@@ -338,10 +339,10 @@ class TestAbellTersoffBrennerStillingerWeber(matscipytest.MatSciPyTestCase):
         C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5,
                                             verbose=False)
         B_ana = calculator.get_birch_coefficients(a)
-        C_na = calculator.get_non_affine_contribution_to_elastic_constants(a)
-        # print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
-        # print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
-        assert np.allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana + C_na), atol=0.1)
+        C_na = calculator.get_non_affine_contribution_to_elastic_constants(a, tol=1e-5)
+        #print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
+        #print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
+        assert np.allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana+C_na), atol=0.1) 
 
     ###
 
