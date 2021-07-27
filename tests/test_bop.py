@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # ======================================================================
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
