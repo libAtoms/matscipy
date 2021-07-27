@@ -159,18 +159,18 @@ def Kumagai(parameters=kumagai):
          + ddf(ab(rik)) * np.exp(alpha * (ab(rij) - ab(rik)))
 
 
-    F = lambda r, xi, p: f(r) * (fR(r) + b(xi) * fA(r))
-    d1F = lambda r, xi, p: df(r) * (fR(r) + b(xi) * fA(r)) + f(r) * (dfR(r) + b(xi) * dfA(r))
-    d2F = lambda r, xi, p: f(r) * fA(r) * db(xi)
-    d11F = lambda r, xi, p: f(r) * (ddfR(r) + b(xi) * ddfA(r)) + 2 * df(r) * (dfR(r) + b(xi) * dfA(r)) + ddf(r) * (fR(r) + b(xi) * fA(r))
-    d22F = lambda r, xi, p:  f(r) * fA(r) * ddb(xi)
-    d12F = lambda r, xi, p: f(r) * dfA(r) * db(xi) + fA(r) * df(r) * db(xi)
+    F = lambda r, xi, i, p: f(r) * (fR(r) + b(xi) * fA(r))
+    d1F = lambda r, xi, i, p: df(r) * (fR(r) + b(xi) * fA(r)) + f(r) * (dfR(r) + b(xi) * dfA(r))
+    d2F = lambda r, xi, i, p: f(r) * fA(r) * db(xi)
+    d11F = lambda r, xi, i, p: f(r) * (ddfR(r) + b(xi) * ddfA(r)) + 2 * df(r) * (dfR(r) + b(xi) * dfA(r)) + ddf(r) * (fR(r) + b(xi) * fA(r))
+    d22F = lambda r, xi, i, p:  f(r) * fA(r) * ddb(xi)
+    d12F = lambda r, xi, i, p: f(r) * dfA(r) * db(xi) + fA(r) * df(r) * db(xi)
 
             
-    G = lambda rij, rik, i, ij: g(costh(rij, rik)) * hf(rij, rik)
+    G = lambda rij, rik, i, ij, ik: g(costh(rij, rik)) * hf(rij, rik)
     
-    d1G = lambda rij, rik, i, ij: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
-    d2G = lambda rij, rik, i, ij: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
+    d1G = lambda rij, rik, i, ij, ik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
+    d2G = lambda rij, rik, i, ij, ik: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
 
     Dh1 = lambda rij, rik: (d1h(rij, rik) * rij.T / ab(rij)).T
     Dh2 = lambda rij, rik: (d2h(rij, rik) * rik.T / ab(rik)).T
@@ -178,7 +178,7 @@ def Kumagai(parameters=kumagai):
     Dg1 = lambda rij, rik: (dg(costh(rij, rik)) * c1(rij, rik).T).T
     Dg2 = lambda rij, rik: (dg(costh(rij, rik)) * c2(rij, rik).T).T
 
-    d11G = lambda rij, rik, i, ij: \
+    d11G = lambda rij, rik, i, ij, ik: \
         Dg1(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh11(rij, rik).T).T + (hf(rij, rik) * Dg11(rij, rik).T).T)
 
@@ -191,7 +191,7 @@ def Kumagai(parameters=kumagai):
          + dg(costh(rij, rik)) * dc11(rij, rik).T).T
 
 
-    d22G = lambda rij, rik, i, ij: \
+    d22G = lambda rij, rik, i, ij, ik: \
         Dg2(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh2(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh22(rij, rik).T).T + (hf(rij, rik) * Dg22(rij, rik).T).T)
 
@@ -207,7 +207,7 @@ def Kumagai(parameters=kumagai):
     Dh12 = lambda rij, rik: \
         (d12h(rij, rik) * (rij.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/(ab(rij)*ab(rik))).T
         
-    d12G = lambda rij, rik, i, ij: \
+    d12G = lambda rij, rik, i, ij, ik: \
         Dg1(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh12(rij, rik).T).T + (hf(rij, rik) * Dg12(rij, rik).T).T)
 

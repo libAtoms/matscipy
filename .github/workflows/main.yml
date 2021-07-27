@@ -30,6 +30,11 @@ jobs:
       run: |
         sudo python3 setup.py sdist
 
+    - name: pytest
+      run: |
+        cd tests
+        pytest -s --verbose
+
     # Standard drop-in approach that should work for most people.
     - name: build_doc
       run: |

@@ -101,20 +101,22 @@ class Manybody(Calculator):
         ij_t, ik_t = triplet_list(first_n)
 
         # construct lists with atom and pair types
+        ti_p = t_n[i_p]
+        tij_p = self.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
         tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
         tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
-        F_p = self.F(r_p, xi_p, tij_t)
-        d1F_p = self.d1F(r_p, xi_p, tij_t)
-        d2F_p = self.d2F(r_p, xi_p, tij_t)
+        F_p = self.F(r_p, xi_p, ti_p, tij_p)
+        d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
+        d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
         d2F_d2G_t = (d2F_p[ij_t] * d2G_tc.T).T
 
         # calculate energy
@@ -195,28 +197,31 @@ class Manybody(Calculator):
         nb_triplets = len(ij_t)
 
         # construct lists with atom and pair types
+        ti_p = t_n[i_p]
+        tij_p = self.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
         tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
+        tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
-        d1F_p = self.d1F(r_p, xi_p, tij_t)
+        d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
         d1F_p[mask_p] = 0.0  # we need to explicitly exclude everything with r > cutoff
-        d2F_p = self.d2F(r_p, xi_p, tij_t)
+        d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
         d2F_p[mask_p] = 0.0
-        d11F_p = self.d11F(r_p, xi_p, tij_t)
+        d11F_p = self.d11F(r_p, xi_p, ti_p, tij_p)
         d11F_p[mask_p] = 0.0
-        d12F_p = self.d12F(r_p, xi_p, tij_t)
+        d12F_p = self.d12F(r_p, xi_p, ti_p, tij_p)
         d12F_p[mask_p] = 0.0
-        d22F_p = self.d22F(r_p, xi_p, tij_t)
+        d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
         d22F_p[mask_p] = 0.0
 
         # Hessian term #4
@@ -269,13 +274,17 @@ class Manybody(Calculator):
             il = ij_t[il_im]
             im = ik_t[il_im]
             lm = jk_t[il_im]
+            ti = ti_t[il_im]
+            tij = tij_t[il_im]
+            tim = tik_t[il_im]
+            til = tij_t[il_im]
             for t in range(first_p[il], first_p[il + 1]):
                 ij = ik_t[t]
                 if ij != il and ij != im:
                     r_p_ij = np.array([r_pc[ij]])
                     r_p_il = np.array([r_pc[il]])
                     r_p_im = np.array([r_pc[im]])
-                    H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (_o(self.d2G(r_p_ij, r_p_il, ti_t, tij_t), self.d2G(r_p_ij, r_p_im, ti_t, tij_t))).T).T.squeeze()
+                    H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (_o(self.d2G(r_p_ij, r_p_il, ti, tij, til), self.d2G(r_p_ij, r_p_im, ti, tij, tim))).T).T.squeeze()
 
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
@@ -356,28 +365,31 @@ class Manybody(Calculator):
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
 
         # construct lists with atom and pair types
+        ti_p = t_n[i_p]
+        tij_p = self.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
         tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
+        tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
-        d1F_p = self.d1F(r_p, xi_p, ij_t)
+        d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
         d1F_p[mask_p] = 0.0
-        d2F_p = self.d2F(r_p, xi_p, ij_t)
+        d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
         d2F_p[mask_p] = 0.0
-        d11F_p = self.d11F(r_p, xi_p, ij_t)
+        d11F_p = self.d11F(r_p, xi_p, ti_p, tij_p)
         d11F_p[mask_p] = 0.0
-        d12F_p = self.d12F(r_p, xi_p, ij_t)
+        d12F_p = self.d12F(r_p, xi_p, ti_p, tij_p)
         d12F_p[mask_p] = 0.0
-        d22F_p = self.d22F(r_p, xi_p, ij_t)
+        d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
         d22F_p[mask_p] = 0.0
 
         # Term 1
@@ -651,29 +663,31 @@ class Manybody(Calculator):
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
 
         # construct lists with atom and pair types
+        ti_p = t_n[i_p]
+        tij_p = self.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
         tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
         tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t)
+        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
-        d1F_p = self.d1F(r_p, xi_p, tij_t)
+        d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
         d1F_p[mask_p] = 0.0
-        d2F_p = self.d2F(r_p, xi_p, tij_t)
+        d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
         d2F_p[mask_p] = 0.0
-        d11F_p = self.d11F(r_p, xi_p, tij_t)
+        d11F_p = self.d11F(r_p, xi_p, ti_p, tij_p)
         d11F_p[mask_p] = 0.0
-        d12F_p = self.d12F(r_p, xi_p, tij_t)
+        d12F_p = self.d12F(r_p, xi_p, ti_p, tij_p)
         d12F_p[mask_p] = 0.0
-        d22F_p = self.d22F(r_p, xi_p, tij_t)
+        d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
         d22F_p[mask_p] = 0.0
 
         # Derivative of xi with respect to the deformation gradient
