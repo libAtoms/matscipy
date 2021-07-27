@@ -57,10 +57,10 @@ def _o(x, y, z=None):
     else:
         return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
 
-class AbellTersoffBrennerStillingerWeber(Calculator):
+class Manybody(Calculator):
     implemented_properties = ['free_energy', 'energy', 'stress', 'forces']
     default_parameters = {}
-    name = 'ThreeBodyPotential'
+    name = 'Manybody'
 
     def __init__(self, atom_type, pair_type, F, G, d1F, d2F, d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G, cutoff):
         Calculator.__init__(self)

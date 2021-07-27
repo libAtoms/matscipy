@@ -19,5 +19,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from .calculator import AbellTersoffBrennerStillingerWeber
-from .explicit_forms import KumagaiTersoff, AbellTersoffBrenner, StillingerWeber
+from .kumagai import Kumagai
+from .tersoff_brenner import TersoffBrenner
+from .stillinger_weber import StillingerWeber

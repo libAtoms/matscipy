@@ -264,7 +264,7 @@ def ab(x):
     return np.linalg.norm(x, axis=1)
 
 
-def AbellTersoffBrenner(parameters):
+def TersoffBrenner(parameters):
     """
     Implementation of the function form for Abell-Tersoff-Brenner potentials.
     The implementation follows the notation of Tersoff.

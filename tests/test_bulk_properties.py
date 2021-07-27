@@ -29,11 +29,11 @@ import ase.constraints
 from ase.optimize import FIRE
 from ase.units import GPa
 
-import matscipy.calculators.bop_sw.explicit_forms.stillinger_weber as sw
-import matscipy.calculators.bop_sw.explicit_forms.kumagai as kum
-import matscipy.calculators.bop_sw.explicit_forms.tersoff3 as t3
-from matscipy.calculators.bop_sw import AbellTersoffBrennerStillingerWeber
-from matscipy.calculators.bop_sw.explicit_forms import KumagaiTersoff, AbellTersoffBrenner, StillingerWeber
+import matscipy.calculators.manybody.explicit_forms.stillinger_weber as sw
+import matscipy.calculators.manybody.explicit_forms.kumagai as kum
+import matscipy.calculators.manybody.explicit_forms.tersoff_brenner as t3
+from matscipy.calculators.manybody import Manybody
+from matscipy.calculators.manybody.explicit_forms import Kumagai, TersoffBrenner, StillingerWeber
 from matscipy.elasticity import full_3x3x3x3_to_Voigt_6x6
 
 
@@ -45,16 +45,16 @@ from ase.lattice.cubic import Diamond
 sx = 1
 
 tests = [
-    ("Kumagai", KumagaiTersoff(kum.kumagai),
-      dict(name="dia-Si", struct=Diamond("Si", size=[sx,sx,sx]),
+    ("Kumagai", Kumagai(kum.kumagai),
+     dict(name="dia-Si", struct=Diamond("Si", size=[sx,sx,sx]),
             Ec=-4.630, a0=5.429, C11=166.4, C12=65.3, C44=77.1, C440=120.9)
       ),
     ("StillingerWeber", StillingerWeber(sw.original_SW),
       dict(name="dia-Si", struct=Diamond("Si", size=[sx,sx,sx]),
             Ec=-4.630, a0=5.431, C11=161.6, C12=81.6, C44=60.3, C440=117.2, B=108.3)
       ),
-    ("Tersoff3", AbellTersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C),
-        dict(name="dia-Si", struct=Diamond("Si", size=[sx,sx,sx]),
+    ("Tersoff3", TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C),
+     dict(name="dia-Si", struct=Diamond("Si", size=[sx,sx,sx]),
              Ec=-4.63, a0=5.432, C11=143, C12=75, C44=69, C440=119, B=98)
       )
     ]
@@ -64,7 +64,7 @@ tests = [
 def test_cubic_elastic_constants(test):
     pot, par, mats = test
 
-    calculator = AbellTersoffBrennerStillingerWeber(**par)
+    calculator = Manybody(**par)
     atoms = mats["struct"]
     atoms.translate([0.1, 0.1, 0.1])
     atoms.set_scaled_positions(atoms.get_scaled_positions())

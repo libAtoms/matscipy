@@ -63,7 +63,7 @@ def ab(x):
     """
     return np.linalg.norm(x, axis=1)
 
-def KumagaiTersoff(parameters=kumagai):
+def Kumagai(parameters=kumagai):
     """
     Implementation of functional form of Kumagai´s potential. 
 

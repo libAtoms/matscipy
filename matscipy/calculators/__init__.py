@@ -23,7 +23,7 @@ from .eam import EAM
 from .pair_potential import PairPotential
 from .supercell_calculator import SupercellCalculator
 from .polydisperse import Polydisperse
-from .bop_sw import AbellTersoffBrennerStillingerWeber
+from .manybody import Manybody
 
 try:
     import scipy.sparse as sp
