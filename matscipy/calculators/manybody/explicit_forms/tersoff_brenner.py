@@ -275,20 +275,20 @@ def TersoffBrenner(parameters):
     """
 
     el = parameters['el']
-    A = parameters['A']
-    B = parameters['B']
-    chi = parameters['chi']
-    lam = parameters['lambda']
-    mu = parameters['mu']
-    beta = parameters['beta']
-    n = parameters['n']
-    c = parameters['c']
-    d = parameters['d']
-    h = parameters['h']
-    r1 = parameters['r1']
-    r2 = parameters['r2']
-    lambda3 = parameters['lambda3']
-    delta = parameters['delta']
+    A = np.array(parameters['A'])
+    B = np.array(parameters['B'])
+    chi = np.array(parameters['chi'])
+    lam = np.array(parameters['lambda'])
+    mu = np.array(parameters['mu'])
+    beta = np.array(parameters['beta'])
+    n = np.array(parameters['n'])
+    c = np.array(parameters['c'])
+    d = np.array(parameters['d'])
+    h = np.array(parameters['h'])
+    r1 = np.array(parameters['r1'])
+    r2 = np.array(parameters['r2'])
+    lambda3 = np.array(parameters['lambda3'])
+    delta = np.array(parameters['delta'])
 
     # Number of elements in parameter set. We will assign a consecutive internal element number.
     nb_elements = len(el)
@@ -335,9 +335,9 @@ def TersoffBrenner(parameters):
     dfA = lambda r, p: -mu[p] * fA(r, p)
     ddfA = lambda r, p: mu[p]**2 * fA(r, p)
 
-    b = lambda xi, p: (1 + (beta[p] * xi)**n[p])**(-1 / (2 * n[p]))
-    db = lambda xi, p:  np.where(xi == 0.0, 0.0, -0.5 * beta[p] * np.power(beta[p] * xi, n[p]-1, where=xi!=0.0) * (1 + (beta[p] * xi)**n[p])**(-1-1/(2*n[p])))
-    ddb = lambda xi, p: np.where(xi == 0.0, 0.0, -0.5 * beta[p]**2 * (n[p]-1) * np.power(beta[p] * xi, n[p]-2, where=xi!=0.0) * np.power(1 + (beta[p] * xi)**n[p], -1-1/(2*n[p])) - 0.5 * beta[p]**2 * n[p] * np.power(beta[p] * xi, -2 + 2*n[p], where=xi!=0.0) * ( -1 - 1/(2*n[p])) * np.power(1 + (beta[p] * xi)**n[p], -2-1/(2*n[p])))
+    b = lambda xi, p: chi[p] * (1 + (beta[p] * xi)**n[p])**(-1 / (2 * n[p]))
+    db = lambda xi, p: chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[p] * np.power(beta[p] * xi, n[p]-1, where=xi!=0.0) * (1 + (beta[p] * xi)**n[p])**(-1-1/(2*n[p])))
+    ddb = lambda xi, p: chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[p]**2 * (n[p]-1) * np.power(beta[p] * xi, n[p]-2, where=xi!=0.0) * np.power(1 + (beta[p] * xi)**n[p], -1-1/(2*n[p])) - 0.5 * beta[p]**2 * n[p] * np.power(beta[p] * xi, -2 + 2*n[p], where=xi!=0.0) * ( -1 - 1/(2*n[p])) * np.power(1 + (beta[p] * xi)**n[p], -2-1/(2*n[p])))
 
     g = lambda cost, i, ij: 1 + c[i] ** 2 / d[i] ** 2 - c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2)
     dg = lambda cost, i, ij: -2 * c[i] ** 2 * (h[i] - cost) / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2
