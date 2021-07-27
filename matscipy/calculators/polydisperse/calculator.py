@@ -207,7 +207,7 @@ class Polydisperse(MatscipyCalculator):
 
     ###
 
-    def hessian_matrix(self, atoms, format='sparse', divide_by_masses=False):
+    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a polydisperse systems where atoms interact via a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix

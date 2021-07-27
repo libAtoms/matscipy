@@ -28,6 +28,8 @@ import sys
 import numpy as np
 from numpy.linalg import norm
 
+from scipy.linalg import eigh
+
 import ase.io as io
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
@@ -264,9 +266,14 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         b = PairPotential(calc)
         atoms.set_calculator(b)     
         C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=5, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
-        anaC_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5))
-        anaC_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
-        np.allclose(C_num, anaC_af + anaC_na, atol=0.1)
+        Cana_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
+        Cana_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5))
+        np.allclose(C_num, Cana_na + Cana_af, atol=0.1)
+        
+        H_nn = b.get_hessian(atoms, "sparse").todense()
+        eigenvalues, eigenvectors = eigh(H_nn, subset_by_index=[3,3*len(atoms)-1])
+        Cana2_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms, eigenvalues, eigenvectors))
+        np.allclose(C_num, Cana2_na + Cana_af, atol=0.1)
 
     def test_elastic_born_crystal_stress(self):
         class TestPotential():
