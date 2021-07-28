@@ -209,7 +209,7 @@ class Manybody(Calculator):
         # normal vectors
         n_pc = (r_pc.T / r_p).T
 
-        # construct triplet list
+        # construct triplet list (we need jk_t here, hence neighbor must be to 2 * cutoff)
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
         first_p = first_neighbours(len(i_p), ij_t)
@@ -366,9 +366,7 @@ class Manybody(Calculator):
 
         if i_p is None or j_p is None or r_p is None or r_pc is None:
             # We need to construct the neighbor list ourselves
-            i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * cutoff)
-
-        mask_p = r_p > cutoff
+            i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -380,7 +378,7 @@ class Manybody(Calculator):
         drda_p = (n_pc * drda_pc).sum(axis=1)
         drdb_p = (n_pc * drdb_pc).sum(axis=1)
 
-        # construct triplet list
+        # construct triplet list (we don't need jk_t here, hence neighbor to cutoff suffices)
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
 
@@ -402,15 +400,10 @@ class Manybody(Calculator):
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
         d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
-        d1F_p[mask_p] = 0.0
         d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
-        d2F_p[mask_p] = 0.0
         d11F_p = self.d11F(r_p, xi_p, ti_p, tij_p)
-        d11F_p[mask_p] = 0.0
         d12F_p = self.d12F(r_p, xi_p, ti_p, tij_p)
-        d12F_p[mask_p] = 0.0
         d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
-        d22F_p[mask_p] = 0.0
 
         # Term 1
         T1 = (d11F_p * drda_p * drdb_p).sum()
@@ -528,7 +521,6 @@ class Manybody(Calculator):
 
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.get_cutoff(atoms))
 
-        nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
         C_abab = np.zeros((3, 3, 3, 3))
@@ -667,10 +659,7 @@ class Manybody(Calculator):
         cutoff = self.get_cutoff(atoms)
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
-                                             cutoff=2*cutoff)
-
-        mask_p = r_p > cutoff
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -679,7 +668,7 @@ class Manybody(Calculator):
         n_pc = (r_pc.T / r_p).T
         dn_pcc = ((np.eye(3) - _o(n_pc, n_pc)).T / r_p).T
 
-        # construct triplet list
+        # construct triplet list (we don't need jk_t here, hence neighbor to cutoff suffices)
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
 
@@ -701,22 +690,13 @@ class Manybody(Calculator):
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
         d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
-        d1F_p[mask_p] = 0.0
         d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
-        d2F_p[mask_p] = 0.0
         d11F_p = self.d11F(r_p, xi_p, ti_p, tij_p)
-        d11F_p[mask_p] = 0.0
         d12F_p = self.d12F(r_p, xi_p, ti_p, tij_p)
-        d12F_p[mask_p] = 0.0
         d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
-        d22F_p[mask_p] = 0.0
 
         # Derivative of xi with respect to the deformation gradient
-        dxidF_pab = mabincount(
-            ij_t,
-            _o(d1G_tc, r_pc[ij_t]) + \
-            _o(d2G_tc, r_pc[ik_t]),
-            minlength=nb_pairs)
+        dxidF_pab = mabincount(ij_t, _o(d1G_tc, r_pc[ij_t]) + _o(d2G_tc, r_pc[ik_t]), minlength=nb_pairs)
 
         # Term 1
         naF1_ncab =  d11F_p.reshape(-1, 1, 1, 1) * _o(n_pc, n_pc, r_pc)
