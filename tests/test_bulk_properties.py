@@ -43,11 +43,11 @@ from matscipy.elasticity import full_3x3x3x3_to_Voigt_6x6
 sx = 1
 
 tests = [
-    ("Kumagai", Kumagai(kum.kumagai),
+    ("Kumagai", Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si),
      dict(name="dia-Si", struct=Diamond("Si", size=[sx,sx,sx]),
             Ec=-4.630, a0=5.429, C11=166.4, C12=65.3, C44=77.1, C440=120.9)
       ),
-    ("StillingerWeber", StillingerWeber(sw.original_SW),
+    ("StillingerWeber", StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si),
       dict(name="dia-Si", struct=Diamond("Si", size=[sx,sx,sx]),
             Ec=-4.630, a0=5.431, C11=161.6, C12=81.6, C44=60.3, C440=117.2, B=108.3)
       ),

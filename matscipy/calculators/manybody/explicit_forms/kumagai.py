@@ -20,42 +20,31 @@
 # ======================================================================
 
 import numpy as np
-from collections import namedtuple 
 
-kumagai_parameters = namedtuple("kumagai_parameters",
-                                ["A",
-                                 "B",
-                                 "lambda_1",
-                                 "lambda_2",
-                                 "eta",
-                                 "delta",
-                                 "alpha",
-                                 "c_1",
-                                 "c_2",
-                                 "c_3",
-                                 "c_4",
-                                 "c_5",
-                                 "h",
-                                 "R_1",
-                                 "R_2"])
+#
+# Parameter sets
+# The '__ref__' dictionary entry is the journal reference
+#
 
-# T. Kumagai et. al., Comput. Mater. Sci. 39.2 (2007): 457-464.
-kumagai = kumagai_parameters(
-    A=3281.5905,
-    B=121.00047,
-    lambda_1=3.2300135,
-    lambda_2=1.3457970,
-    eta=1.0000000,
-    delta=0.53298909,
-    alpha=2.3890327,
-    c_1=0.20173476,
-    c_2=730418.72,
-    c_3=1000000.0,
-    c_4=1.0000000,
-    c_5=26.000000,
-    h=-0.36500000,
-    R_1=2.70,
-    R_2=3.30)
+Kumagai_Comp_Mat_Sci_39_Si = {
+   '__ref__':  'T. Kumagai et. al., Comp. Mat. Sci. 39 (2007)',    
+    'el':            'Si'         ,
+    'A':             3281.5905    ,
+    'B':             121.00047    ,
+    'lambda_1':      3.2300135    ,
+    'lambda_2':      1.3457970    ,
+    'eta':           1.0000000    ,
+    'delta':         0.53298909   ,
+    'alpha':         2.3890327    ,
+    'c_1':           0.20173476   ,
+    'c_2':           730418.72    ,
+    'c_3':           1000000.0    ,
+    'c_4':           1.0000000    ,
+    'c_5':           26.000000    ,
+    'h':             -0.36500000  ,
+    'R_1':           2.70         ,
+    'R_2':           3.30              
+    }
 
 def ab(x):
     """
@@ -63,7 +52,7 @@ def ab(x):
     """
     return np.linalg.norm(x, axis=1)
 
-def Kumagai(parameters=kumagai):
+def Kumagai(parameters):
     """
     Implementation of functional form of Kumagai´s potential. 
 
@@ -73,24 +62,22 @@ def Kumagai(parameters=kumagai):
 
     """
 
-    try:
-        A = parameters.A
-        B = parameters.B
-        lambda_1 = parameters.lambda_1
-        lambda_2  = parameters.lambda_2
-        eta = parameters.eta
-        delta = parameters.delta
-        alpha = parameters.alpha
-        c_1 = parameters.c_1
-        c_2 = parameters.c_2
-        c_3 = parameters.c_3
-        c_4 = parameters.c_4
-        c_5 = parameters.c_5
-        h = parameters.h
-        R_1 = parameters.R_1
-        R_2 = parameters.R_2
-    except AttributeError:
-        raise AttributeError("Parameters need to be a namedtuple of type kumagai_parameters!")
+    el = parameters["el"]
+    A = parameters["A"]
+    B = parameters["B"]
+    lambda_1 = parameters["lambda_1"]
+    lambda_2 = parameters["lambda_2"]
+    eta = parameters["eta"]
+    delta = parameters["delta"]
+    alpha = parameters["alpha"]
+    c_1 = parameters["c_1"]
+    c_2 = parameters["c_2"]
+    c_3 = parameters["c_3"]
+    c_4 = parameters["c_4"]
+    c_5 = parameters["c_5"]
+    h = parameters["h"]
+    R_1 = parameters["R_1"]
+    R_2 = parameters["R_2"]
 
     f = lambda r: np.where(
             r <= R_1, 1.0,

@@ -42,7 +42,7 @@ from matscipy.calculators.calculator import MatscipyCalculator
 @pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
 def test_stress(a0):
     atoms = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
-    kumagai_potential = kum.kumagai
+    kumagai_potential = kum.Kumagai_Comp_Mat_Sci_39_Si
     calculator = Manybody(**Kumagai(kumagai_potential))
     atoms.calc = calculator
     s = atoms.get_stress()
@@ -55,7 +55,7 @@ def test_hessian_divide_by_masses():
     atoms = ase.io.read('aSi.cfg')
     masses_n = np.random.randint(1, 10, size=len(atoms))
     atoms.set_masses(masses=masses_n)
-    kumagai_potential = kum.kumagai
+    kumagai_potential = kum.Kumagai_Comp_Mat_Sci_39_Si
     calc = Manybody(**Kumagai(kumagai_potential))
     D_ana = calc.get_hessian(atoms, divide_by_masses=True).todense()
     H_ana = calc.get_hessian(atoms).todense()
@@ -69,7 +69,7 @@ def test_kumagai_small1(d):
     # Test forces and hessian matrix for Kumagai
     small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
     small.center(vacuum=10.0)
-    compute_forces_and_hessian(small, Kumagai(kum.kumagai))
+    compute_forces_and_hessian(small, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
 
 
 @pytest.mark.parametrize('d', np.arange(1.0, 2.3, 0.15))
@@ -77,27 +77,27 @@ def test_kumagai_small2(d):
     # Test forces and hessian matrix for Kumagai
     small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
     small2.center(vacuum=10.0)
-    compute_forces_and_hessian(small2, Kumagai(kum.kumagai))
+    compute_forces_and_hessian(small2, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
 
 
 @pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
 def test_kumagai_crystal(a0):
     # Test forces, hessian, non-affine forces and elastic constants for a Si crystal
     Si_crystal = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
-    compute_forces_and_hessian(Si_crystal, Kumagai(kum.kumagai))
-    compute_elastic_constants(Si_crystal, Kumagai(kum.kumagai))
+    compute_forces_and_hessian(Si_crystal, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
+    compute_elastic_constants(Si_crystal, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
 
 
 def test_kumagai_amorphous():
     # Tests for amorphous Si
     aSi = ase.io.read('aSi_N8.xyz')
-    aSi.calc = Manybody(**Kumagai(kum.kumagai))
+    aSi.calc = Manybody(**Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
     # Non-zero forces and Hessian
-    compute_forces_and_hessian(aSi, Kumagai(kum.kumagai))
+    compute_forces_and_hessian(aSi, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
     FIRE(aSi).run(fmax=1e-5, steps=1e3)
-    compute_forces_and_hessian(aSi, Kumagai(kum.kumagai))
-    compute_elastic_constants(aSi, Kumagai(kum.kumagai))
+    compute_forces_and_hessian(aSi, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
+    compute_elastic_constants(aSi, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
 
 
 @pytest.mark.parametrize('d', np.arange(1.0, 2.3, 0.15))
@@ -149,7 +149,7 @@ def test_stillinger_weber_small1(d):
     # Test forces and hessian matrix for Stillinger-Weber
     small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
     small.center(vacuum=10.0)
-    compute_forces_and_hessian(small, StillingerWeber(sw.original_SW))
+    compute_forces_and_hessian(small, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
 
 
 @pytest.mark.parametrize('d', np.arange(1.0, 1.8, 0.15))
@@ -157,27 +157,27 @@ def test_stillinger_weber_small2(d):
     # Test forces and hessian matrix for Stillinger-Weber
     small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
     small2.center(vacuum=10.0)
-    compute_forces_and_hessian(small2, StillingerWeber(sw.original_SW))
+    compute_forces_and_hessian(small2, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
 
 
 @pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
 def test_stillinger_weber_crystal(a0):
     # Test forces, hessian, non-affine forces and elastic constants for a Si crystal
     Si_crystal = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
-    compute_forces_and_hessian(Si_crystal, StillingerWeber(sw.original_SW))
-    compute_elastic_constants(Si_crystal, StillingerWeber(sw.original_SW))
+    compute_forces_and_hessian(Si_crystal, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
+    compute_elastic_constants(Si_crystal, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
 
 
 def test_stillinger_weber_amorphous():
     # Tests for amorphous Si
     aSi = ase.io.read('aSi_N8.xyz')
-    aSi.calc = Manybody(**StillingerWeber(sw.original_SW))
+    aSi.calc = Manybody(**StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
     # Non-zero forces and Hessian
-    compute_forces_and_hessian(aSi, StillingerWeber(sw.original_SW))
+    compute_forces_and_hessian(aSi, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
     FIRE(aSi).run(fmax=1e-5, steps=1e3)
-    compute_forces_and_hessian(aSi, StillingerWeber(sw.original_SW))
-    compute_elastic_constants(aSi, StillingerWeber(sw.original_SW))
+    compute_forces_and_hessian(aSi, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
+    compute_elastic_constants(aSi, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
 
 
 def test_generic_potential_form():
@@ -291,7 +291,6 @@ def compute_forces_and_hessian(a, par):
     #    passes an atomic configuration as an ase atoms object
     # par : bop explicit form
     #   defines the explicit form of the bond order potential
-
     calculator = Manybody(**par)
     a.calc = calculator
 

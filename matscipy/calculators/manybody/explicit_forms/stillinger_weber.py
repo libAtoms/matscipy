@@ -1,65 +1,85 @@
+# ======================================================================
+# matscipy - Python materials science tools
+# https://github.com/libAtoms/matscipy
+#
+# Copyright (2014-2018) James Kermode, King's College London
+#                       Lars Pastewka, University of Freiburg
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ======================================================================
+
 import numpy as np
-from collections import namedtuple 
 
 #
 # Parameter sets
 # The '__ref__' dictionary entry is the journal reference
 #
 
-Stillinger_Weber_PRB_31_5262_Si ={
+Stillinger_Weber_PRB_31_5262_Si = {
     '__ref__':  'F. Stillinger and T. Weber, Phys. Rev. B 31, 5262 (1985)',
-    'el':          [  'Si'            ],
-    'epsilon':     [  2.1683          ],
-    'sigma':       [  2.0951          ],
-    'costheta0':   [  0.333333333333  ],
-    'A':           [  7.049556277     ],
-    'B':           [  0.6022245584    ],
-    'p':           [  4               ],
-    'a':           [  1.80            ],
-    'lambda1':     [  21.0            ],
-    'gamma':       [  1.20            ]
+    'el':            'Si'            ,
+    'epsilon':       2.1683          ,
+    'sigma':         2.0951          ,
+    'costheta0':     0.333333333333  ,
+    'A':             7.049556277     ,
+    'B':             0.6022245584    ,
+    'p':             4               ,
+    'a':             1.80            ,
+    'lambda1':       21.0            ,
+    'gamma':         1.20            
 }
 
-Holland_Marder_PRL_80_746_Si ={
+Holland_Marder_PRL_80_746_Si = {
     '__ref__':  'D. Holland and M. Marder, Phys. Rev. Lett. 80, 746 (1998)',
-    'el':          [  'Si'            ],
-    'epsilon':     [  2.1683          ],
-    'sigma':       [  2.0951          ],
-    'costheta0':   [  0.333333333333  ],
-    'A':           [  7.049556277     ],
-    'B':           [  0.6022245584    ],
-    'p':           [  4               ],
-    'a':           [  1.80            ],
-    'lambda1':     [  42.0            ],
-    'gamma':       [  1.20            ]
+    'el':            'Si'            ,
+    'epsilon':       2.1683          ,
+    'sigma':         2.0951          ,
+    'costheta0':     0.333333333333  ,
+    'A':             7.049556277     ,
+    'B':             0.6022245584    ,
+    'p':             4               ,
+    'a':             1.80            ,
+    'lambda1':       42.0            ,
+    'gamma':         1.20            
 }
 
-RLC_Vink_JNCS_282_746_Si ={
+RLC_Vink_JNCS_282_746_Si = {
     '__ref__':  'RLC Vink et al., J. Non-Cryst. Solids 282 (2001)',
-    'el':          [  'Si'            ],
-    'epsilon':     [  1.64833         ],
-    'sigma':       [  2.0951          ],
-    'costheta0':   [  0.333333333333  ],
-    'A':           [  7.049556277     ],
-    'B':           [  0.6022245584    ],
-    'p':           [  4               ],
-    'a':           [  1.80            ],
-    'lambda1':     [  31.5            ],
-    'gamma':       [  1.20            ]
+    'el':            'Si'            ,
+    'epsilon':       1.64833         ,
+    'sigma':         2.0951          ,
+    'costheta0':     0.333333333333  ,
+    'A':             7.049556277     ,
+    'B':             0.6022245584    ,
+    'p':             4               ,
+    'a':             1.80            ,
+    'lambda1':       31.5            ,
+    'gamma':         1.20            
 }
 
-Russo_PRX_8_021040_Si ={
+Russo_PRX_8_021040_Si = {
     '__ref__':  'J. Russo et. al. Phys. Rev. X 8, 021040 (2018)',
-    'el':          [  'Si'            ],
-    'epsilon':     [  2.1683          ],
-    'sigma':       [  2.0951          ],
-    'costheta0':   [  0.333333333333  ],
-    'A':           [  7.049556277     ],
-    'B':           [  0.6022245584    ],
-    'p':           [  4               ],
-    'a':           [  1.80            ],
-    'lambda1':     [  18.75           ],
-    'gamma':       [  1.20            ]
+    'el':            'Si'            ,
+    'epsilon':       2.1683          ,
+    'sigma':         2.0951          ,
+    'costheta0':     0.333333333333  ,
+    'A':             7.049556277     ,
+    'B':             0.6022245584    ,
+    'p':             4               ,
+    'a':             1.80            ,
+    'lambda1':       18.75           ,
+    'gamma':         1.20            
 }
 
 def ab(x):
@@ -68,7 +88,7 @@ def ab(x):
     """
     return np.linalg.norm(x, axis=1)
 
-def StillingerWeber(parameters=original_SW):
+def StillingerWeber(parameters):
     """
     Implementation of the functional form of the Stillinger-Weber potential.
 
@@ -77,18 +97,17 @@ def StillingerWeber(parameters=original_SW):
     F. Stillinger and T. Weber, Physical review B 31.8 5262 (1985)
 
     """
-    try:
-        epsilon = parameters.epsilon
-        sigma = parameters.sigma
-        costheta0 = parameters.costheta0
-        A = parameters.A
-        B = parameters.B
-        p = parameters.p
-        a = parameters.a
-        lambda1 = parameters.lambda1
-        gamma = parameters.gamma
-    except AttributeError:
-        raise AttributeError("Parameters need to be a namedtuple of type SW_parameters!")
+
+    el = parameters['el']
+    epsilon = parameters['epsilon']
+    sigma = parameters['sigma']
+    costheta0 = parameters['costheta0']
+    A = parameters['A']
+    B = parameters['B']
+    p = parameters['p']
+    a = parameters['a']
+    lambda1 = parameters['lambda1']
+    gamma = parameters['gamma']
 
     fR = lambda r: A * epsilon * (B*np.power(sigma/r, p) - 1) * np.exp(sigma/(r-a*sigma))
     dfR = lambda r: - A*epsilon*B*p/r * np.power(sigma/r, p) * np.exp(sigma/(r-a*sigma)) - sigma/np.power(r-a*sigma, 2)*fR(r)
