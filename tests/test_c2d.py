@@ -65,6 +65,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
     def tearDown(self):
         self.bin_path.cleanup()
 
+    @unittest.skip
     def test_c2d_input_format_npz_output_format_xyz(self):
         """c2d NaCl.npz NaCl.xyz"""
         print("  RUN test_c2d_input_format_npz_output_format_xyz")
@@ -80,6 +81,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
                 self.ref_xyz.get_initial_charges() ).all() )
             self.assertTrue( ( xyz.cell == self.ref_xyz.cell ).all() )
 
+    @unittest.skip
     def test_c2d_input_format_txt_output_format_xyz(self):
         """c2d NaCl.txt NaCl.xyz"""
         print("  RUN test_c2d_input_format_txt_output_format_xyz")
@@ -149,6 +151,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
             self.assertArrayAlmostEqual(test_txt[1,:],self.ref_txt[1,:], tol=1e-5) # u
             self.assertArrayAlmostEqual(test_txt[2:,:],self.ref_txt[2:,:], tol=1e-3) # c
 
+    @unittest.skip
     def test_pnp_c2d_pipeline_mode(self):
         """pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell | c2d > NaCl.xyz"""
         print("  RUN test_pnp_c2d_pipeline_mode")
