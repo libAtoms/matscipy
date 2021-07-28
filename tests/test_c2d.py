@@ -73,7 +73,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
                 [ 'c2d', os.path.join(self.data_path,'NaCl.npz'), 'NaCl.xyz' ],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, env=self.myenv)
-            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'))
+            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'), format='extxyz')
             self.assertEqual(len(xyz),len(self.ref_xyz))
             self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges() ==
@@ -88,12 +88,12 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
                 [ 'c2d', os.path.join(self.data_path,'NaCl.txt'), 'NaCl.xyz' ],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, env=self.myenv)
-            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'))
+            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'), format='extxyz')
             self.assertEqual(len(xyz), len(self.ref_xyz))
-            self.assertTrue( ( xyz.symbols ==  self.ref_xyz.symbols ).all() )
+            self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges()
-                ==  self.ref_xyz.get_initial_charges() ).all() )
-            self.assertTrue( ( xyz.cell ==  self.ref_xyz.cell ).all() )
+                == self.ref_xyz.get_initial_charges() ).all() )
+            self.assertTrue( ( xyz.cell == self.ref_xyz.cell ).all() )
 
     @unittest.skipUnless(LooseVersion(ase.__version__) > LooseVersion('3.19.0'),
         """ LAMMPS data file won't work for ASE version up until 3.18.1,
@@ -169,7 +169,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             c2d_output = c2d.communicate()[0]
             with io.StringIO(c2d_output) as xyz_instream:
-                xyz = ase.io.read(xyz_instream, format='xyz')
+                xyz = ase.io.read(xyz_instream, format='extxyz')
             self.assertEqual(len(xyz),len(self.ref_xyz))
             self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges()
