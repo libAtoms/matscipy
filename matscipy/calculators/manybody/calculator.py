@@ -456,7 +456,7 @@ class Manybody(Calculator):
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.get_cutoff(atoms))
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
