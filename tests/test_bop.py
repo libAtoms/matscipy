@@ -124,17 +124,21 @@ def test_amorphous(par):
 
 
 @pytest.mark.parametrize('a0', [4.3, 4.4, 4.5])
-def test_tersoff_multicomponent_crystal_forces_and_hessian(a0):
+@pytest.mark.parametrize('par', [TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+                                 TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_SiC)])
+def test_tersoff_multicomponent_crystal_forces_and_hessian(a0, par):
     # Test forces, hessian, non-affine forces and elastic constants for a Si-C crystal
     Si_crystal = B3(['Si', 'C'], size=[1, 1, 1], latticeconstant=a0)
-    compute_forces_and_hessian(Si_crystal, TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C))
+    compute_forces_and_hessian(Si_crystal, par)
 
 
 @pytest.mark.parametrize('a0', [4.3, 4.4, 4.5])
-def test_tersoff_multicomponent_crystal_elastic_constants(a0):
+@pytest.mark.parametrize('par', [TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+                                 TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_SiC)])
+def test_tersoff_multicomponent_crystal_elastic_constants(a0, par):
     # Test forces, hessian, non-affine forces and elastic constants for a Si-C crystal
     Si_crystal = B3(['Si', 'C'], size=[1, 1, 1], latticeconstant=a0)
-    compute_elastic_constants(Si_crystal, TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C))
+    compute_elastic_constants(Si_crystal, par)
 
 
 # 0 - Tests Hessian term #4 (with all other terms turned off)

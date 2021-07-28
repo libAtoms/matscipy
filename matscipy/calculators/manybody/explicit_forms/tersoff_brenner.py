@@ -62,6 +62,7 @@ def mix_geometric(p, key):
 
 Tersoff_PRB_39_5566_Si_C = {
     '__ref__':  'Tersoff J., Phys. Rev. B 39, 5566 (1989)',
+    'style':    'Tersoff',
     'el':       [  'C',   'Si'  ],
     'A':        [  1.3936e3,    sqrt(1.3936e3*1.8308e3),  1.8308e3  ],
     'B':        [  3.4674e2,    sqrt(3.4674e2*4.7118e2),  4.7118e2  ],
@@ -101,6 +102,7 @@ Goumri_Said_ChemPhys_302_135_Al_N = {
 Matsunaga_Fisher_Matsubara_Jpn_J_Appl_Phys_39_48_B_C_N = {
   '__ref__':  'Matsunaga K., Fisher C., Matsubara H., Jpn. J. Appl. Phys. 39, 48 (2000)',
     'el':       [  'C', 'N', 'B' ],
+    'style':    'Tersoff',
     'A':        [  1.3936e3,    -1.0,     -1.0,     1.1e4,      -1.0,     2.7702e2  ],
     'B':        [  3.4674e2,    -1.0,     -1.0,     2.1945e2,   -1.0,     1.8349e2  ],
     'chi':      [  1.0,         0.9685,   1.0025,   1.0,        1.1593,   1.0       ],
@@ -128,6 +130,7 @@ mix_geometric(Matsunaga_Fisher_Matsubara_Jpn_J_Appl_Phys_39_48_B_C_N, 'r2')
 
 Erhart_PRB_71_035211_SiC = {
     '__ref__':  'Erhart P., Albe K., Phys. Rev. B 71, 035211 (2005)',
+    'style':    'Brenner',
     'el':       [  'C',   'Si' ],
     'D0':       [  6.00,      4.36,       3.24      ],
     'r0':       [  1.4276,    1.79,       2.232     ],
@@ -147,6 +150,7 @@ Erhart_PRB_71_035211_SiC = {
 
 Albe_PRB_65_195124_PtC = {
     '__ref__':  'Albe K., Nordlund K., Averback R. S., Phys. Rev. B 65, 195124 (2002)',
+    'style':    'Brenner',
     'el':       [  'Pt',   'C' ],
     'D0':       [  3.683,     5.3,        6.0       ],
     'r0':       [  2.384,     1.84,       1.39      ],
@@ -166,6 +170,7 @@ Albe_PRB_65_195124_PtC = {
 
 Henriksson_PRB_79_114107_FeC = {
     '__ref__': 'Henriksson K.O.E., Nordlund K., Phys. Rev. B 79, 144107 (2009)',
+    'style':    'Brenner',
     'el':      [  'Fe', 'C'  ],
     'D0':      [  1.5,         4.82645134,   6.0          ],
     'r0':      [  2.29,        1.47736510,   1.39         ],
@@ -185,6 +190,7 @@ Henriksson_PRB_79_114107_FeC = {
 
 Kioseoglou_PSSb_245_1118_AlN = {
     '__ref__':  'Kioseoglou J., Komninou Ph., Karakostas Th., Phys. Stat. Sol. (b) 245, 1118 (2008)',
+    'style':    'Brenner',
     'el':       [  'N',   'Al' ],
     'D0':       [  9.9100,     3.3407,     1.5000   ],
     'r0':       [  1.1100,     1.8616,     2.4660   ],
@@ -205,6 +211,7 @@ Kioseoglou_PSSb_245_1118_AlN = {
 # Juslin's W-C-H parameterization
 Juslin_JAP_98_123520_WCH = {
     '__ref__': 'Juslin N., Erhart P., Traskelin P., Nord J., Henriksson K.O.E, Nordlund K., Salonen E., Albe K., J. Appl. Phys. 98, 123520 (2005)',
+    'style':    'Brenner',
     'el':      [ 'W', 'C', 'H' ],
     'D0':      [ 5.41861,     6.64,      2.748,    0.0,  6.0,         3.6422,      0.0,  3.642,    4.7509  ],
     'r0':      [ 2.34095,     1.90547,   1.727,   -1.0,  1.39,        1.1199,     -1.0,  1.1199,   0.74144 ],
@@ -224,6 +231,7 @@ Juslin_JAP_98_123520_WCH = {
 
 Kuopanportti_CMS_111_525_FeCH = {
     '__ref__' : 'Kuopanportti P., Hayward, N., Fu C., Kuronen A., Nordlund K., Comp. Mat. Sci. 111, 525 (2016)',
+    'style':    'Brenner',
     'el':     [ 'Fe', 'C', 'H'],
     'D0':     [ 1.5,      4.82645134,  1.630,    0.0,  6.0,         3.6422,      0.0,  3.642,    4.7509  ],
     'r0':     [ 2.29,     1.47736510,  1.589,   -1.0,  1.39,        1.1199,     -1.0,  1.1199,   0.74144 ],
@@ -243,6 +251,7 @@ Kuopanportti_CMS_111_525_FeCH = {
 
 Brenner_PRB_42_9458_C_I = {
     '__ref__':  'Brenner D., Phys. Rev. B 42, 9458 (1990) [potential I]',
+    'style':    'Brenner',
     'el':       [  'C'  ],
     'D0':       [  6.325            ],
     'r0':       [  1.315            ],
@@ -262,6 +271,7 @@ Brenner_PRB_42_9458_C_I = {
 
 Brenner_PRB_42_9458_C_II = {
     '__ref__':  'Brenner D., Phys. Rev. B 42, 9458 (1990) [potential II]',
+    'style':    'Brenner',
     'el':       [  'C'  ],
     'D0':       [  6.0          ],
     'r0':       [  1.39         ],
@@ -278,6 +288,7 @@ Brenner_PRB_42_9458_C_II = {
     'r2':       [  2.00         ]
 }
 
+
 def ab(x):
     '''
     Compute absolute value (norm) of an array of vectors
@@ -288,28 +299,91 @@ def ab(x):
 def TersoffBrenner(parameters):
     """
     Implementation of the function form for Abell-Tersoff-Brenner potentials.
-    The implementation follows the notation of Tersoff.
 
     Reference
     ------------
     J. Tersoff, Physical review B 39.8 (1989): 5566.
     """
 
+    style = parameters['style'].lower()
+
     el = parameters['el']
-    A = np.array(parameters['A'])
-    B = np.array(parameters['B'])
-    chi = np.array(parameters['chi'])
-    lam = np.array(parameters['lambda'])
-    mu = np.array(parameters['mu'])
-    beta = np.array(parameters['beta'])
-    n = np.array(parameters['n'])
+
+    nb_elements = len(el)
+    nb_pairs = nb_elements * (nb_elements + 1) // 2
+
     c = np.array(parameters['c'])
     d = np.array(parameters['d'])
     h = np.array(parameters['h'])
     r1 = np.array(parameters['r1'])
     r2 = np.array(parameters['r2'])
-    lambda3 = np.array(parameters['lambda3'])
     delta = np.array(parameters['delta'])
+    if style == 'tersoff':
+        # These are Tersoff-style parameters. The symbols follow the notation in
+        # Tersoff J., Phys. Rev. B 39, 5566 (1989)
+        #
+        # In particular, pair terms are characterized by A, B, lam, mu and parameters for the three body terms ijk
+        # depend only on the type of atom i
+        A = np.array(parameters['A'])
+        B = np.array(parameters['B'])
+        lam = np.array(parameters['lambda'])
+        mu = np.array(parameters['mu'])
+        beta = np.array(parameters['beta'])
+        lambda3 = np.array(parameters['lambda3'])
+        chi = np.array(parameters['chi'])
+        n = np.array(parameters['n'])
+        
+        # Consistency check
+        assert len(A) == nb_pairs
+        assert len(B) == nb_pairs
+        assert len(lam) == nb_pairs
+        assert len(mu) == nb_pairs
+        assert len(beta) == nb_elements
+        assert len(lambda3) == nb_pairs
+        assert len(chi) == nb_pairs
+        assert len(n) == nb_elements
+        assert len(c) == nb_elements
+        assert len(d) == nb_elements
+        assert len(h) == nb_elements
+        assert len(r1) == nb_pairs
+        assert len(r2) == nb_pairs
+        assert len(delta) == nb_pairs
+    elif style == 'brenner':
+        # These are Brenner/Erhart-Albe-style parameters. The symbols follow the notation in
+        # Brenner D., Phys. Rev. B 42, 9458 (1990) and
+        # Erhart P., Albe K., Phys. Rev. B 71, 035211 (2005)
+        #
+        # In particular, pairs terms are characterized by D0, S, beta, r0, the parameters n, chi are always unity and
+        # parameters for the three body terms ijk depend on the type of the bond ij
+        _D0 = np.array(parameters['D0'])
+        _S = np.array(parameters['S'])
+        _r0 = np.array(parameters['r0'])
+        _beta = np.array(parameters['beta'])
+        _mu = np.array(parameters['mu'])
+        gamma = np.array(parameters['gamma'])
+
+        # Convert to Tersoff parameters
+        lambda3 = 2 * _mu
+        lam = _beta * np.sqrt(2 * _S)
+        mu = _beta * np.sqrt(2 / _S)
+        A = _D0 / (_S - 1) * np.exp(lam * _r0)
+        B = _S * _D0 / (_S - 1) * np.exp(mu * _r0)
+
+        # Consistency check
+        assert len(A) == nb_pairs
+        assert len(B) == nb_pairs
+        assert len(lam) == nb_pairs
+        assert len(mu) == nb_pairs
+        assert len(gamma) == nb_pairs
+        assert len(lambda3) == nb_pairs
+        assert len(c) == nb_pairs
+        assert len(d) == nb_pairs
+        assert len(h) == nb_pairs
+        assert len(r1) == nb_pairs
+        assert len(r2) == nb_pairs
+        assert len(delta) == nb_pairs
+    else:
+        raise ValueError(f'Unknown parameter style {style}')
 
     # Number of elements in parameter set. We will assign a consecutive internal element number.
     nb_elements = len(el)
@@ -327,62 +401,72 @@ def TersoffBrenner(parameters):
         r < r1[p],
         np.ones_like(r),
         np.where(r > r2[p],
-            np.zeros_like(r),
-            (1 + np.cos((np.pi*(r-r1[p])/(r2[p]-r1[p]))))/2
-            )
-        )
+                 np.zeros_like(r),
+                 (1 + np.cos((np.pi * (r - r1[p]) / (r2[p] - r1[p])))) / 2
+                 )
+    )
     df = lambda r, p: np.where(
         r < r1[p],
         np.zeros_like(r),
         np.where(r > r2[p],
-            np.zeros_like(r),
-            -np.pi * np.sin(np.pi * (r - r1[p])/(r2[p] - r1[p])) / (2*(r2[p] - r1[p]))
-            )
-        )
+                 np.zeros_like(r),
+                 -np.pi * np.sin(np.pi * (r - r1[p]) / (r2[p] - r1[p])) / (2 * (r2[p] - r1[p]))
+                 )
+    )
     ddf = lambda r, p: np.where(
         r < r1[p],
         np.zeros_like(r),
         np.where(r > r2[p],
-            np.zeros_like(r),
-            -np.pi**2 * np.cos(np.pi * (r - r1[p])/(r2[p] - r1[p])) / (2*(r2[p] - r1[p])**2)
-            )
-        )
+                 np.zeros_like(r),
+                 -np.pi ** 2 * np.cos(np.pi * (r - r1[p]) / (r2[p] - r1[p])) / (2 * (r2[p] - r1[p]) ** 2)
+                 )
+    )
 
     fR = lambda r, p: A[p] * np.exp(-lam[p] * r)
     dfR = lambda r, p: -lam[p] * fR(r, p)
-    ddfR = lambda r, p: lam[p]**2 * fR(r, p)
+    ddfR = lambda r, p: lam[p] ** 2 * fR(r, p)
 
     fA = lambda r, p: -B[p] * np.exp(-mu[p] * r)
     dfA = lambda r, p: -mu[p] * fA(r, p)
-    ddfA = lambda r, p: mu[p]**2 * fA(r, p)
+    ddfA = lambda r, p: mu[p] ** 2 * fA(r, p)
 
-    b = lambda xi, i, p: chi[p] * (1 + (beta[i] * xi)**n[i])**(-1 / (2 * n[i]))
-    db = lambda xi, i, p: chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[i] * np.power(beta[i] * xi, n[i]-1, where=xi!=0.0) * (1 + (beta[i] * xi)**n[i])**(-1-1/(2*n[i])))
-    ddb = lambda xi, i, p: chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[i]**2 * (n[i]-1) * np.power(beta[i] * xi, n[i]-2, where=xi!=0.0) * np.power(1 + (beta[i] * xi)**n[i], -1-1/(2*n[i])) - 0.5 * beta[i]**2 * n[i] * np.power(beta[i] * xi, -2 + 2*n[i], where=xi!=0.0) * ( -1 - 1/(2*n[i])) * np.power(1 + (beta[i] * xi)**n[i], -2-1/(2*n[i])))
+    if style == 'tersoff':
+        b = lambda xi, i, p: chi[p] * (1 + (beta[i] * xi)**n[i])**(-1 / (2 * n[i]))
+        db = lambda xi, i, p: chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[i] * np.power(beta[i] * xi, n[i]-1, where=xi!=0.0) * (1 + (beta[i] * xi)**n[i])**(-1-1/(2*n[i])))
+        ddb = lambda xi, i, p: chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[i]**2 * (n[i]-1) * np.power(beta[i] * xi, n[i]-2, where=xi!=0.0) * np.power(1 + (beta[i] * xi)**n[i], -1-1/(2*n[i])) - 0.5 * beta[i]**2 * n[i] * np.power(beta[i] * xi, -2 + 2*n[i], where=xi!=0.0) * ( -1 - 1/(2*n[i])) * np.power(1 + (beta[i] * xi)**n[i], -2-1/(2*n[i])))
 
-    g = lambda cost, i, ij: 1 + c[i] ** 2 / d[i] ** 2 - c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2)
-    dg = lambda cost, i, ij: -2 * c[i] ** 2 * (h[i] - cost) / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2
-    ddg = lambda cost, i, ij: 2 * c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2 - 8 * c[i] ** 2 * (h[i] - cost) ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 3
+        g = lambda cost, i, p: 1 + c[i] ** 2 / d[i] ** 2 - c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2)
+        dg = lambda cost, i, p: -2 * c[i] ** 2 * (h[i] - cost) / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2
+        ddg = lambda cost, i, p: 2 * c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2 - 8 * c[i] ** 2 * (h[i] - cost) ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 3
+    else:
+        b = lambda xi, i, p: np.power(1 + gamma[p] * xi, -0.5)
+        db = lambda xi, i, p: -0.5 * gamma[p] * np.power(1 + gamma[p] * xi, -1.5)
+        ddb = lambda xi, i, p: 0.75 * (gamma[p] ** 2) * np.power(1 + gamma[p] * xi, -2.5)
 
-    hf = lambda rij, rik, ij, ik: f(ab(rik), ik) * np.exp(lambda3[ij]*(ab(rij)-ab(rik))**delta[ij])
+        g = lambda cost, i, p: 1 + c[p] ** 2 / d[p] ** 2 - c[p] ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2)
+        dg = lambda cost, i, p: 2 * c[p] ** 2 * (h[p] + cost) / (d[p] ** 2 + (h[p] + cost) ** 2) ** 2
+        ddg = lambda cost, i, p: 2 * c[p] ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 2 - 8 * c[p] ** 2 * (h[p] + cost) ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 3
+
+    hf = lambda rij, rik, ij, ik: f(ab(rik), ik) * np.exp(lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij])
     d1h = lambda rij, rik, ij, ik: lambda3[ij] * hf(rij, rik, ij, ik)
-    d2h = lambda rij, rik, ij, ik: -lambda3[ij] * hf(rij, rik, ij, ik) + \
-        df(ab(rik), ik) * np.exp(lambda3[ij]*(ab(rij)-ab(rik))**delta[ij])
-    d11h = lambda rij, rik, ij, ik: lambda3[ij]**2*hf(rij, rik, ij, ik)
-    d12h = lambda rij, rik, ij, ik: (df(ab(rik), ik)*(lambda3[ij]*delta[ij])
-                             * np.exp(lambda3[ij]*(ab(rij)-ab(rik))**delta[ij])
-                             - lambda3[ij] * hf(rij, rik, ij, ik))
-    d22h = lambda rij, rik, ij, ik: \
-        (ddf(ab(rik), ik)*np.exp(lambda3[ij]*(ab(rij)-ab(rik))**delta[ij])
-         + 2 * (lambda3[ij]*delta[ij])*np.exp(lambda3[ij]*(ab(rij)-ab(rik))**delta[ij])*df(ab(rik), ik)
-         + lambda3[ij]**2 * hf(rij, rik, ij, ik))
+    d2h = lambda rij, rik, ij, ik: -lambda3[ij] * hf(rij, rik, ij, ik) + df(ab(rik), ik) * np.exp(
+        lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij])
+    d11h = lambda rij, rik, ij, ik: lambda3[ij] ** 2 * hf(rij, rik, ij, ik)
+    d12h = lambda rij, rik, ij, ik: (
+                df(ab(rik), ik) * (lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij]) -
+                lambda3[ij] * hf(rij, rik, ij, ik))
+    d22h = lambda rij, rik, ij, ik: (ddf(ab(rik), ik) * np.exp(lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij]) + 2 * (
+                lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij]) * df(ab(rik), ik) +
+                                     lambda3[ij] ** 2 * hf(rij, rik, ij, ik))
 
     # Derivatives of F
     F = lambda r, xi, i, p: f(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p))
-    d1F = lambda r, xi, i, p: df(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p)) + f(r, p) * (dfR(r, p) + b(xi, i, p) * dfA(r, p))
+    d1F = lambda r, xi, i, p: df(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p)) + f(r, p) * (
+                dfR(r, p) + b(xi, i, p) * dfA(r, p))
     d2F = lambda r, xi, i, p: f(r, p) * fA(r, p) * db(xi, i, p)
-    d11F = lambda r, xi, i, p: f(r, p) * (ddfR(r, p) + b(xi, i, p) * ddfA(r, p)) + 2 * df(r, p) * (dfR(r, p) + b(xi, i, p) * dfA(r, p)) + ddf(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p))
-    d22F = lambda r, xi, i, p:  f(r, p) * fA(r, p) * ddb(xi, i, p)
+    d11F = lambda r, xi, i, p: f(r, p) * (ddfR(r, p) + b(xi, i, p) * ddfA(r, p)) + 2 * df(r, p) * (
+                dfR(r, p) + b(xi, i, p) * dfA(r, p)) + ddf(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p))
+    d22F = lambda r, xi, i, p: f(r, p) * fA(r, p) * ddb(xi, i, p)
     d12F = lambda r, xi, i, p: f(r, p) * dfA(r, p) * db(xi, i, p) + fA(r, p) * df(r, p) * db(xi, i, p)
 
     # Helping functions
@@ -416,12 +500,12 @@ def TersoffBrenner(parameters):
     # Derivatives of G
     G = lambda rij, rik, i, ij, ik: g(costh(rij, rik), i, ij) * hf(rij, rik, ij, ik)
 
-    d1G = lambda rij, rik, i, ij, ik: (Dh1(rij, rik, ij, ik).T * g(costh(rij, rik), i, ij) + hf(rij, rik, ij, ik) * Dg1(rij, rik, i, ij).T).T
-    d2G = lambda rij, rik, i, ij, ik: (Dh2(rij, rik, ij, ik).T * g(costh(rij, rik), i, ij) + hf(rij, rik, ij, ik) * Dg2(rij, rik, i, ij).T).T
+    d1G = lambda rij, rik, i, ij, ik: (
+                Dh1(rij, rik, ij, ik).T * g(costh(rij, rik), i, ij) + hf(rij, rik, ij, ik) * Dg1(rij, rik, i, ij).T).T
+    d2G = lambda rij, rik, i, ij, ik: (
+                Dh2(rij, rik, ij, ik).T * g(costh(rij, rik), i, ij) + hf(rij, rik, ij, ik) * Dg2(rij, rik, i, ij).T).T
 
-    d11G = lambda rij, rik, i, ij, ik: \
-        Dg1(rij, rik, i, ij).reshape(-1, 3, 1) * Dh1(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh1(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg1(rij, rik, i, ij).reshape(-1, 1, 3) \
-        + ((g(costh(rij, rik), i, ij) * Dh11(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg11(rij, rik, i, ij).T).T)
+    d11G = lambda rij, rik, i, ij, ik: Dg1(rij, rik, i, ij).reshape(-1, 3, 1) * Dh1(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh1(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg1(rij, rik, i, ij).reshape(-1, 1, 3) + ((g(costh(rij, rik), i, ij) * Dh11(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg11(rij, rik, i, ij).T).T)
 
     Dh11 = lambda rij, rik, ij, ik: \
         (d11h(rij, rik, ij, ik) * (((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T

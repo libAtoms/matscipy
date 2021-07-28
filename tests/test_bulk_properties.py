@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # ======================================================================
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
@@ -43,41 +41,68 @@ from matscipy.elasticity import full_3x3x3x3_to_Voigt_6x6
 sx = 1
 
 tests = [
-    ("Kumagai-dia-Si", Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
-     dict(struct=Diamond("Si", size=[sx, sx, sx]),
-          Ec=4.630, a0=5.429, C11=166.4, C12=65.3, C44=77.1, C440=120.9)),
-    ("StillingerWeber-dia-Si", StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si),
-     dict(struct=Diamond("Si", size=[sx, sx, sx]),
-          Ec=4.3363, a0=5.431, C11=161.6, C12=81.6, C44=60.3, C440=117.2, B=108.3)),
-    ("Tersoff3-dia-C", TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
-     dict(struct=Diamond("C", size=[sx, sx, sx]),
-          Ec=7.396 - 0.0250, a0=3.566, C11=1067, C12=104, C44=636, C440=671)),
-    ("Tersoff3-dia-Si", TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
-     dict(struct=Diamond("Si", size=[sx, sx, sx]),
-          Ec=4.63, a0=5.432, C11=143, C12=75, C44=69, C440=119, B=98)),
-    ("Tersoff3-dia-Si-C", TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
-     dict(struct=B3(["Si", "C"], latticeconstant=4.3596, size=[sx, sx, sx]),
-          Ec=6.165, a0=4.321, C11=437, C12=118, C440=311, B=224)),
+    ("Kumagai-dia-Si",
+     Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
+     Diamond("Si", size=[sx, sx, sx]),
+     dict(Ec=4.630, a0=5.429, C11=166.4, C12=65.3, C44=77.1, C440=120.9)),
+    ("StillingerWeber-dia-Si",
+     StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si),
+     Diamond("Si", size=[sx, sx, sx]),
+     dict(Ec=4.3363, a0=5.431, C11=161.6, C12=81.6, C44=60.3, C440=117.2, B=108.3)),
+    ("Tersoff3-dia-C",
+     TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+     Diamond("C", size=[sx, sx, sx]),
+     dict(Ec=7.396 - 0.0250, a0=3.566, C11=1067, C12=104, C44=636, C440=671)),
+    ("Tersoff3-dia-Si",
+     TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+     Diamond("Si", size=[sx, sx, sx]),
+     dict(Ec=4.63, a0=5.432, C11=143, C12=75, C44=69, C440=119, B=98)),
+    ("Tersoff3-dia-Si-C",
+     TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+     B3(["Si", "C"], latticeconstant=4.3596, size=[sx, sx, sx]),
+     dict(Ec=6.165, a0=4.321, C11=437, C12=118, C440=311, B=224)),
     ("MatsunagaFisherMatsubara-dia-C",
      TersoffBrenner(tersoff_brenner.Matsunaga_Fisher_Matsubara_Jpn_J_Appl_Phys_39_48_B_C_N),
-     dict(struct=Diamond("C", size=[sx, sx, sx]),
-          Ec=7.396 - 0.0250, a0=3.566, C11=1067, C12=104, C44=636, C440=671)),
+     Diamond("C", size=[sx, sx, sx]),
+     dict(Ec=7.396 - 0.0250, a0=3.566, C11=1067, C12=104, C44=636, C440=671)),
     ("MatsunagaFisherMatsubara-dia-B-N",
      TersoffBrenner(tersoff_brenner.Matsunaga_Fisher_Matsubara_Jpn_J_Appl_Phys_39_48_B_C_N),
-     dict(struct=B3(["B", "N"], latticeconstant=3.7, size=[sx, sx, sx]),
-          Ec=6.63, a0=3.658, B=385)),
+     B3(["B", "N"], latticeconstant=3.7, size=[sx, sx, sx]),
+     dict(Ec=6.63, a0=3.658, B=385)),
+    ("BrennerI-dia-C",
+     TersoffBrenner(tersoff_brenner.Brenner_PRB_42_9458_C_I),
+     Diamond("C", size=[sx, sx, sx]),
+     {}),
+    ("BrennerII-dia-C",
+     TersoffBrenner(tersoff_brenner.Brenner_PRB_42_9458_C_II),
+     Diamond("C", size=[sx, sx, sx]),
+     dict(Ec=7.376 - 0.0524, a0=3.558, C11=621, C12=415, C44=383, B=484)),
+    ("ErhartAlbeSiC-dia-C",
+     TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_SiC),
+     Diamond("C", size=[sx, sx, sx]),
+     dict(Ec=7.3731, a0=3.566, C11=1082, C12=127, C44=673, B=445)),
+    ("ErhartAlbeSiC-dia-Si",
+     TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_SiC),
+     Diamond("Si", size=[sx, sx, sx]),
+     dict(Ec=4.63, a0=5.429, C11=167, C12=65, C440=105, B=99)),
+    ("ErhartAlbeSiC-dia-Si-C",
+     TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_SiC),
+     B3(["Si", "C"], latticeconstant=4.3596, size=[sx, sx, sx]),
+     dict(Ec=6.340, a0=4.359, C11=382, C12=145, C440=305, B=224)),
 ]
 
 
 @pytest.mark.parametrize('test', tests)
 def test_cubic_elastic_constants(test):
-    name, pot, mat = test
+    name, pot, atoms, mat = test
 
     calculator = Manybody(**pot)
-    atoms = mat["struct"]
     atoms.translate([0.1, 0.1, 0.1])
     atoms.set_scaled_positions(atoms.get_scaled_positions())
     atoms.calc = calculator
+
+    c1, c2, c3 = atoms.get_cell()
+    a0 = np.sqrt(np.dot(c1, c1)) / sx
 
     FIRE(ase.constraints.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.0001)
 
