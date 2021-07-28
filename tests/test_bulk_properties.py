@@ -77,7 +77,7 @@ def test_cubic_elastic_constants(test):
     atoms = mat["struct"]
     atoms.translate([0.1, 0.1, 0.1])
     atoms.set_scaled_positions(atoms.get_scaled_positions())
-    atoms.set_calculator(calculator)
+    atoms.calc = calculator
 
     FIRE(ase.constraints.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.0001)
 
