@@ -1,19 +1,16 @@
 Change log
 ==========
 
-v0.8.0 (not yet released)
+v0.7.0 (not yet released)
 -------------------------
 
 - Calculator for Manybody potentials e.g. Stillinger-Weber and Bond-order
 - Specific parametrizations for Tersoff-Brenner potentials, Stillinger-Weber and Kumagai 
 - Analytic computation of Hessian matrix for manybody potentials
 - Analytic computation of zero-temperature elastic constants for pair potential and manybody potentials
-
-v0.7.0 (17Nov20)
-----------------
-
 - CLI for electrochemistry functions
 - Proper molecular id numbering in electrochemistry
+- Generation of dislocations
 
 v0.6.0 (10Sep20)
 ----------------
