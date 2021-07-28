@@ -470,5 +470,5 @@ def TersoffBrenner(parameters):
         'd11G': d11G,
         'd22G': d22G,
         'd12G': d12G,
-        'cutoff': np.max(r2),  # FIXME!!! If not all elements are present, this cutoff may be too large
+        'cutoff': r2,
     }

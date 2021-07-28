@@ -81,14 +81,32 @@ class Manybody(Calculator):
 
         self.cutoff = cutoff
 
+    def get_cutoff(self, atoms):
+        if np.isscalar(self.cutoff):
+            return self.cutoff
+
+        # get internal atom types from atomic numbers
+        elements = set(atoms.numbers)
+
+        # loop over all possible element combinations
+        cutoff = 0
+        for i in elements:
+            ii = self.atom_type(i)
+            for j in elements:
+                jj = self.atom_type(j)
+                p = self.pair_type(ii, jj)
+                cutoff = max(cutoff, self.cutoff[p])
+        return cutoff
+
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
 
         # get internal atom types from atomic numbers
         t_n = self.atom_type(atoms.numbers)
+        cutoff = self.get_cutoff(atoms)
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=self.cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -175,11 +193,12 @@ class Manybody(Calculator):
 
         # get internal atom types from atomic numbers
         t_n = self.atom_type(atoms.numbers)
+        cutoff = self.get_cutoff(atoms)
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * cutoff)
 
-        mask_p = r_p > self.cutoff
+        mask_p = r_p > cutoff
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -192,7 +211,7 @@ class Manybody(Calculator):
 
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
+        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
         first_p = first_neighbours(len(i_p), ij_t)
         nb_triplets = len(ij_t)
 
@@ -343,12 +362,13 @@ class Manybody(Calculator):
 
         # get internal atom types from atomic numbers
         t_n = self.atom_type(atoms.numbers)
+        cutoff = self.get_cutoff(atoms)
 
         if i_p is None or j_p is None or r_p is None or r_pc is None:
             # We need to construct the neighbor list ourselves
-            i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
+            i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * cutoff)
 
-        mask_p = r_p > self.cutoff
+        mask_p = r_p > cutoff
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -362,7 +382,7 @@ class Manybody(Calculator):
 
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
+        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
 
         # construct lists with atom and pair types
         ti_p = t_n[i_p]
@@ -436,7 +456,7 @@ class Manybody(Calculator):
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * cutoff)
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -472,7 +492,7 @@ class Manybody(Calculator):
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * cutoff)
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -506,7 +526,7 @@ class Manybody(Calculator):
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.get_cutoff(atoms))
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -644,12 +664,13 @@ class Manybody(Calculator):
 
         # get internal atom types from atomic numbers
         t_n = self.atom_type(atoms.numbers)
+        cutoff = self.get_cutoff(atoms)
 
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms,
-                                             cutoff=2*self.cutoff)
+                                             cutoff=2*cutoff)
 
-        mask_p = r_p > self.cutoff
+        mask_p = r_p > cutoff
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -660,7 +681,7 @@ class Manybody(Calculator):
 
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, self.cutoff, i_p, j_p)
+        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
 
         # construct lists with atom and pair types
         ti_p = t_n[i_p]
