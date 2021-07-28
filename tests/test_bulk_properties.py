@@ -31,9 +31,9 @@ from ase.lattice.cubic import Diamond
 from ase.optimize import FIRE
 from ase.units import GPa
 
-import matscipy.calculators.manybody.explicit_forms.stillinger_weber as sw
-import matscipy.calculators.manybody.explicit_forms.kumagai as kum
-import matscipy.calculators.manybody.explicit_forms.tersoff_brenner as t3
+import matscipy.calculators.manybody.explicit_forms.stillinger_weber as stillinger_weber
+import matscipy.calculators.manybody.explicit_forms.kumagai as kumagai
+import matscipy.calculators.manybody.explicit_forms.tersoff_brenner as tersoff_brenner
 from matscipy.calculators.manybody import Manybody
 from matscipy.calculators.manybody.explicit_forms import Kumagai, TersoffBrenner, StillingerWeber
 from matscipy.elasticity import full_3x3x3x3_to_Voigt_6x6
@@ -43,21 +43,29 @@ from matscipy.elasticity import full_3x3x3x3_to_Voigt_6x6
 sx = 1
 
 tests = [
-    ("Kumagai-dia-Si", Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si),
+    ("Kumagai-dia-Si", Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
      dict(struct=Diamond("Si", size=[sx, sx, sx]),
           Ec=4.630, a0=5.429, C11=166.4, C12=65.3, C44=77.1, C440=120.9)),
-    ("StillingerWeber-dia-Si", StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si),
+    ("StillingerWeber-dia-Si", StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si),
      dict(struct=Diamond("Si", size=[sx, sx, sx]),
           Ec=4.630, a0=5.431, C11=161.6, C12=81.6, C44=60.3, C440=117.2, B=108.3)),
-    ("Tersoff3-dia-C", TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C),
+    ("Tersoff3-dia-C", TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
      dict(struct=Diamond("C", size=[sx, sx, sx]),
           Ec=7.396 - 0.0250, a0=3.566, C11=1067, C12=104, C44=636, C440=671)),
-    ("Tersoff3-dia-Si", TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C),
+    ("Tersoff3-dia-Si", TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
      dict(struct=Diamond("Si", size=[sx, sx, sx]),
           Ec=4.63, a0=5.432, C11=143, C12=75, C44=69, C440=119, B=98)),
-    ("Tersoff3-dia-Si-C", TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C),
+    ("Tersoff3-dia-Si-C", TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
      dict(struct=B3(["Si", "C"], latticeconstant=4.3596, size=[sx, sx, sx]),
           Ec=6.165, a0=4.321, C11=437, C12=118, C440=311, B=224)),
+    ("MatsunagaFisherMatsubara-dia-C",
+     TersoffBrenner(tersoff_brenner.Matsunaga_Fisher_Matsubara_Jpn_J_Appl_Phys_39_48_B_C_N),
+     dict(struct=Diamond("C", size=[sx, sx, sx]),
+          Ec=7.396 - 0.0250, a0=3.566, C11=1067, C12=104, C44=636, C440=671)),
+    ("MatsunagaFisherMatsubara-dia-B-N",
+     TersoffBrenner(tersoff_brenner.Matsunaga_Fisher_Matsubara_Jpn_J_Appl_Phys_39_48_B_C_N),
+     dict(struct=B3(["B", "N"], latticeconstant=3.7, size=[sx, sx, sx]),
+          Ec=6.63, a0=3.658, B=385)),
 ]
 
 
