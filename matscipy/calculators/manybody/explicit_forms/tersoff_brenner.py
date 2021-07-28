@@ -289,11 +289,19 @@ Brenner_PRB_42_9458_C_II = {
 }
 
 
-def ab(x):
+def _a(x):
     '''
     Compute absolute value (norm) of an array of vectors
     '''
     return np.linalg.norm(x, axis=1)
+
+
+def _o(x, y, z=None):
+    """Outer product"""
+    if z is None:
+        return x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3)
+    else:
+        return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
 
 
 def TersoffBrenner(parameters):
@@ -447,16 +455,16 @@ def TersoffBrenner(parameters):
         dg = lambda cost, i, p: 2 * c[p] ** 2 * (h[p] + cost) / (d[p] ** 2 + (h[p] + cost) ** 2) ** 2
         ddg = lambda cost, i, p: 2 * c[p] ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 2 - 8 * c[p] ** 2 * (h[p] + cost) ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 3
 
-    hf = lambda rij, rik, ij, ik: f(ab(rik), ik) * np.exp(lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij])
+    hf = lambda rij, rik, ij, ik: f(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
     d1h = lambda rij, rik, ij, ik: lambda3[ij] * hf(rij, rik, ij, ik)
-    d2h = lambda rij, rik, ij, ik: -lambda3[ij] * hf(rij, rik, ij, ik) + df(ab(rik), ik) * np.exp(
-        lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij])
+    d2h = lambda rij, rik, ij, ik: -lambda3[ij] * hf(rij, rik, ij, ik) + df(_a(rik), ik) * np.exp(
+        lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
     d11h = lambda rij, rik, ij, ik: lambda3[ij] ** 2 * hf(rij, rik, ij, ik)
     d12h = lambda rij, rik, ij, ik: (
-                df(ab(rik), ik) * (lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij]) -
-                lambda3[ij] * hf(rij, rik, ij, ik))
-    d22h = lambda rij, rik, ij, ik: (ddf(ab(rik), ik) * np.exp(lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij]) + 2 * (
-                lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (ab(rij) - ab(rik)) ** delta[ij]) * df(ab(rik), ik) +
+            df(_a(rik), ik) * (lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij]) -
+            lambda3[ij] * hf(rij, rik, ij, ik))
+    d22h = lambda rij, rik, ij, ik: (ddf(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij]) + 2 * (
+                lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij]) * df(_a(rik), ik) +
                                      lambda3[ij] ** 2 * hf(rij, rik, ij, ik))
 
     # Derivatives of F
@@ -470,29 +478,22 @@ def TersoffBrenner(parameters):
     d12F = lambda r, xi, i, p: f(r, p) * dfA(r, p) * db(xi, i, p) + fA(r, p) * df(r, p) * db(xi, i, p)
 
     # Helping functions
-    costh = lambda rij, rik: np.sum(rij * rik, axis=1) / (ab(rij) * ab(rik))
+    costh = lambda rij, rik: np.sum(rij * rik, axis=1) / (_a(rij) * _a(rik))
 
-    c1 = lambda rij, rik: ((rik.T/ab(rik) - rij.T/ab(rij) * costh(rij, rik)) / ab(rij)).T
-    c2 = lambda rij, rik: ((rij.T/ab(rij) - rik.T/ab(rik) * costh(rij, rik)) / ab(rik)).T
+    c1 = lambda rij, rik: ((rik.T / _a(rik) - rij.T / _a(rij) * costh(rij, rik)) / _a(rij)).T
+    c2 = lambda rij, rik: ((rij.T / _a(rij) - rik.T / _a(rik) * costh(rij, rik)) / _a(rik)).T
 
     dc11 = lambda rij, rik: \
-        ((- c1(rij, rik).reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)
-          - rij.reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)
-          - (costh(rij, rik) * (np.eye(3) - ((rij.reshape(-1, 1, 3) * rij.reshape(-1, 3, 1)).T / ab(rij) ** 2).T).T).T
-          ).T / ab(rij) ** 2).T
-    dc22 = lambda rij, rik: \
-        ((- c2(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)
-          - rik.reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)
-          - (costh(rij, rik) * (np.eye(3) - ((rik.reshape(-1, 1, 3) * rik.reshape(-1, 3, 1)).T / ab(rik) ** 2).T).T).T
-          ).T / ab(rik) ** 2).T
-
+        ((- _o(c1(rij, rik), rij) - _o(rij, c1(rij, rik))
+          - (costh(rij, rik) * (np.eye(3) - (_o(rij, rij).T / _a(rij) ** 2).T).T).T).T / _a(rij) ** 2).T
+    dc22 = lambda rij, rik:\
+        ((- _o(c2(rij, rik), rik) - _o(rik, c2(rij, rik))
+          - (costh(rij, rik) * (np.eye(3) - (_o(rik, rik).T / _a(rik) ** 2).T).T).T).T / _a(rik) ** 2).T
     dc12 = lambda rij, rik: \
-        (((np.eye(3) - ((rij.reshape(-1, 1, 3) * rij.reshape(-1, 3, 1)).T / ab(rij) ** 2).T).T / ab(rij)
-          - (c1(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T / ab(rik)
-          ) / ab(rik)).T
+        (((np.eye(3) - (_o(rij, rij).T / _a(rij) ** 2).T).T / _a(rij) - _o(c1(rij, rik), rik).T / _a(rik)) / _a(rik)).T
 
-    Dh1 = lambda rij, rik, ij, ik: (d1h(rij, rik, ij, ik) * rij.T / ab(rij)).T
-    Dh2 = lambda rij, rik, ij, ik: (d2h(rij, rik, ij, ik) * rik.T / ab(rik)).T
+    Dh1 = lambda rij, rik, ij, ik: (d1h(rij, rik, ij, ik) * rij.T / _a(rij)).T
+    Dh2 = lambda rij, rik, ij, ik: (d2h(rij, rik, ij, ik) * rik.T / _a(rik)).T
 
     Dg1 = lambda rij, rik, i, ij: (dg(costh(rij, rik), i, ij) * c1(rij, rik).T).T
     Dg2 = lambda rij, rik, i, ij: (dg(costh(rij, rik), i, ij) * c2(rij, rik).T).T
@@ -505,38 +506,41 @@ def TersoffBrenner(parameters):
     d2G = lambda rij, rik, i, ij, ik: (
                 Dh2(rij, rik, ij, ik).T * g(costh(rij, rik), i, ij) + hf(rij, rik, ij, ik) * Dg2(rij, rik, i, ij).T).T
 
-    d11G = lambda rij, rik, i, ij, ik: Dg1(rij, rik, i, ij).reshape(-1, 3, 1) * Dh1(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh1(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg1(rij, rik, i, ij).reshape(-1, 1, 3) + ((g(costh(rij, rik), i, ij) * Dh11(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg11(rij, rik, i, ij).T).T)
+    d11G = lambda rij, rik, i, ij, ik: \
+        _o(Dg1(rij, rik, i, ij), Dh1(rij, rik, ij, ik)) + _o(Dh1(rij, rik, ij, ik), Dg1(rij, rik, i, ij)) \
+        + (g(costh(rij, rik), i, ij) * Dh11(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg11(rij, rik, i, ij).T).T
 
     Dh11 = lambda rij, rik, ij, ik: \
-        (d11h(rij, rik, ij, ik) * (((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T
-         + d1h(rij, rik, ij, ik) * ((np.eye(3) - ((rij.reshape(-1, 3, 1) * rij.reshape(-1, 1, 3)).T/ab(rij)**2).T).T/ab(rij))).T
+        (d11h(rij, rik, ij, ik) * _o(rij, rij).T / _a(rij) ** 2
+         + d1h(rij, rik, ij, ik) * ((np.eye(3) - (_o(rij, rij).T / _a(rij) ** 2).T).T / _a(rij))).T
 
     Dg11 = lambda rij, rik, i, ij: \
-        (ddg(costh(rij, rik), i, ij) * (c1(rij, rik).reshape(-1, 3, 1) * c1(rij, rik).reshape(-1, 1, 3)).T
+        (ddg(costh(rij, rik), i, ij) * _o(c1(rij, rik), c1(rij, rik)).T
          + dg(costh(rij, rik), i, ij) * dc11(rij, rik).T).T
 
-
     d22G = lambda rij, rik, i, ij, ik: \
-        Dg2(rij, rik, i, ij).reshape(-1, 3, 1) * Dh2(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh2(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg2(rij, rik, i, ij).reshape(-1, 1, 3) \
-        + ((g(costh(rij, rik), i, ij) * Dh22(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg22(rij, rik, i, ij).T).T)
+        _o(Dg2(rij, rik, i, ij), Dh2(rij, rik, ij, ik)) + _o(Dh2(rij, rik, ij, ik), Dg2(rij, rik, i, ij)) \
+        + ((g(costh(rij, rik), i, ij) * Dh22(rij, rik, ij, ik).T).T
+           + (hf(rij, rik, ij, ik) * Dg22(rij, rik, i, ij).T).T)
 
     Dh22 = lambda rij, rik, ij, ik: \
-        (d22h(rij, rik, ij, ik) * (((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T
-         + d2h(rij, rik, ij, ik) * ((np.eye(3) - ((rik.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik)**2).T).T/ab(rik))).T
+        (d22h(rij, rik, ij, ik) * _o(rik, rik).T / _a(rik) ** 2
+         + d2h(rij, rik, ij, ik) * ((np.eye(3) - (_o(rik, rik).T / _a(rik) ** 2).T).T / _a(rik))).T
 
     Dg22 = lambda rij, rik, i, ij: \
-        (ddg(costh(rij, rik), i, ij) * (c2(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
+        (ddg(costh(rij, rik), i, ij) * _o(c2(rij, rik), c2(rij, rik)).T
          + dg(costh(rij, rik), i, ij) * dc22(rij, rik).T).T
 
     d12G = lambda rij, rik, i, ij, ik: \
-        Dg1(rij, rik, i, ij).reshape(-1, 3, 1) * Dh2(rij, rik, ij, ik).reshape(-1, 1, 3) + Dh1(rij, rik, ij, ik).reshape(-1, 3, 1) * Dg2(rij, rik, i, ij).reshape(-1, 1, 3) \
-        + ((g(costh(rij, rik), i, ij) * Dh12(rij, rik, ij, ik).T).T + (hf(rij, rik, ij, ik) * Dg12(rij, rik, i, ij).T).T)
+        _o(Dg1(rij, rik, i, ij), Dh2(rij, rik, ij, ik)) + _o(Dh1(rij, rik, ij, ik), Dg2(rij, rik, i, ij)) \
+        + ((g(costh(rij, rik), i, ij) * Dh12(rij, rik, ij, ik).T).T
+           + (hf(rij, rik, ij, ik) * Dg12(rij, rik, i, ij).T).T)
 
     Dh12 = lambda rij, rik, ij, ik: \
-        (d12h(rij, rik, ij, ik) * (rij.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/(ab(rij)*ab(rik))).T
+        (d12h(rij, rik, ij, ik) * _o(rij, rik).T / (_a(rij) * _a(rik))).T
 
     Dg12 = lambda rij, rik, i, ij: \
-        (ddg(costh(rij, rik), i, ij) * (c1(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
+        (ddg(costh(rij, rik), i, ij) * _o(c1(rij, rik), c2(rij, rik)).T
          + dg(costh(rij, rik), i, ij) * dc12(rij, rik).T).T
 
     return {
