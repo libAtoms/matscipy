@@ -4,10 +4,10 @@ Change log
 v0.8.0 (not yet released)
 -------------------------
 
-- Calculator for bond-order potentials and Stillinger-Weber
-- Hessian calculation for bond-order potentials and Stillinger-Weber
-- Specific bond-order parameterization for Kumagai and Tersoff3
-- Calculation of zero-temperature elastic constants for pair potentials and bond-order potentials
+- Calculator for Manybody potentials e.g. Stillinger-Weber and Bond-order
+- Specific parametrizations for Tersoff-Brenner potentials, Stillinger-Weber and Kumagai 
+- Analytic computation of Hessian matrix for manybody potentials
+- Analytic computation of zero-temperature elastic constants for pair potential and manybody potentials
 
 v0.7.0 (17Nov20)
 ----------------
