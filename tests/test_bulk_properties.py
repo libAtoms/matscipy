@@ -71,9 +71,7 @@ def test_cubic_elastic_constants(test):
     atoms.set_scaled_positions(atoms.get_scaled_positions())
     atoms.set_calculator(calculator)
 
-    FIRE(
-        ase.constraints.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]),
-        logfile=None).run(fmax=0.0001)
+    FIRE(ase.constraints.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.0001)
 
     # Ec
     Ec = -atoms.get_potential_energy() / len(atoms)
@@ -94,6 +92,7 @@ def test_cubic_elastic_constants(test):
     C440 = full_3x3x3x3_to_Voigt_6x6(Caffine)[3, 3] / GPa
     B = (C11 + 2 * C12) / 3
 
+    # print to screen
     print()
     print(f'=== {name}===')
     l1 = f'          '
@@ -110,6 +109,7 @@ def test_cubic_elastic_constants(test):
     print(l2)
     print(l3)
 
+    # actually test properties
     for prop, value in mat.items():
         if prop != 'struct':
             np.testing.assert_allclose(locals()[prop], value, rtol=0.1)
