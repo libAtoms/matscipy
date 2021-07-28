@@ -436,43 +436,69 @@ def TersoffBrenner(parameters):
     ddfA = lambda r, p: mu[p] ** 2 * fA(r, p)
 
     if style == 'tersoff':
-        b = lambda xi, i, p: chi[p] * (1 + (beta[i] * xi)**n[i])**(-1 / (2 * n[i]))
-        db = lambda xi, i, p: chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[i] * np.power(beta[i] * xi, n[i]-1, where=xi!=0.0) * (1 + (beta[i] * xi)**n[i])**(-1-1/(2*n[i])))
-        ddb = lambda xi, i, p: chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[i]**2 * (n[i]-1) * np.power(beta[i] * xi, n[i]-2, where=xi!=0.0) * np.power(1 + (beta[i] * xi)**n[i], -1-1/(2*n[i])) - 0.5 * beta[i]**2 * n[i] * np.power(beta[i] * xi, -2 + 2*n[i], where=xi!=0.0) * ( -1 - 1/(2*n[i])) * np.power(1 + (beta[i] * xi)**n[i], -2-1/(2*n[i])))
+        b = lambda xi, i, p: \
+            chi[p] * (1 + (beta[i] * xi) ** n[i]) ** (-1 / (2 * n[i]))
+        db = lambda xi, i, p: \
+            chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[i] * np.power(beta[i] * xi, n[i] - 1, where=xi != 0.0)
+                              * (1 + (beta[i] * xi) ** n[i]) ** (-1 - 1 / (2 * n[i])))
+        ddb = lambda xi, i, p: \
+            chi[p] * np.where(xi == 0.0, 0.0, -0.5 * beta[i] ** 2 * (n[i] - 1)
+                              * np.power(beta[i] * xi, n[i] - 2, where=xi != 0.0)
+                              * np.power(1 + (beta[i] * xi) ** n[i], -1 - 1 / (2 * n[i]))
+                              - 0.5 * beta[i] ** 2 * n[i] * np.power(beta[i] * xi, -2 + 2 * n[i], where=xi != 0.0)
+                              * (-1 - 1 / (2 * n[i])) * np.power(1 + (beta[i] * xi) ** n[i], -2 - 1 / (2 * n[i])))
 
-        g = lambda cost, i, p: 1 + c[i] ** 2 / d[i] ** 2 - c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2)
-        dg = lambda cost, i, p: -2 * c[i] ** 2 * (h[i] - cost) / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2
-        ddg = lambda cost, i, p: 2 * c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2 - 8 * c[i] ** 2 * (h[i] - cost) ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 3
+        g = lambda cost, i, p:\
+            1 + c[i] ** 2 / d[i] ** 2 - c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2)
+        dg = lambda cost, i, p:\
+            -2 * c[i] ** 2 * (h[i] - cost) / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2
+        ddg = lambda cost, i, p:\
+            2 * c[i] ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 2 \
+            - 8 * c[i] ** 2 * (h[i] - cost) ** 2 / (d[i] ** 2 + (h[i] - cost) ** 2) ** 3
     else:
         b = lambda xi, i, p: np.power(1 + gamma[p] * xi, -0.5)
         db = lambda xi, i, p: -0.5 * gamma[p] * np.power(1 + gamma[p] * xi, -1.5)
         ddb = lambda xi, i, p: 0.75 * (gamma[p] ** 2) * np.power(1 + gamma[p] * xi, -2.5)
 
-        g = lambda cost, i, p: 1 + c[p] ** 2 / d[p] ** 2 - c[p] ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2)
-        dg = lambda cost, i, p: 2 * c[p] ** 2 * (h[p] + cost) / (d[p] ** 2 + (h[p] + cost) ** 2) ** 2
-        ddg = lambda cost, i, p: 2 * c[p] ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 2 - 8 * c[p] ** 2 * (h[p] + cost) ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 3
+        g = lambda cost, i, p:\
+            1 + c[p] ** 2 / d[p] ** 2 - c[p] ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2)
+        dg = lambda cost, i, p:\
+            2 * c[p] ** 2 * (h[p] + cost) / (d[p] ** 2 + (h[p] + cost) ** 2) ** 2
+        ddg = lambda cost, i, p:\
+            2 * c[p] ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 2\
+            - 8 * c[p] ** 2 * (h[p] + cost) ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 3
 
-    hf = lambda rij, rik, ij, ik: f(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
-    d1h = lambda rij, rik, ij, ik: lambda3[ij] * hf(rij, rik, ij, ik)
-    d2h = lambda rij, rik, ij, ik: -lambda3[ij] * hf(rij, rik, ij, ik) + df(_a(rik), ik) * np.exp(
-        lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
-    d11h = lambda rij, rik, ij, ik: lambda3[ij] ** 2 * hf(rij, rik, ij, ik)
-    d12h = lambda rij, rik, ij, ik: (
-            df(_a(rik), ik) * (lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij]) -
-            lambda3[ij] * hf(rij, rik, ij, ik))
-    d22h = lambda rij, rik, ij, ik: (ddf(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij]) + 2 * (
-                lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij]) * df(_a(rik), ik) +
-                                     lambda3[ij] ** 2 * hf(rij, rik, ij, ik))
+    hf = lambda rij, rik, ij, ik: \
+        f(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
+    d1h = lambda rij, rik, ij, ik: \
+        lambda3[ij] * hf(rij, rik, ij, ik)
+    d2h = lambda rij, rik, ij, ik: \
+        -lambda3[ij] * hf(rij, rik, ij, ik) + df(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
+    d11h = lambda rij, rik, ij, ik: \
+        lambda3[ij] ** 2 * hf(rij, rik, ij, ik)
+    d12h = lambda rij, rik, ij, ik: \
+        (df(_a(rik), ik) * (lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
+         - lambda3[ij] * hf(rij, rik, ij, ik))
+    d22h = lambda rij, rik, ij, ik: \
+        (ddf(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
+         + 2 * (lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij]) * df(_a(rik), ik)
+         + lambda3[ij] ** 2 * hf(rij, rik, ij, ik))
 
     # Derivatives of F
-    F = lambda r, xi, i, p: f(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p))
-    d1F = lambda r, xi, i, p: df(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p)) + f(r, p) * (
-                dfR(r, p) + b(xi, i, p) * dfA(r, p))
-    d2F = lambda r, xi, i, p: f(r, p) * fA(r, p) * db(xi, i, p)
-    d11F = lambda r, xi, i, p: f(r, p) * (ddfR(r, p) + b(xi, i, p) * ddfA(r, p)) + 2 * df(r, p) * (
-                dfR(r, p) + b(xi, i, p) * dfA(r, p)) + ddf(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p))
-    d22F = lambda r, xi, i, p: f(r, p) * fA(r, p) * ddb(xi, i, p)
-    d12F = lambda r, xi, i, p: f(r, p) * dfA(r, p) * db(xi, i, p) + fA(r, p) * df(r, p) * db(xi, i, p)
+    F = lambda r, xi, i, p: \
+        f(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p))
+    d1F = lambda r, xi, i, p: \
+        df(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p)) \
+        + f(r, p) * (dfR(r, p) + b(xi, i, p) * dfA(r, p))
+    d2F = lambda r, xi, i, p: \
+        f(r, p) * fA(r, p) * db(xi, i, p)
+    d11F = lambda r, xi, i, p: \
+        f(r, p) * (ddfR(r, p) + b(xi, i, p) * ddfA(r, p)) \
+        + 2 * df(r, p) * (dfR(r, p) + b(xi, i, p) * dfA(r, p)) + ddf(r, p) * (fR(r, p) + b(xi, i, p) * fA(r, p))
+    d22F = lambda r, xi, i, p: \
+        f(r, p) * fA(r, p) * ddb(xi, i, p)
+    d12F = lambda r, xi, i, p: \
+        f(r, p) * dfA(r, p) * db(xi, i, p) + fA(r, p) * df(r, p) * db(xi, i, p)
 
     # Helping functions
     costh = lambda rij, rik: np.sum(rij * rik, axis=1) / (_a(rij) * _a(rik))
