@@ -24,8 +24,8 @@ import pytest
 import numpy as np
 
 import ase.constraints
-from ase.lattice.compounds import B3
-from ase.lattice.cubic import Diamond
+from ase.lattice.compounds import B1, B2, B3
+from ase.lattice.cubic import BodyCenteredCubic, Diamond, FaceCenteredCubic
 from ase.optimize import FIRE
 from ase.units import GPa
 
@@ -89,6 +89,23 @@ tests = [
      TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_SiC),
      B3(["Si", "C"], latticeconstant=4.3596, size=[sx, sx, sx]),
      dict(Ec=6.340, a0=4.359, C11=382, C12=145, C440=305, B=224)),
+# FIXME! These potential don't work yet.
+#    ("AlbeNordlundAverbackPtC-fcc-Pt",
+#     TersoffBrenner(tersoff_brenner.Albe_PRB_65_195124_PtC),
+#     FaceCenteredCubic("Pt", size=[sx, sx, sx]),
+#     dict(Ec=5.77, a0=3.917, C11=351.5, C12=248.1, C44=89.5, B=282.6)),
+#    ("AlbeNordlundAverbackPtC-bcc-Pt",
+#     TersoffBrenner(tersoff_brenner.Albe_PRB_65_195124_PtC),
+#     BodyCenteredCubic("Pt", latticeconstant=3.1, size=[sx, sx, sx]),
+#     dict(Ec=5.276, a0=3.094, B=245.5)),
+#    ("AlbeNordlundAverbackPtC-B1-PtC",
+#     TersoffBrenner(tersoff_brenner.Albe_PRB_65_195124_PtC),
+#     B1(["Pt", "C"], latticeconstant=4.5, size=[sx, sx, sx]),
+#     dict(Ec=10.271, a0=4.476, B=274)),
+#    ("AlbeNordlundAverbackPtC-B2-PtC",
+#     TersoffBrenner(tersoff_brenner.Albe_PRB_65_195124_PtC),
+#     B2(["Pt", "C"], latticeconstant=2.7, size=[sx, sx, sx]),
+#     dict(Ec=9.27, a0=2.742, B=291)),
 ]
 
 

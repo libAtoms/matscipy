@@ -70,7 +70,6 @@ Tersoff_PRB_39_5566_Si_C = {
     'lambda':   [  3.4879e0,    (3.4879e0+2.4799e0)/2,    2.4799e0  ],
     'mu':       [  2.2119e0,    (2.2119e0+1.7322e0)/2,    1.7322e0  ],
     'lambda3':  [  0.0,         0.0,                      0.0       ],
-    'delta':    [  1,           1,                        1         ],
     'beta':     [  1.5724e-7,   1.1000e-6   ],
     'n':        [  7.2751e-1,   7.8734e-1   ],
     'c':        [  3.8049e4,    1.0039e5    ],
@@ -110,7 +109,6 @@ Matsunaga_Fisher_Matsubara_Jpn_J_Appl_Phys_39_48_B_C_N = {
     'mu':       [  2.2119,      -1.0,     -1.0,     2.5115,     -1.0,     1.5856    ],
     'omega':    [  1.0,         0.6381,   1.0,      1.0,        1.0,      1.0       ],
     'lambda3':  [  0.0,         0.0,      0.0,      0.0,        0.0,      0.0       ],
-    'delta':    [  1,           1,        1,        1,          1,        1         ],
     'r1':       [  1.80,        -1.0,     -1.0,     2.0,         -1.0,    1.8       ],
     'r2':       [  2.10,        -1.0,     -1.0,     2.3,         -1.0,    2.1       ],
     'beta':     [  1.5724e-7,   1.0562e-1,   1.6e-6     ],
@@ -142,7 +140,6 @@ Erhart_PRB_71_035211_SiC = {
     'h':        [  0.5556,    0.68,       0.259     ],
     'mu':       [  0.0,       0.0,        0.0       ],
     'n':        [  1.0,       1.0,        1.0       ],
-    'delta':    [  1,         1,          1         ],
     'r1':       [  1.85,      2.20,       2.68      ],
     'r2':       [  2.15,      2.60,       2.96      ]
 }
@@ -162,7 +159,6 @@ Albe_PRB_65_195124_PtC = {
     'h':        [  1.0,       1.0,        1.0       ],
     'mu':       [  1.335,     0.0,        0.0       ],
     'n':        [  1.0,       1.0,        1.0       ],
-    'delta':    [  1,         1,          1         ],
     'r1':       [  2.9,       2.5,        1.7       ],
     'r2':       [  3.3,       2.8,        2.0       ]
 }
@@ -182,7 +178,6 @@ Henriksson_PRB_79_114107_FeC = {
     'h':       [ -0.26,        0.87099874,   1.0          ],
     'mu':      [  0.0,         0.0,          0.0          ],
     'n':       [  1.0,         1.0,          1.0          ],
-    'delta':   [  1,           1,            1            ],
     'r1':      [  2.95,        2.3,          1.70         ],
     'r2':      [  3.35,        2.7,          2.00         ]
 }
@@ -202,7 +197,6 @@ Kioseoglou_PSSb_245_1118_AlN = {
     'h':        [  0.045238,   0.5980,     0.6593   ],
     'mu':       [  0.0,        0.0,        0.0      ],
     'n':        [  1.0,        0.7200,     6.0865   ],
-    'delta':    [  1,          1,          1        ],
     'r1':       [  2.00,       2.19,       3.40     ],
     'r2':       [  2.40,       2.49,       3.60     ]
 }
@@ -263,7 +257,6 @@ Brenner_PRB_42_9458_C_I = {
     'h':        [  1.0              ],
     'mu':       [  0.0              ],
     'n':        [  1.0/(2*0.80469)  ],
-    'delta':    [  1                ],
     'r1':       [  1.70             ],
     'r2':       [  2.00             ]
 }
@@ -283,7 +276,6 @@ Brenner_PRB_42_9458_C_II = {
     'h':        [  1.0          ],
     'mu':       [  0.0          ],
     'n':        [  1.0/(2*0.5)  ],
-    'delta':    [  1            ],
     'r1':       [  1.70         ],
     'r2':       [  2.00         ]
 }
@@ -322,7 +314,6 @@ def TersoffBrenner(parameters):
     h = np.array(parameters['h'])
     r1 = np.array(parameters['r1'])
     r2 = np.array(parameters['r2'])
-    delta = np.array(parameters['delta'])
     if style == 'tersoff':
         # These are Tersoff-style parameters. The symbols follow the notation in
         # Tersoff J., Phys. Rev. B 39, 5566 (1989)
@@ -352,7 +343,6 @@ def TersoffBrenner(parameters):
         assert len(h) == nb_elements
         assert len(r1) == nb_pairs
         assert len(r2) == nb_pairs
-        assert len(delta) == nb_pairs
     elif style == 'brenner':
         # These are Brenner/Erhart-Albe-style parameters. The symbols follow the notation in
         # Brenner D., Phys. Rev. B 42, 9458 (1990) and
@@ -386,7 +376,6 @@ def TersoffBrenner(parameters):
         assert len(h) == nb_pairs
         assert len(r1) == nb_pairs
         assert len(r2) == nb_pairs
-        assert len(delta) == nb_pairs
     else:
         raise ValueError(f'Unknown parameter style {style}')
 
@@ -469,20 +458,20 @@ def TersoffBrenner(parameters):
             - 8 * c[p] ** 2 * (h[p] + cost) ** 2 / (d[p] ** 2 + (h[p] + cost) ** 2) ** 3
 
     hf = lambda rij, rik, ij, ik: \
-        f(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
+        f(_a(rik), ik) * np.exp(lambda3[ik] * (_a(rij) - _a(rik)))
     d1h = lambda rij, rik, ij, ik: \
-        lambda3[ij] * hf(rij, rik, ij, ik)
+        lambda3[ik] * hf(rij, rik, ij, ik)
     d2h = lambda rij, rik, ij, ik: \
-        -lambda3[ij] * hf(rij, rik, ij, ik) + df(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
+        -lambda3[ik] * hf(rij, rik, ij, ik) + df(_a(rik), ik) * np.exp(lambda3[ik] * (_a(rij) - _a(rik)))
     d11h = lambda rij, rik, ij, ik: \
-        lambda3[ij] ** 2 * hf(rij, rik, ij, ik)
+        lambda3[ik] ** 2 * hf(rij, rik, ij, ik)
     d12h = lambda rij, rik, ij, ik: \
-        (df(_a(rik), ik) * (lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
-         - lambda3[ij] * hf(rij, rik, ij, ik))
+        (df(_a(rik), ik) * lambda3[ik] * np.exp(lambda3[ik] * (_a(rij) - _a(rik)))
+         - lambda3[ik] * hf(rij, rik, ij, ik))
     d22h = lambda rij, rik, ij, ik: \
-        (ddf(_a(rik), ik) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij])
-         + 2 * (lambda3[ij] * delta[ij]) * np.exp(lambda3[ij] * (_a(rij) - _a(rik)) ** delta[ij]) * df(_a(rik), ik)
-         + lambda3[ij] ** 2 * hf(rij, rik, ij, ik))
+        (ddf(_a(rik), ik) * np.exp(lambda3[ik] * (_a(rij) - _a(rik)))
+         + 2 * lambda3[ik] * np.exp(lambda3[ik] * (_a(rij) - _a(rik))) * df(_a(rik), ik)
+         + lambda3[ik] ** 2 * hf(rij, rik, ij, ik))
 
     # Derivatives of F
     F = lambda r, xi, i, p: \
