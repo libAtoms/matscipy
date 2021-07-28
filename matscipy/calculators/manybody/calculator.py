@@ -621,8 +621,6 @@ class Manybody(Calculator):
 
         calc = atoms.get_calculator()
 
-        C_abab = np.zeros((3,3,3,3))        
-
         if (eigenvalues is not None) and (eigenvectors is not None):
             naforces_icab = calc.get_non_affine_forces(atoms)
 
