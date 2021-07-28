@@ -296,12 +296,9 @@ def _a(x):
     return np.linalg.norm(x, axis=1)
 
 
-def _o(x, y, z=None):
+def _o(x, y):
     """Outer product"""
-    if z is None:
-        return x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3)
-    else:
-        return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
+    return x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3)
 
 
 def TersoffBrenner(parameters):
