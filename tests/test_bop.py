@@ -29,9 +29,9 @@ from ase.optimize import FIRE
 from ase.lattice.compounds import B3
 from ase.lattice.cubic import Diamond
 
-import matscipy.calculators.manybody.explicit_forms.stillinger_weber as sw
-import matscipy.calculators.manybody.explicit_forms.kumagai as kum
-import matscipy.calculators.manybody.explicit_forms.tersoff_brenner as t3
+import matscipy.calculators.manybody.explicit_forms.stillinger_weber as stillinger_weber
+import matscipy.calculators.manybody.explicit_forms.kumagai as kumagai
+import matscipy.calculators.manybody.explicit_forms.tersoff_brenner as tersoff_brenner
 from matscipy.calculators.manybody import Manybody
 from matscipy.calculators.manybody.explicit_forms import Kumagai, TersoffBrenner, StillingerWeber
 from matscipy.hessian_finite_differences import fd_hessian
@@ -40,10 +40,12 @@ from matscipy.calculators.calculator import MatscipyCalculator
 
 
 @pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
-def test_stress(a0):
+@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
+                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
+def test_stress(a0, par):
     atoms = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
-    kumagai_potential = kum.Kumagai_Comp_Mat_Sci_39_Si
-    calculator = Manybody(**Kumagai(kumagai_potential))
+    calculator = Manybody(**par)
     atoms.calc = calculator
     s = atoms.get_stress()
     sn = calculator.calculate_numerical_stress(atoms, d=0.0001)
@@ -55,7 +57,7 @@ def test_hessian_divide_by_masses():
     atoms = ase.io.read('aSi.cfg')
     masses_n = np.random.randint(1, 10, size=len(atoms))
     atoms.set_masses(masses=masses_n)
-    kumagai_potential = kum.Kumagai_Comp_Mat_Sci_39_Si
+    kumagai_potential = kumagai.Kumagai_Comp_Mat_Sci_39_Si
     calc = Manybody(**Kumagai(kumagai_potential))
     D_ana = calc.get_hessian(atoms, divide_by_masses=True).todense()
     H_ana = calc.get_hessian(atoms).todense()
@@ -65,119 +67,74 @@ def test_hessian_divide_by_masses():
 
 
 @pytest.mark.parametrize('d', np.arange(1.0, 2.3, 0.15))
-def test_kumagai_small1(d):
+@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
+                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
+def test_small1(d, par):
     # Test forces and hessian matrix for Kumagai
     small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
     small.center(vacuum=10.0)
-    compute_forces_and_hessian(small, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
+    compute_forces_and_hessian(small, par)
 
 
 @pytest.mark.parametrize('d', np.arange(1.0, 2.3, 0.15))
-def test_kumagai_small2(d):
+@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
+                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
+def test_small2(d, par):
     # Test forces and hessian matrix for Kumagai
     small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
     small2.center(vacuum=10.0)
-    compute_forces_and_hessian(small2, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
+    compute_forces_and_hessian(small2, par)
 
 
 @pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
-def test_kumagai_crystal(a0):
+@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
+                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
+def test_crystal_forces_and_hessian(a0, par):
     # Test forces, hessian, non-affine forces and elastic constants for a Si crystal
     Si_crystal = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
-    compute_forces_and_hessian(Si_crystal, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
-    compute_elastic_constants(Si_crystal, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
+    compute_forces_and_hessian(Si_crystal, par)
 
 
-def test_kumagai_amorphous():
+@pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
+@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
+                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
+def test_crystal_elastic_constants(a0, par):
+    # Test forces, hessian, non-affine forces and elastic constants for a Si crystal
+    Si_crystal = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
+    compute_elastic_constants(Si_crystal, par)
+
+
+@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
+                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
+def test_amorphous(par):
     # Tests for amorphous Si
     aSi = ase.io.read('aSi_N8.xyz')
-    aSi.calc = Manybody(**Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
+    aSi.calc = Manybody(**par)
     # Non-zero forces and Hessian
-    compute_forces_and_hessian(aSi, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
+    compute_forces_and_hessian(aSi, par)
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
     FIRE(aSi).run(fmax=1e-5, steps=1e3)
-    compute_forces_and_hessian(aSi, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
-    compute_elastic_constants(aSi, Kumagai(kum.Kumagai_Comp_Mat_Sci_39_Si))
+    compute_forces_and_hessian(aSi, par)
+    compute_elastic_constants(aSi, par)
 
 
-@pytest.mark.parametrize('d', np.arange(1.0, 2.3, 0.15))
-def test_tersoff_small1(d):
-    # Test forces and hessian matrix for Tersoff3
-    small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
-    small.center(vacuum=10.0)
-    compute_forces_and_hessian(small, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-
-
-@pytest.mark.parametrize('d', np.arange(1.0, 2.3, 0.15))
-def test_tersoff_small2(d):
-    # Test forces and hessian matrix for Tersoff3
-    small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
-    small2.center(vacuum=10.0)
-    compute_forces_and_hessian(small2, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-
-
-@pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
-def test_tersoff_crystal(a0):
-    # Test forces, hessian, non-affine forces and elastic constants for a Si crystal
-    Si_crystal = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
-    compute_forces_and_hessian(Si_crystal, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-    compute_elastic_constants(Si_crystal, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-
-
-@pytest.mark.parametrize('a0', [4.2, 4.3, 4.4, 4.5])
-def test_tersoff_multicomponent_crystal(a0):
+@pytest.mark.parametrize('a0', [4.3, 4.4, 4.5])
+def test_tersoff_multicomponent_crystal_forces_and_hessian(a0):
     # Test forces, hessian, non-affine forces and elastic constants for a Si-C crystal
     Si_crystal = B3(['Si', 'C'], size=[1, 1, 1], latticeconstant=a0)
-    compute_forces_and_hessian(Si_crystal, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-    compute_elastic_constants(Si_crystal, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
+    compute_forces_and_hessian(Si_crystal, TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C))
 
 
-def test_tersoff_amorphous():
-    # Tests for amorphous Si
-    aSi = ase.io.read('aSi_N8.xyz')
-    aSi.calc = Manybody(**TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-    # Non-zero forces and Hessian
-    compute_forces_and_hessian(aSi, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-    # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
-    FIRE(aSi).run(fmax=1e-5, steps=1e3)
-    compute_forces_and_hessian(aSi, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-    compute_elastic_constants(aSi, TersoffBrenner(t3.Tersoff_PRB_39_5566_Si_C))
-
-
-@pytest.mark.parametrize('d', np.arange(1.0, 1.8, 0.15))
-def test_stillinger_weber_small1(d):
-    # Test forces and hessian matrix for Stillinger-Weber
-    small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
-    small.center(vacuum=10.0)
-    compute_forces_and_hessian(small, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
-
-
-@pytest.mark.parametrize('d', np.arange(1.0, 1.8, 0.15))
-def test_stillinger_weber_small2(d):
-    # Test forces and hessian matrix for Stillinger-Weber
-    small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
-    small2.center(vacuum=10.0)
-    compute_forces_and_hessian(small2, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
-
-
-@pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
-def test_stillinger_weber_crystal(a0):
-    # Test forces, hessian, non-affine forces and elastic constants for a Si crystal
-    Si_crystal = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
-    compute_forces_and_hessian(Si_crystal, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
-    compute_elastic_constants(Si_crystal, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
-
-
-def test_stillinger_weber_amorphous():
-    # Tests for amorphous Si
-    aSi = ase.io.read('aSi_N8.xyz')
-    aSi.calc = Manybody(**StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
-    # Non-zero forces and Hessian
-    compute_forces_and_hessian(aSi, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
-    # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
-    FIRE(aSi).run(fmax=1e-5, steps=1e3)
-    compute_forces_and_hessian(aSi, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
-    compute_elastic_constants(aSi, StillingerWeber(sw.Stillinger_Weber_PRB_31_5262_Si))
+@pytest.mark.parametrize('a0', [4.3, 4.4, 4.5])
+def test_tersoff_multicomponent_crystal_elastic_constants(a0):
+    # Test forces, hessian, non-affine forces and elastic constants for a Si-C crystal
+    Si_crystal = B3(['Si', 'C'], size=[1, 1, 1], latticeconstant=a0)
+    compute_elastic_constants(Si_crystal, TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C))
 
 
 def test_generic_potential_form():
