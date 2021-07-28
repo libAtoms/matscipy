@@ -137,24 +137,6 @@ def test_tersoff_multicomponent_crystal_elastic_constants(a0):
     compute_elastic_constants(Si_crystal, TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C))
 
 
-def test_generic_potential_form():
-    test_cutoff = 2.4
-    d = 2.0  # Si2 bondlength
-    small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
-    small.center(vacuum=10.0)
-    small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
-    small2.center(vacuum=10.0)
-    compute_forces_and_hessian(small, term1(test_cutoff))
-    compute_forces_and_hessian(small, term4(test_cutoff))
-    compute_forces_and_hessian(small, d11_term5(test_cutoff))
-    compute_forces_and_hessian(small, d22_term5(test_cutoff))
-
-    compute_forces_and_hessian(small2, term1(test_cutoff))
-    compute_forces_and_hessian(small2, term4(test_cutoff))
-    compute_forces_and_hessian(small2, d11_term5(test_cutoff))
-    compute_forces_and_hessian(small2, d22_term5(test_cutoff))
-
-
 # 0 - Tests Hessian term #4 (with all other terms turned off)
 def term4(test_cutoff):
     return {
@@ -236,6 +218,24 @@ def d22_term5(test_cutoff):
         'd12G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
         'd11G': lambda x, y, i, ij, ik: 0 * x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3),
         'cutoff': test_cutoff}
+
+
+@pytest.mark.parametrize('term', [term1, term4, d11_term5, d22_term5])
+@pytest.mark.parametrize('test_cutoff', [2.4])
+def test_generic_potential_form1(test_cutoff, term):
+    d = 2.0  # Si2 bondlength
+    small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
+    small.center(vacuum=10.0)
+    compute_forces_and_hessian(small, term(test_cutoff))
+
+
+@pytest.mark.parametrize('term', [term1, term4, d11_term5, d22_term5])
+@pytest.mark.parametrize('test_cutoff', [2.4])
+def test_generic_potential_form2(test_cutoff, term):
+    d = 2.0  # Si2 bondlength
+    small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
+    small2.center(vacuum=10.0)
+    compute_forces_and_hessian(small2, term(test_cutoff))
 
 
 def compute_forces_and_hessian(a, par):
