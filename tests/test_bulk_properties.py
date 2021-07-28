@@ -48,7 +48,7 @@ tests = [
           Ec=4.630, a0=5.429, C11=166.4, C12=65.3, C44=77.1, C440=120.9)),
     ("StillingerWeber-dia-Si", StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si),
      dict(struct=Diamond("Si", size=[sx, sx, sx]),
-          Ec=4.630, a0=5.431, C11=161.6, C12=81.6, C44=60.3, C440=117.2, B=108.3)),
+          Ec=4.3363, a0=5.431, C11=161.6, C12=81.6, C44=60.3, C440=117.2, B=108.3)),
     ("Tersoff3-dia-C", TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
      dict(struct=Diamond("C", size=[sx, sx, sx]),
           Ec=7.396 - 0.0250, a0=3.566, C11=1067, C12=104, C44=636, C440=671)),
