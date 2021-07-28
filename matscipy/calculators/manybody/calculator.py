@@ -57,6 +57,7 @@ def _o(x, y, z=None):
     else:
         return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
 
+
 class Manybody(Calculator):
     implemented_properties = ['free_energy', 'energy', 'stress', 'forces']
     default_parameters = {}
@@ -303,7 +304,8 @@ class Manybody(Calculator):
                     r_p_ij = np.array([r_pc[ij]])
                     r_p_il = np.array([r_pc[il]])
                     r_p_im = np.array([r_pc[im]])
-                    H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (_o(self.d2G(r_p_ij, r_p_il, ti, tij, til), self.d2G(r_p_ij, r_p_im, ti, tij, tim))).T).T.squeeze()
+                    H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (_o(self.d2G(r_p_ij, r_p_il, ti, tij, til),
+                                                               self.d2G(r_p_ij, r_p_im, ti, tij, tim))).T).T.squeeze()
 
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
@@ -427,7 +429,7 @@ class Manybody(Calculator):
         T4 = (d1F_p * ((Q_pcc * drda_pc.reshape(-1, 3, 1)).sum(axis=1) * drdb_pc).sum(axis=1)).sum()
 
         # Term 5
-        T5_t =  ((d11G_tcc * drdb_pc[ij_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ij_t]).sum(axis=1)
+        T5_t = ((d11G_tcc * drdb_pc[ij_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ij_t]).sum(axis=1)
         T5_t += ((drdb_pc[ik_t].reshape(-1, 1, 3) * d12G_tcc).sum(axis=2) * drda_pc[ij_t]).sum(axis=1)
         T5_t += ((drdb_pc[ij_t].reshape(-1, 3, 1) * d12G_tcc).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
         T5_t += ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
@@ -528,13 +530,13 @@ class Manybody(Calculator):
         for alpha in range(3):
             for beta in range(3):
                 drda_pc = np.zeros((nb_pairs, 3))
-                drda_pc[:, alpha] = r_pc[:, beta]/2
-                drda_pc[:, beta] += r_pc[:, alpha]/2
+                drda_pc[:, alpha] = r_pc[:, beta] / 2
+                drda_pc[:, beta] += r_pc[:, alpha] / 2
                 for nu in range(3):
                     for mu in range(3):
                         drdb_pc = np.zeros((nb_pairs, 3))
-                        drdb_pc[:, nu] = r_pc[:, mu]/2
-                        drdb_pc[:, mu] += r_pc[:, nu]/2
+                        drdb_pc[:, nu] = r_pc[:, mu] / 2
+                        drdb_pc[:, mu] += r_pc[:, nu] / 2
                         C_abab[alpha, beta, nu, mu] = \
                             self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
 
@@ -562,8 +564,8 @@ class Manybody(Calculator):
         stress_ab = Voigt_6_to_full_3x3_stress(self.get_stress())
         delta_ab = np.identity(3)
         C_abab = delta_ab.reshape(3, 1, 3, 1) * stress_ab.reshape(1, 3, 1, 3) - \
-                  (delta_ab.reshape(3, 3, 1, 1) * stress_ab.reshape(1, 1, 3, 3) + \
-                   delta_ab.reshape(1, 1, 3, 3) * stress_ab.reshape(3, 3, 1, 1)) / 2
+                 (delta_ab.reshape(3, 3, 1, 1) * stress_ab.reshape(1, 1, 3, 3) + \
+                  delta_ab.reshape(1, 1, 3, 3) * stress_ab.reshape(3, 3, 1, 1)) / 2
 
         C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
@@ -624,29 +626,30 @@ class Manybody(Calculator):
         if (eigenvalues is not None) and (eigenvectors is not None):
             naforces_icab = calc.get_non_affine_forces(atoms)
 
-            G_incc = (eigenvectors.T).reshape(-1, 3*nat, 1, 1) * naforces_icab.reshape(1, 3*nat, 3, 3)
-            G_incc = (G_incc.T/np.sqrt(eigenvalues)).T
-            G_icc  = np.sum(G_incc, axis=1)
-            C_abab = np.sum(G_icc.reshape(-1,3,3,1,1) * G_icc.reshape(-1,1,1,3,3), axis=0)
+            G_incc = (eigenvectors.T).reshape(-1, 3 * nat, 1, 1) * naforces_icab.reshape(1, 3 * nat, 3, 3)
+            G_incc = (G_incc.T / np.sqrt(eigenvalues)).T
+            G_icc = np.sum(G_incc, axis=1)
+            C_abab = np.sum(G_icc.reshape(-1, 3, 3, 1, 1) * G_icc.reshape(-1, 1, 1, 3, 3), axis=0)
 
         else:
             H_nn = calc.get_hessian(atoms, "sparse")
             naforces_icab = calc.get_non_affine_forces(atoms)
 
-            D_iab = np.zeros((3*nat, 3, 3))
+            D_iab = np.zeros((3 * nat, 3, 3))
             for i in range(3):
                 for j in range(3):
                     x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), atol=tol)
                     if info != 0:
-                        raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
-                    D_iab[:,i,j] = x
+                        raise RuntimeError(
+                            " info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
+                    D_iab[:, i, j] = x
 
-            C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
-        
+            C_abab = np.sum(naforces_icab.reshape(3 * nat, 3, 3, 1, 1) * D_iab.reshape(3 * nat, 1, 1, 3, 3), axis=0)
+
         # Symmetrize 
-        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4             
+        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
-        return -C_abab/atoms.get_volume()
+        return -C_abab / atoms.get_volume()
 
     def get_non_affine_forces(self, atoms):
         if self.atoms is None:
@@ -697,38 +700,43 @@ class Manybody(Calculator):
         dxidF_pab = mabincount(ij_t, _o(d1G_tc, r_pc[ij_t]) + _o(d2G_tc, r_pc[ik_t]), minlength=nb_pairs)
 
         # Term 1
-        naF1_ncab =  d11F_p.reshape(-1, 1, 1, 1) * _o(n_pc, n_pc, r_pc)
+        naF1_ncab = d11F_p.reshape(-1, 1, 1, 1) * _o(n_pc, n_pc, r_pc)
 
         # Term 2
-        naF21_tcab = (d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t]) \
-                                    + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t]) \
-                                    + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t]) \
-                                    + _o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
+        naF21_tcab = (d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
+                                      + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t])
+                                      + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])
+                                      + _o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
-        naF22_tcab = -(d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t]) \
-                                     + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t]) \
-                                     + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
+        naF22_tcab = -(d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
+                                       + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t])
+                                       + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
         naF23_tcab = -(d12F_p[ij_t] * (_o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
         # Term 3
-        naF31_tcab = d22F_p[ij_t].reshape(-1, 1, 1, 1) * d1G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
-        naF32_tcab = d22F_p[ij_t].reshape(-1, 1, 1, 1) * d2G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
+        naF31_tcab = \
+            d22F_p[ij_t].reshape(-1, 1, 1, 1) * d1G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
+        naF32_tcab = \
+            d22F_p[ij_t].reshape(-1, 1, 1, 1) * d2G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
 
         # Term 4
         naF4_ncab = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1) * r_pc.reshape(-1, 1, 1, 3)).T).T
 
         # Term 5
-        naF51_tcab = (d2F_p[ij_t] * (d11G_tcc.reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3) + \
-                                     d12G_tcc.reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3) + \
-                                     d22G_tcc.reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3) + \
-                                    (d12G_tcc.reshape(-1,3,3,1)).swapaxes(1,2) * r_pc[ij_t].reshape(-1,1,1,3)).T).T
+        naF51_tcab = (d2F_p[ij_t] * (
+                d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
+                + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)
+                + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)
+                + (d12G_tcc.reshape(-1, 3, 3, 1)).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
 
-        naF52_tcab = -(d2F_p[ij_t] * (d11G_tcc.reshape(-1,3,3,1) * r_pc[ij_t].reshape(-1,1,1,3) + \
-                                      d12G_tcc.reshape(-1,3,3,1)* r_pc[ik_t].reshape(-1,1,1,3)).T).T
+        naF52_tcab = -(d2F_p[ij_t] * (
+                d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
+                + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
 
-        naF53_tcab = -(d2F_p[ij_t] * (d12G_tcc.reshape(-1,3,3,1).swapaxes(1,2) * r_pc[ij_t].reshape(-1,1,1,3) + \
-                                      d22G_tcc.reshape(-1,3,3,1) * r_pc[ik_t].reshape(-1,1,1,3)).T).T
+        naF53_tcab = -(d2F_p[ij_t] * (
+                d12G_tcc.reshape(-1, 3, 3, 1).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3)
+                + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
 
         naforces_icab = \
             mabincount(i_p, naF1_ncab, minlength=nb_atoms) \
