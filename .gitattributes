@@ -1,2 +1,3 @@
 matscipy/_version.py export-subst
 *.fs -linguist-detectable
+*.py text eol=lf
