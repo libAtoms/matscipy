@@ -1,4 +1,5 @@
 #
+# Copyright 2021 Lars Pastewka (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy

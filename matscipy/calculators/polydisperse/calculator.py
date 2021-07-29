@@ -1,9 +1,12 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014-2018) James Kermode, King's College London
-#                       Lars Pastewka, University of Freiburg
+# Copyright 2020-2021 Jan Griesser (U. Freiburg)
+#           2020 griesserj@fp-10-126-132-144.eduroam-fp.privat
+#           2020 Arnaud Allera (U. Lyon 1)
+#           2014 Lars Pastewka (U. Freiburg)
+#           2014 James Kermode (Warwick U.)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +20,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
+#
 
 import numpy as np
 
