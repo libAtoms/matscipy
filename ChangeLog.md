@@ -1,8 +1,8 @@
 Change log
 ==========
 
-v0.7.0 (not yet released)
--------------------------
+v0.7.0 (29Jul21)
+----------------
 
 - Calculator for Manybody potentials e.g. Stillinger-Weber and Bond-order
 - Specific parametrizations for Tersoff-Brenner potentials, Stillinger-Weber and Kumagai 
