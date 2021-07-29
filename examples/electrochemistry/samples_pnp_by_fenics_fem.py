@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.6.0
+#       jupytext_version: 1.9.1
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -84,7 +84,7 @@ pnp = {}
 # # Convergence in both cases
 
 # %%
-# Test case parameters   oö
+# Test case parameters
 c=[1.0, 1.0]
 z=[ 1, -1]
 L=10e-8 # 200 nm

@@ -284,7 +284,7 @@ def main():
 
     if not args.outfile:
         outfile = sys.stdout
-        outfile_format = 'xyz'
+        outfile_format = '.xyz'
     else:
         outfile = args.outfile
         _, outfile_format = os.path.splitext(outfile)
@@ -302,7 +302,7 @@ def main():
     # species names have been specified on command line.
 
     else:  # elif outfile_format == '.xyz'
-        ase.io.write(outfile, system, format='xyz')
+        ase.io.write(outfile, system, format='extxyz')
 
     logger.info('Done.')
 
