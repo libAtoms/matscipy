@@ -29,8 +29,6 @@ Typically, all *nonperiodic* kernel return real space Green's functions,
 all *periodic* kernel reciprocal space ones.
 """
 
-from __future__ import division
-
 from math import isnan, pi, sqrt
 
 import numpy as np

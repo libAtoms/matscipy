@@ -21,8 +21,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from __future__ import print_function
-
 import random
 import unittest
 import sys
@@ -55,7 +53,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.550)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
+            H_analytical = a.get_hessian(atoms, "sparse")
             H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical.todense(), tol=self.tol)
 
@@ -74,7 +72,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             nat = len(atoms)
             a = calculator.PairPotential(calc)
             atoms.set_calculator(a)
-            H_analytical = a.calculate_hessian_matrix(atoms, "sparse")
+            H_analytical = a.get_hessian(atoms, "sparse")
             H_numerical_split1 = fd_hessian(atoms, dx=1e-5, indices=np.arange(0, np.int(nat/2), 1))
             H_numerical_split2 = fd_hessian(atoms, dx=1e-5, indices=np.arange(np.int(nat/2), nat, 1))
             H_numerical_splitted = np.concatenate((H_numerical_split1.todense(), H_numerical_split2.todense()), axis=0)

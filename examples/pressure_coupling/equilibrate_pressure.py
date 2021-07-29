@@ -1,9 +1,3 @@
-from __future__ import (
-    division,
-    absolute_import,
-    print_function,
-    unicode_literals
-)
 from ase.io import Trajectory
 from ase.units import GPa, kB, fs
 import numpy as np

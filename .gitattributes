@@ -1,2 +1,5 @@
 matscipy/_version.py export-subst
 *.fs -linguist-detectable
+.gitattributes text eol=lf
+*.py text eol=lf
+*.sh text eol=lf

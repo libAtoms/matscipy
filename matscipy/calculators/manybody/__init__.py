@@ -2,8 +2,8 @@
 # matscipy - Python materials science tools
 # https://github.com/libAtoms/matscipy
 #
-# Copyright (2014-2017) James Kermode, Warwick University
-#                       Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright (2014-2018) James Kermode, King's College London
+#                       Lars Pastewka, University of Freiburg
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,14 +19,5 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from .eam import EAM
-from .pair_potential import PairPotential
-from .supercell_calculator import SupercellCalculator
-from .polydisperse import Polydisperse
-from .manybody import Manybody
-
-try:
-    import scipy.sparse as sp
-except ImportError:
-    warnings.warn('Warning: no scipy')
-
+from .calculator import Manybody
+from .explicit_forms import Kumagai, TersoffBrenner, StillingerWeber

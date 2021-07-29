@@ -382,26 +382,26 @@ def show_configuration(disloc, bulk, u, fixed_mask=None):
     fig = plt.figure(figsize=(16, 4))
 
     ax1 = fig.add_subplot(131)
-    ax1.set_title("z displacement, $\AA$")
+    ax1.set_title(r"z displacement, $\AA$")
     sc = ax1.scatter(bulk.positions[:, 0], bulk.positions[:, 1], c=u.T[2])
     ax1.axvline(0.0, color="red", linestyle="dashed")
-    ax1.set_xlabel("x, $\AA$")
-    ax1.set_ylabel("y, $\AA$")
+    ax1.set_xlabel(r"x, $\AA$")
+    ax1.set_ylabel(r"y, $\AA$")
     plt.colorbar(sc)
 
     ax2 = fig.add_subplot(132)
-    ax2.set_title("x displacement, $\AA$")
+    ax2.set_title(r"x displacement, $\AA$")
     sc = ax2.scatter(bulk.positions[:, 0], bulk.positions[:, 1], c=u.T[0])
-    ax2.set_xlabel("x, $\AA$")
-    ax2.set_ylabel("y, $\AA$")
+    ax2.set_xlabel(r"x, $\AA$")
+    ax2.set_ylabel(r"y, $\AA$")
     plt.colorbar(sc, format="%.1e")
 
     ax3 = fig.add_subplot(133)
-    ax3.set_title("y displacement, $\AA$")
+    ax3.set_title(r"y displacement, $\AA$")
     sc = ax3.scatter(bulk.positions[:, 0], bulk.positions[:, 1], c=u.T[1])
     plt.colorbar(sc, format="%.1e")
-    ax3.set_xlabel("x, $\AA$")
-    ax3.set_ylabel("y, $\AA$")
+    ax3.set_xlabel(r"x, $\AA$")
+    ax3.set_ylabel(r"y, $\AA$")
 
     if fixed_mask is not None:
 
@@ -1366,7 +1366,7 @@ def make_screw_quadrupole(alat,
                           right_shift=0,
                           n1u=5,
                           symbol="W"):
-    """Generates a screw dislocation dipole configuration
+    r"""Generates a screw dislocation dipole configuration
        for effective quadrupole arrangement. Works for BCC systems.
 
     Parameters
@@ -2204,8 +2204,8 @@ class CubicCrystalDislocation:
                            c="b")
 
         ax.legend(handles=[bulk_atoms, core1, core2], fontsize=12)
-        ax.set_xlabel("$\AA$")
-        ax.set_ylabel("$\AA$")
+        ax.set_xlabel(r"$\AA$")
+        ax.set_ylabel(r"$\AA$")
 
 
     def displacements(self, bulk_positions, center, self_consistent=True, 

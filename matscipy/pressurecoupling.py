@@ -30,12 +30,6 @@ as indicated again below.
 
 """
 
-from __future__ import (
-    division,
-    absolute_import,
-    print_function,
-    unicode_literals
-)
 import logging
 import numpy as np
 from ase.units import kB, fs, GPa

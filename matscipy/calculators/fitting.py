@@ -24,8 +24,6 @@
 Helper routines for potential fitting
 """
 
-from __future__ import print_function
-
 from math import atanh, sqrt, tanh, isnan
 import sys
 

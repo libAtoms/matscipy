@@ -22,8 +22,6 @@
 # ======================================================================
 """Read and write tabulated EAM potentials"""
 
-from __future__ import division, print_function
-
 from collections import namedtuple
 
 import numpy as np

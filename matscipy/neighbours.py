@@ -246,8 +246,7 @@ e_nc = (dr_nc.T/abs_dr_n).T
                                     _cutoff, numbers)
 
 
-def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None, i_p=None,
-                 j_p=None):
+def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None, i_p=None, j_p=None):
     """
     Compute a triplet list for an atomic configuration. The triple list is a
     mask that can be applied to the corresponding neighbour list to mask
@@ -283,8 +282,7 @@ def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None, i_p=None,
 
     """
     if not (abs_dr_p is None or cutoff is None):
-        res = _matscipy.triplet_list(first_neighbours, abs_dr_p,
-                                     cutoff)
+        res = _matscipy.triplet_list(first_neighbours, abs_dr_p, cutoff)
     else:
         res = _matscipy.triplet_list(first_neighbours)
     # TODO: should be wrapped in c and be independet of i_n

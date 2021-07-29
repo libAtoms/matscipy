@@ -19,8 +19,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-from __future__ import division, print_function
-
 def save_metis(fn, a, i, j):
     """
     Save neighbour list as the METIS graph file format.

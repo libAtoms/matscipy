@@ -1,11 +1,50 @@
+# ======================================================================
+# matscipy - Python materials science tools
+# https://github.com/libAtoms/matscipy
+#
+# Copyright (2014-2018) James Kermode, King's College London
+#                       Lars Pastewka, University of Freiburg
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ======================================================================
+
 import numpy as np
-from collections import namedtuple 
 
-kumagai_parameters = namedtuple("kumagai_parameters", ["A", "B", "lambda_1", "lambda_2", "eta", "delta", "alpha", "c_1", "c_2", "c_3", "c_4", "c_5", "h", "R_1", "R_2"])
+#
+# Parameter sets
+# The '__ref__' dictionary entry is the journal reference
+#
 
-# T. Kumagai et. al., Computational materials science 39.2 (2007): 457-464.
-kumagai = kumagai_parameters(A=3281.5905, B=121.00047, lambda_1=3.2300135, lambda_2=1.3457970, eta=1.0000000, delta=0.53298909, alpha=2.3890327,
-                    c_1=0.20173476, c_2=730418.72, c_3=1000000.0, c_4=1.0000000, c_5=26.000000, h=-0.36500000, R_1=2.70, R_2=3.30)
+Kumagai_Comp_Mat_Sci_39_Si = {
+   '__ref__':  'T. Kumagai et. al., Comp. Mat. Sci. 39 (2007)',    
+    'el':            'Si'         ,
+    'A':             3281.5905    ,
+    'B':             121.00047    ,
+    'lambda_1':      3.2300135    ,
+    'lambda_2':      1.3457970    ,
+    'eta':           1.0000000    ,
+    'delta':         0.53298909   ,
+    'alpha':         2.3890327    ,
+    'c_1':           0.20173476   ,
+    'c_2':           730418.72    ,
+    'c_3':           1000000.0    ,
+    'c_4':           1.0000000    ,
+    'c_5':           26.000000    ,
+    'h':             -0.36500000  ,
+    'R_1':           2.70         ,
+    'R_2':           3.30              
+    }
 
 def ab(x):
     """
@@ -13,7 +52,7 @@ def ab(x):
     """
     return np.linalg.norm(x, axis=1)
 
-def KumagaiTersoff(parameters=kumagai):
+def Kumagai(parameters):
     """
     Implementation of functional form of Kumagai´s potential. 
 
@@ -23,24 +62,22 @@ def KumagaiTersoff(parameters=kumagai):
 
     """
 
-    try:
-        A = parameters.A
-        B = parameters.B
-        lambda_1 = parameters.lambda_1
-        lambda_2  = parameters.lambda_2
-        eta = parameters.eta
-        delta = parameters.delta
-        alpha = parameters.alpha
-        c_1 = parameters.c_1
-        c_2 = parameters.c_2
-        c_3 = parameters.c_3
-        c_4 = parameters.c_4
-        c_5 = parameters.c_5
-        h = parameters.h
-        R_1 = parameters.R_1
-        R_2 = parameters.R_2
-    except AttributeError:
-        raise AttributeError("Parameters need to be a namedtuple of type kumagai_parameters!")
+    el = parameters["el"]
+    A = parameters["A"]
+    B = parameters["B"]
+    lambda_1 = parameters["lambda_1"]
+    lambda_2 = parameters["lambda_2"]
+    eta = parameters["eta"]
+    delta = parameters["delta"]
+    alpha = parameters["alpha"]
+    c_1 = parameters["c_1"]
+    c_2 = parameters["c_2"]
+    c_3 = parameters["c_3"]
+    c_4 = parameters["c_4"]
+    c_5 = parameters["c_5"]
+    h = parameters["h"]
+    R_1 = parameters["R_1"]
+    R_2 = parameters["R_2"]
 
     f = lambda r: np.where(
             r <= R_1, 1.0,
@@ -109,18 +146,18 @@ def KumagaiTersoff(parameters=kumagai):
          + ddf(ab(rik)) * np.exp(alpha * (ab(rij) - ab(rik)))
 
 
-    F = lambda r, xi: f(r) * (fR(r) + b(xi) * fA(r))
-    d1F = lambda r, xi: df(r) * (fR(r) + b(xi) * fA(r)) + f(r) * (dfR(r) + b(xi) * dfA(r))
-    d2F = lambda r, xi: f(r) * fA(r) * db(xi)
-    d11F = lambda r, xi: f(r) * (ddfR(r) + b(xi) * ddfA(r)) + 2 * df(r) * (dfR(r) + b(xi) * dfA(r)) + ddf(r) * (fR(r) + b(xi) * fA(r))
-    d22F = lambda r, xi:  f(r) * fA(r) * ddb(xi)
-    d12F = lambda r, xi: f(r) * dfA(r) * db(xi) + fA(r) * df(r) * db(xi)
+    F = lambda r, xi, i, p: f(r) * (fR(r) + b(xi) * fA(r))
+    d1F = lambda r, xi, i, p: df(r) * (fR(r) + b(xi) * fA(r)) + f(r) * (dfR(r) + b(xi) * dfA(r))
+    d2F = lambda r, xi, i, p: f(r) * fA(r) * db(xi)
+    d11F = lambda r, xi, i, p: f(r) * (ddfR(r) + b(xi) * ddfA(r)) + 2 * df(r) * (dfR(r) + b(xi) * dfA(r)) + ddf(r) * (fR(r) + b(xi) * fA(r))
+    d22F = lambda r, xi, i, p:  f(r) * fA(r) * ddb(xi)
+    d12F = lambda r, xi, i, p: f(r) * dfA(r) * db(xi) + fA(r) * df(r) * db(xi)
 
             
-    G = lambda rij, rik: g(costh(rij, rik)) * hf(rij, rik)
+    G = lambda rij, rik, i, ij, ik: g(costh(rij, rik)) * hf(rij, rik)
     
-    d1G = lambda rij, rik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
-    d2G = lambda rij, rik: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
+    d1G = lambda rij, rik, i, ij, ik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
+    d2G = lambda rij, rik, i, ij, ik: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
 
     Dh1 = lambda rij, rik: (d1h(rij, rik) * rij.T / ab(rij)).T
     Dh2 = lambda rij, rik: (d2h(rij, rik) * rik.T / ab(rik)).T
@@ -128,7 +165,7 @@ def KumagaiTersoff(parameters=kumagai):
     Dg1 = lambda rij, rik: (dg(costh(rij, rik)) * c1(rij, rik).T).T
     Dg2 = lambda rij, rik: (dg(costh(rij, rik)) * c2(rij, rik).T).T
 
-    d11G = lambda rij, rik: \
+    d11G = lambda rij, rik, i, ij, ik: \
         Dg1(rij, rik).reshape(-1, 3, 1) * Dh1(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg1(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh11(rij, rik).T).T + (hf(rij, rik) * Dg11(rij, rik).T).T)
 
@@ -141,7 +178,7 @@ def KumagaiTersoff(parameters=kumagai):
          + dg(costh(rij, rik)) * dc11(rij, rik).T).T
 
 
-    d22G = lambda rij, rik: \
+    d22G = lambda rij, rik, i, ij, ik: \
         Dg2(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh2(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh22(rij, rik).T).T + (hf(rij, rik) * Dg22(rij, rik).T).T)
 
@@ -157,7 +194,7 @@ def KumagaiTersoff(parameters=kumagai):
     Dh12 = lambda rij, rik: \
         (d12h(rij, rik) * (rij.reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/(ab(rij)*ab(rik))).T
         
-    d12G = lambda rij, rik: \
+    d12G = lambda rij, rik, i, ij, ik: \
         Dg1(rij, rik).reshape(-1, 3, 1) * Dh2(rij, rik).reshape(-1, 1, 3) + Dh1(rij, rik).reshape(-1, 3, 1) * Dg2(rij, rik).reshape(-1, 1, 3) \
         + ((g(costh(rij, rik)) * Dh12(rij, rik).T).T + (hf(rij, rik) * Dg12(rij, rik).T).T)
 
@@ -188,6 +225,8 @@ def KumagaiTersoff(parameters=kumagai):
         )/ab(rik)).T
         
     return {
+        'atom_type': lambda n: np.zeros_like(n),
+        'pair_type': lambda i, j: np.zeros_like(i),
         'F': F,
         'G': G,
         'd1F': d1F,
