@@ -21,15 +21,15 @@ jobs:
         sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev
         sudo pip3 install -r requirements.txt
 
-    - name: build_c
+    - name: build
       run: |
         python3 setup.py build
         sudo python3 setup.py install
         
-    - name: test
+    - name: pytest
       run: |
         cd tests
-        pytest -v
+        pytest -s --verbose
 
     - name: package_dist
       run: |
