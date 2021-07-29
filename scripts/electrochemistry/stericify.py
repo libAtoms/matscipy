@@ -228,7 +228,7 @@ def main():
         system = ase.io.read(
             infile, format='lammps-data', units="real", style='full')
     else:  # elif outfile_format == '.xyz'
-        system = ase.io.read(infile, format='xyz')
+        system = ase.io.read(infile, format='extxyz')
 
     n = len(system)  # total number of particles
     logger.info('Read "{}" system within bounding box'.format(system.symbols))
@@ -364,7 +364,7 @@ def main():
 
     if not args.outfile:
         outfile = sys.stdout
-        outfile_format = 'xyz'
+        outfile_format = '.xyz'
     else:
         outfile = args.outfile
         _, outfile_format = os.path.splitext(outfile)
@@ -377,7 +377,7 @@ def main():
             format='lammps-data', units="real", atom_style='full',
             specorder=specorder)
     else:  # elif outfile_format == '.xyz'
-        ase.io.write(outfile, system, format='xyz')
+        ase.io.write(outfile, system, format='extxyz')
 
     logger.info('Done.')
 
