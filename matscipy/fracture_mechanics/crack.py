@@ -2030,7 +2030,7 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
     clf()
     for i, (ii, jj), label in zip(range(3),
                                   [(0,0), (1,1), (0,1)],
-                                  ['\sigma_{xx}', r'\sigma_{yy}', r'\sigma_{xy}']):
+                                  [r'\sigma_{xx}', r'\sigma_{yy}', r'\sigma_{xy}']):
         subplot(3,3,i+1)
         gca().set_aspect('equal')
         contourf(X, Y, grid_sigma[...,i]*GPA, contours[i])

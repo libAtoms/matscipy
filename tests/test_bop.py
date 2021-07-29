@@ -225,7 +225,7 @@ def d22_term5(test_cutoff):
 
 
 @pytest.mark.parametrize('term', [term1, term4, d11_term5, d22_term5])
-@pytest.mark.parametrize('test_cutoff', [2.4])
+@pytest.mark.parametrize('test_cutoff', [3.0])
 def test_generic_potential_form1(test_cutoff, term):
     d = 2.0  # Si2 bondlength
     small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))
@@ -234,7 +234,7 @@ def test_generic_potential_form1(test_cutoff, term):
 
 
 @pytest.mark.parametrize('term', [term1, term4, d11_term5, d22_term5])
-@pytest.mark.parametrize('test_cutoff', [2.4])
+@pytest.mark.parametrize('test_cutoff', [3.5])
 def test_generic_potential_form2(test_cutoff, term):
     d = 2.0  # Si2 bondlength
     small2 = Atoms([14] * 5, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d), (0, d, d)], cell=(100, 100, 100))
@@ -263,8 +263,8 @@ def compute_forces_and_hessian(a, par):
     np.testing.assert_allclose(ana_forces, num_forces, atol=1e-3)
 
     # Hessian
-    ana_hessian = calculator.get_hessian(a).todense()
-    num_hessian = fd_hessian(a, dx=1e-5, indices=None).todense()
+    ana_hessian = np.array(calculator.get_hessian(a).todense())
+    num_hessian = np.array(fd_hessian(a, dx=1e-5, indices=None).todense())
     # print('ana\n', ana_hessian)
     # print('num\n', num_hessian)
     # print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
