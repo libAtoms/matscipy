@@ -26,6 +26,7 @@ import time
 
 import numpy as np
 from numpy.linalg import inv
+
 try:
     from scipy.optimize.nonlin import NoConvergence
     from scipy.optimize import brentq, leastsq, minimize, root
