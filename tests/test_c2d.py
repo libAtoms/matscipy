@@ -38,11 +38,11 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
             os.path.join(self.data_path,'NaCl.lammps'),format='lammps-data')
 
         # command line interface scripts are expected to reside within
-        # ../scripts/electrochemistry relative to thi test directory
+        # ../matscipy/cli/electrochemistry relative to this test directory
         self.pnp_cli = os.path.join(
-            self.test_path,os.path.pardir,'scripts','electrochemistry','pnp.py')
+            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','pnp.py')
         self.c2d_cli = os.path.join(
-            self.test_path,os.path.pardir,'scripts','electrochemistry','c2d.py')
+            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','c2d.py')
 
         self.assertTrue(os.path.exists(self.pnp_cli))
         self.assertTrue(os.path.exists(self.c2d_cli))
