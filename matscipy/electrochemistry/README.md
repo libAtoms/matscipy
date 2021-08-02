@@ -93,4 +93,4 @@ to set some environment variables, i.e. via
 After doing so, FEniCS should be available within the virtual environment.
 
 # Usage
-See `../../scripts/electrochemistry/README.md`.
+See `../cli/electrochemistry/README.md`.
