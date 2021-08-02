@@ -1,5 +1,5 @@
 #
-# Copyright 2020 Lars Pastewka (U. Freiburg)
+# Copyright 2020-2021 Lars Pastewka (U. Freiburg)
 #           2015 m.a.aldegunde-rodriguez@warwick.ac.uk
 #
 # matscipy - Materials science with Python at the atomic-scale

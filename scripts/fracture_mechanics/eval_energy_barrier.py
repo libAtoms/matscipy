@@ -1,7 +1,7 @@
 #
-# Copyright 2014-2017 James Kermode (Warwick U.)
+# Copyright 2014-2016, 2021 Lars Pastewka (U. Freiburg)
+#           2014-2017 James Kermode (Warwick U.)
 #           2017 Punit Patel (Warwick U.)
-#           2014-2016 Lars Pastewka (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy

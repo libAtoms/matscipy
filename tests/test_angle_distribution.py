@@ -1,5 +1,5 @@
 #
-# Copyright 2015, 2020 Lars Pastewka (U. Freiburg)
+# Copyright 2015, 2020-2021 Lars Pastewka (U. Freiburg)
 #           2017 Thomas Reichenbach (Fraunhofer IWM)
 #
 # matscipy - Materials science with Python at the atomic-scale

@@ -1,5 +1,6 @@
 #
-# Copyright 2020 Wolfram G. Nöhring (U. Freiburg)
+# Copyright 2021 Lars Pastewka (U. Freiburg)
+#           2020 Wolfram G. Nöhring (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy

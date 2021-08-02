@@ -1,5 +1,5 @@
 #
-# Copyright 2014-2015, 2017-2020 Lars Pastewka (U. Freiburg)
+# Copyright 2014-2015, 2017-2021 Lars Pastewka (U. Freiburg)
 #           2020 Jonas Oldenstaedt (U. Freiburg)
 #           2014 James Kermode (Warwick U.)
 #

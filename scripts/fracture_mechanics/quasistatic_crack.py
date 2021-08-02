@@ -1,5 +1,5 @@
 #
-# Copyright 2014-2015 Lars Pastewka (U. Freiburg)
+# Copyright 2014-2015, 2021 Lars Pastewka (U. Freiburg)
 #           2015 James Kermode (Warwick U.)
 #
 # matscipy - Materials science with Python at the atomic-scale

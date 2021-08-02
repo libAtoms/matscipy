@@ -1,5 +1,6 @@
 #
-# Copyright 2019-2021 Johannes Hoermann (U. Freiburg)
+# Copyright 2021 Lars Pastewka (U. Freiburg)
+#           2019-2021 Johannes Hoermann (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy

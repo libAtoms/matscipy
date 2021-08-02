@@ -1,7 +1,7 @@
 #
 # Copyright 2015-2016, 2020 James Kermode (Warwick U.)
 #           2019 James Brixey (Warwick U.)
-#           2016 Montmorency
+#           2016 Henry Lambert (King's College London)
 #           2015 Lars Pastewka (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale

@@ -1,10 +1,10 @@
 #
-# Copyright 2020-2021 Jan Griesser (U. Freiburg)
+# Copyright 2014-2017, 2021 Lars Pastewka (U. Freiburg)
+#           2020-2021 Jan Griesser (U. Freiburg)
 #           2020 Thomas Reichenbach (Fraunhofer IWM)
 #           2018, 2020 Petr Grigorev (Warwick U.)
 #           2019-2020 Johannes Hoermann (U. Freiburg)
 #           2018 Jacek Golebiowski (Imperial College London)
-#           2014-2017 Lars Pastewka (U. Freiburg)
 #           2016 Punit Patel (Warwick U.)
 #           2016 Richard Jana (KIT & U. Freiburg)
 #           2014 James Kermode (Warwick U.)
