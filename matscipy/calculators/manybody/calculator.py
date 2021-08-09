@@ -706,13 +706,12 @@ class Manybody(Calculator):
         term2_ncab = d11F_p.reshape(-1, 1, 1, 1) * _o(n_pc, n_pc, r_pc)
 
         # Term 3
-        term3a_tcab = (d2F_p[ij_t] * (
-                d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
-                + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
-
-        term3b_tcab = (d2F_p[ij_t] * (
-                d12G_tcc.reshape(-1, 3, 3, 1).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3)
-                + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
+        term3_tcab = \
+            d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
+            + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3) \
+            + d12G_tcc.reshape(-1, 3, 3, 1).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3) \
+            + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)
+        term3_ncab = (d2F_p * mabincount(ij_t, term3_tcab, minlength=nb_pairs).T).T
 
         # Term 4
         naF31_tcab = \
@@ -732,18 +731,13 @@ class Manybody(Calculator):
 
         naF23_tcab = -(d12F_p[ij_t] * (_o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
-        #term3a_ncab = np.mabincount(ij_t, term3a_tcab, minlength=nb_pairs)
-        #term3b_ncab = np.mabincount(ik_t, term3b_tcab, minlength=nb_pairs)
-
         naforces_icab = \
             + mabincount(i_p, term1_ncab, minlength=nb_atoms) \
             - mabincount(j_p, term1_ncab, minlength=nb_atoms) \
             + mabincount(i_p, term2_ncab, minlength=nb_atoms) \
             - mabincount(j_p, term2_ncab, minlength=nb_atoms) \
-            + mabincount(i_p[ij_t], term3a_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ij_t], term3a_tcab, minlength=nb_atoms) \
-            + mabincount(i_p[ik_t], term3b_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ik_t], term3b_tcab, minlength=nb_atoms) \
+            + mabincount(i_p, term3_ncab, minlength=nb_atoms) \
+            - mabincount(j_p, term3_ncab, minlength=nb_atoms) \
             + mabincount(i_p[ij_t], naF21_tcab, minlength=nb_atoms) \
             + mabincount(j_p[ij_t], naF22_tcab, minlength=nb_atoms) \
             + mabincount(j_p[ik_t], naF23_tcab, minlength=nb_atoms) \
@@ -751,8 +745,5 @@ class Manybody(Calculator):
             - mabincount(j_p[ij_t], naF31_tcab, minlength=nb_atoms) \
             + mabincount(i_p[ij_t], naF32_tcab, minlength=nb_atoms) \
             - mabincount(j_p[ik_t], naF32_tcab, minlength=nb_atoms)
-
-            #+ mabincount(i_p, term3a_ncab + term3b_ncab, minlength=nb_atoms) \
-            #- mabincount(j_p, term3a_ncab + term3b_ncab, minlength=nb_atoms) \
 
         return naforces_icab / 2
