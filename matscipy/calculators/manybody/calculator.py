@@ -555,7 +555,6 @@ class Manybody(Calculator):
         Compute the correction to the elastic constants due to non-zero stress in the configuration.
         Stress term  results from working with the Cauchy stress.
 
-
         Parameters
         ----------
         atoms: ase.Atoms
@@ -658,6 +657,21 @@ class Manybody(Calculator):
         return -C_abab / atoms.get_volume()
 
     def get_non_affine_forces(self, atoms):
+        """
+        Compute the nonaffine forces, the second derivative of the potential
+        energy with respect to atomic positions and deformation gradient.
+
+        Parameters
+        ----------
+        atoms : ase.Atoms
+            Atomic configuration in a local or global minimum.
+
+        Returns
+        -------
+        nonaffine_force_icab : np.ndarray
+            Nonaffine forces per atom.
+        """
+
         if self.atoms is None:
             self.atoms = atoms
 
