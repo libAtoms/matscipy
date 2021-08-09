@@ -700,47 +700,39 @@ class Manybody(Calculator):
         dxidF_pab = mabincount(ij_t, _o(d1G_tc, r_pc[ij_t]) + _o(d2G_tc, r_pc[ik_t]), minlength=nb_pairs)
 
         # Term 1
-        term1_ncab = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1) * r_pc.reshape(-1, 1, 1, 3)).T).T
+        pair_ncab = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1) * r_pc.reshape(-1, 1, 1, 3)).T).T
 
         # Term 2
-        term2_ncab = d11F_p.reshape(-1, 1, 1, 1) * _o(n_pc, n_pc, r_pc)
+        pair_ncab += d11F_p.reshape(-1, 1, 1, 1) * _o(n_pc, n_pc, r_pc)
 
         # Term 3
-        term3a_tcab = (d2F_p[ij_t] * (
+        tripletj_tcab = (d2F_p[ij_t] * (
                 d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
                 + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
-        term3b_tcab = (d2F_p[ij_t] * (
+        tripletk_tcab = (d2F_p[ij_t] * (
                 d12G_tcc.reshape(-1, 3, 3, 1).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3)
                 + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
 
         # Term 4
-        term4a_tcab = \
+        tripletj_tcab += \
             d22F_p[ij_t].reshape(-1, 1, 1, 1) * d1G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
-        term4b_tcab = \
+        tripletk_tcab += \
             d22F_p[ij_t].reshape(-1, 1, 1, 1) * d2G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
 
         # Term 5
-        term5a_tcab = (d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
+        #term5a_tcab = (d12F_p[ij_t] * (n_pc[ij_t].reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
+        #                               + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
+        tripletj_tcab += (d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
                                        + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t])
                                        + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
-        term5b_tcab = (d12F_p[ij_t] * (_o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
+        tripletk_tcab += (d12F_p[ij_t] * (_o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
         naforces_icab = \
-            + mabincount(i_p, term1_ncab, minlength=nb_atoms) \
-            - mabincount(j_p, term1_ncab, minlength=nb_atoms) \
-            + mabincount(i_p, term2_ncab, minlength=nb_atoms) \
-            - mabincount(j_p, term2_ncab, minlength=nb_atoms) \
-            + mabincount(i_p[ij_t], term3a_tcab + term3b_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ij_t], term3a_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ik_t], term3b_tcab, minlength=nb_atoms) \
-            + mabincount(i_p[ij_t], term4a_tcab + term4b_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ij_t], term4a_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ik_t], term4b_tcab, minlength=nb_atoms) \
-            + mabincount(i_p[ij_t], term5a_tcab + term5b_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ij_t], term5a_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ik_t], term5b_tcab, minlength=nb_atoms)
-
-#            - mabincount(j_p[ik_t], term4b_tcab, minlength=nb_atoms) \
+            + mabincount(i_p, pair_ncab, minlength=nb_atoms) \
+            - mabincount(j_p, pair_ncab, minlength=nb_atoms) \
+            + mabincount(i_p[ij_t], tripletj_tcab + tripletk_tcab, minlength=nb_atoms) \
+            - mabincount(j_p[ij_t], tripletj_tcab, minlength=nb_atoms) \
+            - mabincount(j_p[ik_t], tripletk_tcab, minlength=nb_atoms)
 
         return naforces_icab / 2
