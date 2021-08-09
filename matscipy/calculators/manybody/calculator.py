@@ -673,7 +673,6 @@ class Manybody(Calculator):
 
         # normal vectors
         n_pc = (r_pc.T / r_p).T
-        dn_pcc = ((np.eye(3) - _o11(n_pc, n_pc)).T / r_p).T
 
         # construct triplet list (we don't need jk_t here, hence neighbor to cutoff suffices)
         first_n = first_neighbours(nb_atoms, i_p)
@@ -706,7 +705,7 @@ class Manybody(Calculator):
         dxidF_pab = mabincount(ij_t, _o11(d1G_tc, r_pc[ij_t]) + _o11(d2G_tc, r_pc[ik_t]), minlength=nb_pairs)
 
         # Term 1
-        pair_ncab = (d1F_p * _o21(dn_pcc, r_pc).T).T
+        pair_ncab = (d1F_p * _o21(((np.eye(3) - _o11(n_pc, n_pc)).T / r_p).T, r_pc).T).T
 
         # Term 2
         pair_ncab += (d11F_p * _o11(n_pc, n_pc, r_pc).T).T
