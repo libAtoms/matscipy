@@ -709,7 +709,6 @@ class Manybody(Calculator):
         term3a_tcab = (d2F_p[ij_t] * (
                 d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
                 + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
-
         term3b_tcab = (d2F_p[ij_t] * (
                 d12G_tcc.reshape(-1, 3, 3, 1).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3)
                 + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
@@ -721,16 +720,11 @@ class Manybody(Calculator):
             d22F_p[ij_t].reshape(-1, 1, 1, 1) * d2G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
 
         # Term 5
-        naF21_tcab = (d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
-                                      + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t])
-                                      + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])
-                                      + _o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
-
-        naF22_tcab = -(d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
+        term5a_tcab = (d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
                                        + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t])
                                        + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
-        naF23_tcab = -(d12F_p[ij_t] * (_o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
+        term5b_tcab = (d12F_p[ij_t] * (_o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
         naforces_icab = \
             + mabincount(i_p, term1_ncab, minlength=nb_atoms) \
@@ -743,8 +737,10 @@ class Manybody(Calculator):
             + mabincount(i_p[ij_t], term4a_tcab + term4b_tcab, minlength=nb_atoms) \
             - mabincount(j_p[ij_t], term4a_tcab, minlength=nb_atoms) \
             - mabincount(j_p[ik_t], term4b_tcab, minlength=nb_atoms) \
-            + mabincount(i_p[ij_t], naF21_tcab, minlength=nb_atoms) \
-            + mabincount(j_p[ij_t], naF22_tcab, minlength=nb_atoms) \
-            + mabincount(j_p[ik_t], naF23_tcab, minlength=nb_atoms)
+            + mabincount(i_p[ij_t], term5a_tcab + term5b_tcab, minlength=nb_atoms) \
+            - mabincount(j_p[ij_t], term5a_tcab, minlength=nb_atoms) \
+            - mabincount(j_p[ik_t], term5b_tcab, minlength=nb_atoms)
+
+#            - mabincount(j_p[ik_t], term4b_tcab, minlength=nb_atoms) \
 
         return naforces_icab / 2
