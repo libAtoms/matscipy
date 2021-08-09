@@ -715,9 +715,9 @@ class Manybody(Calculator):
                 + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
 
         # Term 4
-        naF31_tcab = \
+        term4a_tcab = \
             d22F_p[ij_t].reshape(-1, 1, 1, 1) * d1G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
-        naF32_tcab = \
+        term4b_tcab = \
             d22F_p[ij_t].reshape(-1, 1, 1, 1) * d2G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
 
         # Term 5
@@ -740,15 +740,11 @@ class Manybody(Calculator):
             + mabincount(i_p[ij_t], term3a_tcab + term3b_tcab, minlength=nb_atoms) \
             - mabincount(j_p[ij_t], term3a_tcab, minlength=nb_atoms) \
             - mabincount(j_p[ik_t], term3b_tcab, minlength=nb_atoms) \
+            + mabincount(i_p[ij_t], term4a_tcab + term4b_tcab, minlength=nb_atoms) \
+            - mabincount(j_p[ij_t], term4a_tcab, minlength=nb_atoms) \
+            - mabincount(j_p[ik_t], term4b_tcab, minlength=nb_atoms) \
             + mabincount(i_p[ij_t], naF21_tcab, minlength=nb_atoms) \
             + mabincount(j_p[ij_t], naF22_tcab, minlength=nb_atoms) \
-            + mabincount(j_p[ik_t], naF23_tcab, minlength=nb_atoms) \
-            + mabincount(i_p[ij_t], naF31_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ij_t], naF31_tcab, minlength=nb_atoms) \
-            + mabincount(i_p[ij_t], naF32_tcab, minlength=nb_atoms) \
-            - mabincount(j_p[ik_t], naF32_tcab, minlength=nb_atoms)
-
-        #    + mabincount(i_p, term3_ncab, minlength=nb_atoms) \
-        #    - mabincount(j_p, term3_ncab, minlength=nb_atoms) \
+            + mabincount(j_p[ik_t], naF23_tcab, minlength=nb_atoms)
 
         return naforces_icab / 2
