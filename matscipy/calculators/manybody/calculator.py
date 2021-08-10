@@ -251,23 +251,23 @@ class Manybody(Calculator):
         d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
         d22F_p[mask_p] = 0.0
 
-        # Hessian term #4
+        # Hessian term #1
         nn_pcc = _o11(n_pc, n_pc)
         H_pcc = -(d1F_p * (np.eye(3) - nn_pcc).T / r_p).T
 
-        # Hessian term #1
+        # Hessian term #2
         H_pcc -= (d11F_p * nn_pcc.T).T
 
-        # Hessian term #2
+        # Hessian term #3
+        tripletjj_tcc = (d2F_p[ij_t] * d11G_tcc.T).T
+        tripletjk_tcc = (d2F_p[ij_t] * d12G_tcc.T).T
+        tripletkk_tcc = (d2F_p[ij_t] * d22G_tcc.T).T
+
+        # Hessian term #5
         H_temp3_t = (d12F_p[ij_t] * _o11(d2G_tc, n_pc[ij_t]).T).T
         H_temp4_t = (d12F_p[ij_t] * _o11(d1G_tc, n_pc[ij_t]).T).T
 
-        # Hessian term #5
-        H_temp2_t = (d2F_p[ij_t] * d22G_tcc.T).T
-        H_temp_t = (d2F_p[ij_t] * d11G_tcc.T).T
-        H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
-
-        # Hessian term #3
+        # Hessian term #4
 
         ## Terms involving D_1 * D_1
         d1G_pc = mabincount(ij_t, d1G_tc, nb_pairs)
@@ -282,20 +282,20 @@ class Manybody(Calculator):
 
         H_pcc -= (d22F_p * _o11(d2G_pc, d1G_pc).T).T
 
-        H_pcc += \
-            - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
-            + mabincount(jk_t, weights=H_temp1_t, minlength=nb_pairs) \
-            - mabincount(tr_p[ij_t], weights=H_temp1_t, minlength=nb_pairs) \
-            - mabincount(ik_t, weights=H_temp1_t, minlength=nb_pairs) \
-            - mabincount(ik_t, weights=H_temp2_t, minlength=nb_pairs) \
-            + mabincount(tr_p[jk_t], weights=H_temp3_t, minlength=nb_pairs) \
-            - mabincount(ij_t, weights=H_temp3_t, minlength=nb_pairs) \
-            - mabincount(tr_p[ik_t], weights=H_temp3_t, minlength=nb_pairs) \
-            - mabincount(ij_t, weights=H_temp4_t, minlength=nb_pairs) \
-            - mabincount(tr_p[ij_t], weights=H_temp4_t, minlength=nb_pairs) \
-            - mabincount(ik_t, weights=Q1, minlength=nb_pairs) \
-            + mabincount(jk_t, weights=Q2, minlength=nb_pairs) \
-            - mabincount(ik_t, weights=Q2, minlength=nb_pairs)
+        H_pcc -= \
+            + mabincount(ij_t, weights=tripletjj_tcc, minlength=nb_pairs) \
+            - mabincount(jk_t, weights=tripletjk_tcc, minlength=nb_pairs) \
+            + mabincount(tr_p[ij_t], weights=tripletjk_tcc, minlength=nb_pairs) \
+            + mabincount(ik_t, weights=tripletjk_tcc, minlength=nb_pairs) \
+            + mabincount(ik_t, weights=tripletkk_tcc, minlength=nb_pairs) \
+            - mabincount(tr_p[jk_t], weights=H_temp3_t, minlength=nb_pairs) \
+            + mabincount(ij_t, weights=H_temp3_t, minlength=nb_pairs) \
+            + mabincount(tr_p[ik_t], weights=H_temp3_t, minlength=nb_pairs) \
+            + mabincount(ij_t, weights=H_temp4_t, minlength=nb_pairs) \
+            + mabincount(tr_p[ij_t], weights=H_temp4_t, minlength=nb_pairs) \
+            + mabincount(ik_t, weights=Q1, minlength=nb_pairs) \
+            - mabincount(jk_t, weights=Q2, minlength=nb_pairs) \
+            + mabincount(ik_t, weights=Q2, minlength=nb_pairs)
 
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
