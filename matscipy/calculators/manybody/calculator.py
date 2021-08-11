@@ -256,14 +256,14 @@ class Manybody(Calculator):
         H_pcc -= (d11F_p * nn_pcc.T).T
 
         # Hessian term #3
-        tripletjj_tcc = (d2F_p[ij_t] * d11G_tcc.T).T
-        tripletjk_tcc = (d2F_p[ij_t] * d12G_tcc.T).T
-        tripletkk_tcc = (d2F_p[ij_t] * d22G_tcc.T).T
+        triplet11_tcc = (d2F_p[ij_t] * d11G_tcc.T).T
+        triplet12_tcc = (d2F_p[ij_t] * d12G_tcc.T).T
+        triplet22_tcc = (d2F_p[ij_t] * d22G_tcc.T).T
 
         # Hessian term #5
         nd1G_tcc = _o11(n_pc[ij_t], d1G_tc)
-        tripletjj_tcc += (d12F_p[ij_t] * (nd1G_tcc + nd1G_tcc.swapaxes(1, 2)).T).T
-        tripletjk_tcc += (d12F_p[ij_t] * _o11(n_pc[ij_t], d2G_tc).T).T
+        triplet11_tcc += (d12F_p[ij_t] * (nd1G_tcc + nd1G_tcc.swapaxes(1, 2)).T).T
+        triplet12_tcc += (d12F_p[ij_t] * _o11(n_pc[ij_t], d2G_tc).T).T
 
         # Hessian term #4
 
@@ -281,9 +281,9 @@ class Manybody(Calculator):
         H_pcc -= (d22F_p * _o11(d2G_pc, d1G_pc).T).T
 
         H_pcc -= \
-            + mabincount(ij_t, weights=tripletjj_tcc + tripletjk_tcc.swapaxes(1, 2), minlength=nb_pairs) \
-            + mabincount(ik_t, weights=tripletkk_tcc + tripletjk_tcc + Q1 + Q2, minlength=nb_pairs) \
-            - mabincount(jk_t, weights=tripletjk_tcc + Q2, minlength=nb_pairs)
+            + mabincount(ij_t, weights=triplet11_tcc + triplet12_tcc.swapaxes(1, 2), minlength=nb_pairs) \
+            + mabincount(ik_t, weights=triplet22_tcc + triplet12_tcc + Q1 + Q2, minlength=nb_pairs) \
+            - mabincount(jk_t, weights=triplet12_tcc + Q2, minlength=nb_pairs)
 
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
