@@ -47,7 +47,7 @@ from scipy.sparse import bsr_matrix
 from ase.calculators.calculator import Calculator
 
 from ...elasticity import Voigt_6_to_full_3x3_stress
-from ...neighbours import first_neighbours, neighbour_list, triplet_list
+from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, neighbour_list, triplet_list
 from ...numpy_tricks import mabincount
 
 
@@ -303,7 +303,7 @@ class Manybody(Calculator):
                                                                self.d2G(r_p_ij, r_p_im, ti, tij, tim))).T).T.squeeze()
 
         # Add the conjugate terms (symmetrize Hessian)
-        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
+        H_pcc += H_pcc[find_indices_of_reversed_pairs(i_p, j_p, r_p)].swapaxes(1, 2)
 
         # Sparse matrix representation
         if format == "sparse":
