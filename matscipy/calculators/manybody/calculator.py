@@ -284,10 +284,10 @@ class Manybody(Calculator):
 
         H_pcc -= \
             + mabincount(ij_t, weights=tripletjj_tcc, minlength=nb_pairs) \
-            - mabincount(jk_t, weights=tripletjk_tcc, minlength=nb_pairs) \
-            + mabincount(tr_p[ij_t], weights=tripletjk_tcc, minlength=nb_pairs) \
-            + mabincount(ik_t, weights=tripletjk_tcc, minlength=nb_pairs) \
             + mabincount(ik_t, weights=tripletkk_tcc, minlength=nb_pairs) \
+            - mabincount(jk_t, weights=tripletjk_tcc, minlength=nb_pairs) \
+            + mabincount(ik_t, weights=tripletjk_tcc, minlength=nb_pairs) \
+            + mabincount(tr_p[ij_t], weights=tripletjk_tcc, minlength=nb_pairs) \
             - mabincount(tr_p[jk_t], weights=H_temp3_t, minlength=nb_pairs) \
             + mabincount(ij_t, weights=H_temp3_t, minlength=nb_pairs) \
             + mabincount(tr_p[ik_t], weights=H_temp3_t, minlength=nb_pairs) \
@@ -719,13 +719,17 @@ class Manybody(Calculator):
         dxidF_pab = mabincount(ij_t, _o11(d1G_tc, r_pc[ij_t]) + _o11(d2G_tc, r_pc[ik_t]), minlength=nb_pairs)
 
         # Term 1
+        # With regards to the nomenclature in Grießer, Oldenstädt, Nöhring, Pastewka (2021):
+        # -- pair_ncab are the terms with a prefactor \delta_{ijn} and without an additional sum over k
         pair_ncab = (d1F_p * _o21(((np.eye(3) - _o11(n_pc, n_pc)).T / r_p).T, r_pc).T).T
 
         # Term 2
         pair_ncab += (d11F_p * _o11(n_pc, n_pc, r_pc).T).T
 
         # Term 3
+        # -- tripletj_tcab are the terms with a prefactor \delta_{ijn} and with an additional sum over k
         tripletj_tcab = (d2F_p[ij_t] * (_o21(d11G_tcc, r_pc[ij_t]) + _o21(d12G_tcc, r_pc[ik_t])).T).T
+        # -- tripletk_tcab are the terms with a prefactor \delta_{ikn} and with an additional sum over k
         tripletk_tcab = (d2F_p[ij_t] * (_o21(d12G_tcc.swapaxes(1, 2), r_pc[ij_t]) + _o21(d22G_tcc, r_pc[ik_t])).T).T
 
         # Term 4
