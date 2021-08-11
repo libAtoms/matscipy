@@ -47,7 +47,7 @@ from scipy.sparse import bsr_matrix
 from ase.calculators.calculator import Calculator
 
 from ...elasticity import Voigt_6_to_full_3x3_stress
-from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, neighbour_list, triplet_list
+from ...neighbours import first_neighbours, neighbour_list, triplet_list
 from ...numpy_tricks import mabincount
 
 
@@ -211,9 +211,6 @@ class Manybody(Calculator):
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
-        # reverse pairs
-        tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
-
         # normal vectors
         n_pc = (r_pc.T / r_p).T
 
@@ -264,8 +261,9 @@ class Manybody(Calculator):
         tripletkk_tcc = (d2F_p[ij_t] * d22G_tcc.T).T
 
         # Hessian term #5
-        H_temp3_t = (d12F_p[ij_t] * _o11(d2G_tc, n_pc[ij_t]).T).T
-        H_temp4_t = (d12F_p[ij_t] * _o11(d1G_tc, n_pc[ij_t]).T).T
+        nd1G_tcc = _o11(n_pc[ij_t], d1G_tc)
+        tripletjj_tcc += (d12F_p[ij_t] * (nd1G_tcc + nd1G_tcc.swapaxes(1, 2)).T).T
+        tripletjk_tcc += (d12F_p[ij_t] * _o11(n_pc[ij_t], d2G_tc).T).T
 
         # Hessian term #4
 
@@ -283,19 +281,9 @@ class Manybody(Calculator):
         H_pcc -= (d22F_p * _o11(d2G_pc, d1G_pc).T).T
 
         H_pcc -= \
-            + mabincount(ij_t, weights=tripletjj_tcc, minlength=nb_pairs) \
-            + mabincount(ik_t, weights=tripletkk_tcc, minlength=nb_pairs) \
-            - mabincount(jk_t, weights=tripletjk_tcc, minlength=nb_pairs) \
-            + mabincount(ik_t, weights=tripletjk_tcc, minlength=nb_pairs) \
-            + mabincount(tr_p[ij_t], weights=tripletjk_tcc, minlength=nb_pairs) \
-            - mabincount(tr_p[jk_t], weights=H_temp3_t, minlength=nb_pairs) \
-            + mabincount(ij_t, weights=H_temp3_t, minlength=nb_pairs) \
-            + mabincount(tr_p[ik_t], weights=H_temp3_t, minlength=nb_pairs) \
-            + mabincount(ij_t, weights=H_temp4_t, minlength=nb_pairs) \
-            + mabincount(tr_p[ij_t], weights=H_temp4_t, minlength=nb_pairs) \
-            + mabincount(ik_t, weights=Q1, minlength=nb_pairs) \
-            - mabincount(jk_t, weights=Q2, minlength=nb_pairs) \
-            + mabincount(ik_t, weights=Q2, minlength=nb_pairs)
+            + mabincount(ij_t, weights=tripletjj_tcc + tripletjk_tcc.swapaxes(1, 2), minlength=nb_pairs) \
+            + mabincount(ik_t, weights=tripletkk_tcc + tripletjk_tcc + Q1 + Q2, minlength=nb_pairs) \
+            - mabincount(jk_t, weights=tripletjk_tcc + Q2, minlength=nb_pairs)
 
         for il_im in range(nb_triplets):
             il = ij_t[il_im]
@@ -317,13 +305,15 @@ class Manybody(Calculator):
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
 
+        # Sparse matrix representation
         if format == "sparse":
-            # Construct full diagonal terms from off-diagonal terms
+            # Construct diagonal terms from off-diagonal terms
             H_acc = np.zeros([nb_atoms, 3, 3])
             for x in range(3):
                 for y in range(3):
                     H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y])
 
+            # If we divide by mass, then this method return the dynamical matrix
             if divide_by_masses:
                 mass_nat = atoms.get_masses()
                 geom_mean_mass_n = np.sqrt(mass_nat[i_p] * mass_nat[j_p])
@@ -337,7 +327,7 @@ class Manybody(Calculator):
                     + bsr_matrix((H_acc / 2, np.arange(nb_atoms), np.arange(nb_atoms + 1)),
                                  shape=(3 * nb_atoms, 3 * nb_atoms))
 
-        # Neighbour list format
+        # Neighbour list format, does not include the diagonal terms
         elif format == "neighbour-list":
             return H_pcc / 2, i_p, j_p, r_pc, r_p
 
