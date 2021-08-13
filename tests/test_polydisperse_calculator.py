@@ -130,8 +130,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.rattle(0.1)  
         atoms.set_calculator(calc)
-        FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]),
-            logfile=None).run(fmax=1e-5)
+        FIRE(atoms, logfile=None).run(fmax=1e-5)
         naForces_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
         naForces_ana = calc.get_nonaffine_forces(atoms)  
         np.allclose(naForces_num, naForces_ana, atol=0.1) 
@@ -141,8 +140,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_atomic_numbers(np.repeat(1.0, len(atoms))) 
         atoms.set_calculator(calc)
-        FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]),
-            logfile=None).run(fmax=1e-5)
+        FIRE(atoms, logfile=None).run(fmax=1e-5)
         naForces_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
         naForces_ana = calc.get_nonaffine_forces(atoms)    
         np.allclose(naForces_num, naForces_ana, atol=0.1) 

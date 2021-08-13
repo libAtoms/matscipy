@@ -25,6 +25,7 @@ import numpy as np
 import pytest
 
 import ase
+import ase.constraints
 from ase import Atoms
 from ase.optimize import FIRE
 from ase.lattice.compounds import B3
@@ -119,7 +120,7 @@ def test_amorphous(par):
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, par)
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
-    FIRE(aSi).run(fmax=1e-5, steps=1e3)
+    FIRE(aSi, logfile=None).run(fmax=1e-5)
     compute_forces_and_hessian(aSi, par)
     compute_elastic_constants(aSi, par)
 
@@ -301,6 +302,9 @@ def compute_elastic_constants(a, par):
     np.testing.assert_allclose(ana_naF1, num_naF, atol=0.01)
     np.testing.assert_allclose(ana_naF1, ana_naF2, atol=1e-4)
 
+    # 
+    FIRE(ase.constraints.UnitCellFilter(a, mask=[1,1,1,0,0,0], hydrostatic_strain=True), logfile=None).run(fmax=1e-6)   
+
     # Birch elastic constants
     C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None,
                                         verbose=False)
@@ -310,7 +314,7 @@ def compute_elastic_constants(a, par):
     np.testing.assert_allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), atol=0.1)
 
     # Non-affine elastic constants
-    C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5,
+    C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-6,
                                         verbose=False)
     B_ana = calculator.get_birch_coefficients(a)
     C_na = calculator.get_non_affine_contribution_to_elastic_constants(a, tol=1e-5)
