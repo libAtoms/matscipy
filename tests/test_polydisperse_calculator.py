@@ -50,8 +50,8 @@ from numpy.linalg import norm
 from scipy.linalg import eigh
 
 import ase.io as io
-from ase import Atoms
 import ase.constraints
+from ase import Atoms
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.optimize import FIRE

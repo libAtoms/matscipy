@@ -51,7 +51,7 @@ from numpy.linalg import norm
 from scipy.linalg import eigh
 
 import ase.io as io
-from ase.constraints import StrainFilter, UnitCellFilter
+import ase.constraints
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.lattice.hexagonal import HexagonalClosedPacked
@@ -257,7 +257,8 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
                 (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
         atoms = io.read("glass_min.xyz")
         b = PairPotential(calc)
-        atoms.set_calculator(b)     
+        atoms.set_calculator(b)
+        FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=1e-2)   
         C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None, verbose=False)
         C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
         #print("C_ana: \n", C_ana)
@@ -285,6 +286,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         atoms = io.read("glass_min.xyz")
         b = PairPotential(calc)
         atoms.set_calculator(b)     
+        FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=1e-2)   
         C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=5, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
         Cana_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
         Cana_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5))
@@ -333,6 +335,7 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             strain = np.random.random([3, 3]) * 0.02
             atoms.set_cell(np.matmul(np.identity(3) + strain, atoms.cell), scale_atoms=True)
             atoms.set_calculator(b)
+            FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=1e-2)   
             Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
             Cnum2_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants(atoms), tol=10)
             #Cnum3_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants_2nd(atoms), tol=10)
