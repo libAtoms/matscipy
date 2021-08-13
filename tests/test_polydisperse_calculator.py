@@ -51,7 +51,7 @@ from scipy.linalg import eigh
 
 import ase.io as io
 from ase import Atoms
-from ase.constraints import StrainFilter, UnitCellFilter
+import ase.constraints
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.optimize import FIRE
@@ -130,8 +130,8 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.rattle(0.1)  
         atoms.set_calculator(calc)
-        dyn = FIRE(atoms)
-        dyn.run(fmax=1e-5)
+        FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]),
+            logfile=None).run(fmax=1e-5)
         naForces_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
         naForces_ana = calc.get_nonaffine_forces(atoms)  
         np.allclose(naForces_num, naForces_ana, atol=0.1) 
@@ -141,8 +141,8 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_atomic_numbers(np.repeat(1.0, len(atoms))) 
         atoms.set_calculator(calc)
-        dyn = FIRE(atoms)
-        dyn.run(fmax=1e-5)
+        FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]),
+            logfile=None).run(fmax=1e-5)
         naForces_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
         naForces_ana = calc.get_nonaffine_forces(atoms)    
         np.allclose(naForces_num, naForces_ana, atol=0.1) 
@@ -156,8 +156,8 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
             atoms.set_masses(masses=np.repeat(1.0, len(atoms)))       
             atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float) 
             atoms.set_calculator(calc)
-            dyn = FIRE(atoms)
-            dyn.run(fmax=1e-5)
+            FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.1)
+            FIRE(atoms, logfile=None).run(fmax=1e-5)
             C_num, Cerr = fit_elastic_constants(atoms, symmetry="cubic", N_steps=7, delta=1e-4, optimizer=None, verbose=False)
             C_ana = full_3x3x3x3_to_Voigt_6x6(calc.get_birch_coefficients(atoms))
             np.allclose(C_num, C_ana, atol=0.1)
@@ -167,8 +167,8 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_atomic_numbers(np.repeat(1.0, len(atoms))) 
         atoms.set_calculator(calc)
-        dyn = FIRE(atoms)
-        dyn.run(fmax=1e-5)  
+        FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.1)
+        FIRE(atoms, logfile=None).run(fmax=1e-5)
         C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None, verbose=False)
         C_ana = full_3x3x3x3_to_Voigt_6x6(calc.get_birch_coefficients(atoms))
         #print("C_ana: \n", C_ana)
@@ -184,8 +184,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.rattle(0.1)  
         atoms.set_calculator(calc)
-        dyn = FIRE(atoms)
-        dyn.run(fmax=1e-5)
+        dyn = FIRE(atoms, logfile=None).run(fmax=1e-5)
         C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
         anaC_na = full_3x3x3x3_to_Voigt_6x6(calc.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5))
         anaC_af = full_3x3x3x3_to_Voigt_6x6(calc.get_birch_coefficients(atoms))
@@ -196,8 +195,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_atomic_numbers(np.repeat(1.0, len(atoms))) 
         atoms.set_calculator(calc)
-        dyn = FIRE(atoms)
-        dyn.run(fmax=1e-5)   
+        dyn = FIRE(atoms, logfile=None).run(fmax=1e-5)   
         C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
         Cana_af = full_3x3x3x3_to_Voigt_6x6(calc.get_birch_coefficients(atoms))
         Cana_na = full_3x3x3x3_to_Voigt_6x6(calc.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5), tol=0.1)
@@ -215,8 +213,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_masses(masses=np.repeat(1.0, len(atoms)))       
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_calculator(calc)
-        dyn = FIRE(atoms)
-        dyn.run(fmax=1e-5)
+        dyn = FIRE(atoms, logfile=None).run(fmax=1e-5)
         H = calc.get_hessian(atoms)
         H = H.todense()
         self.assertArrayAlmostEqual(np.sum(np.abs(H-H.T)), 0, tol=1e-5)
@@ -228,8 +225,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_masses(masses=np.repeat(1.0, len(atoms)))       
         atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
         atoms.set_calculator(calc)
-        dyn = FIRE(atoms)
-        dyn.run(fmax=1e-5)
+        dyn = FIRE(atoms, logfile=None).run(fmax=1e-5)
         H_analytical = calc.get_hessian(atoms)
         H_analytical = H_analytical.todense()
         H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
@@ -244,8 +240,7 @@ class TestPolydisperseCalculator(matscipytest.MatSciPyTestCase):
         atoms.set_masses(masses=masses_n)
         calc = Polydisperse(InversePowerLawPotential(1.0, 1.4, 0.1, 3, 1, 2.22))
         atoms.set_calculator(calc)
-        dyn = FIRE(atoms)
-        dyn.run(fmax=1e-5)
+        dyn = FIRE(atoms, logfile=None).run(fmax=1e-5)
         D_analytical = calc.get_hessian(atoms, divide_by_masses=True)
         D_analytical = D_analytical.todense()
         H_analytical = calc.get_hessian(atoms)
