@@ -120,7 +120,7 @@ def test_amorphous(par):
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, par)
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
-    FIRE(ase.constraints.UnitCellFilter(aSi, mask=[1,1,1,0,0,0], hydrostatic_strain=False), logfile=None).run(fmax=1e-8)    
+    FIRE(ase.constraints.UnitCellFilter(aSi, mask=[1,1,1,0,0,0], hydrostatic_strain=True), logfile=None).run(fmax=1e-8)    
     compute_forces_and_hessian(aSi, par)
     compute_elastic_constants(aSi, par)
 
