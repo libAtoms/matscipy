@@ -406,7 +406,7 @@ class PairPotential(MatscipyCalculator):
         # Sparse BSR-matrix
         if format == "sparse":
             if divide_by_masses:
-                masses_n = self.atoms.get_masses()
+                masses_n = atoms.get_masses()
                 geom_mean_mass_p = np.sqrt(masses_n[i_p]*masses_n[j_p])
 
             if divide_by_masses:
@@ -452,7 +452,7 @@ class PairPotential(MatscipyCalculator):
             H += Hdiag_ncc
 
             if divide_by_masses:
-                masses_p = (self.atoms.get_masses()).repeat(3)
+                masses_p = (atoms.get_masses()).repeat(3)
                 H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
                 return H
 
