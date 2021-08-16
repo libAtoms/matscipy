@@ -305,7 +305,8 @@ def compute_elastic_constants(a, par):
     # 
     #FIRE(ase.constraints.UnitCellFilter(a, mask=[1,1,1,0,0,0], hydrostatic_strain=False), logfile=None).run(fmax=1e-6)    
     print("Stress: \n", a.get_stress())
-    print("Cell: \n", a.get_cell())
+    print("Cell: \n", a.get_cell()[0])
+    print("Cell lengths and angles: \n", a.get_cell_lengths_and_angles())
     print("forces: \n", a.get_forces())
 
     # Birch elastic constants
