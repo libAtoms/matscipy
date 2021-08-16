@@ -120,7 +120,7 @@ def test_amorphous(par):
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, par)
     # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
-    FIRE(aSi, logfile=None).run(fmax=1e-5)
+    FIRE(ase.constraints.UnitCellFilter(aSi, mask=[1,1,1,0,0,0], hydrostatic_strain=False), logfile=None).run(fmax=1e-7)    
     compute_forces_and_hessian(aSi, par)
     compute_elastic_constants(aSi, par)
 
@@ -303,7 +303,7 @@ def compute_elastic_constants(a, par):
     np.testing.assert_allclose(ana_naF1, ana_naF2, atol=1e-4)
 
     # 
-    FIRE(ase.constraints.UnitCellFilter(a, mask=[1,1,1,0,0,0], hydrostatic_strain=False), logfile=None).run(fmax=1e-6)    
+    #FIRE(ase.constraints.UnitCellFilter(a, mask=[1,1,1,0,0,0], hydrostatic_strain=False), logfile=None).run(fmax=1e-6)    
     # print("Stress: \n", a.get_stress())
     # print("Cell: \n", a.get_cell())
     # print("forces: \n", a.get_forces())
@@ -323,6 +323,6 @@ def compute_elastic_constants(a, par):
     C_na = calculator.get_non_affine_contribution_to_elastic_constants(a, tol=1e-5)
     # print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
     # print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
-    # print("C (fit_elastic_constants): \n", C_num)
-    # print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na))
+    print("C (fit_elastic_constants): \n", C_num)
+    print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na))
     np.testing.assert_allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana + C_na), atol=0.1)
