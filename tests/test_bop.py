@@ -304,16 +304,17 @@ def compute_elastic_constants(a, par):
 
     # 
     #FIRE(ase.constraints.UnitCellFilter(a, mask=[1,1,1,0,0,0], hydrostatic_strain=False), logfile=None).run(fmax=1e-6)    
-    # print("Stress: \n", a.get_stress())
-    # print("Cell: \n", a.get_cell())
-    # print("forces: \n", a.get_forces())
+    print("Stress: \n", a.get_stress())
+    print("Cell: \n", a.get_cell())
+    print("forces: \n", a.get_forces())
 
     # Birch elastic constants
     C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None,
                                         verbose=False)
     B_ana = calculator.get_birch_coefficients(a)
     print("C (fit_elastic_constants): \n", C_num)
-    print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana))
+    print("B_ana without reduction: \n", B_ana)
+    print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana))
     # print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
     # print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
     #np.testing.assert_allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), atol=0.1)
