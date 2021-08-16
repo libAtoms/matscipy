@@ -566,10 +566,10 @@ class Manybody(Calculator):
         C1_abab = (C1_abab + C1_abab.swapaxes(0, 1) + C1_abab.swapaxes(2, 3) + C1_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
         # Term 2
-        C2_abab = (stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1) + \
-                   stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3) + \
-                   stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1) + \
-                   stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3))/4
+        C2_abab = (stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3) + \
+                   stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1) + \
+                   stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3) + \
+                   stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1))/4
 
         return C1_abab + C2_abab
 
