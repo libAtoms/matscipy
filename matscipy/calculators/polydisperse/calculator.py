@@ -241,7 +241,7 @@ class Polydisperse(MatscipyCalculator):
         f = self.f
         nb_atoms = len(self.atoms)
         if atoms.has("size"):
-            size = self.atoms.get_array("size")
+            size = atoms.get_array("size")
         else:
             raise AttributeError(
                 "Attribute error: Unable to load atom sizes from atoms object! Probably missing size array.")
@@ -259,7 +259,7 @@ class Polydisperse(MatscipyCalculator):
         first_i = first_neighbours(nb_atoms, i_p)
 
         if divide_by_masses:
-            mass_n = self.atoms.get_masses()
+            mass_n = atoms.get_masses()
             geom_mean_mass_p = np.sqrt(mass_n[i_p]*mass_n[j_p])
 
         # Hessian 

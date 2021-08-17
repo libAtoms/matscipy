@@ -25,6 +25,7 @@ import numpy as np
 import pytest
 
 import ase
+import ase.constraints
 from ase import Atoms
 from ase.optimize import FIRE
 from ase.lattice.compounds import B3
@@ -99,7 +100,8 @@ def test_crystal_forces_and_hessian(a0, par):
     compute_forces_and_hessian(Si_crystal, par)
 
 
-@pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
+
+@pytest.mark.parametrize('a0', [5.0, 5.2, 5.3, 5.4, 5.5])
 @pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
                                  TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
                                  StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
@@ -107,6 +109,7 @@ def test_crystal_elastic_constants(a0, par):
     # Test forces, hessian, non-affine forces and elastic constants for a Si crystal
     Si_crystal = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
     compute_elastic_constants(Si_crystal, par)
+
 
 
 @pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
@@ -118,8 +121,8 @@ def test_amorphous(par):
     aSi.calc = Manybody(**par)
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, par)
-    # Test forces, hessian, non-affine forces and elastic constants for amorphous Si
-    FIRE(aSi).run(fmax=1e-5, steps=1e3)
+    # Test forces, hessian, non-affine forces and elastic constants for a stress-free amorphous Si configuration
+    FIRE(ase.constraints.UnitCellFilter(aSi, mask=[1,1,1,1,1,1], hydrostatic_strain=False), logfile=None).run(fmax=1e-5)    
     compute_forces_and_hessian(aSi, par)
     compute_elastic_constants(aSi, par)
 
@@ -305,14 +308,13 @@ def compute_elastic_constants(a, par):
     C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=None,
                                         verbose=False)
     B_ana = calculator.get_birch_coefficients(a)
-    # print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
-    # print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana)[3, 3])
+    # print("C (fit_elastic_constants): \n", C_num)
+    # print("B_ana: \n", full_3x3x3x3_to_Voigt_6x6(B_ana))
     np.testing.assert_allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana), atol=0.1)
 
     # Non-affine elastic constants
     C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5,
                                         verbose=False)
-    B_ana = calculator.get_birch_coefficients(a)
     C_na = calculator.get_non_affine_contribution_to_elastic_constants(a, tol=1e-5)
     # print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
     # print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
