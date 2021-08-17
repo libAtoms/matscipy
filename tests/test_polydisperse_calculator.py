@@ -182,9 +182,9 @@ def test_crystal_non_affine_forces(a0):
     atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
     atoms.calc = calc
     FIRE(atoms, logfile=None).run(fmax=1e-6)
-    naForces_num = calc.get_numerical_non_affine_forces(atoms, d=1e-5)
+    naForces_num = calc.get_numerical_non_affine_forces(atoms, d=1e-6)
     naForces_ana = calc.get_nonaffine_forces(atoms)  
-    np.testing.assert_allclose(naForces_num, naForces_ana, atol=0.1) 
+    np.testing.assert_allclose(naForces_num, naForces_ana, atol=1) 
 
 def test_glass_non_affine_forces():
     """
