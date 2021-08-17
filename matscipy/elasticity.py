@@ -116,7 +116,7 @@ def Voigt_6x6_to_full_3x3x3x3(C):
     return C_out
 
 
-def full_3x3x3x3_to_Voigt_6x6(C, tol=1e-3):
+def full_3x3x3x3_to_Voigt_6x6(C, tol=1e-3, check_symmetry=True):
     """
     Convert from the full 3x3x3x3 representation of the stiffness matrix
     to the representation in Voigt notation. Checks symmetry in that process.
@@ -141,28 +141,28 @@ def full_3x3x3x3_to_Voigt_6x6(C, tol=1e-3):
             print("n,m,l,k", C[n,m,l,k])
             print('---')
             """
-            # Check symmetries
-            assert abs(Voigt[i,j]-C[m,n,k,l]) < tol, \
-                '1 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-                .format(i, j, Voigt[i,j], m, n, k, l, C[m,n,k,l])
-            assert abs(Voigt[i,j]-C[l,k,m,n]) < tol, \
-                '2 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-                .format(i, j, Voigt[i,j], l, k, m, n, C[l,k,m,n])
-            assert abs(Voigt[i,j]-C[k,l,n,m]) < tol, \
-                '3 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-                .format(i, j, Voigt[i,j], k, l, n, m, C[k,l,n,m])
-            assert abs(Voigt[i,j]-C[m,n,l,k]) < tol, \
-                '4 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-                .format(i, j, Voigt[i,j], m, n, l, k, C[m,n,l,k])
-            assert abs(Voigt[i,j]-C[n,m,k,l]) < tol, \
-                '5 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-                .format(i, j, Voigt[i,j], n, m, k, l, C[n,m,k,l])
-            assert abs(Voigt[i,j]-C[l,k,n,m]) < tol, \
-                '6 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-                .format(i, j, Voigt[i,j], l, k, n, m, C[l,k,n,m])
-            assert abs(Voigt[i,j]-C[n,m,l,k]) < tol, \
-                '7 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
-                .format(i, j, Voigt[i,j], n, m, l, k, C[n,m,l,k])
+            if check_symmetry:
+                assert abs(Voigt[i,j]-C[m,n,k,l]) < tol, \
+                    '1 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                    .format(i, j, Voigt[i,j], m, n, k, l, C[m,n,k,l])
+                assert abs(Voigt[i,j]-C[l,k,m,n]) < tol, \
+                    '2 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                    .format(i, j, Voigt[i,j], l, k, m, n, C[l,k,m,n])
+                assert abs(Voigt[i,j]-C[k,l,n,m]) < tol, \
+                    '3 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                    .format(i, j, Voigt[i,j], k, l, n, m, C[k,l,n,m])
+                assert abs(Voigt[i,j]-C[m,n,l,k]) < tol, \
+                    '4 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                    .format(i, j, Voigt[i,j], m, n, l, k, C[m,n,l,k])
+                assert abs(Voigt[i,j]-C[n,m,k,l]) < tol, \
+                    '5 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                    .format(i, j, Voigt[i,j], n, m, k, l, C[n,m,k,l])
+                assert abs(Voigt[i,j]-C[l,k,n,m]) < tol, \
+                    '6 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                    .format(i, j, Voigt[i,j], l, k, n, m, C[l,k,n,m])
+                assert abs(Voigt[i,j]-C[n,m,l,k]) < tol, \
+                    '7 Voigt[{},{}] = {}, C[{},{},{},{}] = {}' \
+                    .format(i, j, Voigt[i,j], n, m, l, k, C[n,m,l,k])
 
     return Voigt
 
