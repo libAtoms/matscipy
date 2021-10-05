@@ -36,6 +36,8 @@ import numpy as np
 
 from scipy.sparse import bsr_matrix, vstack, hstack
 
+from scipy.special import erfc
+
 import ase
 
 from ...neighbours import neighbour_list, first_neighbours
@@ -47,35 +49,65 @@ from ...numpy_tricks import mabincount
 
 class BKS_ewald():
     """
-    Functional form for a 12-6 Lennard-Jones potential with a hard cutoff.
-    Energy is shifted to zero at cutoff.
+    Functional Form of the Beest, Kramer, van Santen (BKS) potential.
+    The potential consits of a short range Buckingham potential and a long range Coulomb potential.
+
+    Buckingham part 
+        Energy is shifted to zero at the cutoff.
+    Coulomb part   
+        Electrostatic interaction is treated using the traditional Ewald summation.
+                     
+    References:
+        B. W. Van Beest, G. J. Kramer and R. A. Van Santen, Phys. Rev. Lett. 64.16 (1990)
     """
 
-    def __init__(self, epsilon, sigma, cutoff):
-        self.epsilon = epsilon
-        self.sigma = sigma
-        self.cutoff = cutoff
-        self.offset = (sigma/cutoff)**12 - (sigma/cutoff)**6
+    def __init__(self, A, B, C, alpha, cutoff_c):
+        self.A = A
+        self.B = B 
+        self.C = C
+        self.cutoff_c = cutoff_c
 
-    def __call__(self, r):
-        """
-        Return function value (potential energy).
-        """
-        r6 = (self.sigma / r)**6
-        return 4 * self.epsilon * ((r6-1) * r6 - self.offset)
+        # Conversion factor to be consistent with LAMMPS metal units
+        conversion_factor = 14.399645
+        self.conversion_factor = conversion_factor 
+
+        # Expression for shifting energy/force
+        self.buck_offset_energy = A * np.exp(-B*cutoff_c) - C/cutoff_c**6
 
     def get_cutoff(self):
-        return self.cutoff
+        return self.cutoff_c
 
-    def first_derivative(self, r):
-        r = (self.sigma / r)
-        r6 = r**6
-        return -24 * self.epsilon / self.sigma * (2*r6-1) * r6 * r
+    def get_energy_self(self, charge):
+        return self.conversion_factor * self.alpha * charge**2 / np.sqrt(np.pi)
 
-    def second_derivative(self, r):
-        r2 = (self.sigma / r)**2
-        r6 = r2**3
-        return 24 * self.epsilon/self.sigma**2 * (26*r6-7) * r6 * r2
+    def get_energy_sr(self, r, pair_charge):
+        """
+        Return the energy from Buckingham part and short range Coulomb part.
+        """
+        E_buck = self.A * np.exp(-self.B*r) - self.C / r**6 - self.buck_offset_energy
+        E_coul = self.conversion_factor * pair_charge * erfc(self.alpha*r) / r
+
+        return E_buck + E_coul
+
+    def first_derivative(self, r, pair_charge):
+        """
+        Return the force from Buckingham part and short range Coulomb part.
+        """
+        f_buck = -self.A * self.B * np.exp(-self.B*r) + 6 * self.C / r**7 
+        f_coul = -self.conversion_factor * pair_charge * (erfc(self.alpha*r) / r**2
+         + 2 * self.alpha * np.exp(-(self.alpha*r)**2) / (np.sqrt(np.pi)*r))
+
+        return f_buck + f_coul
+
+    def second_derivative(self, r, pair_charge):
+        """
+        Return the stiffness from Buckingham part and short range Coulomb part.
+        """
+        k_buck = self.A * self.B**2 * np.exp(-self.B*r) - 42 * self.C / r**8
+        k_coul = self.conversion_factor * pair_charge * (2 * erfc(self.alpha * r) / r**3
+            + 4 * self.alpha * np.exp(-(self.alpha*r)**2) / np.sqrt(np.pi) * (1 / r**2 + self.alpha**2))
+
+        return k_buck + k_coul
 
     def derivative(self, n=1):
         if n == 1:
