@@ -1,7 +1,6 @@
 #
 # Copyright 2014-2015, 2017, 2021 Lars Pastewka (U. Freiburg)
-#           2018-2021 Jan Griesser (U. Freiburg)
-#           2020 Jonas Oldenstaedt (U. Freiburg)
+#           2018-2019 Jan Griesser (U. Freiburg)
 #           2015 Adrien Gola (KIT)
 #           2014 James Kermode (Warwick U.)
 #
@@ -22,15 +21,4 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from .eam import EAM
-from .pair_potential import PairPotential
-from .supercell_calculator import SupercellCalculator
-from .polydisperse import Polydisperse
-from .manybody import Manybody
-from .ewald import Ewald
-
-try:
-    import scipy.sparse as sp
-except ImportError:
-    warnings.warn('Warning: no scipy')
-
+from .calculator import BKS_ewald, Ewald
