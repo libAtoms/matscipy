@@ -65,6 +65,7 @@ class BKS_ewald():
         self.A = A
         self.B = B 
         self.C = C
+        self.alpha = alpha
         self.cutoff_c = cutoff_c
 
         # Conversion factor to be consistent with LAMMPS metal units
@@ -144,13 +145,17 @@ class Ewald(MatscipyCalculator):
         else:
             raise AttributeError(
                 "Attribute error: Unable to load atom charges from atoms object!")
+        if np.sum(charge_p) != 0:
+            raise AttributeError(
+                "Attribute error: We require charge balance!")            
+
 
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
         chargeij = charge_p[i_p] * charge_p[j_p]
 
         mask = i_p == j_p
         if np.sum(mask) > 0:
-            print("Atoms can see itself!")
+            print("Atom can see itself!")
 
         # Short-range interaction of Buckingham and Ewald
         e_p = np.zeros_like(r_p)
