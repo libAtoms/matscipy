@@ -78,7 +78,7 @@ class BKS_ewald():
         return self.cutoff_c
 
     def get_energy_self(self, charge):
-        return self.conversion_factor * self.alpha * charge**2 / np.sqrt(np.pi)
+        return - self.conversion_factor * self.alpha * charge**2 / np.sqrt(np.pi)
 
     def get_energy_sr(self, r, pair_charge):
         """
@@ -89,7 +89,7 @@ class BKS_ewald():
 
         return E_buck + E_coul
 
-    def first_derivative(self, r, pair_charge):
+    def first_derivative_sr(self, r, pair_charge):
         """
         Return the force from Buckingham part and short range Coulomb part.
         """
@@ -99,7 +99,7 @@ class BKS_ewald():
 
         return f_buck + f_coul
 
-    def second_derivative(self, r, pair_charge):
+    def second_derivative_sr(self, r, pair_charge):
         """
         Return the stiffness from Buckingham part and short range Coulomb part.
         """
@@ -130,18 +130,29 @@ class Ewald(MatscipyCalculator):
         self.f = f
 
         self.dict = {x: obj.get_cutoff() for x, obj in f.items()}
-        self.df = {x: obj.derivative(1) for x, obj in f.items()}
-        self.df2 = {x: obj.derivative(2) for x, obj in f.items()}
 
     def calculate(self, atoms, properties, system_changes):
         MatscipyCalculator.calculate(self, atoms, properties, system_changes)
 
+        f = self.f
         nb_atoms = len(self.atoms)
         atnums = self.atoms.numbers
         atnums_in_system = set(atnums)
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
+        if atoms.has("charge"):
+            charge_p = self.atoms.get_array("charge")
+        else:
+            raise AttributeError(
+                "Attribute error: Unable to load atom charges from atoms object!")
 
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
+        chargeij = charge_p[i_p] * charge_p[j_p]
+
+        mask = i_p == j_p
+        if np.sum(mask) > 0:
+            print("Atoms can see itself!")
+
+        # Short-range interaction of Buckingham and Ewald
         e_p = np.zeros_like(r_p)
         de_p = np.zeros_like(r_p)
         for params, pair in enumerate(self.dict):
@@ -150,8 +161,8 @@ class Ewald(MatscipyCalculator):
                 mask2 = atnums[j_p] == pair[0]
                 mask = np.logical_and(mask1, mask2)
 
-                e_p[mask] = self.f[pair](r_p[mask])
-                de_p[mask] = self.df[pair](r_p[mask])
+                e_p[mask] = f[pair].get_energy_sr(r_p[mask], chargeij[mask])
+                de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
 
             if pair[0] != pair[1]:
                 mask1 = np.logical_and(
@@ -160,10 +171,13 @@ class Ewald(MatscipyCalculator):
                     atnums[i_p] == pair[1], atnums[j_p] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
-                e_p[mask] = self.f[pair](r_p[mask])
-                de_p[mask] = self.df[pair](r_p[mask])
+                e_p[mask] = f[pair].get_energy_sr(r_p[mask], chargeij[mask])
+                de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
 
-        epot = 0.5*np.sum(e_p)
+        # Self energy 
+        eself = list(f.values())[0].get_energy_self(charge_p)
+
+        epot = 0.5*np.sum(e_p) + np.sum(eself)
 
         # Forces
         df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1)
