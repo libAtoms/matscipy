@@ -61,22 +61,29 @@ class BKS_ewald():
         B. W. Van Beest, G. J. Kramer and R. A. Van Santen, Phys. Rev. Lett. 64.16 (1990)
     """
 
-    def __init__(self, A, B, C, alpha, cutoff_c):
+    def __init__(self, A, B, C, alpha, cutoff_r, cutoff_g):
         self.A = A
         self.B = B 
         self.C = C
         self.alpha = alpha
-        self.cutoff_c = cutoff_c
+        self.cutoff_r = cutoff_r
+        self.cutoff_g = cutoff_g
 
         # Conversion factor to be consistent with LAMMPS metal units
         conversion_factor = 14.399645
         self.conversion_factor = conversion_factor 
 
         # Expression for shifting energy/force
-        self.buck_offset_energy = A * np.exp(-B*cutoff_c) - C/cutoff_c**6
+        self.buck_offset_energy = A * np.exp(-B*cutoff_r) - C/cutoff_r**6
 
-    def get_cutoff(self):
-        return self.cutoff_c
+    def get_alpha(self):
+        return self.alpha
+
+    def get_cutoff_real(self):
+        return self.cutoff_r
+
+    def get_cutoff_reciprocal(self):
+        return self.cutoff_g
 
     def get_energy_self(self, charge):
         return - self.conversion_factor * self.alpha * charge**2 / np.sqrt(np.pi)
@@ -89,6 +96,11 @@ class BKS_ewald():
         E_coul = self.conversion_factor * pair_charge * erfc(self.alpha*r) / r
 
         return E_buck + E_coul
+
+    def get_energy_rec(self, r, charge):
+        """
+        Return the energy from the reciprocal space contribution
+        """
 
     def first_derivative_sr(self, r, pair_charge):
         """
@@ -130,7 +142,28 @@ class Ewald(MatscipyCalculator):
         MatscipyCalculator.__init__(self)
         self.f = f
 
-        self.dict = {x: obj.get_cutoff() for x, obj in f.items()}
+        self.dict = {x: obj.get_cutoff_real() for x, obj in f.items()}
+
+    def wave_vectors_rec(self, gmax, at, alph):
+        cell = at.get_cell()
+        nx = np.int(cell[0, 0] * gmax / (2*np.pi)) 
+        ny = np.int(cell[1, 1] * gmax / (2*np.pi)) 
+        nz = np.int(cell[2, 2] * gmax / (2*np.pi)) 
+
+        G_lc = 2 * np.pi * np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1)))) / np.array([cell[0, 0], cell[1, 1], cell[2, 2]])
+        G = np.sqrt(np.sum(G*G, axis=1))
+        mask = np.logical_and(G <= gmax, G != 0)
+        G = G[mask]
+        G_lc = G_lc[mask]
+
+        # Compute individual factors
+        Gfac_l = np.exp(-(G/(2*alp)**2)) / G**2
+        struc_fac = np.zeros(len(G))
+        pos_nc = at.get_positions()
+        for index, vector in enumerate(G_lc):
+            struc_fac[index] = np.absolute(np.sum(np.exp(1j*np.sum(vector*pos_nc, axis=1))))**2
+
+        return Gfac_l*struc_fac
 
     def calculate(self, atoms, properties, system_changes):
         MatscipyCalculator.calculate(self, atoms, properties, system_changes)
@@ -139,17 +172,35 @@ class Ewald(MatscipyCalculator):
         nb_atoms = len(self.atoms)
         atnums = self.atoms.numbers
         atnums_in_system = set(atnums)
+        calc = atoms.get_calculator()
 
+        # Check some properties of input data
         if atoms.has("charge"):
             charge_p = self.atoms.get_array("charge")
         else:
             raise AttributeError(
                 "Attribute error: Unable to load atom charges from atoms object!")
+
         if np.sum(charge_p) != 0:
             raise AttributeError(
-                "Attribute error: We require charge balance!")            
+                "Attribute error: We require charge balance!")      
 
+        print(self.atoms.get_pbc())
+        if not any(self.atoms.get_pbc()):
+            raise AttributeError(
+                "Attribute error: Thiss code only works for 3D systems with periodic boundaries in all directions!")    
 
+        for index, pairs in enumerate(f.values()):
+            if index == 0:
+                alpha = pairs.get_alpha()
+                rc = pairs.get_cutoff_real()
+                rg = pairs.get_cutoff_reciprocal()
+            else:
+                if (rc != pairs.get_cutoff_real()) or (rg != pairs.get_cutoff_reciprocal() or (alpha != pairs.get_alpha())):
+                    raise AttributeError(
+                        "Attribute error: Cannot use different rc or Gmax values!")                        
+
+        # 
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
         chargeij = charge_p[i_p] * charge_p[j_p]
 
@@ -180,9 +231,12 @@ class Ewald(MatscipyCalculator):
                 de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
 
         # Self energy 
-        eself = list(f.values())[0].get_energy_self(charge_p)
+        e_self = list(f.values())[0].get_energy_self(charge_p)
 
-        epot = 0.5*np.sum(e_p) + np.sum(eself)
+        # Long-range reciprocal space 
+        pre = calc.wave_vectors_rec(rg, atoms, alpha)
+
+        epot = 0.5*np.sum(e_p) + np.sum(e_self) + 
 
         # Forces
         df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1)
