@@ -40,6 +40,8 @@ from scipy.special import erfc
 
 import ase
 
+from itertools import product
+
 from ...neighbours import neighbour_list, first_neighbours
 from ..calculator import MatscipyCalculator
 from ...numpy_tricks import mabincount
@@ -61,13 +63,14 @@ class BKS_ewald():
         B. W. Van Beest, G. J. Kramer and R. A. Van Santen, Phys. Rev. Lett. 64.16 (1990)
     """
 
-    def __init__(self, A, B, C, alpha, cutoff_r, cutoff_g):
+    def __init__(self, A, B, C, alpha, cutoff_r, cutoff_g, nk):
         self.A = A
         self.B = B 
         self.C = C
         self.alpha = alpha
         self.cutoff_r = cutoff_r
         self.cutoff_g = cutoff_g
+        self.nk = nk
 
         # Conversion factor to be consistent with LAMMPS metal units
         conversion_factor = 14.399645
@@ -75,6 +78,9 @@ class BKS_ewald():
 
         # Expression for shifting energy/force
         self.buck_offset_energy = A * np.exp(-B*cutoff_r) - C/cutoff_r**6
+
+    def get_nk(self):
+        return self.nk
 
     def get_alpha(self):
         return self.alpha
@@ -97,10 +103,15 @@ class BKS_ewald():
 
         return E_buck + E_coul
 
-    def get_energy_rec(self, r, charge):
+    def get_energy_rec(self, charge, pos, vol, iu, k):
         """
         Return the energy from the reciprocal space contribution
         """
+        structure_factor = np.zeros(len(iu))
+        for index, vector in enumerate(k):
+            structure_factor[index] = np.absolute(np.sum(charge * np.exp(1j*np.sum(vector*pos, axis=1)) ))**2
+
+        return self.conversion_factor * 2 * np.pi * np.sum(iu * structure_factor) / vol  
 
     def first_derivative_sr(self, r, pair_charge):
         """
@@ -144,26 +155,31 @@ class Ewald(MatscipyCalculator):
 
         self.dict = {x: obj.get_cutoff_real() for x, obj in f.items()}
 
-    def wave_vectors_rec(self, gmax, at, alph):
-        cell = at.get_cell()
-        nx = np.int(cell[0, 0] * gmax / (2*np.pi)) 
-        ny = np.int(cell[1, 1] * gmax / (2*np.pi)) 
-        nz = np.int(cell[2, 2] * gmax / (2*np.pi)) 
+    def wave_vectors_rec(self, gmax, cell, alph, nk):
+        nx = nk[0]
+        ny = nk[1]
+        nz = nk[2]
+        if nx == None and ny == None and nz == None: 
+            nx = np.int(cell[0, 0] * gmax / (2*np.pi)) 
+            ny = np.int(cell[1, 1] * gmax / (2*np.pi)) 
+            nz = np.int(cell[2, 2] * gmax / (2*np.pi)) 
+            print("nx/ny/nx", nx, "/", ny, "/", nz)
 
-        G_lc = 2 * np.pi * np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1)))) / np.array([cell[0, 0], cell[1, 1], cell[2, 2]])
-        G = np.sqrt(np.sum(G*G, axis=1))
-        mask = np.logical_and(G <= gmax, G != 0)
-        G = G[mask]
-        G_lc = G_lc[mask]
+            G_lc = 2 * np.pi * np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1)))) / np.array([cell[0, 0], cell[1, 1], cell[2, 2]])
+            G = np.sqrt(np.sum(G_lc*G_lc, axis=1))
+            mask = np.logical_and(G <= gmax, G != 0)
+            G = G[mask]
+            G_lc = G_lc[mask]
 
-        # Compute individual factors
-        Gfac_l = np.exp(-(G/(2*alp)**2)) / G**2
-        struc_fac = np.zeros(len(G))
-        pos_nc = at.get_positions()
-        for index, vector in enumerate(G_lc):
-            struc_fac[index] = np.absolute(np.sum(np.exp(1j*np.sum(vector*pos_nc, axis=1))))**2
+        else: 
+            G_lc = 2 * np.pi * np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1)))) / np.array([cell[0, 0], cell[1, 1], cell[2, 2]])
+            G = np.sqrt(np.sum(G_lc*G_lc, axis=1))            
+            mask = G != 0
+            G = G[mask]
+            G_lc = G_lc[mask]
 
-        return Gfac_l*struc_fac
+        print("Number of wave vectors: ", G_lc.shape[0])
+        return np.exp(-(G/(2*alph))**2) / G**2, G_lc
 
     def calculate(self, atoms, properties, system_changes):
         MatscipyCalculator.calculate(self, atoms, properties, system_changes)
@@ -195,10 +211,11 @@ class Ewald(MatscipyCalculator):
                 alpha = pairs.get_alpha()
                 rc = pairs.get_cutoff_real()
                 rg = pairs.get_cutoff_reciprocal()
+                nk = pairs.get_nk()
             else:
-                if (rc != pairs.get_cutoff_real()) or (rg != pairs.get_cutoff_reciprocal() or (alpha != pairs.get_alpha())):
+                if (rc != pairs.get_cutoff_real()) or (rg != pairs.get_cutoff_reciprocal()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk)):
                     raise AttributeError(
-                        "Attribute error: Cannot use different rc or Gmax values!")                        
+                        "Attribute error: Cannot use different rc, Gmax or number of wave vectors!")                        
 
         # 
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
@@ -207,6 +224,9 @@ class Ewald(MatscipyCalculator):
         mask = i_p == j_p
         if np.sum(mask) > 0:
             print("Atom can see itself!")
+
+        # Prefactor and wave vectors for reciprocal space 
+        Iu, k_lc = calc.wave_vectors_rec(rg, atoms.get_cell(), alpha, nk)
 
         # Short-range interaction of Buckingham and Ewald
         e_p = np.zeros_like(r_p)
@@ -230,13 +250,14 @@ class Ewald(MatscipyCalculator):
                 e_p[mask] = f[pair].get_energy_sr(r_p[mask], chargeij[mask])
                 de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
 
+        # Energy 
         # Self energy 
         e_self = list(f.values())[0].get_energy_self(charge_p)
 
         # Long-range reciprocal space 
-        pre = calc.wave_vectors_rec(rg, atoms, alpha)
+        e_long = list(f.values())[0].get_energy_rec(charge_p, atoms.get_positions(), atoms.get_volume(), Iu, k_lc)
 
-        epot = 0.5*np.sum(e_p) + np.sum(e_self) + 
+        epot = 0.5*np.sum(e_p) + np.sum(e_self) + e_long
 
         # Forces
         df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1)
