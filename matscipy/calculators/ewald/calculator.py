@@ -123,6 +123,31 @@ class BKS_ewald():
 
         return f_buck + f_coul
 
+    def first_derivative_reciprocal(self, charge, pos, cell, natoms, vol, iu, k):
+        """
+        Return the force long range fourier part
+        """
+        # Find a better solution for this "find all neighbors loop"
+        from matscipy.neighbours import mic
+        i_n = np.zeros((natoms*(natoms)), dtype=int)
+        j_n = np.zeros((natoms*(natoms)), dtype=int)
+        r_nc = np.zeros((natoms*(natoms),3))
+        # Find all pairs of distances 
+        for atomiD1 in range(natoms):
+            for atomiD2 in range(natoms):
+                if atomiD1 != atomiD2:
+                    i_n[atomiD1*(natoms) + atomiD2] = np.int(atomiD1) 
+                    j_n[atomiD1*(natoms) + atomiD2] = np.int(atomiD2) 
+                    r_nc[atomiD1*(natoms) + atomiD2] = mic(pos[atomiD1,:] - pos[atomiD2,:] ,cell=cell)
+        
+        #
+        f = np.zeros((natoms, 3))
+        for index, vector in enumerate(k):
+            term = iu[index] * np.bincount(i_n, weights=charge[j_n]*np.sin(np.sum(vector*r_nc, axis=1)))   
+            f += (term * np.repeat(vector.reshape(-1, 3), natoms, axis=0).T).T
+
+        return self.conversion_factor * 4 * np.pi * (charge * f.T).T / vol
+
     def second_derivative_sr(self, r, pair_charge):
         """
         Return the stiffness from Buckingham part and short range Coulomb part.
@@ -260,9 +285,10 @@ class Ewald(MatscipyCalculator):
         epot = 0.5*np.sum(e_p) + np.sum(e_self) + e_long
 
         # Forces
-        df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1)
-
+        df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1) 
         f_nc = mabincount(j_p, df_pc, nb_atoms) - mabincount(i_p, df_pc, nb_atoms)
+
+        f_nc += list(f.values())[0].first_derivative_reciprocal(charge_p, atoms.get_positions(), atoms.get_cell(), nb_atoms, atoms.get_volume(), Iu, k_lc)
 
         # Virial
         virial_v = -np.array([r_pc[:, 0] * df_pc[:, 0],               # xx
