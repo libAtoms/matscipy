@@ -333,17 +333,45 @@ class Ewald(MatscipyCalculator):
             self.atoms = atoms
 
         f = self.f
-        dict = self.dict
-        df = self.df
-        df2 = self.df2
-
         nb_atoms = len(atoms)
         atnums = atoms.numbers
 
-        i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', atoms, dict)
+        # Check some properties of input data
+        if atoms.has("charge"):
+            charge_p = self.atoms.get_array("charge")
+        else:
+            raise AttributeError(
+                "Attribute error: Unable to load atom charges from atoms object!")
+
+        if np.sum(charge_p) != 0:
+            raise AttributeError(
+                "Attribute error: We require charge balance!")      
+
+        print(self.atoms.get_pbc())
+        if not any(self.atoms.get_pbc()):
+            raise AttributeError(
+                "Attribute error: This code only works for 3D systems with periodic boundaries in all directions!")    
+
+        for index, pairs in enumerate(f.values()):
+            if index == 0:
+                alpha = pairs.get_alpha()
+                rc = pairs.get_cutoff_real()
+                rg = pairs.get_cutoff_reciprocal()
+                nk = pairs.get_nk()
+            else:
+                if (rc != pairs.get_cutoff_real()) or (rg != pairs.get_cutoff_reciprocal()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk)):
+                    raise AttributeError(
+                        "Attribute error: Cannot use different rc, Gmax or number of wave vectors!")   
+
+
+        i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
+        chargeij = charge_p[i_p] * charge_p[j_p]
         first_i = first_neighbours(nb_atoms, i_p)
 
-        e_p = np.zeros_like(r_p)
+        # Prefactor and wave vectors for reciprocal space 
+        Iu, k_lc = calc.wave_vectors_rec(rg, atoms.get_cell(), alpha, nk)
+
+        # Real space short range part
         de_p = np.zeros_like(r_p)
         dde_p = np.zeros_like(r_p)
         for params, pair in enumerate(dict):
@@ -352,9 +380,8 @@ class Ewald(MatscipyCalculator):
                 mask2 = atnums[j_p] == pair[0]
                 mask = np.logical_and(mask1, mask2)
 
-                e_p[mask] = f[pair](r_p[mask])
-                de_p[mask] = df[pair](r_p[mask])
-                dde_p[mask] = df2[pair](r_p[mask])
+                de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
+                dde_p[mask] = f2[pair].second_derivative_sr(r_p[mask], chargeij[mask])
 
             if pair[0] != pair[1]:
                 mask1 = np.logical_and(
@@ -363,10 +390,11 @@ class Ewald(MatscipyCalculator):
                     atnums[i_p] == pair[1], atnums[j_p] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
-                e_p[mask] = f[pair](r_p[mask])
-                de_p[mask] = df[pair](r_p[mask])
-                dde_p[mask] = df2[pair](r_p[mask])
+                de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
+                dde_p[mask] = df2[pair].second_derivative_sr(r_p[mask], chargeij[mask])
         
+
+        # 
         n_pc = (r_pc.T/r_p).T
         H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
                            * n_pc.reshape(-1, 1, 3)).T).T
@@ -429,6 +457,32 @@ class Ewald(MatscipyCalculator):
             else:
                 return H
 
-        # Neighbour list format
-        elif format == "neighbour-list":
-            return H_pcc, i_p, j_p, r_pc, r_p
+    # Neighbour list format
+    elif format == "neighbour-list":
+        return H_pcc, i_p, j_p, r_pc, r_p
+
+    ### 
+    def get_stress(self, atoms):
+        """
+        Compute the analytic expression of stress
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
+
+
+    ###
+
+    def get_nonaffine_forces(self, atoms):
+        """
+        Compute the non-affine forces which result from an affine deformation of atoms.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        """
