@@ -34,7 +34,7 @@ Simple pair potential.
 
 import numpy as np
 
-from scipy.sparse import bsr_matrix, vstack, hstack
+from scipy.sparse import bsr_matrix
 
 from scipy.special import erfc
 
@@ -202,7 +202,6 @@ class Ewald(MatscipyCalculator):
             G = G[mask]
             G_lc = G_lc[mask]
 
-        print("Number of wave vectors: ", G_lc.shape[0])
         return np.exp(-(G/(2*alph))**2) / G**2, G_lc
 
     def calculate(self, atoms, properties, system_changes):
@@ -225,7 +224,6 @@ class Ewald(MatscipyCalculator):
             raise AttributeError(
                 "Attribute error: We require charge balance!")      
 
-        print(self.atoms.get_pbc())
         if not any(self.atoms.get_pbc()):
             raise AttributeError(
                 "Attribute error: Thiss code only works for 3D systems with periodic boundaries in all directions!")    
@@ -347,7 +345,6 @@ class Ewald(MatscipyCalculator):
             raise AttributeError(
                 "Attribute error: We require charge balance!")      
 
-        print(self.atoms.get_pbc())
         if not any(self.atoms.get_pbc()):
             raise AttributeError(
                 "Attribute error: This code only works for 3D systems with periodic boundaries in all directions!")    
@@ -390,7 +387,6 @@ class Ewald(MatscipyCalculator):
                 H[3*i_p[atom]:3*i_p[atom]+3,
                   3*j_p[atom]:3*j_p[atom]+3] += H_pcc[atom]
 
-            H += H_rec
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
@@ -422,7 +418,7 @@ class Ewald(MatscipyCalculator):
 
     ###
 
-    def get_hessian_reciprocal(self, atoms, format='dense', divide_by_masses=False):
+    def get_reciprocal_properties(self, atoms, choice="Hessian", format='dense', divide_by_masses=False):
         """
         Calculate the long-range correction to the Hessian matrix for a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
@@ -435,6 +431,10 @@ class Ewald(MatscipyCalculator):
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
+
+        choice: "Hessian", "Born" or "NAForces"
+            Compute either the Hessian/Dynamical matrix, the Born constants 
+            or the non-affine forces.
 
         format: "sparse" or "neighbour-list"
             Output format of the hessian matrix.
@@ -487,62 +487,79 @@ class Ewald(MatscipyCalculator):
         # Build full neighbor list 
         pos = atoms.get_positions()
         cell = atoms.get_cell()
-        i_n = np.zeros((nb_atoms*(nb_atoms)), dtype=int)
-        j_n = np.zeros((nb_atoms*(nb_atoms)), dtype=int)
-        r_nc = np.zeros((nb_atoms*(nb_atoms),3))
+        i_n = np.zeros((nb_atoms*nb_atoms), dtype=int)
+        j_n = np.zeros((nb_atoms*nb_atoms), dtype=int)
+        r_nc = np.zeros((nb_atoms*nb_atoms,3))
+        r_n = np.zeros((nb_atoms*nb_atoms))
 
         # Find all pairs of distances 
         for atomiD1 in range(nb_atoms):
             for atomiD2 in range(nb_atoms):
                 if atomiD1 != atomiD2:
-                    i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
-                    j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
-                    r_nc[atomiD1*(nb_atoms) + atomiD2] = mic(pos[atomiD1,:] - pos[atomiD2,:] ,cell=cell)
+                    i_n[atomiD1*nb_atoms + atomiD2] = np.int(atomiD1) 
+                    j_n[atomiD1*nb_atoms + atomiD2] = np.int(atomiD2) 
+                    distance = mic(pos[atomiD2,:]-pos[atomiD1,:], cell=cell)
+                    r_nc[atomiD1*nb_atoms + atomiD2] = distance
+                    r_n[atomiD1*nb_atoms + atomiD2] = np.linalg.norm(distance)
+                else:
+                    i_n[atomiD1*nb_atoms + atomiD2] = np.int(atomiD1) 
+                    j_n[atomiD1*nb_atoms + atomiD2] = np.int(atomiD2) 
+        # charges
+        chargeij = charge_p[i_n] * charge_p[j_n]
 
-        # Compute the entries 
-        H_rec = np.zeros((len(i_n), 3, 3))
-        for index, vector in enumerate(k_lc):
-            vector_array = (vector.reshape(3, 1) * vector.reshape(1, 3)).reshape(1, 3, 3)
-            H_rec += np.repeat(vector_array, repeats=len(i_n), axis=0) * Iu[index] * np.cos(np.sum(vector, r_nc, axis=1)) 
+        if choice == "Hessian":
+            mask = i_n == j_n
 
-        H_rec = H_rec.reshape((3*len(i_n), 3*len(i_n)))
+            # Compute the entries 
+            H_ncc = np.zeros((len(i_n), 3, 3))
+            for index, vector in enumerate(k_lc):
+                vector_array = (vector.reshape(3, 1) * vector.reshape(1, 3)).reshape(1, 3, 3)
+                vector_array = np.repeat(vector_array, repeats=len(i_n), axis=0) 
+                pref = Iu[index] * np.cos(np.sum(vector * r_nc, axis=1))
+                pref[mask] = 0.0
+                H_ncc += (pref.reshape(-1,1,1) * vector_array)
 
-        # Dense matrix format
-        if format == "dense":
-            H = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(len(i_p)):
-                H[3*i_p[atom]:3*i_p[atom]+3,
-                  3*j_p[atom]:3*j_p[atom]+3] += H_pcc[atom]
+            # Add prefactors
+            H_ncc *= (14.399645 * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1,1,1)
 
-            H += H_rec
-            Hdiag_icc = np.empty((nb_atoms, 3, 3))
-            for x in range(3):
-                for y in range(3):
-                    Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_p, weights=H_pcc[:, x, y])
+            # Build Hessian matrix 
+            if format == "dense":
+                H = np.zeros((3*nb_atoms, 3*nb_atoms))
+                for atom in range(len(i_n)):
+                    H[3*i_n[atom]:3*i_n[atom]+3,
+                      3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
 
-            Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(nb_atoms):
-                Hdiag_ncc[3*atom:3*atom+3,
-                          3*atom:3*atom+3] += Hdiag_icc[atom]
+                # Diagonal elems
+                Hdiag_icc = np.empty((nb_atoms, 3, 3))
+                for x in range(3):
+                    for y in range(3):
+                        Hdiag_icc[:, x, y] = - \
+                            np.bincount(i_n, weights=H_ncc[:, x, y])
 
-            H += Hdiag_ncc
+                Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
+                for atom in range(nb_atoms):
+                    Hdiag_ncc[3*atom:3*atom+3,
+                              3*atom:3*atom+3] += Hdiag_icc[atom]
 
-            if divide_by_masses:
-                masses_p = (atoms.get_masses()).repeat(3)
-                H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
+                H += Hdiag_ncc
+
+                if divide_by_masses:
+                    masses_p = (atoms.get_masses()).repeat(3)
+                    H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
+                
                 return H
 
             else:
-                return H
+               raise AttributeError(
+                    "Attribute error: Can not return a sparse matrix for long-range interactions") 
 
-        # Neighbour list format
-        elif format == "neighbour-list":
-            return H_pcc, i_p, j_p, r_pc, r_p
+        elif choice == "Born":
+            print("Not implemented in properties!")
+            return 0 
 
-        else:
-           raise AttributeError(
-                "Attribute error: Can not return a sparse matrix for long-range interactions")     
+        elif choice == "NAForces":
+            print("Not implemented in properties!")
+            return 0 
 
 
     ### 
@@ -570,3 +587,12 @@ class Ewald(MatscipyCalculator):
             Atomic configuration in a local or global minima.
 
         """
+
+        nat = len(atoms)
+
+        # Short range part 
+        H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.get_hessian_short(atoms, 'neighbour-list')
+        naF_pcab = -0.5 * H_pcc.reshape(-1, 3, 3, 1) * dr_pc.reshape(-1, 1, 1, 3)
+        naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
+
+
