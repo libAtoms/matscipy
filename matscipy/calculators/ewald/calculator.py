@@ -42,7 +42,7 @@ import ase
 
 from itertools import product
 
-from ...neighbours import neighbour_list, first_neighbours
+from ...neighbours import neighbour_list, first_neighbours, mic
 from ..calculator import MatscipyCalculator
 from ...numpy_tricks import mabincount
 
@@ -128,7 +128,6 @@ class BKS_ewald():
         Return the force long range fourier part
         """
         # Find a better solution for this "find all neighbors loop"
-        from matscipy.neighbours import mic
         i_n = np.zeros((natoms*(natoms)), dtype=int)
         j_n = np.zeros((natoms*(natoms)), dtype=int)
         r_nc = np.zeros((natoms*(natoms),3))
@@ -305,9 +304,9 @@ class Ewald(MatscipyCalculator):
 
     ###
 
-    def get_hessian(self, atoms, format='dense', divide_by_masses=False):
+    def get_hessian_short(self, atoms, format='dense', divide_by_masses=False):
         """
-        Calculate the Hessian matrix for a pair potential.
+        Calculate the short range part of the Hessian matrix for a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
         with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of
         shape (d,d), which are the mixed second derivatives. The result of the derivation for a pair potential can be
@@ -335,6 +334,125 @@ class Ewald(MatscipyCalculator):
         f = self.f
         nb_atoms = len(atoms)
         atnums = atoms.numbers
+        calc = atoms.get_calculator()
+
+        # Check some properties of input data
+        if atoms.has("charge"):
+            charge_p = self.atoms.get_array("charge")
+        else:
+            raise AttributeError(
+                "Attribute error: Unable to load atom charges from atoms object!")
+
+        if np.sum(charge_p) != 0:
+            raise AttributeError(
+                "Attribute error: We require charge balance!")      
+
+        print(self.atoms.get_pbc())
+        if not any(self.atoms.get_pbc()):
+            raise AttributeError(
+                "Attribute error: This code only works for 3D systems with periodic boundaries in all directions!")    
+
+        i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
+        chargeij = charge_p[i_p] * charge_p[j_p]
+        first_i = first_neighbours(nb_atoms, i_p)
+
+        de_p = np.zeros_like(r_p)
+        dde_p = np.zeros_like(r_p)
+        for params, pair in enumerate(self.dict):
+            if pair[0] == pair[1]:
+                mask1 = atnums[i_p] == pair[0]
+                mask2 = atnums[j_p] == pair[0]
+                mask = np.logical_and(mask1, mask2)
+
+                de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
+                dde_p[mask] = f[pair].second_derivative_sr(r_p[mask], chargeij[mask])
+
+            if pair[0] != pair[1]:
+                mask1 = np.logical_and(
+                    atnums[i_p] == pair[0], atnums[j_p] == pair[1])
+                mask2 = np.logical_and(
+                    atnums[i_p] == pair[1], atnums[j_p] == pair[0])
+                mask = np.logical_or(mask1, mask2)
+
+                de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
+                dde_p[mask] = f[pair].second_derivative_sr(r_p[mask], chargeij[mask])
+        
+        n_pc = (r_pc.T/r_p).T
+        H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
+                           * n_pc.reshape(-1, 1, 3)).T).T
+        H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
+                                    - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
+
+        # Dense matrix format
+        if format == "dense":
+            H = np.zeros((3*nb_atoms, 3*nb_atoms))
+            for atom in range(len(i_p)):
+                H[3*i_p[atom]:3*i_p[atom]+3,
+                  3*j_p[atom]:3*j_p[atom]+3] += H_pcc[atom]
+
+            H += H_rec
+            Hdiag_icc = np.empty((nb_atoms, 3, 3))
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:, x, y] = - \
+                        np.bincount(i_p, weights=H_pcc[:, x, y])
+
+            Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
+            for atom in range(nb_atoms):
+                Hdiag_ncc[3*atom:3*atom+3,
+                          3*atom:3*atom+3] += Hdiag_icc[atom]
+
+            H += Hdiag_ncc
+
+            if divide_by_masses:
+                masses_p = (atoms.get_masses()).repeat(3)
+                H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
+                return H
+
+            else:
+                return H
+
+        # Neighbour list format
+        elif format == "neighbour-list":
+            return H_pcc, i_p, j_p, r_pc, r_p
+
+        else:
+           raise AttributeError(
+                "Attribute error: Can not return a sparse matrix for potentials with long-range interactions")                
+
+    ###
+
+    def get_hessian_reciprocal(self, atoms, format='dense', divide_by_masses=False):
+        """
+        Calculate the long-range correction to the Hessian matrix for a pair potential.
+        For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
+        with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of
+        shape (d,d), which are the mixed second derivatives. The result of the derivation for a pair potential can be
+        found e.g. in:
+        L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Rev. B 86, 075459 (2012).
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        format: "sparse" or "neighbour-list"
+            Output format of the hessian matrix.
+
+        divide_by_masses: bool
+            if true return the dynamic matrix else hessian matrix 
+
+        Restrictions
+        ----------
+        This method is currently only implemented for three dimensional systems
+        """
+        if self.atoms is None:
+            self.atoms = atoms
+
+        f = self.f
+        nb_atoms = len(atoms)
+        atnums = atoms.numbers
+        calc = atoms.get_calculator()
 
         # Check some properties of input data
         if atoms.has("charge"):
@@ -363,79 +481,40 @@ class Ewald(MatscipyCalculator):
                     raise AttributeError(
                         "Attribute error: Cannot use different rc, Gmax or number of wave vectors!")   
 
-
-        i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
-        chargeij = charge_p[i_p] * charge_p[j_p]
-        first_i = first_neighbours(nb_atoms, i_p)
-
         # Prefactor and wave vectors for reciprocal space 
         Iu, k_lc = calc.wave_vectors_rec(rg, atoms.get_cell(), alpha, nk)
 
-        # Real space short range part
-        de_p = np.zeros_like(r_p)
-        dde_p = np.zeros_like(r_p)
-        for params, pair in enumerate(dict):
-            if pair[0] == pair[1]:
-                mask1 = atnums[i_p] == pair[0]
-                mask2 = atnums[j_p] == pair[0]
-                mask = np.logical_and(mask1, mask2)
+        # Build full neighbor list 
+        pos = atoms.get_positions()
+        cell = atoms.get_cell()
+        i_n = np.zeros((nb_atoms*(nb_atoms)), dtype=int)
+        j_n = np.zeros((nb_atoms*(nb_atoms)), dtype=int)
+        r_nc = np.zeros((nb_atoms*(nb_atoms),3))
 
-                de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
-                dde_p[mask] = f2[pair].second_derivative_sr(r_p[mask], chargeij[mask])
+        # Find all pairs of distances 
+        for atomiD1 in range(nb_atoms):
+            for atomiD2 in range(nb_atoms):
+                if atomiD1 != atomiD2:
+                    i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
+                    j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
+                    r_nc[atomiD1*(nb_atoms) + atomiD2] = mic(pos[atomiD1,:] - pos[atomiD2,:] ,cell=cell)
 
-            if pair[0] != pair[1]:
-                mask1 = np.logical_and(
-                    atnums[i_p] == pair[0], atnums[j_p] == pair[1])
-                mask2 = np.logical_and(
-                    atnums[i_p] == pair[1], atnums[j_p] == pair[0])
-                mask = np.logical_or(mask1, mask2)
+        # Compute the entries 
+        H_rec = np.zeros((len(i_n), 3, 3))
+        for index, vector in enumerate(k_lc):
+            vector_array = (vector.reshape(3, 1) * vector.reshape(1, 3)).reshape(1, 3, 3)
+            H_rec += np.repeat(vector_array, repeats=len(i_n), axis=0) * Iu[index] * np.cos(np.sum(vector, r_nc, axis=1)) 
 
-                de_p[mask] = f[pair].first_derivative_sr(r_p[mask], chargeij[mask])
-                dde_p[mask] = df2[pair].second_derivative_sr(r_p[mask], chargeij[mask])
-        
-
-        # 
-        n_pc = (r_pc.T/r_p).T
-        H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
-                           * n_pc.reshape(-1, 1, 3)).T).T
-        H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
-                                    - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
-
-        # Sparse BSR-matrix
-        if format == "sparse":
-            if divide_by_masses:
-                masses_n = atoms.get_masses()
-                geom_mean_mass_p = np.sqrt(masses_n[i_p]*masses_n[j_p])
-
-            if divide_by_masses:
-                H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
-
-            else: 
-                H = bsr_matrix((H_pcc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
-
-            Hdiag_icc = np.empty((nb_atoms, 3, 3))
-            for x in range(3):
-                for y in range(3):
-                    Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_p, weights=H_pcc[:, x, y])
-
-            if divide_by_masses:
-                H += bsr_matrix(((Hdiag_icc.T/masses_n).T, np.arange(nb_atoms),
-                             np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
-
-            else:
-                H += bsr_matrix((Hdiag_icc, np.arange(nb_atoms),
-                             np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
-
-            return H
+        H_rec = H_rec.reshape((3*len(i_n), 3*len(i_n)))
 
         # Dense matrix format
-        elif format == "dense":
+        if format == "dense":
             H = np.zeros((3*nb_atoms, 3*nb_atoms))
             for atom in range(len(i_p)):
                 H[3*i_p[atom]:3*i_p[atom]+3,
                   3*j_p[atom]:3*j_p[atom]+3] += H_pcc[atom]
 
+            H += H_rec
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
                 for y in range(3):
@@ -457,9 +536,14 @@ class Ewald(MatscipyCalculator):
             else:
                 return H
 
-    # Neighbour list format
-    elif format == "neighbour-list":
-        return H_pcc, i_p, j_p, r_pc, r_p
+        # Neighbour list format
+        elif format == "neighbour-list":
+            return H_pcc, i_p, j_p, r_pc, r_p
+
+        else:
+           raise AttributeError(
+                "Attribute error: Can not return a sparse matrix for long-range interactions")     
+
 
     ### 
     def get_stress(self, atoms):
