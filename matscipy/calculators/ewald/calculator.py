@@ -180,6 +180,8 @@ class Ewald(Calculator):
     def wave_vectors_rec_lammps(self, cell, km, a, nk):
         """
         Compute the wave vectors and one often used prefactor for a non-orthogonal box
+        This is the LAMMPS implemented way of computing the wave vectors, if you want to use it you need to multiply 
+        the e_long expression with a factor of 2‚
         """
         nx = nk[0]
         ny = nk[1]
@@ -260,21 +262,16 @@ class Ewald(Calculator):
         nx = nk[0]
         ny = nk[1]
         nz = nk[2]
-        print("nx/ny/nx", nx, "/", ny, "/", nz)
-        print("Atomic cell: \n", np.array(cell))
-        print("Atomic cell inv: \n", np.linalg.inv(cell.T))        
+        print("nx/ny/nx", nx, "/", ny, "/", nz)     
    
         vector_n = np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1))))
-        k_lc = 2 * np.pi * np.dot(np.linalg.inv(np.array(cell).T), vector_n.T).T
+        k_lc = 2 * np.pi * np.dot(np.linalg.inv(np.array(cell)), vector_n.T).T
         k = np.linalg.norm(k_lc, axis=1)
         mask = np.logical_and(k <= km, k != 0)
-        print("mask: ", mask)
-        k = k[mask]
 
-        print("Maximal wave vector: ", km)
         print("Number of generated wave vectors: ", len(k))
 
-        return np.exp(-(k/(2*a))**2) / k**2, k_lc[mask]
+        return np.exp(-(k[mask]/(2*a))**2) / k[mask]**2, k_lc[mask]
 
     def energy_self(self, charge, a):
         conversion_factor = 14.399645
@@ -289,8 +286,8 @@ class Ewald(Calculator):
         for waveindex, wavevector in enumerate(k):
             structure_factor[waveindex] = np.absolute(np.sum(charge * np.exp(1j*np.sum(wavevector*pos, axis=1)), axis=0))**2
 
-        # This should be 2 * pi and not 4, but with 4 we have the same results with LAMMPS
-        return 14.399645 * 4 * np.pi * np.sum(ik * structure_factor) / vol
+        # If one uses the reduced wave vector set of LAMMPS you need to multiply a factor of 2
+        return 14.399645 * 2 * np.pi * np.sum(ik * structure_factor) / vol
 
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
@@ -328,7 +325,10 @@ class Ewald(Calculator):
             else:
                 if (rc != pairs.get_cutoff_real()) or (kmax != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk)):
                     raise AttributeError(
-                        "Attribute error: Cannot use different rc, Kmax or number of wave vectors!")                        
+                        "Attribute error: Cannot use different rc, Kmax or number of wave vectors!")     
+
+        # Check if nx, ny and nz are given, otherwise compute valid values
+        # ---> To be implemented!                   
         
         # Neighbor list for short range interaction
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
@@ -351,7 +351,7 @@ class Ewald(Calculator):
 
 
         # Prefactor and wave vectors for reciprocal space 
-        Ik, k_lc = calc.wave_vectors_rec_lammps(atoms.get_cell(), kmax, alpha, nk)
+        Ik, k_lc = calc.wave_vectors_rec_triclinic(atoms.get_cell(), kmax, alpha, nk)
 
         # Short-range interaction of Buckingham and Ewald
         e_p = np.zeros_like(r_p)
