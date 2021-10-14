@@ -93,9 +93,6 @@ class BKS_ewald():
     def get_max_k(self):
         return self.max_k
 
-    def energy_self(self, charge):
-        return - self.conversion_factor * self.alpha * charge**2 / np.sqrt(np.pi)
-
     def stress_long(self, charge, pos, a, ik, k):
         """
         Return the stress contribution of the long-range Coulomb part
@@ -126,17 +123,6 @@ class BKS_ewald():
         E_coul = self.conversion_factor * pair_charge * erfc(self.alpha*r) / r
 
         return E_buck + E_coul
-
-    def energy_long(self, charge, pos, ik, k):
-        """
-        Return the energy from the reciprocal space contribution
-        """
-        E_long = 0
-        for wavenumber, wavevector in enumerate(k):
-            structure_factor = np.sum(charge * np.exp(1j*np.sum(wavevector*pos, axis=1)))
-            E_long += ik[wavenumber] * np.absolute(structure_factor)**2
-
-        return self.conversion_factor * 2 * np.pi * E_long 
 
     def first_derivative_short(self, r, pair_charge):
         """
@@ -191,28 +177,120 @@ class Ewald(Calculator):
         self.f = f
         self.dict = {x: obj.get_cutoff_real() for x, obj in f.items()}
 
-    def wave_vectors_rec(self, cell, km, a, nk):
+    def wave_vectors_rec_lammps(self, cell, km, a, nk):
+        """
+        Compute the wave vectors and one often used prefactor for a non-orthogonal box
+        """
         nx = nk[0]
         ny = nk[1]
         nz = nk[2]
+        cell_inv = np.linalg.inv(cell)
+        kcount = 0
 
-        # Compute the list of wave vectors
-        if nx == None and ny == None and nz == None: 
-            nx = np.int(cell[0, 0] * km / (2*np.pi)) 
-            ny = np.int(cell[1, 1] * km / (2*np.pi)) 
-            nz = np.int(cell[2, 2] * km / (2*np.pi)) 
-            print("nx/ny/nx", nx, "/", ny, "/", nz)
+        print("Atomic cell: \n", np.array(cell))
+        print("Atomic cell inv: \n", cell_inv) 
+        print("Maximal wave vector: ", km)
+        print("nx/ny/nx", nx, "/", ny, "/", nz)
 
-            k_lc = 2 * np.pi * np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1)))) / np.array([cell[0, 0], cell[1, 1], cell[2, 2]])
-            k = np.linalg.norm(k_lc, axis=1)
-            mask = np.logical_and(k <= km, k != 0)
+        for k in range(1, nx+1):
+            for l in range(-ny, ny+1):
+                for m in range(-nz, nz+1):
+                    unitk0 = 2*np.pi * k
+                    unitk1 = 2*np.pi * l
+                    unitk2 = 2*np.pi * m
 
-        else: 
-            k_lc = 2 * np.pi * np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1)))) / np.array([cell[0, 0], cell[1, 1], cell[2, 2]])
-            k = np.linalg.norm(k_lc, axis=1)           
-            mask = k != 0
+                    vector = np.array([unitk0, unitk1, unitk2])
+                    vector = np.dot(cell_inv, vector) 
+                    sqk = np.sum(vector**2)
 
-        return np.exp(-(k[mask]/(2*a))**2) / k[mask]**2, k_lc[mask]
+                    if sqk <= km:
+                        if kcount == 0:
+                            k_lc = vector.reshape(1,3)
+                        else:
+                            k_lc = np.vstack((k_lc, vector))
+                        #print("klm: ", k, l, m, sqk, gsqmx)             
+                        kcount += 1
+
+        k = 0
+        m = 0
+        l = 0
+        for l in range(1, ny+1):
+            for m in range(-nz, nz+1):
+                unitk0 = 0
+                unitk1 = 2*np.pi * l
+                unitk2 = 2*np.pi * m
+
+                vector = np.array([unitk0, unitk1, unitk2])
+                vector = np.dot(cell_inv, vector) 
+                sqk = np.sum(vector**2)
+
+                if sqk <= km:
+                    k_lc = np.vstack((k_lc, vector))
+                    #print("klm: ", k, l, m)
+                    kcount += 1
+
+        k = 0
+        m = 0
+        l = 0
+        for m in range(1, nmax):
+            unitk0 = 0
+            unitk1 = 0
+            unitk2 = 2*np.pi * m
+
+            vector = np.array([unitk0, unitk1, unitk2])
+            vector = np.dot(cell_inv, vector) 
+            sqk = np.sum(vector**2)
+
+            if sqk <= km:
+                k_lc = np.vstack((k_lc, vector))
+                #print("klm: ", k, l, m)
+                kcount += 1
+        
+        k = np.linalg.norm(k_lc, axis=1)
+        print("Number of generated wave vectors: ", kcount)
+        print("Generated wave-vectors: \n", k_lc)
+
+        return np.exp(-(k/(2*a))**2) / k**2, k_lc
+
+
+    def wave_vectors_rec_triclinic(self, cell, km, a, nk):
+        """
+        Compute the wave vectors and one often used prefactor for a non-orthogonal box
+        """
+        nx = nk[0]
+        ny = nk[1]
+        nz = nk[2]
+        print("nx/ny/nx", nx, "/", ny, "/", nz)
+        print("Atomic cell: \n", np.array(cell))
+        print("Atomic cell inv: \n", np.linalg.inv(cell.T))        
+   
+        vector_n = np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1))))
+        k_lc = 2 * np.pi * np.dot(np.linalg.inv(np.array(cell).T), vector_n.T).T
+        k = np.linalg.norm(k_lc, axis=1)
+        mask = np.logical_and(k <= km, k != 0)
+        print("mask: ", mask)
+        k = k[mask]
+
+        print("Maximal wave vector: ", km)
+        print("Number of generated wave vectors: ", len(k))
+
+        return np.exp(-(k/(2*a))**2) / k**2, k_lc[mask]
+
+    def energy_self(self, charge, a):
+        conversion_factor = 14.399645
+        return - conversion_factor * a * np.sum(charge**2) / np.sqrt(np.pi)
+
+    def energy_long(self, charge, pos, vol, ik, k):
+        """
+        Return the energy from the reciprocal space contribution
+        """
+        conversion_factor = 14.399645
+        structure_factor = np.zeros(len(ik))
+        for waveindex, wavevector in enumerate(k):
+            structure_factor[waveindex] = np.absolute(np.sum(charge * np.exp(1j*np.sum(wavevector*pos, axis=1)), axis=0))**2
+
+        # This should be 2 * pi and not 4, but with 4 we have the same results with LAMMPS
+        return 14.399645 * 4 * np.pi * np.sum(ik * structure_factor) / vol
 
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
@@ -232,7 +310,8 @@ class Ewald(Calculator):
             raise AttributeError(
                 "Attribute error: Unable to load atom charges from atoms object!")
 
-        if np.sum(charge_p) != 0:
+        if np.sum(charge_p) > 1e-3:
+            print("Charge: ", np.sum(charge_p))
             raise AttributeError(
                 "Attribute error: We require charge balance!")      
 
@@ -271,13 +350,8 @@ class Ewald(Calculator):
                     j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
 
 
-        #
-        mask = i_p == j_p
-        if np.sum(mask) > 0:
-            print("Atom can see itself!")
-
         # Prefactor and wave vectors for reciprocal space 
-        Ik, k_lc = calc.wave_vectors_rec(atoms.get_cell(), kmax, alpha, nk)
+        Ik, k_lc = calc.wave_vectors_rec_lammps(atoms.get_cell(), kmax, alpha, nk)
 
         # Short-range interaction of Buckingham and Ewald
         e_p = np.zeros_like(r_p)
@@ -302,9 +376,14 @@ class Ewald(Calculator):
                 de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask])
 
         # Energy 
-        e_self = list(f.values())[0].energy_self(charge_p)
+        e_self = calc.energy_self(charge_p, alpha)
 
-        e_long = list(f.values())[0].energy_long(charge_p, atoms.get_positions(), Ik, k_lc) / atoms.get_volume(),
+        e_long = calc.energy_long(charge_p, atoms.get_positions(), atoms.get_volume(), Ik, k_lc)
+
+        print("eshort: ", 0.5*np.sum(e_p))
+        print("e_self: ", e_self)   
+        print("kspace: ", e_self + e_long)     
+        print("e_long: ", e_long)
 
         epot = 0.5*np.sum(e_p) + np.sum(e_self) + e_long
 
@@ -313,7 +392,7 @@ class Ewald(Calculator):
 
         f_nc = mabincount(j_p, df_pc, nb_atoms) - mabincount(i_p, df_pc, nb_atoms)
 
-        f_nc += list(f.values())[0].first_derivative_long(charge_p, nb_atoms, i_n, j_n, r_nc, Ik, k_lc) / atoms.get_volume()
+        #f_nc += list(f.values())[0].first_derivative_long(charge_p, nb_atoms, i_n, j_n, r_nc, Ik, k_lc) / atoms.get_volume()
 
         # Virial
         # Short range
@@ -325,11 +404,11 @@ class Ewald(Calculator):
                               r_pc[:, 0] * df_pc[:, 1]]).sum(axis=1)  # xy
 
         # Long range
-        stress_long = list(f.values())[0].stress_long(charge_p, pos_nc, alpha, Ik, k_lc) / atoms.get_volume()**2
+        #stress_long = list(f.values())[0].stress_long(charge_p, pos_nc, alpha, Ik, k_lc) / atoms.get_volume()**2
 
         self.results = {'energy': epot,
                         'free_energy': epot,
-                        'stress': virial_v/self.atoms.get_volume() + stress_long,
+                        'stress': virial_v/self.atoms.get_volume(),
                         'forces': f_nc}
 
     ###
@@ -506,7 +585,7 @@ class Ewald(Calculator):
                 kmax = pairs.get_max_k()
                 nk = pairs.get_nk()
             else:
-                if (rc != pairs.get_cutoff_real()) or (rg != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk)):
+                if (rc != pairs.get_cutoff_real()) or (kmax != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk)):
                     raise AttributeError(
                         "Attribute error: Cannot use different rc, Gmax or number of wave vectors!")   
 
@@ -608,17 +687,18 @@ class Ewald(Calculator):
             naForces_ncc = np.zeros((nb_atoms, 3, 3, 3))
 
             for index, vector in enumerate(k_lc):
-                structure_factor = Iu[index] * np.bincount(i_n, weights=charge_p[j_n]*np.sin(np.sum(vector*r_nc, axis=1)))
+                structure_factor = Ik[index] * np.bincount(i_n, weights=charge_p[j_n]*np.sin(np.sum(vector*r_nc, axis=1)))
                 structure_factor = structure_factor.reshape(-1,1,1,1)
 
                 prefac = vector.reshape(3, 1) * vector.reshape(1, 3) * (1/alpha**2 + 4/np.linalg.norm(vector)**2) / 2 
+                prefac -= np.identity(3)
 
                 vectorlike = prefac.reshape(1,1,3,3)
                 vectorlike = vector.reshape(1,3,1,1) * prefac.reshape(1,1,3,3)
                 current = np.repeat(vectorlike, nb_atoms, axis=0) 
 
                 current2 = np.repeat(vectorlike, nb_atoms, axis=0) * structure_factor
-                
+
                 naForces_ncc += current2
                 
 
@@ -647,7 +727,7 @@ class Ewald(Calculator):
         naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
 
         # Reciprocal part
-        Lnaforces_icab = self.prop(atoms, choice="NAForces")
+        Lnaforces_icab = self.get_properties_long(atoms, prop="NAForces")
 
         return naforces_icab, Lnaforces_icab
 
