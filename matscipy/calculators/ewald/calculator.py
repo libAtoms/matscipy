@@ -138,18 +138,6 @@ class BKS_ewald():
 
         return f_buck + f_coul
 
-    def first_derivative_long(self, charge, natoms, i, j, r, ik, k):
-        """
-        Return the force long range fourier part
-        """
-        
-        f = np.zeros((natoms, 3))
-        for wavenumber, wavevector in enumerate(k):
-            prefactor = ik[wavenumber] * np.bincount(i, weights=charge[j]*np.sin(np.sum(wavevector*r, axis=1)))   
-            f += (prefactor * np.repeat(wavevector.reshape(-1, 3), natoms, axis=0).T).T
-
-        return self.conversion_factor * 4 * np.pi * (charge * f.T).T 
-
     def second_derivative_short(self, r, pair_charge, a):
         """
         Return the stiffness from Buckingham part and short range Coulomb part.
@@ -294,6 +282,18 @@ class Ewald(Calculator):
 
         return 14.399645 * 2 * np.pi * np.sum(ik * structure_factor) / vol
 
+    def first_derivative_long(self, charge, natoms, vol, i, j, r, ik, k):
+        """
+        Return the kspace part of the force 
+        """
+        
+        f = np.zeros((natoms, 3))
+        for wavenumber, wavevector in enumerate(k):
+            prefactor = ik[wavenumber] * np.bincount(i, weights=charge[j]*np.sin(np.sum(wavevector*r, axis=1)))   
+            f += (prefactor * np.repeat(wavevector.reshape(-1, 3), natoms, axis=0).T).T
+
+        return 14.399645 * 4 * np.pi * (charge * f.T).T / vol
+
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
 
@@ -402,19 +402,14 @@ class Ewald(Calculator):
 
         e_long = calc.energy_long(charge_p, atoms.get_positions(), atoms.get_volume(), Ik, k_lc)
 
-        #print("eshort: ", 0.5*np.sum(e_p))
-        #print("e_self: ", e_self)   
-        #print("kspace: ", e_self + e_long)     
-        #print("e_long: ", e_long)
-
-        epot = 0.5*np.sum(e_p) + np.sum(e_self) + e_long
+        epot = 0.5*np.sum(e_p) + e_self + e_long
 
         # Forces
         df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1) 
 
         f_nc = mabincount(j_p, df_pc, nb_atoms) - mabincount(i_p, df_pc, nb_atoms)
 
-        #f_nc += list(f.values())[0].first_derivative_long(charge_p, nb_atoms, i_n, j_n, r_nc, Ik, k_lc) / atoms.get_volume()
+        f_nc += calc.first_derivative_long(charge_p, nb_atoms, atoms.get_volume(), i_n, j_n, r_nc, Ik, k_lc)
 
         # Virial
         # Short range
