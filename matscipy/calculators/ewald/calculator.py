@@ -450,12 +450,7 @@ class Ewald(Calculator):
 
     def get_hessian_short(self, atoms, format='dense', divide_by_masses=False):
         """
-        Calculate the short range part of the Hessian matrix for a pair potential.
-        For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
-        with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of
-        shape (d,d), which are the mixed second derivatives. The result of the derivation for a pair potential can be
-        found e.g. in:
-        L. Pastewka et. al. "Seamless elastic boundaries for atomistic calculations", Phys. Rev. B 86, 075459 (2012).
+        Calculate the Hessian matrix for the short range part.
 
         Parameters
         ----------
@@ -487,13 +482,30 @@ class Ewald(Calculator):
             raise AttributeError(
                 "Attribute error: Unable to load atom charges from atoms object!")
 
-        if np.sum(charge_p) != 0:
+        if np.sum(charge_p) >= 1e-3:
             raise AttributeError(
                 "Attribute error: We require charge balance!")      
 
         if not any(self.atoms.get_pbc()):
             raise AttributeError(
-                "Attribute error: This code only works for 3D systems with periodic boundaries in all directions!")    
+                "Attribute error: This code only works for 3D systems with periodic boundaries in all directions!")  
+
+        for index, pairs in enumerate(f.values()):
+            if index == 0:
+                alpha = pairs.get_alpha()
+                rc = pairs.get_cutoff_real()
+                kmax = pairs.get_max_k()
+                nk = pairs.get_nk()
+                accuracy = pairs.get_accuracy()
+            else:
+                if (rc != pairs.get_cutoff_real()) or (kmax != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk) or (accuracy != pairs.get_accuracy())):
+                    raise AttributeError(
+                        "Attribute error: Cannot use different rc, Kmax, number of wave vectors or accuracy!") 
+
+        # Check if alpha is given otherwise guess a value 
+        if alpha == None:
+            alpha = calc.determine_alpha(charge_p, accuracy, rc, nb_atoms, cell)
+
 
         i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
         chargeij = charge_p[i_p] * charge_p[j_p]
@@ -507,8 +519,8 @@ class Ewald(Calculator):
                 mask2 = atnums[j_p] == pair[0]
                 mask = np.logical_and(mask1, mask2)
 
-                de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask])
-                dde_p[mask] = f[pair].second_derivative_short(r_p[mask], chargeij[mask])
+                de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask], alpha)
+                dde_p[mask] = f[pair].second_derivative_short(r_p[mask], chargeij[mask], alpha)
 
             if pair[0] != pair[1]:
                 mask1 = np.logical_and(
@@ -517,8 +529,8 @@ class Ewald(Calculator):
                     atnums[i_p] == pair[1], atnums[j_p] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
-                de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask])
-                dde_p[mask] = f[pair].second_derivative_short(r_p[mask], chargeij[mask])
+                de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask], alpha)
+                dde_p[mask] = f[pair].second_derivative_short(r_p[mask], chargeij[mask], alpha)
         
         n_pc = (r_pc.T/r_p).T
         H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
@@ -604,14 +616,14 @@ class Ewald(Calculator):
             raise AttributeError(
                 "Attribute error: Unable to load atom charges from atoms object!")
 
-        if np.sum(charge_p) != 0:
+        if np.sum(charge_p) >= 1e-3:
             raise AttributeError(
                 "Attribute error: We require charge balance!")      
 
         print(self.atoms.get_pbc())
         if not any(self.atoms.get_pbc()):
             raise AttributeError(
-                "Attribute error: This code only works for 3D systems with periodic boundaries in all directions!")    
+                "Attribute error: This code only works for 3D systems with periodic boundaries in all directions!")   
 
         for index, pairs in enumerate(f.values()):
             if index == 0:
@@ -619,30 +631,53 @@ class Ewald(Calculator):
                 rc = pairs.get_cutoff_real()
                 kmax = pairs.get_max_k()
                 nk = pairs.get_nk()
+                accuracy = pairs.get_accuracy()
             else:
-                if (rc != pairs.get_cutoff_real()) or (kmax != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk)):
+                if (rc != pairs.get_cutoff_real()) or (kmax != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk) or (accuracy != pairs.get_accuracy())):
                     raise AttributeError(
-                        "Attribute error: Cannot use different rc, Gmax or number of wave vectors!")   
+                        "Attribute error: Cannot use different rc, Kmax, number of wave vectors or accuracy!")     
 
-        # Prefactor and wave vectors for reciprocal space 
-        Ik, k_lc = calc.wave_vectors_rec(cell, kmax, alpha, nk)
+        # Check if alpha is given otherwise guess a value 
+        if alpha == None:
+            alpha = calc.determine_alpha(charge_p, accuracy, rc, nb_atoms, cell)
 
-        # Build full neighbor list 
+        # Check if nx, ny and nz are given, otherwise compute valid values
+        if np.any(nk) == None:
+            kmax, nk = calc.determine_nk(charge_p, calc, cell, accuracy, alpha, nb_atoms)    
+
+        # Check if nx,ny and nz are given but Kmax not
+        if np.all(nk) != None and kmax == None:
+            kmax = calc.determine_kmax(cell, nk)
+
+        # Compute and print error estimates
+        rms_real_space = calc.rms_real_space(charge_p, cell, alpha, rc)
+        rms_kspace_x = calc.rms(nk[0], cell[0, 0], nb_atoms, alpha, np.sum(charge_p**2))
+        rms_kspace_y = calc.rms(nk[1], cell[1, 1], nb_atoms, alpha, np.sum(charge_p**2))
+        rms_kspace_z = calc.rms(nk[2], cell[2, 2], nb_atoms, alpha, np.sum(charge_p**2))
+
+        print("Estimated alpha: ", alpha)
+        print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
+        print("Cutoff for kspace vectors: ", kmax)
+        print("Estimated kspace vectors nx/ny/nx: ", nk[0], "/", nk[1], "/", nk[2]) 
+        print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
+
+        # List of all atoms --> Find a better solution for this "find all neighbors loop"!!!!!!
         i_n = np.zeros(nb_atoms**2, dtype=int)
         j_n = np.zeros(nb_atoms**2, dtype=int)
         r_nc = np.zeros((nb_atoms**2, 3))
-
         # Find all pairs of distances 
         for atomiD1 in range(nb_atoms):
             for atomiD2 in range(nb_atoms):
                 if atomiD1 != atomiD2:
-                    i_n[atomiD1*nb_atoms + atomiD2] = np.int(atomiD1) 
-                    j_n[atomiD1*nb_atoms + atomiD2] = np.int(atomiD2) 
-                    distance = mic(pos_nc[atomiD2,:]-pos_nc[atomiD1,:], cell=cell)
-                    r_nc[atomiD1*nb_atoms + atomiD2] = distance
+                    i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
+                    j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
+                    r_nc[atomiD1*(nb_atoms) + atomiD2] = mic(pos_nc[atomiD1,:] - pos_nc[atomiD2,:] ,cell=cell)
                 else:
-                    i_n[atomiD1*nb_atoms + atomiD2] = np.int(atomiD1) 
-                    j_n[atomiD1*nb_atoms + atomiD2] = np.int(atomiD2) 
+                    i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
+                    j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
+
+        # Prefactor and wave vectors for reciprocal space 
+        Ik, k_lc = calc.wave_vectors_rec_triclinic(atoms.get_cell(), kmax, alpha, nk)
 
         # 
         chargeij = charge_p[i_n] * charge_p[j_n]
