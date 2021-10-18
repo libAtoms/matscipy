@@ -96,28 +96,6 @@ class BKS_ewald():
 
     def get_accuracy(self):
         return self.accuracy
-
-    def stress_long(self, charge, pos, a, ik, k):
-        """
-        Return the stress contribution of the long-range Coulomb part
-        """
-
-        stress_cc = np.zeros((3, 3))
-        for wavenumber, wavevector in enumerate(k):
-            structure_factor = np.sum(charge * np.exp(1j*np.sum(wavevector*pos, axis=1)))
-            prefactor = ik[wavenumber] * np.absolute(structure_factor)**2
-
-            stress_cc += 0.5 * prefactor * (wavevector.reshape(3, 1) * wavevector.reshape(1, 3) * \
-                (1/a**2 + 4/np.linalg.norm(wavevector)**2) - np.identity(3))  
-            
-        stress_cc *= self.conversion_factor * 2 * np.pi  
-   
-        return np.array([stress_cc[0, 0],        # xx
-                         stress_cc[1, 1],        # yy
-                         stress_cc[2, 2],        # zz
-                         stress_cc[1, 2],        # yz
-                         stress_cc[0, 2],        # xz
-                         stress_cc[0, 1]])       # xy
         
     def energy_short(self, r, pair_charge, a):
         """
@@ -217,6 +195,17 @@ class Ewald(Calculator):
 
         return gs, np.array([nxmax, nymax, nzmax])
 
+    def determine_kmax(self, cell, nk):
+        """
+        Determine maximal wave vector from given nk
+        """
+        kxmax = 2*np.pi / cell[0, 0] * nk[0]
+        kymax = 2*np.pi / cell[1, 1] * nk[1]
+        kzmax = 2*np.pi / cell[2, 2] * nk[2]
+
+        return max(kxmax, kymax, kzmax)
+
+
     def rms(self, km, l, n, alp, q2):
         """
         Compute the root mean square error of the force for a given kmax
@@ -289,10 +278,34 @@ class Ewald(Calculator):
         
         f = np.zeros((natoms, 3))
         for wavenumber, wavevector in enumerate(k):
-            prefactor = ik[wavenumber] * np.bincount(i, weights=charge[j]*np.sin(np.sum(wavevector*r, axis=1)))   
+            prefactor = ik[wavenumber] * np.bincount(i, weights=charge[j]*np.sin(np.sum(wavevector*r, axis=1) ))   
             f += (prefactor * np.repeat(wavevector.reshape(-1, 3), natoms, axis=0).T).T
 
         return 14.399645 * 4 * np.pi * (charge * f.T).T / vol
+
+
+    def stress_long(self, charge, pos, vol, a, ik, k):
+        """
+        Return the stress contribution of the long-range Coulomb part
+        """
+
+        stress_cc = np.zeros((3, 3))
+        for wavenumber, wavevector in enumerate(k):
+            structure_factor = np.sum(charge * np.exp(1j*np.sum(wavevector*pos, axis=1)))
+            prefactor = ik[wavenumber] * np.absolute(structure_factor)**2
+
+            stress_cc += prefactor * (wavevector.reshape(3, 1) * wavevector.reshape(1, 3) * \
+                (1/(2*a**2) + 2/np.linalg.norm(wavevector)**2) - np.identity(3))  
+            
+        stress_cc *= (14.399645 * 2 * np.pi / vol)
+   
+        return np.array([stress_cc[0, 0],        # xx
+                         stress_cc[1, 1],        # yy
+                         stress_cc[2, 2],        # zz
+                         stress_cc[1, 2],        # yz
+                         stress_cc[0, 2],        # xz
+                         stress_cc[0, 1]])       # xy
+
 
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
@@ -341,6 +354,10 @@ class Ewald(Calculator):
         if np.any(nk) == None:
             kmax, nk = calc.determine_nk(charge_p, calc, cell, accuracy, alpha, nb_atoms)    
 
+        # Check if nx,ny and nz are given but Kmax not
+        if np.all(nk) != None and kmax == None:
+            kmax = calc.determine_kmax(cell, nk)
+
         # Compute and print error estimates
         rms_real_space = calc.rms_real_space(charge_p, cell, alpha, rc)
         rms_kspace_x = calc.rms(nk[0], cell[0, 0], nb_atoms, alpha, np.sum(charge_p**2))
@@ -357,6 +374,9 @@ class Ewald(Calculator):
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
         chargeij = charge_p[i_p] * charge_p[j_p]
 
+        if np.sum(i_p == j_p) > 1e-5:
+            print("Atoms can see themselves!")
+
         # List of all atoms --> Find a better solution for this "find all neighbors loop"!!!!!!
         i_n = np.zeros(nb_atoms**2, dtype=int)
         j_n = np.zeros(nb_atoms**2, dtype=int)
@@ -367,7 +387,7 @@ class Ewald(Calculator):
                 if atomiD1 != atomiD2:
                     i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
                     j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
-                    r_nc[atomiD1*(nb_atoms) + atomiD2] = mic(pos_nc[atomiD2,:] - pos_nc[atomiD1,:] ,cell=cell)
+                    r_nc[atomiD1*(nb_atoms) + atomiD2] = mic(pos_nc[atomiD1,:] - pos_nc[atomiD2,:] ,cell=cell)
                 else:
                     i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
                     j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
@@ -412,7 +432,6 @@ class Ewald(Calculator):
         f_nc += calc.first_derivative_long(charge_p, nb_atoms, atoms.get_volume(), i_n, j_n, r_nc, Ik, k_lc)
 
         # Virial
-        # Short range
         virial_v = -np.array([r_pc[:, 0] * df_pc[:, 0],               # xx
                               r_pc[:, 1] * df_pc[:, 1],               # yy
                               r_pc[:, 2] * df_pc[:, 2],               # zz
@@ -420,8 +439,7 @@ class Ewald(Calculator):
                               r_pc[:, 0] * df_pc[:, 2],               # xz
                               r_pc[:, 0] * df_pc[:, 1]]).sum(axis=1)  # xy
 
-        # Long range
-        #stress_long = list(f.values())[0].stress_long(charge_p, pos_nc, alpha, Ik, k_lc) / atoms.get_volume()**2
+        virial_v += calc.stress_long(charge_p, atoms.get_positions(), atoms.get_volume(), alpha, Ik, k_lc) 
 
         self.results = {'energy': epot,
                         'free_energy': epot,
