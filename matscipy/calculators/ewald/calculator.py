@@ -20,7 +20,7 @@
 #
 
 """
-Simple pair potential.
+Pair potential + Ewald summation
 """
 
 #
@@ -35,6 +35,8 @@ Simple pair potential.
 import numpy as np
 
 from scipy.special import erfc
+
+from scipy.sparse.linalg import cg
 
 import ase
 
@@ -741,6 +743,17 @@ class Ewald(Calculator):
 
     ###
 
+    def get_hessian(self, atoms):
+        """
+        Compute the Hessian
+        """
+        H = self.get_hessian_short(atoms, format='dense')
+        H += self.get_properties_long(atoms, prop="Hessian", format='dense')
+
+        return H
+
+    ###
+
     def get_nonaffine_forces(self, atoms):
         """
         Compute the non-affine forces which result from an affine deformation of atoms.
@@ -840,6 +853,65 @@ class Ewald(Calculator):
         stressC_abab = calculator.get_stress_contribution_to_elastic_constants(atoms)
 
         return bornC_abab + stressC_abab
+
+
+    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, tol=1e-5):
+        """
+        Compute the correction of non-affine displacements to the elasticity tensor.
+        The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.
+
+        If eigenvalues and and eigenvectors are given the inverse of the Hessian can be easily computed.
+
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        eigenvalues: array
+            Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
+            If given 
+
+        eigenvectors: array
+            Eigenvectors corresponding to eigenvalues.
+
+        tol: float
+            Tolerance for the conjugate-gradient solver. 
+
+        """
+
+        nat = len(atoms)
+
+        calc = atoms.get_calculator()
+
+        C_abab = np.zeros((3,3,3,3))        
+
+        if (eigenvalues is not None) and (eigenvectors is not None):
+            naforces_icab = calc.get_nonaffine_forces(atoms)
+
+            G_incc = (eigenvectors.T).reshape(-1, 3*nat, 1, 1) * naforces_icab.reshape(1, 3*nat, 3, 3)
+            G_incc = (G_incc.T/np.sqrt(eigenvalues)).T
+            G_icc  = np.sum(G_incc, axis=1)
+            C_abab = np.sum(G_icc.reshape(-1,3,3,1,1) * G_icc.reshape(-1,1,1,3,3), axis=0)
+
+        else:
+            H_nn = calc.get_hessian(atoms)
+            naforces_icab = calc.get_nonaffine_forces(atoms)
+
+            D_iab = np.zeros((3*nat, 3, 3))
+            for i in range(3):
+                for j in range(3):
+                    x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), atol=tol)
+                    if info != 0:
+                        raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
+                    D_iab[:,i,j] = x
+
+            C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
+        
+        # Symmetrize 
+        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4             
+
+        return -C_abab/atoms.get_volume()
 
 
     def get_numerical_non_affine_forces(self, atoms, d=1e-6):
