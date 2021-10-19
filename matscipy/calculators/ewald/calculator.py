@@ -357,11 +357,13 @@ class Ewald(Calculator):
         rms_kspace_y = calc.rms(nk[1], cell[1, 1], nb_atoms, alpha, np.sum(charge_p**2))
         rms_kspace_z = calc.rms(nk[2], cell[2, 2], nb_atoms, alpha, np.sum(charge_p**2))
 
+        """
         print("Estimated alpha: ", alpha)
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
         print("Cutoff for kspace vectors: ", kmax)
         print("Estimated kspace vectors nx/ny/nx: ", nk[0], "/", nk[1], "/", nk[2]) 
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
+        """
 
         # Neighbor list for short range interaction
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
@@ -639,8 +641,6 @@ class Ewald(Calculator):
         rms_kspace_y = calc.rms(nk[1], cell[1, 1], nb_atoms, alpha, np.sum(charge_p**2))
         rms_kspace_z = calc.rms(nk[2], cell[2, 2], nb_atoms, alpha, np.sum(charge_p**2))
 
-        print("--------------------------------------")
-        print("Properties long: ")
         print("Estimated alpha: ", alpha)
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
         print("Cutoff for kspace vectors: ", kmax)
@@ -660,16 +660,12 @@ class Ewald(Calculator):
         chargeij = charge_p[i_n] * charge_p[j_n]
 
         if prop == "Hessian":
-            mask = i_n == j_n
+            mask = i_n != j_n
 
-            H_ncc = np.zeros((len(i_n), 3, 3))
-            for waveindex, wavevector in enumerate(k_lc):
-                vector_array = (wavevector.reshape(3, 1) * wavevector.reshape(1, 3)).reshape(1, 3, 3)
-                prefactor = Ik[waveindex] * np.cos(np.sum(wavevector * r_nc, axis=1))
-                prefactor[mask] = 0.0
-                H_ncc += prefactor.reshape(-1, 1, 1) * np.repeat(vector_array, repeats=len(i_n), axis=0)
-
-            # Add prefactors
+            prefactor_kn = np.zeros((len(Ik), len(i_n)))
+            prefactor_kn[:,mask] += np.cos(np.tensordot(k_lc, r_nc, axes=((1), (1))))[:,mask]
+            prefactor_kn = (Ik * prefactor_kn.T).T
+            H_ncc = np.sum((k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)) * prefactor_kn.reshape(-1, len(i_n), 1, 1), axis=0)
             H_ncc *= (14.399645 * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1,1,1)
 
             # Build Hessian matrix 
@@ -705,29 +701,25 @@ class Ewald(Calculator):
 
         elif prop == "Born":
             C_abmn = np.zeros((3, 3, 3, 3))
-            for index, vector in enumerate(k_lc):
-                # structure factor times prefactor
-                structure_factor = np.absolute(np.sum(charge_p * np.exp(1j*np.sum(vector*pos, axis=1))))**2
-                structure_factor *= Iu[index]
 
-                # First one 
-                first_exp = 2 * np.identity(3).reshape(3,3,1,1) * np.identity(3).reshape(1,1,3,3)
+            structure_factor = np.sum(charge_p * np.exp(1j*np.tensordot(k_lc, pos_nc, axes=((1),(1)))), axis=1)
+            prefactor = Ik * np.absolute(structure_factor)**2
 
-                # Second 
-                second_exp = np.identity(3).reshape(3,3,1,1)*vector.reshape(1,1,3,1)*vector.reshape(1,1,1,3) + \
-                             np.identity(3).reshape(1,1,3,3)*vector.reshape(3,1,1,1)*vector.reshape(1,3,1,1)
-                second_exp *= -0.5*(1/alpha**2 + 4/np.linalg.norm(vector))
+            # First expression
+            first_abab = 2 * np.identity(3).reshape(-1, 3, 3, 1, 1) * np.identity(3).reshape(-1, 1, 1, 3, 3)
 
-                # third
-                third_exp = vector.reshape(3,1,1,1)*vector.reshape(1,3,1,1)*vector.reshape(1,1,3,1)*vector.reshape(1,1,1,3)
-                third_exp *= (1/(4*alpha**4) + 2/(alpha*np.linalg.norm(vector))**2 + 8/np.linalg.norm(vector)**4)
+            # Second expression 
+            second_abab = np.identity(3).reshape(1, 3, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 1, 3) + \
+                          np.identity(3).reshape(1, 1, 1, 3, 3) * k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1)
+            second_abab *= -(1/(2*alpha**2) + 2/np.linalg.norm(k_lc, axis=1)**2).reshape(-1, 1, 1, 1, 1)
 
-                # Sum up
-                C_abmn += structure_factor * (first_exp + second_exp + third_exp)
-             
-            C_abmn *= (14.399645 * 2 * np.pi / atoms.get_volume()**2)
+            # Third expression
+            third_abab = k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1 ,1, 1, 1, 3)
+            third_abab *= (1/(4*alpha**4) + 2/(alpha * np.linalg.norm(k_lc, axis=1))**2 + 8/np.linalg.norm(k_lc, axis=1)**4).reshape(-1, 1, 1, 1, 1)
 
-            return C_abmn 
+            C_abab = np.sum(prefactor.reshape(-1, 1, 1, 1, 1) * (first_abab + second_abab + third_abab), axis=0)
+
+            return 14.399645 * 2 * np.pi * C_abab / atoms.get_volume()**2
 
         elif prop == "NAForces":
 
@@ -762,15 +754,15 @@ class Ewald(Calculator):
 
         nat = len(atoms)
 
-        # Short range part 
+        # Real space 
         H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.get_hessian_short(atoms, 'neighbour-list')
         naF_pcab = -0.5 * H_pcc.reshape(-1, 3, 3, 1) * dr_pc.reshape(-1, 1, 1, 3)
         naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
 
-        # Reciprocal part
-        Lnaforces_icab = self.get_properties_long(atoms, prop="NAForces")
+        # Reciprocal space
+        naforces_icab -= self.get_properties_long(atoms, prop="NAForces")
 
-        return naforces_icab, Lnaforces_icab
+        return naforces_icab
 
 
     def get_born_elastic_constants(self, atoms):
@@ -790,17 +782,13 @@ class Ewald(Calculator):
         C_pabab = H_pcc.reshape(-1, 3, 1, 3, 1) * dr_pc.reshape(-1, 1, 3, 1, 1) * dr_pc.reshape(-1, 1, 1, 1, 3)
         C_abab = -C_pabab.sum(axis=0) / (2*atoms.get_volume())
 
-        # Symmetrize elastic constant tensor
-        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
-
-
         # Contribution from reciprocal space 
-        Crec_abab = self.get_properties_long(atoms, choice="Born")
+        C_abab += self.get_properties_long(atoms, prop="Born")
 
         # Symmetrize elastic constant tensor
-        Crec_abab = (Crec_abab + Crec_abab.swapaxes(0, 1) + Crec_abab.swapaxes(2, 3) + Crec_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        Crec_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
-        return C_abab + Crec_abab
+        return C_abab
 
 
     def get_stress_contribution_to_elastic_constants(self, atoms):
