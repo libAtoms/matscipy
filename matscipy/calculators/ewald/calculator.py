@@ -264,41 +264,34 @@ class Ewald(Calculator):
         """
         Return the energy from the reciprocal space contribution
         """
-        conversion_factor = 14.399645
-        structure_factor = np.zeros(len(ik))
-        for waveindex, wavevector in enumerate(k):
-            structure_factor[waveindex] = np.absolute(np.sum(charge * np.exp(1j*np.sum(wavevector*pos, axis=1)), axis=0))**2
 
-        return 14.399645 * 2 * np.pi * np.sum(ik * structure_factor) / vol
+        structure_factor = np.sum(charge * np.exp(1j*np.tensordot(k, pos, axes=((1),(1)))), axis=1)
+
+        return 14.399645 * 2 * np.pi * np.sum(ik.T * np.absolute(structure_factor)**2) / vol
+
 
     def first_derivative_long(self, charge, natoms, vol, i, j, r, ik, k):
         """
         Return the kspace part of the force 
         """
-        
-        f = np.zeros((natoms, 3))
-        for wavenumber, wavevector in enumerate(k):
-            prefactor = ik[wavenumber] * np.bincount(i, weights=charge[j]*np.sin(np.sum(wavevector*r, axis=1) ))   
-            f += (prefactor * np.repeat(wavevector.reshape(-1, 3), natoms, axis=0).T).T
+        im_structure = (ik * mabincount(i, charge[j] * np.sin(np.tensordot(k, r, axes=((1),(1)))), natoms, axis=1).T).T
+
+        f = np.sum(im_structure.reshape(len(k), natoms, 1) * k.reshape(len(k), 1, 3), axis=0)
 
         return 14.399645 * 4 * np.pi * (charge * f.T).T / vol
-
 
     def stress_long(self, charge, pos, vol, a, ik, k):
         """
         Return the stress contribution of the long-range Coulomb part
         """
+        structure_factor_m = np.sum(charge * np.exp(1j*np.tensordot(k, pos, axes=((1),(1)))), axis=1)
 
-        stress_cc = np.zeros((3, 3))
-        for wavenumber, wavevector in enumerate(k):
-            structure_factor = np.sum(charge * np.exp(1j*np.sum(wavevector*pos, axis=1)))
-            prefactor = ik[wavenumber] * np.absolute(structure_factor)**2
-
-            stress_cc += prefactor * (wavevector.reshape(3, 1) * wavevector.reshape(1, 3) * \
-                (1/(2*a**2) + 2/np.linalg.norm(wavevector)**2) - np.identity(3))  
-            
+        wave_vetors = (k.reshape(-1, 3, 1) * k.reshape(-1, 1, 3)) * (1/(2*a**2) + 2/np.linalg.norm(k, axis=1)**2).reshape(-1,1,1) - np.identity(3) 
+        
+        stress_cc = np.sum((ik * np.absolute(structure_factor_m)**2).reshape(len(ik), 1, 1) * wave_vetors, axis=0)
+        
         stress_cc *= (14.399645 * 2 * np.pi / vol)
-   
+
         return np.array([stress_cc[0, 0],        # xx
                          stress_cc[1, 1],        # yy
                          stress_cc[2, 2],        # zz
@@ -377,20 +370,11 @@ class Ewald(Calculator):
         if np.sum(i_p == j_p) > 1e-5:
             print("Atoms can see themselves!")
 
-        # List of all atoms --> Find a better solution for this "find all neighbors loop"!!!!!!
-        i_n = np.zeros(nb_atoms**2, dtype=int)
-        j_n = np.zeros(nb_atoms**2, dtype=int)
-        r_nc = np.zeros((nb_atoms**2, 3))
-        # Find all pairs of distances 
-        for atomiD1 in range(nb_atoms):
-            for atomiD2 in range(nb_atoms):
-                if atomiD1 != atomiD2:
-                    i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
-                    j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
-                    r_nc[atomiD1*(nb_atoms) + atomiD2] = mic(pos_nc[atomiD1,:] - pos_nc[atomiD2,:] ,cell=cell)
-                else:
-                    i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
-                    j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
+        # List of all atoms
+        ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
+        i_n = ij_n[:,0]
+        j_n = ij_n[:,1]
+        r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell)
 
         # Prefactor and wave vectors for reciprocal space 
         Ik, k_lc = calc.wave_vectors_rec_triclinic(atoms.get_cell(), kmax, alpha, nk)
@@ -474,6 +458,7 @@ class Ewald(Calculator):
         nb_atoms = len(atoms)
         atnums = atoms.numbers
         calc = atoms.get_calculator()
+        cell = atoms.get_cell()
 
         # Check some properties of input data
         if atoms.has("charge"):
@@ -505,7 +490,6 @@ class Ewald(Calculator):
         # Check if alpha is given otherwise guess a value 
         if alpha == None:
             alpha = calc.determine_alpha(charge_p, accuracy, rc, nb_atoms, cell)
-
 
         i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
         chargeij = charge_p[i_p] * charge_p[j_p]
@@ -655,26 +639,19 @@ class Ewald(Calculator):
         rms_kspace_y = calc.rms(nk[1], cell[1, 1], nb_atoms, alpha, np.sum(charge_p**2))
         rms_kspace_z = calc.rms(nk[2], cell[2, 2], nb_atoms, alpha, np.sum(charge_p**2))
 
+        print("--------------------------------------")
+        print("Properties long: ")
         print("Estimated alpha: ", alpha)
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
         print("Cutoff for kspace vectors: ", kmax)
         print("Estimated kspace vectors nx/ny/nx: ", nk[0], "/", nk[1], "/", nk[2]) 
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
 
-        # List of all atoms --> Find a better solution for this "find all neighbors loop"!!!!!!
-        i_n = np.zeros(nb_atoms**2, dtype=int)
-        j_n = np.zeros(nb_atoms**2, dtype=int)
-        r_nc = np.zeros((nb_atoms**2, 3))
-        # Find all pairs of distances 
-        for atomiD1 in range(nb_atoms):
-            for atomiD2 in range(nb_atoms):
-                if atomiD1 != atomiD2:
-                    i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
-                    j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
-                    r_nc[atomiD1*(nb_atoms) + atomiD2] = mic(pos_nc[atomiD1,:] - pos_nc[atomiD2,:] ,cell=cell)
-                else:
-                    i_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD1) 
-                    j_n[atomiD1*(nb_atoms) + atomiD2] = np.int(atomiD2) 
+        # List of distances for all atoms
+        ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
+        i_n = ij_n[:,0]
+        j_n = ij_n[:,1]
+        r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell)
 
         # Prefactor and wave vectors for reciprocal space 
         Ik, k_lc = calc.wave_vectors_rec_triclinic(atoms.get_cell(), kmax, alpha, nk)
@@ -756,23 +733,17 @@ class Ewald(Calculator):
 
             naForces_ncc = np.zeros((nb_atoms, 3, 3, 3))
 
-            for index, vector in enumerate(k_lc):
-                structure_factor = Ik[index] * np.bincount(i_n, weights=charge_p[j_n]*np.sin(np.sum(vector*r_nc, axis=1)))
-                structure_factor = structure_factor.reshape(-1,1,1,1)
+            for index, wavevector in enumerate(k_lc):
+                structure_factor = charge_p * Ik[index] * np.bincount(i_n, weights=charge_p[j_n]*np.sin(np.sum(wavevector*r_nc, axis=1)))
 
-                prefac = vector.reshape(3, 1) * vector.reshape(1, 3) * (1/alpha**2 + 4/np.linalg.norm(vector)**2) / 2 
-                prefac -= np.identity(3)
+                prefactor = (wavevector.reshape(3, 1) * wavevector.reshape(1, 3)) * (1/(2*alpha**2) + 2/np.linalg.norm(wavevector)**2) - np.identity(3) 
 
-                vectorlike = prefac.reshape(1,1,3,3)
-                vectorlike = vector.reshape(1,3,1,1) * prefac.reshape(1,1,3,3)
-                current = np.repeat(vectorlike, nb_atoms, axis=0) 
+                vectorlike = wavevector.reshape(1, 3, 1, 1) * prefactor.reshape(1, 1, 3, 3)
 
-                current2 = np.repeat(vectorlike, nb_atoms, axis=0) * structure_factor
-
-                naForces_ncc += current2
+                naForces_ncc += structure_factor.reshape(nb_atoms, 1, 1, 1) * np.repeat(vectorlike, nb_atoms, axis=0)
                 
 
-            naForces_ncc *= -(14.399645 * 4 * np.pi / atoms.get_volume()) * charge_p.reshape(-1,1,1,1)
+            naForces_ncc *= (-14.399645 * 4 * np.pi / atoms.get_volume())
 
             return naForces_ncc 
 
