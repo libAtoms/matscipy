@@ -52,6 +52,11 @@ from ...elasticity import Voigt_6_to_full_3x3_stress
 
 
 ###
+# We express charges q as multiples of the elementary charge e: q = x*e
+# The prefactor of the Coulomb potential reads:  e^2/(4*pi*epsilon0) = 14.399645 eV * Angström 
+conversion_prefactor = 14.399645
+
+###
 
 class BKS_ewald():
     """
@@ -104,7 +109,7 @@ class BKS_ewald():
         Return the energy from Buckingham part and short range Coulomb part.
         """
         E_buck = self.A * np.exp(-self.B*r) - self.C / r**6 - self.buck_offset_energy
-        E_coul = self.conversion_factor * pair_charge * erfc(a*r) / r
+        E_coul = conversion_prefactor * pair_charge * erfc(a*r) / r
 
         return E_buck + E_coul
 
@@ -113,7 +118,7 @@ class BKS_ewald():
         Return the force from Buckingham part and short range Coulomb part.
         """
         f_buck = -self.A * self.B * np.exp(-self.B*r) + 6 * self.C / r**7 
-        f_coul = -self.conversion_factor * pair_charge * (erfc(a*r) / r**2 +
+        f_coul = -conversion_prefactor* pair_charge * (erfc(a*r) / r**2 +
                    2 * a * np.exp(-(a*r)**2) / (np.sqrt(np.pi)*r))
 
         return f_buck + f_coul
@@ -123,7 +128,7 @@ class BKS_ewald():
         Return the stiffness from Buckingham part and short range Coulomb part.
         """
         k_buck = self.A * self.B**2 * np.exp(-self.B*r) - 42 * self.C / r**8
-        k_coul = self.conversion_factor * pair_charge * (2 * erfc(a * r) / r**3
+        k_coul = conversion_prefactor * pair_charge * (2 * erfc(a * r) / r**3
             + 4 * a * np.exp(-(a*r)**2) / np.sqrt(np.pi) * (1 / r**2 + a**2))
 
         return k_buck + k_coul
@@ -259,8 +264,10 @@ class Ewald(Calculator):
         return np.exp(-(k[mask]/(2*a))**2) / k[mask]**2, k_lc[mask]
 
     def energy_self(self, charge, a):
-        conversion_factor = 14.399645
-        return - conversion_factor * a * np.sum(charge**2) / np.sqrt(np.pi)
+        """
+        Return the self energy term of the Ewald summation
+        """
+        return - conversion_prefactor * a * np.sum(charge**2) / np.sqrt(np.pi)
 
     def energy_long(self, charge, pos, vol, ik, k):
         """
@@ -269,7 +276,7 @@ class Ewald(Calculator):
 
         structure_factor = np.sum(charge * np.exp(1j*np.tensordot(k, pos, axes=((1),(1)))), axis=1)
 
-        return 14.399645 * 2 * np.pi * np.sum(ik.T * np.absolute(structure_factor)**2) / vol
+        return conversion_prefactor * 2 * np.pi * np.sum(ik.T * np.absolute(structure_factor)**2) / vol
 
 
     def first_derivative_long(self, charge, natoms, vol, i, j, r, ik, k):
@@ -280,7 +287,7 @@ class Ewald(Calculator):
 
         f = np.sum(im_structure.reshape(len(k), natoms, 1) * k.reshape(len(k), 1, 3), axis=0)
 
-        return 14.399645 * 4 * np.pi * (charge * f.T).T / vol
+        return conversion_prefactor * 4 * np.pi * (charge * f.T).T / vol
 
     def stress_long(self, charge, pos, vol, a, ik, k):
         """
@@ -292,7 +299,7 @@ class Ewald(Calculator):
         
         stress_cc = np.sum((ik * np.absolute(structure_factor_m)**2).reshape(len(ik), 1, 1) * wave_vetors, axis=0)
         
-        stress_cc *= (14.399645 * 2 * np.pi / vol)
+        stress_cc *= conversion_prefactor * 2 * np.pi / vol
 
         return np.array([stress_cc[0, 0],        # xx
                          stress_cc[1, 1],        # yy
@@ -359,13 +366,12 @@ class Ewald(Calculator):
         rms_kspace_y = calc.rms(nk[1], cell[1, 1], nb_atoms, alpha, np.sum(charge_p**2))
         rms_kspace_z = calc.rms(nk[2], cell[2, 2], nb_atoms, alpha, np.sum(charge_p**2))
 
-        """
+        
         print("Estimated alpha: ", alpha)
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
         print("Cutoff for kspace vectors: ", kmax)
         print("Estimated kspace vectors nx/ny/nx: ", nk[0], "/", nk[1], "/", nk[2]) 
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
-        """
 
         # Neighbor list for short range interaction
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
@@ -668,7 +674,7 @@ class Ewald(Calculator):
             prefactor_kn[:,mask] += np.cos(np.tensordot(k_lc, r_nc, axes=((1), (1))))[:,mask]
             prefactor_kn = (Ik * prefactor_kn.T).T
             H_ncc = np.sum((k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)) * prefactor_kn.reshape(-1, len(i_n), 1, 1), axis=0)
-            H_ncc *= (14.399645 * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1,1,1)
+            H_ncc *= (conversion_prefactor * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1,1,1)
 
             # Build Hessian matrix 
             if format == "dense":
@@ -721,7 +727,7 @@ class Ewald(Calculator):
 
             C_abab = np.sum(prefactor.reshape(-1, 1, 1, 1, 1) * (first_abab + second_abab + third_abab), axis=0)
 
-            return 14.399645 * 2 * np.pi * C_abab / atoms.get_volume()**2
+            return conversion_prefactor * 2 * np.pi * C_abab / atoms.get_volume()**2
 
         elif prop == "NAForces":
 
@@ -737,7 +743,7 @@ class Ewald(Calculator):
                 naForces_ncc += structure_factor.reshape(nb_atoms, 1, 1, 1) * np.repeat(vectorlike, nb_atoms, axis=0)
                 
 
-            naForces_ncc *= (-14.399645 * 4 * np.pi / atoms.get_volume())
+            naForces_ncc *= (-conversion_prefactor * 4 * np.pi / atoms.get_volume())
 
             return naForces_ncc 
 
@@ -777,6 +783,7 @@ class Ewald(Calculator):
 
         return naforces_icab
 
+    ###
 
     def get_born_elastic_constants(self, atoms):
         """
@@ -803,6 +810,7 @@ class Ewald(Calculator):
 
         return C_abab
 
+    ###
 
     def get_stress_contribution_to_elastic_constants(self, atoms):
         """
@@ -830,7 +838,8 @@ class Ewald(Calculator):
                    stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3))/4
 
         return C1_abab + C2_abab
-
+    
+    ###
 
     def get_birch_coefficients(self, atoms):
         """
@@ -854,6 +863,7 @@ class Ewald(Calculator):
 
         return bornC_abab + stressC_abab
 
+    ###
 
     def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, tol=1e-5):
         """
@@ -913,6 +923,7 @@ class Ewald(Calculator):
 
         return -C_abab/atoms.get_volume()
 
+    ###
 
     def get_numerical_non_affine_forces(self, atoms, d=1e-6):
         """
