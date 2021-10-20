@@ -30,7 +30,7 @@ Pair potential + Ewald summation
 #   - n: Atomic index, i.e. array dimension of length nb_atoms
 #   - p: Pair index, i.e. array dimension of length nb_pairs
 #   - c: Cartesian index, array dimension of length 3
-#
+#   - l: Wave vector index, i.e. array of dimension length nb_kvectors
 
 import numpy as np
 
@@ -50,7 +50,6 @@ from ...numpy_tricks import mabincount
 
 from ...elasticity import Voigt_6_to_full_3x3_stress
 
-
 ###
 
 # We express charges q as multiples of the elementary charge e: q = x*e
@@ -61,8 +60,8 @@ conversion_prefactor = 14.399645
 
 class BKS_ewald():
     """
-    Functional Form of the Beest, Kramer, van Santen (BKS) potential.
-    Functional form: Buckingham + Coulomb potential
+    Beest, Kramer, van Santen (BKS) potential.
+    Functional form is Buckingham + Coulomb potential
 
     Buckingham:  
         Energy is shifted to zero at the cutoff.
@@ -74,50 +73,58 @@ class BKS_ewald():
         B. W. Van Beest, G. J. Kramer and R. A. Van Santen, Phys. Rev. Lett. 64.16 (1990)
     """
 
-    def __init__(self, A, B, C, alpha, cutoff_r, max_k, nk, accuracy):
+    def __init__(self, A, B, C, alpha, cutoff_r, cutoff_k, nb_kspace, accuracy):
         self.A = A
         self.B = B 
         self.C = C
         self.alpha = alpha
         self.cutoff_r = cutoff_r
-        self.max_k = max_k
-        self.nk = nk
+        self.cutoff_k = cutoff_k
+        self.nb_kspace = nb_kspace
         self.accuracy = accuracy
 
-        # Conversion factor to be consistent with LAMMPS metal units
-        conversion_factor = 14.399645
-        self.conversion_factor = conversion_factor 
-
-        # Expression for shifting energy/force
+        # Expression for shifting energy
         self.buck_offset_energy = A * np.exp(-B*cutoff_r) - C/cutoff_r**6
 
-    def get_nk(self):
-        return self.nk
+    def get_nb_kspace(self):
+        """
+        Return triplet of integers defining maximal number of reciprocal points
+        """
+        return self.nb_kspace
 
     def get_alpha(self):
         return self.alpha
 
     def get_cutoff_real(self):
+        """
+        Cutoff radius for the short range interaction
+        """
         return self.cutoff_r
 
-    def get_max_k(self):
-        return self.max_k
+    def get_cutoff_kspace(self):
+        """
+        Cutoff wave vector in reciprocal space
+        """
+        return self.cutoff_k
 
     def get_accuracy(self):
+        """
+        Accuracy in reciprocal space 
+        """
         return self.accuracy
         
-    def energy_short(self, r, pair_charge, a):
+    def energy_rspace(self, r, pair_charge, a):
         """
-        Return the energy from Buckingham part and short range Coulomb part.
+        Potential of short range Buckingham and Coulomb
         """
         E_buck = self.A * np.exp(-self.B*r) - self.C / r**6 - self.buck_offset_energy
         E_coul = conversion_prefactor * pair_charge * erfc(a*r) / r
 
         return E_buck + E_coul
 
-    def first_derivative_short(self, r, pair_charge, a):
+    def first_derivative_rspace(self, r, pair_charge, a):
         """
-        Return the force from Buckingham part and short range Coulomb part.
+        First derivative of short range Buckingham and Coulomb part
         """
         f_buck = -self.A * self.B * np.exp(-self.B*r) + 6 * self.C / r**7 
         f_coul = -conversion_prefactor* pair_charge * (erfc(a*r) / r**2 +
@@ -125,9 +132,9 @@ class BKS_ewald():
 
         return f_buck + f_coul
 
-    def second_derivative_short(self, r, pair_charge, a):
+    def second_derivative_rspace(self, r, pair_charge, a):
         """
-        Return the stiffness from Buckingham part and short range Coulomb part.
+        Second derivative of short range Buckingham and Coulomb part
         """
         k_buck = self.A * self.B**2 * np.exp(-self.B*r) - 42 * self.C / r**8
         k_coul = conversion_prefactor * pair_charge * (2 * erfc(a * r) / r**3
@@ -137,9 +144,9 @@ class BKS_ewald():
 
     def derivative(self, n=1):
         if n == 1:
-            return self.first_derivative
+            return self.first_derivative_rspace
         elif n == 2:
-            return self.second_derivative
+            return self.second_derivative_rspace
         else:
             raise ValueError(
                 "Don't know how to compute {}-th derivative.".format(n))
@@ -149,64 +156,84 @@ class BKS_ewald():
 class Ewald(Calculator):
     implemented_properties = ['energy', 'free_energy', 'stress', 'forces', 'hessian']
     default_parameters = {}
-    name = 'PairPotential'
+    name = 'Ewald'
 
     def __init__(self, f, cutoff=None):
         Calculator.__init__(self)
         self.f = f
         self.dict = {x: obj.get_cutoff_real() for x, obj in f.items()}
 
+    def determine_alpha(self, charge, acc, cutoff, n, cell):
+        """
+        Determine an estimate for alpha on the basis of the cell, cutoff and desired accuracy
+        (Adopted from LAMMPS)
+        """
+
+        # The kspace rms error is computed relative to the force that two unit point
+        # charges exert on each other at a distance of 1 Angström
+        accuracy_relative = acc * conversion_prefactor
+
+        qsqsum = conversion_prefactor * np.sum(charge**2)
+
+        a = accuracy_relative * np.sqrt(n * cutoff * cell[0,0] * cell[1, 1] * cell[2, 2]) / (2 * qsqsum)
+        
+        if a >= 1.0:
+            return (1.35 - 0.15*np.log(accuracy_relative)) / cutoff
+
+        else:
+            return np.sqrt(-np.log(a)) / cutoff
+
     def determine_nk(self, charge, c, cell, acc, a, natoms):
         """
-        Determine the maximal number of wave vectors in each direction
-        and the absolute value of the maximal wave vector.
+        Determine the maximal number of points in reciprocal space for each direction,
+        scale according to skew of cell and determine the cutoff in reciprocal space 
         """
-        # Accuracy for rms force
-        # Force is relative to two point charges with q=1 and distance 1A
-        # All in LAMMPS metal units
-        #accuracy = acc * 14.399645
+
+        # The kspace rms error is computed relative to the force that two unit point
+        # charges exert on each other at a distance of 1 Angström
+        accuracy_relative = acc * conversion_prefactor
 
         nxmax = 1
         nymax = 1
         nzmax = 1
      
         # 
-        qsqsum = 14.399645 * np.sum(charge**2)
+        qsqsum = conversion_prefactor * np.sum(charge**2)
 
-        error = c.rms(nxmax, cell[0, 0], natoms, a, qsqsum)
-        while error > (acc * 14.399645):
+        error = c.rms_kspace(nxmax, cell[0, 0], natoms, a, qsqsum)
+        while error > (accuracy_relative * conversion_prefactor):
             nxmax += 1
-            error = c.rms(nxmax, cell[0, 0], natoms, a, qsqsum)
+            error = c.rms_kspace(nxmax, cell[0, 0], natoms, a, qsqsum)
 
-        error = c.rms(nymax, cell[1, 1], natoms, a, qsqsum)
-        while error > (acc*14.399645):
+        error = c.rms_kspace(nymax, cell[1, 1], natoms, a, qsqsum)
+        while error > (accuracy_relative * conversion_prefactor):
             nymax += 1
-            error = c.rms(nymax, cell[1, 1], natoms, a, qsqsum)
+            error = c.rms_kspace(nymax, cell[1, 1], natoms, a, qsqsum)
 
-        error = c.rms(nzmax, cell[2, 2], natoms, a, qsqsum)
-        while error > (acc*14.399645):
+        error = c.rms_kspace(nzmax, cell[2, 2], natoms, a, qsqsum)
+        while error > (accuracy_relative * conversion_prefactor):
             nzmax += 1
-            error = c.rms(nzmax, cell[2, 2], natoms, a, qsqsum)
+            error = c.rms_kspace(nzmax, cell[2, 2], natoms, a, qsqsum)
 
         kxmax = 2*np.pi / cell[0, 0] * nxmax
         kymax = 2*np.pi / cell[1, 1] * nymax
         kzmax = 2*np.pi / cell[2, 2] * nzmax
         
-        gs = max(kxmax, kymax, kzmax)
+        kmax = max(kxmax, kymax, kzmax)
 
-        # Check if box is triclinic --> If yes, scale maximal n 
+        # Check if box is triclinic --> Scale lattice vectors for triclinic skew
         if np.count_nonzero(cell - np.diag(np.diagonal(cell))) != 9:
             vector = np.array([nxmax/cell[0, 0], nymax/cell[1, 1], nzmax/cell[2, 2]])
-            vec = np.dot(np.array(np.abs(cell)), vector)
-            nxmax = max(1, np.int(vec[0]))
-            nymax = max(1, np.int(vec[1]))
-            nzmax = max(1, np.int(vec[2]))
+            scaled_nbk = np.dot(np.array(np.abs(cell)), vector)
+            nxmax = max(1, np.int(scaled_nbk[0]))
+            nymax = max(1, np.int(scaled_nbk[1]))
+            nzmax = max(1, np.int(scaled_nbk[2]))
 
-        return gs, np.array([nxmax, nymax, nzmax])
+        return kmax, np.array([nxmax, nymax, nzmax])
 
-    def determine_kmax(self, cell, nk):
+    def determine_kc(self, cell, nk):
         """
-        Determine maximal wave vector from given nk
+        Determine maximal wave vector based in a given integer triplet
         """
         kxmax = 2*np.pi / cell[0, 0] * nk[0]
         kymax = 2*np.pi / cell[1, 1] * nk[1]
@@ -214,10 +241,9 @@ class Ewald(Calculator):
 
         return max(kxmax, kymax, kzmax)
 
-
-    def rms(self, km, l, n, alp, q2):
+    def rms_kspace(self, km, l, n, alp, q2):
         """
-        Compute the root mean square error of the force for a given kmax
+        Compute the root mean square error of the force in reciprocal space
         
         Reference
         ------------------
@@ -226,9 +252,9 @@ class Ewald(Calculator):
 
         return 2 * q2 * alp / l * np.sqrt(1/(np.pi*km*n)) * np.exp(-(np.pi*km/(alp*l))**2) 
 
-    def rms_real_space(self, charge, cell, a, rc):
+    def rms_rspace(self, charge, cell, a, rc):
         """
-        Compute the root mean square error of the real space Ewald
+        Compute the root mean square error of the force in real space
         
         Reference
         ------------------
@@ -237,69 +263,58 @@ class Ewald(Calculator):
 
         return 2 * np.sum(charge**2) * np.exp(-(a*rc)**2) / np.sqrt(rc * len(charge) * cell[0,0] * cell[1, 1] * cell[2, 2])
 
-    def determine_alpha(self, charge, acc, cutoff, n, cell):
+    def allowed_wave_vectors(self, cell, km, a, nk):
         """
-        Determine a guess for alpha
-        (Same code as in LAMMPS)
-        """
-        a = acc * np.sqrt(n * cutoff * cell[0,0] * cell[1, 1] * cell[2, 2]) / (2 * np.sum(charge**2))
-        
-        if a >= 1.0:
-            return (1.35 - 0.15*np.log(acc)) / cutoff
-
-        else:
-            return np.sqrt(-np.log(a)) / cutoff
-
-    def wave_vectors_rec_triclinic(self, cell, km, a, nk):
-        """
-        Compute the wave vectors and one often used prefactor for a non-orthogonal box
+        Compute allowed wave vectors and the prefactor I 
         """
         nx = nk[0]
         ny = nk[1]
         nz = nk[2]    
    
         vector_n = np.array(list(product(range(-nx, nx+1), range(-ny, ny+1), range(-nz, nz+1))))
+        
         k_lc = 2 * np.pi * np.dot(np.linalg.inv(np.array(cell)), vector_n.T).T
+        
         k = np.linalg.norm(k_lc, axis=1)
+        
         mask = np.logical_and(k <= km, k != 0)
 
         return np.exp(-(k[mask]/(2*a))**2) / k[mask]**2, k_lc[mask]
 
-    def energy_self(self, charge, a):
+    def self_energy(self, charge, a):
         """
-        Return the self energy term of the Ewald summation
+        Return the self energy
         """
         return - conversion_prefactor * a * np.sum(charge**2) / np.sqrt(np.pi)
 
-    def energy_long(self, charge, pos, vol, ik, k):
+    def kspace_energy(self, charge, pos, vol, I, k):
         """
         Return the energy from the reciprocal space contribution
         """
 
         structure_factor = np.sum(charge * np.exp(1j*np.tensordot(k, pos, axes=((1),(1)))), axis=1)
 
-        return conversion_prefactor * 2 * np.pi * np.sum(ik.T * np.absolute(structure_factor)**2) / vol
+        return conversion_prefactor * 2 * np.pi * np.sum(I.T * np.absolute(structure_factor)**2) / vol
 
-
-    def first_derivative_long(self, charge, natoms, vol, i, j, r, ik, k):
+    def first_derivative_kspace(self, charge, natoms, vol, i, j, r, I, k):
         """
         Return the kspace part of the force 
         """
-        im_structure = (ik * mabincount(i, charge[j] * np.sin(np.tensordot(k, r, axes=((1),(1)))), natoms, axis=1).T).T
+        charge_cos_ln = (I * mabincount(i, charge[j] * np.sin(np.tensordot(k, r, axes=((1),(1)))), natoms, axis=1).T).T
 
-        f = np.sum(im_structure.reshape(len(k), natoms, 1) * k.reshape(len(k), 1, 3), axis=0)
+        f = np.sum(charge_cos_ln.reshape(len(k), natoms, 1) * k.reshape(len(k), 1, 3), axis=0)
 
         return conversion_prefactor * 4 * np.pi * (charge * f.T).T / vol
 
-    def stress_long(self, charge, pos, vol, a, ik, k):
+    def stress_kspace(self, charge, pos, vol, a, I, k):
         """
         Return the stress contribution of the long-range Coulomb part
         """
-        structure_factor_m = np.sum(charge * np.exp(1j*np.tensordot(k, pos, axes=((1),(1)))), axis=1)
+        structure_factor_l = np.sum(charge * np.exp(1j*np.tensordot(k, pos, axes=((1),(1)))), axis=1)
 
-        wave_vetors = (k.reshape(-1, 3, 1) * k.reshape(-1, 1, 3)) * (1/(2*a**2) + 2/np.linalg.norm(k, axis=1)**2).reshape(-1,1,1) - np.identity(3) 
+        wave_vectors_cc = (k.reshape(-1, 3, 1) * k.reshape(-1, 1, 3)) * (1/(2*a**2) + 2/np.linalg.norm(k, axis=1)**2).reshape(-1,1,1) - np.identity(3) 
         
-        stress_cc = np.sum((ik * np.absolute(structure_factor_m)**2).reshape(len(ik), 1, 1) * wave_vetors, axis=0)
+        stress_cc = np.sum((I * np.absolute(structure_factor_l)**2).reshape(len(I), 1, 1) * wave_vectors_cc, axis=0)
         
         stress_cc *= conversion_prefactor * 2 * np.pi / vol
 
@@ -320,76 +335,75 @@ class Ewald(Calculator):
         atnums_in_system = set(atnums)
         calc = atoms.get_calculator()
         pos_nc = self.atoms.get_positions()
-        cell = self.atoms.get_cell()
+        cell_cc = self.atoms.get_cell()
 
         # Check some properties of input data
         if atoms.has("charge"):
-            charge_p = self.atoms.get_array("charge")
+            charge_n = self.atoms.get_array("charge")
         else:
             raise AttributeError(
                 "Attribute error: Unable to load atom charges from atoms object!")
 
-        if np.sum(charge_p) > 1e-3:
-            print("Charge: ", np.sum(charge_p))
+        if np.sum(charge_n) > 1e-3:
+            print("Net charge in system: ", np.sum(charge_n))
             raise AttributeError(
-                "Attribute error: We require charge balance!")      
+                "Attribute error: System is not charge neutral!")      
 
         if not any(self.atoms.get_pbc()):
             raise AttributeError(
-                "Attribute error: This code only works for 3D systems with periodic boundaries in all directions!")    
+                "Attribute error: This code only works for 3D systems with periodic boundaries!")    
 
         for index, pairs in enumerate(f.values()):
             if index == 0:
                 alpha = pairs.get_alpha()
                 rc = pairs.get_cutoff_real()
-                kmax = pairs.get_max_k()
-                nk = pairs.get_nk()
+                kc = pairs.get_cutoff_kspace()
+                nbk_c = pairs.get_nb_kspace()
                 accuracy = pairs.get_accuracy()
             else:
-                if (rc != pairs.get_cutoff_real()) or (kmax != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk) or (accuracy != pairs.get_accuracy())):
+                if (rc != pairs.get_cutoff_real()) or (kc != pairs.get_cutoff_kspace()) or (alpha != pairs.get_alpha()) or (accuracy != pairs.get_accuracy()):
                     raise AttributeError(
-                        "Attribute error: Cannot use different rc, Kmax, number of wave vectors or accuracy!")     
+                        "Attribute error: Cannot use different rc, kc, number of wave vectors or accuracy!")     
 
-        # Check if alpha is given otherwise guess a value 
+        # Check if alpha is given otherwise estimate it
         if alpha == None:
-            alpha = calc.determine_alpha(charge_p, accuracy, rc, nb_atoms, cell)
+            alpha = calc.determine_alpha(charge_n, accuracy, rc, nb_atoms, cell_cc)
 
-        # Check if nx, ny and nz are given, otherwise compute valid values
-        if np.any(nk) == None:
-            kmax, nk = calc.determine_nk(charge_p, calc, cell, accuracy, alpha, nb_atoms)    
+        # Check if nx, ny and nz are given, otherwise estimate values
+        if np.any(nbk_c) == None:
+            kc, nbk_c = calc.determine_nk(charge_n, calc, cell_cc, accuracy, alpha, nb_atoms)    
 
-        # Check if nx,ny and nz are given but Kmax not
-        if np.all(nk) != None and kmax == None:
-            kmax = calc.determine_kmax(cell, nk)
+        # If nx, ny and nz are given but cutoff in reciprocal space not, compute 
+        if np.all(nbk_c) != None and kc == None:
+            kc = calc.determine_kc(cell_cc, nbk_c)
 
         # Compute and print error estimates
-        rms_real_space = calc.rms_real_space(charge_p, cell, alpha, rc)
-        rms_kspace_x = calc.rms(nk[0], cell[0, 0], nb_atoms, alpha, np.sum(charge_p**2))
-        rms_kspace_y = calc.rms(nk[1], cell[1, 1], nb_atoms, alpha, np.sum(charge_p**2))
-        rms_kspace_z = calc.rms(nk[2], cell[2, 2], nb_atoms, alpha, np.sum(charge_p**2))
+        rms_real_space = calc.rms_rspace(charge_n, cell_cc, alpha, rc)
+        rms_kspace_x = calc.rms_kspace(nbk_c[0], cell_cc[0, 0], nb_atoms, alpha, np.sum(charge_n**2))
+        rms_kspace_y = calc.rms_kspace(nbk_c[1], cell_cc[1, 1], nb_atoms, alpha, np.sum(charge_n**2))
+        rms_kspace_z = calc.rms_kspace(nbk_c[2], cell_cc[2, 2], nb_atoms, alpha, np.sum(charge_n**2))
 
-        
         print("Estimated alpha: ", alpha)
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
-        print("Cutoff for kspace vectors: ", kmax)
-        print("Estimated kspace vectors nx/ny/nx: ", nk[0], "/", nk[1], "/", nk[2]) 
+        print("Cutoff for kspace vectors: ", kc)
+        print("Estimated kspace triplets nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
 
         # Neighbor list for short range interaction
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
-        chargeij = charge_p[i_p] * charge_p[j_p]
+        chargeij = charge_n[i_p] * charge_n[j_p]
 
         if np.sum(i_p == j_p) > 1e-5:
             print("Atoms can see themselves!")
 
-        # List of all atoms
+        # List of all atoms and distances
         ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
         i_n = ij_n[:,0]
         j_n = ij_n[:,1]
-        r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell)
+        r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell_cc)
 
         # Prefactor and wave vectors for reciprocal space 
-        Ik, k_lc = calc.wave_vectors_rec_triclinic(atoms.get_cell(), kmax, alpha, nk)
+        I_l, k_lc = calc.allowed_wave_vectors(cell_cc, kc, alpha, nbk_c)
 
         # Short-range interaction of Buckingham and Ewald
         e_p = np.zeros_like(r_p)
@@ -400,8 +414,8 @@ class Ewald(Calculator):
                 mask2 = atnums[j_p] == pair[0]
                 mask = np.logical_and(mask1, mask2)
 
-                e_p[mask] = f[pair].energy_short(r_p[mask], chargeij[mask], alpha)
-                de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask], alpha)
+                e_p[mask] = f[pair].energy_rspace(r_p[mask], chargeij[mask], alpha)
+                de_p[mask] = f[pair].first_derivative_rspace(r_p[mask], chargeij[mask], alpha)
 
             if pair[0] != pair[1]:
                 mask1 = np.logical_and(
@@ -410,13 +424,13 @@ class Ewald(Calculator):
                     atnums[i_p] == pair[1], atnums[j_p] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
-                e_p[mask] = f[pair].energy_short(r_p[mask], chargeij[mask], alpha)
-                de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask], alpha)
+                e_p[mask] = f[pair].energy_rspace(r_p[mask], chargeij[mask], alpha)
+                de_p[mask] = f[pair].first_derivative_rspace(r_p[mask], chargeij[mask], alpha)
 
         # Energy 
-        e_self = calc.energy_self(charge_p, alpha)
+        e_self = calc.self_energy(charge_n, alpha)
 
-        e_long = calc.energy_long(charge_p, atoms.get_positions(), atoms.get_volume(), Ik, k_lc)
+        e_long = calc.kspace_energy(charge_n, pos_nc, atoms.get_volume(), I_l, k_lc)
 
         epot = 0.5*np.sum(e_p) + e_self + e_long
 
@@ -425,7 +439,7 @@ class Ewald(Calculator):
 
         f_nc = mabincount(j_p, df_pc, nb_atoms) - mabincount(i_p, df_pc, nb_atoms)
 
-        f_nc += calc.first_derivative_long(charge_p, nb_atoms, atoms.get_volume(), i_n, j_n, r_nc, Ik, k_lc)
+        f_nc += calc.first_derivative_kspace(charge_n, nb_atoms, atoms.get_volume(), i_n, j_n, r_nc, I_l, k_lc)
 
         # Virial
         virial_v = -np.array([r_pc[:, 0] * df_pc[:, 0],               # xx
@@ -435,7 +449,7 @@ class Ewald(Calculator):
                               r_pc[:, 0] * df_pc[:, 2],               # xz
                               r_pc[:, 0] * df_pc[:, 1]]).sum(axis=1)  # xy
 
-        virial_v += calc.stress_long(charge_p, atoms.get_positions(), atoms.get_volume(), alpha, Ik, k_lc) 
+        virial_v += calc.stress_kspace(charge_n, pos_nc, atoms.get_volume(), alpha, I_l, k_lc) 
 
         self.results = {'energy': epot,
                         'free_energy': epot,
@@ -491,13 +505,13 @@ class Ewald(Calculator):
             if index == 0:
                 alpha = pairs.get_alpha()
                 rc = pairs.get_cutoff_real()
-                kmax = pairs.get_max_k()
+                kc = pairs.get_cutoff_kspace()
                 nk = pairs.get_nk()
                 accuracy = pairs.get_accuracy()
             else:
-                if (rc != pairs.get_cutoff_real()) or (kmax != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk) or (accuracy != pairs.get_accuracy())):
+                if (rc != pairs.get_cutoff_real()) or (kc != pairs.get_cutoff_kspace()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk) or (accuracy != pairs.get_accuracy())):
                     raise AttributeError(
-                        "Attribute error: Cannot use different rc, Kmax, number of wave vectors or accuracy!") 
+                        "Attribute error: Cannot use different rc, kc, number of wave vectors or accuracy!") 
 
         # Check if alpha is given otherwise guess a value 
         if alpha == None:
@@ -515,8 +529,8 @@ class Ewald(Calculator):
                 mask2 = atnums[j_p] == pair[0]
                 mask = np.logical_and(mask1, mask2)
 
-                de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask], alpha)
-                dde_p[mask] = f[pair].second_derivative_short(r_p[mask], chargeij[mask], alpha)
+                de_p[mask] = f[pair].first_derivative_rspace(r_p[mask], chargeij[mask], alpha)
+                dde_p[mask] = f[pair].second_derivative_rspace(r_p[mask], chargeij[mask], alpha)
 
             if pair[0] != pair[1]:
                 mask1 = np.logical_and(
@@ -525,8 +539,8 @@ class Ewald(Calculator):
                     atnums[i_p] == pair[1], atnums[j_p] == pair[0])
                 mask = np.logical_or(mask1, mask2)
 
-                de_p[mask] = f[pair].first_derivative_short(r_p[mask], chargeij[mask], alpha)
-                dde_p[mask] = f[pair].second_derivative_short(r_p[mask], chargeij[mask], alpha)
+                de_p[mask] = f[pair].first_derivative_rspace(r_p[mask], chargeij[mask], alpha)
+                dde_p[mask] = f[pair].second_derivative_rspace(r_p[mask], chargeij[mask], alpha)
         
         n_pc = (r_pc.T/r_p).T
         H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
@@ -625,13 +639,13 @@ class Ewald(Calculator):
             if index == 0:
                 alpha = pairs.get_alpha()
                 rc = pairs.get_cutoff_real()
-                kmax = pairs.get_max_k()
+                kc = pairs.get_cutoff_kspace()
                 nk = pairs.get_nk()
                 accuracy = pairs.get_accuracy()
             else:
-                if (rc != pairs.get_cutoff_real()) or (kmax != pairs.get_max_k()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk) or (accuracy != pairs.get_accuracy())):
+                if (rc != pairs.get_cutoff_real()) or (kc != pairs.get_cutoff_kspace()) or (alpha != pairs.get_alpha()) or (np.array_equal(nk, pairs.get_nk) or (accuracy != pairs.get_accuracy())):
                     raise AttributeError(
-                        "Attribute error: Cannot use different rc, Kmax, number of wave vectors or accuracy!")     
+                        "Attribute error: Cannot use different rc, kc, number of wave vectors or accuracy!")     
 
         # Check if alpha is given otherwise guess a value 
         if alpha == None:
@@ -639,21 +653,21 @@ class Ewald(Calculator):
 
         # Check if nx, ny and nz are given, otherwise compute valid values
         if np.any(nk) == None:
-            kmax, nk = calc.determine_nk(charge_p, calc, cell, accuracy, alpha, nb_atoms)    
+            kc, nk = calc.determine_nk(charge_p, calc, cell, accuracy, alpha, nb_atoms)    
 
         # Check if nx,ny and nz are given but Kmax not
-        if np.all(nk) != None and kmax == None:
-            kmax = calc.determine_kmax(cell, nk)
+        if np.all(nk) != None and kc == None:
+            kc = calc.determine_kc(cell, nk)
 
         # Compute and print error estimates
-        rms_real_space = calc.rms_real_space(charge_p, cell, alpha, rc)
-        rms_kspace_x = calc.rms(nk[0], cell[0, 0], nb_atoms, alpha, np.sum(charge_p**2))
-        rms_kspace_y = calc.rms(nk[1], cell[1, 1], nb_atoms, alpha, np.sum(charge_p**2))
-        rms_kspace_z = calc.rms(nk[2], cell[2, 2], nb_atoms, alpha, np.sum(charge_p**2))
+        rms_real_space = calc.rms_rspace(charge_p, cell, alpha, rc)
+        rms_kspace_x = calc.rms_kspace(nk[0], cell[0, 0], nb_atoms, alpha, np.sum(charge_p**2))
+        rms_kspace_y = calc.rms_kspace(nk[1], cell[1, 1], nb_atoms, alpha, np.sum(charge_p**2))
+        rms_kspace_z = calc.rms_kspace(nk[2], cell[2, 2], nb_atoms, alpha, np.sum(charge_p**2))
 
         print("Estimated alpha: ", alpha)
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
-        print("Cutoff for kspace vectors: ", kmax)
+        print("Cutoff for kspace vectors: ", kc)
         print("Estimated kspace vectors nx/ny/nx: ", nk[0], "/", nk[1], "/", nk[2]) 
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
 
@@ -664,7 +678,7 @@ class Ewald(Calculator):
         r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell)
 
         # Prefactor and wave vectors for reciprocal space 
-        Ik, k_lc = calc.wave_vectors_rec_triclinic(atoms.get_cell(), kmax, alpha, nk)
+        Ik, k_lc = calc.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nk)
 
         # 
         chargeij = charge_p[i_n] * charge_p[j_n]
