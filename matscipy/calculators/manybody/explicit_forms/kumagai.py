@@ -155,11 +155,75 @@ def Kumagai(parameters):
     d22F = lambda r, xi, i, p:  f(r) * fA(r) * ddb(xi)
     d12F = lambda r, xi, i, p: f(r) * dfA(r) * db(xi) + fA(r) * df(r) * db(xi)
 
-            
+    phi = lambda R, r, xi, i, p: F(r, xi, i, p)
+    d1phi = lambda R, r, xi, i, p: d1F(r, xi, i, p) / (2 * r)
+    d2phi = lambda R, r, xi, i, p: d2F(r, xi, i, p)
+    d11phi = lambda R, r, xi, i, p: d11F(r, xi, i, p) / (4 * R) - d1F(r, xi, i, p) / (4 * r * R)
+    d22phi = lambda R, r, xi, i, p: d22F(r, xi, i, p)
+    d12phi = lambda R, r, xi, i, p: d12F(r, xi, i, p) / (2 * r)
+
+    costh = lambda rij, rik: np.sum(rij*rik, axis=1) / (ab(rij)*ab(rik))
+
+    costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: (Rij + Rik - Rjk) / (2 * rij * rik)
+    d1costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: (2 * rij * rik) - (Rij + Rik - Rjk) / (4 * rij * Rij * rik)
+    d2costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: (2 * rij * rik) - (Rij + Rik - Rjk) / (4 * rij * rik * Rik)
+    d3costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: -1 / (2 * rij * rik)
+    d11costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: 3 * (-1 / (4 * rij * Rij * rik) + (Rij + Rik - Rjk) / (8 * rij * Rij * Rij * rik))
+    d22costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: 3 * (-1 / (4 * rij * rik * Rik) + (Rij + Rik - Rjk) / (8 * rij * rik * Rik * Rik))
+    d33costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: np.zeros_like(Rij)
+    d12costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: -1 / (4 * rij * Rij * rik) - 1 / (4 * rij * rik * Rik) + (Rij + Rik - Rjk) / (8 * rij * Rij * rik * Rik)
+    d13costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: 1 / (4 * rij * Rij * rik)
+    d23costh2 = lambda Rij, rij, Rik, rik, Rjk, rjk: 1 / (4 * rij * rik * Rik)
+
     G = lambda rij, rik, i, ij, ik: g(costh(rij, rik)) * hf(rij, rik)
-    
     d1G = lambda rij, rik, i, ij, ik: (Dh1(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg1(rij, rik).T).T
     d2G = lambda rij, rik, i, ij, ik: (Dh2(rij, rik).T * g(costh(rij, rik)) + hf(rij, rik) * Dg2(rij, rik).T).T
+
+    h2 = lambda rij, rik: f(rik) * np.exp(alpha * (rij - rik))
+    d1h2 = lambda rij, rik: alpha * h2(rij, rik)
+    d2h2 = lambda rij, rik: - alpha * h2(rij, rik) + df(rik) * np.exp(alpha * (rij - rik))
+    d11h2 = lambda rij, rik: alpha ** 2 * h2(rij, rik)
+    d12h2 = lambda rij, rik: alpha * d2h2(rij, rik)
+    d22h2 = lambda rij, rik: - alpha * (2 * df(rik) * np.exp(alpha * (rij - rik)) - alpha * h2(rij, rik)) + ddf(rik) * np.exp(alpha * (rij - rik))
+
+    theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: g(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * h2(rij, rik)
+    d1theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d1costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + g(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d1h2(rij, rik) / (2 * rij)
+    d2theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d2costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + g(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d2h2(rij, rik) / (2 * rik)
+    d3theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d3costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik)
+    d11theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        ddg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * (d1costh2(Rij, rij, Rik, rik, Rjk, rjk) ** 2) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d11costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + 2 * dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d1costh2(Rij, rij, Rik, rik, Rjk, rjk) * d1h2(rij, rik) / (2 * rij) \
+        + g(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d11h2(rij, rik) / (4 * Rij) \
+        - g(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d1h2(rij, rik) / (4 * rij * Rij)
+    d22theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        ddg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * (d2costh2(Rij, rij, Rik, rik, Rjk, rjk) ** 2) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d22costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + 2 * dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d2costh2(Rij, rij, Rik, rik, Rjk, rjk) * d2h2(rij, rik) / (2 * rik) \
+        + g(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d22h2(rij, rik) / (4 * Rik) \
+        - g(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d2h2(rij, rik) / (4 * rik * Rik)
+    d33theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        ddg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * (d3costh2(Rij, rij, Rik, rik, Rjk, rjk) ** 2) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d33costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik)
+    d12theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        ddg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d1costh2(Rij, rij, Rik, rik, Rjk, rjk) * d2costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d12costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d1costh2(Rij, rij, Rik, rik, Rjk, rjk) * d2h2(rij, rik) / (2 * rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d2costh2(Rij, rij, Rik, rik, Rjk, rjk) * d1h2(rij, rik) / (2 * rij) \
+        + g(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d12h2(rij, rik) / (4 * rij * rik)
+    d13theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        ddg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d1costh2(Rij, rij, Rik, rik, Rjk, rjk) * d3costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d13costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d3costh2(Rij, rij, Rik, rik, Rjk, rjk) * d1h2(rij, rik) / (2 * rij)
+    d23theta = lambda Rij, rij, Rik, rik, Rjk, rjk, i, ij, ik: \
+        ddg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d2costh2(Rij, rij, Rik, rik, Rjk, rjk) * d3costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d23costh2(Rij, rij, Rik, rik, Rjk, rjk) * h2(rij, rik) \
+        + dg(costh2(Rij, rij, Rik, rik, Rjk, rjk)) * d3costh2(Rij, rij, Rik, rik, Rjk, rjk) * d2h2(rij, rik) / (2 * rik)
 
     Dh1 = lambda rij, rik: (d1h(rij, rik) * rij.T / ab(rij)).T
     Dh2 = lambda rij, rik: (d2h(rij, rik) * rik.T / ab(rik)).T
@@ -204,9 +268,6 @@ def Kumagai(parameters):
         (ddg(costh(rij, rik)) * (c1(rij, rik).reshape(-1, 3, 1) * c2(rij, rik).reshape(-1, 1, 3)).T
          + dg(costh(rij, rik)) * dc12(rij, rik).T).T
 
-    # Helping functions 
-    costh = lambda rij, rik: np.sum(rij*rik, axis=1) / (ab(rij)*ab(rik))
-
     c1 = lambda rij, rik: ((rik.T/ab(rik) - rij.T/ab(rij) * costh(rij, rik)) / ab(rij)).T
     c2 = lambda rij, rik: ((rij.T/ab(rij) - rik.T/ab(rik) * costh(rij, rik)) / ab(rik)).T
 
@@ -225,21 +286,38 @@ def Kumagai(parameters):
         (((np.eye(3) -  ((rij.reshape(-1, 1, 3)*rij.reshape(-1, 3, 1)).T/ab(rij)**2).T).T/ab(rij)
          - (c1(rij, rik).reshape(-1, 3, 1) * rik.reshape(-1, 1, 3)).T/ab(rik) \
         )/ab(rik)).T
-        
+
+
     return {
         'atom_type': lambda n: np.zeros_like(n),
         'pair_type': lambda i, j: np.zeros_like(i),
         'F': F,
-        'G': G,
         'd1F': d1F,
         'd2F': d2F,
         'd11F': d11F,
         'd12F': d12F,
         'd22F': d22F,
+        'G': G,
         'd1G': d1G,
         'd2G': d2G,
         'd11G': d11G,
         'd22G': d22G,
         'd12G': d12G,
+        'phi': phi,
+        'd1phi': d1phi,
+        'd2phi': d2phi,
+        'd11phi': d11phi,
+        'd12phi': d12phi,
+        'd22phi': d22phi,
+        'theta': theta,
+        'd1theta': d1theta,
+        'd2theta': d2theta,
+        'd3theta': d3theta,
+        'd11theta': d11theta,
+        'd22theta': d22theta,
+        'd33theta': d33theta,
+        'd12theta': d12theta,
+        'd13theta': d13theta,
+        'd23theta': d23theta,
         'cutoff': R_2,
     }
