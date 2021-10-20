@@ -52,8 +52,9 @@ from ...elasticity import Voigt_6_to_full_3x3_stress
 
 
 ###
+
 # We express charges q as multiples of the elementary charge e: q = x*e
-# The prefactor of the Coulomb potential reads:  e^2/(4*pi*epsilon0) = 14.399645 eV * Angström 
+# Prefactor and charge of Coulomb potential:  e^2/(4*pi*epsilon0) = 14.399645 eV * Angström 
 conversion_prefactor = 14.399645
 
 ###
@@ -61,14 +62,15 @@ conversion_prefactor = 14.399645
 class BKS_ewald():
     """
     Functional Form of the Beest, Kramer, van Santen (BKS) potential.
-    The potential consits of a short range Buckingham potential and a long range Coulomb potential.
+    Functional form: Buckingham + Coulomb potential
 
-    Buckingham part 
+    Buckingham:  
         Energy is shifted to zero at the cutoff.
-    Coulomb part   
+    Coulomb:   
         Electrostatic interaction is treated using the traditional Ewald summation.
                      
-    References:
+    References
+    ----------
         B. W. Van Beest, G. J. Kramer and R. A. Van Santen, Phys. Rev. Lett. 64.16 (1990)
     """
 
@@ -192,7 +194,7 @@ class Ewald(Calculator):
         
         gs = max(kxmax, kymax, kzmax)
 
-        # Check if box is triclinic --> If yes, scale maximal k 
+        # Check if box is triclinic --> If yes, scale maximal n 
         if np.count_nonzero(cell - np.diag(np.diagonal(cell))) != 9:
             vector = np.array([nxmax/cell[0, 0], nymax/cell[1, 1], nzmax/cell[2, 2]])
             vec = np.dot(np.array(np.abs(cell)), vector)
