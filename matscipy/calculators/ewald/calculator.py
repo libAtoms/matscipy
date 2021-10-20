@@ -514,7 +514,7 @@ class Ewald(Calculator):
 
         # Check if alpha is given otherwise guess a value 
         if alpha == None:
-            alpha = calc.determine_alpha(charge_p, accuracy, rc, nb_atoms, cell_cc)
+            alpha = calc.determine_alpha(charge_n, accuracy, rc, nb_atoms, cell_cc)
 
         i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
         chargeij = charge_n[i_p] * charge_n[j_p]
@@ -660,9 +660,9 @@ class Ewald(Calculator):
 
         # Compute and print error estimates
         rms_real_space = calc.rms_rspace(charge_n, cell_cc, alpha, rc)
-        rms_kspace_x = calc.rms_kspace(nk[0], cell[0, 0], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
-        rms_kspace_y = calc.rms_kspace(nk[1], cell[1, 1], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
-        rms_kspace_z = calc.rms_kspace(nk[2], cell[2, 2], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
+        rms_kspace_x = calc.rms_kspace(nbk_c[0], cell_cc[0, 0], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
+        rms_kspace_y = calc.rms_kspace(nbk_c[1], cell_cc[1, 1], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
+        rms_kspace_z = calc.rms_kspace(nbk_c[2], cell_cc[2, 2], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
 
         print("Estimated alpha: ", alpha)
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
@@ -674,10 +674,10 @@ class Ewald(Calculator):
         ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
         i_n = ij_n[:,0]
         j_n = ij_n[:,1]
-        r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell)
+        r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell_cc)
 
         # Prefactor and wave vectors for reciprocal space 
-        I_l, k_lc = calc.allowed_wave_vectors(cell_cc, kc, alpha, nk)
+        I_l, k_lc = calc.allowed_wave_vectors(cell_cc, kc, alpha, nbk_c)
 
         # 
         chargeij = charge_n[i_n] * charge_n[j_n]
