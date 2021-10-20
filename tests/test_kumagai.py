@@ -30,7 +30,7 @@ from matscipy.calculators.manybody.explicit_forms.kumagai import Kumagai, Kumaga
 def assert_numerical_first_derivatives(err_msg, f, *args):
     eps = 1e-6
     nb_args = len(args)
-    a0 = np.random.random(nb_args) - 0.5
+    a0 = 3 * np.random.random(nb_args) + 0.001
     for i in range(nb_args):
         a = a0.copy()
         a[i] += eps
