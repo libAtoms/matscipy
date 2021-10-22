@@ -255,7 +255,7 @@ class Manybody(Calculator):
         # normal vectors
         n_pc = (r_pc.T / r_p).T
 
-        # construct triplet list (we need jk_t here, hence neighbor must be to 2 * cutoff)
+        # construct triplet list (we need the index jk_t explicitly here, hence neighbors must be to 2 * cutoff)
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
         first_p = first_neighbours(len(i_p), ij_t)
@@ -323,14 +323,14 @@ class Manybody(Calculator):
         H_pcc += \
             - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
             + mabincount(jk_t, weights=H_temp1_t, minlength=nb_pairs) \
-            - mabincount(trij_t, weights=H_temp1_t, minlength=nb_pairs) \
+            - mabincount(tr_p[ij_t], weights=H_temp1_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=H_temp1_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=H_temp2_t, minlength=nb_pairs) \
-            + mabincount(trjk_t, weights=H_temp3_t, minlength=nb_pairs) \
+            + mabincount(tr_p[ij_t], weights=H_temp3_t, minlength=nb_pairs) \
             - mabincount(ij_t, weights=H_temp3_t, minlength=nb_pairs) \
-            - mabincount(trik_t, weights=H_temp3_t, minlength=nb_pairs) \
+            - mabincount(tr_p[ij_t], weights=H_temp3_t, minlength=nb_pairs) \
             - mabincount(ij_t, weights=H_temp4_t, minlength=nb_pairs) \
-            - mabincount(trij_t, weights=H_temp4_t, minlength=nb_pairs) \
+            - mabincount(tr_p[ij_t], weights=H_temp4_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=Q1, minlength=nb_pairs) \
             + mabincount(jk_t, weights=Q2, minlength=nb_pairs) \
             - mabincount(ik_t, weights=Q2, minlength=nb_pairs)
