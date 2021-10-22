@@ -326,9 +326,9 @@ class Manybody(Calculator):
             - mabincount(tr_p[ij_t], weights=H_temp1_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=H_temp1_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=H_temp2_t, minlength=nb_pairs) \
-            + mabincount(tr_p[ij_t], weights=H_temp3_t, minlength=nb_pairs) \
+            + mabincount(tr_p[jk_t], weights=H_temp3_t, minlength=nb_pairs) \
             - mabincount(ij_t, weights=H_temp3_t, minlength=nb_pairs) \
-            - mabincount(tr_p[ij_t], weights=H_temp3_t, minlength=nb_pairs) \
+            - mabincount(tr_p[ik_t], weights=H_temp3_t, minlength=nb_pairs) \
             - mabincount(ij_t, weights=H_temp4_t, minlength=nb_pairs) \
             - mabincount(tr_p[ij_t], weights=H_temp4_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=Q1, minlength=nb_pairs) \

@@ -272,8 +272,8 @@ def compute_forces_and_hessian(a, par):
     # print('ana\n', ana_hessian)
     # print('num\n', num_hessian)
     # print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))
-    np.testing.assert_allclose(ana_hessian, ana_hessian.T, atol=1e-6)
-    np.testing.assert_allclose(ana_hessian, num_hessian, atol=1e-4)
+    np.testing.assert_allclose(ana_hessian, ana_hessian.T, atol=1e-6, err_msg='when checking for symmetric Hessian')
+    np.testing.assert_allclose(ana_hessian, num_hessian, atol=1e-4, err_msg='when comparing to numeric Hessian')
 
     ana2_hessian = calculator.get_hessian_from_second_derivative(a)
     np.testing.assert_allclose(ana2_hessian, ana2_hessian.T, atol=1e-6)
