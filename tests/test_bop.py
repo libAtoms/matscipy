@@ -42,9 +42,9 @@ from matscipy.calculators.calculator import MatscipyCalculator
 
 
 @pytest.mark.parametrize('a0', [5.2, 5.3, 5.4, 5.5])
-@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
-                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
-                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
+@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si)])
+#                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+#                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
 def test_stress(a0, par):
     atoms = Diamond('Si', size=[1, 1, 1], latticeconstant=a0)
     calculator = Manybody(**par)
@@ -69,9 +69,9 @@ def test_hessian_divide_by_masses():
 
 
 @pytest.mark.parametrize('d', np.arange(1.0, 2.3, 0.15))
-@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si),
-                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
-                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
+@pytest.mark.parametrize('par', [Kumagai(kumagai.Kumagai_Comp_Mat_Sci_39_Si)])
+#                                 TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
+#                                 StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)])
 def test_small1(d, par):
     # Test forces and hessian matrix for Kumagai
     small = Atoms([14] * 4, [(d, 0, d / 2), (0, 0, 0), (d, 0, 0), (0, 0, d)], cell=(100, 100, 100))

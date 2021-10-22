@@ -64,10 +64,15 @@ class Manybody(Calculator):
     default_parameters = {}
     name = 'Manybody'
 
-    def __init__(self, atom_type, pair_type, F, G, d1F, d2F, d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G, cutoff):
+    def __init__(self, atom_type, pair_type,
+                 F, G, d1F, d2F, d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G,
+                 phi, d1phi, d2phi, d11phi, d12phi, d22phi,
+                 theta, d1theta, d2theta, d3theta, d11theta, d12theta, d13theta, d22theta, d23theta, d33theta,
+                 cutoff):
         Calculator.__init__(self)
         self.atom_type = atom_type
         self.pair_type = pair_type
+
         self.F = F
         self.G = G
         self.d1F = d1F
@@ -80,6 +85,23 @@ class Manybody(Calculator):
         self.d22G = d22G
         self.d11G = d11G
         self.d12G = d12G
+
+        self.phi = phi
+        self.d1phi = d1phi
+        self.d2phi = d2phi
+        self.d11phi = d11phi
+        self.d12phi = d12phi
+        self.d22phi = d22phi
+        self.theta = theta
+        self.d1theta = d1theta
+        self.d2theta = d2theta
+        self.d3theta = d3theta
+        self.d11theta = d11theta
+        self.d12theta = d12theta
+        self.d13theta = d13theta
+        self.d22theta = d22theta
+        self.d23theta = d23theta
+        self.d33theta = d33theta
 
         self.cutoff = cutoff
 
@@ -109,16 +131,20 @@ class Manybody(Calculator):
 
         # construct neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
+        R_p = r_p * r_p
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
-        # normal vectors
-        n_pc = (r_pc.T / r_p).T
-
         # construct triplet list
         first_n = first_neighbours(nb_atoms, i_p)
         ij_t, ik_t = triplet_list(first_n)
+        rij_t = r_p[ij_t]
+        Rij_t = rij_t * rij_t
+        rik_t = r_p[ik_t]
+        Rik_t = rik_t * rik_t
+        Rjk_t = np.sum((r_pc[ik_t] - r_pc[ij_t]) ** 2, axis=1)
+        rjk_t = np.sqrt(Rjk_t)
 
         # construct lists with atom and pair types
         ti_p = t_n[i_p]
@@ -128,35 +154,55 @@ class Manybody(Calculator):
         tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        theta_t = self.theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d1theta_t = self.d1theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d2theta_t = self.d2theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d3theta_t = self.d3theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
 
-        xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
+        xi_p = np.bincount(ij_t, weights=theta_t, minlength=nb_pairs)
 
-        F_p = self.F(r_p, xi_p, ti_p, tij_p)
-        d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
-        d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
-        d2F_d2G_t = (d2F_p[ij_t] * d2G_tc.T).T
+        phi_p = self.phi(R_p, r_p, xi_p, ti_p, tij_p)
+        d1phi_p = self.d1phi(R_p, r_p, xi_p, ti_p, tij_p)
+        d2phi_p = self.d2phi(R_p, r_p, xi_p, ti_p, tij_p)
 
         # calculate energy
-        epot = 0.5 * np.sum(F_p)
+        epot = 0.5 * np.sum(phi_p)
 
         # calculate forces (per pair)
-        f_pc = (d1F_p * n_pc.T
-                + d2F_p * mabincount(ij_t, d1G_tc, nb_pairs).T
-                + mabincount(ik_t, d2F_d2G_t, nb_pairs).T).T
+        fij_pc = (d1phi_p * r_pc.T).T
 
-        # collect atomic forces
-        f_nc = 0.5 * (mabincount(i_p, f_pc, nb_atoms) - mabincount(j_p, f_pc, nb_atoms))
+        # calculate forces (per triplet)
+        fij_tc = (d2phi_p[ij_t] * d1theta_t * r_pc[ij_t].T).T
+        fik_tc = (d2phi_p[ij_t] * d2theta_t * r_pc[ik_t].T).T
+        fjk_tc = (d2phi_p[ij_t] * d3theta_t * (r_pc[ik_t] - r_pc[ij_t]).T).T
 
-        # Virial 
-        virial_v = 0.5 * np.array([r_pc[:, 0] * f_pc.T[0],  # xx
-                                   r_pc[:, 1] * f_pc.T[1],  # yy
-                                   r_pc[:, 2] * f_pc.T[2],  # zz
-                                   r_pc[:, 1] * f_pc.T[2],  # yz
-                                   r_pc[:, 0] * f_pc.T[2],  # xz
-                                   r_pc[:, 0] * f_pc.T[1]]).sum(axis=1)  # xy
+        # Atomic forces (pair contribution)
+        f_nc = mabincount(i_p, fij_pc, nb_atoms) - mabincount(j_p, fij_pc, nb_atoms)
+
+        # Atomic forces (triplet contribution)
+        f_nc += mabincount(i_p[ij_t], fij_tc, nb_atoms) - mabincount(j_p[ij_t], fij_tc, nb_atoms) \
+                + mabincount(i_p[ik_t], fik_tc, nb_atoms) - mabincount(j_p[ik_t], fik_tc, nb_atoms) \
+                + mabincount(j_p[ij_t], fjk_tc, nb_atoms) - mabincount(j_p[ik_t], fjk_tc, nb_atoms)
+
+        # Virial (pair contribution)
+        virial_v = np.array([
+            r_pc.T[0] * fij_pc.T[0],  # xx
+            r_pc.T[1] * fij_pc.T[1],  # yy
+            r_pc.T[2] * fij_pc.T[2],  # zz
+            r_pc.T[1] * fij_pc.T[2],  # xz
+            r_pc.T[0] * fij_pc.T[2],  # yz
+            r_pc.T[0] * fij_pc.T[1]   # xy
+        ]).sum(axis=1)
+
+        # Virial (triplet contribution)
+        virial_v += np.array([
+            r_pc[ij_t, 0] * fij_tc.T[0] + r_pc[ik_t, 0] * fik_tc.T[0] + (r_pc[ik_t, 0] - r_pc[ij_t, 0]) * fjk_tc.T[0],  # xx
+            r_pc[ij_t, 1] * fij_tc.T[1] + r_pc[ik_t, 1] * fik_tc.T[1] + (r_pc[ik_t, 1] - r_pc[ij_t, 1]) * fjk_tc.T[1],  # yy
+            r_pc[ij_t, 2] * fij_tc.T[2] + r_pc[ik_t, 2] * fik_tc.T[2] + (r_pc[ik_t, 2] - r_pc[ij_t, 2]) * fjk_tc.T[2],  # zz
+            r_pc[ij_t, 1] * fij_tc.T[2] + r_pc[ik_t, 1] * fik_tc.T[2] + (r_pc[ik_t, 1] - r_pc[ij_t, 1]) * fjk_tc.T[2],  # xz
+            r_pc[ij_t, 0] * fij_tc.T[2] + r_pc[ik_t, 0] * fik_tc.T[2] + (r_pc[ik_t, 0] - r_pc[ij_t, 0]) * fjk_tc.T[2],  # yz
+            r_pc[ij_t, 0] * fij_tc.T[1] + r_pc[ik_t, 0] * fik_tc.T[1] + (r_pc[ik_t, 0] - r_pc[ij_t, 0]) * fjk_tc.T[1]   # xy
+        ]).sum(axis=1)
 
         self.results = {'free_energy': epot,
                         'energy': epot,
@@ -174,10 +220,8 @@ class Manybody(Calculator):
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
-
         format: "sparse" or "neighbour-list"
             Output format of the hessian matrix.
-
         divide_by_masses: bool
         	if true return the dynamic matrix else hessian matrix 
 
@@ -279,14 +323,14 @@ class Manybody(Calculator):
         H_pcc += \
             - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
             + mabincount(jk_t, weights=H_temp1_t, minlength=nb_pairs) \
-            - mabincount(tr_p[ij_t], weights=H_temp1_t, minlength=nb_pairs) \
+            - mabincount(trij_t, weights=H_temp1_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=H_temp1_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=H_temp2_t, minlength=nb_pairs) \
-            + mabincount(tr_p[jk_t], weights=H_temp3_t, minlength=nb_pairs) \
+            + mabincount(trjk_t, weights=H_temp3_t, minlength=nb_pairs) \
             - mabincount(ij_t, weights=H_temp3_t, minlength=nb_pairs) \
-            - mabincount(tr_p[ik_t], weights=H_temp3_t, minlength=nb_pairs) \
+            - mabincount(trik_t, weights=H_temp3_t, minlength=nb_pairs) \
             - mabincount(ij_t, weights=H_temp4_t, minlength=nb_pairs) \
-            - mabincount(tr_p[ij_t], weights=H_temp4_t, minlength=nb_pairs) \
+            - mabincount(trij_t, weights=H_temp4_t, minlength=nb_pairs) \
             - mabincount(ik_t, weights=Q1, minlength=nb_pairs) \
             + mabincount(jk_t, weights=Q2, minlength=nb_pairs) \
             - mabincount(ik_t, weights=Q2, minlength=nb_pairs)
