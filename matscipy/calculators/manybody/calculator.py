@@ -387,22 +387,16 @@ class Manybody(Calculator):
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
-
         drda_pc/drdb_pc: array_like
             Derivative of atom positions with respect to variable a/b.
-
         i_p: array
             First atom index
-
         j_p: array
             Second atom index
-
         r_p: array
             Absolute distance 
-
-        r_pc: array 
+        r_pc: array
             Distance vector
-
         """
         if self.atoms is None:
             self.atoms = atoms
