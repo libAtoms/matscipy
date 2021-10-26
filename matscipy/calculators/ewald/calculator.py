@@ -117,7 +117,7 @@ class BKS_ewald():
         """
         Potential of short range Buckingham and Coulomb
         """
-        E_buck = self.A * np.exp(-self.B*r) - self.C / r**6 - self.buck_offset_energy
+        E_buck = self.A * np.exp(-self.B*r) - self.C / r**6 - self.buck_offset_energy 
         E_coul = conversion_prefactor * pair_charge * erfc(a*r) / r
 
         return E_buck + E_coul
@@ -141,15 +141,6 @@ class BKS_ewald():
             + 4 * a * np.exp(-(a*r)**2) / np.sqrt(np.pi) * (1 / r**2 + a**2))
 
         return k_buck + k_coul
-
-    def derivative(self, n=1):
-        if n == 1:
-            return self.first_derivative_rspace
-        elif n == 2:
-            return self.second_derivative_rspace
-        else:
-            raise ValueError(
-                "Don't know how to compute {}-th derivative.".format(n))
 
 ###
 
@@ -304,7 +295,7 @@ class Ewald(Calculator):
 
         f = np.sum(charge_cos_ln.reshape(len(k), natoms, 1) * k.reshape(len(k), 1, 3), axis=0)
 
-        return conversion_prefactor * 4 * np.pi * (charge * f.T).T / vol
+        return -conversion_prefactor * 4 * np.pi * (charge * f.T).T / vol
 
     def stress_kspace(self, charge, pos, vol, a, I, k):
         """
@@ -388,6 +379,9 @@ class Ewald(Calculator):
         print("Cutoff for kspace vectors: ", kc)
         print("Estimated kspace triplets nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
+        print("Absolute RMS force accuracy (Kspace) in x:", np.sqrt(rms_kspace_x**2))
+        print("Absolute RMS force accuracy (Kspace) in y:", np.sqrt(rms_kspace_y**2))
+        print("Absolute RMS force accuracy (Kspace) in z:", np.sqrt(rms_kspace_z**2))
 
         # Neighbor list for short range interaction
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
@@ -400,7 +394,7 @@ class Ewald(Calculator):
         ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
         i_n = ij_n[:,0]
         j_n = ij_n[:,1]
-        r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell_cc)
+        r_nc = mic(pos_nc[j_n,:] - pos_nc[i_n,:], cell=cell_cc)
 
         # Prefactor and wave vectors for reciprocal space 
         I_l, k_lc = calc.allowed_wave_vectors(cell_cc, kc, alpha, nbk_c)
@@ -516,9 +510,14 @@ class Ewald(Calculator):
         if alpha == None:
             alpha = calc.determine_alpha(charge_n, accuracy, rc, nb_atoms, cell_cc)
 
+        print("Estimated alpha: ", alpha)
+
         i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
         chargeij = charge_n[i_p] * charge_n[j_p]
         first_i = first_neighbours(nb_atoms, i_p)
+
+        if np.sum(i_p == j_p) > 1e-5:
+            print("Atoms can see themselves!")
 
         de_p = np.zeros_like(r_p)
         dde_p = np.zeros_like(r_p)
@@ -547,7 +546,31 @@ class Ewald(Calculator):
         H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
                                     - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
 
-        if format == "dense":
+        if format == "sparse":
+            if divide_by_masses:
+                H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T,
+                                j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
+
+            else:
+                H = bsr_matrix((H_pcc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
+
+            Hdiag_icc = np.empty((nb_atoms, 3, 3))
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:, x, y] = - \
+                        np.bincount(i_p, weights=H_pcc[:, x, y])
+
+            if divide_by_masses:
+                H += bsr_matrix(((Hdiag_icc.T/mass_n).T, np.arange(nb_atoms),
+                        np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))         
+
+            else:
+                H += bsr_matrix((Hdiag_icc, np.arange(nb_atoms),
+                         np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
+
+            return H
+
+        elif format == "dense":
             H = np.zeros((3*nb_atoms, 3*nb_atoms))
             for atom in range(len(i_p)):
                 H[3*i_p[atom]:3*i_p[atom]+3,
@@ -580,11 +603,11 @@ class Ewald(Calculator):
 
         else:
            raise AttributeError(
-                "Attribute error: Can not return a sparse matrix for potentials with long-range interactions")                
+                "Attribute error: Can not return a Hessian matrix in the given format!")                
 
     ###
 
-    def kspace_properties(self, atoms, prop="Hessian", format='dense', divide_by_masses=False):
+    def kspace_properties(self, atoms, prop="Hessian", divide_by_masses=False):
         """
         Calculate the recirprocal contributiom to the Hessian, the non-affine forces and the Born elastic constants
 
@@ -597,11 +620,8 @@ class Ewald(Calculator):
             Compute either the Hessian/Dynamical matrix, the Born constants 
             or the non-affine forces.
 
-        format: "sparse" or "neighbour-list"
-            Output format of the hessian matrix.
-
         divide_by_masses: bool
-            if true return the dynamic matrix else hessian matrix 
+            if true return the dynamic matrix else Hessian matrix 
 
         Restrictions
         ----------
@@ -669,12 +689,15 @@ class Ewald(Calculator):
         print("Cutoff for kspace vectors: ", kc)
         print("Estimated kspace vectors nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
+        print("Absolute RMS force accuracy (Kspace) in x:", np.sqrt(rms_kspace_x**2))
+        print("Absolute RMS force accuracy (Kspace) in y:", np.sqrt(rms_kspace_y**2))
+        print("Absolute RMS force accuracy (Kspace) in z:", np.sqrt(rms_kspace_z**2))
 
         # List of distances for all atoms
         ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
         i_n = ij_n[:,0]
         j_n = ij_n[:,1]
-        r_nc = mic(pos_nc[i_n,:] - pos_nc[j_n,:], cell=cell_cc)
+        r_nc = mic(pos_nc[j_n,:] - pos_nc[i_n,:], cell=cell_cc)
 
         # Prefactor and wave vectors for reciprocal space 
         I_l, k_lc = calc.allowed_wave_vectors(cell_cc, kc, alpha, nbk_c)
@@ -685,42 +708,38 @@ class Ewald(Calculator):
         if prop == "Hessian":
             mask = i_n != j_n
 
-            prefactor_kn = np.zeros((len(I_l), len(i_n)))
-            prefactor_kn[:,mask] += np.cos(np.tensordot(k_lc, r_nc, axes=((1), (1))))[:, mask]
-            prefactor_kn = (I_l * prefactor_kn.T).T
-            H_ncc = np.sum((k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)) * prefactor_kn.reshape(-1, len(i_n), 1, 1), axis=0)
+            prefactor_ln = np.zeros((len(I_l), len(i_n)))
+            prefactor_ln[:,mask] += np.cos(np.tensordot(k_lc, r_nc, axes=((1), (1))))[:, mask]
+            prefactor_ln = (I_l * prefactor_ln.T).T
+            H_ncc = np.sum((k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)) * prefactor_ln.reshape(-1, len(i_n), 1, 1), axis=0)
             H_ncc *= (conversion_prefactor * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1,1,1)
 
-            # Build Hessian matrix 
-            if format == "dense":
-                H = np.zeros((3*nb_atoms, 3*nb_atoms))
-                for atom in range(len(i_n)):
-                    H[3*i_n[atom]:3*i_n[atom]+3,
-                      3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
+            # Hessian matrix: Off-diagonal elements
+            H = np.zeros((3*nb_atoms, 3*nb_atoms))
+            for atom in range(len(i_n)):
+                H[3*i_n[atom]:3*i_n[atom]+3,
+                  3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
 
-                # Diagonal elems
-                Hdiag_icc = np.empty((nb_atoms, 3, 3))
-                for x in range(3):
-                    for y in range(3):
-                        Hdiag_icc[:, x, y] = - \
-                            np.bincount(i_n, weights=H_ncc[:, x, y])
+            # Hessian matrix: Diagonal elements
+            Hdiag_icc = np.empty((nb_atoms, 3, 3))
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:, x, y] = - \
+                        np.bincount(i_n, weights=H_ncc[:, x, y])
 
-                Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
-                for atom in range(nb_atoms):
-                    Hdiag_ncc[3*atom:3*atom+3,
-                              3*atom:3*atom+3] += Hdiag_icc[atom]
+            Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
+            for atom in range(nb_atoms):
+                Hdiag_ncc[3*atom:3*atom+3,
+                          3*atom:3*atom+3] += Hdiag_icc[atom]
 
-                H += Hdiag_ncc
+            H += Hdiag_ncc
 
-                if divide_by_masses:
-                    masses_p = (atoms.get_masses()).repeat(3)
-                    H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
-                
-                return H
+            if divide_by_masses:
+                masses_p = (atoms.get_masses()).repeat(3)
+                H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
+            
+            return H
 
-            else:
-               raise AttributeError(
-                    "Attribute error: Can not return a sparse matrix for long-range interactions") 
 
         elif prop == "Born":
             C_abmn = np.zeros((3, 3, 3, 3))
@@ -746,21 +765,30 @@ class Ewald(Calculator):
 
         elif prop == "NAForces":
 
-            naForces_ncc = np.zeros((nb_atoms, 3, 3, 3))
+            structure_ln = (I_l * mabincount(i_n, charge_n[j_n] * np.sin(np.tensordot(k_lc, r_nc, axes=((1),(1)))), nb_atoms, 1).T).T
 
+            prefactor_l = (1/(2*alpha**2) + 2/np.linalg.norm(k_lc, axis=1)**2).reshape(-1, 1, 1)
+
+            prefactor_lcc = (k_lc.reshape(-1, 3, 1) * k_lc.reshape(-1, 1, 3)) * prefactor_l - np.identity(3)
+
+            prefactor_lccc = k_lc.reshape(-1, 3, 1, 1) * prefactor_lcc.reshape(-1, 1, 3, 3)
+
+            naForces_nccc = np.sum(structure_ln.reshape(-1, nb_atoms, 1, 1, 1) * prefactor_lccc.reshape(-1, 1, 3, 3, 3), axis=0 )
+
+            return -conversion_prefactor * 4 * np.pi * (charge_n * naForces_nccc.T).T / atoms.get_volume()
+            
+            """
             for index, wavevector in enumerate(k_lc):
-                structure_factor = charge_n * I_l[index] * np.bincount(i_n, weights=charge_n[j_n]*np.sin(np.sum(wavevector*r_nc, axis=1)))
-
+                structure_factor =  I_l[index] * np.bincount(i_n, weights=charge_n[j_n]*np.sin(np.sum(wavevector*r_nc, axis=1)))
                 prefactor = (wavevector.reshape(3, 1) * wavevector.reshape(1, 3)) * (1/(2*alpha**2) + 2/np.linalg.norm(wavevector)**2) - np.identity(3) 
-
                 vectorlike = wavevector.reshape(1, 3, 1, 1) * prefactor.reshape(1, 1, 3, 3)
-
                 naForces_ncc += structure_factor.reshape(nb_atoms, 1, 1, 1) * np.repeat(vectorlike, nb_atoms, axis=0)
                 
 
-            naForces_ncc *= (-conversion_prefactor * 4 * np.pi / atoms.get_volume())
+            naForces_ncc *= (conversion_prefactor * 4 * np.pi * charge_n.reshape(-1, 1, 1, 1) / atoms.get_volume())
 
             return naForces_ncc 
+            """
 
     ###
 
@@ -769,7 +797,7 @@ class Ewald(Calculator):
         Compute the real space + kspace Hessian
         """
         H = self.hessian_rspace(atoms, format='dense')
-        H += self.kspace_properties(atoms, prop="Hessian", format='dense')
+        H += self.kspace_properties(atoms, prop="Hessian")
 
         return H
 
@@ -791,12 +819,12 @@ class Ewald(Calculator):
         # Real space 
         H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.hessian_rspace(atoms, 'neighbour-list')
         naF_pcab = -0.5 * H_pcc.reshape(-1, 3, 3, 1) * dr_pc.reshape(-1, 1, 1, 3)
-        naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
+        Snaforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
 
         # Reciprocal space
-        naforces_icab -= self.kspace_properties(atoms, prop="NAForces")
+        Lnaforces_icab = self.kspace_properties(atoms, prop="NAForces")
 
-        return naforces_icab
+        return Snaforces_icab, Lnaforces_icab
 
     ###
 
@@ -992,5 +1020,36 @@ class Ewald(Calculator):
             fna_ncc[:, 1, j, i] = naForces_ncc[:, 1]
             fna_ncc[:, 2, i, j] = naForces_ncc[:, 2]
             fna_ncc[:, 2, j, i] = naForces_ncc[:, 2]
+
+            # Off diagonal --> xy, xz
+            """
+            j = i - 2
+            x[i, j] = d
+            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+            fplus = atoms.get_forces()
+
+            x[i, j] = -d
+            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+            fminus = atoms.get_forces()
+
+            naForces_ncc = (fplus - fminus) / (2 * d)
+            fna_ncc[:, 0, i, j] = naForces_ncc[:, 0]
+            fna_ncc[:, 1, i, j] = naForces_ncc[:, 1]
+            fna_ncc[:, 2, i, j] = naForces_ncc[:, 2]
+
+            # Odd diagonal --> yx, 
+            x[j, i] = d
+            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+            fplus = atoms.get_forces()
+
+            x[j, i] = -d
+            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+            fminus = atoms.get_forces()
+
+            naForces_ncc = (fplus - fminus) / (2 * d)
+            fna_ncc[:, 0, j, i] = naForces_ncc[:, 0]
+            fna_ncc[:, 1, j, i] = naForces_ncc[:, 1]
+            fna_ncc[:, 2, j, i] = naForces_ncc[:, 2]
+            """
 
         return fna_ncc
