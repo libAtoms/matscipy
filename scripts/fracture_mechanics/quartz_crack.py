@@ -29,7 +29,7 @@ from ase.units import GPa, J, m
 
 from ase.optimize import FIRE
 
-from matscipy.elasticity import measure_triclinic_elastic_constants
+from matscipy.elasticity import birch_coefficients
 import matscipy.fracture_mechanics.crack as crack
 
 sys.path.insert(0, '.')

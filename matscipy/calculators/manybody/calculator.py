@@ -51,12 +51,15 @@ from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, neig
 from ...numpy_tricks import mabincount
 
 
-def _o(x, y, z=None):
+def _o(x, y, z=None, t=None):
     """Outer product"""
-    if z is None:
+    if z is None and t is None:
         return x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3)
-    else:
+    elif t is None:
         return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
+    else:
+        return x.reshape(-1, 3, 1, 1, 1) * y.reshape(-1, 1, 3, 1, 1) * z.reshape(-1, 1, 1, 3, 1) \
+               * t.reshape(-1, 1, 1, 1, 3)
 
 
 class Manybody(Calculator):
@@ -65,26 +68,12 @@ class Manybody(Calculator):
     name = 'Manybody'
 
     def __init__(self, atom_type, pair_type,
-                 F, G, d1F, d2F, d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G,
                  phi, d1phi, d2phi, d11phi, d12phi, d22phi,
                  theta, d1theta, d2theta, d3theta, d11theta, d12theta, d13theta, d22theta, d23theta, d33theta,
                  cutoff):
         Calculator.__init__(self)
         self.atom_type = atom_type
         self.pair_type = pair_type
-
-        self.F = F
-        self.G = G
-        self.d1F = d1F
-        self.d2F = d2F
-        self.d11F = d11F
-        self.d22F = d22F
-        self.d12F = d12F
-        self.d2G = d2G
-        self.d1G = d1G
-        self.d22G = d22G
-        self.d11G = d11G
-        self.d12G = d12G
 
         self.phi = phi
         self.d1phi = d1phi
@@ -548,40 +537,97 @@ class Manybody(Calculator):
 
     def get_born_elastic_constants(self, atoms):
         """
-        Compute the Born elastic constants. 
+        Calculate the second derivative of the energy with respect to the Green-Lagrange strain.
 
         Parameters
         ----------
-        atoms: ase.Atoms
+        atoms : ase.Atoms
             Atomic configuration in a local or global minima.
 
+        Returns
+        -------
+        C : np.ndarray, shape (3, 3, 3, 3)
+            Born elastic constants
         """
-
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.get_cutoff(atoms))
+        # get internal atom types from atomic numbers
+        t_n = self.atom_type(atoms.numbers)
+        cutoff = self.get_cutoff(atoms)
 
+        # construct neighbor list
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
+        R_p = r_p * r_p
+
+        nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
-        C_abab = np.zeros((3, 3, 3, 3))
+        # construct triplet list (we don't need jk_t here, hence neighbor to cutoff suffices)
+        first_n = first_neighbours(nb_atoms, i_p)
+        ij_t, ik_t = triplet_list(first_n)
+        rij_t = r_p[ij_t]
+        rij_tc = r_pc[ij_t]
+        Rij_t = rij_t * rij_t
+        rik_t = r_p[ik_t]
+        rik_tc = r_pc[ik_t]
+        Rik_t = rik_t * rik_t
+        rjk_tc = r_pc[ik_t] - r_pc[ij_t]
+        Rjk_t = np.sum(rjk_tc * rjk_tc, axis=1)
+        rjk_t = np.sqrt(Rjk_t)
 
-        for alpha in range(3):
-            for beta in range(3):
-                drda_pc = np.zeros((nb_pairs, 3))
-                drda_pc[:, alpha] = r_pc[:, beta] / 2
-                drda_pc[:, beta] += r_pc[:, alpha] / 2
-                for nu in range(3):
-                    for mu in range(3):
-                        drdb_pc = np.zeros((nb_pairs, 3))
-                        drdb_pc[:, nu] = r_pc[:, mu] / 2
-                        drdb_pc[:, mu] += r_pc[:, nu] / 2
-                        C_abab[alpha, beta, nu, mu] = \
-                            self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
+        # construct lists with atom and pair types
+        ti_p = t_n[i_p]
+        tij_p = self.pair_type(ti_p, t_n[j_p])
+        ti_t = t_n[i_p[ij_t]]
+        tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
+        tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
 
-        C_abab /= (2 * atoms.get_volume())
+        # potential-dependent functions
+        theta_t = self.theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d1theta_t = self.d1theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d2theta_t = self.d2theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d3theta_t = self.d3theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d11theta_t = self.d11theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d22theta_t = self.d22theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d33theta_t = self.d33theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d12theta_t = self.d12theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d23theta_t = self.d23theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
+        d13theta_t = self.d13theta(Rij_t, rij_t, Rik_t, rik_t, Rjk_t, rjk_t, ti_t, tij_t, tik_t)
 
-        return C_abab
+        xi_p = np.bincount(ij_t, weights=theta_t, minlength=nb_pairs)
+
+        d2phi_p = self.d2phi(R_p, r_p, xi_p, ti_p, tij_p)
+        d11phi_p = self.d11phi(R_p, r_p, xi_p, ti_p, tij_p)
+        d22phi_p = self.d22phi(R_p, r_p, xi_p, ti_p, tij_p)
+        d12phi_p = self.d12phi(R_p, r_p, xi_p, ti_p, tij_p)
+
+        # Term 1 disappears
+
+        # Term 2
+        C_abab = (d11phi_p * _o(r_pc, r_pc, r_pc, r_pc).T).T.sum(axis=0)
+
+        # Term 3
+        C_abab += (d2phi_p[ij_t] * (
+                d11theta_t * _o(rij_tc, rij_tc, rij_tc, rij_tc).T
+                + d12theta_t * (_o(rij_tc, rij_tc, rik_tc, rik_tc).T + _o(rik_tc, rik_tc, rij_tc, rij_tc).T)
+                + d13theta_t * (_o(rij_tc, rij_tc, rjk_tc, rjk_tc).T + _o(rjk_tc, rjk_tc, rij_tc, rij_tc).T)
+                + d22theta_t * _o(rik_tc, rik_tc, rik_tc, rik_tc).T
+                + d23theta_t * (_o(rik_tc, rik_tc, rjk_tc, rjk_tc).T + _o(rjk_tc, rjk_tc, rik_tc, rik_tc).T)
+                + d33theta_t * _o(rjk_tc, rjk_tc, rjk_tc, rjk_tc).T)).T.sum(axis=0)
+
+        # Term 4
+        C_abab += (d12phi_p[ij_t] * (
+            2 * d1theta_t * (_o(rij_tc, rij_tc, rij_tc, rij_tc).T)
+            + d2theta_t * (_o(rij_tc, rij_tc, rik_tc, rik_tc).T + _o(rik_tc, rik_tc, rij_tc, rij_tc).T)
+            + d3theta_t * (_o(rij_tc, rij_tc, rjk_tc, rjk_tc).T + _o(rjk_tc, rjk_tc, rij_tc, rij_tc).T))).T.sum(axis=0)
+
+        # Term 5
+        tmpij_pcc = mabincount(ij_t, (d1theta_t * _o(rij_tc, rij_tc).T + d2theta_t * _o(rik_tc, rik_tc).T
+                                      + d3theta_t * _o(rjk_tc, rjk_tc).T).T, minlength=nb_pairs)
+        C_abab += (d22phi_p * tmpij_pcc.reshape(-1, 3, 3, 1, 1).T * tmpij_pcc.reshape(-1, 1, 1, 3, 3).T).T.sum(axis=0)
+
+        return 2 * C_abab / atoms.get_volume()
 
     def get_stress_contribution_to_elastic_constants(self, atoms):
         """
@@ -601,13 +647,12 @@ class Manybody(Calculator):
 
         # Term 1
         C1_abab = -stress_ab.reshape(3, 3, 1, 1) * delta_ab.reshape(1, 1, 3, 3)
-        C1_abab = (C1_abab + C1_abab.swapaxes(0, 1) + C1_abab.swapaxes(2, 3) + C1_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
         # Term 2
-        C2_abab = (stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3) + \
-                   stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1) + \
-                   stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3) + \
-                   stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1))/4
+        C2_abab = (stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3) \
+                   + stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1) \
+                   + stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3) \
+                   + stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1)) / 2
 
         return C1_abab + C2_abab
 

@@ -58,7 +58,7 @@ from ase.optimize import FIRE
 from ase.units import GPa
 
 import matscipy.calculators.polydisperse as calculator
-from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
+from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, birch_coefficients
 from matscipy.calculators.polydisperse import InversePowerLawPotential, Polydisperse
 from matscipy.hessian_finite_differences import fd_hessian
 

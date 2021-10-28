@@ -55,7 +55,7 @@ from ase.optimize import FIRE
 import ase.io
 import ase.units as units
 
-from matscipy.elasticity import (measure_triclinic_elastic_constants,
+from matscipy.elasticity import (birch_coefficients,
                                  rotate_elastic_constants,
                                  youngs_modulus, poisson_ratio)
 
@@ -89,8 +89,8 @@ a.set_calculator(params.calc)
 # ******* Find elastic constants *******
 
 # Get 6x6 matrix of elastic constants C_ij
-C = measure_triclinic_elastic_constants(a, optimizer=FIRE,
-                                        fmax=params.bulk_fmax)
+C = birch_coefficients(a, optimizer=FIRE,
+                       fmax=params.bulk_fmax)
 print('Elastic constants (GPa):')
 print((C / units.GPa).round(0))
 print('')
@@ -121,9 +121,9 @@ if (hasattr(params, 'check_rotated_elastic_constants') and
 
     params.check_rotated_elastic_constants):
     unit_slab.set_calculator(params.calc)
-    C_r1 = measure_triclinic_elastic_constants(unit_slab,
-                                               optimizer=FIRE,
-                                               fmax=params.bulk_fmax)
+    C_r1 = birch_coefficients(unit_slab,
+                              optimizer=FIRE,
+                              fmax=params.bulk_fmax)
 
     R = np.array([ np.array(x)/np.linalg.norm(x) for x in directions ])
     C_r2 = rotate_elastic_constants(C, R)

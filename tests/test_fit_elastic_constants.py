@@ -57,7 +57,7 @@ except ImportError:
 
 import matscipytest
 from matscipy.elasticity import (fit_elastic_constants,
-                                 measure_triclinic_elastic_constants)
+                                 birch_coefficients)
 
 if quippy is not None:
     
@@ -147,13 +147,13 @@ if quippy is not None:
 
         def test_measure_triclinic_unrelaxed(self):
             # compare to brute force method without relaxation
-            C = measure_triclinic_elastic_constants(self.at0, delta=1e-2, optimizer=None)
+            C = birch_coefficients(self.at0, delta=1e-2, optimizer=None)
             self.assertArrayAlmostEqual(C/units.GPa, self.C_ref, tol=0.2)
 
         def test_measure_triclinic_relaxed(self):
             # compare to brute force method with relaxation            
-            C = measure_triclinic_elastic_constants(self.at0, delta=1e-2, optimizer=FIRE,
-                                                    fmax=self.fmax)
+            C = birch_coefficients(self.at0, delta=1e-2, optimizer=FIRE,
+                                   fmax=self.fmax)
             self.assertArrayAlmostEqual(C/units.GPa, self.C_ref_relaxed, tol=0.2)
  
         def testcubic_unrelaxed(self):

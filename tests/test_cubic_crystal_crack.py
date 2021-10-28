@@ -58,7 +58,7 @@ from ase.lattice.cubic import FaceCenteredCubic, SimpleCubic
 import matscipytest
 import matscipy.fracture_mechanics.clusters as clusters
 from matscipy.neighbours import neighbour_list
-from matscipy.elasticity import measure_triclinic_elastic_constants
+from matscipy.elasticity import birch_coefficients
 from matscipy.elasticity import Voigt_6x6_to_cubic
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack
 from matscipy.fracture_mechanics.crack import \

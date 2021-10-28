@@ -61,7 +61,7 @@ from ase.units import GPa
 from ase.lattice.cubic import FaceCenteredCubic
 
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesQuadratic, LennardJonesLinear
-from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
+from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, birch_coefficients
 from matscipy.calculators.calculator import MatscipyCalculator
 from matscipy.hessian_finite_differences import fd_hessian
 
@@ -345,7 +345,7 @@ def test_elastic_born_crystal_stress():
         atoms.calc = b
         FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=1e-5)   
         Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
-        Cnum2_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants(atoms), tol=10)
+        Cnum2_voigt = full_3x3x3x3_to_Voigt_6x6(birch_coefficients(atoms), tol=10)
         #Cnum3_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants_2nd(atoms), tol=10)
         Cana = b.get_birch_coefficients(atoms)
         Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana, tol=10)

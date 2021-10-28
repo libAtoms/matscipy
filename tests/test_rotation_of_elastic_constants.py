@@ -52,7 +52,7 @@ import matscipytest
 from matscipy.calculators.eam import EAM
 from matscipy.elasticity import (CubicElasticModuli, Voigt_6x6_to_cubic,
                                  cubic_to_Voigt_6x6, full_3x3x3x3_to_Voigt_6x6,
-                                 measure_triclinic_elastic_constants,
+                                 birch_coefficients,
                                  rotate_cubic_elastic_constants,
                                  rotate_elastic_constants)
 
@@ -86,12 +86,12 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
             FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=self.fmax)
             latticeconstant = np.mean(a.cell.diagonal())
 
-            C6 = measure_triclinic_elastic_constants(a, delta=self.delta, fmax=self.fmax)
+            C6 = birch_coefficients(a, delta=self.delta, fmax=self.fmax)
             C11, C12, C44 = Voigt_6x6_to_cubic(full_3x3x3x3_to_Voigt_6x6(C6)) / GPa
 
             el = CubicElasticModuli(C11, C12, C44)
 
-            C_m = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants(
+            C_m = full_3x3x3x3_to_Voigt_6x6(birch_coefficients(
                 a, delta=self.delta, fmax=self.fmax)) / GPa
             self.assertArrayAlmostEqual(el.stiffness(), C_m, tol=0.01)
 
@@ -119,7 +119,7 @@ class TestCubicElasticModuli(matscipytest.MatSciPyTestCase):
                 self.assertArrayAlmostEqual(C, C_check3, tol=1e-6)
 
                 C_m = full_3x3x3x3_to_Voigt_6x6(
-                    measure_triclinic_elastic_constants(a, delta=self.delta, fmax=self.fmax)) / GPa
+                    birch_coefficients(a, delta=self.delta, fmax=self.fmax)) / GPa
 
                 self.assertArrayAlmostEqual(C, C_m, tol=1e-2)
 
