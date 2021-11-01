@@ -640,8 +640,6 @@ class Ewald(Calculator):
         """
         f = self.f
         nb_atoms = len(atoms)
-        cell_cc = atoms.get_cell()
-        pos_nc = atoms.get_positions()
 
         # Check some properties of input data
         if atoms.has("charge"):
@@ -671,23 +669,23 @@ class Ewald(Calculator):
                     raise AttributeError(
                         "Attribute error: Cannot use different rc, kc, number of wave vectors or accuracy!")     
 
-        # Check if alpha is given otherwise guess a value 
+        # Check if alpha is given otherwise estimate it
         if alpha == None:
-            alpha = self.determine_alpha(charge_n, accuracy, rc, nb_atoms, cell_cc)
+            alpha = self.determine_alpha(charge_n, accuracy, rc, nb_atoms, atoms.get_cell())
 
-        # Check if nx, ny and nz are given, otherwise compute valid values
+        # Check if nx, ny and nz are given, otherwise estimate values
         if np.any(nbk_c) == None:
-            kc, nbk_c = self.determine_nk(charge_n, calc, cell_cc, accuracy, alpha, nb_atoms)    
+            kc, nbk_c = self.determine_nk(charge_n, atoms.get_calculator(), atoms.get_cell(), accuracy, alpha, nb_atoms)    
 
-        # Check if nx,ny and nz are given but Kmax not
+        # If nx, ny and nz are given but cutoff in reciprocal space not, compute 
         if np.all(nbk_c) != None and kc == None:
-            kc = self.determine_kc(cell_cc, nbk_c)
+            kc = self.determine_kc(atoms.get_cell(), nbk_c)
 
         # Compute and print error estimates
-        rms_real_space = self.rms_rspace(charge_n, cell_cc, alpha, rc)
-        rms_kspace_x = self.rms_kspace(nbk_c[0], cell_cc[0, 0], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
-        rms_kspace_y = self.rms_kspace(nbk_c[1], cell_cc[1, 1], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
-        rms_kspace_z = self.rms_kspace(nbk_c[2], cell_cc[2, 2], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
+        rms_real_space = self.rms_rspace(charge_n, atoms.get_cell(), alpha, rc)
+        rms_kspace_x = self.rms_kspace(nbk_c[0], atoms.get_cell()[0, 0], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
+        rms_kspace_y = self.rms_kspace(nbk_c[1], atoms.get_cell()[1, 1], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
+        rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
 
         print("Kspace properties")
         print("----------------------------")
@@ -715,7 +713,79 @@ class Ewald(Calculator):
         # 
         chargeij = charge_n[i_n] * charge_n[j_n]
 
-        print("volume: ", atoms.get_volume())
+        if prop == "Born":
+            C = np.zeros((3, 3, 3, 3))
+            delta_ab = np.identity(3)
+
+            for index, wavevector in enumerate(k_lc):
+                structure_factor = np.sum(charge_n * np.exp(1j*np.sum(wavevector*atoms.get_positions(), axis=1)))
+                prefactor = I_l[index] * np.absolute(structure_factor)**2
+                sqk = np.sum(wavevector*wavevector)
+
+                # First 
+                first = 2 * delta_ab.reshape(3,3,1,1) * delta_ab.reshape(1,1,3,3)
+
+                # Second 
+                prefactor_second = 1/(2*alpha**2) + 2/sqk
+                second = (wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3)*delta_ab.reshape(3,3,1,1) +
+                          wavevector.reshape(1,3,1,1)*wavevector.reshape(3,1,1,1)*delta_ab.reshape(1,1,3,3))
+
+                # Third
+                prefactor_third = 1/(4*alpha**4) + 2/(alpha**2 * sqk) + 8/sqk**2
+                third = wavevector.reshape(3,1,1,1)*wavevector.reshape(1,3,1,1)*wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3)
+                
+                # Fourth 
+                prefactor_fourth = 1/(2*alpha**2) + 2/sqk
+                fourth = wavevector.reshape(1,3,1,1) * wavevector.reshape(1,1,1,3) * delta_ab.reshape(3,1,3,1)
+
+                C += prefactor * (first - second*prefactor_second + third*prefactor_third - prefactor_fourth*fourth)
+            
+            C *= conversion_prefactor * 2 * np.pi / atoms.get_volume()**2 
+
+            return C
+
+
+            """
+            # Derivative with respect to I
+            prefactor1_I = (wavevector.reshape(3, 1, 1, 1) * wavevector.reshape(1, 3, 1, 1)) * (1/(2*alpha**2) + 2/np.sum(wavevector * wavevector)) - np.identity(3).reshape(3, 3, 1, 1) 
+            prefactor2_I = I_l[index] * (1/(2*alpha**2) + 2/np.sum(wavevector*wavevector))
+            first = prefactor1_I * prefactor2_I * wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3)
+
+            # Derivative with respect to V
+            second = I_l[index] * (1/(2*alpha**2) + 2/np.sum(wavevector * wavevector)) * wavevector.reshape(3, 1, 1, 1) * wavevector.reshape(1, 3, 1, 1) * np.identity(3).reshape(1, 1, 3, 3)
+
+            # Derivative with respect to K_l
+            third = I_l[index] * 4 * wavevector.reshape(3,1,1,1)*wavevector.reshape(1,3,1,1)*wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3) / np.sum(wavevector*wavevector)**2
+
+            # Derivative with respect to V^2
+            fourth = I_l[index] * 2 * delta_ab.reshape(3,3,1,1) * delta_ab.reshape(1,1,3,3)
+
+            # Sum 
+            C = C + np.absolute(structure_factor)**2 * (first + second + third + fourth)
+            """
+
+            """
+            structure_factor_l = np.sum(charge_n * np.exp(1j*np.tensordot(k_lc, pos_nc, axes=((1),(1)))), axis=1)
+            prefactor_l = I_l * np.absolute(structure_factor_l)**2
+
+            # First expression
+            first_abab = 2 * np.identity(3).reshape(-1, 3, 3, 1, 1) * np.identity(3).reshape(-1, 1, 1, 3, 3)
+
+            # Second expression 
+            second_abab = np.identity(3).reshape(1, 3, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 1, 3) + \
+                          np.identity(3).reshape(1, 1, 1, 3, 3) * k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1)
+            second_abab *= -(1/(2*alpha**2) + 2/np.linalg.norm(k_lc, axis=1)**2).reshape(-1, 1, 1, 1, 1)
+
+            # Third expression
+            third_abab = k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1 ,1, 1, 1, 3)
+            third_abab *= (1/(4*alpha**4) + 2/(alpha * np.linalg.norm(k_lc, axis=1))**2 + 8/np.linalg.norm(k_lc, axis=1)**4).reshape(-1, 1, 1, 1, 1)
+
+            C_abab = np.sum(prefactor_l.reshape(-1, 1, 1, 1, 1) * (first_abab + second_abab + third_abab), axis=0)
+
+            return conversion_prefactor * 2 * np.pi * C_abab / atoms.get_volume()**2
+
+            """
+
         """
         if prop == "Hessian":
             mask = i_n != j_n
@@ -752,51 +822,6 @@ class Ewald(Calculator):
             
             return H
         """
-        if prop == "Born":
-            C = np.zeros((3, 3, 3, 3))
-            delta_ab = np.identity(3)
-
-            for index, wavevector in enumerate(k_lc):
-                structure_factor = np.sum(charge_n * np.exp(1j*np.sum(wavevector*atoms.get_positions(), axis=1)))
-                prefactor = I_l[index] * np.absolute(structure_factor)**2
-
-                # First 
-                first = 2 * delta_ab.reshape(3,3,1,1) * delta_ab.reshape(1,1,3,3)
-
-                # Second 
-                prefactor_second = (1/(2*alpha**2) + 2/(np.sum(wavevector*wavevector)))
-                second = (wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3)*delta_ab.reshape(3,3,1,1) +
-                          wavevector.reshape(1,3,1,1)*wavevector.reshape(3,1,1,1)*delta_ab.reshape(1,1,3,3) )
-
-                # Third
-                prefactor_third = (1/(4*alpha**4) + 2/(alpha**2 * np.sum(wavevector*wavevector)) + 8/np.sum(wavevector*wavevector)**2)
-                third = wavevector.reshape(3,1,1,1)*wavevector.reshape(1,3,1,1)*wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3)
-
-                C = C + prefactor * (first - second*prefactor_second + third*prefactor_third)
-
-            return conversion_prefactor * 2 * np.pi * C / (atoms.get_volume()**2)
-
-            """
-            structure_factor_l = np.sum(charge_n * np.exp(1j*np.tensordot(k_lc, pos_nc, axes=((1),(1)))), axis=1)
-            prefactor_l = I_l * np.absolute(structure_factor_l)**2
-
-            # First expression
-            first_abab = 2 * np.identity(3).reshape(-1, 3, 3, 1, 1) * np.identity(3).reshape(-1, 1, 1, 3, 3)
-
-            # Second expression 
-            second_abab = np.identity(3).reshape(1, 3, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 1, 3) + \
-                          np.identity(3).reshape(1, 1, 1, 3, 3) * k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1)
-            second_abab *= -(1/(2*alpha**2) + 2/np.linalg.norm(k_lc, axis=1)**2).reshape(-1, 1, 1, 1, 1)
-
-            # Third expression
-            third_abab = k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1 ,1, 1, 1, 3)
-            third_abab *= (1/(4*alpha**4) + 2/(alpha * np.linalg.norm(k_lc, axis=1))**2 + 8/np.linalg.norm(k_lc, axis=1)**4).reshape(-1, 1, 1, 1, 1)
-
-            C_abab = np.sum(prefactor_l.reshape(-1, 1, 1, 1, 1) * (first_abab + second_abab + third_abab), axis=0)
-
-            return conversion_prefactor * 2 * np.pi * C_abab / atoms.get_volume()**2
-
-            """
         """
         elif prop == "NAForces":
 
