@@ -714,79 +714,31 @@ class Ewald(Calculator):
         chargeij = charge_n[i_n] * charge_n[j_n]
 
         if prop == "Born":
-            C = np.zeros((3, 3, 3, 3))
             delta_ab = np.identity(3)
 
-            for index, wavevector in enumerate(k_lc):
-                structure_factor = np.sum(charge_n * np.exp(1j*np.sum(wavevector*atoms.get_positions(), axis=1)))
-                prefactor = I_l[index] * np.absolute(structure_factor)**2
-                sqk = np.sum(wavevector*wavevector)
-
-                # First 
-                first = 2 * delta_ab.reshape(3,3,1,1) * delta_ab.reshape(1,1,3,3)
-
-                # Second 
-                prefactor_second = 1/(2*alpha**2) + 2/sqk
-                second = (wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3)*delta_ab.reshape(3,3,1,1) +
-                          wavevector.reshape(1,3,1,1)*wavevector.reshape(3,1,1,1)*delta_ab.reshape(1,1,3,3))
-
-                # Third
-                prefactor_third = 1/(4*alpha**4) + 2/(alpha**2 * sqk) + 8/sqk**2
-                third = wavevector.reshape(3,1,1,1)*wavevector.reshape(1,3,1,1)*wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3)
-                
-                # Fourth 
-                prefactor_fourth = 1/(2*alpha**2) + 2/sqk
-                fourth = wavevector.reshape(1,3,1,1) * wavevector.reshape(1,1,1,3) * delta_ab.reshape(3,1,3,1)
-
-                C += prefactor * (first - second*prefactor_second + third*prefactor_third - prefactor_fourth*fourth)
-            
-            C *= conversion_prefactor * 2 * np.pi / atoms.get_volume()**2 
-
-            return C
-
-
-            """
-            # Derivative with respect to I
-            prefactor1_I = (wavevector.reshape(3, 1, 1, 1) * wavevector.reshape(1, 3, 1, 1)) * (1/(2*alpha**2) + 2/np.sum(wavevector * wavevector)) - np.identity(3).reshape(3, 3, 1, 1) 
-            prefactor2_I = I_l[index] * (1/(2*alpha**2) + 2/np.sum(wavevector*wavevector))
-            first = prefactor1_I * prefactor2_I * wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3)
-
-            # Derivative with respect to V
-            second = I_l[index] * (1/(2*alpha**2) + 2/np.sum(wavevector * wavevector)) * wavevector.reshape(3, 1, 1, 1) * wavevector.reshape(1, 3, 1, 1) * np.identity(3).reshape(1, 1, 3, 3)
-
-            # Derivative with respect to K_l
-            third = I_l[index] * 4 * wavevector.reshape(3,1,1,1)*wavevector.reshape(1,3,1,1)*wavevector.reshape(1,1,3,1)*wavevector.reshape(1,1,1,3) / np.sum(wavevector*wavevector)**2
-
-            # Derivative with respect to V^2
-            fourth = I_l[index] * 2 * delta_ab.reshape(3,3,1,1) * delta_ab.reshape(1,1,3,3)
-
-            # Sum 
-            C = C + np.absolute(structure_factor)**2 * (first + second + third + fourth)
-            """
-
-            """
-            structure_factor_l = np.sum(charge_n * np.exp(1j*np.tensordot(k_lc, pos_nc, axes=((1),(1)))), axis=1)
-            prefactor_l = I_l * np.absolute(structure_factor_l)**2
+            structure_factor_l = np.sum(charge_n * np.exp(1j*np.tensordot(k_lc, atoms.get_positions(), axes=((1),(1)))), axis=1)
+            prefactor_l = (I_l * np.absolute(structure_factor_l)**2).reshape(-1, 1, 1, 1, 1)
+            squaredk_l = np.sum(k_lc * k_lc, axis=1) 
 
             # First expression
-            first_abab = 2 * np.identity(3).reshape(-1, 3, 3, 1, 1) * np.identity(3).reshape(-1, 1, 1, 3, 3)
+            first_abab = 2 * delta_ab.reshape(1, 3, 3, 1, 1) * delta_ab.reshape(1, 1, 1, 3, 3)
 
             # Second expression 
-            second_abab = np.identity(3).reshape(1, 3, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 1, 3) + \
-                          np.identity(3).reshape(1, 1, 1, 3, 3) * k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1)
-            second_abab *= -(1/(2*alpha**2) + 2/np.linalg.norm(k_lc, axis=1)**2).reshape(-1, 1, 1, 1, 1)
+            prefactor_second_l = -(1/(2*alpha**2) + 2/squaredk_l).reshape(-1, 1, 1, 1, 1)
+            second_labab = (k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1, 1) + 
+                            k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * delta_ab.reshape(1, 1, 3, 1, 3) +
+                            k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * delta_ab.reshape(1, 1, 1, 3, 3) +
+                            k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 1, 3) +
+                            k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 1, 1, 3) * delta_ab.reshape(1, 1, 3, 3, 1))
 
             # Third expression
-            third_abab = k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1 ,1, 1, 1, 3)
-            third_abab *= (1/(4*alpha**4) + 2/(alpha * np.linalg.norm(k_lc, axis=1))**2 + 8/np.linalg.norm(k_lc, axis=1)**4).reshape(-1, 1, 1, 1, 1)
+            prefactor_third_l = (1/(4*alpha**4) + 2/(alpha**2 * squaredk_l) + 8/squaredk_l**2).reshape(-1, 1, 1, 1, 1)
+            third_labab = k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1 ,1, 1, 1, 3)
 
-            C_abab = np.sum(prefactor_l.reshape(-1, 1, 1, 1, 1) * (first_abab + second_abab + third_abab), axis=0)
+            C_labab = prefactor_l * (first_abab + prefactor_second_l*second_labab + prefactor_third_l*third_labab)
 
-            return conversion_prefactor * 2 * np.pi * C_abab / atoms.get_volume()**2
+            return conversion_prefactor * 2 * np.pi * np.sum(C_labab, axis=0) / atoms.get_volume()**2
 
-            """
-
-        """
         if prop == "Hessian":
             mask = i_n != j_n
 
@@ -821,7 +773,7 @@ class Ewald(Calculator):
                 H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
             
             return H
-        """
+
         """
         elif prop == "NAForces":
 
@@ -889,18 +841,17 @@ class Ewald(Calculator):
         # Contribution from real space 
         H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.hessian_rspace(atoms, 'neighbour-list')
 
-        # Second derivative
+        # Real space contribution
         C_pabab = H_pcc.reshape(-1, 3, 1, 3, 1) * dr_pc.reshape(-1, 1, 3, 1, 1) * dr_pc.reshape(-1, 1, 1, 1, 3)
-        SC_abab = -C_pabab.sum(axis=0) / (2*atoms.get_volume())
-        SC_abab = (SC_abab + SC_abab.swapaxes(0, 1) + SC_abab.swapaxes(2, 3) + SC_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        C_abab = -C_pabab.sum(axis=0) / (2*atoms.get_volume())
 
-        # Contribution from reciprocal space 
-        BC_abab = self.kspace_properties(atoms, prop="Born")
+        # Reciprocal space contribution
+        C_abab += self.kspace_properties(atoms, prop="Born")
 
         # Symmetrize elastic constant tensor
-        BC_abab = (BC_abab + BC_abab.swapaxes(0, 1) + BC_abab.swapaxes(2, 3) + BC_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
-        return SC_abab, BC_abab
+        return C_abab
 
     ###
 
