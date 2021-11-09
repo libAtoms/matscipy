@@ -132,7 +132,7 @@ def test_cubic_elastic_constants(test):
 
     # C11, C12, C44
     Caffine = calculator.get_birch_coefficients(atoms)
-    Cnonaffine = calculator.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5)
+    Cnonaffine = calculator.get_non_affine_contribution_to_elastic_constants(atoms)
     C = full_3x3x3x3_to_Voigt_6x6(Caffine + Cnonaffine)
     C11 = C[0, 0] / GPa
     C12 = C[0, 1] / GPa
