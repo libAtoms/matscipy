@@ -884,13 +884,12 @@ class Ewald(Calculator):
 
     ###
 
-    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, tol=1e-5):
+    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "tol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
         """
         Compute the correction of non-affine displacements to the elasticity tensor.
         The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.
 
         If eigenvalues and and eigenvectors are given the inverse of the Hessian can be easily computed.
-
 
         Parameters
         ----------
@@ -899,21 +898,63 @@ class Ewald(Calculator):
 
         eigenvalues: array
             Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
-            If given 
+            If given, use eigenvalues and eigenvectors to compute non-affine contribution. 
 
         eigenvectors: array
             Eigenvectors corresponding to eigenvalues.
 
-        tol: float
-            Tolerance for the conjugate-gradient solver. 
+        cg_parameters: dict
+            Dictonary for the conjugate-gradient solver.
 
+            x0: {array, matrix}
+                Starting guess for the solution.
+
+            tol/atol: float, optional
+                Tolerances for convergence, norm(residual) <= max(tol*norm(b), atol).
+
+            maxiter: int
+                Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.
+
+            M: {sparse matrix, dense matrix, LinearOperator}
+                Preconditioner for A.
+                
+            callback: function  
+                User-supplied function to call after each iteration.
+
+        pc_parameters: dict
+            Dictonary for the incomplete LU decomposition of the Hessian.
+
+            A: array_like
+                Sparse matrix to factorize.
+
+            drop_tol: float
+                Drop tolerance for an incomplete LU decomposition.
+
+            fill_factor: float
+                Specifies the fill ratio upper bound.
+
+            drop_rule: str
+                Comma-separated string of drop rules to use.
+
+            permc_spec: str
+                How to permute the columns of the matrix for sparsity.
+
+            diag_pivot_thresh: float
+                Threshold used for a diagonal entry to be an acceptable pivot.
+
+            relax: int
+                Expert option for customizing the degree of relaxing supernodes.
+
+            panel_size: int
+                Expert option for customizing the panel size.
+
+            options: dict 
+                Dictionary containing additional expert options to SuperLU.
         """
 
         nat = len(atoms)
 
-        calc = atoms.get_calculator()
-
-        C_abab = np.zeros((3,3,3,3))        
+        calc = atoms.get_calculator()    
 
         if (eigenvalues is not None) and (eigenvectors is not None):
             naforces_icab = calc.get_nonaffine_forces(atoms)
@@ -927,11 +968,21 @@ class Ewald(Calculator):
             H_nn = calc.get_hessian(atoms)
             naforces_icab = calc.get_nonaffine_forces(atoms)
 
+            if pc_parameters != None:
+                # Transform H to csc 
+                H_nn = H_nn.tocsc()
+
+                # Compute incomplete LU 
+                approx_Hinv = spilu(H_nn, **pc_parameters)
+                operator_Hinv = LinearOperator(H_nn.shape, approx_Hinv.solve)
+                cg_parameters["M"] = operator_Hinv
+
             D_iab = np.zeros((3*nat, 3, 3))
             for i in range(3):
                 for j in range(3):
-                    x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), atol=tol)
+                    x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), **cg_parameters)
                     if info != 0:
+                        print("info: ", info)
                         raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
                     D_iab[:,i,j] = x
 
