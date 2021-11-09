@@ -30,7 +30,7 @@ Pair potential + Ewald summation
 #   - n: Atomic index, i.e. array dimension of length nb_atoms
 #   - p: Pair index, i.e. array dimension of length nb_pairs
 #   - c: Cartesian index, array dimension of length 3
-#   - l: Wave vector index, i.e. array of dimension length nb_kvectors
+#   - l: Wave vector index, i.e. array of dimension length of k_lc
 
 import numpy as np
 
@@ -55,7 +55,6 @@ from ...elasticity import Voigt_6_to_full_3x3_stress
 # We express charges q as multiples of the elementary charge e: q = x*e
 # Prefactor and charge of Coulomb potential:  e^2/(4*pi*epsilon0) = 14.399645 eV * Angström 
 conversion_prefactor = 14.399645
-#conversion_prefactor = 1
 
 ###
 
@@ -74,11 +73,11 @@ class BKS_ewald():
         B. W. Van Beest, G. J. Kramer and R. A. Van Santen, Phys. Rev. Lett. 64.16 (1990)
     """
 
-    def __init__(self, A, B, C, alp, cutoff_r, cutoff_k, nb_kspace, accuracy):
+    def __init__(self, A, B, C, alpha, cutoff_r, cutoff_k, nb_kspace, accuracy):
         self.A = A
         self.B = B 
         self.C = C
-        self.alp = alp
+        self.alpha = alpha
         self.cutoff_r = cutoff_r
         self.cutoff_k = cutoff_k
         self.nb_kspace = nb_kspace
@@ -94,7 +93,7 @@ class BKS_ewald():
         return self.nb_kspace
 
     def get_alpha(self):
-        return self.alp
+        return self.alpha
 
     def get_cutoff_real(self):
         """
@@ -304,7 +303,7 @@ class Ewald(Calculator):
         """
         struc_l = np.sum(charge * np.exp(1j*np.tensordot(k, pos, axes=((1),(1)))), axis=1)
 
-        wave_vectors_cc = (k.reshape(-1, 3, 1) * k.reshape(-1, 1, 3)) * (1/(2*a**2) + 2/np.linalg.norm(k, axis=1)**2).reshape(-1,1,1) - np.identity(3) 
+        wave_vectors_cc = (k.reshape(-1, 3, 1) * k.reshape(-1, 1, 3)) * (1/(2*a**2) + 2/np.linalg.norm(k, axis=1)**2).reshape(-1, 1, 1) - np.identity(3) 
         
         stress_cc = np.sum((I * np.absolute(struc_l)**2).reshape(len(I), 1, 1) * wave_vectors_cc, axis=0)
         
@@ -371,13 +370,11 @@ class Ewald(Calculator):
         rms_kspace_y = self.rms_kspace(nbk_c[1], atoms.get_cell()[1, 1], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
         rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
 
-        """
         print("Estimated alpha: ", alpha)
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_real_space))
         print("Cutoff for kspace vectors: ", kc)
         print("Estimated kspace triplets nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
-        """
 
         # Neighbor list for short range interaction
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=self.dict)
@@ -389,7 +386,6 @@ class Ewald(Calculator):
         mask = np.logical_and(r_p < rc+0.001, r_p > rc-0.001)
         if np.sum(mask) > 1e-5:
             print("Atoms sits at cutoff!")
-            print("r_p: \n", r_p[mask])
 
         # List of all atoms and distances
         ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
@@ -400,8 +396,7 @@ class Ewald(Calculator):
 
         mask = np.logical_and(r_p < rc+0.001, r_p > rc-0.001)
         if np.sum(mask) > 1e-5:
-            print("Atoms sits at cutoff!")
-            print("r_p: \n", r_p[mask])
+            print("Atoms are located next to cutoff!")
 
         # Prefactor and wave vectors for reciprocal space 
         I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
@@ -557,31 +552,7 @@ class Ewald(Calculator):
         H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
                                     - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
 
-        if format == "sparse":
-            if divide_by_masses:
-                H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T,
-                                j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
-
-            else:
-                H = bsr_matrix((H_pcc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
-
-            Hdiag_icc = np.empty((nb_atoms, 3, 3))
-            for x in range(3):
-                for y in range(3):
-                    Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_p, weights=H_pcc[:, x, y])
-
-            if divide_by_masses:
-                H += bsr_matrix(((Hdiag_icc.T/mass_n).T, np.arange(nb_atoms),
-                        np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))         
-
-            else:
-                H += bsr_matrix((Hdiag_icc, np.arange(nb_atoms),
-                         np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
-
-            return H
-
-        elif format == "dense":
+        if format == "dense":
             H = np.zeros((3*nb_atoms, 3*nb_atoms))
             for atom in range(len(i_p)):
                 H[3*i_p[atom]:3*i_p[atom]+3,
@@ -627,7 +598,7 @@ class Ewald(Calculator):
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
 
-        choice: "Hessian", "Born" or "NAForces"
+        prop: "Hessian", "Born" or "Naforces"
             Compute either the Hessian/Dynamical matrix, the Born constants 
             or the non-affine forces.
 
@@ -705,7 +676,6 @@ class Ewald(Calculator):
         mask = np.logical_and(r_n < rc+0.001, r_n > rc-0.001)
         if np.sum(mask) > 1e-5:
             print("Atoms sits at cutoff!")
-            print("r_p: \n", r_p[mask])
 
         # Prefactor and wave vectors for reciprocal space 
         I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
@@ -718,21 +688,22 @@ class Ewald(Calculator):
 
             structure_factor_l = np.sum(charge_n * np.exp(1j*np.tensordot(k_lc, atoms.get_positions(), axes=((1),(1)))), axis=1)
             prefactor_l = (I_l * np.absolute(structure_factor_l)**2).reshape(-1, 1, 1, 1, 1)
-            squaredk_l = np.sum(k_lc * k_lc, axis=1) 
+            sqk_l = np.sum(k_lc * k_lc, axis=1) 
 
             # First expression
-            first_abab = 2 * delta_ab.reshape(1, 3, 3, 1, 1) * delta_ab.reshape(1, 1, 1, 3, 3)
+            first_abab = delta_ab.reshape(1, 3, 3, 1, 1) * delta_ab.reshape(1, 1, 1, 3, 3) + \
+                         delta_ab.reshape(1, 1, 3, 3, 1) * delta_ab.reshape(1, 3, 1, 1, 3)
 
             # Second expression 
-            prefactor_second_l = -(1/(2*alpha**2) + 2/squaredk_l).reshape(-1, 1, 1, 1, 1)
-            second_labab = (k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1, 1) + 
-                            k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * delta_ab.reshape(1, 1, 3, 1, 3) +
-                            k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * delta_ab.reshape(1, 1, 1, 3, 3) +
-                            k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 1, 3) +
-                            k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 1, 1, 3) * delta_ab.reshape(1, 1, 3, 3, 1))
+            prefactor_second_l = -(1/(2*alpha**2) + 2/sqk_l).reshape(-1, 1, 1, 1, 1)
+            second_labab = k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1, 1) + \
+                           k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * delta_ab.reshape(1, 1, 3, 1, 3) + \
+                           k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * delta_ab.reshape(1, 1, 1, 3, 3) + \
+                           k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 1, 3) + \
+                           k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 1, 1, 3) * delta_ab.reshape(1, 1, 3, 3, 1)
 
             # Third expression
-            prefactor_third_l = (1/(4*alpha**4) + 2/(alpha**2 * squaredk_l) + 8/squaredk_l**2).reshape(-1, 1, 1, 1, 1)
+            prefactor_third_l = (1/(4*alpha**4) + 2/(alpha**2 * sqk_l) + 8/sqk_l**2).reshape(-1, 1, 1, 1, 1)
             third_labab = k_lc.reshape(-1, 3, 1, 1, 1) * k_lc.reshape(-1, 1, 3, 1, 1) * k_lc.reshape(-1, 1, 1, 3, 1) * k_lc.reshape(-1 ,1, 1, 1, 3)
 
             C_labab = prefactor_l * (first_abab + prefactor_second_l*second_labab + prefactor_third_l*third_labab)
@@ -743,10 +714,14 @@ class Ewald(Calculator):
             mask = i_n != j_n
 
             prefactor_ln = np.zeros((len(I_l), len(i_n)))
+
             prefactor_ln[:,mask] += np.cos(np.tensordot(k_lc, r_nc, axes=((1), (1))))[:, mask]
+
             prefactor_ln = (I_l * prefactor_ln.T).T
+
             H_ncc = np.sum((k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)) * prefactor_ln.reshape(-1, len(i_n), 1, 1), axis=0)
-            H_ncc *= (conversion_prefactor * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1,1,1)
+
+            H_ncc *= (conversion_prefactor * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1, 1, 1)
 
             # Hessian matrix: Off-diagonal elements
             H = np.zeros((3*nb_atoms, 3*nb_atoms))
@@ -774,21 +749,22 @@ class Ewald(Calculator):
             
             return H
 
-        """
-        elif prop == "NAForces":
+        elif prop == "Naforces":
+            delta_ab = np.identity(3)
+            structure_factor_ln = (I_l * mabincount(i_n, charge_n[j_n] * np.sin(np.tensordot(k_lc, r_nc, axes=((1),(1)))), nb_atoms, 1).T).T
+            sqk_l = np.sum(k_lc * k_lc, axis=1) 
 
-            structure_ln = (I_l * mabincount(i_n, charge_n[j_n] * np.sin(np.tensordot(k_lc, r_nc, axes=((1),(1)))), nb_atoms, 1).T).T
+            # First expression
+            prefactor_l = 1/(2*alpha**2) + 2/sqk_l
+            first_lccc = k_lc.reshape(-1, 1, 1, 3) * k_lc.reshape(-1, 3, 1, 1) * k_lc.reshape(-1, 1, 3, 1) * prefactor_l.reshape(-1, 1, 1, 1)
 
-            prefactor_l = (1/(2*alpha**2) + 2/np.linalg.norm(k_lc, axis=1)**2).reshape(-1, 1, 1)
+            # Second expression
+            second_lccc = -(k_lc.reshape(-1, 3, 1, 1) * delta_ab.reshape(-1, 1, 3, 3) + 
+                            k_lc.reshape(-1, 1, 3, 1) * delta_ab.reshape(-1, 3, 1, 3))
 
-            prefactor_lcc = (k_lc.reshape(-1, 3, 1) * k_lc.reshape(-1, 1, 3)) * prefactor_l - np.identity(3)
+            naforces_nccc = np.sum(structure_factor_ln.reshape(-1, nb_atoms, 1, 1, 1) * (first_lccc + second_lccc).reshape(-1, 1, 3, 3, 3), axis=0)
 
-            prefactor_lccc = k_lc.reshape(-1, 3, 1, 1) * prefactor_lcc.reshape(-1, 1, 3, 3)
-
-            naForces_nccc = np.sum(structure_ln.reshape(-1, nb_atoms, 1, 1, 1) * prefactor_lccc.reshape(-1, 1, 3, 3, 3), axis=0 )
-
-            return -conversion_prefactor * 4 * np.pi * (charge_n * naForces_nccc.T).T / atoms.get_volume()
-        """
+            return -conversion_prefactor * 4 * np.pi * (charge_n * naforces_nccc.T).T / atoms.get_volume()
 
     ###
 
@@ -816,15 +792,15 @@ class Ewald(Calculator):
 
         nat = len(atoms)
 
-        # Real space 
+        # Rspace 
         H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.hessian_rspace(atoms, 'neighbour-list')
         naF_pcab = -0.5 * H_pcc.reshape(-1, 3, 3, 1) * dr_pc.reshape(-1, 1, 1, 3)
-        Snaforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
+        naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
 
-        # Reciprocal space
-        Lnaforces_icab = self.kspace_properties(atoms, prop="NAForces")
+        # Kspace
+        naforces_icab += self.kspace_properties(atoms, prop="Naforces")
 
-        return Snaforces_icab, Lnaforces_icab 
+        return naforces_icab  
 
     ###
 
