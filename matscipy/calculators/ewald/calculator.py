@@ -150,6 +150,10 @@ class Ewald(Calculator):
     def __init__(self, f, cutoff=None):
         Calculator.__init__(self)
         self.f = f
+        self.initial_cell = None
+        self.kvectors = None
+        self.initial_I = None
+        self.initial_alpha = None
         self.dict = {x: obj.get_cutoff_real() for x, obj in f.items()}
 
     def determine_alpha(self, charge, acc, cutoff, cell):
@@ -355,26 +359,76 @@ class Ewald(Calculator):
                     raise AttributeError(
                         "Attribute error: Cannot use different rc, kc, number of wave vectors or accuracy!")     
 
-        if alpha == None:
-            alpha = self.determine_alpha(charge_n, accuracy, rc, atoms.get_cell())
 
-        if np.any(nbk_c) == None:
-            kc, nbk_c = self.determine_nk(charge_n, atoms.get_calculator(), atoms.get_cell(), accuracy, alpha, nb_atoms)    
+        # Check if cell has changed --> Recompute wave vectors, parameters and errors
+        if np.all(self.initial_cell == None):
 
-        if np.all(nbk_c) != None and kc == None:
-            kc = self.determine_kc(atoms.get_cell(), nbk_c)
+            self.initial_cell = atoms.get_cell()
 
-        # Compute and print error estimates and kspace parameters
-        rms_rspace = self.rms_rspace(charge_n, atoms.get_cell(), alpha, rc)
-        rms_kspace_x = self.rms_kspace(nbk_c[0], atoms.get_cell()[0, 0], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
-        rms_kspace_y = self.rms_kspace(nbk_c[1], atoms.get_cell()[1, 1], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
-        rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
+            if alpha == None:
+                alpha = self.determine_alpha(charge_n, accuracy, rc, atoms.get_cell())
 
-        print("Estimated alpha: ", alpha)
-        print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
-        print("Cutoff for kspace vectors: ", kc)
-        print("Estimated kspace triplets nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
-        print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
+            if np.any(nbk_c) == None:
+                kc, nbk_c = self.determine_nk(charge_n, atoms.get_calculator(), atoms.get_cell(), accuracy, alpha, nb_atoms)    
+
+            if np.all(nbk_c) != None and kc == None:
+                kc = self.determine_kc(atoms.get_cell(), nbk_c)
+
+            self.initial_alpha = alpha 
+
+            # Prefactor and wave vectors for reciprocal space 
+            I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
+            self.kvectors = k_lc
+            self.initial_I = I_l
+
+            # Compute and print error estimates and kspace parameters
+            rms_rspace = self.rms_rspace(charge_n, atoms.get_cell(), alpha, rc)
+            rms_kspace_x = self.rms_kspace(nbk_c[0], atoms.get_cell()[0, 0], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
+            rms_kspace_y = self.rms_kspace(nbk_c[1], atoms.get_cell()[1, 1], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
+            rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
+
+            print("Estimated alpha: ", alpha)
+            print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
+            print("Cutoff for kspace vectors: ", kc)
+            print("Estimated kspace triplets nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
+            print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
+
+        elif np.any(self.initial_cell != atoms.get_cell()):
+
+            self.initial_cell = atoms.get_cell()
+
+            if alpha == None:
+                alpha = self.determine_alpha(charge_n, accuracy, rc, atoms.get_cell())
+
+            if np.any(nbk_c) == None:
+                kc, nbk_c = self.determine_nk(charge_n, atoms.get_calculator(), atoms.get_cell(), accuracy, alpha, nb_atoms)    
+
+            if np.all(nbk_c) != None and kc == None:
+                kc = self.determine_kc(atoms.get_cell(), nbk_c)
+
+            self.initial_alpha = alpha 
+
+            # Prefactor and wave vectors for reciprocal space 
+            I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
+            self.kvectors = k_lc
+            self.initial_I = I_l
+
+            # Compute and print error estimates and kspace parameters
+            rms_rspace = self.rms_rspace(charge_n, atoms.get_cell(), alpha, rc)
+            rms_kspace_x = self.rms_kspace(nbk_c[0], atoms.get_cell()[0, 0], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
+            rms_kspace_y = self.rms_kspace(nbk_c[1], atoms.get_cell()[1, 1], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
+            rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
+
+            print("Estimated alpha: ", alpha)
+            print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
+            print("Cutoff for kspace vectors: ", kc)
+            print("Estimated kspace triplets nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
+            print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
+
+        elif np.all(self.initial_cell == atoms.get_cell()):
+            k_lc = self.kvectors
+            I_l = self.initial_I
+            alpha = self.initial_alpha
 
         # Neighbor list for short range interaction
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
@@ -388,9 +442,6 @@ class Ewald(Calculator):
         i_n = ij_n[:,0]
         j_n = ij_n[:,1]
         r_nc = mic(atoms.get_positions()[j_n,:] - atoms.get_positions()[i_n,:], cell=atoms.get_cell())
-
-        # Prefactor and wave vectors for reciprocal space 
-        I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
 
         # Short-range interaction of Buckingham and Ewald
         e_p = np.zeros_like(r_p)
