@@ -250,18 +250,18 @@ class Ewald(Calculator):
         """
 
         return 2 * np.sum(charge**2) * np.exp(-(a * rc)**2) / np.sqrt(rc * len(charge) * cell[0,0] * cell[1, 1] * cell[2, 2])
-
+    
     def allowed_wave_vectors(self, cell, km, a, nk):
         """
         Compute allowed wave vectors and the prefactor I 
         """
-        nx = nk[0]
-        ny = nk[1]
-        nz = nk[2]    
+        nx = np.arange(-nk[0], nk[0]+1, 1)
+        ny = np.arange(-nk[1], nk[1]+1, 1)
+        nz = np.arange(-nk[2], nk[2]+1, 1) 
    
-        nlist = np.array(list(product(range(-nx, nx + 1), range(-ny, ny + 1), range(-nz, nz + 1))))
+        n_lc = np.array(np.meshgrid(nx, ny, nz)).T.reshape(-1,3)
         
-        k_lc = 2 * np.pi * np.dot(np.linalg.inv(np.array(cell)), nlist.T).T
+        k_lc = 2 * np.pi * np.dot(np.linalg.inv(np.array(cell)), n_lc.T).T
         
         k = np.linalg.norm(k_lc, axis=1)
         
