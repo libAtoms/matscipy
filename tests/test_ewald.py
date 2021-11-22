@@ -153,6 +153,7 @@ def test_forces_alpha_quartz(a0):
     """
     structure = alpha_quartz()
     atoms = structure(["Si", "O"], size=[1, 1, 1], latticeconstant={"a": a0, "b": a0, "c": 5.4, "gamma": 120})
+    print("len(a)", len(atoms))
     charges = np.zeros(len(atoms))
     for i in range(len(atoms)):
         if atoms.get_chemical_symbols()[i] == "Si":

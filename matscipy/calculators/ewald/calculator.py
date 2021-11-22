@@ -254,7 +254,7 @@ class Ewald(Calculator):
         """
 
         return 2 * np.sum(charge**2) * np.exp(-(a * rc)**2) / np.sqrt(rc * len(charge) * cell[0,0] * cell[1, 1] * cell[2, 2])
-    
+ 
     def allowed_wave_vectors(self, cell, km, a, nk):
         """
         Compute allowed wave vectors and the prefactor I 
@@ -284,19 +284,30 @@ class Ewald(Calculator):
         Return the energy from the reciprocal space contribution
         """
 
-        struc = np.sum(charge * np.exp(1j * np.tensordot(k, pos, axes=((1),(1)))), axis=1)
+        structure_factor_l = np.sum(charge * np.exp(1j * np.tensordot(k, pos, axes=((1),(1)))), axis=1)
 
-        return conversion_prefactor * 2 * np.pi * np.sum(I.T * np.absolute(struc)**2) / vol
+        return conversion_prefactor * 2 * np.pi * np.sum(I * np.absolute(structure_factor_l)**2) / vol
 
-    def first_derivative_kspace(self, charge, natoms, vol, i, j, r, I, k):
+    #@profile    
+    def first_derivative_kspace(self, charge, natoms, vol, pos, I, k):
         """
         Return the kspace part of the force 
         """
-        charge_cos_ln = (I * mabincount(i, charge[j] * np.sin(np.tensordot(k, r, axes=((1),(1)))), natoms, axis=1).T).T
+        n = len(pos)
 
-        f = np.sum(charge_cos_ln.reshape(len(k), natoms, 1) * k.reshape(len(k), 1, 3), axis=0)
+        phase_ln = np.tensordot(k, pos, axes=((1),(1)))
 
-        return -conversion_prefactor * 4 * np.pi * (charge * f.T).T / vol
+        cos_ln = np.cos(phase_ln) 
+        sin_ln = np.sin(phase_ln)
+
+        cos_sin_ln = (cos_ln.T * np.sum(charge * sin_ln, axis=1)).T
+        sin_cos_ln = (sin_ln.T * np.sum(charge * cos_ln, axis=1)).T
+
+        prefactor_ln = (I * (cos_sin_ln - sin_cos_ln).T).T
+
+        f_nc = np.sum(k.reshape(-1, 1, 3) * prefactor_ln.reshape(-1, n, 1), axis=0)
+
+        return -conversion_prefactor * 4 * np.pi * (charge * f_nc.T).T / vol
 
     def stress_kspace(self, charge, pos, vol, a, I, k):
         """
@@ -360,7 +371,7 @@ class Ewald(Calculator):
                         "Attribute error: Cannot use different rc, kc, number of wave vectors or accuracy!")     
 
 
-        # Check if cell has changed --> Recompute wave vectors, parameters and errors
+        # If cell has changed --> Recompute wave vectors, parameters and errors
         if np.all(self.initial_cell == None):
 
             self.initial_cell = atoms.get_cell()
@@ -376,21 +387,22 @@ class Ewald(Calculator):
 
             self.initial_alpha = alpha 
 
-            # Prefactor and wave vectors for reciprocal space 
             I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
+
             self.kvectors = k_lc
             self.initial_I = I_l
 
-            # Compute and print error estimates and kspace parameters
+            # 
             rms_rspace = self.rms_rspace(charge_n, atoms.get_cell(), alpha, rc)
             rms_kspace_x = self.rms_kspace(nbk_c[0], atoms.get_cell()[0, 0], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
             rms_kspace_y = self.rms_kspace(nbk_c[1], atoms.get_cell()[1, 1], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
             rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
 
             print("Estimated alpha: ", alpha)
-            print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
+            print("Number of wave vectors: ", k_lc.shape[0])
             print("Cutoff for kspace vectors: ", kc)
             print("Estimated kspace triplets nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
+            print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
             print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
 
         elif np.any(self.initial_cell != atoms.get_cell()):
@@ -410,6 +422,7 @@ class Ewald(Calculator):
 
             # Prefactor and wave vectors for reciprocal space 
             I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
+
             self.kvectors = k_lc
             self.initial_I = I_l
 
@@ -420,9 +433,10 @@ class Ewald(Calculator):
             rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor * np.sum(charge_n**2))
 
             print("Estimated alpha: ", alpha)
-            print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
+            print("Number of wave vectors: ", k_lc.shape[0])
             print("Cutoff for kspace vectors: ", kc)
             print("Estimated kspace triplets nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
+            print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
             print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
 
         elif np.all(self.initial_cell == atoms.get_cell()):
@@ -436,12 +450,6 @@ class Ewald(Calculator):
 
         if np.sum(i_p == j_p) > 1e-5:
             print("Atoms can see themselves!")
-
-        # List of all atoms and distances
-        ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
-        i_n = ij_n[:,0]
-        j_n = ij_n[:,1]
-        r_nc = mic(atoms.get_positions()[j_n,:] - atoms.get_positions()[i_n,:], cell=atoms.get_cell())
 
         # Short-range interaction of Buckingham and Ewald
         e_p = np.zeros_like(r_p)
@@ -478,7 +486,7 @@ class Ewald(Calculator):
 
         f_nc = mabincount(j_p, df_pc, nb_atoms) - mabincount(i_p, df_pc, nb_atoms)
 
-        f_nc += self.first_derivative_kspace(charge_n, nb_atoms, self.atoms.get_volume(), i_n, j_n, r_nc, I_l, k_lc)
+        f_nc += self.first_derivative_kspace(charge_n, nb_atoms, atoms.get_volume(), atoms.get_positions(), I_l, k_lc)
 
         # Virial
         virial_v = -np.array([r_pc[:, 0] * df_pc[:, 0],               # xx
@@ -488,7 +496,7 @@ class Ewald(Calculator):
                               r_pc[:, 0] * df_pc[:, 2],               # xz
                               r_pc[:, 0] * df_pc[:, 1]]).sum(axis=1)  # xy
 
-        virial_v += self.stress_kspace(charge_n, atoms.get_positions(), self.atoms.get_volume(), alpha, I_l, k_lc) 
+        virial_v += self.stress_kspace(charge_n, atoms.get_positions(), atoms.get_volume(), alpha, I_l, k_lc) 
 
         self.results = {'energy': epot,
                         'free_energy': epot,
@@ -522,7 +530,7 @@ class Ewald(Calculator):
         atnums = atoms.numbers
 
         if atoms.has("charge"):
-            charge_n = self.atoms.get_array("charge")
+            charge_n = atoms.get_array("charge")
         else:
             raise AttributeError(
                 "Attribute error: Unable to load atom charges from atoms object!")
@@ -532,7 +540,7 @@ class Ewald(Calculator):
             raise AttributeError(
                 "Attribute error: System is not charge neutral!")      
 
-        if not any(self.atoms.get_pbc()):
+        if not any(atoms.get_pbc()):
             raise AttributeError(
                 "Attribute error: This code only works for 3D systems with periodic boundaries!")    
 
@@ -551,9 +559,7 @@ class Ewald(Calculator):
         if alpha == None:
             alpha = self.determine_alpha(charge_n, accuracy, rc, atoms.get_cell())
 
-        print("Real space parameters")
-        print("------------")
-        print("Estimated alpha: ", alpha)
+        print("Estimated alpha for reals space hessian: ", alpha)
 
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms, self.dict)
         chargeij = charge_n[i_p] * charge_n[j_p]
@@ -626,6 +632,7 @@ class Ewald(Calculator):
 
     ###
 
+    #@profile
     def kspace_properties(self, atoms, prop="Hessian", divide_by_masses=False):
         """
         Calculate the recirprocal contributiom to the Hessian, the non-affine forces and the Born elastic constants
@@ -650,7 +657,7 @@ class Ewald(Calculator):
         nb_atoms = len(atoms)
 
         if atoms.has("charge"):
-            charge_n = self.atoms.get_array("charge")
+            charge_n = atoms.get_array("charge")
         else:
             raise AttributeError(
                 "Attribute error: Unable to load atom charges from atoms object!")
@@ -660,7 +667,7 @@ class Ewald(Calculator):
             raise AttributeError(
                 "Attribute error: System is not charge neutral!")      
 
-        if not any(self.atoms.get_pbc()):
+        if not any(atoms.get_pbc()):
             raise AttributeError(
                 "Attribute error: This code only works for 3D systems with periodic boundaries!")    
 
@@ -694,26 +701,84 @@ class Ewald(Calculator):
         rms_kspace_y = self.rms_kspace(nbk_c[1], atoms.get_cell()[1, 1], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
         rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
 
-        print("Kspace parameters")
-        print("----------------------------")
-        print("Estimated alpha: ", alpha)
-        print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
-        print("Cutoff for kspace vectors: ", kc)
-        print("Estimated kspace vectors nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
-        print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
-
         # List of distances for all atoms
-        ij_n = np.array(list(product(range(0, nb_atoms), range(0, nb_atoms))))
-        i_n = ij_n[:, 0]
-        j_n = ij_n[:, 1]
+        ij_n = np.array(np.meshgrid(np.arange(0, nb_atoms), np.arange(0, nb_atoms))).T.reshape(-1,2)
+        i_n = ij_n[:,0]
+        j_n = ij_n[:,1]
         r_nc = mic(atoms.get_positions()[j_n, :] - atoms.get_positions()[i_n, :], atoms.get_cell())
-        r_n = np.linalg.norm(r_nc, axis=1)
 
         # Prefactor and wave vectors for reciprocal space 
         I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
 
         chargeij = charge_n[i_n] * charge_n[j_n]
 
+        print("Kspace parameters:")
+        print("----------------------------")
+        print("Estimated alpha: ", alpha)
+        print("Number of wave vectors: ", k_lc.shape[0])
+        print("Cutoff for kspace vectors: ", kc)
+        print("Estimated kspace vectors nx/ny/nx: ", nbk_c[0], "/", nbk_c[1], "/", nbk_c[2]) 
+        print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
+        print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
+
+        if prop == "Hessian":
+            mask = i_n != j_n
+
+            prefactor_ln = np.zeros((len(I_l), len(i_n)))
+
+            prefactor_ln[:, mask] += np.cos(np.tensordot(k_lc, r_nc, axes=((1), (1))))[:, mask]
+
+            prefactor_ln = (I_l * prefactor_ln.T).T
+
+            H_ncc = np.sum((k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)) * prefactor_ln.reshape(-1, len(i_n), 1, 1), axis=0)
+
+            H_ncc *= (conversion_prefactor * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1, 1, 1)
+
+            # Test this
+            """
+            phase_ln = np.tensordot(k_lc, atoms.get_positions(), axes=((1), (1)))
+
+            cos_ln = np.cos(phase_ln)
+            sin_ln = np.sin(phase_ln)
+
+            sqcos_sqsin_lnn  = cos_ln.reshape(-1, nb_atoms, 1) * cos_ln.reshape(-1, 1, nb_atoms) + \
+                               sin_ln.reshape(-1, nb_atoms, 1) * sin_ln.reshape(-1, 1, nb_atoms)
+
+            prefactor_lnn = (I_l * sqcos_sqsin_lnn.T).T
+
+            waves_lcc = k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)
+
+            H_nncc = np.sum(waves_lcc.reshape(-1, 1, 1, 3, 3) * prefactor_lnn.reshape(-1, nb_atoms, nb_atoms, 1, 1), axis=0)
+
+            H = np.concatenate(np.concatenate(H_nncc, axis=2), axis=0)
+
+            return H
+            """
+
+            H = np.zeros((3*nb_atoms, 3*nb_atoms))
+            for atom in range(len(i_n)):
+                H[3*i_n[atom]:3*i_n[atom]+3,
+                  3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
+
+            Hdiag_icc = np.empty((nb_atoms, 3, 3))
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:, x, y] = - \
+                        np.bincount(i_n, weights=H_ncc[:, x, y])
+
+            Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
+            for atom in range(nb_atoms):
+                Hdiag_ncc[3*atom:3*atom+3,
+                          3*atom:3*atom+3] += Hdiag_icc[atom]
+
+            H += Hdiag_ncc
+
+            if divide_by_masses:
+                masses_p = (atoms.get_masses()).repeat(3)
+                H /= np.sqrt(masses_p.reshape(-1, 1)*masses_p.reshape(1, -1))
+
+            return H 
+            
         if prop == "Born":
             delta_ab = np.identity(3)
 
@@ -741,59 +806,29 @@ class Ewald(Calculator):
 
             return conversion_prefactor * 2 * np.pi * np.sum(C_labab, axis=0) / atoms.get_volume()**2
 
-        if prop == "Hessian":
-            mask = i_n != j_n
-
-            prefactor_ln = np.zeros((len(I_l), len(i_n)))
-
-            prefactor_ln[:, mask] += np.cos(np.tensordot(k_lc, r_nc, axes=((1), (1))))[:, mask]
-
-            prefactor_ln = (I_l * prefactor_ln.T).T
-
-            H_ncc = np.sum((k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)) * prefactor_ln.reshape(-1, len(i_n), 1, 1), axis=0)
-
-            H_ncc *= (conversion_prefactor * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1, 1, 1)
-
-            # Hessian matrix: Off-diagonal elements
-            H = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(len(i_n)):
-                H[3*i_n[atom]:3*i_n[atom]+3,
-                  3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
-
-            # Hessian matrix: Diagonal elements
-            Hdiag_icc = np.empty((nb_atoms, 3, 3))
-            for x in range(3):
-                for y in range(3):
-                    Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_ncc[:, x, y])
-
-            Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(nb_atoms):
-                Hdiag_ncc[3*atom:3*atom+3,
-                          3*atom:3*atom+3] += Hdiag_icc[atom]
-
-            H += Hdiag_ncc
-
-            if divide_by_masses:
-                masses_p = (atoms.get_masses()).repeat(3)
-                H /= np.sqrt(masses_p.reshape(-1, 1)*masses_p.reshape(1, -1))
-            
-            return H
-
-        elif prop == "Naforces":
+        if prop == "Naforces":
             delta_ab = np.identity(3)
-            structure_factor_ln = (I_l * mabincount(i_n, charge_n[j_n] * np.sin(np.tensordot(k_lc, r_nc, axes=((1),(1)))), nb_atoms, 1).T).T
             sqk_l = np.sum(k_lc * k_lc, axis=1) 
 
+            phase_ln = np.tensordot(k_lc, atoms.get_positions(), axes=((1),(1)))
+
+            cos_ln = np.cos(phase_ln) 
+            sin_ln = np.sin(phase_ln)
+
+            cos_sin_ln = (cos_ln.T * np.sum(charge_n * sin_ln, axis=1)).T
+            sin_cos_ln = (sin_ln.T * np.sum(charge_n * cos_ln, axis=1)).T
+
+            prefactor_ln = (I_l * (cos_sin_ln - sin_cos_ln).T).T
+
             # First expression
-            prefactor_l = 1 / (2 * alpha**2) + 2 / sqk_l
-            first_lccc = k_lc.reshape(-1, 1, 1, 3) * k_lc.reshape(-1, 3, 1, 1) * k_lc.reshape(-1, 1, 3, 1) * prefactor_l.reshape(-1, 1, 1, 1)
+            first_lccc = k_lc.reshape(-1, 1, 1, 3) * k_lc.reshape(-1, 3, 1, 1) * k_lc.reshape(-1, 1, 3, 1) * \
+                         (1 / (2 * alpha**2) + 2 / sqk_l).reshape(-1, 1, 1, 1)
 
             # Second expression
             second_lccc = -(k_lc.reshape(-1, 3, 1, 1) * delta_ab.reshape(-1, 1, 3, 3) + 
                             k_lc.reshape(-1, 1, 3, 1) * delta_ab.reshape(-1, 3, 1, 3))
 
-            naforces_nccc = np.sum(structure_factor_ln.reshape(-1, nb_atoms, 1, 1, 1) * (first_lccc + second_lccc).reshape(-1, 1, 3, 3, 3), axis=0)
+            naforces_nccc = np.sum(prefactor_ln.reshape(-1, nb_atoms, 1, 1, 1) * (first_lccc + second_lccc).reshape(-1, 1, 3, 3, 3), axis=0)
 
             return -conversion_prefactor * 4 * np.pi * (charge_n * naforces_nccc.T).T / atoms.get_volume()
 
