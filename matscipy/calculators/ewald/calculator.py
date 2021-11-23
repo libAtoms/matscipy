@@ -36,6 +36,10 @@ import numpy as np
 
 from itertools import product
 
+from scipy.sparse import bsr_matrix
+
+from scipy.linalg import block_diag
+
 from scipy.sparse.linalg import cg
 
 from scipy.special import erfc
@@ -288,7 +292,6 @@ class Ewald(Calculator):
 
         return conversion_prefactor * 2 * np.pi * np.sum(I * np.absolute(structure_factor_l)**2) / vol
 
-    #@profile    
     def first_derivative_kspace(self, charge, natoms, vol, pos, I, k):
         """
         Return the kspace part of the force 
@@ -505,7 +508,7 @@ class Ewald(Calculator):
 
     ###
 
-    def hessian_rspace(self, atoms, format='dense', divide_by_masses=False):
+    def hessian_rspace(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for the short range part.
 
@@ -559,7 +562,9 @@ class Ewald(Calculator):
         if alpha == None:
             alpha = self.determine_alpha(charge_n, accuracy, rc, atoms.get_cell())
 
-        print("Estimated alpha for reals space hessian: ", alpha)
+        print("Rspace parameters:")
+        print("----------------------------")
+        print("Estimated alpha: ", alpha)
 
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms, self.dict)
         chargeij = charge_n[i_p] * charge_n[j_p]
@@ -595,11 +600,17 @@ class Ewald(Calculator):
         H_pcc += -(de_p / r_p * (np.eye(3, dtype=n_pc.dtype)
                                     - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
 
-        if format == "dense":
-            H = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(len(i_p)):
-                H[3*i_p[atom]:3*i_p[atom]+3,
-                  3*j_p[atom]:3*j_p[atom]+3] += H_pcc[atom]
+        # Sparse BSR-matrix
+        if format == "sparse":
+            if divide_by_masses:
+                masses_n = atoms.get_masses()
+                geom_mean_mass_p = np.sqrt(masses_n[i_p]*masses_n[j_p])
+
+            if divide_by_masses:
+                H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
+
+            else: 
+                H = bsr_matrix((H_pcc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
             for x in range(3):
@@ -607,20 +618,15 @@ class Ewald(Calculator):
                     Hdiag_icc[:, x, y] = - \
                         np.bincount(i_p, weights=H_pcc[:, x, y])
 
-            Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(nb_atoms):
-                Hdiag_ncc[3*atom:3*atom+3,
-                          3*atom:3*atom+3] += Hdiag_icc[atom]
-
-            H += Hdiag_ncc
-
             if divide_by_masses:
-                masses_p = (atoms.get_masses()).repeat(3)
-                H /= np.sqrt(masses_p.reshape(-1,1)*masses_p.reshape(1,-1))
-                return H
+                H += bsr_matrix(((Hdiag_icc.T/masses_n).T, np.arange(nb_atoms),
+                             np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
 
             else:
-                return H
+                H += bsr_matrix((Hdiag_icc, np.arange(nb_atoms),
+                             np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
+
+            return H
 
         # Neighbour list format
         elif format == "neighbour-list":
@@ -632,7 +638,6 @@ class Ewald(Calculator):
 
     ###
 
-    #@profile
     def kspace_properties(self, atoms, prop="Hessian", divide_by_masses=False):
         """
         Calculate the recirprocal contributiom to the Hessian, the non-affine forces and the Born elastic constants
@@ -695,22 +700,13 @@ class Ewald(Calculator):
         if np.all(nbk_c) != None and kc == None:
             kc = self.determine_kc(atoms.get_cell(), nbk_c)
 
+        I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
+
         # Compute and print error estimates
         rms_rspace = self.rms_rspace(charge_n, atoms.get_cell(), alpha, rc)
         rms_kspace_x = self.rms_kspace(nbk_c[0], atoms.get_cell()[0, 0], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
         rms_kspace_y = self.rms_kspace(nbk_c[1], atoms.get_cell()[1, 1], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
         rms_kspace_z = self.rms_kspace(nbk_c[2], atoms.get_cell()[2, 2], nb_atoms, alpha, conversion_prefactor*np.sum(charge_n**2))
-
-        # List of distances for all atoms
-        ij_n = np.array(np.meshgrid(np.arange(0, nb_atoms), np.arange(0, nb_atoms))).T.reshape(-1,2)
-        i_n = ij_n[:,0]
-        j_n = ij_n[:,1]
-        r_nc = mic(atoms.get_positions()[j_n, :] - atoms.get_positions()[i_n, :], atoms.get_cell())
-
-        # Prefactor and wave vectors for reciprocal space 
-        I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc, alpha, nbk_c)
-
-        chargeij = charge_n[i_n] * charge_n[j_n]
 
         print("Kspace parameters:")
         print("----------------------------")
@@ -721,70 +717,43 @@ class Ewald(Calculator):
         print("Estimated absolute RMS force accuracy (Real space): ", np.absolute(rms_rspace))
         print("Estimated absolute RMS force accuracy (Kspace): ", np.sqrt(rms_kspace_x**2 + rms_kspace_y**2 + rms_kspace_z**2))
 
-        if prop == "Hessian":
-            mask = i_n != j_n
-
-            prefactor_ln = np.zeros((len(I_l), len(i_n)))
-
-            prefactor_ln[:, mask] += np.cos(np.tensordot(k_lc, r_nc, axes=((1), (1))))[:, mask]
-
-            prefactor_ln = (I_l * prefactor_ln.T).T
-
-            H_ncc = np.sum((k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)) * prefactor_ln.reshape(-1, len(i_n), 1, 1), axis=0)
-
-            H_ncc *= (conversion_prefactor * 4 * np.pi * chargeij / atoms.get_volume()).reshape(-1, 1, 1)
-
-            # Test this
-            """
-            phase_ln = np.tensordot(k_lc, atoms.get_positions(), axes=((1), (1)))
-
-            cos_ln = np.cos(phase_ln)
-            sin_ln = np.sin(phase_ln)
-
-            sqcos_sqsin_lnn  = cos_ln.reshape(-1, nb_atoms, 1) * cos_ln.reshape(-1, 1, nb_atoms) + \
-                               sin_ln.reshape(-1, nb_atoms, 1) * sin_ln.reshape(-1, 1, nb_atoms)
-
-            prefactor_lnn = (I_l * sqcos_sqsin_lnn.T).T
-
-            waves_lcc = k_lc.reshape(-1, 1, 3, 1) * k_lc.reshape(-1, 1, 1, 3)
-
-            H_nncc = np.sum(waves_lcc.reshape(-1, 1, 1, 3, 3) * prefactor_lnn.reshape(-1, nb_atoms, nb_atoms, 1, 1), axis=0)
-
-            H = np.concatenate(np.concatenate(H_nncc, axis=2), axis=0)
-
-            return H
-            """
-
+        if prop == "Hessian":  
             H = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(len(i_n)):
-                H[3*i_n[atom]:3*i_n[atom]+3,
-                  3*j_n[atom]:3*j_n[atom]+3] += H_ncc[atom]
 
-            Hdiag_icc = np.empty((nb_atoms, 3, 3))
+            pos = atoms.get_positions()
+
+            for i, k in enumerate(k_lc):
+                phase_l = np.sum(k * pos, axis=1)
+
+                I_sqcos_sqsin = I_l[i] * (np.cos(phase_l).reshape(-1, 1) * np.cos(phase_l).reshape(1, -1) + 
+                                          np.sin(phase_l).reshape(-1, 1) * np.sin(phase_l).reshape(1, -1))
+
+                I_sqcos_sqsin[range(nb_atoms), range(nb_atoms)] = 0.0
+
+                H += np.concatenate(np.concatenate(k.reshape(1, 1, 3, 1) * k.reshape(1, 1, 1, 3) * I_sqcos_sqsin.reshape(nb_atoms, nb_atoms, 1, 1), axis=2), axis=0)
+
+            H *= (conversion_prefactor * 4 * np.pi  / atoms.get_volume()) * charge_n.repeat(3).reshape(-1, 1) * charge_n.repeat(3).reshape(1, -1)
+
+            Hdiag = np.zeros((3*nb_atoms, 3))
             for x in range(3):
-                for y in range(3):
-                    Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_n, weights=H_ncc[:, x, y])
+                Hdiag[:, x] = -np.sum(H[:,x::3], axis=1)
+         
+            Hdiag = block_diag(*Hdiag.reshape(nb_atoms, 3, 3))
 
-            Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
-            for atom in range(nb_atoms):
-                Hdiag_ncc[3*atom:3*atom+3,
-                          3*atom:3*atom+3] += Hdiag_icc[atom]
-
-            H += Hdiag_ncc
+            H += Hdiag
 
             if divide_by_masses:
                 masses_p = (atoms.get_masses()).repeat(3)
                 H /= np.sqrt(masses_p.reshape(-1, 1)*masses_p.reshape(1, -1))
 
             return H 
-            
-        if prop == "Born":
+
+        elif prop == "Born":
             delta_ab = np.identity(3)
+            sqk_l = np.sum(k_lc * k_lc, axis=1) 
 
             structure_factor_l = np.sum(charge_n * np.exp(1j * np.tensordot(k_lc, atoms.get_positions(), axes=((1),(1)))), axis=1)
             prefactor_l = (I_l * np.absolute(structure_factor_l)**2).reshape(-1, 1, 1, 1, 1)
-            sqk_l = np.sum(k_lc * k_lc, axis=1) 
 
             # First expression
             first_abab = delta_ab.reshape(1, 3, 3, 1, 1) * delta_ab.reshape(1, 1, 1, 3, 3) + \
@@ -806,7 +775,7 @@ class Ewald(Calculator):
 
             return conversion_prefactor * 2 * np.pi * np.sum(C_labab, axis=0) / atoms.get_volume()**2
 
-        if prop == "Naforces":
+        elif prop == "Naforces":
             delta_ab = np.identity(3)
             sqk_l = np.sum(k_lc * k_lc, axis=1) 
 
@@ -821,9 +790,9 @@ class Ewald(Calculator):
             prefactor_ln = (I_l * (cos_sin_ln - sin_cos_ln).T).T
 
             # First expression
-            first_lccc = k_lc.reshape(-1, 1, 1, 3) * k_lc.reshape(-1, 3, 1, 1) * k_lc.reshape(-1, 1, 3, 1) * \
-                         (1 / (2 * alpha**2) + 2 / sqk_l).reshape(-1, 1, 1, 1)
-
+            first_lccc = (1 / (2 * alpha**2) + 2 / sqk_l).reshape(-1, 1, 1, 1) * \
+                         k_lc.reshape(-1, 1, 1, 3) * k_lc.reshape(-1, 3, 1, 1) * k_lc.reshape(-1, 1, 3, 1)
+                         
             # Second expression
             second_lccc = -(k_lc.reshape(-1, 3, 1, 1) * delta_ab.reshape(-1, 1, 3, 3) + 
                             k_lc.reshape(-1, 1, 3, 1) * delta_ab.reshape(-1, 3, 1, 3))
@@ -838,7 +807,7 @@ class Ewald(Calculator):
         """
         Compute the real space + kspace Hessian
         """
-        H = self.hessian_rspace(atoms, format="dense")
+        H = self.hessian_rspace(atoms, format="sparse").todense()
         H += self.kspace_properties(atoms, prop="Hessian")
 
         return H
