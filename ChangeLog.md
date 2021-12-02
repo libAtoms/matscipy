@@ -1,7 +1,7 @@
 Change log
 ==========
 
-v0.7.1 
+v0.8.0 
 ----------------
 
 - Calculator for traditional Ewald summation 

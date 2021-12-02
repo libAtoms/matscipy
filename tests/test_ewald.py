@@ -60,7 +60,7 @@ from ase.units import GPa
 from ase.lattice.hexagonal import HexagonalFactory
 from ase.lattice.cubic import SimpleCubicFactory
 
-from matscipy.calculators.ewald import Ewald, BKS_ewald
+from matscipy.calculators.ewald import Ewald, BKSEwald
 from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
 from matscipy.hessian_finite_differences import fd_hessian
 from matscipy.numpy_tricks import mabincount
@@ -108,13 +108,13 @@ class beta_cristobalite(SimpleCubicFactory):
                     [0.84389100, 0.94564800, 0.13957100]] 
     element_basis = (0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
 
-calc_alpha_quartz = {(14, 14): BKS_ewald(0, 1, 0, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6),
-                     (14, 8): BKS_ewald(18003.7572, 4.87318, 133.5381, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6),
-                     (8, 8): BKS_ewald(1388.7730, 2.76000, 175.0000, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6)} 
+calc_alpha_quartz = {(14, 14): BKSEwald(0, 1, 0, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6),
+                     (14, 8): BKSEwald(18003.7572, 4.87318, 133.5381, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6),
+                     (8, 8): BKSEwald(1388.7730, 2.76000, 175.0000, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6)} 
 
-calc_beta_cristobalite = {(14, 14): BKS_ewald(0, 1, 0, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6),
-                          (14, 8): BKS_ewald(18003.7572, 4.87318, 133.5381, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6),
-                          (8, 8): BKS_ewald(1388.7730, 2.76000, 175.0000, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6)} 
+calc_beta_cristobalite = {(14, 14): BKSEwald(0, 1, 0, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6),
+                          (14, 8): BKSEwald(18003.7572, 4.87318, 133.5381, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6),
+                          (8, 8): BKSEwald(1388.7730, 2.76000, 175.0000, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6)} 
 
 ### 
 

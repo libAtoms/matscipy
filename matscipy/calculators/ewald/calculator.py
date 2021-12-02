@@ -34,8 +34,6 @@ Pair potential + Ewald summation
 
 import numpy as np
 
-from itertools import product
-
 from scipy.sparse import bsr_matrix
 
 from scipy.linalg import block_diag
@@ -60,7 +58,7 @@ conversion_prefactor = 14.399645
 
 ###
 
-class BKS_ewald:
+class BKSEwald:
     """
     Beest, Kramer, van Santen (BKS) potential.
     Functional form is Buckingham + Coulomb potential
