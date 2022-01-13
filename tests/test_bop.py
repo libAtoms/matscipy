@@ -315,7 +315,7 @@ def compute_elastic_constants(a, par):
     # Non-affine elastic constants
     C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5,
                                         verbose=False)
-    C_na = calculator.get_non_affine_contribution_to_elastic_constants(a, tol=1e-5)
+    C_na = calculator.get_non_affine_contribution_to_elastic_constants(a)
     # print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
     # print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
     np.testing.assert_allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana + C_na), atol=0.1)

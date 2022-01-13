@@ -1,6 +1,12 @@
 Change log
 ==========
 
+v0.8.0 
+----------------
+
+- Calculator for traditional Ewald summation 
+- Analytic computation of Hessian and zero-temperature elastic constants for potentials with electrostatic interaction
+
 v0.7.0 (29Jul21)
 ----------------
 

@@ -84,7 +84,11 @@ tests = [
     ("ErhartAlbeSiC-dia-Si",
      TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_SiC),
      Diamond("Si", size=[sx, sx, sx]),
-     dict(Ec=4.63, a0=5.429, C11=167, C12=65, C440=105, B=99)),
+     dict(Ec=4.63, a0=5.429, C11=167, C12=65, C44=60 ,C440=105, B=99)),
+    ("ErhartAlbeSiC-dia-SiII",
+     TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_Si),
+     Diamond("Si", size=[sx, sx, sx]),
+     dict(Ec=4.63, a0=5.429, C11=167, C12=65, C44=72, C440=111, B=99)),
     ("ErhartAlbeSiC-dia-Si-C",
      TersoffBrenner(tersoff_brenner.Erhart_PRB_71_035211_SiC),
      B3(["Si", "C"], latticeconstant=4.3596, size=[sx, sx, sx]),
@@ -132,7 +136,7 @@ def test_cubic_elastic_constants(test):
 
     # C11, C12, C44
     Caffine = calculator.get_birch_coefficients(atoms)
-    Cnonaffine = calculator.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5)
+    Cnonaffine = calculator.get_non_affine_contribution_to_elastic_constants(atoms)
     C = full_3x3x3x3_to_Voigt_6x6(Caffine + Cnonaffine)
     C11 = C[0, 0] / GPa
     C12 = C[0, 1] / GPa

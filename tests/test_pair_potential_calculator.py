@@ -280,7 +280,7 @@ def test_non_affine_elastic_constants_crystal(a0):
     atoms.calc = b  
     FIRE(ase.constraints.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None).run(fmax=1e-5)   
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
-    anaC_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5))
+    anaC_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
     anaC_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
     np.testing.assert_allclose(C_num, anaC_af + anaC_na, atol=0.1)
 
@@ -297,7 +297,7 @@ def test_non_affine_elastic_constants_glass():
     FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None).run(fmax=1e-5)   
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=5, delta=1e-4, optimizer=FIRE, fmax=1e-5, verbose=False)
     Cana_af = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms))
-    Cana_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms, tol=1e-5))
+    Cana_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
     np.testing.assert_allclose(C_num, Cana_na + Cana_af, atol=0.1)
     
     H_nn = b.get_hessian(atoms, "sparse").todense()

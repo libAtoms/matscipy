@@ -147,6 +147,25 @@ Erhart_PRB_71_035211_SiC = {
 }
 
 
+Erhart_PRB_71_035211_Si = {
+    '__ref__':  'Erhart P., Albe K., Phys. Rev. B 71, 035211 (2005)',
+    'style':    'Brenner',
+    'el':       [  'Si' ],
+    'D0':       [  3.24     ],
+    'r0':       [  2.222    ],
+    'S':        [  1.57     ],
+    'beta':     [  1.4760   ],
+    'gamma':    [  0.09253  ],
+    'c':        [  1.13681  ],
+    'd':        [  0.63397  ],
+    'h':        [  0.335    ],
+    'mu':       [  0.0      ],
+    'n':        [  1.0      ],
+    'r1':       [  2.75     ],
+    'r2':       [  3.05     ]
+}
+
+
 Albe_PRB_65_195124_PtC = {
     '__ref__':  'Albe K., Nordlund K., Averback R. S., Phys. Rev. B 65, 195124 (2002)',
     'style':    'Brenner',
