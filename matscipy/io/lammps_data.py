@@ -204,7 +204,7 @@ class LAMMPSData:
                 data[:] = np.array(value)
 
     def write(self, fd: FileDescriptor):
-        """Write data to text stream."""
+        """Write data to text file or stream."""
         if isinstance(fd, (str, PathLike)):
             with open(fd, 'w') as stream:
                 return self.write(stream)
@@ -265,7 +265,7 @@ class LAMMPSData:
             fd.write('\n')
 
     def read(self, fd: FileDescriptor):
-        """Read data from text stream."""
+        """Read data from text file or stream."""
         if isinstance(fd, (str, PathLike)):
             with open(fd, 'r') as stream:
                 return self.read(stream)
