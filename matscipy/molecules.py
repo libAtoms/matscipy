@@ -18,7 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-"""Potentials for manybody interactions within molecules."""
+"""Classes that deal with interactions defined by connectivity."""
 
 import numpy as np
 
@@ -33,7 +33,7 @@ class Molecules:
     }
 
     def __init__(self,
-                 bonds_connectivity: np.ndarray,
+                 bonds_connectivity: np.ndarray = None,
                  bonds_types: np.ndarray = None,
                  angles_connectivity: np.ndarray = None,
                  angles_types: np.ndarray = None,
@@ -65,18 +65,20 @@ class Molecules:
         for data, dtype in self._dtypes.items():
             self.__dict__[data] = np.array([], dtype=dtype)
 
-        self.bonds.resize(bonds_connectivity.shape[0])
-        self.bonds["atoms"][:] = bonds_connectivity
-        self.bonds["type"][:] = bonds_types if bonds_types is not None else 1
+        if bonds_connectivity is not None:
+            self.bonds.resize(len(bonds_connectivity))
+            self.bonds["atoms"][:] = bonds_connectivity
+            self.bonds["type"][:] = bonds_types \
+                if bonds_types is not None else 1
 
         if angles_connectivity is not None:
-            self.angles.resize(angles_connectivity.shape[0])
+            self.angles.resize(len(angles_connectivity))
             self.angles["atoms"][:] = angles_connectivity
             self.angles["type"][:] = angles_types \
                 if angles_types is not None else 1
 
         if dihedrals_connectivity is not None:
-            self.dihedrals.resize(dihedrals_connectivity.shape[0])
+            self.dihedrals.resize(len(dihedrals_connectivity))
             self.dihedrals["atoms"][:] = dihedrals_connectivity
             self.dihedrals["type"][:] = dihedrals_types \
                 if dihedrals_types is not None else 1
