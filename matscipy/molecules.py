@@ -22,6 +22,9 @@
 
 import numpy as np
 
+from ase import Atoms
+from ase.geometry import find_mic, get_angles, get_dihedrals
+
 
 class Molecules:
     """Similar to ase.Atoms, but for molecular data."""
@@ -32,7 +35,7 @@ class Molecules:
         "dihedrals": np.dtype([('type', np.int), ('atoms', np.int, 4)]),
     }
 
-    def __init__(self,
+    def __init__(self, atoms: Atoms,
                  bonds_connectivity: np.ndarray = None,
                  bonds_types: np.ndarray = None,
                  angles_connectivity: np.ndarray = None,
@@ -61,6 +64,8 @@ class Molecules:
             Array defining the dihedral types.
             Expected shape is ``ndihedrals``.
         """
+        self.atoms = atoms
+
         # Defining data arrays
         for data, dtype in self._dtypes.items():
             self.__dict__[data] = np.array([], dtype=dtype)
@@ -82,3 +87,38 @@ class Molecules:
             self.dihedrals["atoms"][:] = dihedrals_connectivity
             self.dihedrals["type"][:] = dihedrals_types \
                 if dihedrals_types is not None else 1
+
+    def get_distances(self):
+        """Compute distances for all bonds."""
+        positions = [
+            self.atoms.get_positions()[self.bonds["atoms"][:, i]]
+            for i in range(2)
+        ]
+
+        # Return distances only
+        return find_mic(positions[1] - positions[0],
+                        self.atoms.cell, self.atoms.pbc)[1]
+
+    def get_angles(self):
+        """Compute angles for all angles."""
+        positions = [
+            self.atoms.get_positions()[self.angles["atoms"][:, i]]
+            for i in range(3)
+        ]
+
+        # WARNING: returns angles in degrees
+        return get_angles(positions[1] - positions[0],
+                          positions[2] - positions[1],
+                          self.atoms.cell, self.atoms.pbc)
+
+    def get_dihedrals(self):
+        """Compute angles for all dihedrals."""
+        positions = [
+            self.atoms.get_positions()[self.dihedrals["atoms"][:, i]]
+            for i in range(4)
+        ]
+
+        return get_dihedrals(positions[1] - positions[0],
+                             positions[2] - positions[1],
+                             positions[3] - positions[2],
+                             self.atoms.cell, self.atoms.pbc)

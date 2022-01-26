@@ -34,7 +34,8 @@ import matscipytest
 class TestMolecular(matscipytest.MatSciPyTestCase):
     def test_flat(self):
         atoms = Atoms("CO2", positions=[[-1, 0, 0], [0, 0, 0], [1, 0, 0]])
-        molecules = Molecules(bonds_connectivity=[[0, 1], [1, 2]],
+        molecules = Molecules(atoms,
+                              bonds_connectivity=[[0, 1], [1, 2]],
                               angles_connectivity=[[0, 1, 2]])
 
         r0, theta0 = 0.5, np.pi / 3
@@ -55,7 +56,8 @@ class TestMolecular(matscipytest.MatSciPyTestCase):
         atoms = Atoms("CO2", positions=[[-1, 0, 0],
                                         [0, 0, 0],
                                         [np.cos(theta0), np.sin(theta0), 0]])
-        molecules = Molecules(bonds_connectivity=[[0, 1], [1, 2]],
+        molecules = Molecules(atoms,
+                              bonds_connectivity=[[0, 1], [1, 2]],
                               angles_connectivity=[[0, 1, 2]])
 
         bonds_c = BondsCalculator(molecules,
@@ -77,7 +79,8 @@ class TestMolecular(matscipytest.MatSciPyTestCase):
             [0, 0, 1]
         ])
 
-        molecules = Molecules(dihedrals_connectivity=[[0, 1, 2, 3]])
+        molecules = Molecules(atoms,
+                              dihedrals_connectivity=[[0, 1, 2, 3]])
 
         atoms.calc = DihedralsCalculator(molecules,
                                          {1: HarmonicPotential(1, 0)})

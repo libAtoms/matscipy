@@ -67,7 +67,8 @@ class MolecularCalculator(Calculator):
         """Calculate all the bonded interactions."""
         super().calculate(atoms, properties, system_changes)
 
-        data = self.get_data(atoms)  # can be distance, angles, etc.
+        self.molecules.atoms = atoms
+        data = self.get_data()  # can be distance, angles, etc.
         epot = 0.
         for interaction_type, potential in self.interactions.items():
             mask = getattr(self.molecules, self.interaction_label)["type"] \
@@ -83,15 +84,9 @@ class BondsCalculator(MolecularCalculator):
 
     interaction_label = "bonds"
 
-    def get_data(self, atoms):
+    def get_data(self):
         """Compute distances for all bonds."""
-        positions = [
-            atoms.get_positions()[self.molecules.bonds["atoms"][:, i]]
-            for i in range(2)
-        ]
-
-        # Return distances only
-        return find_mic(positions[1] - positions[0], atoms.cell, atoms.pbc)[1]
+        return self.molecules.get_distances()
 
 
 class AnglesCalculator(MolecularCalculator):
@@ -99,17 +94,9 @@ class AnglesCalculator(MolecularCalculator):
 
     interaction_label = "angles"
 
-    def get_data(self, atoms):
+    def get_data(self):
         """Compute angles for all angles."""
-        positions = [
-            atoms.get_positions()[self.molecules.angles["atoms"][:, i]]
-            for i in range(3)
-        ]
-
-        # WARNING: returns angles in degrees
-        return get_angles(positions[1] - positions[0],
-                          positions[2] - positions[1],
-                          atoms.cell, atoms.pbc)
+        return self.molecules.get_angles()
 
 
 class DihedralsCalculator(MolecularCalculator):
@@ -117,14 +104,6 @@ class DihedralsCalculator(MolecularCalculator):
 
     interaction_label = "dihedrals"
 
-    def get_data(self, atoms):
+    def get_data(self):
         """Compute angles for all dihedrals."""
-        positions = [
-            atoms.get_positions()[self.molecules.dihedrals["atoms"][:, i]]
-            for i in range(4)
-        ]
-
-        return get_dihedrals(positions[1] - positions[0],
-                             positions[2] - positions[1],
-                             positions[3] - positions[2],
-                             atoms.cell, atoms.pbc)
+        return self.molecules.get_dihedrals()
