@@ -53,6 +53,7 @@ from ase.build import bulk, molecule
 import matscipytest
 from matscipy.neighbours import *
 from matscipy.fracture_mechanics.idealbrittlesolid import triangular_lattice_slab
+from matscipy.molecules import Molecules
 
 ###
 
@@ -202,7 +203,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
                                 (1.4, 0.1, 1.6),
                                 (1.3, 2.0, -0.1)])
         atoms.set_scaled_positions(3 * np.random.random((nat, 3)) - 1)
-        
+
         for p1 in range(2):
             for p2 in range(2):
                 for p3 in range(2):
@@ -259,7 +260,7 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         assert np.all(first_triplets == first_triplets_comp)
         first_triplets = get_jump_indicies([0])
         first_triplets_comp = [0, 1]
-        print(first_triplets, first_triplets_comp)
+        # print(first_triplets, first_triplets_comp)
         assert np.all(first_triplets == first_triplets_comp)
 
     def test_triplet_list(self):
@@ -268,7 +269,7 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         ik_t_comp = [1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4, 7, 8, 6, 8, 6, 7, 10,
                      11, 9, 11, 9, 10]
         i_n = [0]*2+[1]*4+[2]*4
-        
+
         first_i = get_jump_indicies(i_n)
         ij_t_comp = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6,
                      7, 7, 7, 8, 8, 8, 9, 9, 9]
@@ -313,6 +314,41 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         ik_t_comp = [1, 0, 3, 2, 7, 8, 9, 6, 8, 9, 6, 7, 9, 6, 7, 8]
         assert np.all(a[0] == ij_t_comp)
         assert np.all(a[1] == ik_t_comp)
+
+
+class TestNeighbourhood(matscipytest.MatSciPyTestCase):
+    theta0 = np.pi / 3
+    atoms = ase.Atoms("H2O",
+                      positions=[[-1, 0, 0],
+                                 [0, 0, 0],
+                                 [np.cos(theta0), np.sin(theta0), 0]],
+                      cell=ase.cell.Cell.fromcellpar([10, 10, 10, 90, 90, 90]))
+    molecules = Molecules(atoms,
+                          bonds_connectivity=[[0, 1], [2, 1], [0, 2]],
+                          angles_connectivity=[
+                              [0, 1, 2],
+                              [1, 2, 0],
+                              [2, 0, 1],
+                          ])
+
+    cutoff = CutoffNeighbourhood(atoms, cutoff=10.)
+    molecule = MolecularNeighbourhood(atoms, molecules)
+
+    def test_pairs(self):
+        cutoff_d = self.cutoff.get_pairs("ijdD")
+        molecule_d = self.molecule.get_pairs("ijdD")
+        p = np.array([0, 1, 2, 3, 5, 4])
+
+        for c, m in zip(cutoff_d, molecule_d):
+            self.assertArrayAlmostEqual(c, m[p], tol=1e-10)
+
+    def test_triplets(self):
+        cutoff_d = self.cutoff.get_triplets("ijkdD")
+        molecule_d = self.molecule.get_triplets("ijkdD")
+        p = np.array([0, 1, 3, 2, 4, 5])
+
+        for c, m in zip(cutoff_d, molecule_d):
+            self.assertArrayAlmostEqual(c, m[p], tol=1e-10)
 
 
 if __name__ == '__main__':

@@ -22,14 +22,144 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import numpy as np
+from abc import ABC, abstractmethod
+import typing as ts
 
+import numpy as np
+import ase
 from ase.data import atomic_numbers
+from ase.geometry import find_mic
 
 import _matscipy
-from _matscipy import first_neighbours, get_jump_indicies
+from _matscipy import first_neighbours, get_jump_indicies  # noqa
+from .molecules import Molecules
 
-###
+
+class Neighbourhood(ABC):
+    """Abstract class defining a neighbourhood of atoms (pairs, triplets)."""
+
+    def __init__(self, atoms: ase.Atoms):
+        """Initialize with atoms."""
+        self.atoms = atoms
+
+    @abstractmethod
+    def get_pairs(self, quantities: str):
+        """Return requested data on pairs."""
+
+    @abstractmethod
+    def get_triplets(self, quantities: str):
+        """Return requested data on triplets."""
+
+    @staticmethod
+    def make_result(quantities,
+                    connectivity,
+                    D, d, S, accepted_quantities):
+        """Construct result list."""
+        if not set(quantities) <= set(accepted_quantities):
+            unknowns = set(quantities) - set(accepted_quantities)
+            raise ValueError(f"Unknown requested quantities {unknowns}")
+
+        e_size = connectivity.shape[1]
+        quantities_map = {idx: connectivity[:, i]
+                          for i, idx in enumerate("ijk"[:e_size])}
+        quantities_map.update({'d': d, 'D': D})
+
+        return [quantities_map[data] for data in quantities]
+
+    @staticmethod
+    def compute_distances(atoms: ase.Atoms,
+                          connectivity: np.ndarray,
+                          indices: ts.List[int]):
+        """Return distances and vectors for connectivity."""
+        n_nuplets, element_size = connectivity.shape
+        dim = atoms.positions.shape[1]
+
+        positions = [atoms.positions[col] for col in connectivity.T]
+        D = np.zeros((n_nuplets, len(indices), dim))
+        d = np.zeros((n_nuplets, len(indices)))
+
+        for i, idx in enumerate(indices):
+            D[:, i, :], d[:, i] = \
+                find_mic(positions[idx[1]] - positions[idx[0]],
+                         atoms.cell, atoms.pbc)
+        return D.squeeze(), d.squeeze()
+
+
+class CutoffNeighbourhood(Neighbourhood):
+    """Class defining neighbourhood based on proximity."""
+
+    def __init__(self, atoms: ase.Atoms, cutoff: ts.Union[float, dict] = None):
+        """Initialze with atoms and cutoff."""
+        super().__init__(atoms)
+        self.cutoff = cutoff
+
+    def get_pairs(self, quantities: str):
+        """Return pairs and quantities from conventional neighbour list."""
+        return neighbour_list(quantities, self.atoms, self.cutoff)
+
+    def get_triplets(self, quantities: str):
+        """Return triplets and quantities from conventional neighbour list."""
+        i_p, j_p = neighbour_list("ij", self.atoms, self.cutoff)
+        nb_atoms = len(self.atoms)
+        ij_t, ik_t = triplet_list(first_neighbours(nb_atoms, i_p))
+        connectivity = np.array([i_p[ij_t], j_p[ij_t], j_p[ik_t]]).T
+
+        D, d = None, None
+
+        # If any distance is requested, compute distances vectors and norms
+        if "d" in quantities or "D" in quantities:
+            #           i  j    i  k    j  k
+            indices = [(0, 1), (0, 2), (1, 2)]  # defined in Jan's paper
+            D, d = self.compute_distances(self.atoms, connectivity, indices)
+
+        return self.make_result(quantities, connectivity, D, d, None,
+                                accepted_quantities="ijkdD")
+
+
+class MolecularNeighbourhood(Neighbourhood):
+    """Class defining neighbourhood based on molecular connectivity."""
+
+    def __init__(self, atoms: ase.Atoms, molecules: Molecules):
+        """Initialze with atoms and moleculs."""
+        super().__init__(atoms)
+        self.molecules = molecules
+
+    @staticmethod
+    def reverse_connectivity(connectivity):
+        """Sort and stack connectivity + reverse connectivity."""
+        c = np.vstack((connectivity, connectivity[:, ::-1]))
+        idx = np.argsort(c[:, 0])
+        return c[idx, :]
+
+    def get_pairs(self, quantities: str):
+        """Return pairs and quantities from connectivities."""
+        D, d = None, None
+
+        # Doubling pairs to match neighbour_list behavior
+        connectivity = self.reverse_connectivity(self.molecules.bonds["atoms"])
+
+        # If any distance is requested, compute distances vectors and norms
+        if "d" in quantities or "D" in quantities:
+            D, d = self.compute_distances(self.atoms, connectivity, [(0, 1)])
+
+        return self.make_result(quantities, connectivity, D, d, None,
+                                accepted_quantities="ijdD")
+
+    def get_triplets(self, quantities: str):
+        """Return triplets and quantities from connectivities."""
+        D, d = None, None
+
+        connectivity = \
+            self.reverse_connectivity(self.molecules.angles["atoms"])
+
+        # If any distance is requested, compute distances vectors and norms
+        if "d" in quantities or "D" in quantities:
+            #           i  j    i  k    j  k
+            indices = [(0, 1), (0, 2), (1, 2)]  # defined in Jan's paper
+            D, d = self.compute_distances(self.atoms, connectivity, indices)
+
+        return self.make_result(quantities, connectivity, D, d, None,
+                                accepted_quantities="ijkdD")
 
 
 def mic(dr, cell, pbc=None):
@@ -401,11 +531,11 @@ def find_common_neighbours(i_n, j_n,  nat):
     >>> cnl_i1_i2, cnl_j1, nl_index_i1_j1, nl_index_i2_j1 = find_common_neighbours(i_n, j_n, nat)
     >>> print(cnl_i1_i2.shape)
     (1893376, 2)
-    >>> unique_pairs_i1_i2, bincount_bins = np.unique(cnl_i1_i2, axis=0, return_inverse=True) 
+    >>> unique_pairs_i1_i2, bincount_bins = np.unique(cnl_i1_i2, axis=0, return_inverse=True)
     >>> print(unique_pairs_i1_i2.shape)
     (65536, 2)
     >>> tmp = np.random.rand(cnl_i1_i2.shape[0])
-    >>> my_sum = np.bincount(bincount_bins, weights=tmp, minlength=unique_pairs_i1_i2.shape[0]) 
+    >>> my_sum = np.bincount(bincount_bins, weights=tmp, minlength=unique_pairs_i1_i2.shape[0])
     >>> print(my_sum.shape)
     (65536,)
 
@@ -434,8 +564,8 @@ def find_common_neighbours(i_n, j_n,  nat):
     i_n_2 = i_n[j_order]
     j_n_2 = j_n[j_order]
     # Find indices in the copy where contiguous blocks with same j_n_2 start
-    first_j = first_neighbours(nat, j_n_2) 
-    num_rows_per_j = first_j[j_n+1] - first_j[j_n] 
+    first_j = _matscipy.first_neighbours(nat, j_n_2)
+    num_rows_per_j = first_j[j_n+1] - first_j[j_n]
     num_rows_cnl = np.sum(num_rows_per_j)
 
     # The common neighbor information could be stored as
@@ -450,12 +580,10 @@ def find_common_neighbours(i_n, j_n,  nat):
     slice_for_j1 = {j1: slice(first_j[j1], first_j[j1+1]) for j1 in np.arange(nat)}
     for block_number, (i1, j1) in enumerate(zip(i_n, j_n)):
         slice1 = slice(block_start[block_number], block_start[block_number+1])
-        slice2 = slice_for_j1[j1] 
+        slice2 = slice_for_j1[j1]
         nl_index_i1_j1[slice1] = block_number
-        cnl_j1[slice1] = j1 
+        cnl_j1[slice1] = j1
         nl_index_i2_j1[slice1] = j_order[slice2]
         cnl_i1_i2[slice1, 0] = i1
         cnl_i1_i2[slice1, 1] = i_n_2[slice2]
     return cnl_i1_i2, cnl_j1, nl_index_i1_j1, nl_index_i2_j1
-
-

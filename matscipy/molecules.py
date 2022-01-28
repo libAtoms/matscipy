@@ -65,6 +65,7 @@ class Molecules:
             Expected shape is ``ndihedrals``.
         """
         self.atoms = atoms
+        default_type = 1
 
         # Defining data arrays
         for data, dtype in self._dtypes.items():
@@ -74,19 +75,19 @@ class Molecules:
             self.bonds.resize(len(bonds_connectivity))
             self.bonds["atoms"][:] = bonds_connectivity
             self.bonds["type"][:] = bonds_types \
-                if bonds_types is not None else 1
+                if bonds_types is not None else default_type
 
         if angles_connectivity is not None:
             self.angles.resize(len(angles_connectivity))
             self.angles["atoms"][:] = angles_connectivity
             self.angles["type"][:] = angles_types \
-                if angles_types is not None else 1
+                if angles_types is not None else default_type
 
         if dihedrals_connectivity is not None:
             self.dihedrals.resize(len(dihedrals_connectivity))
             self.dihedrals["atoms"][:] = dihedrals_connectivity
             self.dihedrals["type"][:] = dihedrals_types \
-                if dihedrals_types is not None else 1
+                if dihedrals_types is not None else default_type
 
     def get_distances(self):
         """Compute distances for all bonds."""
@@ -100,7 +101,7 @@ class Molecules:
                         self.atoms.cell, self.atoms.pbc)[1]
 
     def get_angles(self):
-        """Compute angles for all angles."""
+        """Compute angles (degrees) for all angles."""
         positions = [
             self.atoms.get_positions()[self.angles["atoms"][:, i]]
             for i in range(3)
@@ -112,7 +113,7 @@ class Molecules:
                           self.atoms.cell, self.atoms.pbc)
 
     def get_dihedrals(self):
-        """Compute angles for all dihedrals."""
+        """Compute angles (degrees) for all dihedrals."""
         positions = [
             self.atoms.get_positions()[self.dihedrals["atoms"][:, i]]
             for i in range(4)
