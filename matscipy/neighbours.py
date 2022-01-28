@@ -99,7 +99,7 @@ class CutoffNeighbourhood(Neighbourhood):
 
     def get_triplets(self, quantities: str):
         """Return triplets and quantities from conventional neighbour list."""
-        i_p, j_p = neighbour_list("ij", self.atoms, self.cutoff)
+        i_p, j_p, D_p = neighbour_list("ijD", self.atoms, self.cutoff)
         nb_atoms = len(self.atoms)
         ij_t, ik_t = triplet_list(first_neighbours(nb_atoms, i_p))
         connectivity = np.array([i_p[ij_t], j_p[ij_t], j_p[ik_t]]).T
@@ -107,10 +107,13 @@ class CutoffNeighbourhood(Neighbourhood):
         D, d = None, None
 
         # If any distance is requested, compute distances vectors and norms
+        # Distances are computed from neighbour list
         if "d" in quantities or "D" in quantities:
-            #           i  j    i  k    j  k
-            indices = [(0, 1), (0, 2), (1, 2)]  # defined in Jan's paper
-            D, d = self.compute_distances(self.atoms, connectivity, indices)
+            D = np.zeros((len(ij_t), 3, 3))
+            D[:, 0] = D_p[ij_t]          # i->j
+            D[:, 1] = D_p[ik_t]          # i->k
+            D[:, 2] = D[:, 1] - D[:, 0]  # j->k
+            d = np.sqrt(np.einsum("...i,...i", D, D))  # distances
 
         return self.make_result(quantities, connectivity, D, d, None,
                                 accepted_quantities="ijkdD")
