@@ -51,11 +51,20 @@ import ase.lattice.hexagonal
 from ase.build import bulk, molecule
 
 import matscipytest
-from matscipy.neighbours import *
+from matscipy.neighbours import (
+    neighbour_list,
+    first_neighbours,
+    triplet_list,
+    mic,
+    CutoffNeighbourhood,
+    MolecularNeighbourhood,
+    get_jump_indicies,
+)
 from matscipy.fracture_mechanics.idealbrittlesolid import triangular_lattice_slab
 from matscipy.molecules import Molecules
 
 ###
+
 
 class TestNeighbours(matscipytest.MatSciPyTestCase):
 
@@ -296,8 +305,6 @@ class TestTriplets(matscipytest.MatSciPyTestCase):
         assert np.all(a[0] == ij_t_comp)
         assert np.all(a[1] == ik_t_comp)
 
-
-
     def test_triplet_list_with_cutoff(self):
         first_i = np.array([0, 2, 6, 10], dtype='int32')
         a = triplet_list(first_i, [2.2]*9+[3.0], 2.6)
@@ -323,28 +330,28 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
                                  [0, 0, 0],
                                  [np.cos(theta0), np.sin(theta0), 0]],
                       cell=ase.cell.Cell.fromcellpar([10, 10, 10, 90, 90, 90]))
-    molecules = Molecules(atoms,
-                          bonds_connectivity=[[0, 1], [2, 1], [0, 2]],
+    molecules = Molecules(bonds_connectivity=[[0, 1], [2, 1], [0, 2]],
                           angles_connectivity=[
                               [0, 1, 2],
                               [1, 2, 0],
                               [2, 0, 1],
                           ])
 
-    cutoff = CutoffNeighbourhood(atoms, cutoff=10.)
-    molecule = MolecularNeighbourhood(atoms, molecules)
+    cutoff = CutoffNeighbourhood(cutoff=10.)
+    molecule = MolecularNeighbourhood(molecules)
 
     def test_pairs(self):
-        cutoff_d = self.cutoff.get_pairs("ijdD")
-        molecule_d = self.molecule.get_pairs("ijdD")
-        p = np.array([0, 1, 2, 3, 5, 4])
+        cutoff_d = self.cutoff.get_pairs(self.atoms, "ijdD")
+        molecule_d = self.molecule.get_pairs(self.atoms, "ijdD")
+        p = np.array([0, 1, 2, 3, 4, 5])  # actually no permutation
+        mask_extra_bonds = self.molecule.connectivity["bonds"]["type"] != -1
 
         for c, m in zip(cutoff_d, molecule_d):
-            self.assertArrayAlmostEqual(c, m[p], tol=1e-10)
+            self.assertArrayAlmostEqual(c, m[mask_extra_bonds][p], tol=1e-10)
 
     def test_triplets(self):
-        cutoff_d = self.cutoff.get_triplets("ijkdD")
-        molecule_d = self.molecule.get_triplets("ijkdD")
+        cutoff_d = self.cutoff.get_triplets(self.atoms, "ijdD")
+        molecule_d = self.molecule.get_triplets(self.atoms, "ijdD")
         p = np.array([0, 1, 3, 2, 4, 5])
 
         for c, m in zip(cutoff_d, molecule_d):

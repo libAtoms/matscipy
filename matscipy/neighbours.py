@@ -38,22 +38,23 @@ from .molecules import Molecules
 class Neighbourhood(ABC):
     """Abstract class defining a neighbourhood of atoms (pairs, triplets)."""
 
-    def __init__(self, atoms: ase.Atoms):
-        """Initialize with atoms."""
-        self.atoms = atoms
+    def __init__(self, atom_types=None):
+        """Initialize with atoms and optional atom types."""
+        self.atom_types = atom_types \
+            if atom_types is not None else lambda i: np.asanyarray(i)
 
     @abstractmethod
-    def get_pairs(self, quantities: str):
+    def get_pairs(self, atoms: ase.Atoms, quantities: str):
         """Return requested data on pairs."""
 
     @abstractmethod
-    def get_triplets(self, quantities: str):
+    def get_triplets(self, atoms: ase.Atoms, quantities: str):
         """Return requested data on triplets."""
 
     @staticmethod
     def make_result(quantities,
                     connectivity,
-                    D, d, S, accepted_quantities):
+                    D, d, S, accepted_quantities) -> ts.Tuple:
         """Construct result list."""
         if not set(quantities) <= set(accepted_quantities):
             unknowns = set(quantities) - set(accepted_quantities)
@@ -69,7 +70,8 @@ class Neighbourhood(ABC):
     @staticmethod
     def compute_distances(atoms: ase.Atoms,
                           connectivity: np.ndarray,
-                          indices: ts.List[int]):
+                          indices: ts.List[int],
+                          ) -> ts.Tuple[np.ndarray, np.ndarray]:
         """Return distances and vectors for connectivity."""
         n_nuplets, element_size = connectivity.shape
         dim = atoms.positions.shape[1]
@@ -88,21 +90,46 @@ class Neighbourhood(ABC):
 class CutoffNeighbourhood(Neighbourhood):
     """Class defining neighbourhood based on proximity."""
 
-    def __init__(self, atoms: ase.Atoms, cutoff: ts.Union[float, dict] = None):
-        """Initialze with atoms and cutoff."""
-        super().__init__(atoms)
+    def __init__(self,
+                 atom_types=None,
+                 pair_types=None,
+                 cutoff: ts.Union[float, dict] = None):
+        """Initialize with atoms, atom types, pair types and cutoff.
+
+        Parameters
+        ----------
+        atom_types : ArrayLike
+            atom types array
+        pair_types : function of 2 atom type arrays
+            maps 2 atom types array to an array of pair types
+        cutoff : float or dict
+            Cutoff for neighbor search. It can be
+                - A single float: This is a global cutoff for all elements.
+                - A dictionary: This specifies cutoff values for element
+                pairs. Specification accepts element numbers of symbols.
+                Example: {(1, 6): 1.1, (1, 1): 1.0, ('C', 'C'): 1.85}
+                - A list/array with a per atom value: This specifies the radius
+                of an atomic sphere for each atoms. If spheres overlap, atoms
+                are within each others neighborhood.
+        """
+        super().__init__(atom_types)
+        self.pair_types = (
+            pair_types
+            if pair_types is not None
+            else lambda i, j: np.zeros_like(i)
+        )
         self.cutoff = cutoff
 
-    def get_pairs(self, quantities: str):
+    def get_pairs(self, atoms: ase.Atoms, quantities: str):
         """Return pairs and quantities from conventional neighbour list."""
-        return neighbour_list(quantities, self.atoms, self.cutoff)
+        return neighbour_list(quantities, atoms, self.cutoff)
 
-    def get_triplets(self, quantities: str):
+    def get_triplets(self, atoms: ase.Atoms, quantities: str):
         """Return triplets and quantities from conventional neighbour list."""
-        i_p, j_p, D_p = neighbour_list("ijD", self.atoms, self.cutoff)
-        nb_atoms = len(self.atoms)
+        i_p, j_p, D_p = neighbour_list("ijD", atoms, self.cutoff)
+        nb_atoms = len(atoms)
         ij_t, ik_t = triplet_list(first_neighbours(nb_atoms, i_p))
-        connectivity = np.array([i_p[ij_t], j_p[ij_t], j_p[ik_t]]).T
+        connectivity = np.array([ij_t, ik_t]).T
 
         D, d = None, None
 
@@ -116,53 +143,101 @@ class CutoffNeighbourhood(Neighbourhood):
             d = np.sqrt(np.einsum("...i,...i", D, D))  # distances
 
         return self.make_result(quantities, connectivity, D, d, None,
-                                accepted_quantities="ijkdD")
+                                accepted_quantities="ijdD")
 
 
 class MolecularNeighbourhood(Neighbourhood):
     """Class defining neighbourhood based on molecular connectivity."""
 
-    def __init__(self, atoms: ase.Atoms, molecules: Molecules):
-        """Initialze with atoms and moleculs."""
-        super().__init__(atoms)
+    def __init__(self,
+                 molecules: Molecules,
+                 atom_types=None):
+        """Initialze with atoms and molecules."""
+        super().__init__(atom_types)
         self.molecules = molecules
 
-    @staticmethod
-    def reverse_connectivity(connectivity):
-        """Sort and stack connectivity + reverse connectivity."""
-        c = np.vstack((connectivity, connectivity[:, ::-1]))
-        idx = np.argsort(c[:, 0])
-        return c[idx, :]
+    @property
+    def molecules(self):
+        """Molecules instance that defines neighbourhood."""
+        return self._molecules
 
-    def get_pairs(self, quantities: str):
+    @molecules.setter
+    def molecules(self, molecules):
+        """Create additional bonds if necessary when assigning molecules."""
+        self._molecules = molecules
+        self.connectivity = {
+            "bonds": self.double_connectivity(molecules.bonds),
+            "angles": self.double_connectivity(molecules.angles),
+        }
+
+        # Add pairs from the angle connectivity with negative types
+        self.complete_connectivity(
+            typeoffset=-(np.max(molecules.bonds["type"])+1))
+
+    @property
+    def pair_types(self):
+        """Map atom types to pair types."""
+        return lambda ti_p, tj_p: self.connectivity["bonds"]["types"]
+
+    @staticmethod
+    def double_connectivity(connectivity: np.ndarray) -> np.ndarray:
+        """Sort and stack connectivity + reverse connectivity."""
+        c = np.zeros(2 * len(connectivity), dtype=connectivity.dtype)
+        c["type"] = np.concatenate(2 * [connectivity["type"]])
+        c["atoms"] = np.concatenate((connectivity["atoms"],
+                                     connectivity["atoms"][:, ::-1]))
+        idx = np.argsort(c["atoms"][:, 0])
+        return c[idx]
+
+    def complete_connectivity(self, typeoffset: int = 0):
+        """Add angles to pair connectivity."""
+        bonds, angles = self.connectivity["bonds"], self.connectivity["angles"]
+        n, nn = len(bonds), 2 * len(angles)
+        new_bonds = np.zeros(n + nn, dtype=bonds.dtype)
+
+        # Copying bonds connectivity and types
+        new_bonds[:n] = bonds
+        new_bonds["type"][n:] = np.concatenate([angles["type"]] * 2)
+        new_bonds["atoms"][n:] = np.concatenate([angles["atoms"][:, (0, 1)],
+                                                 angles["atoms"][:, (0, 2)]])
+        new_bonds["type"][n:] += typeoffset
+
+        # Construct unique bond list and triplet_list
+        self.connectivity["bonds"], inverse = \
+            np.unique(new_bonds, return_inverse=True)
+        #                   ij_t                ik_t
+        self.triplet_list = inverse[n:n+nn//2], inverse[n+nn//2:]
+        self.triplet_list = np.asanyarray(self.triplet_list).T
+
+    def get_pairs(self, atoms: ase.Atoms, quantities: str):
         """Return pairs and quantities from connectivities."""
         D, d = None, None
 
-        # Doubling pairs to match neighbour_list behavior
-        connectivity = self.reverse_connectivity(self.molecules.bonds["atoms"])
+        connectivity = self.connectivity["bonds"]["atoms"]
 
         # If any distance is requested, compute distances vectors and norms
         if "d" in quantities or "D" in quantities:
-            D, d = self.compute_distances(self.atoms, connectivity, [(0, 1)])
+            D, d = self.compute_distances(atoms, connectivity, [(0, 1)])
 
         return self.make_result(quantities, connectivity, D, d, None,
                                 accepted_quantities="ijdD")
 
-    def get_triplets(self, quantities: str):
+    def get_triplets(self, atoms: ase.Atoms, quantities: str):
         """Return triplets and quantities from connectivities."""
         D, d = None, None
 
-        connectivity = \
-            self.reverse_connectivity(self.molecules.angles["atoms"])
+        connectivity = self.connectivity["angles"]["atoms"]
 
         # If any distance is requested, compute distances vectors and norms
         if "d" in quantities or "D" in quantities:
             #           i  j    i  k    j  k
             indices = [(0, 1), (0, 2), (1, 2)]  # defined in Jan's paper
-            D, d = self.compute_distances(self.atoms, connectivity, indices)
+            D, d = self.compute_distances(atoms, connectivity, indices)
 
+        # Returning triplet references in bonds list
+        connectivity = self.triplet_list
         return self.make_result(quantities, connectivity, D, d, None,
-                                accepted_quantities="ijkdD")
+                                accepted_quantities="ijdD")
 
 
 def mic(dr, cell, pbc=None):

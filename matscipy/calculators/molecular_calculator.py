@@ -67,8 +67,7 @@ class MolecularCalculator(Calculator):
         """Calculate all the bonded interactions."""
         super().calculate(atoms, properties, system_changes)
 
-        self.molecules.atoms = atoms
-        data = self.get_data()  # can be distance, angles, etc.
+        data = self.get_data(atoms)  # can be distance, angles, etc.
         epot = 0.
         for interaction_type, potential in self.interactions.items():
             mask = getattr(self.molecules, self.interaction_label)["type"] \
@@ -84,9 +83,9 @@ class BondsCalculator(MolecularCalculator):
 
     interaction_label = "bonds"
 
-    def get_data(self):
+    def get_data(self, atoms):
         """Compute distances for all bonds."""
-        return self.molecules.get_distances()
+        return self.molecules.get_distances(atoms)
 
 
 class AnglesCalculator(MolecularCalculator):
@@ -94,9 +93,9 @@ class AnglesCalculator(MolecularCalculator):
 
     interaction_label = "angles"
 
-    def get_data(self):
+    def get_data(self, atoms):
         """Compute angles for all angles."""
-        return self.molecules.get_angles()
+        return self.molecules.get_angles(atoms)
 
 
 class DihedralsCalculator(MolecularCalculator):
@@ -104,6 +103,6 @@ class DihedralsCalculator(MolecularCalculator):
 
     interaction_label = "dihedrals"
 
-    def get_data(self):
+    def get_data(self, atoms):
         """Compute angles for all dihedrals."""
-        return self.molecules.get_dihedrals()
+        return self.molecules.get_dihedrals(atoms)

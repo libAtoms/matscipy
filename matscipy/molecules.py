@@ -22,7 +22,6 @@
 
 import numpy as np
 
-from ase import Atoms
 from ase.geometry import find_mic, get_angles, get_dihedrals
 
 
@@ -35,36 +34,35 @@ class Molecules:
         "dihedrals": np.dtype([('type', np.int), ('atoms', np.int, 4)]),
     }
 
-    def __init__(self, atoms: Atoms,
-                 bonds_connectivity: np.ndarray = None,
-                 bonds_types: np.ndarray = None,
-                 angles_connectivity: np.ndarray = None,
-                 angles_types: np.ndarray = None,
-                 dihedrals_connectivity: np.ndarray = None,
-                 dihedrals_types: np.ndarray = None):
+    def __init__(self,
+                 bonds_connectivity=None,
+                 bonds_types=None,
+                 angles_connectivity=None,
+                 angles_types=None,
+                 dihedrals_connectivity=None,
+                 dihedrals_types=None):
         """
         Initialize with connectivity data.
 
         Parameters
         ----------
-        bonds_connectivity: np.ndarray
+        bonds_connectivity : ArrayLike
             Array defining bonds with atom ids.
             Expected shape is ``(nbonds, 2)``.
-        bonds_types: np.ndarray
+        bonds_types : ArrayLike
             Array defining the bond types. Expected shape is ``nbonds``.
-        angles_connectivity: np.ndarray
+        angles_connectivity : ArrayLike
             Array defining angles with atom ids.
             Expected shape is ``(nangles, 3)``.
-        angles_types: np.ndarray
+        angles_types : ArrayLike
             Array defining the angle types. Expected shape is ``nangles``.
-        dihedrals_connectivity: np.ndarray
+        dihedrals_connectivity : ArrayLike
             Array defining angles with atom ids.
             Expected shape is ``(ndihedrals, 3)``.
-        dihedrals_types: np.ndarray
+        dihedrals_types : ArrayLike
             Array defining the dihedral types.
             Expected shape is ``ndihedrals``.
         """
-        self.atoms = atoms
         default_type = 1
 
         # Defining data arrays
@@ -89,37 +87,56 @@ class Molecules:
             self.dihedrals["type"][:] = dihedrals_types \
                 if dihedrals_types is not None else default_type
 
-    def get_distances(self):
+    def complete_connectivity(self, typeoffset: int = 0):
+        """Complete bonds connectivity with angles."""
+        bonds, angles = self.bonds, self.angles
+        n, nn = len(bonds), 2 * len(angles)
+        new_bonds = np.zeros(n + nn, dtype=self._dtypes["bonds"])
+
+        # Copying bonds connectivity and types
+        new_bonds[:n] = bonds
+        new_bonds["type"][n:] = np.concatenate([angles["type"]] * 2)
+        new_bonds["atoms"][n:] = np.concatenate([angles["atoms"][:, (0, 1)],
+                                                 angles["atoms"][:, (0, 2)]])
+        new_bonds["type"][n:] += typeoffset
+
+        # Construct unique bond list and triplet_list
+        self.bonds, inverse = np.unique(new_bonds, return_inverse=True)
+        #                   ij_t                ik_t
+        self.triplet_list = inverse[n:n+nn//2], inverse[n+nn//2:]
+        self.triplet_list = np.asanyarray(self.triplet_list).T
+
+    def get_distances(self, atoms) -> np.ndarray:
         """Compute distances for all bonds."""
         positions = [
-            self.atoms.get_positions()[self.bonds["atoms"][:, i]]
+            atoms.positions[self.bonds["atoms"][:, i]]
             for i in range(2)
         ]
 
         # Return distances only
         return find_mic(positions[1] - positions[0],
-                        self.atoms.cell, self.atoms.pbc)[1]
+                        atoms.cell, atoms.pbc)[1]
 
-    def get_angles(self):
+    def get_angles(self, atoms) -> np.ndarray:
         """Compute angles (degrees) for all angles."""
         positions = [
-            self.atoms.get_positions()[self.angles["atoms"][:, i]]
+            atoms.positions[self.angles["atoms"][:, i]]
             for i in range(3)
         ]
 
         # WARNING: returns angles in degrees
         return get_angles(positions[1] - positions[0],
                           positions[2] - positions[1],
-                          self.atoms.cell, self.atoms.pbc)
+                          atoms.cell, atoms.pbc)
 
-    def get_dihedrals(self):
+    def get_dihedrals(self, atoms) -> np.ndarray:
         """Compute angles (degrees) for all dihedrals."""
         positions = [
-            self.atoms.get_positions()[self.dihedrals["atoms"][:, i]]
+            atoms.positions[self.dihedrals["atoms"][:, i]]
             for i in range(4)
         ]
 
         return get_dihedrals(positions[1] - positions[0],
                              positions[2] - positions[1],
                              positions[3] - positions[2],
-                             self.atoms.cell, self.atoms.pbc)
+                             atoms.cell, atoms.pbc)

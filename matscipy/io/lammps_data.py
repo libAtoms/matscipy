@@ -38,9 +38,9 @@ def read_molecules_from_lammps_data(fd: FileDescriptor, style="full"):
 
     Parameters
     ----------
-    fd:
+    fd :
         File descriptor, i.e. file path or text stream.
-    style:
+    style :
         LAMMPS atomic style.
 
     Returns
