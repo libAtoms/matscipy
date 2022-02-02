@@ -87,25 +87,6 @@ class Molecules:
             self.dihedrals["type"][:] = dihedrals_types \
                 if dihedrals_types is not None else default_type
 
-    def complete_connectivity(self, typeoffset: int = 0):
-        """Complete bonds connectivity with angles."""
-        bonds, angles = self.bonds, self.angles
-        n, nn = len(bonds), 2 * len(angles)
-        new_bonds = np.zeros(n + nn, dtype=self._dtypes["bonds"])
-
-        # Copying bonds connectivity and types
-        new_bonds[:n] = bonds
-        new_bonds["type"][n:] = np.concatenate([angles["type"]] * 2)
-        new_bonds["atoms"][n:] = np.concatenate([angles["atoms"][:, (0, 1)],
-                                                 angles["atoms"][:, (0, 2)]])
-        new_bonds["type"][n:] += typeoffset
-
-        # Construct unique bond list and triplet_list
-        self.bonds, inverse = np.unique(new_bonds, return_inverse=True)
-        #                   ij_t                ik_t
-        self.triplet_list = inverse[n:n+nn//2], inverse[n+nn//2:]
-        self.triplet_list = np.asanyarray(self.triplet_list).T
-
     def get_distances(self, atoms) -> np.ndarray:
         """Compute distances for all bonds."""
         positions = [

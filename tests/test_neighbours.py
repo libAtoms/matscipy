@@ -331,11 +331,13 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
                                  [np.cos(theta0), np.sin(theta0), 0]],
                       cell=ase.cell.Cell.fromcellpar([10, 10, 10, 90, 90, 90]))
     molecules = Molecules(bonds_connectivity=[[0, 1], [2, 1], [0, 2]],
+                          bonds_types=[1, 2, 3],
                           angles_connectivity=[
                               [0, 1, 2],
                               [1, 2, 0],
                               [2, 0, 1],
-                          ])
+                          ],
+                          angles_types=[1, 2, 3])
 
     cutoff = CutoffNeighbourhood(cutoff=10.)
     molecule = MolecularNeighbourhood(molecules)
@@ -343,19 +345,32 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
     def test_pairs(self):
         cutoff_d = self.cutoff.get_pairs(self.atoms, "ijdD")
         molecule_d = self.molecule.get_pairs(self.atoms, "ijdD")
-        p = np.array([0, 1, 2, 3, 4, 5])  # actually no permutation
-        mask_extra_bonds = self.molecule.connectivity["bonds"]["type"] != -1
+        p = np.array([0, 1, 3, 2, 5, 4])
+        mask_extra_bonds = self.molecule.connectivity["bonds"]["type"] >= 0
+
+        # print("CUTOFF", cutoff_d)
+        # print("MOLECULE", molecule_d)
 
         for c, m in zip(cutoff_d, molecule_d):
+            # print("c =", c)
+            # print("m =", m[mask_extra_bonds])
             self.assertArrayAlmostEqual(c, m[mask_extra_bonds][p], tol=1e-10)
 
     def test_triplets(self):
-        cutoff_d = self.cutoff.get_triplets(self.atoms, "ijdD")
-        molecule_d = self.molecule.get_triplets(self.atoms, "ijdD")
-        p = np.array([0, 1, 3, 2, 4, 5])
+        cutoff_pairs = np.array(self.cutoff.get_pairs(self.atoms, "ij")).T
+        molecules_pairs = np.array(self.molecule.get_pairs(self.atoms, "ij")).T
+        cutoff_d = self.cutoff.get_triplets(self.atoms, "ij")
+        molecule_d = self.molecule.get_triplets(self.atoms, "ij")
 
+        # We compare the refered pairs, not the triplet info directly
         for c, m in zip(cutoff_d, molecule_d):
-            self.assertArrayAlmostEqual(c, m[p], tol=1e-10)
+            self.assertArrayAlmostEqual(cutoff_pairs[:, 0][c],
+                                        molecules_pairs[:, 0][m], tol=1e-10)
+            self.assertArrayAlmostEqual(cutoff_pairs[:, 1][c],
+                                        molecules_pairs[:, 1][m], tol=1e-10)
+
+    def test_pair_types(self):
+        pass
 
 
 if __name__ == '__main__':

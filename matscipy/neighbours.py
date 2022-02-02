@@ -163,16 +163,19 @@ class MolecularNeighbourhood(Neighbourhood):
 
     @molecules.setter
     def molecules(self, molecules):
-        """Create additional bonds if necessary when assigning molecules."""
+        """Create full connectivity when assigning new molecules."""
         self._molecules = molecules
+
+        # Get ij + ji pairs and ijk + kji angles to mimic the cutoff behavior
         self.connectivity = {
             "bonds": self.double_connectivity(molecules.bonds),
             "angles": self.double_connectivity(molecules.angles),
         }
 
         # Add pairs from the angle connectivity with negative types
+        # This way they should be ignored for the pair potentials
         self.complete_connectivity(
-            typeoffset=-(np.max(molecules.bonds["type"])+1))
+            typeoffset=-(np.max(molecules.angles["type"])+1))
 
     @property
     def pair_types(self):
@@ -186,8 +189,7 @@ class MolecularNeighbourhood(Neighbourhood):
         c["type"] = np.concatenate(2 * [connectivity["type"]])
         c["atoms"] = np.concatenate((connectivity["atoms"],
                                      connectivity["atoms"][:, ::-1]))
-        idx = np.argsort(c["atoms"][:, 0])
-        return c[idx]
+        return c
 
     def complete_connectivity(self, typeoffset: int = 0):
         """Add angles to pair connectivity."""
@@ -202,12 +204,26 @@ class MolecularNeighbourhood(Neighbourhood):
                                                  angles["atoms"][:, (0, 2)]])
         new_bonds["type"][n:] += typeoffset
 
+        # We keep track of wher
+        ij_t = np.zeros_like(new_bonds, dtype=np.bool)
+        ik_t = np.zeros_like(ij_t)
+        ij_t[n:n+nn//2] = True
+        ik_t[n+nn//2:] = True
+
         # Construct unique bond list and triplet_list
-        self.connectivity["bonds"], inverse = \
-            np.unique(new_bonds, return_inverse=True)
-        #                   ij_t                ik_t
-        self.triplet_list = inverse[n:n+nn//2], inverse[n+nn//2:]
-        self.triplet_list = np.asanyarray(self.triplet_list).T
+        self.connectivity["bonds"], indices = \
+            np.unique(new_bonds, return_index=True)
+
+        # Applying unique
+        ij_t[:] = ij_t[indices]
+        ik_t[:] = ik_t[indices]
+
+        # Need to sort after all the shenanigans
+        idx = np.argsort(self.connectivity["bonds"]["atoms"][:, 0])
+        self.connectivity["bonds"][:] = self.connectivity["bonds"][idx]
+
+        self.triplet_list = np.where(ij_t[idx]), np.where(ik_t[idx])
+        self.triplet_list = np.asanyarray(self.triplet_list).T.squeeze()
 
     def get_pairs(self, atoms: ase.Atoms, quantities: str):
         """Return pairs and quantities from connectivities."""

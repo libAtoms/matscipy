@@ -112,6 +112,11 @@ class TestLAMMPSData(matscipytest.MatSciPyTestCase):
         assert np.all(data['velocities'] == read_data['velocities'])
 
         mols = read_molecules_from_lammps_data(filename)
+
+        # Correct for type offset
+        for label in ["bonds", "angles", "dihedrals"]:
+            data[label]["atoms"] -= 1
+
         assert np.all(data["bonds"] == mols.bonds)
         assert np.all(data["angles"] == mols.angles)
         assert np.all(data["dihedrals"] == mols.dihedrals)
