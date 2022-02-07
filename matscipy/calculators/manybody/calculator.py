@@ -31,11 +31,13 @@ Bond Order Potential.
 #   - n: Atomic index, i.e. array dimension of length nb_atoms
 #   - p: Pair index, i.e. array dimension of length nb_pairs
 #   - t: Triplet index, i.e. array dimension of length nb_triplets
+#   - q: Index in nuplet (length # of elements in pair/triplet)
 #   - c: Cartesian index, array dimension of length 3
 #   - a: Cartesian index for the first dimension of the deformation gradient, array dimension of length 3
 #   - b: Cartesian index for the second dimension of the deformation gradient, array dimension of length 3
 #
 
+from itertools import product, starmap
 import numpy as np
 
 from scipy.sparse.linalg import cg
@@ -47,7 +49,14 @@ from scipy.sparse import bsr_matrix
 from ase.calculators.calculator import Calculator
 
 from ...elasticity import Voigt_6_to_full_3x3_stress
-from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, neighbour_list, triplet_list
+from ...neighbours import (
+    find_indices_of_reversed_pairs,
+    first_neighbours,
+    neighbour_list,
+    triplet_list,
+    Neighbourhood,
+    CutoffNeighbourhood
+)
 from ...numpy_tricks import mabincount
 
 
@@ -64,7 +73,11 @@ class Manybody(Calculator):
     default_parameters = {}
     name = 'Manybody'
 
-    def __init__(self, atom_type, pair_type, F, G, d1F, d2F, d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G, cutoff):
+    def __init__(self, atom_type, pair_type,
+                 F, G,
+                 d1F, d2F,
+                 d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G,
+                 cutoff, neighbourhood: Neighbourhood = None):
         Calculator.__init__(self)
         self.atom_type = atom_type
         self.pair_type = pair_type
@@ -83,32 +96,38 @@ class Manybody(Calculator):
 
         self.cutoff = cutoff
 
+        if neighbourhood is None:
+            self.neighbourhood = CutoffNeighbourhood(atom_types=atom_type,
+                                                     pair_types=pair_type)
+        else:
+            self.neighbourhood = neighbourhood
+
+        if not isinstance(self.neighbourhood, Neighbourhood):
+            raise TypeError(
+                f"{self.neighbourhood} is not of type Neighbourhood")
+
     def get_cutoff(self, atoms):
+        """Return a valid cutoff."""
         if np.isscalar(self.cutoff):
             return self.cutoff
 
-        # get internal atom types from atomic numbers
-        elements = set(atoms.numbers)
-
-        # loop over all possible element combinations
-        cutoff = 0
-        for i in elements:
-            ii = self.atom_type(i)
-            for j in elements:
-                jj = self.atom_type(j)
-                p = self.pair_type(ii, jj)
-                cutoff = max(cutoff, self.cutoff[p])
-        return cutoff
+        # Get largest cutoff for all possible pair types
+        atom_types = map(self.atom_type, np.unique(atoms.numbers))
+        pair_types = starmap(self.pair_type, product(atom_types, repeat=2))
+        return max(self.cutoff[p] for p in pair_types)
 
     def calculate(self, atoms, properties, system_changes):
+        """Calculate system properties."""
         Calculator.calculate(self, atoms, properties, system_changes)
 
+        # Setting up cutoffs for neighbourhood
+        self.neighbourhood.cutoff = self.get_cutoff(atoms)  # no-op on mols
+
         # get internal atom types from atomic numbers
-        t_n = self.atom_type(atoms.numbers)
-        cutoff = self.get_cutoff(atoms)
+        t_n = self.neighbourhood.atom_type(atoms.numbers)
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, "ijdD")
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -117,20 +136,20 @@ class Manybody(Calculator):
         n_pc = (r_pc.T / r_p).T
 
         # construct triplet list
-        first_n = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t = triplet_list(first_n)
+        ij_t, ik_t, r_tq, r_tqc = self.neighbourhood.get_triplets(atoms,
+                                                                  "ijdD")
 
         # construct lists with atom and pair types
         ti_p = t_n[i_p]
-        tij_p = self.pair_type(ti_p, t_n[j_p])
+        tij_p = self.neighbourhood.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
-        tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
-        tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
+        tij_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ij_t]])
+        tik_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        G_t = self.G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
@@ -148,9 +167,10 @@ class Manybody(Calculator):
                 + mabincount(ik_t, d2F_d2G_t, nb_pairs).T).T
 
         # collect atomic forces
-        f_nc = 0.5 * (mabincount(i_p, f_pc, nb_atoms) - mabincount(j_p, f_pc, nb_atoms))
+        f_nc = 0.5 * (mabincount(i_p, f_pc, nb_atoms)
+                      - mabincount(j_p, f_pc, nb_atoms))
 
-        # Virial 
+        # Virial
         virial_v = 0.5 * np.array([r_pc[:, 0] * f_pc.T[0],  # xx
                                    r_pc[:, 1] * f_pc.T[1],  # yy
                                    r_pc[:, 2] * f_pc.T[2],  # zz
