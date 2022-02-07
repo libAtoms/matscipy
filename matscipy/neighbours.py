@@ -23,6 +23,7 @@
 #
 
 from abc import ABC, abstractmethod
+import itertools as it
 import typing as ts
 
 import numpy as np
@@ -40,7 +41,7 @@ class Neighbourhood(ABC):
 
     def __init__(self, atom_types=None):
         """Initialize with atoms and optional atom types."""
-        self.atom_types = atom_types \
+        self.atom_type = atom_types \
             if atom_types is not None else lambda i: np.asanyarray(i)
 
     @abstractmethod
@@ -113,7 +114,7 @@ class CutoffNeighbourhood(Neighbourhood):
                 are within each others neighborhood.
         """
         super().__init__(atom_types)
-        self.pair_types = (
+        self.pair_type = (
             pair_types
             if pair_types is not None
             else lambda i, j: np.zeros_like(i)
@@ -128,8 +129,11 @@ class CutoffNeighbourhood(Neighbourhood):
         """Return triplets and quantities from conventional neighbour list."""
         i_p, j_p, D_p = neighbour_list("ijD", atoms, self.cutoff)
         nb_atoms = len(atoms)
-        ij_t, ik_t = triplet_list(first_neighbours(nb_atoms, i_p))
-        connectivity = np.array([ij_t, ik_t]).T
+
+        # Getting all references in pair list
+        ij_t, ik_t, jk_t = triplet_list(first_neighbours(nb_atoms, i_p),
+                                        i_p=i_p, j_p=j_p)
+        connectivity = np.array([ij_t, ik_t, jk_t]).T
 
         D, d = None, None
 
@@ -143,7 +147,7 @@ class CutoffNeighbourhood(Neighbourhood):
             d = np.sqrt(np.einsum("...i,...i", D, D))  # distances
 
         return self.make_result(quantities, connectivity, D, d, None,
-                                accepted_quantities="ijdD")
+                                accepted_quantities="ijkdD")
 
 
 class MolecularNeighbourhood(Neighbourhood):
@@ -186,44 +190,51 @@ class MolecularNeighbourhood(Neighbourhood):
     def double_connectivity(connectivity: np.ndarray) -> np.ndarray:
         """Sort and stack connectivity + reverse connectivity."""
         c = np.zeros(2 * len(connectivity), dtype=connectivity.dtype)
-        c["type"] = np.concatenate(2 * [connectivity["type"]])
-        c["atoms"] = np.concatenate((connectivity["atoms"],
-                                     connectivity["atoms"][:, ::-1]))
+        c["type"].reshape(2, -1)[:] = connectivity["type"]
+        c_fwd, c_bwd = np.split(c["atoms"], 2)
+        c_fwd[:] = connectivity["atoms"]
+        c_bwd[:] = connectivity["atoms"][:, ::-1]
         return c
 
     def complete_connectivity(self, typeoffset: int = 0):
         """Add angles to pair connectivity."""
         bonds, angles = self.connectivity["bonds"], self.connectivity["angles"]
-        n, nn = len(bonds), 2 * len(angles)
+
+        permutations = list(it.combinations(range(angles["atoms"].shape[1]), 2))
+        e = len(permutations)
+        n, nn = len(bonds), e * len(angles)
+
         new_bonds = np.zeros(n + nn, dtype=bonds.dtype)
 
         # Copying bonds connectivity and types
         new_bonds[:n] = bonds
-        new_bonds["type"][n:] = np.concatenate([angles["type"]] * 2)
-        new_bonds["atoms"][n:] = np.concatenate([angles["atoms"][:, (0, 1)],
-                                                 angles["atoms"][:, (0, 2)]])
+        new_bonds["type"][n:].reshape(e, -1)[:] = angles["type"]
         new_bonds["type"][n:] += typeoffset
 
-        # We keep track of wher
-        ij_t = np.zeros_like(new_bonds, dtype=np.bool)
-        ik_t = np.zeros_like(ij_t)
-        ij_t[n:n+nn//2] = True
-        ik_t[n+nn//2:] = True
+        for arr, permut in zip(np.split(new_bonds["atoms"][n:], e),
+                               permutations):
+            arr[:] = angles["atoms"][:, permut]
 
         # Construct unique bond list and triplet_list
-        self.connectivity["bonds"], indices = \
-            np.unique(new_bonds, return_index=True)
-
-        # Applying unique
-        ij_t[:] = ij_t[indices]
-        ik_t[:] = ik_t[indices]
+        self.connectivity["bonds"], indices_r = \
+            np.unique(new_bonds, return_inverse=True)
 
         # Need to sort after all the shenanigans
         idx = np.argsort(self.connectivity["bonds"]["atoms"][:, 0])
         self.connectivity["bonds"][:] = self.connectivity["bonds"][idx]
 
-        self.triplet_list = np.where(ij_t[idx]), np.where(ik_t[idx])
-        self.triplet_list = np.asanyarray(self.triplet_list).T.squeeze()
+        # To construct triplet references (aka ij_t, ik_t and jk_t):
+        #   - revert sort operation
+        #   - apply reverse unique operatation
+        #   - take only appended values
+        #   - reshape
+        #   - re-sort so that ij_t is sorted
+        r_idx = np.zeros_like(idx)
+        r_idx[idx] = np.arange(len(idx))  # revert sort
+        self.triplet_list = r_idx[indices_r][n:].reshape(e, -1).T
+
+        idx = np.argsort(self.triplet_list[:, 0])  # sort ij_t
+        self.triplet_list = self.triplet_list[idx]
 
     def get_pairs(self, atoms: ase.Atoms, quantities: str):
         """Return pairs and quantities from connectivities."""
@@ -253,7 +264,7 @@ class MolecularNeighbourhood(Neighbourhood):
         # Returning triplet references in bonds list
         connectivity = self.triplet_list
         return self.make_result(quantities, connectivity, D, d, None,
-                                accepted_quantities="ijdD")
+                                accepted_quantities="ijkdD")
 
 
 def mic(dr, cell, pbc=None):

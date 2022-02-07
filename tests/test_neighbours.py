@@ -334,8 +334,8 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
                           bonds_types=[1, 2, 3],
                           angles_connectivity=[
                               [0, 1, 2],
-                              [1, 2, 0],
-                              [2, 0, 1],
+                              [0, 2, 1],
+                              [1, 0, 2],
                           ],
                           angles_types=[1, 2, 3])
 
@@ -345,7 +345,7 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
     def test_pairs(self):
         cutoff_d = self.cutoff.get_pairs(self.atoms, "ijdD")
         molecule_d = self.molecule.get_pairs(self.atoms, "ijdD")
-        p = np.array([0, 1, 3, 2, 5, 4])
+        p = np.array([1, 0, 2, 3, 5, 4])
         mask_extra_bonds = self.molecule.connectivity["bonds"]["type"] >= 0
 
         # print("CUTOFF", cutoff_d)
@@ -359,15 +359,18 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
     def test_triplets(self):
         cutoff_pairs = np.array(self.cutoff.get_pairs(self.atoms, "ij")).T
         molecules_pairs = np.array(self.molecule.get_pairs(self.atoms, "ij")).T
-        cutoff_d = self.cutoff.get_triplets(self.atoms, "ij")
-        molecule_d = self.molecule.get_triplets(self.atoms, "ij")
+        cutoff_d = self.cutoff.get_triplets(self.atoms, "ijk")
+        molecule_d = self.molecule.get_triplets(self.atoms, "ijk")
+        p = np.array([0, 1, 3, 2, 4, 5])
 
         # We compare the refered pairs, not the triplet info directly
         for c, m in zip(cutoff_d, molecule_d):
+            # print("c =", cutoff_pairs[:][c])
+            # print("m =", molecules_pairs[:][m])
             self.assertArrayAlmostEqual(cutoff_pairs[:, 0][c],
-                                        molecules_pairs[:, 0][m], tol=1e-10)
+                                        molecules_pairs[:, 0][m][p], tol=1e-10)
             self.assertArrayAlmostEqual(cutoff_pairs[:, 1][c],
-                                        molecules_pairs[:, 1][m], tol=1e-10)
+                                        molecules_pairs[:, 1][m][p], tol=1e-10)
 
     def test_pair_types(self):
         pass
