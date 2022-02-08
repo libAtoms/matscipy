@@ -31,6 +31,8 @@ from functools import reduce
 from math import isnan, isinf
 from numbers import Real
 
+from ase.parallel import world
+
 ###
 
 def hdr_str(s, x):
@@ -113,6 +115,8 @@ class Logger(object):
 
 
     def __open_logfile(self):
+        if world.rank != 0:
+            return
         if self.logfile is None and self.logfn is not None and \
                 not self.__all_output_to_stdout:
             self.outcounter = self.outevery
@@ -128,6 +132,8 @@ class Logger(object):
 
 
     def _print(self, s, logfile=None):
+        if world.rank != 0:
+            return
         if logfile and self.logfile != logfile:
             print(s, file=logfile)
         if self.logfile:
@@ -142,6 +148,8 @@ class Logger(object):
 
 
     def set_logfile(self, logfile):
+        if world.rank != 0:
+            return
         if self.__all_output_to_stdout:
             self.logfile = sys.stdout
         elif isinstance(logfile, str):
@@ -222,6 +230,8 @@ class Logger(object):
 
 
     def has_logfile(self):
+        if world.rank != 0:
+            raise RuntimeError('`has_logfile` only works on the root rank.')
         return self.logfile is not None
 
 
