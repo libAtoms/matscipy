@@ -125,14 +125,18 @@ class CutoffNeighbourhood(Neighbourhood):
         """Return pairs and quantities from conventional neighbour list."""
         return neighbour_list(quantities, atoms, self.cutoff)
 
-    def get_triplets(self, atoms: ase.Atoms, quantities: str):
+    def get_triplets(self, atoms: ase.Atoms, quantities: str,
+                     neighbours=None):
         """Return triplets and quantities from conventional neighbour list."""
-        i_p, j_p, D_p = neighbour_list("ijD", atoms, self.cutoff)
-        nb_atoms = len(atoms)
+        if neighbours is None:
+            i_p, j_p, d_p, D_p = neighbour_list("ijdD", atoms, self.cutoff)
+        else:
+            i_p, j_p, d_p, D_p = neighbours
+
+        first_n = first_neighbours(len(atoms), i_p)
 
         # Getting all references in pair list
-        ij_t, ik_t, jk_t = triplet_list(first_neighbours(nb_atoms, i_p),
-                                        i_p=i_p, j_p=j_p)
+        ij_t, ik_t, jk_t = triplet_list(first_n, d_p, self.cutoff, i_p, j_p)
         connectivity = np.array([ij_t, ik_t, jk_t]).T
 
         D, d = None, None
@@ -249,11 +253,15 @@ class MolecularNeighbourhood(Neighbourhood):
         return self.make_result(quantities, connectivity, D, d, None,
                                 accepted_quantities="ijdD")
 
-    def get_triplets(self, atoms: ase.Atoms, quantities: str):
+    def get_triplets(self, atoms: ase.Atoms, quantities: str,
+                     neighbours=None):
         """Return triplets and quantities from connectivities."""
         D, d = None, None
 
-        connectivity = self.connectivity["angles"]["atoms"]
+        # Need to reorder connectivity for distances
+        bonds = self.connectivity["bonds"]["atoms"]
+        connectivity = np.array([bonds[self.triplet_list[:, i], j]
+                                 for i, j in [(0, 0), (0, 1), (1, 1)]])
 
         # If any distance is requested, compute distances vectors and norms
         if "d" in quantities or "D" in quantities:

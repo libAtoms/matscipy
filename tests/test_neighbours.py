@@ -372,6 +372,14 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
             self.assertArrayAlmostEqual(cutoff_pairs[:, 1][c],
                                         molecules_pairs[:, 1][m][p], tol=1e-10)
 
+        # Testing computed distances and vectors
+        cutoff_d = self.cutoff.get_triplets(self.atoms, "dD")
+        molecule_d = self.cutoff.get_triplets(self.atoms, "dD")
+
+        # TODO why no permutation?
+        for c, m in zip(cutoff_d, molecule_d):
+            self.assertArrayAlmostEqual(c, m, tol=1e-10)
+
     def test_pair_types(self):
         pass
 
