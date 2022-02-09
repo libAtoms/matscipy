@@ -55,7 +55,7 @@ class Neighbourhood(ABC):
     @staticmethod
     def make_result(quantities,
                     connectivity,
-                    D, d, S, accepted_quantities) -> ts.Tuple:
+                    D, d, S, accepted_quantities) -> ts.List:
         """Construct result list."""
         if not set(quantities) <= set(accepted_quantities):
             unknowns = set(quantities) - set(accepted_quantities)
@@ -204,7 +204,8 @@ class MolecularNeighbourhood(Neighbourhood):
         """Add angles to pair connectivity."""
         bonds, angles = self.connectivity["bonds"], self.connectivity["angles"]
 
-        permutations = list(it.combinations(range(angles["atoms"].shape[1]), 2))
+        permutations = list(
+            it.combinations(range(angles["atoms"].shape[1]), 2))
         e = len(permutations)
         n, nn = len(bonds), e * len(angles)
 

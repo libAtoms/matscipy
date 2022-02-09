@@ -62,8 +62,11 @@ def _o(x, y, z=None):
     """Outer product."""
     if z is None:
         return np.einsum('...i,...j', x, y)
-    else:
-        return np.einsum('...i,...j,...k', x, y, z)
+    return np.einsum('...i,...j,...k', x, y, z)
+
+
+# broadcast slices
+_c, _cc = np.s_[..., np.newaxis], np.s_[..., np.newaxis, np.newaxis]
 
 
 class Manybody(Calculator):
@@ -74,7 +77,8 @@ class Manybody(Calculator):
     def __init__(self, atom_type, pair_type,
                  F, G,
                  d1F, d2F,
-                 d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G,
+                 d11F, d22F, d12F,
+                 d1G, d11G, d2G, d22G, d12G,
                  cutoff, neighbourhood: Neighbourhood = None):
         Calculator.__init__(self)
         self.atom_type = atom_type
@@ -131,7 +135,7 @@ class Manybody(Calculator):
         nb_pairs = len(i_p)
 
         # normal vectors
-        n_pc = r_pc / r_p[:, np.newaxis]
+        n_pc = r_pc / r_p[_c]
 
         # construct triplet list
         ij_t, ik_t, r_tq, r_tqc = self.neighbourhood.get_triplets(atoms,
@@ -160,8 +164,8 @@ class Manybody(Calculator):
         epot = 0.5 * np.sum(F_p)
 
         # calculate forces (per pair)
-        f_pc = (d1F_p[:, np.newaxis] * n_pc
-                + d2F_p[:, np.newaxis] * mabincount(ij_t, d1G_tc, nb_pairs)
+        f_pc = (d1F_p[_c] * n_pc
+                + d2F_p[_c] * mabincount(ij_t, d1G_tc, nb_pairs)
                 + mabincount(ik_t, d2F_d2G_t, nb_pairs))
 
         # collect atomic forces
@@ -233,7 +237,7 @@ class Manybody(Calculator):
         tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
 
         # normal vectors
-        n_pc = (r_pc.T / r_p).T
+        n_pc = r_pc / r_p[_c]
 
         # construct triplet list (need jk_t here, neighbor must be to 2*cutoff)
         self.neighbourhood.cutoff = cutoff
@@ -272,12 +276,15 @@ class Manybody(Calculator):
         d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
         d22F_p[mask_p] = 0.0
 
+        # normal vectors for triplets
+        # n_tqc = r_tqc / r_tq[_c]
+
         # Hessian term #4
         nn_pcc = _o(n_pc, n_pc)
-        H_pcc = -(d1F_p * (np.eye(3) - nn_pcc).T / r_p).T
+        H_pcc = -(d1F_p[_cc] * (np.eye(3) - nn_pcc) / r_p[_cc])
 
         # Hessian term #1
-        H_pcc -= (d11F_p * nn_pcc.T).T
+        H_pcc -= d11F_p[_cc] * nn_pcc
 
         # Hessian term #2
         H_temp3_t = (d12F_p[ij_t] * _o(d2G_tc, n_pc[ij_t]).T).T
@@ -407,7 +414,7 @@ class Manybody(Calculator):
         nb_pairs = len(i_p)
 
         # normal vectors
-        n_pc = r_pc / r_p[:, np.newaxis]
+        n_pc = r_pc / r_p[_c]
 
         # derivative of the lengths of distance vectors
         drda_p = np.einsum('...i,...i', n_pc, drda_pc)
@@ -442,13 +449,19 @@ class Manybody(Calculator):
         d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
 
         # Term 1
-        T1 = (d11F_p * drda_p * drdb_p).sum()
+        T1 = np.einsum('i,i,i', d11F_p, drda_p, drdb_p)
 
         # Term 2
-        T2 = (d12F_p[ij_t] * (d2G_tc * drda_pc[ik_t]).sum(axis=1) * drdb_p[ij_t]).sum()
-        T2 += (d12F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * drda_p[ij_t]).sum()
-        T2 += (d12F_p[ij_t] * (d1G_tc * drda_pc[ij_t]).sum(axis=1) * drdb_p[ij_t]).sum()
-        T2 += (d12F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * drda_p[ij_t]).sum()
+        T2_path = np.einsum_path('p,pc,pc,p', d12F_p[ij_t], d2G_tc,
+                                 drda_pc[ik_t], drdb_p[ij_t])[0]
+        T2 = np.einsum('p,pc,pc,p', d12F_p[ij_t], d2G_tc,
+                       drda_pc[ik_t], drdb_p[ij_t], optimize=T2_path)
+        T2 += np.einsum('p,pc,pc,p', d12F_p[ij_t], d2G_tc,
+                        drdb_pc[ik_t], drda_p[ij_t], optimize=T2_path)
+        T2 += np.einsum('p,pc,pc,p', d12F_p[ij_t], d1G_tc,
+                        drda_pc[ij_t], drdb_p[ij_t], optimize=T2_path)
+        T2 += np.einsum('p,pc,pc,p', d12F_p[ij_t], d1G_tc,
+                        drdb_pc[ij_t], drda_p[ij_t], optimize=T2_path)
 
         # Term 3
         dxida_t = (d1G_tc * drda_pc[ij_t]).sum(axis=1) + (d2G_tc * drda_pc[ik_t]).sum(axis=1)
@@ -458,15 +471,15 @@ class Manybody(Calculator):
               np.bincount(ij_t, weights=dxidb_t, minlength=nb_pairs)).sum()
 
         # Term 4
-        Q_pcc = ((np.eye(3) - _o(n_pc, n_pc)).T / r_p).T
+        Q_pcc = (np.eye(3) - _o(n_pc, n_pc)) / r_p[_cc]
 
-        T4 = (d1F_p * ((Q_pcc * drda_pc.reshape(-1, 3, 1)).sum(axis=1) * drdb_pc).sum(axis=1)).sum()
+        T4 = np.einsum('p,pij,pi,pj', d1F_p, Q_pcc, drda_pc, drdb_pc)
 
         # Term 5
-        T5_t = ((d11G_tcc * drdb_pc[ij_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ij_t]).sum(axis=1)
-        T5_t += ((drdb_pc[ik_t].reshape(-1, 1, 3) * d12G_tcc).sum(axis=2) * drda_pc[ij_t]).sum(axis=1)
-        T5_t += ((drdb_pc[ij_t].reshape(-1, 3, 1) * d12G_tcc).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
-        T5_t += ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
+        T5_t = np.einsum('tij,ti,tj->t', d11G_tcc, drdb_pc[ij_t], drda_pc[ij_t])
+        T5_t += np.einsum('tij,tj,ti->t', d12G_tcc, drdb_pc[ik_t], drda_pc[ij_t])
+        T5_t += np.einsum('tij,ti,tj->t', d12G_tcc, drdb_pc[ij_t], drda_pc[ik_t])
+        T5_t += np.einsum('tij,ti,tj->t', d22G_tcc, drdb_pc[ik_t], drda_pc[ik_t])
         T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
 
         return T1 + T2 + T3 + T4 + T5
@@ -626,7 +639,7 @@ class Manybody(Calculator):
             self.atoms = atoms
 
         # Born (affine) elastic constants
-        calculator = atoms.get_calculator()
+        calculator = atoms.calc
         bornC_abab = calculator.get_born_elastic_constants(atoms)
 
         # Stress contribution to elastic constants
@@ -769,8 +782,8 @@ class Manybody(Calculator):
         nb_pairs = len(i_p)
 
         # normal vectors
-        n_pc = (r_pc.T / r_p).T
-        dn_pcc = ((np.eye(3) - _o(n_pc, n_pc)).T / r_p).T
+        n_pc = r_pc / r_p[_c]
+        dn_pcc = (np.eye(3) - _o(n_pc, n_pc)) / r_p[_cc]
 
         # construct triplet list (no jk_t here, neighbor to cutoff suffices)
         ij_t, ik_t, r_tq, r_tqc = self.neighbourhood.get_triplets(atoms, "ijdD")
