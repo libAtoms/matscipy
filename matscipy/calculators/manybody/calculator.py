@@ -61,9 +61,9 @@ from ...numpy_tricks import mabincount
 def _o(x, y, z=None):
     """Outer product."""
     if z is None:
-        return x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3)
+        return np.einsum('...i,...j', x, y)
     else:
-        return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
+        return np.einsum('...i,...j,...k', x, y, z)
 
 
 class Manybody(Calculator):
@@ -131,7 +131,7 @@ class Manybody(Calculator):
         nb_pairs = len(i_p)
 
         # normal vectors
-        n_pc = (r_pc.T / r_p).T
+        n_pc = r_pc / r_p[:, np.newaxis]
 
         # construct triplet list
         ij_t, ik_t, r_tq, r_tqc = self.neighbourhood.get_triplets(atoms,
@@ -154,27 +154,30 @@ class Manybody(Calculator):
         F_p = self.F(r_p, xi_p, ti_p, tij_p)
         d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
         d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
-        d2F_d2G_t = (d2F_p[ij_t] * d2G_tc.T).T
+        d2F_d2G_t = d2F_p[ij_t, np.newaxis] * d2G_tc
 
         # calculate energy
         epot = 0.5 * np.sum(F_p)
 
         # calculate forces (per pair)
-        f_pc = (d1F_p * n_pc.T
-                + d2F_p * mabincount(ij_t, d1G_tc, nb_pairs).T
-                + mabincount(ik_t, d2F_d2G_t, nb_pairs).T).T
+        f_pc = (d1F_p[:, np.newaxis] * n_pc
+                + d2F_p[:, np.newaxis] * mabincount(ij_t, d1G_tc, nb_pairs)
+                + mabincount(ik_t, d2F_d2G_t, nb_pairs))
 
         # collect atomic forces
         f_nc = 0.5 * (mabincount(i_p, f_pc, nb_atoms)
                       - mabincount(j_p, f_pc, nb_atoms))
 
         # Virial
-        virial_v = 0.5 * np.array([r_pc[:, 0] * f_pc.T[0],  # xx
-                                   r_pc[:, 1] * f_pc.T[1],  # yy
-                                   r_pc[:, 2] * f_pc.T[2],  # zz
-                                   r_pc[:, 1] * f_pc.T[2],  # yz
-                                   r_pc[:, 0] * f_pc.T[2],  # xz
-                                   r_pc[:, 0] * f_pc.T[1]]).sum(axis=1)  # xy
+        virial_v = np.concatenate([
+            # diagonal components (xx, yy, zz)
+            np.einsum('pi,pi->i', r_pc, f_pc),
+
+            # off-diagonal (yz, xz, xy)
+            np.einsum('pi,pi->i', r_pc[:, (1, 0, 0)], f_pc[:, (2, 2, 1)])
+        ])
+
+        virial_v *= 0.5
 
         self.results = {'free_energy': epot,
                         'energy': epot,
@@ -404,11 +407,11 @@ class Manybody(Calculator):
         nb_pairs = len(i_p)
 
         # normal vectors
-        n_pc = (r_pc.T / r_p).T
+        n_pc = r_pc / r_p[:, np.newaxis]
 
         # derivative of the lengths of distance vectors
-        drda_p = (n_pc * drda_pc).sum(axis=1)
-        drdb_p = (n_pc * drdb_pc).sum(axis=1)
+        drda_p = np.einsum('...i,...i', n_pc, drda_pc)
+        drdb_p = np.einsum('...i,...i', n_pc, drdb_pc)
 
         # construct triplet list (no jk_t here, hence 1x cutoff suffices)
         ij_t, ik_t, r_tq, r_tqc = \
