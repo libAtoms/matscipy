@@ -47,6 +47,7 @@ from scipy.sparse.linalg import cg
 from scipy.sparse import bsr_matrix
 
 from ase.calculators.calculator import Calculator
+from ase.geometry import find_mic
 
 from ...elasticity import Voigt_6_to_full_3x3_stress
 from ...neighbours import (
@@ -912,6 +913,13 @@ class NiceManybody(Manybody):
         @abstractmethod
         def hessian(self, r_ij, r_ik, atom_type, ij_type, ik_type):
             """Compute hessian."""
+
+        @staticmethod
+        def _distance_triplet(rij, rik, cell, pbc):
+            D, d = find_mic(
+                np.concatenate([rij, rik, rik-rij]),
+                cell, pbc)
+            return D.reshape(3, -1, 3), d.reshape(3, -1)
 
     def __init__(self, F, G, neighbourhood):
         """Init with pair & triplet potential + neighbourhood."""
