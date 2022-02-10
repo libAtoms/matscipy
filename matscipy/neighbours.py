@@ -81,10 +81,11 @@ class Neighbourhood(ABC):
         D = np.zeros((n_nuplets, len(indices), dim))
         d = np.zeros((n_nuplets, len(indices)))
 
-        for i, idx in enumerate(indices):
-            D[:, i, :], d[:, i] = \
-                find_mic(positions[idx[1]] - positions[idx[0]],
-                         atoms.cell, atoms.pbc)
+        if positions:
+            for i, idx in enumerate(indices):
+                D[:, i, :], d[:, i] = \
+                    find_mic(positions[idx[1]] - positions[idx[0]],
+                             atoms.cell, atoms.pbc)
         return D.squeeze(), d.squeeze()
 
 
@@ -147,8 +148,8 @@ class CutoffNeighbourhood(Neighbourhood):
             D = np.zeros((len(ij_t), 3, 3))
             D[:, 0] = D_p[ij_t]          # i->j
             D[:, 1] = D_p[ik_t]          # i->k
-            D[:, 2] = D[:, 1] - D[:, 0]  # j->k
-            d = np.sqrt(np.einsum("...i,...i", D, D))  # distances
+            D[:, 2] = D_p[jk_t]          # j->k
+            d = np.linalg.norm(D, axis=-1)  # distances
 
         return self.make_result(quantities, connectivity, D, d, None,
                                 accepted_quantities="ijkdD")
@@ -163,6 +164,8 @@ class MolecularNeighbourhood(Neighbourhood):
         """Initialze with atoms and molecules."""
         super().__init__(atom_types)
         self.molecules = molecules
+        self.pair_type = lambda i, j: self.connectivity["bonds"]["type"]
+        self.cutoff = np.inf
 
     @property
     def molecules(self):
@@ -182,8 +185,11 @@ class MolecularNeighbourhood(Neighbourhood):
 
         # Add pairs from the angle connectivity with negative types
         # This way they should be ignored for the pair potentials
-        self.complete_connectivity(
-            typeoffset=-(np.max(molecules.angles["type"])+1))
+        if molecules.angles.size > 0:
+            self.complete_connectivity(
+                typeoffset=-(np.max(molecules.angles["type"])+1))
+        else:
+            self.triplet_list = np.zeros([0, 3], dtype=np.int)
 
     @property
     def pair_types(self):
@@ -262,7 +268,7 @@ class MolecularNeighbourhood(Neighbourhood):
         # Need to reorder connectivity for distances
         bonds = self.connectivity["bonds"]["atoms"]
         connectivity = np.array([bonds[self.triplet_list[:, i], j]
-                                 for i, j in [(0, 0), (0, 1), (1, 1)]])
+                                 for i, j in [(0, 0), (0, 1), (1, 1)]]).T
 
         # If any distance is requested, compute distances vectors and norms
         if "d" in quantities or "D" in quantities:

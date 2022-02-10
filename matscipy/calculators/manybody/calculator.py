@@ -882,3 +882,58 @@ class Manybody(Calculator):
             + mabincount(j_p[ik_t], naF53_tcab, minlength=nb_atoms)
 
         return naforces_icab / 2
+
+
+class NiceManybody(Manybody):
+    """Manybody calculator with nicer API."""
+
+    class F(ABC):
+        """Pair potential."""
+
+        @abstractmethod
+        def __call__(self, r, xi, atom_type, pair_type):
+            """Compute energy."""
+        @abstractmethod
+        def gradient(self, r, xi, atom_type, pair_type):
+            """Compute gradient."""
+        @abstractmethod
+        def hessian(self, r, xi, atom_type, pair_type):
+            """Compute hessian."""
+
+    class G(ABC):
+        """Triplet potential."""
+
+        @abstractmethod
+        def __call__(self, r_ij, r_ik, atom_type, ij_type, ik_type):
+            """Compute energy."""
+        @abstractmethod
+        def gradient(self, r_ij, r_ik, atom_type, ij_type, ik_type):
+            """Compute gradient."""
+        @abstractmethod
+        def hessian(self, r_ij, r_ik, atom_type, ij_type, ik_type):
+            """Compute hessian."""
+
+    def __init__(self, F, G, neighbourhood):
+        """Init with pair & triplet potential + neighbourhood."""
+        d1F, d2F = self._split_call(F.gradient, 2)
+        d11F, d22F, d12F = self._split_call(F.hessian, 3)
+        d1G, d2G = self._split_call(G.gradient, 2)
+        d11G, d22G, d12G = self._split_call(G.hessian, 3)
+
+        super().__init__(
+            neighbourhood.atom_type,
+            neighbourhood.pair_type,
+            F.__call__, G.__call__,
+            d1F, d2F,
+            d11F, d22F, d12F,
+            d1G, d11G, d2G, d22G, d12G,
+            neighbourhood.cutoff,
+            neighbourhood)
+
+    @staticmethod
+    def _split_call(func, n):
+        def wrap(*args):
+            res = np.asanyarray(func(*args))
+            assert res.shape[0] == n
+            return res
+        return [lambda *args: wrap(*args)[i] for i in range(n)]
