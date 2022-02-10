@@ -158,7 +158,7 @@ class Manybody(Calculator):
         F_p = self.F(r_p, xi_p, ti_p, tij_p)
         d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
         d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
-        d2F_d2G_t = d2F_p[ij_t, np.newaxis] * d2G_tc
+        d2F_d2G_t = d2F_p[ij_t][_c] * d2G_tc
 
         # calculate energy
         epot = 0.5 * np.sum(F_p)
@@ -277,7 +277,7 @@ class Manybody(Calculator):
         d22F_p[mask_p] = 0.0
 
         # normal vectors for triplets
-        # n_tqc = r_tqc / r_tq[_c]
+        n_tqc = r_tqc / r_tq[_c]
 
         # Hessian term #4
         nn_pcc = _o(n_pc, n_pc)
@@ -287,28 +287,28 @@ class Manybody(Calculator):
         H_pcc -= d11F_p[_cc] * nn_pcc
 
         # Hessian term #2
-        H_temp3_t = (d12F_p[ij_t] * _o(d2G_tc, n_pc[ij_t]).T).T
-        H_temp4_t = (d12F_p[ij_t] * _o(d1G_tc, n_pc[ij_t]).T).T
+        H_temp3_t = d12F_p[ij_t][_cc] * _o(d2G_tc, n_tqc[:, 0])
+        H_temp4_t = d12F_p[ij_t][_cc] * _o(d1G_tc, n_tqc[:, 0])
 
         # Hessian term #5
-        H_temp2_t = (d2F_p[ij_t] * d22G_tcc.T).T
-        H_temp_t = (d2F_p[ij_t] * d11G_tcc.T).T
-        H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
+        H_temp2_t = d2F_p[ij_t][_cc] * d22G_tcc
+        H_temp_t = d2F_p[ij_t][_cc] * d11G_tcc
+        H_temp1_t = d2F_p[ij_t][_cc] * d12G_tcc
 
         # Hessian term #3
 
         # Terms involving D_1 * D_1
         d1G_pc = mabincount(ij_t, d1G_tc, nb_pairs)
-        H_pcc -= (d22F_p * _o(d1G_pc, d1G_pc).T).T
+        H_pcc -= d22F_p[_cc] * _o(d1G_pc, d1G_pc)
 
         # Terms involving D_2 * D_2
         d2G_pc = mabincount(ij_t, d2G_tc, nb_pairs)
-        Q1 = _o((d22F_p * d2G_pc.T).T[ij_t], d2G_tc)
+        Q1 = _o((d22F_p[_c] * d2G_pc)[ij_t], d2G_tc)
 
         # Terms involving D_1 * D_2
-        Q2 = _o((d22F_p * d1G_pc.T).T[ij_t], d2G_tc)
+        Q2 = _o((d22F_p[_c] * d1G_pc)[ij_t], d2G_tc)
 
-        H_pcc -= (d22F_p * _o(d2G_pc, d1G_pc).T).T
+        H_pcc -= d22F_p[_cc] * _o(d2G_pc, d1G_pc)
 
         H_pcc += \
             - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
@@ -336,9 +336,9 @@ class Manybody(Calculator):
             for t in range(first_p[il], first_p[il + 1]):
                 ij = ik_t[t]
                 if ij != il and ij != im:
-                    r_p_ij = np.array([r_pc[ij]])
-                    r_p_il = np.array([r_pc[il]])
-                    r_p_im = np.array([r_pc[im]])
+                    r_p_ij = r_pc[ij][np.newaxis, :]
+                    r_p_il = r_pc[il][np.newaxis, :]
+                    r_p_im = r_pc[im][np.newaxis, :]
                     H_pcc[lm, :, :] += np.squeeze(np.transpose(
                         0.5 * d22F_p[ij]
                         * (_o(self.d2G(r_p_ij, r_p_il, ti, tij, til),
@@ -464,11 +464,16 @@ class Manybody(Calculator):
                         drdb_pc[ij_t], drda_p[ij_t], optimize=T2_path)
 
         # Term 3
-        dxida_t = (d1G_tc * drda_pc[ij_t]).sum(axis=1) + (d2G_tc * drda_pc[ik_t]).sum(axis=1)
-        dxidb_t = (d1G_tc * drdb_pc[ij_t]).sum(axis=1) + (d2G_tc * drdb_pc[ik_t]).sum(axis=1)
-        T3 = (d22F_p *
-              np.bincount(ij_t, weights=dxida_t, minlength=nb_pairs) *
-              np.bincount(ij_t, weights=dxidb_t, minlength=nb_pairs)).sum()
+        contract = lambda x, y: np.einsum('...j,...j', x, y)
+        dxida_t = \
+            contract(d1G_tc, drda_pc[ij_t]) + contract(d2G_tc, drda_pc[ik_t])
+        dxidb_t = \
+            contract(d1G_tc, drdb_pc[ij_t]) + contract(d2G_tc, drdb_pc[ik_t])
+        T3 = np.einsum(
+            'i,i,i',
+            d22F_p.flatten(),
+            np.bincount(ij_t, weights=dxida_t, minlength=nb_pairs).flatten(),
+            np.bincount(ij_t, weights=dxidb_t, minlength=nb_pairs).flatten())
 
         # Term 4
         Q_pcc = (np.eye(3) - _o(n_pc, n_pc)) / r_p[_cc]
@@ -480,7 +485,8 @@ class Manybody(Calculator):
         T5_t += np.einsum('tij,tj,ti->t', d12G_tcc, drdb_pc[ik_t], drda_pc[ij_t])
         T5_t += np.einsum('tij,ti,tj->t', d12G_tcc, drdb_pc[ij_t], drda_pc[ik_t])
         T5_t += np.einsum('tij,ti,tj->t', d22G_tcc, drdb_pc[ik_t], drda_pc[ik_t])
-        T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
+        T5 = contract(d2F_p.flatten(),
+                      np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
 
         return T1 + T2 + T3 + T4 + T5
 
