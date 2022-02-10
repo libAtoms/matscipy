@@ -932,8 +932,9 @@ class NiceManybody(Manybody):
 
     @staticmethod
     def _split_call(func, n):
-        def wrap(*args):
-            res = np.asanyarray(func(*args))
-            assert res.shape[0] == n
-            return res
-        return [lambda *args: wrap(*args)[i] for i in range(n)]
+        def wrap(func, i, *args):
+            return np.asanyarray(func(*args))[i]
+
+        def make_lambda(i):
+            return lambda *args: wrap(func, i, *args)
+        return (make_lambda(i) for i in range(n))

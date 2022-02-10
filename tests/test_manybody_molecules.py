@@ -65,7 +65,10 @@ class HarmonicAngle(NiceManybody.G):
         return 0.5 * self.k * (a - self.a0)**2
 
     def gradient(self, r_ij, r_ik, *args):
-        pass
+        return np.zeros([2] + list(r_ij.shape))
+
+    def hessian(self, r_ij, r_ik, *args):
+        return np.zeros([3] + list(r_ij.shape))
 
 
 def test_harmonic_bond():
@@ -79,6 +82,13 @@ def test_harmonic_bond():
     calc = NiceManybody(pot, ZeroAngle(), neigh)
     atoms.calc = calc
 
+    # Testing potential energy
     epot = atoms.get_potential_energy()
     epot_ref = 2 * (0.5 * r0**2)
     nt.assert_allclose(epot, epot_ref, rtol=1e-15)
+
+    # Testing forces
+    f = atoms.get_forces()
+    f_ref = np.zeros_like(f)
+    f_ref[:, 0] = [0.5, 0, -0.5]
+    nt.assert_allclose(f, f_ref, rtol=1e-15)
