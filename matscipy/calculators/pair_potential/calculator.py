@@ -43,7 +43,7 @@ from ..calculator import MatscipyCalculator
 from ...numpy_tricks import mabincount
 
 
-class CuttoffInteraction(ABC):
+class CutoffInteraction(ABC):
     """Pair interaction potential with cutoff."""
 
     def __init__(self, cutoff):
@@ -54,6 +54,10 @@ class CuttoffInteraction(ABC):
     def cutoff(self):
         """Physical cutoff distance for pair interaction."""
         return self._cutoff
+
+    @cutoff.setter
+    def cutoff(self, v):
+        self._cutoff = np.clip(v, 0, None)
 
     def get_cutoff(self):
         """Get cutoff. Deprecated."""
@@ -82,7 +86,7 @@ class CuttoffInteraction(ABC):
                 "Don't know how to compute {}-th derivative.".format(n))
 
 
-class LennardJonesCut(CuttoffInteraction):
+class LennardJonesCut(CutoffInteraction):
     """
     Functional form for a 12-6 Lennard-Jones potential with a hard cutoff.
     Energy is shifted to zero at cutoff.
@@ -111,7 +115,7 @@ class LennardJonesCut(CuttoffInteraction):
 ###
 
 
-class LennardJonesQuadratic(CuttoffInteraction):
+class LennardJonesQuadratic(CutoffInteraction):
     """
     Functional form for a 12-6 Lennard-Jones potential with a soft cutoff.
     Energy, its first and second derivative are shifted to zero at cutoff.
@@ -145,7 +149,7 @@ class LennardJonesQuadratic(CuttoffInteraction):
 ###
 
 
-class LennardJonesLinear(CuttoffInteraction):
+class LennardJonesLinear(CutoffInteraction):
     """
     Function form of a 12-6 Lennard-Jones potential with a soft cutoff
     The energy and the force are shifted at the cutoff.
@@ -208,7 +212,7 @@ class FeneLJCut(LennardJonesCut):
 
 ###
 
-class LennardJones84(CuttoffInteraction):
+class LennardJones84(CutoffInteraction):
     """
     Function form of a 8-4 Lennard-Jones potential, used to model the structure of a CuZr.
     Kobayashi, Shinji et. al. "Computer simulation of atomic structure of Cu57Zr43 amorphous alloy."
@@ -234,7 +238,34 @@ class LennardJones84(CuttoffInteraction):
         r4 = (1 / r)**4
         return (72 * self.C2 * r4 / r**2 - 20 * self.C1 / r**2) * r4
 
-###
+
+class BeestKramerSanten(CutoffInteraction):
+    """
+    Beest, Kramer, van Santen (BKS) potential.
+
+    Buckingham:
+        Energy is shifted to zero at the cutoff.
+
+    References
+    ----------
+    B. W. Van Beest, G. J. Kramer and R. A. Van Santen, Phys. Rev. Lett. 64.16 (1990)
+    """
+
+    def __init__(self, A, B, C, cutoff):
+        super().__init__(cutoff)
+        self.A, self.B, self.C = A, B, C
+        self.buck_offset_energy = A * np.exp(-B * cutoff) - C / cutoff**6
+
+    def __call__(self, r, *args):
+        return self.A * np.exp(-self.B * r) \
+            - self.C / r**6 - self.buck_offset_energy
+
+    def first_derivative(self, r, *args):
+        return -self.A * self.B * np.exp(-self.B * r) + 6 * self.C / r**7
+
+    def second_derivative(self, r, *args):
+        return self.A * self.B**2 * np.exp(-self.B * r) - 42 * self.C / r**8
+
 
 # Broadcast slices
 _c, _cc = np.s_[..., np.newaxis], np.s_[..., np.newaxis, np.newaxis]
@@ -256,10 +287,13 @@ class PairPotential(MatscipyCalculator):
         """Construct calculator."""
         MatscipyCalculator.__init__(self)
         self.f = f
+        self.reset()
 
-        self.dict = {x: obj.cutoff for x, obj in f.items()}
-        self.df = {x: obj.derivative(1) for x, obj in f.items()}
-        self.df2 = {x: obj.derivative(2) for x, obj in f.items()}
+    def reset(self):
+        super().reset()
+        self.dict = {x: obj.cutoff for x, obj in self.f.items()}
+        self.df = {x: obj.derivative(1) for x, obj in self.f.items()}
+        self.df2 = {x: obj.derivative(2) for x, obj in self.f.items()}
 
     def _mask_pairs(self, i_p, j_p):
         """Iterate over pair masks."""
@@ -276,12 +310,12 @@ class PairPotential(MatscipyCalculator):
     def _get_charges(self, i_p, j_p):
         """Return charges if available."""
         if self.atoms.has("charge"):
-            return [self.atoms.charges[i] for i in (i_p, j_p)]
+            return [self.atoms.get_array("charge")[i] for i in (i_p, j_p)]
         return [self._dummy_charge(), self._dummy_charge()]
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate system properties."""
-        MatscipyCalculator.calculate(self, atoms, properties, system_changes)
+        super().calculate(atoms, properties, system_changes)
 
         nb_atoms = len(self.atoms)
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
@@ -384,7 +418,7 @@ class PairPotential(MatscipyCalculator):
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_p, weights=H_pcc[:, x, y])
+                        np.bincount(i_p, weights=H_pcc[:, x, y], minlength=nb_atoms)
 
             if divide_by_masses:
                 H += bsr_matrix(((Hdiag_icc.T/masses_n).T, np.arange(nb_atoms),
@@ -407,7 +441,7 @@ class PairPotential(MatscipyCalculator):
             for x in range(3):
                 for y in range(3):
                     Hdiag_icc[:, x, y] = - \
-                        np.bincount(i_p, weights=H_pcc[:, x, y])
+                        np.bincount(i_p, weights=H_pcc[:, x, y], minlength=nb_atoms)
 
             Hdiag_ncc = np.zeros((3*nb_atoms, 3*nb_atoms))
             for atom in range(nb_atoms):
