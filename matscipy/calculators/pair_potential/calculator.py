@@ -32,154 +32,152 @@ Simple pair potential.
 #   - c: Cartesian index, array dimension of length 3
 #
 
+from abc import ABC, abstractmethod
+
 import numpy as np
 
-from scipy.sparse import bsr_matrix, vstack, hstack
-
-import ase
+from scipy.sparse import bsr_matrix
 
 from ...neighbours import neighbour_list, first_neighbours
 from ..calculator import MatscipyCalculator
 from ...numpy_tricks import mabincount
 
 
-###
+class CuttoffInteraction(ABC):
+    """Pair interaction potential with cutoff."""
 
-class LennardJonesCut():
+    def __init__(self, cutoff):
+        """Initialize with cutoff."""
+        self._cutoff = cutoff
+
+    @property
+    def cutoff(self):
+        """Physical cutoff distance for pair interaction."""
+        return self._cutoff
+
+    def get_cutoff(self):
+        """Get cutoff. Deprecated."""
+        return self.cutoff
+
+    @abstractmethod
+    def __call__(self, r, qi, qj):
+        """Compute interaction energy."""
+
+    @abstractmethod
+    def first_derivative(self, r, qi, qj):
+        """Compute derivative w/r to distance."""
+
+    @abstractmethod
+    def second_derivative(self, r, qi, qj):
+        """Compute second derivative w/r to distance."""
+
+    def derivative(self, n=1):
+        """Return specified derivative."""
+        if n == 1:
+            return self.first_derivative
+        elif n == 2:
+            return self.second_derivative
+        else:
+            raise ValueError(
+                "Don't know how to compute {}-th derivative.".format(n))
+
+
+class LennardJonesCut(CuttoffInteraction):
     """
     Functional form for a 12-6 Lennard-Jones potential with a hard cutoff.
     Energy is shifted to zero at cutoff.
     """
 
     def __init__(self, epsilon, sigma, cutoff):
+        super().__init__(cutoff)
         self.epsilon = epsilon
         self.sigma = sigma
-        self.cutoff = cutoff
         self.offset = (sigma/cutoff)**12 - (sigma/cutoff)**6
 
-    def __call__(self, r):
-        """
-        Return function value (potential energy).
-        """
+    def __call__(self, r, *args):
         r6 = (self.sigma / r)**6
         return 4 * self.epsilon * ((r6-1) * r6 - self.offset)
 
-    def get_cutoff(self):
-        return self.cutoff
-
-    def first_derivative(self, r):
+    def first_derivative(self, r, *args):
         r = (self.sigma / r)
         r6 = r**6
         return -24 * self.epsilon / self.sigma * (2*r6-1) * r6 * r
 
-    def second_derivative(self, r):
+    def second_derivative(self, r, *args):
         r2 = (self.sigma / r)**2
         r6 = r2**3
         return 24 * self.epsilon/self.sigma**2 * (26*r6-7) * r6 * r2
 
-    def derivative(self, n=1):
-        if n == 1:
-            return self.first_derivative
-        elif n == 2:
-            return self.second_derivative
-        else:
-            raise ValueError(
-                "Don't know how to compute {}-th derivative.".format(n))
-
 ###
 
 
-class LennardJonesQuadratic():
+class LennardJonesQuadratic(CuttoffInteraction):
     """
     Functional form for a 12-6 Lennard-Jones potential with a soft cutoff.
     Energy, its first and second derivative are shifted to zero at cutoff.
     """
 
     def __init__(self, epsilon, sigma, cutoff):
+        super().__init__(cutoff)
         self.epsilon = epsilon
         self.sigma = sigma
-        self.cutoff = cutoff
         self.offset_energy = (sigma/cutoff)**12 - (sigma/cutoff)**6
         self.offset_force = 6/cutoff * \
             (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
         self.offset_dforce = (1/cutoff**2) * \
             (156*(sigma/cutoff)**12-42*(sigma/cutoff)**6)
 
-    def get_cutoff(self):
-        return self.cutoff
-
-    def __call__(self, r):
+    def __call__(self, r, *args):
         """
         Return function value (potential energy).
         """
         r6 = (self.sigma / r)**6
         return 4 * self.epsilon * ((r6-1)*r6-self.offset_energy - (r-self.cutoff) * self.offset_force - ((r - self.cutoff)**2/2) * self.offset_dforce)
 
-    def first_derivative(self, r):
+    def first_derivative(self, r, *args):
         r6 = (self.sigma / r)**6
         return 4 * self.epsilon * ((6/r) * (-2*r6+1) * r6 - self.offset_force - (r-self.cutoff) * self.offset_dforce)
 
-    def second_derivative(self, r):
+    def second_derivative(self, r, *args):
         r6 = (self.sigma / r)**6
         return 4 * self.epsilon * ((1/r**2) * (156*r6-42) * r6 - self.offset_dforce)
-
-    def derivative(self, n=1):
-        if n == 1:
-            return self.first_derivative
-        elif n == 2:
-            return self.second_derivative
-        else:
-            raise ValueError(
-                "Don't know how to compute {}-th derivative.".format(n))
 
 ###
 
 
-class LennardJonesLinear():
+class LennardJonesLinear(CuttoffInteraction):
     """
     Function form of a 12-6 Lennard-Jones potential with a soft cutoff
     The energy and the force are shifted at the cutoff.
     """
 
     def __init__(self, epsilon, sigma, cutoff):
+        super().__init__(cutoff)
         self.epsilon = epsilon
         self.sigma = sigma
-        self.cutoff = cutoff
         self.offset_energy = (sigma/cutoff)**12 - (sigma/cutoff)**6
         self.offset_force = 6/cutoff * \
             (-2*(sigma/cutoff)**12+(sigma/cutoff)**6)
 
-    def get_cutoff(self):
-        return self.cutoff
-
-    def __call__(self, r):
+    def __call__(self, r, *args):
         """
         Return function value (potential energy).
         """
         r6 = (self.sigma / r)**6
         return 4 * self.epsilon * ((r6-1) * r6 - self.offset_energy - (r-self.cutoff) * self.offset_force)
 
-    def first_derivative(self, r):
+    def first_derivative(self, r, *args):
         r6 = (self.sigma / r)**6
         return 4 * self.epsilon * ((6/r) * (-2*r6+1) * r6 - self.offset_force)
 
-    def second_derivative(self, r):
+    def second_derivative(self, r, *args):
         r6 = (self.sigma / r)**6
         return 4 * self.epsilon * ((1/r**2) * (156*r6-42) * r6)
-
-    def derivative(self, n=1):
-        if n == 1:
-            return self.first_derivative
-        elif n == 2:
-            return self.second_derivative
-        else:
-            raise ValueError(
-                "Don't know how to compute {}-th derivative.".format(n))
 
 
 ###
 
-class FeneLJCut():
+class FeneLJCut(LennardJonesCut):
     """
     Finite extensible nonlinear elastic(FENE) potential for a bead-spring polymer model.
     For the Lennard-Jones interaction a LJ-cut potential is used. Due to choice of the cutoff (rc=2^(1/6) sigma)
@@ -187,46 +185,30 @@ class FeneLJCut():
     """
 
     def __init__(self, K, R0, epsilon, sigma):
+        super().__init__(2**(1/6) * sigma)
         self.K = K
         self.R0 = R0
         self.epsilon = epsilon
         self.sigma = sigma
 
-    def __call__(self, r):
-        """
-        Return function value (potential energy).
-        """
-        r6 = (self.sigma/r)**6
-        bond = -0.5 * self.K * self.R0**2 * np.log(1-(r/self.R0)**2)
-        lj = 4 * self.epsilon * (r6-1) * r6 + self.epsilon
-        return bond + lj
+    def __call__(self, r, *args):
+        return (-0.5 * self.K * self.R0**2 * np.log(1-(r/self.R0)**2)
+                + super().__call__(r))
 
-    def first_derivative(self, r):
-        r6 = (self.sigma/r)**6
-        bond = self.K * r / (1-(r/self.R0)**2)
-        lj = -24 * self.epsilon * (2*r6/r-1/r) * r6
-        return bond + lj
+    def first_derivative(self, r, *args):
+        return (self.K * r / (1-(r/self.R0)**2)
+                + super().first_derivative(r))
 
-    def second_derivative(self, r):
-        r6 = (self.sigma/r)**6
+    def second_derivative(self, r, *args):
         invLength = 1 / (1-(r/self.R0)**2)
-        bond = K * invLength + 2 * K * r**2 * invLength**2 / self.R0**2
-        lj = 4 * self.epsilon * ((1/r**2) * (156*r6-42) * r6)
-        return bond + lj
-
-    def derivative(self, n=1):
-        if n == 1:
-            return self.first_derivative
-        elif n == 2:
-            return self.second_derivative
-        else:
-            raise ValueError(
-                "Don't know how to compute {}-th derivative.".format(n))
+        return (self.K * invLength
+                + 2 * self.K * r**2 * invLength**2 / self.R0**2
+                + super().second_derivative(r))
 
 
 ###
 
-class LennardJones84():
+class LennardJones84(CuttoffInteraction):
     """
     Function form of a 8-4 Lennard-Jones potential, used to model the structure of a CuZr.
     Kobayashi, Shinji et. al. "Computer simulation of atomic structure of Cu57Zr43 amorphous alloy."
@@ -234,44 +216,31 @@ class LennardJones84():
     """
 
     def __init__(self, C1, C2, C3, C4, cutoff):
+        super().__init__(cutoff)
         self.C1 = C1
         self.C2 = C2
         self.C3 = C3
         self.C4 = C4
-        self.cutoff = cutoff
 
-    def get_cutoff():
-        return self.cutoff
-
-    def __call__(self, r):
-        """
-        Return function value (potential energy).
-        """
+    def __call__(self, r, *args):
         r4 = (1 / r)**4
         return (self.C2*r4-self.C1) * r4 + self.C3 * r + self.C4
 
-    def first_derivative(self, r):
+    def first_derivative(self, r, *args):
         r4 = (1 / r)**4
         return (-8 * self.C2*r4/r+4*self.C1/r) * r4 + self.C3
 
-    def second_derivative(self, r):
+    def second_derivative(self, r, *args):
         r4 = (1 / r)**4
         return (72 * self.C2 * r4 / r**2 - 20 * self.C1 / r**2) * r4
 
-    def derivative(self, n=1):
-        if n == 1:
-            return self.first_derivative
-        elif n == 2:
-            return self.second_derivative
-        else:
-            raise ValueError(
-                "Don't know how to compute {}-th derivative.".format(n))
-
 ###
+_c = np.s_[..., np.newaxis]
 
 
 class PairPotential(MatscipyCalculator):
-    implemented_properties = ['energy', 'free_energy', 'stress', 'forces', 'hessian']
+    implemented_properties = ['energy', 'free_energy',
+                              'stress', 'forces', 'hessian']
     default_parameters = {}
     name = 'PairPotential'
 
