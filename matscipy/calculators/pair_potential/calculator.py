@@ -248,46 +248,43 @@ class PairPotential(MatscipyCalculator):
         MatscipyCalculator.__init__(self)
         self.f = f
 
-        self.dict = {x: obj.get_cutoff() for x, obj in f.items()}
+        self.dict = {x: obj.cutoff for x, obj in f.items()}
         self.df = {x: obj.derivative(1) for x, obj in f.items()}
         self.df2 = {x: obj.derivative(2) for x, obj in f.items()}
+
+    def _mask_pairs(self, i_p, j_p):
+        """Iterate over pair masks."""
+        numi_p, numj_p = self.atoms.numbers[i_p], self.atoms.numbers[j_p]
+
+        for pair in self.dict:
+            mask = (numi_p == pair[0]) & (numj_p == pair[1])
+
+            if pair[0] != pair[1]:
+                mask |= (numi_p == pair[1]) & (numj_p == pair[0])
+
+            yield mask, pair
+
 
     def calculate(self, atoms, properties, system_changes):
         MatscipyCalculator.calculate(self, atoms, properties, system_changes)
 
         nb_atoms = len(self.atoms)
-        atnums = self.atoms.numbers
-        atnums_in_system = set(atnums)
-
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
 
         e_p = np.zeros_like(r_p)
         de_p = np.zeros_like(r_p)
-        for params, pair in enumerate(self.dict):
-            if pair[0] == pair[1]:
-                mask1 = atnums[i_p] == pair[0]
-                mask2 = atnums[j_p] == pair[0]
-                mask = np.logical_and(mask1, mask2)
 
-                e_p[mask] = self.f[pair](r_p[mask])
-                de_p[mask] = self.df[pair](r_p[mask])
+        for mask, pair in self._mask_pairs(i_p, j_p):
+            e_p[mask] = self.f[pair](r_p[mask])
+            de_p[mask] = self.df[pair](r_p[mask])
 
-            if pair[0] != pair[1]:
-                mask1 = np.logical_and(
-                    atnums[i_p] == pair[0], atnums[j_p] == pair[1])
-                mask2 = np.logical_and(
-                    atnums[i_p] == pair[1], atnums[j_p] == pair[0])
-                mask = np.logical_or(mask1, mask2)
-
-                e_p[mask] = self.f[pair](r_p[mask])
-                de_p[mask] = self.df[pair](r_p[mask])
-
-        epot = 0.5*np.sum(e_p)
+        epot = 0.5 * np.sum(e_p)
 
         # Forces
-        df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1)
+        df_pc = -0.5 * de_p[_c] * r_pc / r_p[_c]
 
-        f_nc = mabincount(j_p, df_pc, nb_atoms) - mabincount(i_p, df_pc, nb_atoms)
+        f_nc = mabincount(j_p, df_pc, nb_atoms) \
+            - mabincount(i_p, df_pc, nb_atoms)
 
         # Virial
         virial_v = -np.array([r_pc[:, 0] * df_pc[:, 0],               # xx
@@ -322,7 +319,7 @@ class PairPotential(MatscipyCalculator):
             Output format of the hessian matrix.
 
         divide_by_masses: bool
-            if true return the dynamic matrix else hessian matrix 
+            if true return the dynamic matrix else hessian matrix
 
         Restrictions
         ----------
@@ -345,28 +342,13 @@ class PairPotential(MatscipyCalculator):
         e_p = np.zeros_like(r_p)
         de_p = np.zeros_like(r_p)
         dde_p = np.zeros_like(r_p)
-        for params, pair in enumerate(dict):
-            if pair[0] == pair[1]:
-                mask1 = atnums[i_p] == pair[0]
-                mask2 = atnums[j_p] == pair[0]
-                mask = np.logical_and(mask1, mask2)
 
-                e_p[mask] = f[pair](r_p[mask])
-                de_p[mask] = df[pair](r_p[mask])
-                dde_p[mask] = df2[pair](r_p[mask])
+        for mask, pair in self._mask_pairs(i_p, j_p):
+            e_p[mask] = f[pair](r_p[mask])
+            de_p[mask] = df[pair](r_p[mask])
+            dde_p[mask] = df2[pair](r_p[mask])
 
-            if pair[0] != pair[1]:
-                mask1 = np.logical_and(
-                    atnums[i_p] == pair[0], atnums[j_p] == pair[1])
-                mask2 = np.logical_and(
-                    atnums[i_p] == pair[1], atnums[j_p] == pair[0])
-                mask = np.logical_or(mask1, mask2)
-
-                e_p[mask] = f[pair](r_p[mask])
-                de_p[mask] = df[pair](r_p[mask])
-                dde_p[mask] = df2[pair](r_p[mask])
-        
-        n_pc = (r_pc.T/r_p).T
+        n_pc = r_pc / r_p[_c]
         H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
                            * n_pc.reshape(-1, 1, 3)).T).T
         H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
@@ -381,7 +363,7 @@ class PairPotential(MatscipyCalculator):
             if divide_by_masses:
                 H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
-            else: 
+            else:
                 H = bsr_matrix((H_pcc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             Hdiag_icc = np.empty((nb_atoms, 3, 3))
