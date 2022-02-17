@@ -42,8 +42,10 @@ class HarmonicBond(NiceManybody.F):
         g[ptype < 0] = 0
         return [g, np.ones_like(xi)]
 
-    def hessian(self, r, *args):
-        return [np.full_like(r, self.k), np.zeros_like(r), np.zeros_like(r)]
+    def hessian(self, r, xi, atype, ptype):
+        h = np.full_like(r, self.k)
+        h[ptype < 0] = 0
+        return [h, np.zeros_like(r), np.zeros_like(r)]
 
 
 class ZeroAngle(NiceManybody.G):
@@ -157,20 +159,23 @@ def test_harmonic_angle():
 
     # Testing forces
     f = atoms.get_forces()
-    f_ref = np.zeros_like(f)
-    f_ref[:, 0] = [0.5, 0, -0.5]
+
+    # Finite differences forces
+    f_ref = calc.calculate_numerical_forces(atoms, d=1e-6)
+    nt.assert_allclose(f, f_ref, rtol=1e-6, atol=1e-9)
 
     # Symmetric frame of reference
     theta0 = -theta0 / 2
     rot = np.array([[np.cos(theta0), -np.sin(theta0), 0],
                     [np.sin(theta0),  np.cos(theta0), 0],
-                    [0, 0, 1]])
+                    [0,               0,              1]])
     f = np.einsum('ij,aj', rot, f)
 
     # Checking symmetries
     nt.assert_allclose(f[0, 0], -f[2, 0], rtol=1e-15)
-    nt.assert_allclose(f[0, 1], f[2, 1], rtol=1e-15)
+    nt.assert_allclose(f[0, 1],  f[2, 1], rtol=1e-15)
 
     # Checking zeros
     assert np.sum(np.abs(f[1, (0, 2)])) < 1e-15
     assert np.abs(f.sum()) < 1e-15
+
