@@ -235,7 +235,9 @@ class LennardJones84(CuttoffInteraction):
         return (72 * self.C2 * r4 / r**2 - 20 * self.C1 / r**2) * r4
 
 ###
-_c = np.s_[..., np.newaxis]
+
+# Broadcast slices
+_c, _cc = np.s_[..., np.newaxis], np.s_[..., np.newaxis, np.newaxis]
 
 
 class PairPotential(MatscipyCalculator):
@@ -244,7 +246,14 @@ class PairPotential(MatscipyCalculator):
     default_parameters = {}
     name = 'PairPotential'
 
+    class _dummy_charge:
+        """Dummy object for when system has no charge."""
+
+        def __getitem__(self, x):
+            return None
+
     def __init__(self, f, cutoff=None):
+        """Construct calculator."""
         MatscipyCalculator.__init__(self)
         self.f = f
 
@@ -264,19 +273,26 @@ class PairPotential(MatscipyCalculator):
 
             yield mask, pair
 
+    def _get_charges(self, i_p, j_p):
+        """Return charges if available."""
+        if self.atoms.has("charge"):
+            return [self.atoms.charges[i] for i in (i_p, j_p)]
+        return [self._dummy_charge(), self._dummy_charge()]
 
     def calculate(self, atoms, properties, system_changes):
+        """Calculate system properties."""
         MatscipyCalculator.calculate(self, atoms, properties, system_changes)
 
         nb_atoms = len(self.atoms)
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
+        qi_p, qj_p = self._get_charges(i_p, j_p)
 
         e_p = np.zeros_like(r_p)
         de_p = np.zeros_like(r_p)
 
         for mask, pair in self._mask_pairs(i_p, j_p):
-            e_p[mask] = self.f[pair](r_p[mask])
-            de_p[mask] = self.df[pair](r_p[mask])
+            e_p[mask] = self.f[pair](r_p[mask], qi_p[mask], qj_p[mask])
+            de_p[mask] = self.df[pair](r_p[mask], qi_p[mask], qj_p[mask])
 
         epot = 0.5 * np.sum(e_p)
 
@@ -329,38 +345,36 @@ class PairPotential(MatscipyCalculator):
             self.atoms = atoms
 
         f = self.f
-        dict = self.dict
         df = self.df
         df2 = self.df2
 
         nb_atoms = len(atoms)
-        atnums = atoms.numbers
 
-        i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', atoms, dict)
+        i_p, j_p,  r_p, r_pc = neighbour_list('ijdD', atoms, self.dict)
         first_i = first_neighbours(nb_atoms, i_p)
+
+        qi_p, qj_p = self._get_charges(i_p, j_p)
 
         e_p = np.zeros_like(r_p)
         de_p = np.zeros_like(r_p)
         dde_p = np.zeros_like(r_p)
 
         for mask, pair in self._mask_pairs(i_p, j_p):
-            e_p[mask] = f[pair](r_p[mask])
-            de_p[mask] = df[pair](r_p[mask])
-            dde_p[mask] = df2[pair](r_p[mask])
+            e_p[mask] = f[pair](r_p[mask], qi_p[mask], qj_p[mask])
+            de_p[mask] = df[pair](r_p[mask], qi_p[mask], qj_p[mask])
+            dde_p[mask] = df2[pair](r_p[mask], qi_p[mask], qj_p[mask])
 
         n_pc = r_pc / r_p[_c]
-        H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
-                           * n_pc.reshape(-1, 1, 3)).T).T
-        H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
-                                    - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
+        nn_pcc = n_pc[..., :, np.newaxis] * n_pc[..., np.newaxis, :]
+        H_pcc = -(dde_p[_cc] * nn_pcc)
+        H_pcc += -((de_p/r_p)[_cc]
+                   * (np.eye(3, dtype=n_pc.dtype) - nn_pcc))
 
         # Sparse BSR-matrix
         if format == "sparse":
             if divide_by_masses:
                 masses_n = atoms.get_masses()
                 geom_mean_mass_p = np.sqrt(masses_n[i_p]*masses_n[j_p])
-
-            if divide_by_masses:
                 H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
             else:
