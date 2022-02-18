@@ -273,7 +273,8 @@ _c, _cc = np.s_[..., np.newaxis], np.s_[..., np.newaxis, np.newaxis]
 
 class PairPotential(MatscipyCalculator):
     implemented_properties = ['energy', 'free_energy',
-                              'stress', 'forces', 'hessian']
+                              'stress', 'forces', 'hessian',
+                              'nonaffine_forces']
     default_parameters = {}
     name = 'PairPotential'
 
@@ -318,7 +319,7 @@ class PairPotential(MatscipyCalculator):
         super().calculate(atoms, properties, system_changes)
 
         nb_atoms = len(self.atoms)
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', self.atoms, self.dict)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms, self.dict)
         qi_p, qj_p = self._get_charges(i_p, j_p)
 
         e_p = np.zeros_like(r_p)
@@ -346,8 +347,14 @@ class PairPotential(MatscipyCalculator):
 
         self.results = {'energy': epot,
                         'free_energy': epot,
-                        'stress': virial_v/self.atoms.get_volume(),
+                        'stress': virial_v / atoms.get_volume(),
                         'forces': f_nc}
+
+        if 'hessian' in properties:
+            self.results['hessian'] = self.get_hessian(atoms)
+
+        if 'nonaffine_forces' in properties:
+            self.results['nonaffine_forces'] = self.get_nonaffine_forces(atoms)
 
     ###
 

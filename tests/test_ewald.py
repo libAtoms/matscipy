@@ -59,8 +59,11 @@ from ase.optimize import FIRE
 from ase.units import GPa
 from ase.lattice.hexagonal import HexagonalFactory
 from ase.lattice.cubic import SimpleCubicFactory
+from ase.calculators.mixing import SumCalculator
+from ase.calculators.test import numeric_stress
 
-from matscipy.calculators.ewald import Ewald, BKSEwald
+from matscipy.calculators.ewald import Ewald
+from matscipy.calculators.pair_potential.calculator import PairPotential, BeestKramerSanten
 from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
 from matscipy.hessian_finite_differences import fd_hessian
 from matscipy.numpy_tricks import mabincount
@@ -69,7 +72,7 @@ from matscipy.numpy_tricks import mabincount
 
 class alpha_quartz(HexagonalFactory):
     """
-    Factory to creata an alpha quartz crystal structure
+    Factory to create an alpha quartz crystal structure
     """
     xtal_name = "alpha_quartz"
     bravais_basis = [[0, 0.4763, 0.6667], [0.4763, 0, 0.3333], [0.5237, 0.5237, 0],
@@ -83,59 +86,89 @@ class beta_cristobalite(SimpleCubicFactory):
     """
     xtal_name = "beta_cristobalite"
     bravais_basis = [[0.98184000, 0.51816000,0.48184000],
-                    [0.51816000, 0.48184000, 0.98184000], 
-                    [0.48184000, 0.98184000, 0.51816000], 
-                    [0.01816000, 0.01816000, 0.01816000],   
-                    [0.72415800, 0.77584200, 0.22415800], 
-                    [0.77584200, 0.22415800, 0.72415800],  
-                    [0.22415800, 0.72415800, 0.77584200],  
-                    [0.27584200, 0.27584200, 0.27584200],  
-                    [0.86042900, 0.34389100, 0.55435200],  
-                    [0.36042900, 0.15610900, 0.44564800],  
-                    [0.13957100, 0.84389100, 0.94564800],  
-                    [0.15610900, 0.44564800, 0.36042900],  
-                    [0.94564800, 0.13957100, 0.84389100],  
-                    [0.44564800, 0.36042900, 0.15610900],  
-                    [0.34389100, 0.55435200, 0.86042900],  
-                    [0.55435200, 0.86042900, 0.34389100],  
-                    [0.14694300, 0.14694300, 0.14694300],  
-                    [0.35305700, 0.85305700, 0.64694300],  
-                    [0.64694300, 0.35305700, 0.85305700],  
-                    [0.85305700, 0.64694300, 0.35305700],  
-                    [0.63957100, 0.65610900, 0.05435200],  
-                    [0.05435200, 0.63957100, 0.65610900],  
-                    [0.65610900, 0.05435200, 0.63957100],  
-                    [0.84389100, 0.94564800, 0.13957100]] 
-    element_basis = (0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+                    [0.51816000, 0.48184000, 0.98184000],
+                    [0.48184000, 0.98184000, 0.51816000],
+                    [0.01816000, 0.01816000, 0.01816000],
+                    [0.72415800, 0.77584200, 0.22415800],
+                    [0.77584200, 0.22415800, 0.72415800],
+                    [0.22415800, 0.72415800, 0.77584200],
+                    [0.27584200, 0.27584200, 0.27584200],
+                    [0.86042900, 0.34389100, 0.55435200],
+                    [0.36042900, 0.15610900, 0.44564800],
+                    [0.13957100, 0.84389100, 0.94564800],
+                    [0.15610900, 0.44564800, 0.36042900],
+                    [0.94564800, 0.13957100, 0.84389100],
+                    [0.44564800, 0.36042900, 0.15610900],
+                    [0.34389100, 0.55435200, 0.86042900],
+                    [0.55435200, 0.86042900, 0.34389100],
+                    [0.14694300, 0.14694300, 0.14694300],
+                    [0.35305700, 0.85305700, 0.64694300],
+                    [0.64694300, 0.35305700, 0.85305700],
+                    [0.85305700, 0.64694300, 0.35305700],
+                    [0.63957100, 0.65610900, 0.05435200],
+                    [0.05435200, 0.63957100, 0.65610900],
+                    [0.65610900, 0.05435200, 0.63957100],
+                    [0.84389100, 0.94564800, 0.13957100]]
+    element_basis = tuple([0]*8 + [1]*16)
 
-calc_alpha_quartz = {(14, 14): BKSEwald(0, 1, 0, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6),
-                     (14, 8): BKSEwald(18003.7572, 4.87318, 133.5381, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6),
-                     (8, 8): BKSEwald(1388.7730, 2.76000, 175.0000, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6)} 
 
-calc_beta_cristobalite = {(14, 14): BKSEwald(0, 1, 0, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6),
-                          (14, 8): BKSEwald(18003.7572, 4.87318, 133.5381, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6),
-                          (8, 8): BKSEwald(1388.7730, 2.76000, 175.0000, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6)} 
+calc_alpha_quartz = {
+    (14, 14): BeestKramerSanten(0, 1, 0, 2.9),
+    (14, 8): BeestKramerSanten(18003.7572, 4.87318, 133.5381, 2.9),
+    (8, 8): BeestKramerSanten(1388.7730, 2.76000, 175.0000, 2.9)
+}
 
-### 
+ewald_alpha_params = dict(
+    accuracy=1e-6,
+    cutoff=2.9,
+    kspace={
+        'alpha': 1.28,
+        'nbk_c': np.array([8, 11, 9]),
+        'cutoff': 10.43,
+    },
+)
+
+calc_beta_cristobalite = calc_alpha_quartz.copy()
+for k in calc_beta_cristobalite:
+    calc_beta_cristobalite[k].cutoff = 3.8
+
+ewald_beta_params = dict(
+    accuracy=1e-6,
+    cutoff=3.8,
+    kspace={
+        'alpha': 0.96,
+        'nbk_c': np.array([9, 9, 9]),
+        'cutoff': 7,
+    },
+)
+
+    # calc_alpha_quartz = {(14, 14): BKSEwald(0, 1, 0, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6),
+    #                      (14, 8): BKSEwald(18003.7572, 4.87318, 133.5381, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6),
+    #                      (8, 8): BKSEwald(1388.7730, 2.76000, 175.0000, 1.28, 2.9, 10.43, np.array([8, 11, 9]), 1e-6)}
+
+    # calc_beta_cristobalite = {(14, 14): BKSEwald(0, 1, 0, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6),
+    #                           (14, 8): BKSEwald(18003.7572, 4.87318, 133.5381, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6),
+    #                           (8, 8): BKSEwald(1388.7730, 2.76000, 175.0000, 0.96, 3.8, 7, np.array([9, 9, 9]), 1e-6)}
+
+###
+
 
 # Test for alpha quartz
-
 @pytest.mark.parametrize('a0', [4.7, 4.9, 5.1])
 def test_stress_alpha_quartz(a0):
     """
     Test the computation of stress
     """
     structure = alpha_quartz()
-    atoms = structure(["Si", "O"], size=[1, 1, 1], latticeconstant={"a": a0, "b": a0, "c": 5.4})
+    atoms = structure(["Si", "O"], size=[1, 1, 1],
+                      latticeconstant={"a": a0, "b": a0, "c": 5.4})
     charges = np.zeros(len(atoms))
-    for i in range(len(atoms)):
-        if atoms.get_chemical_symbols()[i] == "Si":
-            charges[i] = +2.4
-        elif atoms.get_chemical_symbols()[i] == "O":
-            charges[i] = -1.2
+    charges[atoms.symbols == "Si"] = +2.4
+    charges[atoms.symbols == "O"] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_alpha_quartz)
+    b = Ewald()
+    b.set(**ewald_alpha_params)
     atoms.calc = b
 
     s = atoms.get_stress()
@@ -162,7 +195,8 @@ def test_forces_alpha_quartz(a0):
             charges[i] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_alpha_quartz)
+    b = Ewald()
+    b.set(**ewald_alpha_params)
     atoms.calc = b
 
     f = atoms.get_forces()
@@ -178,30 +212,32 @@ def test_hessian_alpha_quartz():
     Test the computation of the Hessian matrix
     """
     structure = alpha_quartz()
-    atoms = structure(["Si", "O"], size=[1, 1, 1], latticeconstant={"a": 4.9, "b": 4.9, "c": 5.4, "gamma": 120})
+    atoms = structure(["Si", "O"], size=[1, 1, 1],
+                      latticeconstant={"a": 4.9, "b": 4.9, "c": 5.4, "gamma": 120})
     charges = np.zeros(len(atoms))
     for i in range(len(atoms)):
         if atoms.get_chemical_symbols()[i] == "Si":
             charges[i] = +2.4
         elif atoms.get_chemical_symbols()[i] == "O":
             charges[i] = -1.2
-    atoms.set_array("charge", charges, dtype=float)  
+    atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_alpha_quartz)
-    atoms.calc = b
+    b = Ewald()
+    b.set(**ewald_alpha_params)
+    atoms.calc = SumCalculator([b, PairPotential(calc_alpha_quartz)])
     FIRE(atoms, logfile=None).run(fmax=1e-2)
 
     H_num = fd_hessian(atoms, dx=1e-5, indices=None)
-    H_ana = b.get_hessian(atoms)
+    H_ana = atoms.calc.get_property('hessian', atoms)
 
-    print("H_num: \n", H_num.todense()[:6,:6])
-    print("H_ana: \n", H_ana[:6,:6])
+    print("H_num: \n", H_num.todense()[:6, :6])
+    print("H_ana: \n", H_ana[:6, :6])
 
     np.testing.assert_allclose(H_num.todense(), H_ana, atol=1e-3)
 
 def test_non_affine_forces_alpha_quartz():
     """
-    Test the computation of non-affine forces 
+    Test the computation of non-affine forces
     """
     structure = alpha_quartz()
     atoms = structure(["Si", "O"], size=[1, 1, 1], latticeconstant={"a": 4.9, "b": 4.9, "c": 5.4, "gamma": 120})
@@ -211,14 +247,15 @@ def test_non_affine_forces_alpha_quartz():
             charges[i] = +2.4
         elif atoms.get_chemical_symbols()[i] == "O":
             charges[i] = -1.2
-    atoms.set_array("charge", charges, dtype=float)  
+    atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_alpha_quartz)
-    atoms.calc = b
+    b = Ewald()
+    b.set(**ewald_alpha_params)
+    atoms.calc = SumCalculator([b, PairPotential(calc_alpha_quartz)])
 
     FIRE(atoms, logfile=None).run(fmax=1e-2)
 
-    naForces_ana = b.get_nonaffine_forces(atoms)
+    naForces_ana = atoms.calc.get_property('nonaffine_forces')
     naForces_num = b.get_numerical_non_affine_forces(atoms, d=1e-5)
 
     print("Num: \n", naForces_num[:1])
@@ -238,17 +275,18 @@ def test_birch_coefficients_alpha_quartz():
             charges[i] = +2.4
         elif atoms.get_chemical_symbols()[i] == "O":
             charges[i] = -1.2
-    atoms.set_array("charge", charges, dtype=float)  
+    atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_alpha_quartz)
-    atoms.calc = b
+    b = Ewald()
+    b.set(**ewald_alpha_params)
+    atoms.calc = SumCalculator([b, PairPotential(calc_alpha_quartz)])
 
     FIRE(atoms, logfile=None).run(fmax=1e-2)
 
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-5, optimizer=None, verbose=False)
     C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms), check_symmetry=False)
 
-    print("Stress: \n", atoms.get_stress() / GPa) 
+    print("Stress: \n", atoms.get_stress() / GPa)
     print("C_num: \n", C_num / GPa)
     print("C_ana: \n", C_ana / GPa)
 
@@ -266,11 +304,12 @@ def test_full_elastic_alpha_quartz():
             charges[i] = +2.4
         elif atoms.get_chemical_symbols()[i] == "O":
             charges[i] = -1.2
-    atoms.set_array("charge", charges, dtype=float)  
+    atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_alpha_quartz)
-    atoms.calc = b
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)    
+    b = Ewald()
+    b.set(**ewald_alpha_params)
+    atoms.calc = SumCalculator([b, PairPotential(calc_alpha_quartz)])
+    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)
 
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=FIRE, fmax=1e-3, logfile=None, verbose=False)
     C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms), check_symmetry=False)
@@ -278,7 +317,7 @@ def test_full_elastic_alpha_quartz():
 
     print("stress: \n", atoms.get_stress())
     print("C_num: \n", C_num )
-    print("C_ana: \n", C_ana + C_na) 
+    print("C_ana: \n", C_ana + C_na)
 
     np.testing.assert_allclose(C_num, C_ana+C_na, atol=1e-1)
 
@@ -294,16 +333,16 @@ def test_real_elastic_alpha_quartz():
             charges[i] = +2.4
         elif atoms.get_chemical_symbols()[i] == "O":
             charges[i] = -1.2
-    atoms.set_array("charge", charges, dtype=float)  
+    atoms.set_array("charge", charges, dtype=float)
 
 
     calc_alpha_quartz = {(14, 14): BKS_ewald(0, 1, 0, None, 9, None, np.array([None, None, None]), 1e-5),
             (14, 8): BKS_ewald(18003.7572, 4.87318, 133.5381, None, 9, None, np.array([None, None, None]), 1e-5),
-            (8, 8): BKS_ewald(1388.7730, 2.76000, 175.0000, None, 9, None, np.array([None, None, None]), 1e-5)} 
+            (8, 8): BKS_ewald(1388.7730, 2.76000, 175.0000, None, 9, None, np.array([None, None, None]), 1e-5)}
 
     b = Ewald(calc_alpha_quartz)
     atoms.calc = b
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)    
+    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)
     #FIRE(atoms, logfile=None).run(fmax=1e-4)
 
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=FIRE, fmax=1e-3, logfile=None, verbose=False)
@@ -312,7 +351,7 @@ def test_real_elastic_alpha_quartz():
 
     print("stress: ", atoms.get_stress())
     print("C_num: \n", C_num )
-    print("C_ana: \n", C_ana + C_na) 
+    print("C_ana: \n", C_ana + C_na)
 
     np.testing.assert_allclose(C_num, C_ana+C_na, atol=1e-1)
 """
@@ -337,7 +376,8 @@ def test_stress_beta_cristobalite(a0):
             charges[i] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_beta_cristobalite)
+    b = Ewald()
+    b.set(**ewald_beta_params)
     atoms.calc = b
 
     s = atoms.get_stress()
@@ -363,7 +403,8 @@ def test_forces_beta_cristobalite(a0):
             charges[i] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_beta_cristobalite)
+    b = Ewald()
+    b.set(**ewald_beta_params)
     atoms.calc = b
 
     f = atoms.get_forces()
@@ -388,19 +429,20 @@ def test_hessian_beta_cristobalite():
             charges[i] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_beta_cristobalite)
-    atoms.calc = b
+    b = Ewald()
+    b.set(**ewald_beta_params)
+    atoms.calc = SumCalculator([b, PairPotential(calc_beta_cristobalite)])
 
     FIRE(atoms, logfile=None).run(fmax=1e-2)
 
     H_num = fd_hessian(atoms, dx=1e-5, indices=None)
-    H_ana = b.get_hessian(atoms)
+    H_ana = atoms.calc.get_property('hessian')
 
     np.testing.assert_allclose(H_num.todense(), H_ana, atol=1e-3)
 
 def test_non_affine_forces_beta_cristobalite():
     """
-    Test the computation of non-affine forces 
+    Test the computation of non-affine forces
     """
     structure = beta_cristobalite()
     atoms = structure(["Si", "O"], size=[1, 1, 1], latticeconstant=7)
@@ -412,12 +454,13 @@ def test_non_affine_forces_beta_cristobalite():
             charges[i] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_beta_cristobalite)
-    atoms.calc = b
+    b = Ewald()
+    b.set(**ewald_beta_params)
+    atoms.calc = SumCalculator([b, PairPotential(calc_beta_cristobalite)])
 
     FIRE(atoms, logfile=None).run(fmax=1e-2)
 
-    naForces_ana = b.get_nonaffine_forces(atoms)
+    naForces_ana = atoms.calc.get_property('nonaffine_forces')
     naForces_num = b.get_numerical_non_affine_forces(atoms, d=1e-5)
 
     print("Num: \n", naForces_num[:1])
@@ -439,8 +482,9 @@ def test_birch_coefficients_beta_cristobalite():
             charges[i] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_beta_cristobalite)
-    atoms.calc = b
+    b = Ewald()
+    b.set(**ewald_beta_params)
+    atoms.calc = SumCalculator([b, PairPotential(calc_beta_cristobalite)])
 
     FIRE(atoms, logfile=None).run(fmax=1e-2)
 
@@ -466,10 +510,11 @@ def test_non_affine_elastic_beta_cristobalite():
             charges[i] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
-    b = Ewald(calc_beta_cristobalite)
-    atoms.calc = b
+    b = Ewald()
+    b.set(**ewald_beta_params)
+    atoms.calc = SumCalculator([b, PairPotential(calc_beta_cristobalite)])
 
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)  
+    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)
 
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=FIRE, fmax=1e-3, logfile=None, verbose=False)
     C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms), check_symmetry=False)
@@ -477,6 +522,6 @@ def test_non_affine_elastic_beta_cristobalite():
 
     print("stress: \n", atoms.get_stress())
     print("C_num: \n", C_num)
-    print("C_ana: \n", C_ana + C_na) 
+    print("C_ana: \n", C_ana + C_na)
 
     np.testing.assert_allclose(C_num, C_ana+C_na, atol=1e-1)

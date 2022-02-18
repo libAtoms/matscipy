@@ -32,6 +32,7 @@ Pair potential + Ewald summation
 #   - c: Cartesian index, array dimension of length 3
 #   - l: Wave vector index, i.e. array of dimension length of k_lc
 
+from collections import defaultdict
 import numpy as np
 
 from scipy.linalg import block_diag
@@ -69,21 +70,39 @@ class EwaldShortRange(CutoffInteraction):
                + 4 * a * np.exp((-(a * r)**2))
                / np.sqrt(np.pi) * (1 / r**2 + a**2))
 
+
 class Ewald(PairPotential):
-    implemented_properties = ["energy", "free_energy", "stress", "forces", "hessian"]
-    default_parameters = {'accuracy': 1e-6, 'cutoff': 10, 'verbose': True}
+    """Ewal summation calculator."""
+
     name = 'Ewald'
+    implemented_properties = [
+        "energy", "free_energy", "stress", "forces", "hessian",
+        "nonaffine_forces",
+    ]
+
+    default_parameters = {
+        'accuracy': 1e-6,
+        'cutoff': 3,
+        'verbose': True,
+        'kspace': {},
+    }
 
     def __init__(self):
-        super().__init__({
-            (1, 1): EwaldShortRange(None, None)
-        })
+        super().__init__(defaultdict(
+            lambda: self.short_range
+        ))
 
         self.set(**self.parameters)
         self.kvectors = None
-        self.initial_cell = None
         self.initial_I = None
         self.initial_alpha = None
+
+    @property
+    def short_range(self):
+        return EwaldShortRange(
+                self.alpha,
+                self.parameters['cutoff'],
+        )
 
     @property
     def alpha(self):
@@ -94,30 +113,21 @@ class Ewald(PairPotential):
     def alpha(self, v):
         """Set alpha."""
         self._alpha = v
-        self.f[(1, 1)].alpha = v
-
-    @property
-    def cutoff(self):
-        """Short range cutoff."""
-        return self.f[(1, 1)].cutoff
-
-    @cutoff.setter
-    def cutoff(self, v):
-        self.f[(1, 1)].cutoff = v
-        super().reset()
 
     def set(self, **kwargs):
         super().set(**kwargs)
 
-        if 'cutoff' in kwargs:
-            self.cutoff = kwargs['cutoff']
-
         if 'accuracy' in kwargs:
             self.reset()
 
+    def reset(self):
+        self.dict = defaultdict(lambda: self.short_range.cutoff)
+        self.df = defaultdict(lambda: self.short_range.derivative(1))
+        self.df2 = defaultdict(lambda: self.short_range.derivative(2))
+
     def _mask_pairs(self, i_p, j_p):
         """Match all atom types to the (1, 1) object for pair interactions."""
-        yield None, (1, 1)
+        yield np.s_[:], (1, 1)
 
     @staticmethod
     def determine_alpha(charge, acc, cutoff, cell):
@@ -314,7 +324,7 @@ class Ewald(PairPotential):
 
         charge_n = atoms.get_array("charge")
 
-        if np.sum(charge_n) > 1e-3:
+        if np.abs(charge_n.sum()) > 1e-3:
             print("Net charge: ", np.sum(charge_n))
             raise AttributeError(
                 "System is not charge neutral!")
@@ -323,22 +333,29 @@ class Ewald(PairPotential):
             raise AttributeError(
                 "This code only works for 3D systems with periodic boundaries!")
 
-        accuracy, rc = self.parameters['accuracy'], self.parameters['cutoff']
-        kc = rc
+        accuracy = self.parameters['accuracy']
+        rc = self.parameters['cutoff']
+        kspace_params = self.parameters['kspace']
 
-        self.initial_cell = atoms.get_cell()
-        self.alpha = self.determine_alpha(charge_n, accuracy, rc,
-                                          atoms.get_cell())
+        self.alpha = kspace_params.get('alpha', self.determine_alpha(
+            charge_n,
+            accuracy,
+            rc,
+            atoms.get_cell()))
 
         alpha = self.alpha
         nb_atoms = len(atoms)
-        kc, nbk_c = self.determine_nk(charge_n,
-                                      atoms.get_cell(), accuracy, alpha,
-                                      nb_atoms)
 
-        if np.all(nbk_c) is None and kc is None:
-            kc = self.determine_kc(atoms.get_cell(), nbk_c)
+        if 'nbk_c' in kspace_params:
+            nbk_c = kspace_params['nbk_c']
+            kc = kspace_params.get('cutoff',
+                                   self.determine_kc(atoms.get_cell(), nbk_c))
+        else:
+            kc, nbk_c = self.determine_nk(charge_n,
+                                          atoms.get_cell(), accuracy, alpha,
+                                          nb_atoms)
 
+        self.set(cutoff_kspace=kc)
         self.initial_alpha = alpha
 
         I_l, k_lc = self.allowed_wave_vectors(atoms.get_cell(), kc,
@@ -368,7 +385,7 @@ class Ewald(PairPotential):
 
     def calculate(self, atoms, properties, system_changes):
         """Compute Coulomb interactions with Ewald summation."""
-        if 'cell' in system_changes or self.atoms is None:
+        if 'cell' in system_changes:
             self.reset()
             self.reset_kspace(atoms)
 
@@ -379,14 +396,15 @@ class Ewald(PairPotential):
 
         k_lc = self.kvectors
         I_l = self.initial_I
-        alpha = self.initial_alpha
+        alpha = self.alpha
 
         # Energy
         e_self = self.self_energy(charge_n, alpha)
         e_long = self.kspace_energy(charge_n, atoms.get_positions(),
                                     atoms.get_volume(), I_l, k_lc)
+
         self.results['energy'] += e_self + e_long
-        self.results['free_energy'] = self.results['energy']
+        self.results['free_energy'] += e_self + e_long
 
         # Forces
         self.results['forces'] += self.first_derivative_kspace(
@@ -398,7 +416,7 @@ class Ewald(PairPotential):
         self.results['stress'] += self.stress_kspace(
             charge_n, atoms.get_positions(), atoms.get_volume(),
             alpha, I_l, k_lc
-        )
+        ) / atoms.get_volume()
 
     def kspace_properties(self, atoms, prop="Hessian", divide_by_masses=False):
         """
