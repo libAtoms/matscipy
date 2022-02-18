@@ -75,10 +75,6 @@ class Ewald(PairPotential):
     """Ewal summation calculator."""
 
     name = 'Ewald'
-    implemented_properties = [
-        "energy", "free_energy", "stress", "forces", "hessian",
-        "nonaffine_forces",
-    ]
 
     default_parameters = {
         'accuracy': 1e-6,

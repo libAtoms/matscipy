@@ -283,8 +283,11 @@ def test_birch_coefficients_alpha_quartz():
 
     FIRE(atoms, logfile=None).run(fmax=1e-2)
 
+    C_ana = full_3x3x3x3_to_Voigt_6x6(
+        atoms.calc.get_property('birch_coefficients'), check_symmetry=False)
+
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-5, optimizer=None, verbose=False)
-    C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms), check_symmetry=False)
+
 
     print("Stress: \n", atoms.get_stress() / GPa)
     print("C_num: \n", C_num / GPa)
@@ -312,8 +315,10 @@ def test_full_elastic_alpha_quartz():
     FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)
 
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=FIRE, fmax=1e-3, logfile=None, verbose=False)
-    C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms), check_symmetry=False)
-    C_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
+    C_ana = full_3x3x3x3_to_Voigt_6x6(
+        atoms.calc.get_property('birch_coefficients'), check_symmetry=False)
+    C_na = full_3x3x3x3_to_Voigt_6x6(
+        atoms.calc.get_property('nonaffine_elastic_contribution'))
 
     print("stress: \n", atoms.get_stress())
     print("C_num: \n", C_num )
@@ -489,7 +494,8 @@ def test_birch_coefficients_beta_cristobalite():
     FIRE(atoms, logfile=None).run(fmax=1e-2)
 
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-5, optimizer=None, verbose=False)
-    C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms), check_symmetry=False)
+    C_ana = full_3x3x3x3_to_Voigt_6x6(
+        atoms.calc.get_property('birch_coefficients'), check_symmetry=False)
 
     print("C_num: \n", C_num)
     print("C_ana: \n", C_ana)
@@ -517,8 +523,10 @@ def test_non_affine_elastic_beta_cristobalite():
     FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)
 
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=FIRE, fmax=1e-3, logfile=None, verbose=False)
-    C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms), check_symmetry=False)
-    C_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
+    C_ana = full_3x3x3x3_to_Voigt_6x6(
+        atoms.calc.get_property('birch_coefficients'), check_symmetry=False)
+    C_na = full_3x3x3x3_to_Voigt_6x6(
+        atoms.calc.get_property('nonaffine_elastic_contribution'))
 
     print("stress: \n", atoms.get_stress())
     print("C_num: \n", C_num)

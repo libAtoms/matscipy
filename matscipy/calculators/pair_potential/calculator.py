@@ -272,9 +272,15 @@ _c, _cc = np.s_[..., np.newaxis], np.s_[..., np.newaxis, np.newaxis]
 
 
 class PairPotential(MatscipyCalculator):
-    implemented_properties = ['energy', 'free_energy',
-                              'stress', 'forces', 'hessian',
-                              'nonaffine_forces']
+    implemented_properties = [
+        'energy', 'free_energy', 'stress', 'forces',
+
+        'hessian', 'nonaffine_forces', 'birch_coefficients',
+        'nonaffine_elastic_contribution',
+        'stress_elastic_contribution',
+        'born_constants'
+    ]
+
     default_parameters = {}
     name = 'PairPotential'
 
@@ -345,16 +351,10 @@ class PairPotential(MatscipyCalculator):
                               r_pc[:, 0] * df_pc[:, 2],               # xz
                               r_pc[:, 0] * df_pc[:, 1]]).sum(axis=1)  # xy
 
-        self.results = {'energy': epot,
-                        'free_energy': epot,
-                        'stress': virial_v / atoms.get_volume(),
-                        'forces': f_nc}
-
-        if 'hessian' in properties:
-            self.results['hessian'] = self.get_hessian(atoms)
-
-        if 'nonaffine_forces' in properties:
-            self.results['nonaffine_forces'] = self.get_nonaffine_forces(atoms)
+        self.results.update({'energy': epot,
+                             'free_energy': epot,
+                             'stress': virial_v / atoms.get_volume(),
+                             'forces': f_nc})
 
     ###
 
