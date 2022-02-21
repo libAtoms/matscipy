@@ -40,39 +40,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-import random
-
 import pytest
-
-import sys
-
 import numpy as np
 
-from numpy.linalg import norm
-
-from scipy.linalg import eigh
-
 import ase
-import ase.io as io
 import ase.constraints
 from ase.optimize import FIRE
 from ase.units import GPa
 from ase.lattice.hexagonal import HexagonalFactory
 from ase.lattice.cubic import SimpleCubicFactory
 from ase.calculators.mixing import SumCalculator
-from ase.calculators.test import numeric_stress
 
 from matscipy.calculators.ewald import Ewald
-from matscipy.calculators.pair_potential.calculator import PairPotential, BeestKramerSanten
+from matscipy.calculators.pair_potential.calculator import (
+    PairPotential, BeestKramerSanten
+)
 from matscipy.hessian_finite_differences import fd_hessian
-from matscipy.numpy_tricks import mabincount
 from matscipy.elasticity import (
     fit_elastic_constants,
-    elastic_moduli,
     full_3x3x3x3_to_Voigt_6x6,
-    measure_triclinic_elastic_constants,
     get_non_affine_contribution_to_elastic_constants
 )
+
 
 ###
 
@@ -85,6 +74,7 @@ class alpha_quartz(HexagonalFactory):
         [0.1588, 0.7439, 0.4612], [0.2561, 0.4149, 0.7945], [0.4149, 0.2561, 0.2055],
         [0.5851, 0.8412, 0.1279], [0.7439, 0.1588, 0.5388], [0.8412, 0.5851, 0.8721]]
     element_basis = (0, 0, 0, 1, 1, 1, 1 ,1, 1)
+
 
 class beta_cristobalite(SimpleCubicFactory):
     """
@@ -185,6 +175,7 @@ def test_stress_alpha_quartz(a0):
 
     np.testing.assert_allclose(s, sn, atol=1e-3)
 
+
 @pytest.mark.parametrize('a0', [4.7, 4.9, 5.1])
 def test_forces_alpha_quartz(a0):
     """
@@ -212,6 +203,7 @@ def test_forces_alpha_quartz(a0):
     print("f_num: \n", fn[:5,:])
 
     np.testing.assert_allclose(f, fn, atol=1e-3)
+
 
 def test_hessian_alpha_quartz():
     """
@@ -241,6 +233,7 @@ def test_hessian_alpha_quartz():
 
     np.testing.assert_allclose(H_num.todense(), H_ana, atol=1e-3)
 
+
 def test_non_affine_forces_alpha_quartz():
     """
     Test the computation of non-affine forces
@@ -269,6 +262,7 @@ def test_non_affine_forces_alpha_quartz():
 
     np.testing.assert_allclose(naForces_num, naForces_ana, atol=1e-2)
 
+
 def test_birch_coefficients_alpha_quartz():
     """
     Test the computation of the affine elastic constants + stresses
@@ -294,12 +288,12 @@ def test_birch_coefficients_alpha_quartz():
 
     C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-5, optimizer=None, verbose=False)
 
-
     print("Stress: \n", atoms.get_stress() / GPa)
     print("C_num: \n", C_num / GPa)
     print("C_ana: \n", C_ana / GPa)
 
     np.testing.assert_allclose(C_num, C_ana, atol=1e-1)
+
 
 def test_full_elastic_alpha_quartz():
     """
@@ -308,64 +302,28 @@ def test_full_elastic_alpha_quartz():
     structure = alpha_quartz()
     atoms = structure(["Si", "O"], size=[1, 1, 1], latticeconstant={"a": 4.94, "b": 4.94, "c": 5.44, "gamma": 120})
     charges = np.zeros(len(atoms))
-    for i in range(len(atoms)):
-        if atoms.get_chemical_symbols()[i] == "Si":
-            charges[i] = +2.4
-        elif atoms.get_chemical_symbols()[i] == "O":
-            charges[i] = -1.2
+    charges[atoms.symbols == "Si"] = +2.4
+    charges[atoms.symbols == "O"] = -1.2
     atoms.set_array("charge", charges, dtype=float)
 
     b = Ewald()
-    b.set(**ewald_alpha_params)
+    params = ewald_alpha_params.copy()
+    params["kspace"] = {}
+    b.set(**params)
     atoms.calc = SumCalculator([b, PairPotential(calc_alpha_quartz)])
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)
+    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-6)
 
-    C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=FIRE, fmax=1e-3, logfile=None, verbose=False)
+    C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=FIRE, fmax=1e-4, logfile=None, verbose=False)
     C_ana = full_3x3x3x3_to_Voigt_6x6(
         atoms.calc.get_property('birch_coefficients'), check_symmetry=False)
     C_na = full_3x3x3x3_to_Voigt_6x6(
         get_non_affine_contribution_to_elastic_constants(atoms))
 
     print("stress: \n", atoms.get_stress())
-    print("C_num: \n", C_num )
+    print("C_num: \n", C_num)
     print("C_ana: \n", C_ana + C_na)
 
     np.testing.assert_allclose(C_num, C_ana+C_na, atol=1e-1)
-
-"""
-def test_real_elastic_alpha_quartz():
-    # This test uses a larger cutoff and cell in order to verify the precise experimental measured values of C
-    # Test the computation of the affine elastic constants + stresses + non-affine elastic constants
-    structure = alpha_quartz()
-    atoms = structure(["Si", "O"], size=[2, 2, 2], latticeconstant={"a": 4.94, "b": 4.94, "c": 5.44, "gamma": 120})
-    charges = np.zeros(len(atoms))
-    for i in range(len(atoms)):
-        if atoms.get_chemical_symbols()[i] == "Si":
-            charges[i] = +2.4
-        elif atoms.get_chemical_symbols()[i] == "O":
-            charges[i] = -1.2
-    atoms.set_array("charge", charges, dtype=float)
-
-
-    calc_alpha_quartz = {(14, 14): BKS_ewald(0, 1, 0, None, 9, None, np.array([None, None, None]), 1e-5),
-            (14, 8): BKS_ewald(18003.7572, 4.87318, 133.5381, None, 9, None, np.array([None, None, None]), 1e-5),
-            (8, 8): BKS_ewald(1388.7730, 2.76000, 175.0000, None, 9, None, np.array([None, None, None]), 1e-5)}
-
-    b = Ewald(calc_alpha_quartz)
-    atoms.calc = b
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)
-    #FIRE(atoms, logfile=None).run(fmax=1e-4)
-
-    C_num, Cerr = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-3, optimizer=FIRE, fmax=1e-3, logfile=None, verbose=False)
-    C_ana = full_3x3x3x3_to_Voigt_6x6(b.get_birch_coefficients(atoms), check_symmetry=False)
-    C_na = full_3x3x3x3_to_Voigt_6x6(b.get_non_affine_contribution_to_elastic_constants(atoms))
-
-    print("stress: ", atoms.get_stress())
-    print("C_num: \n", C_num )
-    print("C_ana: \n", C_ana + C_na)
-
-    np.testing.assert_allclose(C_num, C_ana+C_na, atol=1e-1)
-"""
 
 
 ###
@@ -399,6 +357,7 @@ def test_stress_beta_cristobalite(a0):
 
     np.testing.assert_allclose(s, sn, atol=1e-3)
 
+
 @pytest.mark.parametrize('a0', [7, 9])
 def test_forces_beta_cristobalite(a0):
     """
@@ -426,6 +385,7 @@ def test_forces_beta_cristobalite(a0):
 
     np.testing.assert_allclose(f, fn, atol=1e-3)
 
+
 def test_hessian_beta_cristobalite():
     """
     Test the computation of the Hessian matrix
@@ -450,6 +410,7 @@ def test_hessian_beta_cristobalite():
     H_ana = atoms.calc.get_property('hessian')
 
     np.testing.assert_allclose(H_num.todense(), H_ana, atol=1e-3)
+
 
 def test_non_affine_forces_beta_cristobalite():
     """
@@ -479,6 +440,7 @@ def test_non_affine_forces_beta_cristobalite():
 
     np.testing.assert_allclose(naForces_num, naForces_ana, atol=1e-2)
 
+
 def test_birch_coefficients_beta_cristobalite():
     """
     Test the computation of the affine elastic constants + stresses
@@ -507,6 +469,7 @@ def test_birch_coefficients_beta_cristobalite():
     print("C_ana: \n", C_ana)
 
     np.testing.assert_allclose(C_num, C_ana, atol=1e-1)
+
 
 def test_non_affine_elastic_beta_cristobalite():
     """
