@@ -25,6 +25,7 @@ import numpy as np
 
 from scipy.sparse import coo_matrix
 
+
 def fd_hessian(atoms, dx=1e-5, indices=None):
     """
 
@@ -36,9 +37,9 @@ def fd_hessian(atoms, dx=1e-5, indices=None):
         Atomic configuration in a local or global minima.
 
     dx: float
-        Displacement increment  
+        Displacement increment
 
-    indices: 
+    indices:
         Compute the hessian only for these atom IDs
 
     """
@@ -63,18 +64,71 @@ def fd_hessian(atoms, dx=1e-5, indices=None):
                 for j, AtomId2 in enumerate(indices):
                     for l in range(3):
                         H.append(dH_nc[3 * AtomId2 + l])
-                        row.append(3 * AtomId1 + direction)  
-                        col.append(3 * AtomId2 + l) 
+                        row.append(3 * AtomId1 + direction)
+                        col.append(3 * AtomId2 + l)
 
             else:
                 for j, AtomId2 in enumerate(range(nat)):
-                    for l in range(3):     
+                    for l in range(3):
                         H.append(dH_nc[3 * j + l])
-                        row.append(3 * i + direction)  
-                        col.append(3 * AtomId2 + l) 
+                        row.append(3 * i + direction)
+                        col.append(3 * AtomId2 + l)
 
-    return coo_matrix((H, (row, col)),
-                          shape=(3 * len(indices), 3 * len(atoms)))
+    return coo_matrix(
+        (H, (row, col)), shape=(3 * len(indices), 3 * len(atoms))
+    )
 
 
+def get_numerical_non_affine_forces(atoms, d=1e-6):
+    """
+    Calculate numerical non-affine forces using central finite differences.
 
+    This is done by deforming the box, rescaling atoms and measure the force.
+
+    Parameters
+    ----------
+    atoms: ase.Atoms
+        Atomic configuration in a local or global minima.
+
+    """
+    nat = len(atoms)
+    cell = atoms.cell.copy()
+    fna_ncc = np.zeros((nat, 3, 3, 3))
+
+    for i in range(3):
+        # Diagonal
+        x = np.eye(3)
+        x[i, i] += d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        fplus = atoms.get_forces()
+
+        x[i, i] -= 2 * d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        fminus = atoms.get_forces()
+
+        naForces_ncc = (fplus - fminus) / (2 * d)
+        fna_ncc[:, 0, i, i] = naForces_ncc[:, 0]
+        fna_ncc[:, 1, i, i] = naForces_ncc[:, 1]
+        fna_ncc[:, 2, i, i] = naForces_ncc[:, 2]
+
+        # Off diagonal
+        j = i - 2
+        x[i, j] = d
+        x[j, i] = d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        fplus = atoms.get_forces()
+
+        x[i, j] = -d
+        x[j, i] = -d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        fminus = atoms.get_forces()
+
+        naForces_ncc = (fplus - fminus) / (4 * d)
+        fna_ncc[:, 0, i, j] = naForces_ncc[:, 0]
+        fna_ncc[:, 0, j, i] = naForces_ncc[:, 0]
+        fna_ncc[:, 1, i, j] = naForces_ncc[:, 1]
+        fna_ncc[:, 1, j, i] = naForces_ncc[:, 1]
+        fna_ncc[:, 2, i, j] = naForces_ncc[:, 2]
+        fna_ncc[:, 2, j, i] = naForces_ncc[:, 2]
+
+    return fna_ncc
