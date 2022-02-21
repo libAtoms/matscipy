@@ -131,6 +131,7 @@ class Ewald(PairPotential):
             self.reset()
 
     def reset(self):
+        super().reset()
         self.dict = defaultdict(lambda: self.short_range.cutoff)
         self.df = defaultdict(lambda: self.short_range.derivative(1))
         self.df2 = defaultdict(lambda: self.short_range.derivative(2))
