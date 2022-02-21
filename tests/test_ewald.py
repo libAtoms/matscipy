@@ -64,9 +64,15 @@ from ase.calculators.test import numeric_stress
 
 from matscipy.calculators.ewald import Ewald
 from matscipy.calculators.pair_potential.calculator import PairPotential, BeestKramerSanten
-from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
 from matscipy.hessian_finite_differences import fd_hessian
 from matscipy.numpy_tricks import mabincount
+from matscipy.elasticity import (
+    fit_elastic_constants,
+    elastic_moduli,
+    full_3x3x3x3_to_Voigt_6x6,
+    measure_triclinic_elastic_constants,
+    get_non_affine_contribution_to_elastic_constants
+)
 
 ###
 
@@ -318,7 +324,7 @@ def test_full_elastic_alpha_quartz():
     C_ana = full_3x3x3x3_to_Voigt_6x6(
         atoms.calc.get_property('birch_coefficients'), check_symmetry=False)
     C_na = full_3x3x3x3_to_Voigt_6x6(
-        atoms.calc.get_property('nonaffine_elastic_contribution'))
+        get_non_affine_contribution_to_elastic_constants(atoms))
 
     print("stress: \n", atoms.get_stress())
     print("C_num: \n", C_num )
@@ -526,7 +532,7 @@ def test_non_affine_elastic_beta_cristobalite():
     C_ana = full_3x3x3x3_to_Voigt_6x6(
         atoms.calc.get_property('birch_coefficients'), check_symmetry=False)
     C_na = full_3x3x3x3_to_Voigt_6x6(
-        atoms.calc.get_property('nonaffine_elastic_contribution'))
+        get_non_affine_contribution_to_elastic_constants(atoms))
 
     print("stress: \n", atoms.get_stress())
     print("C_num: \n", C_num)
