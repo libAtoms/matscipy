@@ -22,9 +22,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from abc import ABC, abstractmethod
 import itertools as it
 import typing as ts
+from abc import ABC, abstractmethod
+from collections import defaultdict
 
 import numpy as np
 import ase
@@ -476,7 +477,10 @@ e_nc = (dr_nc.T/abs_dr_n).T
                              'separate atomic numbers at the same time.')
         numbers = atoms.numbers.astype(np.int32)
 
-    if isinstance(cutoff, dict):
+    if isinstance(cutoff, defaultdict):
+        _cutoff = cutoff.default_factory()
+
+    elif isinstance(cutoff, dict):
         maxel = np.max(numbers)
         _cutoff = np.zeros([maxel+1, maxel+1], dtype=float)
         for (el1, el2), c in cutoff.items():

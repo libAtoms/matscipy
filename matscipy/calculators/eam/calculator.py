@@ -61,7 +61,7 @@ def _make_derivative(x, n=1):
 ###
 
 class EAM(Calculator):
-    implemented_properties = ['energy', 'stress', 'forces']
+    implemented_properties = ['energy', 'free_energy', 'stress', 'forces']
     default_parameters = {}
     name = 'EAM'
        
