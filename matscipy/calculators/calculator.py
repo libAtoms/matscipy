@@ -30,6 +30,24 @@ from ..numpy_tricks import mabincount
 
 
 class MatscipyCalculator(Calculator):
+    def calculate(self, atoms, properties, system_changes):
+        super().calculate(atoms, properties, system_changes)
+
+        # Dispatching calls to special properties
+        properties_map = {
+            'hessian': self.get_hessian,
+            'nonaffine_forces': self.get_nonaffine_forces,
+            'born_constants': self.get_born_elastic_constants,
+            'stress_elastic_contribution':
+            self.get_stress_contribution_to_elastic_constants,
+            'birch_coefficients': self.get_birch_coefficients,
+            'nonaffine_elastic_contribution':
+            self.get_non_affine_contribution_to_elastic_constants,
+        }
+
+        for prop in filter(lambda p: p in properties, properties_map):
+            self.results[prop] = properties_map[prop](atoms)
+
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a pair potential. For an atomic
@@ -100,7 +118,7 @@ class MatscipyCalculator(Calculator):
 
         """
         
-        stress_ab = Voigt_6_to_full_3x3_stress(atoms.get_stress())
+        stress_ab = Voigt_6_to_full_3x3_stress(self.get_property('stress', atoms))
         delta_ab = np.identity(3)
 
         # Term 1
@@ -129,7 +147,7 @@ class MatscipyCalculator(Calculator):
             self.atoms = atoms
 
         # Born (affine) elastic constants
-        calculator = atoms.get_calculator()
+        calculator = self
         bornC_abab = calculator.get_born_elastic_constants(atoms)
 
         # Stress contribution to elastic constants
@@ -228,7 +246,7 @@ class MatscipyCalculator(Calculator):
 
         nat = len(atoms)
 
-        calc = atoms.get_calculator()    
+        calc = self
 
         if (eigenvalues is not None) and (eigenvectors is not None):
             naforces_icab = calc.get_nonaffine_forces(atoms)
