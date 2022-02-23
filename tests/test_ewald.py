@@ -54,9 +54,9 @@ from matscipy.calculators.pair_potential.calculator import (
     PairPotential,
     BeestKramerSanten,
 )
-from matscipy.hessian_finite_differences import (
-    fd_hessian,
-    get_numerical_non_affine_forces,
+from matscipy.numerical import (
+    numerical_hessian,
+    numerical_nonaffine_forces,
 )
 from matscipy.elasticity import (
     fit_elastic_constants,
@@ -255,7 +255,7 @@ def test_hessian_alpha_quartz(alpha_quartz_bks):
     Test the computation of the Hessian matrix
     """
     atoms = alpha_quartz_bks
-    H_num = fd_hessian(atoms, dx=1e-5, indices=None)
+    H_num = numerical_hessian(atoms, dx=1e-5, indices=None)
     H_ana = atoms.calc.get_property("hessian", atoms)
 
     print("H_num: \n", H_num.todense()[:6, :6])
@@ -271,7 +271,7 @@ def test_non_affine_forces_alpha_quartz(alpha_quartz_bks):
     atoms = alpha_quartz_bks
 
     naForces_ana = atoms.calc.get_property("nonaffine_forces")
-    naForces_num = get_numerical_non_affine_forces(atoms, d=1e-5)
+    naForces_num = numerical_nonaffine_forces(atoms, d=1e-5)
 
     print("Num: \n", naForces_num[:1])
     print("Ana: \n", naForces_ana[:1])
@@ -378,7 +378,7 @@ def test_hessian_beta_cristobalite(beta_cristobalite_bks):
     Test the computation of the Hessian matrix
     """
     atoms = beta_cristobalite_bks
-    H_num = fd_hessian(atoms, dx=1e-5, indices=None)
+    H_num = numerical_hessian(atoms, dx=1e-5, indices=None)
     H_ana = atoms.calc.get_property("hessian")
 
     np.testing.assert_allclose(H_num.todense(), H_ana, atol=1e-3)
@@ -391,7 +391,7 @@ def test_non_affine_forces_beta_cristobalite(beta_cristobalite_bks):
     """
     atoms = beta_cristobalite_bks
     naForces_ana = atoms.calc.get_property("nonaffine_forces")
-    naForces_num = get_numerical_non_affine_forces(atoms, d=1e-5)
+    naForces_num = numerical_nonaffine_forces(atoms, d=1e-5)
 
     print("Num: \n", naForces_num[:1])
     print("Ana: \n", naForces_ana[:1])

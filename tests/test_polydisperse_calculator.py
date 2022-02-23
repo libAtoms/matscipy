@@ -60,7 +60,7 @@ from ase.units import GPa
 import matscipy.calculators.polydisperse as calculator
 from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
 from matscipy.calculators.polydisperse import InversePowerLawPotential, Polydisperse
-from matscipy.hessian_finite_differences import fd_hessian
+from matscipy.numerical import numerical_hessian
 
 def test_forces_dimer():
     """
@@ -148,7 +148,7 @@ def test_hessian_random_structure():
     FIRE(atoms, logfile=None).run(fmax=1e-5)
     H_analytical = calc.get_hessian(atoms)
     H_analytical = H_analytical.todense()
-    H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+    H_numerical = numerical_hessian(atoms, dx=1e-5, indices=None)
     H_numerical = H_numerical.todense()
     np.testing.assert_allclose(H_analytical, H_numerical, atol=1e-4)
 

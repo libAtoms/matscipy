@@ -36,7 +36,7 @@ import matscipy.calculators.manybody.explicit_forms.kumagai as kumagai
 import matscipy.calculators.manybody.explicit_forms.tersoff_brenner as tersoff_brenner
 from matscipy.calculators.manybody import Manybody
 from matscipy.calculators.manybody.explicit_forms import Kumagai, TersoffBrenner, StillingerWeber
-from matscipy.hessian_finite_differences import fd_hessian
+from matscipy.numerical import numerical_hessian
 from matscipy.elasticity import fit_elastic_constants, full_3x3x3x3_to_Voigt_6x6
 from matscipy.calculators.calculator import MatscipyCalculator
 
@@ -268,7 +268,7 @@ def compute_forces_and_hessian(a, par):
 
     # Hessian
     ana_hessian = np.array(calculator.get_hessian(a).todense())
-    num_hessian = np.array(fd_hessian(a, dx=1e-5, indices=None).todense())
+    num_hessian = np.array(numerical_hessian(a, dx=1e-5, indices=None).todense())
     # print('ana\n', ana_hessian)
     # print('num\n', num_hessian)
     # print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))

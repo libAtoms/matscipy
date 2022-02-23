@@ -63,7 +63,7 @@ from ase.lattice.cubic import FaceCenteredCubic
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesQuadratic, LennardJonesLinear
 from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
 from matscipy.calculators.calculator import MatscipyCalculator
-from matscipy.hessian_finite_differences import fd_hessian
+from matscipy.numerical import numerical_hessian
 
 ###
 
@@ -163,7 +163,7 @@ def test_hessian():
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(atoms, logfile=None).run(fmax=1e-5)
-    H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+    H_numerical = numerical_hessian(atoms, dx=1e-5, indices=None)
     H_numerical = H_numerical.todense()
     H_analytical = b.get_hessian(atoms, "dense")
     np.testing.assert_allclose(H_analytical, H_numerical, atol=1e-4)
