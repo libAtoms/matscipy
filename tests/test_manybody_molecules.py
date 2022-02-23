@@ -25,6 +25,9 @@ from ase import Atoms
 from matscipy.calculators.manybody.calculator import NiceManybody
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood
+from matscipy.numerical import numerical_forces
+
+import pytest
 
 
 class HarmonicBond(NiceManybody.F):
@@ -57,6 +60,17 @@ class ZeroAngle(NiceManybody.G):
 
     def hessian(self, *args):
         return np.zeros([3] + list(args[0].shape))
+
+
+class ZeroBond(NiceManybody.G):
+    def __call__(self, r, xi, *args):
+        return xi
+
+    def gradient(self, r, xi, *args):
+        return [np.zeros_like(xi), np.ones_like(xi)]
+
+    def hessian(self, r, xi, *args):
+        return [np.zeros_like(r)] * 3
 
 
 class HarmonicAngle(NiceManybody.G):
@@ -115,67 +129,91 @@ class HarmonicAngle(NiceManybody.G):
         return np.zeros([3] + list(r_ij.shape))
 
 
-def test_harmonic_bond():
-    r0 = 0.5
-    atoms = Atoms("CO2",
-                  positions=[[-1, 0, 0], [0, 0, 0], [1, 0, 0]],
-                  cell=[5, 5, 5])
-    molecules = Molecules(bonds_connectivity=[[0, 1], [1, 2]])
-    neigh = MolecularNeighbourhood(molecules)
-    calc = NiceManybody(HarmonicBond(r0, 1), ZeroAngle(), neigh)
-    atoms.calc = calc
+@pytest.fixture(params=[0.1, 0.5, 1, 1.5, 2])
+def length(request):
+    return request.param
+
+
+@pytest.fixture(params=[np.pi / 6, np.pi / 3, np.pi / 2])
+def angle(request):
+    return request.param
+
+
+@pytest.fixture
+def co2(length, angle):
+    atoms = Atoms(
+        "CO2",
+        positions=[[-1, 0, 0],
+                   [0, 0, 0],
+                   [np.cos(angle), np.sin(angle), 0]],
+        cell=[5, 5, 5],
+    )
+
+    atoms.positions[:] *= length
+    return atoms
+
+
+@pytest.fixture
+def molecule():
+    return MolecularNeighbourhood(Molecules(bonds_connectivity=[[0, 1], [1, 2]],
+                                            angles_connectivity=[[0, 1, 2]]))
+
+
+def test_harmonic_bond(co2, molecule):
+    k, r0 = 1, 0.5
+
+    calc = NiceManybody(HarmonicBond(r0, k), ZeroAngle(), molecule)
+    co2.calc = calc
+
+    pair_distances = co2.get_all_distances()[(0, 1), (1, 2)]
 
     # Testing potential energy
-    epot = atoms.get_potential_energy()
-    epot_ref = 2 * (0.5 * r0**2)
+    epot = co2.get_potential_energy()
+    epot_ref = np.sum(0.5 * k * (pair_distances - r0)**2)
     nt.assert_allclose(epot, epot_ref, rtol=1e-15)
 
-    # Testing forces
-    f = atoms.get_forces()
-    f_ref = np.zeros_like(f)
-    f_ref[:, 0] = [0.5, 0, -0.5]
-    nt.assert_allclose(f, f_ref, rtol=1e-15)
+    # Testing force on first atom
+    f = co2.get_forces()
+    f_ref = np.array([k * (pair_distances[0] - r0), 0, 0])
+    nt.assert_allclose(f[0], f_ref, rtol=1e-15)
+
+    # Testing all forces with finite differences
+    f_ref = numerical_forces(co2, d=1e-6)
+    nt.assert_allclose(f, f_ref, rtol=1e-9, atol=1e-7)
 
 
-def test_harmonic_angle():
-    k, r0, kt, theta0 = 0, 1, 1, np.pi / 3
-    atoms = Atoms("CO2",
-                  positions=[[-1, 0, 0],
-                             [0, 0, 0],
-                             [np.cos(theta0), np.sin(theta0), 0]],
-                  cell=[5, 5, 5])
-    molecules = Molecules(bonds_connectivity=[[0, 1], [1, 2]],
-                          angles_connectivity=[[0, 1, 2]])
-    neigh = MolecularNeighbourhood(molecules)
-    calc = NiceManybody(HarmonicBond(r0, k),
-                        HarmonicAngle(0, kt, atoms),
-                        neigh)
-    atoms.calc = calc
+def test_harmonic_angle(co2, molecule):
+    kt, theta0 = 1, np.pi / 4
+    calc = NiceManybody(ZeroBond(),
+                        HarmonicAngle(theta0, kt, co2),
+                        molecule)
+    co2.calc = calc
+
+    angle = np.pi - np.radians(co2.get_angle(0, 1, 2))
 
     # Testing potential energy
-    epot = atoms.get_potential_energy()
-    epot_ref = 2 * (0.5 * k * r0**2) + 0.5 * kt * theta0**2
-    nt.assert_allclose(epot, epot_ref, rtol=1e-15)
+    epot = co2.get_potential_energy()
+    epot_ref = 0.5 * kt * (angle - theta0)**2
+    nt.assert_allclose(epot, epot_ref, rtol=1e-14)
 
     # Testing forces
-    f = atoms.get_forces()
+    f = co2.get_forces()
 
     # Finite differences forces
-    f_ref = calc.calculate_numerical_forces(atoms, d=1e-6)
+    f_ref = numerical_forces(co2, d=1e-6)
     nt.assert_allclose(f, f_ref, rtol=1e-6, atol=1e-9)
 
     # Symmetric frame of reference
-    theta0 = -theta0 / 2
-    rot = np.array([[np.cos(theta0), -np.sin(theta0), 0],
-                    [np.sin(theta0),  np.cos(theta0), 0],
-                    [0,               0,              1]])
+    angle /= -2
+    rot = np.array([[np.cos(angle), -np.sin(angle), 0],
+                    [np.sin(angle),  np.cos(angle), 0],
+                    [0,              0,             1]])
     f = np.einsum('ij,aj', rot, f)
 
     # Checking symmetries
-    nt.assert_allclose(f[0, 0], -f[2, 0], rtol=1e-15)
-    nt.assert_allclose(f[0, 1],  f[2, 1], rtol=1e-15)
+    nt.assert_allclose(f[0, 0], -f[2, 0], rtol=1e-13)
+    nt.assert_allclose(f[0, 1],  f[2, 1], rtol=1e-13)
 
     # Checking zeros
-    assert np.sum(np.abs(f[1, (0, 2)])) < 1e-15
-    assert np.abs(f.sum()) < 1e-15
-
+    nt.assert_allclose(np.abs(f[1, (0, 2)]), 0, atol=1e-13)
+    nt.assert_allclose(np.abs(f.sum()), 0, atol=1e-13)
