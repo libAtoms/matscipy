@@ -63,7 +63,7 @@ from matscipy.numerical import (
 from matscipy.elasticity import (
     fit_elastic_constants,
     full_3x3x3x3_to_Voigt_6x6,
-    get_non_affine_contribution_to_elastic_constants,
+    nonaffine_elastic_contribution,
 )
 
 
@@ -326,7 +326,7 @@ def test_full_elastic_alpha_quartz(alpha_quartz_bks):
         atoms.calc.get_property("birch_coefficients"), check_symmetry=False
     )
     C_na = full_3x3x3x3_to_Voigt_6x6(
-        get_non_affine_contribution_to_elastic_constants(atoms)
+        nonaffine_elastic_contribution(atoms)
     )
 
     print("stress: \n", atoms.get_stress())
@@ -446,7 +446,7 @@ def test_non_affine_elastic_beta_cristobalite(beta_cristobalite_bks):
         atoms.calc.get_property("birch_coefficients"), check_symmetry=False
     )
     C_na = full_3x3x3x3_to_Voigt_6x6(
-        get_non_affine_contribution_to_elastic_constants(atoms)
+        nonaffine_elastic_contribution(atoms)
     )
 
     print("stress: \n", atoms.get_stress())

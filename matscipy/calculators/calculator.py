@@ -21,8 +21,8 @@
 import numpy as np
 
 from scipy.sparse.linalg import cg
-
 from ase.calculators.calculator import Calculator
+from numpy import deprecate
 
 from ..elasticity import Voigt_6_to_full_3x3_stress
 
@@ -176,6 +176,7 @@ class MatscipyCalculator(Calculator):
 
         return naforces_icab
 
+    @deprecate(new_name="elasticity.nonaffine_elastic_contribution")
     def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "tol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
         """
         Compute the correction of non-affine displacements to the elasticity tensor.
