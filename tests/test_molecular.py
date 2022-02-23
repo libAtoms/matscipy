@@ -31,60 +31,55 @@ from matscipy.calculators.molecular_calculator import (
 import matscipytest
 
 
-class TestMolecular(matscipytest.MatSciPyTestCase):
-    def test_flat(self):
-        atoms = Atoms("CO2", positions=[[-1, 0, 0], [0, 0, 0], [1, 0, 0]])
-        molecules = Molecules(bonds_connectivity=[[0, 1], [1, 2]],
-                              angles_connectivity=[[0, 1, 2]])
+def test_flat():
+    atoms = Atoms("CO2", positions=[[-1, 0, 0], [0, 0, 0], [1, 0, 0]])
+    molecules = Molecules(bonds_connectivity=[[0, 1], [1, 2]],
+                            angles_connectivity=[[0, 1, 2]])
 
-        r0, theta0 = 0.5, np.pi / 3
+    r0, theta0 = 0.5, np.pi / 3
 
-        bonds_c = BondsCalculator(molecules,
-                                  {1: HarmonicPotential(1, r0)})
-        angles_c = AnglesCalculator(molecules,
-                                    {1: HarmonicPotential(1, theta0)})
+    bonds_c = BondsCalculator(molecules,
+                                {1: HarmonicPotential(1, r0)})
+    angles_c = AnglesCalculator(molecules,
+                                {1: HarmonicPotential(1, theta0)})
 
-        atoms.calc = SumCalculator([bonds_c, angles_c])
+    atoms.calc = SumCalculator([bonds_c, angles_c])
 
-        epot = atoms.get_potential_energy()
-        epot_ref = 2 * (0.5 * r0**2) + 0.5 * theta0**2
-        assert np.abs(epot - epot_ref) < 1e-15
+    epot = atoms.get_potential_energy()
+    epot_ref = 2 * (0.5 * r0**2) + 0.5 * theta0**2
+    assert np.abs(epot - epot_ref) < 1e-15
 
-    def test_bent(self):
-        r0, theta0 = 0.5, np.pi / 3
-        atoms = Atoms("CO2", positions=[[-1, 0, 0],
-                                        [0, 0, 0],
-                                        [np.cos(theta0), np.sin(theta0), 0]])
-        molecules = Molecules(bonds_connectivity=[[0, 1], [1, 2]],
-                              angles_connectivity=[[0, 1, 2]])
+def test_bent():
+    r0, theta0 = 0.5, np.pi / 3
+    atoms = Atoms("CO2", positions=[[-1, 0, 0],
+                                    [0, 0, 0],
+                                    [np.cos(theta0), np.sin(theta0), 0]])
+    molecules = Molecules(bonds_connectivity=[[0, 1], [1, 2]],
+                            angles_connectivity=[[0, 1, 2]])
 
-        bonds_c = BondsCalculator(molecules,
-                                  {1: HarmonicPotential(1, r0)})
-        angles_c = AnglesCalculator(molecules,
-                                    {1: HarmonicPotential(1, 0)})
+    bonds_c = BondsCalculator(molecules,
+                                {1: HarmonicPotential(1, r0)})
+    angles_c = AnglesCalculator(molecules,
+                                {1: HarmonicPotential(1, 0)})
 
-        atoms.calc = SumCalculator([bonds_c, angles_c])
+    atoms.calc = SumCalculator([bonds_c, angles_c])
 
-        epot = atoms.get_potential_energy()
-        epot_ref = 2 * (0.5 * r0**2) + 0.5 * (360 * theta0 / (2 * np.pi))**2
-        assert np.abs(epot - epot_ref) < 1e-15
+    epot = atoms.get_potential_energy()
+    epot_ref = 2 * (0.5 * r0**2) + 0.5 * (360 * theta0 / (2 * np.pi))**2
+    assert np.abs(epot - epot_ref) < 1e-12
 
-    def test_dihedral(self):
-        atoms = Atoms("OCCO", positions=[
-            [-1, 0, 0],
-            [0, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1]
-        ])
+def test_dihedral():
+    atoms = Atoms("OCCO", positions=[
+        [-1, 0, 0],
+        [0, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
+    ])
 
-        molecules = Molecules(dihedrals_connectivity=[[0, 1, 2, 3]])
+    molecules = Molecules(dihedrals_connectivity=[[0, 1, 2, 3]])
 
-        atoms.calc = DihedralsCalculator(molecules,
-                                         {1: HarmonicPotential(1, 0)})
-        epot = atoms.get_potential_energy()
-        epot_ref = 0.5 * 90**2
-        assert np.abs(epot - epot_ref) < 1e-15
-
-
-if __name__ == '__main__':
-    unittest.main()
+    atoms.calc = DihedralsCalculator(molecules,
+                                        {1: HarmonicPotential(1, 0)})
+    epot = atoms.get_potential_energy()
+    epot_ref = 0.5 * 90**2
+    assert np.abs(epot - epot_ref) < 1e-15

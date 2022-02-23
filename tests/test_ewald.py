@@ -57,6 +57,8 @@ from matscipy.calculators.pair_potential.calculator import (
 from matscipy.numerical import (
     numerical_hessian,
     numerical_nonaffine_forces,
+    numerical_forces,
+    numerical_stress,
 )
 from matscipy.elasticity import (
     fit_elastic_constants,
@@ -228,7 +230,7 @@ def test_stress_alpha_quartz(alpha_quartz_ewald):
     """
     atoms = alpha_quartz_ewald
     s = atoms.get_stress()
-    sn = atoms.calc.calculate_numerical_stress(atoms, d=0.001)
+    sn = numerical_stress(atoms, d=0.001)
 
     print("Stress ana: \n", s)
     print("Stress num: \n", sn)
@@ -242,7 +244,7 @@ def test_forces_alpha_quartz(alpha_quartz_ewald):
     """
     atoms = alpha_quartz_ewald
     f = atoms.get_forces()
-    fn = atoms.calc.calculate_numerical_forces(atoms, d=0.0001)
+    fn = numerical_forces(atoms, d=0.0001)
 
     print("f_ana: \n", f[:5, :])
     print("f_num: \n", fn[:5, :])
@@ -347,7 +349,7 @@ def test_stress_beta_cristobalite(beta_cristobalite_ewald):
     """
     atoms = beta_cristobalite_ewald
     s = atoms.get_stress()
-    sn = atoms.calc.calculate_numerical_stress(atoms, d=0.0001)
+    sn = numerical_stress(atoms, d=0.0001)
 
     print("Stress ana: \n", s)
     print("Stress num: \n", sn)
@@ -364,7 +366,7 @@ def test_forces_beta_cristobalite(beta_cristobalite_ewald):
     """
     atoms = beta_cristobalite_ewald
     f = atoms.get_forces()
-    fn = atoms.calc.calculate_numerical_forces(atoms, d=1e-5)
+    fn = numerical_forces(atoms, d=1e-5)
 
     print("forces ana: \n", f[:5, :])
     print("forces num: \n", fn[:5, :])

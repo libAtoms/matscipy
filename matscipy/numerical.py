@@ -21,9 +21,42 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+"""Numerical algorithms for force, stress, hessian, etc."""
+
 import numpy as np
 
 from scipy.sparse import coo_matrix
+from ase.calculators.calculator import Calculator
+
+
+def numerical_forces(atoms, d=1e-3):
+    """
+    Compute numerical forces using finite differences.
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+        Atomic configuration in a local or global minumum.
+    d : float
+        Displacement increment.
+    """
+    return Calculator().calculate_numerical_forces(atoms, d=d)
+
+
+def numerical_stress(atoms, d=1e-6, voigt=True):
+    """
+    Compute numerical stresses using finite differences.
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+        Atomic configuration in a local or global minumum.
+    d : float
+        Displacement increment.
+    voigt : bool
+        Return results in Voigt notation.
+    """
+    return Calculator().calculate_numerical_stress(atoms, d=d, voigt=voigt)
 
 
 def numerical_hessian(atoms, dx=1e-5, indices=None):
@@ -43,7 +76,6 @@ def numerical_hessian(atoms, dx=1e-5, indices=None):
         Compute the hessian only for these atom IDs
 
     """
-
     nat = len(atoms)
     if indices is None:
         indices = range(nat)
