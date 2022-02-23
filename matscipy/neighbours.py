@@ -75,7 +75,7 @@ class Neighbourhood(ABC):
                           indices: ts.List[int],
                           ) -> ts.Tuple[np.ndarray, np.ndarray]:
         """Return distances and vectors for connectivity."""
-        n_nuplets, element_size = connectivity.shape
+        n_nuplets = connectivity.shape[0]
         dim = atoms.positions.shape[1]
 
         positions = [atoms.positions[col] for col in connectivity.T]
@@ -190,7 +190,7 @@ class MolecularNeighbourhood(Neighbourhood):
             self.complete_connectivity(
                 typeoffset=-(np.max(molecules.angles["type"])+1))
         else:
-            self.triplet_list = np.zeros([0, 3], dtype=np.int)
+            self.triplet_list = np.zeros([0, 3], dtype=np.int32)
 
     @property
     def pair_types(self):
@@ -241,7 +241,7 @@ class MolecularNeighbourhood(Neighbourhood):
         #   - take only appended values
         #   - reshape
         #   - re-sort so that ij_t is sorted
-        r_idx = np.zeros_like(idx)
+        r_idx = np.zeros_like(idx, dtype=np.int32)
         r_idx[idx] = np.arange(len(idx))  # revert sort
         self.triplet_list = r_idx[indices_r][n:].reshape(e, -1).T
 
@@ -252,7 +252,7 @@ class MolecularNeighbourhood(Neighbourhood):
         """Return pairs and quantities from connectivities."""
         D, d = None, None
 
-        connectivity = self.connectivity["bonds"]["atoms"]
+        connectivity = self.connectivity["bonds"]["atoms"].astype(np.int32)
 
         # If any distance is requested, compute distances vectors and norms
         if "d" in quantities or "D" in quantities:
