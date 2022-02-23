@@ -86,9 +86,9 @@ def numerical_hessian(atoms, dx=1e-5, indices=None):
     for i, AtomId1 in enumerate(indices):
         for direction in range(3):
             atoms.positions[AtomId1, direction] += dx
-            fp_nc = atoms.get_forces().reshape(-1)
+            fp_nc = atoms.get_forces().ravel()
             atoms.positions[AtomId1, direction] -= 2 * dx
-            fn_nc = atoms.get_forces().reshape(-1)
+            fn_nc = atoms.get_forces().ravel()
             atoms.positions[AtomId1, direction] += dx
             dH_nc = (fn_nc - fp_nc) / (2 * dx)
 
