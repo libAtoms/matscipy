@@ -25,7 +25,7 @@ from ase import Atoms
 from matscipy.calculators.manybody.calculator import NiceManybody
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood
-from matscipy.numerical import numerical_forces
+from matscipy.numerical import numerical_forces, numerical_hessian
 
 import pytest
 
@@ -59,7 +59,7 @@ class ZeroAngle(NiceManybody.G):
         return np.zeros([2] + list(args[0].shape))
 
     def hessian(self, *args):
-        return np.zeros([3] + list(args[0].shape))
+        return np.zeros([3] + list(args[0].shape) + [3])
 
 
 class ZeroBond(NiceManybody.G):
@@ -80,17 +80,17 @@ class HarmonicAngle(NiceManybody.G):
         self.atoms = atoms
 
     def __call__(self, r_ij_c, r_ik_c, *args):
-        _, (r_ij, r_ik, r_jk) = self._distance_triplet(r_ij_c, r_ik_c,
-                                                       self.atoms.cell,
-                                                       self.atoms.pbc)
+        _, (r_ij, r_ik, r_jk) = self._distance_triplet(
+            r_ij_c, r_ik_c, self.atoms.cell, self.atoms.pbc
+        )
 
         a = np.arccos(-(r_ij**2 + r_jk**2 - r_ik**2) / (2 * r_ij * r_jk))
         return 0.5 * self.k * (a - self.a0)**2
 
     def gradient(self, r_ij, r_ik, *args):
-        D, d = self._distance_triplet(r_ij, r_ik,
-                                      self.atoms.cell,
-                                      self.atoms.pbc)
+        D, d = self._distance_triplet(
+            r_ij, r_ik, self.atoms.cell, self.atoms.pbc
+        )
         # Normal vectors
         n_ij_c = D[0] / d[0][:, np.newaxis]
         n_ik_c = D[1] / d[1][:, np.newaxis]
@@ -108,7 +108,7 @@ class HarmonicAngle(NiceManybody.G):
             return self.k * (a - self.a0)  # noqa
 
         def h_(f):
-            with np.errstate(divide='raise'):
+            with np.errstate(divide="raise"):
                 d_arccos = -1 / np.sqrt(1 - f**2)
             return E_(np.arccos(f)) * d_arccos
 
@@ -126,7 +126,7 @@ class HarmonicAngle(NiceManybody.G):
         return dG
 
     def hessian(self, r_ij, r_ik, *args):
-        return np.zeros([3] + list(r_ij.shape))
+        return np.zeros([3] + list(r_ij.shape) + [3])
 
 
 @pytest.fixture(params=[0.1, 0.5, 1, 1.5, 2])
@@ -143,9 +143,7 @@ def angle(request):
 def co2(length, angle):
     atoms = Atoms(
         "CO2",
-        positions=[[-1, 0, 0],
-                   [0, 0, 0],
-                   [np.cos(angle), np.sin(angle), 0]],
+        positions=[[-1, 0, 0], [0, 0, 0], [np.cos(angle), np.sin(angle), 0]],
         cell=[5, 5, 5],
     )
 
@@ -155,8 +153,12 @@ def co2(length, angle):
 
 @pytest.fixture
 def molecule():
-    return MolecularNeighbourhood(Molecules(bonds_connectivity=[[0, 1], [1, 2]],
-                                            angles_connectivity=[[0, 1, 2]]))
+    return MolecularNeighbourhood(
+        Molecules(
+            bonds_connectivity=[[0, 1], [1, 2]],
+            angles_connectivity=[[0, 1, 2]],
+        )
+    )
 
 
 def test_harmonic_bond(co2, molecule):
@@ -181,12 +183,15 @@ def test_harmonic_bond(co2, molecule):
     f_ref = numerical_forces(co2, d=1e-6)
     nt.assert_allclose(f, f_ref, rtol=1e-9, atol=1e-7)
 
+    # Testing hessian
+    h = co2.calc.get_property('hessian').todense()
+    h_ref = numerical_hessian(co2, dx=1e-6).todense()
+    nt.assert_allclose(h, h_ref, atol=1e-4)
+
 
 def test_harmonic_angle(co2, molecule):
     kt, theta0 = 1, np.pi / 4
-    calc = NiceManybody(ZeroBond(),
-                        HarmonicAngle(theta0, kt, co2),
-                        molecule)
+    calc = NiceManybody(ZeroBond(), HarmonicAngle(theta0, kt, co2), molecule)
     co2.calc = calc
 
     angle = np.pi - np.radians(co2.get_angle(0, 1, 2))
