@@ -49,6 +49,7 @@ from scipy.sparse import bsr_matrix
 from ase.calculators.calculator import Calculator
 from ase.geometry import find_mic
 
+from ...calculators.calculator import MatscipyCalculator
 from ...elasticity import Voigt_6_to_full_3x3_stress
 from ...neighbours import (
     find_indices_of_reversed_pairs,
@@ -70,8 +71,8 @@ def _o(x, y, z=None):
 _c, _cc = np.s_[..., np.newaxis], np.s_[..., np.newaxis, np.newaxis]
 
 
-class Manybody(Calculator):
-    implemented_properties = ['free_energy', 'energy', 'stress', 'forces']
+class Manybody(MatscipyCalculator):
+    implemented_properties = ['free_energy', 'energy', 'stress', 'forces', 'hessian']
     default_parameters = {}
     name = 'Manybody'
 
@@ -121,7 +122,7 @@ class Manybody(Calculator):
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate system properties."""
-        Calculator.calculate(self, atoms, properties, system_changes)
+        super().calculate(atoms, properties, system_changes)
 
         # Setting up cutoffs for neighbourhood
         self.neighbourhood.cutoff = self.get_cutoff(atoms)  # no-op on mols
@@ -184,10 +185,10 @@ class Manybody(Calculator):
 
         virial_v *= 0.5
 
-        self.results = {'free_energy': epot,
-                        'energy': epot,
-                        'stress': virial_v / self.atoms.get_volume(),
-                        'forces': f_nc}
+        self.results.update({'free_energy': epot,
+                             'energy': epot,
+                             'stress': virial_v / atoms.get_volume(),
+                             'forces': f_nc})
 
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """Calculate the Hessian matrix for a bond order potential.
