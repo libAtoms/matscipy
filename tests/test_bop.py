@@ -36,8 +36,8 @@ import matscipy.calculators.manybody.explicit_forms.kumagai as kumagai
 import matscipy.calculators.manybody.explicit_forms.tersoff_brenner as tersoff_brenner
 from matscipy.calculators.manybody import Manybody
 from matscipy.calculators.manybody.explicit_forms import Kumagai, TersoffBrenner, StillingerWeber
-from matscipy.numerical import numerical_hessian, numerical_forces, numerical_stress
-from matscipy.elasticity import fit_elastic_constants, full_3x3x3x3_to_Voigt_6x6
+from matscipy.numerical import numerical_hessian, numerical_forces, numerical_stress, numerical_nonaffine_forces
+from matscipy.elasticity import fit_elastic_constants, full_3x3x3x3_to_Voigt_6x6, nonaffine_elastic_contribution
 from matscipy.calculators.calculator import MatscipyCalculator
 
 
@@ -295,9 +295,9 @@ def compute_elastic_constants(a, par):
     a.calc = calculator
 
     # Non-affine forces
-    num_naF = MatscipyCalculator().get_numerical_non_affine_forces(a, d=1e-5)
+    num_naF = numerical_nonaffine_forces(a, d=1e-5)
     ana_naF1 = calculator.get_non_affine_forces_from_second_derivative(a)
-    ana_naF2 = calculator.get_non_affine_forces(a)
+    ana_naF2 = calculator.get_property('nonaffine_forces', a)
     # print("num_naF[0]: \n", num_naF[0])
     # print("ana_naF1[0]: \n", ana_naF1[0])
     # print("ana_naF2[0]: \n", ana_naF2[0])
@@ -315,7 +315,7 @@ def compute_elastic_constants(a, par):
     # Non-affine elastic constants
     C_num, Cerr = fit_elastic_constants(a, symmetry="triclinic", N_steps=7, delta=1e-4, optimizer=FIRE, fmax=1e-5,
                                         verbose=False)
-    C_na = calculator.get_non_affine_contribution_to_elastic_constants(a)
+    C_na = nonaffine_elastic_contribution(a)
     # print("C (fit_elastic_constants): \n", C_num[0, 0], C_num[0, 1], C_num[3, 3])
     # print("B_ana + C_na: \n", full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 0], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[0, 1], full_3x3x3x3_to_Voigt_6x6(B_ana+C_na)[3, 3])
     np.testing.assert_allclose(C_num, full_3x3x3x3_to_Voigt_6x6(B_ana + C_na), atol=0.1)
