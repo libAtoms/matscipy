@@ -92,8 +92,8 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             a = calculator.PairPotential(calc)
             atoms.calc = a
             H_analytical = a.get_hessian(atoms, "sparse")
-            H_numerical_split1 = numerical_hessian(atoms, dx=1e-5, indices=np.arange(0, np.int(nat/2), 1))
-            H_numerical_split2 = numerical_hessian(atoms, dx=1e-5, indices=np.arange(np.int(nat/2), nat, 1))
+            H_numerical_split1 = numerical_hessian(atoms, dx=1e-5, indices=np.arange(0, np.int32(nat/2), 1))
+            H_numerical_split2 = numerical_hessian(atoms, dx=1e-5, indices=np.arange(np.int32(nat/2), nat, 1))
             H_numerical_splitted = np.concatenate((H_numerical_split1.todense(), H_numerical_split2.todense()), axis=0)
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical_splitted, tol=self.tol)
 

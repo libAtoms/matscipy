@@ -29,9 +29,9 @@ class Molecules:
     """Similar to ase.Atoms, but for molecular data."""
 
     _dtypes = {
-        "bonds": np.dtype([('type', np.int), ('atoms', np.int, 2)]),
-        "angles": np.dtype([('type', np.int), ('atoms', np.int, 3)]),
-        "dihedrals": np.dtype([('type', np.int), ('atoms', np.int, 4)]),
+        "bonds": np.dtype([('type', np.int32), ('atoms', np.int32, 2)]),
+        "angles": np.dtype([('type', np.int32), ('atoms', np.int32, 3)]),
+        "dihedrals": np.dtype([('type', np.int32), ('atoms', np.int32, 4)]),
     }
 
     def __init__(self,
