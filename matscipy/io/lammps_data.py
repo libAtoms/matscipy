@@ -136,26 +136,26 @@ class LAMMPSData:
     }
 
     _dtypes = {
-        "bonds": np.dtype([('type', np.int), ('atoms', np.int, 2)]),
-        "angles": np.dtype([('type', np.int), ('atoms', np.int, 3)]),
-        "dihedrals": np.dtype([('type', np.int), ('atoms', np.int, 4)]),
+        "bonds": np.dtype([('type', np.int32), ('atoms', np.int32, 2)]),
+        "angles": np.dtype([('type', np.int32), ('atoms', np.int32, 3)]),
+        "dihedrals": np.dtype([('type', np.int32), ('atoms', np.int32, 4)]),
         "velocities": np.dtype([('vel', np.double, 3)]),
         "masses": np.double,
     }
 
     _atom_dtypes = {
-        "atomic": np.dtype([('type', np.int), ('pos', np.double, 3)]),
-        "bond": np.dtype([('mol', np.int),
-                          ('type', np.int),
+        "atomic": np.dtype([('type', np.int32), ('pos', np.double, 3)]),
+        "bond": np.dtype([('mol', np.int32),
+                          ('type', np.int32),
                           ('pos', np.double, 3)]),
-        "angle": np.dtype([('mol', np.int),
-                           ('type', np.int),
+        "angle": np.dtype([('mol', np.int32),
+                           ('type', np.int32),
                            ('pos', np.double, 3)]),
-        "charge": np.dtype([('type', np.int),
+        "charge": np.dtype([('type', np.int32),
                             ('charge', np.double),
                             ('pos', np.double, 3)]),
-        "full": np.dtype([('mol', np.int),
-                          ('type', np.int),
+        "full": np.dtype([('mol', np.int32),
+                          ('type', np.int32),
                           ('charge', np.double),
                           ('pos', np.double, 3)]),
     }
