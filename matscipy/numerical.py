@@ -130,7 +130,7 @@ def numerical_nonaffine_forces(atoms, d=1e-6):
         atoms.set_cell(np.dot(cell, x), scale_atoms=True)
         fminus = atoms.get_forces()
 
-        fna_ncc[:, i, i] = (fplus - fminus) / (2 * d)
+        fna_ncc[..., i, i] = (fplus - fminus) / (2 * d)
 
         # Off diagonal
         j = i - 2
@@ -142,6 +142,6 @@ def numerical_nonaffine_forces(atoms, d=1e-6):
         atoms.set_cell(np.dot(cell, x), scale_atoms=True)
         fminus = atoms.get_forces()
 
-        fna_ncc[:, i, j] = fna_ncc[:, j, i] = (fplus - fminus) / (4 * d)
+        fna_ncc[..., i, j] = fna_ncc[..., j, i] = (fplus - fminus) / (4 * d)
 
     return fna_ncc
