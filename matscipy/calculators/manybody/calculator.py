@@ -932,12 +932,12 @@ class NiceManybody(Manybody):
         super().__init__(
             neighbourhood.atom_type,
             neighbourhood.pair_type,
-            F.__call__, G.__call__,
-            d1F, d2F,
-            d11F, d22F, d12F,
-            d1G, d11G, d2G, d22G, d12G,
-            neighbourhood.cutoff,
-            neighbourhood)
+            F=F.__call__, G=G.__call__,
+            d1F=d1F, d2F=d2F,
+            d11F=d11F, d22F=d22F, d12F=d12F,
+            d1G=d1G, d11G=d11G, d2G=d2G, d22G=d22G, d12G=d12G,
+            cutoff=neighbourhood.cutoff,
+            neighbourhood=neighbourhood)
 
     @staticmethod
     def _split_call(func, n):

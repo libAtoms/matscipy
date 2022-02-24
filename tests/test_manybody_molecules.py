@@ -59,7 +59,7 @@ class ZeroAngle(NiceManybody.G):
         return np.zeros([2] + list(args[0].shape))
 
     def hessian(self, *args):
-        return np.zeros([3] + list(args[0].shape) + [3])
+        return np.zeros([3] + list(args[0].shape) + [args[0].shape[1]])
 
 
 class ZeroBond(NiceManybody.G):
@@ -87,21 +87,26 @@ class HarmonicAngle(NiceManybody.G):
         a = np.arccos(-(r_ij**2 + r_jk**2 - r_ik**2) / (2 * r_ij * r_jk))
         return 0.5 * self.k * (a - self.a0)**2
 
-    def gradient(self, r_ij, r_ik, *args):
+    def gradient(self, r_ij_c, r_ik_c, *args):
         D, d = self._distance_triplet(
-            r_ij, r_ik, self.atoms.cell, self.atoms.pbc
+            r_ij_c, r_ik_c, self.atoms.cell, self.atoms.pbc
         )
+
+        # Broadcast slices
+        _c = np.s_[:, np.newaxis]
+
+        # Mapping: u <- r_ij, v <- r_ik, w <- r_jk = |r_ik_c - r_ij_c|
+        u, v, w = d
+
         # Normal vectors
-        n_ij_c = D[0] / d[0][:, np.newaxis]
-        n_ik_c = D[1] / d[1][:, np.newaxis]
-        n_jk_c = D[2] / d[2][:, np.newaxis]
+        nu, nv, nw = (D[i] / d[i][_c] for i in range(3))
 
         # cos of angle
-        f = -(d[0]**2 + d[2]**2 - d[1]**2) / (2 * d[0] * d[2])
+        f = -(u**2 + w**2 - v**2) / (2 * u * w)
         # derivatives with respect to triangle lengths
-        df_rij = -(d[0]**2 - d[2]**2 + d[1]**2) / (2 * d[0]**2 * d[2])
-        df_rjk = -(d[2]**2 - d[0]**2 + d[1]**2) / (2 * d[2]**2 * d[2])
-        df_rik = d[1] / (d[0] * d[2])
+        df_u = -(u**2 - w**2 + v**2) / (2 * u**2 * w)
+        df_w = -(w**2 - u**2 + v**2) / (2 * w**2 * u)
+        df_v = v / (u * w)
 
         # Scalar derivatives
         def E_(a):
@@ -112,24 +117,103 @@ class HarmonicAngle(NiceManybody.G):
                 d_arccos = -1 / np.sqrt(1 - f**2)
             return E_(np.arccos(f)) * d_arccos
 
-        # Broadcast slices
-        _c = np.s_[:, np.newaxis]
-
         # Derivatives with respect to vectors rij and rik
-        dG = np.zeros([2] + list(r_ij.shape))
+        dG = np.zeros([2] + list(r_ij_c.shape))
         # dG_rij
-        dG[0] = df_rij[_c] * n_ij_c - df_rjk[_c] * n_jk_c
+        dG[0] = df_u[_c] * nu + df_w[_c] * (-nw)
         # dG_rik
-        dG[1] = df_rik[_c] * n_ik_c + df_rjk[_c] * n_jk_c
+        dG[1] = df_v[_c] * nv + df_w[_c] * (+nw)
 
         dG *= h_(f)[_c]
         return dG
 
-    def hessian(self, r_ij, r_ik, *args):
-        return np.zeros([3] + list(r_ij.shape) + [3])
+    def hessian(self, r_ij_c, r_ik_c, *args):
+        D, d = self._distance_triplet(
+            r_ij_c, r_ik_c, self.atoms.cell, self.atoms.pbc
+        )
+
+        # Utilities
+        _c = np.s_[:, np.newaxis]
+        _cc = np.s_[:, np.newaxis, np.newaxis]
+        _o = lambda u, v: np.einsum('...i,...j', u, v, optimize=True) # noqa
+
+        # Scalar functions
+        dE = lambda a: self.k * (a - self.a0)  # Force
+        ddE = lambda a: self.k                 # Stiffness
+        arccos = np.arccos
+        darccos = lambda x: -1 / np.sqrt(1 - x**2)
+        ddarccos = lambda x: -x / (1 - x**2)**(3/2)
+
+        dh = lambda f: dE(arccos(f)) * darccos(f)
+        ddh = lambda f: (
+            ddE(arccos(f)) * darccos(f) * darccos(f)
+            + dE(arccos(f)) * ddarccos(f)
+        )
+
+        # Mapping: u <- r_ij, v <- r_ik, w <- r_jk = |r_ik_c - r_ij_c|
+        u, v, w = d
+
+        # Normal vectors
+        nu, nv, nw = (D[i] / d[i][_c] for i in range(3))
+
+        # Outer products
+        nunu, nvnv, nwnw = (_o(n, n) for n in (nu, nv, nw))
+
+        # Normal tensors
+        Id = np.eye(3)[np.newaxis, :]
+        nnu, nnv, nnw = ((Id - o) / d[i][_cc]
+                         for i, o in enumerate((nunu, nvnv, nwnw)))
+
+        # cos of angle
+        f = -(u**2 + w**2 - v**2) / (2 * u * w)
+        # derivatives with respect to triangle lengths
+        df_u = -(u**2 - w**2 + v**2) / (2 * u**2 * w)
+        df_w = -(w**2 - u**2 + v**2) / (2 * w**2 * u)
+        df_v = v / (u * w)
+        # second derivatives
+        ddf_uu = (v**2 - w**2) / (u**3 * w)
+        ddf_ww = (v**2 - u**2) / (w**3 * u)
+        ddf_vv = 1 / (u * w)
+        ddf_uv = -v / (u**2 * w)
+        ddf_uw = (u**2 + w**2 + v**2) / (2 * u**2 * w**2)
+        ddf_vw = -v / (w**2 * u)
+
+        # Compond derivatives w/r to vectors
+        U = df_u[_c] * nu + df_w[_c] * (-nw)
+        V = df_v[_c] * nv + df_w[_c] * (+nw)
+
+        # Second derivatives w/r to vectors
+        dU_u = (
+            _o(nu, ddf_uu[_c] * nu + ddf_uw[_c] * (-nw))
+            + df_u[_cc] * nnu
+            + _o(-nw, ddf_uw[_c] * nu + ddf_ww[_c] * (-nw))
+            + df_w[_cc] * nnw
+        )
+        dV_v = (
+            _o(nv, ddf_vv[_c] * nv + ddf_vw[_c] * nw)
+            + df_v[_cc] * nnv
+            + _o(nw, ddf_vw[_c] * nv + ddf_ww[_c] * nw)
+            + df_w[_cc] * nnw
+        )
+        dU_v = (
+            _o(nu, ddf_uv[_c] * nv + ddf_uw[_c] * nw)
+            + _o(-nw, ddf_vw[_c] * nv + ddf_ww[_c] * nw)
+            + df_w[_cc] * (-nnw)
+        )
+
+        # Scalar parts
+        dh = dh(f)
+        ddh = ddh(f)
+
+        # Defining full derivatives
+        ddG = np.zeros([3, r_ij_c.shape[0], r_ij_c.shape[1], r_ij_c.shape[1]])
+        ddG[0] = ddh[_cc] * _o(U, U) + dh[_cc] * dU_u
+        ddG[1] = ddh[_cc] * _o(V, V) + dh[_cc] * dV_v
+        ddG[2] = ddh[_cc] * _o(U, V) + dh[_cc] * dU_v
+        return ddG
 
 
-@pytest.fixture(params=[0.1, 0.5, 1, 1.5, 2])
+@pytest.fixture(params=[1, 1.5, 2])
 def length(request):
     return request.param
 
@@ -141,9 +225,15 @@ def angle(request):
 
 @pytest.fixture
 def co2(length, angle):
+    s = 1.1
     atoms = Atoms(
         "CO2",
-        positions=[[-1, 0, 0], [0, 0, 0], [np.cos(angle), np.sin(angle), 0]],
+        # Not symmetric on purpose
+        positions=[
+            [-1, 0, 0],
+            [0, 0, 0],
+            [s * np.cos(angle), s * np.sin(angle), 0],
+        ],
         cell=[5, 5, 5],
     )
 
@@ -167,7 +257,12 @@ def test_harmonic_bond(co2, molecule):
     calc = NiceManybody(HarmonicBond(r0, k), ZeroAngle(), molecule)
     co2.calc = calc
 
-    pair_distances = co2.get_all_distances()[(0, 1), (1, 2)]
+    pair_vectors = np.array([
+        co2.get_distance(0, 1, vector=True),
+        co2.get_distance(1, 2, vector=True),
+    ])
+
+    pair_distances = np.linalg.norm(pair_vectors, axis=-1)
 
     # Testing potential energy
     epot = co2.get_potential_energy()
@@ -176,7 +271,7 @@ def test_harmonic_bond(co2, molecule):
 
     # Testing force on first atom
     f = co2.get_forces()
-    f_ref = np.array([k * (pair_distances[0] - r0), 0, 0])
+    f_ref = k * (pair_distances[0] - r0) * pair_vectors[0] / pair_distances[0]
     nt.assert_allclose(f[0], f_ref, rtol=1e-15)
 
     # Testing all forces with finite differences
@@ -203,22 +298,14 @@ def test_harmonic_angle(co2, molecule):
 
     # Testing forces
     f = co2.get_forces()
-
-    # Finite differences forces
     f_ref = numerical_forces(co2, d=1e-6)
     nt.assert_allclose(f, f_ref, rtol=1e-6, atol=1e-9)
 
-    # Symmetric frame of reference
-    angle /= -2
-    rot = np.array([[np.cos(angle), -np.sin(angle), 0],
-                    [np.sin(angle),  np.cos(angle), 0],
-                    [0,              0,             1]])
-    f = np.einsum('ij,aj', rot, f)
-
-    # Checking symmetries
-    nt.assert_allclose(f[0, 0], -f[2, 0], rtol=1e-13)
-    nt.assert_allclose(f[0, 1],  f[2, 1], rtol=1e-13)
-
     # Checking zeros
-    nt.assert_allclose(np.abs(f[1, (0, 2)]), 0, atol=1e-13)
     nt.assert_allclose(np.abs(f.sum()), 0, atol=1e-13)
+
+    # Testing hessian
+    h = co2.calc.get_property('hessian')
+    h_ref = numerical_hessian(co2, dx=1e-4)
+    # print(f"{h}\n\n{h_ref}")
+    nt.assert_allclose(h.todense(), h_ref.todense(), atol=1e-5)
