@@ -498,9 +498,15 @@ e_nc = (dr_nc.T/abs_dr_n).T
     else:
         _cutoff = cutoff
 
-    return _matscipy.neighbour_list(quantities, cell_origin, cell,
-                                    np.linalg.inv(cell.T), pbc, positions,
-                                    _cutoff, numbers)
+    try:
+        return _matscipy.neighbour_list(quantities, cell_origin, cell,
+                                        np.linalg.inv(cell.T), pbc, positions,
+                                        _cutoff, numbers)
+    except ValueError as e:
+        if str(e) == "object of too small depth for desired array":
+            raise TypeError(f"cutoff of invalid type {type(_cutoff)}")
+        raise e
+
 
 
 def triplet_list(first_neighbours, abs_dr_p=None, cutoff=None, i_p=None, j_p=None):
