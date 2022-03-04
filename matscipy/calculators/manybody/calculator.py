@@ -79,6 +79,7 @@ class Manybody(MatscipyCalculator):
         'forces',
         'hessian',
         'nonaffine_forces',
+        'birch_coefficients',
     ]
 
     default_parameters = {}
@@ -362,7 +363,8 @@ class Manybody(MatscipyCalculator):
             H_acc = np.zeros([nb_atoms, 3, 3])
             for x in range(3):
                 for y in range(3):
-                    H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y])
+                    H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y],
+                                                  minlength=nb_atoms)
 
             if divide_by_masses:
                 mass_nat = atoms.get_masses()
