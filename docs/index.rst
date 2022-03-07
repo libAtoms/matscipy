@@ -18,6 +18,7 @@ Contents
    matscipy.calculators.pair_potential
    matscipy.calculators.mcfm
    matscipy.calculators.supercell_calculator
+   matscipy.calculators.manybody
    matscipy.contact_mechanics
    matscipy.contact_mechanics.DMT
    matscipy.contact_mechanics.greens_function

@@ -38,6 +38,7 @@ from matscipy.fracture_mechanics.idealbrittlesolid import (IdealBrittleSolid,
 
 from matscipy.fracture_mechanics.crack import (thin_strip_displacement_y,
                                                ConstantStrainRate)
+from matscipy.numerical import numerical_forces
 
 sys.path.insert(0, '.')
 import params
@@ -56,7 +57,7 @@ for d in dimers:
     d.set_calculator(calc)
     e_dimer.append(d.get_potential_energy())
     f_dimer.append(d.get_forces())
-    f_num.append(calc.calculate_numerical_forces(d))
+    f_num.append(numerical_forces(d))
 e_dimer = np.array(e_dimer)
 f_dimer = np.array(f_dimer)
 f_num = np.array(f_num)

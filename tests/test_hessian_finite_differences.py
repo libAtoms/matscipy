@@ -58,7 +58,7 @@ from ase.build import bulk
 import matscipytest
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut
 import matscipy.calculators.pair_potential as calculator
-from matscipy.hessian_finite_differences import fd_hessian
+from matscipy.numerical import numerical_hessian
 
 ###
 
@@ -71,17 +71,17 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
             atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.550)
             a = calculator.PairPotential(calc)
-            atoms.set_calculator(a)
+            atoms.calc = a
             H_analytical = a.get_hessian(atoms, "sparse")
-            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+            H_numerical = numerical_hessian(atoms, dx=1e-5, indices=None)
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical.todense(), tol=self.tol)
 
     def test_symmetry_sparse(self):
         for calc in [{(1, 1): LennardJonesCut(1, 1, 3)}]:
             atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.550)
             a = calculator.PairPotential(calc)
-            atoms.set_calculator(a)
-            H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+            atoms.calc = a
+            H_numerical = numerical_hessian(atoms, dx=1e-5, indices=None)
             H_numerical = H_numerical.todense()
             self.assertArrayAlmostEqual(np.sum(np.abs(H_numerical-H_numerical.T)), 0, tol=1e-5)
 
@@ -90,10 +90,10 @@ class TestPairPotentialCalculator(matscipytest.MatSciPyTestCase):
             atoms = FaceCenteredCubic('H', size=[2,2,2], latticeconstant=1.550)
             nat = len(atoms)
             a = calculator.PairPotential(calc)
-            atoms.set_calculator(a)
+            atoms.calc = a
             H_analytical = a.get_hessian(atoms, "sparse")
-            H_numerical_split1 = fd_hessian(atoms, dx=1e-5, indices=np.arange(0, np.int(nat/2), 1))
-            H_numerical_split2 = fd_hessian(atoms, dx=1e-5, indices=np.arange(np.int(nat/2), nat, 1))
+            H_numerical_split1 = numerical_hessian(atoms, dx=1e-5, indices=np.arange(0, np.int32(nat/2), 1))
+            H_numerical_split2 = numerical_hessian(atoms, dx=1e-5, indices=np.arange(np.int32(nat/2), nat, 1))
             H_numerical_splitted = np.concatenate((H_numerical_split1.todense(), H_numerical_split2.todense()), axis=0)
             self.assertArrayAlmostEqual(H_analytical.todense(), H_numerical_splitted, tol=self.tol)
 

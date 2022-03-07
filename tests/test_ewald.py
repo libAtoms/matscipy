@@ -54,14 +54,16 @@ from matscipy.calculators.pair_potential.calculator import (
     PairPotential,
     BeestKramerSanten,
 )
-from matscipy.hessian_finite_differences import (
-    fd_hessian,
-    get_numerical_non_affine_forces,
+from matscipy.numerical import (
+    numerical_hessian,
+    numerical_nonaffine_forces,
+    numerical_forces,
+    numerical_stress,
 )
 from matscipy.elasticity import (
     fit_elastic_constants,
     full_3x3x3x3_to_Voigt_6x6,
-    get_non_affine_contribution_to_elastic_constants,
+    nonaffine_elastic_contribution,
 )
 
 
@@ -228,7 +230,7 @@ def test_stress_alpha_quartz(alpha_quartz_ewald):
     """
     atoms = alpha_quartz_ewald
     s = atoms.get_stress()
-    sn = atoms.calc.calculate_numerical_stress(atoms, d=0.001)
+    sn = numerical_stress(atoms, d=0.001)
 
     print("Stress ana: \n", s)
     print("Stress num: \n", sn)
@@ -242,7 +244,7 @@ def test_forces_alpha_quartz(alpha_quartz_ewald):
     """
     atoms = alpha_quartz_ewald
     f = atoms.get_forces()
-    fn = atoms.calc.calculate_numerical_forces(atoms, d=0.0001)
+    fn = numerical_forces(atoms, d=0.0001)
 
     print("f_ana: \n", f[:5, :])
     print("f_num: \n", fn[:5, :])
@@ -255,7 +257,7 @@ def test_hessian_alpha_quartz(alpha_quartz_bks):
     Test the computation of the Hessian matrix
     """
     atoms = alpha_quartz_bks
-    H_num = fd_hessian(atoms, dx=1e-5, indices=None)
+    H_num = numerical_hessian(atoms, dx=1e-5, indices=None)
     H_ana = atoms.calc.get_property("hessian", atoms)
 
     print("H_num: \n", H_num.todense()[:6, :6])
@@ -271,7 +273,7 @@ def test_non_affine_forces_alpha_quartz(alpha_quartz_bks):
     atoms = alpha_quartz_bks
 
     naForces_ana = atoms.calc.get_property("nonaffine_forces")
-    naForces_num = get_numerical_non_affine_forces(atoms, d=1e-5)
+    naForces_num = numerical_nonaffine_forces(atoms, d=1e-5)
 
     print("Num: \n", naForces_num[:1])
     print("Ana: \n", naForces_ana[:1])
@@ -324,7 +326,7 @@ def test_full_elastic_alpha_quartz(alpha_quartz_bks):
         atoms.calc.get_property("birch_coefficients"), check_symmetry=False
     )
     C_na = full_3x3x3x3_to_Voigt_6x6(
-        get_non_affine_contribution_to_elastic_constants(atoms)
+        nonaffine_elastic_contribution(atoms)
     )
 
     print("stress: \n", atoms.get_stress())
@@ -347,7 +349,7 @@ def test_stress_beta_cristobalite(beta_cristobalite_ewald):
     """
     atoms = beta_cristobalite_ewald
     s = atoms.get_stress()
-    sn = atoms.calc.calculate_numerical_stress(atoms, d=0.0001)
+    sn = numerical_stress(atoms, d=0.0001)
 
     print("Stress ana: \n", s)
     print("Stress num: \n", sn)
@@ -364,7 +366,7 @@ def test_forces_beta_cristobalite(beta_cristobalite_ewald):
     """
     atoms = beta_cristobalite_ewald
     f = atoms.get_forces()
-    fn = atoms.calc.calculate_numerical_forces(atoms, d=1e-5)
+    fn = numerical_forces(atoms, d=1e-5)
 
     print("forces ana: \n", f[:5, :])
     print("forces num: \n", fn[:5, :])
@@ -378,7 +380,7 @@ def test_hessian_beta_cristobalite(beta_cristobalite_bks):
     Test the computation of the Hessian matrix
     """
     atoms = beta_cristobalite_bks
-    H_num = fd_hessian(atoms, dx=1e-5, indices=None)
+    H_num = numerical_hessian(atoms, dx=1e-5, indices=None)
     H_ana = atoms.calc.get_property("hessian")
 
     np.testing.assert_allclose(H_num.todense(), H_ana, atol=1e-3)
@@ -391,7 +393,7 @@ def test_non_affine_forces_beta_cristobalite(beta_cristobalite_bks):
     """
     atoms = beta_cristobalite_bks
     naForces_ana = atoms.calc.get_property("nonaffine_forces")
-    naForces_num = get_numerical_non_affine_forces(atoms, d=1e-5)
+    naForces_num = numerical_nonaffine_forces(atoms, d=1e-5)
 
     print("Num: \n", naForces_num[:1])
     print("Ana: \n", naForces_ana[:1])
@@ -444,7 +446,7 @@ def test_non_affine_elastic_beta_cristobalite(beta_cristobalite_bks):
         atoms.calc.get_property("birch_coefficients"), check_symmetry=False
     )
     C_na = full_3x3x3x3_to_Voigt_6x6(
-        get_non_affine_contribution_to_elastic_constants(atoms)
+        nonaffine_elastic_contribution(atoms)
     )
 
     print("stress: \n", atoms.get_stress())

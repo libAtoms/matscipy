@@ -60,7 +60,7 @@ from ase.units import GPa
 import matscipy.calculators.polydisperse as calculator
 from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
 from matscipy.calculators.polydisperse import InversePowerLawPotential, Polydisperse
-from matscipy.hessian_finite_differences import fd_hessian
+from matscipy.numerical import numerical_hessian, numerical_forces, numerical_stress
 
 def test_forces_dimer():
     """
@@ -78,7 +78,7 @@ def test_forces_dimer():
     calc = Polydisperse(InversePowerLawPotential(1.0, 1.4, 0.1, 3, 1, 2.22))
     atomic_configuration.calc = calc
     f = atomic_configuration.get_forces()
-    fn = calc.calculate_numerical_forces(atomic_configuration, d=0.0001)
+    fn = numerical_forces(atomic_configuration, d=0.0001)
     np.testing.assert_allclose(f, fn, atol=1e-4)
 
 def test_forces_crystal():
@@ -91,7 +91,7 @@ def test_forces_crystal():
     atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
     atoms.calc = calc
     f = atoms.get_forces()
-    fn = calc.calculate_numerical_forces(atoms, d=0.0001)
+    fn = numerical_forces(atoms, d=0.0001)
     np.testing.assert_allclose(f, fn, atol=1e-4)
 
 @pytest.mark.parametrize('a0', [2.0, 2.5, 3.0])
@@ -105,7 +105,7 @@ def test_crystal_stress(a0):
     atoms.set_array("size", np.random.uniform(1.0, 2.22, size=len(atoms)), dtype=float)
     atoms.calc = calc
     s = atoms.get_stress()
-    sn = calc.calculate_numerical_stress(atoms, d=0.00001)
+    sn = numerical_stress(atoms, d=0.00001)
     np.testing.assert_allclose(s, sn, atol=1e-4)
 
 def test_glass_stress():
@@ -119,7 +119,7 @@ def test_glass_stress():
     atoms.set_atomic_numbers(np.repeat(1.0, len(atoms)))   
     atoms.calc = calc
     s = atoms.get_stress()
-    sn = calc.calculate_numerical_stress(atoms, d=0.00001)
+    sn = numerical_stress(atoms, d=0.00001)
     np.testing.assert_allclose(s, sn, atol=1e-4)
 
 def test_symmetry_sparse():
@@ -148,7 +148,7 @@ def test_hessian_random_structure():
     FIRE(atoms, logfile=None).run(fmax=1e-5)
     H_analytical = calc.get_hessian(atoms)
     H_analytical = H_analytical.todense()
-    H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+    H_numerical = numerical_hessian(atoms, dx=1e-5, indices=None)
     H_numerical = H_numerical.todense()
     np.testing.assert_allclose(H_analytical, H_numerical, atol=1e-4)
 

@@ -56,7 +56,7 @@ class TestSupercellCalculator(matscipytest.MatSciPyTestCase):
             a = bulk('Au')
             a *= (2, 2, 2)
             a.rattle(0.1)
-            a.set_calculator(calc)
+            a.calc = calc
             e = a.get_potential_energy()
             f = a.get_forces()
             s = a.get_stress()

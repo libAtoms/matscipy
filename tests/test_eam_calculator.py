@@ -62,6 +62,7 @@ import matscipytest
 from matscipy.calculators.eam import EAM
 from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
 from matscipy.neighbours import neighbour_list
+from matscipy.numerical import numerical_forces, numerical_stress
 
 ###
 
@@ -87,14 +88,14 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         a = FaceCenteredCubic('Au', size=[2,2,2])
         calc = EAM('Au-Grochola-JCP05.eam.alloy')
         a.set_calculator(calc)
-        self.assertArrayAlmostEqual(a.get_stress(), calc.calculate_numerical_stress(a), tol=self.tol)
+        self.assertArrayAlmostEqual(a.get_stress(), numerical_stress(a), tol=self.tol)
 
         sx, sy, sz = a.cell.diagonal()
         a.set_cell([sx, 0.9*sy, 1.2*sz], scale_atoms=True)
-        self.assertArrayAlmostEqual(a.get_stress(), calc.calculate_numerical_stress(a), tol=self.tol)
+        self.assertArrayAlmostEqual(a.get_stress(), numerical_stress(a), tol=self.tol)
 
         a.set_cell([[sx, 0.1*sx, 0], [0, 0.9*sy, 0], [0, -0.1*sy, 1.2*sz]], scale_atoms=True)
-        self.assertArrayAlmostEqual(a.get_stress(), calc.calculate_numerical_stress(a), tol=self.tol)
+        self.assertArrayAlmostEqual(a.get_stress(), numerical_stress(a), tol=self.tol)
 
     def test_Grochola(self):
         a = FaceCenteredCubic('Au', size=[2,2,2])

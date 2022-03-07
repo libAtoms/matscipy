@@ -21,10 +21,11 @@
 import numpy as np
 
 from scipy.sparse.linalg import cg
-
 from ase.calculators.calculator import Calculator
+from numpy import deprecate
 
 from ..elasticity import Voigt_6_to_full_3x3_stress
+from ..numerical import numerical_nonaffine_forces
 
 from ..numpy_tricks import mabincount
 
@@ -87,7 +88,7 @@ class MatscipyCalculator(Calculator):
 
     def get_born_elastic_constants(self, atoms):
         """
-        Compute the Born elastic constants. 
+        Compute the Born elastic constants.
 
         Parameters
         ----------
@@ -117,7 +118,7 @@ class MatscipyCalculator(Calculator):
             Atomic configuration in a local or global minima.
 
         """
-        
+
         stress_ab = Voigt_6_to_full_3x3_stress(self.get_property('stress', atoms))
         delta_ab = np.identity(3)
 
@@ -135,8 +136,8 @@ class MatscipyCalculator(Calculator):
 
     def get_birch_coefficients(self, atoms):
         """
-        Compute the Birch coefficients (Effective elastic constants at non-zero stress). 
-        
+        Compute the Birch coefficients (Effective elastic constants at non-zero stress).
+
         Parameters
         ----------
         atoms: ase.Atoms
@@ -154,7 +155,7 @@ class MatscipyCalculator(Calculator):
         stressC_abab = calculator.get_stress_contribution_to_elastic_constants(atoms)
 
         return bornC_abab + stressC_abab
-        
+
 
     def get_nonaffine_forces(self, atoms):
         """
@@ -176,6 +177,7 @@ class MatscipyCalculator(Calculator):
 
         return naforces_icab
 
+    @deprecate(new_name="elasticity.nonaffine_elastic_contribution")
     def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "tol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
         """
         Compute the correction of non-affine displacements to the elasticity tensor.
@@ -190,7 +192,7 @@ class MatscipyCalculator(Calculator):
 
         eigenvalues: array
             Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
-            If given, use eigenvalues and eigenvectors to compute non-affine contribution. 
+            If given, use eigenvalues and eigenvectors to compute non-affine contribution.
 
         eigenvectors: array
             Eigenvectors corresponding to eigenvalues.
@@ -209,8 +211,8 @@ class MatscipyCalculator(Calculator):
 
             M: {sparse matrix, dense matrix, LinearOperator}
                 Preconditioner for A.
-                
-            callback: function  
+
+            callback: function
                 User-supplied function to call after each iteration.
 
         pc_parameters: dict
@@ -240,7 +242,7 @@ class MatscipyCalculator(Calculator):
             panel_size: int
                 Expert option for customizing the panel size.
 
-            options: dict 
+            options: dict
                 Dictionary containing additional expert options to SuperLU.
         """
 
@@ -261,10 +263,10 @@ class MatscipyCalculator(Calculator):
             naforces_icab = calc.get_nonaffine_forces(atoms)
 
             if pc_parameters != None:
-                # Transform H to csc 
+                # Transform H to csc
                 H_nn = H_nn.tocsc()
 
-                # Compute incomplete LU 
+                # Compute incomplete LU
                 approx_Hinv = spilu(H_nn, **pc_parameters)
                 operator_Hinv = LinearOperator(H_nn.shape, approx_Hinv.solve)
                 cg_parameters["M"] = operator_Hinv
@@ -279,12 +281,13 @@ class MatscipyCalculator(Calculator):
                     D_iab[:,i,j] = x
 
             C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
-        
-        # Symmetrize 
-        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4             
+
+        # Symmetrize
+        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
         return -C_abab/atoms.get_volume()
 
+    @deprecate(new_name='numerical.numerical_nonaffine_forces')
     def get_numerical_non_affine_forces(self, atoms, d=1e-6):
         """
 
@@ -297,45 +300,4 @@ class MatscipyCalculator(Calculator):
             Atomic configuration in a local or global minima.
 
         """
-
-        nat = len(atoms)
-        cell = atoms.cell.copy()
-        fna_ncc = np.zeros((nat, 3, 3, 3))
-
-        for i in range(3):
-            # Diagonal 
-            x = np.eye(3)
-            x[i, i] += d
-            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
-            fplus = atoms.get_forces()
-
-            x[i, i] -= 2 * d
-            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
-            fminus = atoms.get_forces()
-
-            naForces_ncc = (fplus - fminus) / (2 * d)
-            fna_ncc[:, 0, i, i] = naForces_ncc[:, 0]
-            fna_ncc[:, 1, i, i] = naForces_ncc[:, 1]
-            fna_ncc[:, 2, i, i] = naForces_ncc[:, 2]
-
-            # Off diagonal
-            j = i - 2
-            x[i, j] = d
-            x[j, i] = d
-            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
-            fplus = atoms.get_forces()
-
-            x[i, j] = -d
-            x[j, i] = -d
-            atoms.set_cell(np.dot(cell, x), scale_atoms=True)
-            fminus = atoms.get_forces()
-
-            naForces_ncc = (fplus - fminus) / (4 * d)
-            fna_ncc[:, 0, i, j] = naForces_ncc[:, 0]
-            fna_ncc[:, 0, j, i] = naForces_ncc[:, 0]
-            fna_ncc[:, 1, i, j] = naForces_ncc[:, 1]
-            fna_ncc[:, 1, j, i] = naForces_ncc[:, 1]
-            fna_ncc[:, 2, i, j] = naForces_ncc[:, 2]
-            fna_ncc[:, 2, j, i] = naForces_ncc[:, 2]
-
-        return fna_ncc
+        return numerical_nonaffine_forces(atoms, d=d)

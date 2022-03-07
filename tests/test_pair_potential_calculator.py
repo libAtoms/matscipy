@@ -63,7 +63,7 @@ from ase.lattice.cubic import FaceCenteredCubic
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesQuadratic, LennardJonesLinear
 from matscipy.elasticity import fit_elastic_constants, elastic_moduli, full_3x3x3x3_to_Voigt_6x6, measure_triclinic_elastic_constants
 from matscipy.calculators.calculator import MatscipyCalculator
-from matscipy.hessian_finite_differences import fd_hessian
+from matscipy.numerical import numerical_hessian, numerical_forces, numerical_stress
 
 ###
 
@@ -111,7 +111,7 @@ def test_forces():
     b = PairPotential(calc)
     atoms.calc = b
     f = atoms.get_forces()
-    fn = b.calculate_numerical_forces(atoms, d=0.0001)
+    fn = numerical_forces(atoms, d=0.0001)
     np.testing.assert_allclose(f, fn, atol=1e-2)
 
     calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
@@ -122,7 +122,7 @@ def test_forces():
     b = PairPotential(calc)
     atoms.calc = b
     f = atoms.get_forces()
-    fn = b.calculate_numerical_forces(atoms, d=0.0001)
+    fn = numerical_forces(atoms, d=0.0001)
     np.testing.assert_allclose(f, fn, atol=1e-2)
 
 @pytest.mark.parametrize('a0', [1.0, 1.5, 2.0, 2.5, 3.0])
@@ -135,7 +135,7 @@ def test_crystal_stress(a0):
     b = PairPotential(calc)
     atoms.calc = b
     s = atoms.get_stress()
-    sn = b.calculate_numerical_stress(atoms, d=0.0001)
+    sn = numerical_stress(atoms, d=0.0001)
     np.testing.assert_allclose(s, sn, atol=1e-4)
 
 def test_amorphous_stress():
@@ -149,7 +149,7 @@ def test_amorphous_stress():
     b = PairPotential(calc)
     atoms.calc = b
     s = atoms.get_stress()
-    sn = b.calculate_numerical_stress(atoms, d=0.0001)
+    sn = numerical_stress(atoms, d=0.0001)
     np.testing.assert_allclose(s, sn, atol=1e-4)
 
 def test_hessian():
@@ -163,7 +163,7 @@ def test_hessian():
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(atoms, logfile=None).run(fmax=1e-5)
-    H_numerical = fd_hessian(atoms, dx=1e-5, indices=None)
+    H_numerical = numerical_hessian(atoms, dx=1e-5, indices=None)
     H_numerical = H_numerical.todense()
     H_analytical = b.get_hessian(atoms, "dense")
     np.testing.assert_allclose(H_analytical, H_numerical, atol=1e-4)

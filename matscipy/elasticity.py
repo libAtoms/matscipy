@@ -1149,22 +1149,23 @@ def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
 
     return E, nu, Gm, B, K
 
-def get_non_affine_contribution_to_elastic_constants(atoms,
-                                                     eigenvalues=None,
-                                                     eigenvectors=None,
-                                                     pc_parameters=None,
-                                                     cg_parameters={
-                                                         "x0": None,
-                                                         "tol": 1e-5,
-                                                         "maxiter": None,
-                                                         "M": None,
-                                                         "callback": None,
-                                                         "atol": 1e-5}):
-    """
-    Compute the correction of non-affine displacements to the elasticity tensor.
-    The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.
+def nonaffine_elastic_contribution(atoms,
+                                   eigenvalues=None,
+                                   eigenvectors=None,
+                                   pc_parameters=None,
+                                   cg_parameters={
+                                       "x0": None,
+                                       "tol": 1e-5,
+                                       "maxiter": None,
+                                       "M": None,
+                                       "callback": None,
+                                       "atol": 1e-5}):
+    """Compute the correction of non-affine displacements to the elasticity tensor.
+    The computation of the occuring inverse of the Hessian matrix is bypassed by
+    using a cg solver.
 
-    If eigenvalues and and eigenvectors are given the inverse of the Hessian can be easily computed.
+    If eigenvalues and and eigenvectors are given the inverse of the Hessian can
+    be easily computed.
 
     Parameters
     ----------
@@ -1225,43 +1226,44 @@ def get_non_affine_contribution_to_elastic_constants(atoms,
 
         options: dict
             Dictionary containing additional expert options to SuperLU.
+
     """
+    def _sym(C_abab):
+        """Symmetrize Hooke tensor."""
+        symmetry_group = [(0, 1, 2, 3), (1, 0, 2, 3), (0, 1, 3, 2), (1, 0, 3, 2)]
+        return 0.25 * np.add.reduce([C_abab.transpose(s) for s in symmetry_group])
 
     nat = len(atoms)
+    naforces_icab = atoms.calc.get_property('nonaffine_forces')
 
+    # No solve if eigenvalues are provided
     if (eigenvalues is not None) and (eigenvectors is not None):
-        naforces_icab = atoms.calc.get_property('nonaffine_forces')
-
         G_incc = (eigenvectors.T).reshape(-1, 3*nat, 1, 1) * naforces_icab.reshape(1, 3*nat, 3, 3)
         G_incc = (G_incc.T/np.sqrt(eigenvalues)).T
         G_icc  = np.sum(G_incc, axis=1)
         C_abab = np.sum(G_icc.reshape(-1,3,3,1,1) * G_icc.reshape(-1,1,1,3,3), axis=0)
+        return -_sym(C_abab) / atoms.get_volume()
 
-    else:
-        H_nn = atoms.calc.get_property('hessian')
-        naforces_icab = atoms.calc.get_property('nonaffine_forces')
+    H_nn = atoms.calc.get_property('hessian')
 
-        if pc_parameters != None:
-            # Transform H to csc
-            H_nn = H_nn.tocsc()
+    if pc_parameters is not None:
+        # Transform H to csc
+        H_nn = H_nn.tocsc()
 
-            # Compute incomplete LU
-            approx_Hinv = spilu(H_nn, **pc_parameters)
-            operator_Hinv = LinearOperator(H_nn.shape, approx_Hinv.solve)
-            cg_parameters["M"] = operator_Hinv
+        # Compute incomplete LU
+        approx_Hinv = spilu(H_nn, **pc_parameters)
+        operator_Hinv = LinearOperator(H_nn.shape, approx_Hinv.solve)
+        cg_parameters["M"] = operator_Hinv
 
-        D_iab = np.zeros((3*nat, 3, 3))
-        for i in range(3):
-            for j in range(3):
-                x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), **cg_parameters)
-                if info != 0:
-                    print("info: ", info)
-                    raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
-                D_iab[:,i,j] = x
+    D_iab = np.zeros((3*nat, 3, 3))
+    for i in range(3):
+        for j in range(3):
+            x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), **cg_parameters)
+            if info != 0:
+                print("info: ", info)
+                raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
+            D_iab[:, i, j] = x
 
-        C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
+    C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
 
-    # Symmetrize
-    C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
-
-    return -C_abab/atoms.get_volume()
+    return -_sym(C_abab) / atoms.get_volume()
