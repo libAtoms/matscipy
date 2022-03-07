@@ -21,7 +21,7 @@
 #
 
 """
-Bond Order Potential.
+Generic Many body potential.
 """
 
 #
@@ -31,7 +31,7 @@ Bond Order Potential.
 #   - n: Atomic index, i.e. array dimension of length nb_atoms
 #   - p: Pair index, i.e. array dimension of length nb_pairs
 #   - t: Triplet index, i.e. array dimension of length nb_triplets
-#   - q: Index in nuplet (length # of elements in pair/triplet)
+#   - q: Index in n-uplet, i.e. pair or triplet (length # elements in n-uplet)
 #   - c: Cartesian index, array dimension of length 3
 #   - a: Cartesian index for the first dimension of the deformation gradient,
 #        array dimension of length 3
@@ -200,7 +200,7 @@ class Manybody(MatscipyCalculator):
                              'forces': f_nc})
 
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
-        """Calculate the Hessian matrix for a bond order potential.
+        """Calculate the Hessian matrix for a generic many-body potential.
 
         For an atomic configuration with N atoms in d dimensions the hessian
         matrix is a symmetric, hermitian matrix with a shape of (d*N,d*N). The
