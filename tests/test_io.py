@@ -46,10 +46,12 @@ import unittest
 
 import numpy as np
 
+from ase.io import read
 from matscipy.io import loadtbl, savetbl
-from matscipy.io.lammps_data import LAMMPSData, read_molecules_from_lammps_data
-from os import remove
+from matscipy.io.lammpsdata import LAMMPSData, read_molecules_from_lammps_data
+from matscipy.molecules import Molecules
 
+import pytest
 import matscipytest
 
 
