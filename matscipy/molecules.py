@@ -20,9 +20,11 @@
 
 """Classes that deal with interactions defined by connectivity."""
 
+import re
 import numpy as np
 
 from ase.geometry import find_mic, get_angles, get_dihedrals
+from ase import Atoms
 
 
 class Molecules:
@@ -121,3 +123,43 @@ class Molecules:
                              positions[2] - positions[1],
                              positions[3] - positions[2],
                              atoms.cell, atoms.pbc)
+
+    @staticmethod
+    def from_atoms(atoms: Atoms):
+        """Construct a Molecules object from ase.Atoms object."""
+        kwargs = {}
+
+        def parse_tuples(regex, permutation, label):
+            all_tuples = np.zeros((0, len(permutation)), np.int32)
+            types = np.array([], np.int32)
+
+            tuples = atoms.arrays[label]
+            bonded = np.where(tuples != '_')
+
+            for i, per_atom in zip(bonded, tuples[bonded]):
+                per_atom = np.array(regex.findall(per_atom), np.int32)
+                new_tuples = np.array([
+                    np.full(per_atom.shape[0], i, np.int32),
+                    *(per_atom[:, :-1].T)
+                ])
+
+                all_tuples = np.append(all_tuples,
+                                       new_tuples[permutation, :].T,
+                                       axis=0)
+                types = np.append(types, per_atom[:, -1])
+
+            kwargs[f'{label}_connectivity'] = all_tuples
+            kwargs[f'{label}_types'] = types
+
+        if 'bonds' in atoms.arrays:
+            bre = re.compile(r'(\d+)\((\d+)\)')
+            parse_tuples(bre, (0, 1), 'bonds')
+
+        if 'angles' in atoms.arrays:
+            are = re.compile(r'(\d+)-(\d+)\((\d+)\)')
+            parse_tuples(are, (1, 0, 2), 'angles')
+        if 'dihedrals' in atoms.arrays:
+            dre = re.compile(r'(\d+)-(\d+)-(\d+)-\((\d+)\)')
+            parse_tuples(dre, (0, 1, 2, 3), 'dihedrals')
+
+        return Molecules(**kwargs)
