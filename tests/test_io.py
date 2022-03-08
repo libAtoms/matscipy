@@ -91,15 +91,17 @@ def lammps_data(tmp_path):
     data['masses'] = [2, 3]
 
     data['bonds'] = [
-        [1, 3]
+        [1, 3],
+        [2, 3],
     ]
 
-    data['bond types'] = [1]
+    data['bond types'] = [1, 2]
 
     data['angles'] = [
-        [1, 2, 3]
+        [1, 2, 3],
+        [2, 3, 1],
     ]
-    data['angle types'] = [1]
+    data['angle types'] = [1, 2]
     data.ranges = [[-1, 1], [-1, 1], [-1, 1]]
     data.write(filename)
 
@@ -136,7 +138,7 @@ def mols_from_atoms(lammps_data):
 
     # Correct for type offset
     for label in ["bonds", "angles", "dihedrals"]:
-        lammps_data[0][label]["atoms"] -= 1
+        data[label]["atoms"] -= 1
 
     return data, Molecules.from_atoms(atoms)
 

@@ -134,7 +134,7 @@ class Molecules:
             types = np.array([], np.int32)
 
             tuples = atoms.arrays[label]
-            bonded = np.where(tuples != '_')
+            bonded = np.where(tuples != '_')[0]
 
             for i, per_atom in zip(bonded, tuples[bonded]):
                 per_atom = np.array(regex.findall(per_atom), np.int32)
@@ -154,7 +154,6 @@ class Molecules:
         if 'bonds' in atoms.arrays:
             bre = re.compile(r'(\d+)\((\d+)\)')
             parse_tuples(bre, (0, 1), 'bonds')
-
         if 'angles' in atoms.arrays:
             are = re.compile(r'(\d+)-(\d+)\((\d+)\)')
             parse_tuples(are, (1, 0, 2), 'angles')
