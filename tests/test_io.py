@@ -68,6 +68,20 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(b, data['b'])
         self.assertArrayAlmostEqual(poe, data['poe'])
 
+    def test_savetbl_loadtbl_text(self):
+        n = 12
+        a = np.random.random(n)
+        b = np.random.random(n)
+        t = ['a'*(i+1) for i in range(n)]
+        savetbl('test2.out', a=a, b=b, t=t)
+
+        a2, t2, b2 = loadtbl('test2.out', usecols=['a', 't', 'b'], types={'t': np.str_})
+        self.assertArrayAlmostEqual(a, a2)
+        self.assertArrayAlmostEqual(b, b2)
+        assert (t == t2).all()
+
+
+###
 
 @pytest.fixture
 def lammps_data(tmp_path):
