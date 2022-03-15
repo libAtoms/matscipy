@@ -3,9 +3,12 @@ name: Run tests
 on:
   push:
     branches:
-      - '*'
+      - '**'
     tags:
-      - '*'
+      - '**'
+  pull_request:
+    branches:
+      - '**'
 
 jobs:
   tests:
@@ -29,4 +32,10 @@ jobs:
     - name: pytest
       run: |
         cd tests
-        pytest -s --verbose
+        pytest -v --junitxml=report.xml --durations=20
+
+    - name: report
+      uses: mikepenz/action-junit-report@v2
+      if: always()
+      with:
+        report_paths: "**/report.xml"

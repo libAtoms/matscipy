@@ -1,6 +1,7 @@
 #
 # Copyright 2014-2016, 2021 Lars Pastewka (U. Freiburg)
 #           2014 James Kermode (Warwick U.)
+#           2022 Lucas Frérot (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -45,14 +46,16 @@ import unittest
 
 import numpy as np
 
+from ase.io import read
 from matscipy.io import loadtbl, savetbl
+from matscipy.io.lammpsdata import LAMMPSData, read_molecules_from_lammps_data
+from matscipy.molecules import Molecules
 
+import pytest
 import matscipytest
 
-###
 
 class TestEAMIO(matscipytest.MatSciPyTestCase):
-
     def test_savetbl_loadtbl(self):
         n = 123
         a = np.random.random(n)
@@ -64,7 +67,7 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(a, data['a'])
         self.assertArrayAlmostEqual(b, data['b'])
         self.assertArrayAlmostEqual(poe, data['poe'])
-    
+
     def test_savetbl_loadtbl_text(self):
         n = 12
         a = np.random.random(n)
@@ -77,8 +80,96 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(b, b2)
         assert (t == t2).all()
 
-            
+
 ###
+
+@pytest.fixture
+def lammps_data(tmp_path):
+    filename = tmp_path / "lammps_text.data"
+
+    data = LAMMPSData(style='full')
+    data['atoms'] = [
+        [0, 0, 0],
+        [0, 0, 1],
+        [1.1, 2, 1.1]
+    ]
+    data['velocities'] = [
+        [0, 0, 1],
+        [0, 1, 0],
+        [1, 0, 0],
+    ]
+
+    data['atom types'] = [1, 1, 2]
+    data['atoms']['charge'] = [1, -1, 1]
+    data['atoms']['mol'] = 1
+    data['masses'] = [2, 3]
+
+    data['bonds'] = [
+        [1, 3],
+        [2, 3],
+    ]
+
+    data['bond types'] = [1, 2]
+
+    data['angles'] = [
+        [1, 2, 3],
+        [2, 3, 1],
+    ]
+    data['angle types'] = [1, 2]
+    data.ranges = [[-1, 1], [-1, 1], [-1, 1]]
+    data.write(filename)
+
+    return data, filename
+
+
+def test_read_write_lammps_data(lammps_data):
+    data, filename = lammps_data
+    read_data = LAMMPSData(style='full')
+    read_data.read(filename)
+
+    assert np.all(np.array(data.ranges) == np.array(read_data.ranges))
+    assert np.all(data['atoms'] == read_data['atoms'])
+    assert np.all(data['bonds'] == read_data['bonds'])
+    assert np.all(data['angles'] == read_data['angles'])
+    assert np.all(data['masses'] == read_data['masses'])
+    assert np.all(data['velocities'] == read_data['velocities'])
+
+
+@pytest.fixture
+def mols_from_lammps_data(lammps_data):
+    # Correct for type offset
+    for label in ["bonds", "angles", "dihedrals"]:
+        lammps_data[0][label]["atoms"] -= 1
+
+    return lammps_data[0], read_molecules_from_lammps_data(lammps_data[1])
+
+
+@pytest.fixture
+def mols_from_atoms(lammps_data):
+    data, filename = lammps_data
+    atoms = read(filename, format='lammps-data', sort_by_id=True,
+                 units='metal', style='full')
+
+    # Correct for type offset
+    for label in ["bonds", "angles", "dihedrals"]:
+        data[label]["atoms"] -= 1
+
+    return data, Molecules.from_atoms(atoms)
+
+
+def test_read_molecules_from_lammps_data(mols_from_lammps_data):
+    data, mols = mols_from_lammps_data
+    assert np.all(data["bonds"] == mols.bonds)
+    assert np.all(data["angles"] == mols.angles)
+    assert np.all(data["dihedrals"] == mols.dihedrals)
+
+
+def test_read_molecules_from_atoms(mols_from_atoms):
+    data, mols = mols_from_atoms
+    assert np.all(data["bonds"] == mols.bonds)
+    assert np.all(data["angles"] == mols.angles)
+    assert np.all(data["dihedrals"] == mols.dihedrals)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -21,10 +21,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import numpy as np
+"""Deprecated module."""
 
-from scipy.sparse import coo_matrix
+from numpy import deprecate
+from .numerical import numerical_hessian
 
+
+@deprecate(new_name="numerical.numerical_hessian")
 def fd_hessian(atoms, dx=1e-5, indices=None):
     """
 
@@ -36,45 +39,10 @@ def fd_hessian(atoms, dx=1e-5, indices=None):
         Atomic configuration in a local or global minima.
 
     dx: float
-        Displacement increment  
+        Displacement increment
 
-    indices: 
+    indices:
         Compute the hessian only for these atom IDs
 
     """
-
-    nat = len(atoms)
-    if indices is None:
-        indices = range(nat)
-
-    row = []
-    col = []
-    H = []
-    for i, AtomId1 in enumerate(indices):
-        for direction in range(3):
-            atoms.positions[AtomId1, direction] += dx
-            fp_nc = atoms.get_forces().reshape(-1)
-            atoms.positions[AtomId1, direction] -= 2 * dx
-            fn_nc = atoms.get_forces().reshape(-1)
-            atoms.positions[AtomId1, direction] += dx
-            dH_nc = (fn_nc - fp_nc) / (2 * dx)
-
-            if indices is None:
-                for j, AtomId2 in enumerate(indices):
-                    for l in range(3):
-                        H.append(dH_nc[3 * AtomId2 + l])
-                        row.append(3 * AtomId1 + direction)  
-                        col.append(3 * AtomId2 + l) 
-
-            else:
-                for j, AtomId2 in enumerate(range(nat)):
-                    for l in range(3):     
-                        H.append(dH_nc[3 * j + l])
-                        row.append(3 * i + direction)  
-                        col.append(3 * AtomId2 + l) 
-
-    return coo_matrix((H, (row, col)),
-                          shape=(3 * len(indices), 3 * len(atoms)))
-
-
-
+    return numerical_hessian(atoms, dx=dx, indices=indices)

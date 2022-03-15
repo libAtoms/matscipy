@@ -21,7 +21,7 @@
 #
 
 """
-Bond Order Potential.
+Generic Many body potential.
 """
 
 #
@@ -31,40 +31,66 @@ Bond Order Potential.
 #   - n: Atomic index, i.e. array dimension of length nb_atoms
 #   - p: Pair index, i.e. array dimension of length nb_pairs
 #   - t: Triplet index, i.e. array dimension of length nb_triplets
+#   - q: Index in n-uplet, i.e. pair or triplet (length # elements in n-uplet)
 #   - c: Cartesian index, array dimension of length 3
-#   - a: Cartesian index for the first dimension of the deformation gradient, array dimension of length 3
-#   - b: Cartesian index for the second dimension of the deformation gradient, array dimension of length 3
+#   - a: Cartesian index for the first dimension of the deformation gradient,
+#        array dimension of length 3
+#   - b: Cartesian index for the second dimension of the deformation gradient,
+#        array dimension of length 3
 #
 
+from itertools import product, starmap
+from abc import ABC, abstractmethod
 import numpy as np
 
 from scipy.sparse.linalg import cg
-
-import ase
-
 from scipy.sparse import bsr_matrix
 
 from ase.calculators.calculator import Calculator
+from ase.geometry import find_mic
 
+from ...calculators.calculator import MatscipyCalculator
 from ...elasticity import Voigt_6_to_full_3x3_stress
-from ...neighbours import find_indices_of_reversed_pairs, first_neighbours, neighbour_list, triplet_list
+from ...neighbours import (
+    find_indices_of_reversed_pairs,
+    first_neighbours,
+    Neighbourhood,
+    CutoffNeighbourhood
+)
 from ...numpy_tricks import mabincount
 
 
 def _o(x, y, z=None):
-    """Outer product"""
+    """Outer product."""
     if z is None:
-        return x.reshape(-1, 3, 1) * y.reshape(-1, 1, 3)
-    else:
-        return x.reshape(-1, 3, 1, 1) * y.reshape(-1, 1, 3, 1) * z.reshape(-1, 1, 1, 3)
+        return np.einsum('...i,...j', x, y)
+    return np.einsum('...i,...j,...k', x, y, z)
 
 
-class Manybody(Calculator):
-    implemented_properties = ['free_energy', 'energy', 'stress', 'forces']
+# broadcast slices
+_c, _cc = np.s_[..., np.newaxis], np.s_[..., np.newaxis, np.newaxis]
+
+
+class Manybody(MatscipyCalculator):
+    implemented_properties = [
+        'free_energy',
+        'energy',
+        'stress',
+        'forces',
+        'hessian',
+        'nonaffine_forces',
+        'birch_coefficients',
+    ]
+
     default_parameters = {}
     name = 'Manybody'
 
-    def __init__(self, atom_type, pair_type, F, G, d1F, d2F, d11F, d22F, d12F, d1G, d11G, d2G, d22G, d12G, cutoff):
+    def __init__(self, atom_type, pair_type,
+                 F, G,
+                 d1F, d2F,
+                 d11F, d22F, d12F,
+                 d1G, d11G, d2G, d22G, d12G,
+                 cutoff, neighbourhood: Neighbourhood = None):
         Calculator.__init__(self)
         self.atom_type = atom_type
         self.pair_type = pair_type
@@ -83,122 +109,135 @@ class Manybody(Calculator):
 
         self.cutoff = cutoff
 
+        if neighbourhood is None:
+            self.neighbourhood = CutoffNeighbourhood(atom_types=atom_type,
+                                                     pair_types=pair_type)
+        else:
+            self.neighbourhood = neighbourhood
+
+        if not isinstance(self.neighbourhood, Neighbourhood):
+            raise TypeError(
+                f"{self.neighbourhood} is not of type Neighbourhood")
+
     def get_cutoff(self, atoms):
+        """Return a valid cutoff."""
         if np.isscalar(self.cutoff):
             return self.cutoff
 
-        # get internal atom types from atomic numbers
-        elements = set(atoms.numbers)
-
-        # loop over all possible element combinations
-        cutoff = 0
-        for i in elements:
-            ii = self.atom_type(i)
-            for j in elements:
-                jj = self.atom_type(j)
-                p = self.pair_type(ii, jj)
-                cutoff = max(cutoff, self.cutoff[p])
-        return cutoff
+        # Get largest cutoff for all possible pair types
+        atom_types = map(self.atom_type, np.unique(atoms.numbers))
+        pair_types = starmap(self.pair_type, product(atom_types, repeat=2))
+        return max(self.cutoff[p] for p in pair_types)
 
     def calculate(self, atoms, properties, system_changes):
-        Calculator.calculate(self, atoms, properties, system_changes)
+        """Calculate system properties."""
+        super().calculate(atoms, properties, system_changes)
+
+        # Setting up cutoffs for neighbourhood
+        self.neighbourhood.cutoff = self.get_cutoff(atoms)  # no-op on mols
 
         # get internal atom types from atomic numbers
-        t_n = self.atom_type(atoms.numbers)
-        cutoff = self.get_cutoff(atoms)
+        t_n = self.neighbourhood.atom_type(atoms.numbers)
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, "ijdD")
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
         # normal vectors
-        n_pc = (r_pc.T / r_p).T
+        n_pc = r_pc / r_p[_c]
 
         # construct triplet list
-        first_n = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t = triplet_list(first_n)
+        ij_t, ik_t, r_tq, r_tqc = self.neighbourhood.get_triplets(atoms,
+                                                                  "ijdD")
 
         # construct lists with atom and pair types
         ti_p = t_n[i_p]
-        tij_p = self.pair_type(ti_p, t_n[j_p])
+        tij_p = self.neighbourhood.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
-        tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
-        tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
+        tij_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ij_t]])
+        tik_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        G_t = self.G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
         F_p = self.F(r_p, xi_p, ti_p, tij_p)
         d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
         d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
-        d2F_d2G_t = (d2F_p[ij_t] * d2G_tc.T).T
+        d2F_d2G_t = d2F_p[ij_t][_c] * d2G_tc
 
         # calculate energy
         epot = 0.5 * np.sum(F_p)
 
         # calculate forces (per pair)
-        f_pc = (d1F_p * n_pc.T
-                + d2F_p * mabincount(ij_t, d1G_tc, nb_pairs).T
-                + mabincount(ik_t, d2F_d2G_t, nb_pairs).T).T
+        f_pc = (d1F_p[_c] * n_pc
+                + d2F_p[_c] * mabincount(ij_t, d1G_tc, nb_pairs)
+                + mabincount(ik_t, d2F_d2G_t, nb_pairs))
 
         # collect atomic forces
-        f_nc = 0.5 * (mabincount(i_p, f_pc, nb_atoms) - mabincount(j_p, f_pc, nb_atoms))
+        f_nc = 0.5 * (mabincount(i_p, f_pc, nb_atoms)
+                      - mabincount(j_p, f_pc, nb_atoms))
 
-        # Virial 
-        virial_v = 0.5 * np.array([r_pc[:, 0] * f_pc.T[0],  # xx
-                                   r_pc[:, 1] * f_pc.T[1],  # yy
-                                   r_pc[:, 2] * f_pc.T[2],  # zz
-                                   r_pc[:, 1] * f_pc.T[2],  # yz
-                                   r_pc[:, 0] * f_pc.T[2],  # xz
-                                   r_pc[:, 0] * f_pc.T[1]]).sum(axis=1)  # xy
+        # Virial
+        virial_v = np.concatenate([
+            # diagonal components (xx, yy, zz)
+            np.einsum('pi,pi->i', r_pc, f_pc),
 
-        self.results = {'free_energy': epot,
-                        'energy': epot,
-                        'stress': virial_v / self.atoms.get_volume(),
-                        'forces': f_nc}
+            # off-diagonal (yz, xz, xy)
+            np.einsum('pi,pi->i', r_pc[:, (1, 0, 0)], f_pc[:, (2, 2, 1)])
+        ])
+
+        virial_v *= 0.5
+
+        self.results.update({'free_energy': epot,
+                             'energy': epot,
+                             'stress': virial_v / atoms.get_volume(),
+                             'forces': f_nc})
 
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
-        """
-        Calculate the Hessian matrix for a bond order potential.
-        For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
-        with a shape of (d*N,d*N). The matrix is in general a sparse matrix, which consists of dense blocks of shape (d,d), which
-        are the mixed second derivatives.
+        """Calculate the Hessian matrix for a generic many-body potential.
+
+        For an atomic configuration with N atoms in d dimensions the hessian
+        matrix is a symmetric, hermitian matrix with a shape of (d*N,d*N). The
+        matrix is in general a sparse matrix, which consists of dense blocks of
+        shape (d,d), which are the mixed second derivatives.
 
         Parameters
         ----------
-        atoms: ase.Atoms
+        atoms : ase.Atoms
             Atomic configuration in a local or global minima.
 
-        format: "sparse" or "neighbour-list"
+        format : "sparse" or "neighbour-list"
             Output format of the hessian matrix.
 
-        divide_by_masses: bool
-        	if true return the dynamic matrix else hessian matrix 
+        divide_by_masses : bool
+            if true return the dynamic matrix else hessian matrix
 
-		Returns
-		-------
-		bsr_matrix
-			either hessian or dynamic matrix
+        Returns
+        -------
+        bsr_matrix
+            either hessian or dynamic matrix
 
         Restrictions
         ----------
         This method is currently only implemented for three dimensional systems
+
         """
         if self.atoms is None:
             self.atoms = atoms
 
         # get internal atom types from atomic numbers
-        t_n = self.atom_type(atoms.numbers)
+        t_n = self.neighbourhood.atom_type(atoms.numbers)
         cutoff = self.get_cutoff(atoms)
+        self.neighbourhood.cutoff = 2 * cutoff
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * cutoff)
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, "ijdD")
 
         mask_p = r_p > cutoff
 
@@ -209,33 +248,36 @@ class Manybody(Calculator):
         tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
 
         # normal vectors
-        n_pc = (r_pc.T / r_p).T
+        n_pc = r_pc / r_p[_c]
 
-        # construct triplet list (we need jk_t here, hence neighbor must be to 2 * cutoff)
+        # construct triplet list (need jk_t here, neighbor must be to 2*cutoff)
+        self.neighbourhood.cutoff = cutoff
+        ij_t, ik_t, jk_t, r_tq, r_tqc = \
+            self.neighbourhood.get_triplets(atoms, "ijkdD",
+                                            neighbours=[i_p, j_p, r_p, r_pc])
         first_n = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
         first_p = first_neighbours(len(i_p), ij_t)
         nb_triplets = len(ij_t)
 
         # construct lists with atom and pair types
         ti_p = t_n[i_p]
-        tij_p = self.pair_type(ti_p, t_n[j_p])
+        tij_p = self.neighbourhood.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
-        tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
-        tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
+        tij_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ij_t]])
+        tik_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        G_t = self.G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d11G_tcc = self.d11G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d12G_tcc = self.d12G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d22G_tcc = self.d22G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
         d1F_p = self.d1F(r_p, xi_p, ti_p, tij_p)
-        d1F_p[mask_p] = 0.0  # we need to explicitly exclude everything with r > cutoff
+        d1F_p[mask_p] = 0.0  # explicitly exclude everything with r > cutoff
         d2F_p = self.d2F(r_p, xi_p, ti_p, tij_p)
         d2F_p[mask_p] = 0.0
         d11F_p = self.d11F(r_p, xi_p, ti_p, tij_p)
@@ -245,36 +287,39 @@ class Manybody(Calculator):
         d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
         d22F_p[mask_p] = 0.0
 
+        # normal vectors for triplets
+        n_tqc = r_tqc / r_tq[_c]
+
         # Hessian term #4
         nn_pcc = _o(n_pc, n_pc)
-        H_pcc = -(d1F_p * (np.eye(3) - nn_pcc).T / r_p).T
+        H_pcc = -(d1F_p[_cc] * (np.eye(3) - nn_pcc) / r_p[_cc])
 
         # Hessian term #1
-        H_pcc -= (d11F_p * nn_pcc.T).T
+        H_pcc -= d11F_p[_cc] * nn_pcc
 
         # Hessian term #2
-        H_temp3_t = (d12F_p[ij_t] * _o(d2G_tc, n_pc[ij_t]).T).T
-        H_temp4_t = (d12F_p[ij_t] * _o(d1G_tc, n_pc[ij_t]).T).T
+        H_temp3_t = d12F_p[ij_t][_cc] * _o(d2G_tc, n_tqc[:, 0])
+        H_temp4_t = d12F_p[ij_t][_cc] * _o(d1G_tc, n_tqc[:, 0])
 
         # Hessian term #5
-        H_temp2_t = (d2F_p[ij_t] * d22G_tcc.T).T
-        H_temp_t = (d2F_p[ij_t] * d11G_tcc.T).T
-        H_temp1_t = (d2F_p[ij_t] * d12G_tcc.T).T
+        H_temp2_t = d2F_p[ij_t][_cc] * d22G_tcc
+        H_temp_t = d2F_p[ij_t][_cc] * d11G_tcc
+        H_temp1_t = d2F_p[ij_t][_cc] * d12G_tcc
 
         # Hessian term #3
 
-        ## Terms involving D_1 * D_1
+        # Terms involving D_1 * D_1
         d1G_pc = mabincount(ij_t, d1G_tc, nb_pairs)
-        H_pcc -= (d22F_p * _o(d1G_pc, d1G_pc).T).T
+        H_pcc -= d22F_p[_cc] * _o(d1G_pc, d1G_pc)
 
-        ## Terms involving D_2 * D_2
+        # Terms involving D_2 * D_2
         d2G_pc = mabincount(ij_t, d2G_tc, nb_pairs)
-        Q1 = _o((d22F_p * d2G_pc.T).T[ij_t], d2G_tc)
+        Q1 = _o((d22F_p[_c] * d2G_pc)[ij_t], d2G_tc)
 
-        ## Terms involving D_1 * D_2
-        Q2 = _o((d22F_p * d1G_pc.T).T[ij_t], d2G_tc)
+        # Terms involving D_1 * D_2
+        Q2 = _o((d22F_p[_c] * d1G_pc)[ij_t], d2G_tc)
 
-        H_pcc -= (d22F_p * _o(d2G_pc, d1G_pc).T).T
+        H_pcc -= d22F_p[_cc] * _o(d2G_pc, d1G_pc)
 
         H_pcc += \
             - mabincount(ij_t, weights=H_temp_t, minlength=nb_pairs) \
@@ -302,11 +347,13 @@ class Manybody(Calculator):
             for t in range(first_p[il], first_p[il + 1]):
                 ij = ik_t[t]
                 if ij != il and ij != im:
-                    r_p_ij = np.array([r_pc[ij]])
-                    r_p_il = np.array([r_pc[il]])
-                    r_p_im = np.array([r_pc[im]])
-                    H_pcc[lm, :, :] += (0.5 * d22F_p[ij] * (_o(self.d2G(r_p_ij, r_p_il, ti, tij, til),
-                                                               self.d2G(r_p_ij, r_p_im, ti, tij, tim))).T).T.squeeze()
+                    r_p_ij = r_pc[ij][np.newaxis, :]
+                    r_p_il = r_pc[il][np.newaxis, :]
+                    r_p_im = r_pc[im][np.newaxis, :]
+                    H_pcc[lm, :, :] += np.squeeze(np.transpose(
+                        0.5 * d22F_p[ij]
+                        * (_o(self.d2G(r_p_ij, r_p_il, ti, tij, til),
+                              self.d2G(r_p_ij, r_p_im, ti, tij, tim))).T))
 
         # Add the conjugate terms (symmetrize Hessian)
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
@@ -316,14 +363,17 @@ class Manybody(Calculator):
             H_acc = np.zeros([nb_atoms, 3, 3])
             for x in range(3):
                 for y in range(3):
-                    H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y])
+                    H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y],
+                                                  minlength=nb_atoms)
 
             if divide_by_masses:
                 mass_nat = atoms.get_masses()
                 geom_mean_mass_n = np.sqrt(mass_nat[i_p] * mass_nat[j_p])
                 return \
-                    bsr_matrix(((H_pcc.T / (2 * geom_mean_mass_n)).T, j_p, first_n), shape=(3 * nb_atoms, 3 * nb_atoms)) \
-                    + bsr_matrix(((H_acc.T / (2 * mass_nat)).T, np.arange(nb_atoms), np.arange(nb_atoms + 1)),
+                    bsr_matrix(((H_pcc.T / (2 * geom_mean_mass_n)).T, j_p, first_n),
+                               shape=(3 * nb_atoms, 3 * nb_atoms)) \
+                    + bsr_matrix(((H_acc.T / (2 * mass_nat)).T, np.arange(nb_atoms),
+                                  np.arange(nb_atoms + 1)),
                                  shape=(3 * nb_atoms, 3 * nb_atoms))
             else:
                 return \
@@ -335,9 +385,10 @@ class Manybody(Calculator):
         elif format == "neighbour-list":
             return H_pcc / 2, i_p, j_p, r_pc, r_p
 
-    def get_second_derivative(self, atoms, drda_pc, drdb_pc, i_p=None, j_p=None, r_p=None, r_pc=None):
-        """
-        Calculate the second derivative of the energy with respect to arbitrary variables a and b.
+    def get_second_derivative(self, atoms, drda_pc, drdb_pc,
+                              i_p=None, j_p=None, r_p=None, r_pc=None):
+        """Calculate the second derivative of the energy with respect to
+        arbitrary variables a and b.
 
         Parameters
         ----------
@@ -354,9 +405,9 @@ class Manybody(Calculator):
             Second atom index
 
         r_p: array
-            Absolute distance 
+            Absolute distance
 
-        r_pc: array 
+        r_pc: array
             Distance vector
 
         """
@@ -364,41 +415,42 @@ class Manybody(Calculator):
             self.atoms = atoms
 
         # get internal atom types from atomic numbers
-        t_n = self.atom_type(atoms.numbers)
+        t_n = self.neighbourhood.atom_type(atoms.numbers)
         cutoff = self.get_cutoff(atoms)
+        self.neighbourhood.cutoff = cutoff
 
         if i_p is None or j_p is None or r_p is None or r_pc is None:
             # We need to construct the neighbor list ourselves
-            i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
+            i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, "ijdD")
 
-        nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
         # normal vectors
-        n_pc = (r_pc.T / r_p).T
+        n_pc = r_pc / r_p[_c]
 
         # derivative of the lengths of distance vectors
-        drda_p = (n_pc * drda_pc).sum(axis=1)
-        drdb_p = (n_pc * drdb_pc).sum(axis=1)
+        drda_p = np.einsum('...i,...i', n_pc, drda_pc)
+        drdb_p = np.einsum('...i,...i', n_pc, drdb_pc)
 
-        # construct triplet list (we don't need jk_t here, hence neighbor to cutoff suffices)
-        first_n = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
+        # construct triplet list (no jk_t here, hence 1x cutoff suffices)
+        ij_t, ik_t, r_tq, r_tqc = \
+            self.neighbourhood.get_triplets(atoms, "ijdD",
+                                            neighbours=[i_p, j_p, r_p, r_pc])
 
         # construct lists with atom and pair types
         ti_p = t_n[i_p]
-        tij_p = self.pair_type(ti_p, t_n[j_p])
+        tij_p = self.neighbourhood.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
-        tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
-        tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
+        tij_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ij_t]])
+        tik_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        G_t = self.G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d11G_tcc = self.d11G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d12G_tcc = self.d12G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d22G_tcc = self.d22G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
@@ -409,32 +461,44 @@ class Manybody(Calculator):
         d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
 
         # Term 1
-        T1 = (d11F_p * drda_p * drdb_p).sum()
+        T1 = np.einsum('i,i,i', d11F_p, drda_p, drdb_p)
 
         # Term 2
-        T2 = (d12F_p[ij_t] * (d2G_tc * drda_pc[ik_t]).sum(axis=1) * drdb_p[ij_t]).sum()
-        T2 += (d12F_p[ij_t] * (d2G_tc * drdb_pc[ik_t]).sum(axis=1) * drda_p[ij_t]).sum()
-        T2 += (d12F_p[ij_t] * (d1G_tc * drda_pc[ij_t]).sum(axis=1) * drdb_p[ij_t]).sum()
-        T2 += (d12F_p[ij_t] * (d1G_tc * drdb_pc[ij_t]).sum(axis=1) * drda_p[ij_t]).sum()
+        T2_path = np.einsum_path('p,pc,pc,p', d12F_p[ij_t], d2G_tc,
+                                 drda_pc[ik_t], drdb_p[ij_t])[0]
+        T2 = np.einsum('p,pc,pc,p', d12F_p[ij_t], d2G_tc,
+                       drda_pc[ik_t], drdb_p[ij_t], optimize=T2_path)
+        T2 += np.einsum('p,pc,pc,p', d12F_p[ij_t], d2G_tc,
+                        drdb_pc[ik_t], drda_p[ij_t], optimize=T2_path)
+        T2 += np.einsum('p,pc,pc,p', d12F_p[ij_t], d1G_tc,
+                        drda_pc[ij_t], drdb_p[ij_t], optimize=T2_path)
+        T2 += np.einsum('p,pc,pc,p', d12F_p[ij_t], d1G_tc,
+                        drdb_pc[ij_t], drda_p[ij_t], optimize=T2_path)
 
         # Term 3
-        dxida_t = (d1G_tc * drda_pc[ij_t]).sum(axis=1) + (d2G_tc * drda_pc[ik_t]).sum(axis=1)
-        dxidb_t = (d1G_tc * drdb_pc[ij_t]).sum(axis=1) + (d2G_tc * drdb_pc[ik_t]).sum(axis=1)
-        T3 = (d22F_p *
-              np.bincount(ij_t, weights=dxida_t, minlength=nb_pairs) *
-              np.bincount(ij_t, weights=dxidb_t, minlength=nb_pairs)).sum()
+        contract = lambda x, y: np.einsum('...j,...j', x, y)
+        dxida_t = \
+            contract(d1G_tc, drda_pc[ij_t]) + contract(d2G_tc, drda_pc[ik_t])
+        dxidb_t = \
+            contract(d1G_tc, drdb_pc[ij_t]) + contract(d2G_tc, drdb_pc[ik_t])
+        T3 = np.einsum(
+            'i,i,i',
+            d22F_p.flatten(),
+            np.bincount(ij_t, weights=dxida_t, minlength=nb_pairs).flatten(),
+            np.bincount(ij_t, weights=dxidb_t, minlength=nb_pairs).flatten())
 
         # Term 4
-        Q_pcc = ((np.eye(3) - _o(n_pc, n_pc)).T / r_p).T
+        Q_pcc = (np.eye(3) - _o(n_pc, n_pc)) / r_p[_cc]
 
-        T4 = (d1F_p * ((Q_pcc * drda_pc.reshape(-1, 3, 1)).sum(axis=1) * drdb_pc).sum(axis=1)).sum()
+        T4 = np.einsum('p,pij,pi,pj', d1F_p, Q_pcc, drda_pc, drdb_pc)
 
         # Term 5
-        T5_t = ((d11G_tcc * drdb_pc[ij_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ij_t]).sum(axis=1)
-        T5_t += ((drdb_pc[ik_t].reshape(-1, 1, 3) * d12G_tcc).sum(axis=2) * drda_pc[ij_t]).sum(axis=1)
-        T5_t += ((drdb_pc[ij_t].reshape(-1, 3, 1) * d12G_tcc).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
-        T5_t += ((d22G_tcc * drdb_pc[ik_t].reshape(-1, 3, 1)).sum(axis=1) * drda_pc[ik_t]).sum(axis=1)
-        T5 = (d2F_p * np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
+        T5_t = np.einsum('tij,ti,tj->t', d11G_tcc, drdb_pc[ij_t], drda_pc[ij_t])
+        T5_t += np.einsum('tij,tj,ti->t', d12G_tcc, drdb_pc[ik_t], drda_pc[ij_t])
+        T5_t += np.einsum('tij,ti,tj->t', d12G_tcc, drdb_pc[ij_t], drda_pc[ik_t])
+        T5_t += np.einsum('tij,ti,tj->t', d22G_tcc, drdb_pc[ik_t], drda_pc[ik_t])
+        T5 = contract(d2F_p.flatten(),
+                      np.bincount(ij_t, weights=T5_t, minlength=nb_pairs)).sum()
 
         return T1 + T2 + T3 + T4 + T5
 
@@ -452,7 +516,8 @@ class Manybody(Calculator):
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.get_cutoff(atoms))
+        self.neighbourhood.cutoff = 2 * self.get_cutoff(atoms)
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, "ijdD")
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -470,13 +535,15 @@ class Manybody(Calculator):
                         drdb_pc[i_p == l, cl] = 1
                         drdb_pc[j_p == l, cl] = -1
                         H_ab[3 * m + cm, 3 * l + cl] = \
-                            self.get_second_derivative(atoms, drda_pc, drdb_pc, i_p=i_p, j_p=j_p, r_p=r_p, r_pc=r_pc)
+                            self.get_second_derivative(atoms, drda_pc, drdb_pc,
+                                                       i_p=i_p, j_p=j_p,
+                                                       r_p=r_p, r_pc=r_pc)
 
         return H_ab / 2
 
     def get_non_affine_forces_from_second_derivative(self, atoms):
         """
-        Compute the analytical non-affine forces.  
+        Compute the analytical non-affine forces.
 
         Parameters
         ----------
@@ -488,7 +555,8 @@ class Manybody(Calculator):
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.get_cutoff(atoms))
+        self.neighbourhood.cutoff = 2 * self.get_cutoff(atoms)
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, "ijdD")
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
@@ -510,7 +578,7 @@ class Manybody(Calculator):
 
     def get_born_elastic_constants(self, atoms):
         """
-        Compute the Born elastic constants. 
+        Compute the Born elastic constants.
 
         Parameters
         ----------
@@ -522,7 +590,8 @@ class Manybody(Calculator):
         if self.atoms is None:
             self.atoms = atoms
 
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=2 * self.get_cutoff(atoms))
+        self.neighbourhood.cutoff = 2 * self.get_cutoff(atoms)
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, "ijdD")
 
         nb_pairs = len(i_p)
 
@@ -545,202 +614,41 @@ class Manybody(Calculator):
 
         return C_abab
 
-    def get_stress_contribution_to_elastic_constants(self, atoms):
-        """
-        Compute the correction to the elastic constants due to non-zero stress in the configuration.
-        Stress term  results from working with the Cauchy stress.
-
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
-
-        stress_ab = Voigt_6_to_full_3x3_stress(atoms.get_stress())
-        delta_ab = np.identity(3)
-
-        # Term 1
-        C1_abab = -stress_ab.reshape(3, 3, 1, 1) * delta_ab.reshape(1, 1, 3, 3)
-        C1_abab = (C1_abab + C1_abab.swapaxes(0, 1) + C1_abab.swapaxes(2, 3) + C1_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
-
-        # Term 2
-        C2_abab = (stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3) + \
-                   stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1) + \
-                   stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3) + \
-                   stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1))/4
-
-        return C1_abab + C2_abab
-
-    def get_birch_coefficients(self, atoms):
-        """
-        Compute the Birch coefficients (Effective elastic constants at non-zero stress). 
-        
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
-
-        if self.atoms is None:
-            self.atoms = atoms
-
-        # Born (affine) elastic constants
-        calculator = atoms.get_calculator()
-        bornC_abab = calculator.get_born_elastic_constants(atoms)
-
-        # Stress contribution to elastic constants
-        stressC_abab = calculator.get_stress_contribution_to_elastic_constants(atoms)
-
-        return bornC_abab + stressC_abab
-
-    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "tol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
-        """
-        Compute the correction of non-affine displacements to the elasticity tensor.
-        The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.
-
-        If eigenvalues and and eigenvectors are given the inverse of the Hessian can be easily computed.
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        eigenvalues: array
-            Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
-            If given, use eigenvalues and eigenvectors to compute non-affine contribution. 
-
-        eigenvectors: array
-            Eigenvectors corresponding to eigenvalues.
-
-        cg_parameters: dict
-            Dictonary for the conjugate-gradient solver.
-
-            x0: {array, matrix}
-                Starting guess for the solution.
-
-            tol/atol: float, optional
-                Tolerances for convergence, norm(residual) <= max(tol*norm(b), atol).
-
-            maxiter: int
-                Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.
-
-            M: {sparse matrix, dense matrix, LinearOperator}
-                Preconditioner for A.
-                
-            callback: function  
-                User-supplied function to call after each iteration.
-
-        pc_parameters: dict
-            Dictonary for the incomplete LU decomposition of the Hessian.
-
-            A: array_like
-                Sparse matrix to factorize.
-
-            drop_tol: float
-                Drop tolerance for an incomplete LU decomposition.
-
-            fill_factor: float
-                Specifies the fill ratio upper bound.
-
-            drop_rule: str
-                Comma-separated string of drop rules to use.
-
-            permc_spec: str
-                How to permute the columns of the matrix for sparsity.
-
-            diag_pivot_thresh: float
-                Threshold used for a diagonal entry to be an acceptable pivot.
-
-            relax: int
-                Expert option for customizing the degree of relaxing supernodes.
-
-            panel_size: int
-                Expert option for customizing the panel size.
-
-            options: dict 
-                Dictionary containing additional expert options to SuperLU.
-        """
-
-        nat = len(atoms)
-
-        calc = atoms.get_calculator()    
-
-        if (eigenvalues is not None) and (eigenvectors is not None):
-            naforces_icab = calc.get_non_affine_forces(atoms)
-
-            G_incc = (eigenvectors.T).reshape(-1, 3*nat, 1, 1) * naforces_icab.reshape(1, 3*nat, 3, 3)
-            G_incc = (G_incc.T / np.sqrt(eigenvalues)).T
-            G_icc  = np.sum(G_incc, axis=1)
-            C_abab = np.sum(G_icc.reshape(-1,3,3,1,1) * G_icc.reshape(-1,1,1,3,3), axis=0)
-
-        else:
-            H_nn = calc.get_hessian(atoms)
-            naforces_icab = calc.get_non_affine_forces(atoms)
-
-            if pc_parameters != None:
-                # Transform H to csc 
-                H_nn = H_nn.tocsc()
-
-                # Compute incomplete LU 
-                approx_Hinv = spilu(H_nn, **pc_parameters)
-                operator_Hinv = LinearOperator(H_nn.shape, approx_Hinv.solve)
-                cg_parameters["M"] = operator_Hinv
-
-            D_iab = np.zeros((3*nat, 3, 3))
-            for i in range(3):
-                for j in range(3):
-                    x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), **cg_parameters)
-                    if info != 0:
-                        print("info: ", info)
-                        raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
-                    D_iab[:,i,j] = x
-
-            C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
-        
-        # Symmetrize 
-        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4             
-
-        return -C_abab / atoms.get_volume()
-
-    def get_non_affine_forces(self, atoms):
+    def get_nonaffine_forces(self, atoms):
         if self.atoms is None:
             self.atoms = atoms
 
         # get internal atom types from atomic numbers
-        t_n = self.atom_type(atoms.numbers)
-        cutoff = self.get_cutoff(atoms)
+        t_n = self.neighbourhood.atom_type(atoms.numbers)
+        self.neighbourhood.cutoff = self.get_cutoff(atoms)
 
         # construct neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms=atoms, cutoff=cutoff)
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijdD')
 
         nb_atoms = len(self.atoms)
         nb_pairs = len(i_p)
 
         # normal vectors
-        n_pc = (r_pc.T / r_p).T
-        dn_pcc = ((np.eye(3) - _o(n_pc, n_pc)).T / r_p).T
+        n_pc = r_pc / r_p[_c]
+        dn_pcc = (np.eye(3) - _o(n_pc, n_pc)) / r_p[_cc]
 
-        # construct triplet list (we don't need jk_t here, hence neighbor to cutoff suffices)
-        first_n = first_neighbours(nb_atoms, i_p)
-        ij_t, ik_t, jk_t = triplet_list(first_n, r_p, cutoff, i_p, j_p)
+        # construct triplet list (no jk_t here, neighbor to cutoff suffices)
+        ij_t, ik_t, r_tq, r_tqc = self.neighbourhood.get_triplets(atoms, "ijdD")
 
         # construct lists with atom and pair types
         ti_p = t_n[i_p]
-        tij_p = self.pair_type(ti_p, t_n[j_p])
+        tij_p = self.neighbourhood.pair_type(ti_p, t_n[j_p])
         ti_t = t_n[i_p[ij_t]]
-        tij_t = self.pair_type(ti_t, t_n[j_p[ij_t]])
-        tik_t = self.pair_type(ti_t, t_n[j_p[ik_t]])
+        tij_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ij_t]])
+        tik_t = self.neighbourhood.pair_type(ti_t, t_n[j_p[ik_t]])
 
         # potential-dependent functions
-        G_t = self.G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d1G_tc = self.d1G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d2G_tc = self.d2G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d11G_tcc = self.d11G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d12G_tcc = self.d12G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
-        d22G_tcc = self.d22G(r_pc[ij_t], r_pc[ik_t], ti_t, tij_t, tik_t)
+        G_t = self.G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d1G_tc = self.d1G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d2G_tc = self.d2G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d11G_tcc = self.d11G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d12G_tcc = self.d12G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
+        d22G_tcc = self.d22G(r_tqc[:, 0], r_tqc[:, 1], ti_t, tij_t, tik_t)
 
         xi_p = np.bincount(ij_t, weights=G_t, minlength=nb_pairs)
 
@@ -751,7 +659,8 @@ class Manybody(Calculator):
         d22F_p = self.d22F(r_p, xi_p, ti_p, tij_p)
 
         # Derivative of xi with respect to the deformation gradient
-        dxidF_pab = mabincount(ij_t, _o(d1G_tc, r_pc[ij_t]) + _o(d2G_tc, r_pc[ik_t]), minlength=nb_pairs)
+        dxidF_pab = mabincount(ij_t, _o(d1G_tc, r_pc[ij_t])
+                               + _o(d2G_tc, r_pc[ik_t]), minlength=nb_pairs)
 
         # Term 1
         naF1_ncab = d11F_p.reshape(-1, 1, 1, 1) * _o(n_pc, n_pc, r_pc)
@@ -762,35 +671,40 @@ class Manybody(Calculator):
                                       + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])
                                       + _o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
-        naF22_tcab = -(d12F_p[ij_t] * (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
-                                       + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t])
-                                       + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
+        naF22_tcab = -(d12F_p[ij_t] *
+                       (_o(n_pc[ij_t], d1G_tc, r_pc[ij_t])
+                        + _o(n_pc[ij_t], d2G_tc, r_pc[ik_t])
+                        + _o(d1G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
         naF23_tcab = -(d12F_p[ij_t] * (_o(d2G_tc, n_pc[ij_t], r_pc[ij_t])).T).T
 
         # Term 3
-        naF31_tcab = \
-            d22F_p[ij_t].reshape(-1, 1, 1, 1) * d1G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
-        naF32_tcab = \
-            d22F_p[ij_t].reshape(-1, 1, 1, 1) * d2G_tc.reshape(-1, 3, 1, 1) * dxidF_pab[ij_t].reshape(-1, 1, 3, 3)
+        naF31_tcab = (d22F_p[ij_t].reshape(-1, 1, 1, 1)
+                      * d1G_tc.reshape(-1, 3, 1, 1)
+                      * dxidF_pab[ij_t].reshape(-1, 1, 3, 3))
+        naF32_tcab = (d22F_p[ij_t].reshape(-1, 1, 1, 1)
+                      * d2G_tc.reshape(-1, 3, 1, 1)
+                      * dxidF_pab[ij_t].reshape(-1, 1, 3, 3))
 
         # Term 4
-        naF4_ncab = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1) * r_pc.reshape(-1, 1, 1, 3)).T).T
+        naF4_ncab = (d1F_p * (dn_pcc.reshape(-1, 3, 3, 1)
+                              * r_pc.reshape(-1, 1, 1, 3)).T).T
 
         # Term 5
         naF51_tcab = (d2F_p[ij_t] * (
-                d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
-                + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)
-                + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)
-                + (d12G_tcc.reshape(-1, 3, 3, 1)).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
+            d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
+            + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)
+            + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)
+            + (d12G_tcc.reshape(-1, 3, 3, 1)).swapaxes(1, 2)
+            * r_pc[ij_t].reshape(-1, 1, 1, 3)).T).T
 
         naF52_tcab = -(d2F_p[ij_t] * (
-                d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
-                + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
+            d11G_tcc.reshape(-1, 3, 3, 1) * r_pc[ij_t].reshape(-1, 1, 1, 3)
+            + d12G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
 
         naF53_tcab = -(d2F_p[ij_t] * (
-                d12G_tcc.reshape(-1, 3, 3, 1).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3)
-                + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
+            d12G_tcc.reshape(-1, 3, 3, 1).swapaxes(1, 2) * r_pc[ij_t].reshape(-1, 1, 1, 3)
+            + d22G_tcc.reshape(-1, 3, 3, 1) * r_pc[ik_t].reshape(-1, 1, 1, 3)).T).T
 
         naforces_icab = \
             mabincount(i_p, naF1_ncab, minlength=nb_atoms) \
@@ -809,3 +723,66 @@ class Manybody(Calculator):
             + mabincount(j_p[ik_t], naF53_tcab, minlength=nb_atoms)
 
         return naforces_icab / 2
+
+
+class NiceManybody(Manybody):
+    """Manybody calculator with nicer API."""
+
+    class F(ABC):
+        """Pair potential."""
+
+        @abstractmethod
+        def __call__(self, r, xi, atom_type, pair_type):
+            """Compute energy."""
+        @abstractmethod
+        def gradient(self, r, xi, atom_type, pair_type):
+            """Compute gradient."""
+        @abstractmethod
+        def hessian(self, r, xi, atom_type, pair_type):
+            """Compute hessian."""
+
+    class G(ABC):
+        """Triplet potential."""
+
+        @abstractmethod
+        def __call__(self, r_ij, r_ik, atom_type, ij_type, ik_type):
+            """Compute energy."""
+        @abstractmethod
+        def gradient(self, r_ij, r_ik, atom_type, ij_type, ik_type):
+            """Compute gradient."""
+        @abstractmethod
+        def hessian(self, r_ij, r_ik, atom_type, ij_type, ik_type):
+            """Compute hessian."""
+
+        @staticmethod
+        def _distance_triplet(rij, rik, cell, pbc):
+            D, d = find_mic(
+                np.concatenate([rij, rik, rik-rij]),
+                cell, pbc)
+            return D.reshape(3, -1, 3), d.reshape(3, -1)
+
+    def __init__(self, F, G, neighbourhood):
+        """Init with pair & triplet potential + neighbourhood."""
+        d1F, d2F = self._split_call(F.gradient, 2)
+        d11F, d22F, d12F = self._split_call(F.hessian, 3)
+        d1G, d2G = self._split_call(G.gradient, 2)
+        d11G, d22G, d12G = self._split_call(G.hessian, 3)
+
+        super().__init__(
+            neighbourhood.atom_type,
+            neighbourhood.pair_type,
+            F=F.__call__, G=G.__call__,
+            d1F=d1F, d2F=d2F,
+            d11F=d11F, d22F=d22F, d12F=d12F,
+            d1G=d1G, d11G=d11G, d2G=d2G, d22G=d22G, d12G=d12G,
+            cutoff=neighbourhood.cutoff,
+            neighbourhood=neighbourhood)
+
+    @staticmethod
+    def _split_call(func, n):
+        def wrap(func, i, *args):
+            return np.asanyarray(func(*args))[i]
+
+        def make_lambda(i):
+            return lambda *args: wrap(func, i, *args)
+        return (make_lambda(i) for i in range(n))

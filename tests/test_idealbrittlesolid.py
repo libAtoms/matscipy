@@ -48,9 +48,12 @@ import ase
 import ase.lattice.hexagonal
 
 import matscipytest
-from matscipy.fracture_mechanics.idealbrittlesolid import (find_triangles_2d,
-                                                           IdealBrittleSolid,
-                                                           triangular_lattice_slab)
+from matscipy.fracture_mechanics.idealbrittlesolid import (
+    find_triangles_2d,
+    IdealBrittleSolid,
+    triangular_lattice_slab,
+)
+from matscipy.numerical import numerical_forces, numerical_stress
 
 ###
 
@@ -64,10 +67,10 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         a.set_calculator(calc)
         a.rattle(0.1)
         f = a.get_forces()
-        fn = calc.calculate_numerical_forces(a)
+        fn = numerical_forces(a)
         self.assertArrayAlmostEqual(f, fn, tol=self.tol)
         self.assertArrayAlmostEqual(a.get_stress(),
-                                    calc.calculate_numerical_stress(a),
+                                    numerical_stress(a),
                                     tol=self.tol)
 
     def test_forces_linear(self):
@@ -77,7 +80,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         a.set_calculator(calc)
         a.rattle(0.01)
         f = a.get_forces()
-        fn = calc.calculate_numerical_forces(a)
+        fn = numerical_forces(a)
         self.assertArrayAlmostEqual(f, fn, tol=self.tol)
 
     def test_two_triangles(self):

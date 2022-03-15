@@ -25,3 +25,4 @@
 from .kumagai import Kumagai
 from .tersoff_brenner import TersoffBrenner
 from .stillinger_weber import StillingerWeber
+from .harmonic import ZeroPair, ZeroTriplet, HarmonicBond, HarmonicAngle

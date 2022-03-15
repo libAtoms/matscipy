@@ -29,6 +29,7 @@ import numpy as np
 import scipy.stats as scipy_stats
 from numpy.linalg import inv, norm
 from scipy.linalg import sqrtm
+from scipy.sparse.linalg import cg
 
 import ase.units as units
 from ase.atoms import Atoms
@@ -100,13 +101,13 @@ def Voigt_6x6_to_full_3x3x3x3(C):
     ----------
     C : array_like
         6x6 stiffness matrix (Voigt notation).
-    
+
     Returns
     -------
     C : array_like
         3x3x3x3 stiffness matrix.
     """
-    
+
     C = np.asarray(C)
     C_out = np.zeros((3,3,3,3), dtype=float)
     for i, j, k, l in itertools.product(range(3), range(3), range(3), range(3)):
@@ -247,7 +248,7 @@ def invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
 
 def rotate_cubic_elastic_constants(C11, C12, C44, A, tol=1e-6):
     """
-    Return rotated elastic moduli for a cubic crystal given the elastic 
+    Return rotated elastic moduli for a cubic crystal given the elastic
     constant in standard C11, C12, C44 notation.
 
     Parameters
@@ -266,7 +267,7 @@ def rotate_cubic_elastic_constants(C11, C12, C44, A, tol=1e-6):
     A = np.asarray(A)
 
     # Is this a rotation matrix?
-    if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
+    if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) -
                           np.eye(3, dtype=float)) > tol):
         raise RuntimeError('Matrix *A* does not describe a rotation.')
 
@@ -297,7 +298,7 @@ def rotate_cubic_elastic_constants(C11, C12, C44, A, tol=1e-6):
 
 def rotate_elastic_constants(C, A, tol=1e-6):
     """
-    Return rotated elastic moduli for a general crystal given the elastic 
+    Return rotated elastic moduli for a general crystal given the elastic
     constant in Voigt notation.
 
     Parameters
@@ -316,7 +317,7 @@ def rotate_elastic_constants(C, A, tol=1e-6):
     A = np.asarray(A)
 
     # Is this a rotation matrix?
-    if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
+    if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) -
                           np.eye(3, dtype=float)) > tol):
         raise RuntimeError('Matrix *A* does not describe a rotation.')
 
@@ -357,7 +358,7 @@ class CubicElasticModuli:
         A = np.asarray(A)
 
         # Is this a rotation matrix?
-        if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
+        if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) -
                               np.eye(3, dtype=float)) > self.tol):
             raise RuntimeError('Matrix *A* does not describe a rotation.')
 
@@ -388,7 +389,7 @@ class CubicElasticModuli:
         A = np.asarray(A)
 
         # Is this a rotation matrix?
-        if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) - 
+        if np.sometrue(np.abs(np.dot(np.array(A), np.transpose(np.array(A))) -
                               np.eye(3, dtype=float) ) > self.tol):
             raise RuntimeError('Matrix *A* does not describe a rotation.')
 
@@ -434,7 +435,7 @@ class CubicElasticModuli:
 
 ###
 
-def measure_triclinic_elastic_constants(a, delta=0.001, optimizer=None, 
+def measure_triclinic_elastic_constants(a, delta=0.001, optimizer=None,
                                         logfile=None, **kwargs):
     """
     Brute-force measurement of elastic constants for a triclinic (general)
@@ -469,7 +470,7 @@ def measure_triclinic_elastic_constants(a, delta=0.001, optimizer=None,
         for j in range(3):
             a.set_cell(cell, scale_atoms=True)
             a.set_positions(r0)
-        
+
             e = np.zeros((3, 3))
             e[i, j] += 0.5*delta
             e[j, i] += 0.5*delta
@@ -552,7 +553,7 @@ Cij_symmetry = {
                                 [ 0,  0,  0,  4,  0,  20],
                                 [10, 14, 17,  0,  5,  0],
                                 [ 0,  0,  0, 20,  0,  6]]),
-    
+
     'triclinic':       np.array([[ 1,  7,  8,  9,  10, 11],
                                  [ 7,  2, 12,  13, 14, 15],
                                  [ 8, 12,  3,  16, 17, 18],
@@ -740,7 +741,7 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
     N_steps : int
         Number of atomic configurations to generate for each strain pattern.
         Default is 5. Absolute strain values range from -delta*N_steps/2
-        to +delta*N_steps/2.    
+        to +delta*N_steps/2.
     delta : float
         Strain increment for analytical derivatives of stresses.
         Default is 1e-2.
@@ -754,7 +755,7 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
         and summarise results of C_ij and estimated errors. Default True.
     graphics : bool
         If True, use :mod:`matplotlib.pyplot` to plot the stress vs. strain
-        curve for each C_ij component fitted. Default True. 
+        curve for each C_ij component fitted. Default True.
     logfile : bool
         Log file to write optimizer output to. Default None (i.e. suppress
         output).
@@ -769,7 +770,7 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
         If scipy.stats module is available then error estimates for each C_ij
         component are obtained from the accuracy of the linear regression.
         Otherwise an array of np.zeros((6,6)) is returned.
-    
+
     Notes
     -----
 
@@ -992,14 +993,14 @@ def youngs_modulus(C, l):
     Notes
     -----
 
-    Formula is from W. Brantley, Calculated elastic constants for stress problems associated 
+    Formula is from W. Brantley, Calculated elastic constants for stress problems associated
     with semiconductor devices. J. Appl. Phys., 44, 534 (1973).
-    """  
+    """
 
     S = inv(C)        # Compliance matrix
     lhat = l/norm(l)  # Normalise directions
 
-    # Youngs modulus in direction l, ratio of stress sigma_l 
+    # Youngs modulus in direction l, ratio of stress sigma_l
     # to strain response epsilon_l
     E = 1.0/(S[0,0] - 2.0*(S[0,0]-S[0,1]-0.5*S[3,3])*(lhat[0]*lhat[0]*lhat[1]*lhat[1] +
          lhat[1]*lhat[1]*lhat[2]*lhat[2] +
@@ -1016,21 +1017,21 @@ def poisson_ratio(C, l, m):
     Notes
     -----
 
-    Formula is from W. Brantley, Calculated elastic constants for stress problems associated 
+    Formula is from W. Brantley, Calculated elastic constants for stress problems associated
     with semiconductor devices. J. Appl. Phys., 44, 534 (1973).
     """
-    
+
     S = inv(C)        # Compliance matrix
     lhat = l/norm(l)  # Normalise directions
     mhat = m/norm(m)
 
-    # Poisson ratio v_lm: response in m direction to strain in 
+    # Poisson ratio v_lm: response in m direction to strain in
     # l direction, v_lm = - epsilon_m/epsilon_l
     v = -((S[0,1] + (S[0,0]-S[0,1]-0.5*S[3,3])*(lhat[0]*lhat[0]*mhat[0]*mhat[0] +
          lhat[1]*lhat[1]*mhat[1]*mhat[1] +
-         lhat[2]*lhat[2]*mhat[2]*mhat[2])) / 
-         (S[0,0] - 2.0*(S[0,0]-S[0,1]-0.5*S[3,3])*(lhat[0]*lhat[0]*lhat[1]*lhat[1] + 
-         lhat[1]*lhat[1]*lhat[2]*lhat[2] + 
+         lhat[2]*lhat[2]*mhat[2]*mhat[2])) /
+         (S[0,0] - 2.0*(S[0,0]-S[0,1]-0.5*S[3,3])*(lhat[0]*lhat[0]*lhat[1]*lhat[1] +
+         lhat[1]*lhat[1]*lhat[2]*lhat[2] +
          lhat[0]*lhat[0]*lhat[2]*lhat[2])))
     return v
 
@@ -1038,14 +1039,14 @@ def poisson_ratio(C, l, m):
 def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
     """
     Calculate elastic moduli from 6x6 elastic constant matrix C_{ij}.
-    
+
     The elastic moduli calculated are: Young's muduli, Poisson's ratios,
     shear moduli, bulk mudulus and bulk mudulus tensor.
-    
+
     If a direction l is specified, the system is rotated to have it as its
     x direction (see Notes for details). If R is specified the system is
     rotated according to it.
-    
+
     Parameters
     ----------
     C : array_like
@@ -1055,7 +1056,7 @@ def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
         of the original system)
     R : array_like, optional
         3x3 rotation matrix.
-    
+
     Returns
     -------
     E : array_like
@@ -1069,13 +1070,13 @@ def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
         Bulk modulus.
     K : array_like
         3x3 matrix with bulk modulus tensor.
-    
+
     Other Parameters
     ----------------
     tol : float, optional
         tolerance for checking validity of rotation and comparison
         of vectors.
-    
+
     Notes
     ---
     It works by rotating the elastic constant tensor to the desired
@@ -1083,18 +1084,18 @@ def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
     If only l is specified there is an infinite number of possible
     rotations. The chosen one is a rotation along the axis orthogonal
     to the plane defined by the vectors (1, 0, 0) and l.
-    
+
     Bulk modulus tensor as defined in
     O. Rand and V. Rovenski, "Analytical Methods in Anisotropic
     Elasticity", Birkh\"auser (2005), pp. 71.
-    
+
     """
-    
+
     if R is not None:
         R = np.asarray(R)
 
         # Is this a rotation matrix?
-        if np.sometrue(np.abs(np.dot(np.array(R), np.transpose(np.array(R))) - 
+        if np.sometrue(np.abs(np.dot(np.array(R), np.transpose(np.array(R))) -
                               np.eye(3, dtype=float)) > tol):
             raise RuntimeError('Matrix *R* does not describe a rotation.')
     else:
@@ -1141,9 +1142,128 @@ def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
 
     # Bulk modulus
     B = 1/np.sum(S[0:3, 0:3])
-    
+
     # Bulk modulus tensor
     Crt = Voigt_6x6_to_full_3x3x3x3(Cr)
     K = np.einsum('ijkk', Crt)
 
     return E, nu, Gm, B, K
+
+def nonaffine_elastic_contribution(atoms,
+                                   eigenvalues=None,
+                                   eigenvectors=None,
+                                   pc_parameters=None,
+                                   cg_parameters={
+                                       "x0": None,
+                                       "tol": 1e-5,
+                                       "maxiter": None,
+                                       "M": None,
+                                       "callback": None,
+                                       "atol": 1e-5}):
+    """Compute the correction of non-affine displacements to the elasticity tensor.
+    The computation of the occuring inverse of the Hessian matrix is bypassed by
+    using a cg solver.
+
+    If eigenvalues and and eigenvectors are given the inverse of the Hessian can
+    be easily computed.
+
+    Parameters
+    ----------
+    atoms: ase.Atoms
+        Atomic configuration in a local or global minima.
+
+    eigenvalues: array
+        Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
+        If given, use eigenvalues and eigenvectors to compute non-affine contribution.
+
+    eigenvectors: array
+        Eigenvectors corresponding to eigenvalues.
+
+    cg_parameters: dict
+        Dictonary for the conjugate-gradient solver.
+
+        x0: {array, matrix}
+            Starting guess for the solution.
+
+        tol/atol: float, optional
+            Tolerances for convergence, norm(residual) <= max(tol*norm(b), atol).
+
+        maxiter: int
+            Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.
+
+        M: {sparse matrix, dense matrix, LinearOperator}
+            Preconditioner for A.
+
+        callback: function
+            User-supplied function to call after each iteration.
+
+    pc_parameters: dict
+        Dictonary for the incomplete LU decomposition of the Hessian.
+
+        A: array_like
+            Sparse matrix to factorize.
+
+        drop_tol: float
+            Drop tolerance for an incomplete LU decomposition.
+
+        fill_factor: float
+            Specifies the fill ratio upper bound.
+
+        drop_rule: str
+            Comma-separated string of drop rules to use.
+
+        permc_spec: str
+            How to permute the columns of the matrix for sparsity.
+
+        diag_pivot_thresh: float
+            Threshold used for a diagonal entry to be an acceptable pivot.
+
+        relax: int
+            Expert option for customizing the degree of relaxing supernodes.
+
+        panel_size: int
+            Expert option for customizing the panel size.
+
+        options: dict
+            Dictionary containing additional expert options to SuperLU.
+
+    """
+    def _sym(C_abab):
+        """Symmetrize Hooke tensor."""
+        symmetry_group = [(0, 1, 2, 3), (1, 0, 2, 3), (0, 1, 3, 2), (1, 0, 3, 2)]
+        return 0.25 * np.add.reduce([C_abab.transpose(s) for s in symmetry_group])
+
+    nat = len(atoms)
+    naforces_icab = atoms.calc.get_property('nonaffine_forces')
+
+    # No solve if eigenvalues are provided
+    if (eigenvalues is not None) and (eigenvectors is not None):
+        G_incc = (eigenvectors.T).reshape(-1, 3*nat, 1, 1) * naforces_icab.reshape(1, 3*nat, 3, 3)
+        G_incc = (G_incc.T/np.sqrt(eigenvalues)).T
+        G_icc  = np.sum(G_incc, axis=1)
+        C_abab = np.sum(G_icc.reshape(-1,3,3,1,1) * G_icc.reshape(-1,1,1,3,3), axis=0)
+        return -_sym(C_abab) / atoms.get_volume()
+
+    H_nn = atoms.calc.get_property('hessian')
+
+    if pc_parameters is not None:
+        # Transform H to csc
+        H_nn = H_nn.tocsc()
+
+        # Compute incomplete LU
+        approx_Hinv = spilu(H_nn, **pc_parameters)
+        operator_Hinv = LinearOperator(H_nn.shape, approx_Hinv.solve)
+        cg_parameters["M"] = operator_Hinv
+
+    D_iab = np.zeros((3*nat, 3, 3))
+    for i in range(3):
+        for j in range(3):
+            x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), **cg_parameters)
+            if info != 0:
+                print("info: ", info)
+                raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
+            D_iab[:, i, j] = x
+
+    C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
+
+    return -_sym(C_abab) / atoms.get_volume()

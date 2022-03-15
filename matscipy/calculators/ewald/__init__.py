@@ -21,4 +21,4 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from .calculator import BKSEwald, Ewald
+from .calculator import Ewald

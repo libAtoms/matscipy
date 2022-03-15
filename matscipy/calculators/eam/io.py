@@ -170,7 +170,7 @@ def read_eam(eam_file, kind="eam/alloy"):
         atomic_numbers = np.array((int(words[0]), ), dtype=int)
         atomic_masses = np.array((float(words[1]), ), dtype=float)
         lattice_parameters = np.array((float(words[2]),), dtype=float)
-        crystal_structures = np.empty(1).astype(np.str)
+        crystal_structures = np.empty(1).astype(str)
         crystal_structures[0] = words[3] 
 
         words = lines[2].strip().split()
@@ -264,7 +264,7 @@ def read_eam(eam_file, kind="eam/alloy"):
         atomic_numbers = np.zeros(true_num_elements, dtype=int)
         atomic_masses = np.zeros(true_num_elements)
         lattice_parameters = np.zeros(true_num_elements)
-        crystal_structures = np.empty(true_num_elements).astype(np.str) # fixme: be careful with string length
+        crystal_structures = np.empty(true_num_elements).astype(str) # fixme: be careful with string length
         F = np.zeros((true_num_elements, Nrho))
         for i in range(true_num_elements):
             offset = i * expected_num_words_per_element
@@ -375,7 +375,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         max_cutoff = cutoff.argmax()
         max_prod = (Nrho*drho).argmax()
         max_prod_r = (Nr*dr).argmax()
-        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
+        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(str),np.empty(0).astype(str)
         Nr_ = Nr[max_prod_r]
         dr_ = ((Nr*dr).max())/Nr_
         Nrho_ = Nrho[max_prod]
@@ -437,7 +437,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         max_cutoff = cutoff.argmax()
         max_prod = (Nrho*drho).argmax()
         max_prod_r = (Nr*dr).argmax()
-        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
+        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(str),np.empty(0).astype(str)
         Nr_ = Nr[max_prod_r]
         dr_ = ((Nr*dr).max())/Nr_
         Nrho_ = Nrho[max_prod]
