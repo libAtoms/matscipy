@@ -24,12 +24,6 @@ import re
 
 import numpy as np
 
-try:
-    import pandas as pd
-except ModuleNotFoundError:
-    pd = None
-
-
 ###
 
 def savetbl(fn, **kwargs):
