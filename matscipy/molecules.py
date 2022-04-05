@@ -158,7 +158,7 @@ class Molecules:
             are = re.compile(r'(\d+)-(\d+)\((\d+)\)')
             parse_tuples(are, (1, 0, 2), 'angles')
         if 'dihedrals' in atoms.arrays:
-            dre = re.compile(r'(\d+)-(\d+)-(\d+)-\((\d+)\)')
+            dre = re.compile(r'(\d+)-(\d+)-(\d+)\((\d+)\)')
             parse_tuples(dre, (0, 1, 2, 3), 'dihedrals')
 
         return Molecules(**kwargs)
