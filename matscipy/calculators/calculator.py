@@ -49,6 +49,21 @@ class MatscipyCalculator(Calculator):
         for prop in filter(lambda p: p in properties, properties_map):
             self.results[prop] = properties_map[prop](atoms)
 
+    @staticmethod
+    def _virial(pair_distance_vectors, pair_forces):
+        r_pc = pair_distance_vectors
+        f_pc = pair_forces
+
+        return np.concatenate([
+            # diagonal components (xx, yy, zz)
+            np.einsum('pi,pi->i', r_pc, f_pc, optimize=True),
+
+            # off-diagonal (yz, xz, xy)
+            np.einsum('pi,pi->i', r_pc[:, (1, 0, 0)], f_pc[:, (2, 2, 1)],
+                      optimize=True)
+        ])
+
+
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a pair potential. For an atomic
