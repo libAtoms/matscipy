@@ -36,5 +36,5 @@ def pair_derivatives(pair_potential):
 
 def test_pair_potentials(pair_derivatives):
     pot, ref = pair_derivatives
-    nt.assert_allclose(pot.gradient[0], ref.gradient[0], rtol=1e-10, atol=1e-14)
+    nt.assert_allclose(pot.gradient, ref.gradient, rtol=1e-10, atol=1e-14)
     nt.assert_allclose(pot.hessian, ref.hessian, rtol=1e-10, atol=1e-14)
