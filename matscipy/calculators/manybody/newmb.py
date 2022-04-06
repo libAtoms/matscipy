@@ -1,3 +1,5 @@
+"""Manybody calculator definition."""
+
 import numpy as np
 
 from abc import ABC, abstractmethod
@@ -25,26 +27,26 @@ class Manybody(MatscipyCalculator):
         """Define the manybody interaction with pair term ɸ(rᵢⱼ², ξᵢⱼ)."""
 
         @abstractmethod
-        def __call__(self, rsq_p, xi_p, atom_type_p, pair_type_p):
+        def __call__(self, rsq_p, xi_p):
             """Return ɸ(rᵢⱼ², ξᵢⱼ)."""
 
         @abstractmethod
-        def gradient(self, rsq_p, xi_p, atom_type_p, pair_type_p):
+        def gradient(self, rsq_p, xi_p):
             """Return [∂₁ɸ(rᵢⱼ², ξᵢⱼ), ∂₂ɸ(rᵢⱼ², ξᵢⱼ)]."""
 
         @abstractmethod
-        def hessian(self, rsq_p, xi_p, atom_type_p, pair_type_p):
+        def hessian(self, rsq_p, xi_p):
             """Return [∂₁₁ɸ(rᵢⱼ², ξᵢⱼ), ∂₂₂ɸ(rᵢⱼ², ξᵢⱼ), ∂₁₂ɸ(rᵢⱼ², ξᵢⱼ)]."""
 
     class Theta:
         """Define the three-body term Θ(rᵢⱼ², rᵢₖ², rⱼₖ²)."""
 
         @abstractmethod
-        def __call__(self, R1_p, R2_p, R3_p, atom_type_p, pair_type_p):
+        def __call__(self, R1_p, R2_p, R3_p):
             """Return Θ(rᵢⱼ², rᵢₖ², rⱼₖ²)."""
 
         @abstractmethod
-        def gradient(self, R1_p, R2_p, R3_p, atom_type_p, pair_type_p):
+        def gradient(self, R1_p, R2_p, R3_p):
             """
             Return [∂₁Θ(rᵢⱼ², rᵢₖ², rⱼₖ²),
                     ∂₂Θ(rᵢⱼ², rᵢₖ², rⱼₖ²),
@@ -52,7 +54,7 @@ class Manybody(MatscipyCalculator):
             """
 
         @abstractmethod
-        def hessian(self, R1_p, R2_p, R3_p, atom_type_p, pair_type_p):
+        def hessian(self, R1_p, R2_p, R3_p):
             """
             Return [∂₁₁Θ(rᵢⱼ², rᵢₖ², rⱼₖ²),
                     ∂₂₂Θ(rᵢⱼ², rᵢₖ², rⱼₖ²),
