@@ -46,11 +46,15 @@ class Neighbourhood(ABC):
             if atom_types is not None else lambda i: np.asanyarray(i)
 
     @abstractmethod
-    def get_pairs(self, atoms: ase.Atoms, quantities: str):
+    def get_pairs(self, atoms: ase.Atoms, quantities: str, cutoff=None):
         """Return requested data on pairs."""
 
     @abstractmethod
-    def get_triplets(self, atoms: ase.Atoms, quantities: str):
+    def get_triplets(self,
+                     atoms: ase.Atoms,
+                     quantities: str,
+                     neighbours=None,
+                     cutoff=None):
         """Return requested data on triplets."""
 
     @staticmethod
@@ -123,22 +127,26 @@ class CutoffNeighbourhood(Neighbourhood):
         )
         self.cutoff = cutoff
 
-    def get_pairs(self, atoms: ase.Atoms, quantities: str):
+    def get_pairs(self, atoms: ase.Atoms, quantities: str, cutoff=None):
         """Return pairs and quantities from conventional neighbour list."""
-        return neighbour_list(quantities, atoms, self.cutoff)
+        if cutoff is None:
+            cutoff = self.cutoff
+        return neighbour_list(quantities, atoms, cutoff)
 
     def get_triplets(self, atoms: ase.Atoms, quantities: str,
-                     neighbours=None):
+                     neighbours=None, cutoff=None):
         """Return triplets and quantities from conventional neighbour list."""
+        if cutoff is None:
+            cutoff = self.cutoff
         if neighbours is None:
-            i_p, j_p, d_p, D_p = neighbour_list("ijdD", atoms, self.cutoff)
+            i_p, j_p, d_p, D_p = neighbour_list("ijdD", atoms, cutoff)
         else:
             i_p, j_p, d_p, D_p = neighbours
 
         first_n = first_neighbours(len(atoms), i_p)
 
         # Getting all references in pair list
-        ij_t, ik_t, jk_t = triplet_list(first_n, d_p, self.cutoff, i_p, j_p)
+        ij_t, ik_t, jk_t = triplet_list(first_n, d_p, cutoff, i_p, j_p)
         connectivity = np.array([ij_t, ik_t, jk_t]).T
 
         D, d = None, None
@@ -248,7 +256,7 @@ class MolecularNeighbourhood(Neighbourhood):
         idx = np.argsort(self.triplet_list[:, 0])  # sort ij_t
         self.triplet_list = self.triplet_list[idx]
 
-    def get_pairs(self, atoms: ase.Atoms, quantities: str):
+    def get_pairs(self, atoms: ase.Atoms, quantities: str, cutoff=None):
         """Return pairs and quantities from connectivities."""
         D, d = None, None
 
@@ -262,7 +270,7 @@ class MolecularNeighbourhood(Neighbourhood):
                                 accepted_quantities="ijdD")
 
     def get_triplets(self, atoms: ase.Atoms, quantities: str,
-                     neighbours=None):
+                     neighbours=None, cutoff=None):
         """Return triplets and quantities from connectivities."""
         D, d = None, None
 
