@@ -3,11 +3,20 @@
 import numpy as np
 
 from abc import ABC, abstractmethod
+from typing import Mapping
 from ...calculators.calculator import MatscipyCalculator
-from ...neighbours import (
-    CutoffNeighbourhood,
-    Neighbourhood,
-)
+from ...neighbours import Neighbourhood
+from ...numpy_tricks import mabincount
+
+
+# Broacast slices
+_c = np.s_[..., np.newaxis]
+_cc = np.s_[..., np.newaxis, np.newaxis]
+
+
+def ein(*args):
+    """Optimized einsum."""
+    return np.einsum(*args, optimize=True)
 
 
 class Manybody(MatscipyCalculator):
@@ -65,35 +74,108 @@ class Manybody(MatscipyCalculator):
             """
 
     def __init__(self,
-                 phi: Phi,
-                 theta: Theta,
-                 neighbourhood: Neighbourhood = None):
+                 phi: Mapping[int, Phi],
+                 theta: Mapping[int, Theta],
+                 neighbourhood: Neighbourhood):
         """Construct with potentials ɸ(rᵢⱼ², ξᵢⱼ) and Θ(rᵢⱼ², rᵢₖ², rⱼₖ²)."""
         super().__init__()
         self.phi = phi
         self.theta = theta
+        self.neighbourhood = neighbourhood
 
-        self.neighbourhood = CutoffNeighbourhood
+    @staticmethod
+    def _assemble_triplet_to_pair(ij_t, values_t, nb_pairs):
+        return mabincount(ij_t, values_t, minlength=nb_pairs)
+
+    @staticmethod
+    def _assemble_pair_to_atom(i_p, values_p, nb_atoms):
+        return mabincount(i_p, values_p, minlength=nb_atoms)
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate properties on atoms."""
         super().calculate(atoms, properties, system_changes)
 
-        # ... do stuff ...
-        r_pc = ...
-        f_pc = ...
-        epot = ...
-        f_nc = ...
+        # Topology information
+        i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
+        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
+        i_t, j_t, k_t = i_p[ij_t], j_p[ij_t], j_p[ik_t]
+        n_p, n_t = len(i_p), len(i_t)
+        n = len(atoms)
 
-        # Compute virial
-        virial_v = self._virial(r_pc, f_pc)
+        # Pair and triplet types
+        t_p = self.neighbourhood.pair_type(
+            *(atoms.numbers[i] for i in (i_p, j_p))
+        )
+        t_t = self.neighbourhood.triplet_type(
+            *(atoms.numbers[i] for i in (i_t, j_t, k_t))
+        )
+
+        # Squared distances
+        rsq_p = np.sum(r_pc**2, axis=-1)
+        rsq_tq = np.sum(r_tqc**2, axis=-1)
+
+        # Three-body potential data
+        theta_t = np.zeros(n_t)
+        dtheta_qt = np.zeros((3, n_t))
+
+        for t in np.unique(t_t):
+            m = t_t == t  # type mask
+            R = rsq_tq[m].T  # distances squared
+
+            # Computing energy and gradient
+            theta_t[m] = self.theta[t](*R)
+            dtheta_qt[:, m] = self.theta[t].gradient(*R)
+
+        # Aggregating xi
+        xi_p = self._assemble_triplet_to_pair(ij_t, theta_t, n_p)
+
+        # Pair potential data
+        phi_p = np.zeros(n_p)
+        dphi_cp = np.zeros((2, n_p))
+
+        for t in np.unique(t_p):
+            m = t_p == t  # type mask
+            phi_p[m] = self.phi[t](rsq_p[m], xi_p[m])
+            dphi_cp[:, m] = self.phi[t].gradient(rsq_p[m], xi_p[m])
+
+        # Energy
+        epot = 0.5 * phi_p.sum()
+
+        # Forces
+        dtdRX_rX = ein('qt,tqc->tqc', dtheta_qt, r_tqc)  # compute dΘ/dRX * rX
+        dpdR_r = dphi_cp[0][_c] * r_pc  # compute dɸ/dR * r
+        dpdxi = dphi_cp[1]
+
+        f_pc = sum(
+            self._assemble_triplet_to_pair(t, dtdRX_rX, n_p)
+            for t in (ij_t, ik_t, jk_t)
+        )  # summing over X and assembling to pairs
+
+        f_pc *= dpdxi[_c]  # multiply by dɸ/dξ
+        f_pc += dpdR_r
+
+        f_nc = -(
+            self._assemble_pair_to_atom(j_p, f_pc, n)
+            - self._assemble_pair_to_atom(i_p, f_pc, n)
+        )  # assmbling atom forces
+
+        # Stresses
+        dtdRX_rXrX = ein('tXi,tXj->tij', dtdRX_rX, r_tqc)
+        dpdR_rr = ein('pi,pj->pij', dpdR_r, r_pc)
+
+        s_pcc = self._assemble_triplet_to_pair(t, dtdRX_rXrX, n_p)
+
+        s_pcc *= dpdxi[_cc]
+        s_pcc += dpdR_rr
+        s_cc = s_pcc.sum(axis=0)  # sum over all pairs
+        s_cc *= 1 / atoms.get_volume()
 
         # Update results
         self.results.update(
             {
                 "energy": epot,
                 "free_energy": epot,
-                "stress": virial_v / atoms.get_volume(),
+                "stress": s_cc,
                 "forces": f_nc,
             }
         )
