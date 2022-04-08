@@ -63,7 +63,6 @@ class MatscipyCalculator(Calculator):
                       optimize=True)
         ])
 
-
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a pair potential. For an atomic

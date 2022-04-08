@@ -100,6 +100,7 @@ class CutoffNeighbourhood(Neighbourhood):
     def __init__(self,
                  atom_types=None,
                  pair_types=None,
+                 triplet_types=None,
                  cutoff: ts.Union[float, dict] = None):
         """Initialize with atoms, atom types, pair types and cutoff.
 
@@ -124,6 +125,11 @@ class CutoffNeighbourhood(Neighbourhood):
             pair_types
             if pair_types is not None
             else lambda i, j: np.zeros_like(i)
+        )
+        self.triplet_type = (
+            triplet_types
+            if triplet_types is not None
+            else lambda i, j, k: np.zeros_like(i)
         )
         self.cutoff = cutoff
 
@@ -173,7 +179,6 @@ class MolecularNeighbourhood(Neighbourhood):
         """Initialze with atoms and molecules."""
         super().__init__(atom_types)
         self.molecules = molecules
-        self.pair_type = lambda i, j: self.connectivity["bonds"]["type"]
         self.cutoff = np.inf
 
     @property
@@ -201,9 +206,14 @@ class MolecularNeighbourhood(Neighbourhood):
             self.triplet_list = np.zeros([0, 3], dtype=np.int32)
 
     @property
-    def pair_types(self):
+    def pair_type(self):
         """Map atom types to pair types."""
-        return lambda ti_p, tj_p: self.connectivity["bonds"]["types"]
+        return lambda ti_p, tj_p: self.connectivity["bonds"]["type"]
+
+    @property
+    def triplet_type(self):
+        """Map atom types to triplet types."""
+        return lambda ti_p, tj_p, tk_p: self.connectivity["angles"]["type"]
 
     @staticmethod
     def double_connectivity(connectivity: np.ndarray) -> np.ndarray:
