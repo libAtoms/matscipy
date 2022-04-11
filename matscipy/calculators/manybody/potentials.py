@@ -73,18 +73,34 @@ def angle_distance_defined(cls):
         rik = np.sqrt(rsq_ik)
         rjk = np.sqrt(rsq_jk)
 
-        res = old.gradient(self, rij, rik, rjk)
-        res[0] *= 1 / (2 * rij)
-        res[1] *= 1 / (2 * rik)
-        res[2] *= 1 / (2 * rjk)
-        return res
+        grad = old.gradient(self, rij, rik, rjk)
+        grad[0] *= 1 / (2 * rij)
+        grad[1] *= 1 / (2 * rik)
+        grad[2] *= 1 / (2 * rjk)
+
+        return grad
 
     @wraps(cls.hessian)
-    def hessian(self, rij, rik, rjk):
-        pass
+    def hessian(self, rsq_ij, rsq_ik, rsq_jk):
+        rij = np.sqrt(rsq_ij)
+        rik = np.sqrt(rsq_ik)
+        rjk = np.sqrt(rsq_jk)
+        grad = old.gradient(self, rij, rik, rjk)
+        hess = old.hessian(self, rij, rik, rjk)
+
+        # 
+        hess[0] = hess[0] * (1 / (4 * rsq_ij)) - grad[0] * (1 / (4 * rij**3))
+        hess[1] = hess[1] * (1 / (4 * rsq_ik)) - grad[1] * (1 / (4 * rik**3))
+        hess[2] = hess[2] * (1 / (4 * rsq_jk)) - grad[2] * (1 / (4 * rjk**3))
+        hess[3] = hess[3] * (1 / (4 * rij * rik))
+        hess[4] = hess[4] * (1 / (4 * rij * rjk)) 
+        hess[5] = hess[5] * (1 / (4 * rik * rjk)) 
+
+        return hess 
 
     cls.__call__ = call
     cls.gradient = gradient
+    cls.hessian = hessian
     return cls
 
 
@@ -154,5 +170,53 @@ class HarmonicAngle(Manybody.Theta):
         return h(f) * np.stack([df_drij, df_drik, df_drjk])
 
     def hessian(self, rij, rik, rjk):
-        pass
+        r"""
+
+        """
+        rsq_ij = rij**2
+        rsq_ik = rik**2
+        rsq_jk = rjk**2
+
+        # cos of angle 
+        f = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
+
+        # first derivatives with respect to r
+        df_drij = (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik) 
+        df_drik = (rsq_ik - rsq_ij + rsq_jk) / (2 * rsq_ik * rij)
+        df_drjk = - rjk / (rij * rik)
+
+        # second derivatives with respect to r
+        ddf_drijdrij = (rsq_ik - rsq_jk) / (rij**3 * rik)
+        ddf_drikdrik = (rsq_ij - rsq_jk) / (rik**3 * rij)
+        ddf_drjkdrjk = - 1 / (rij * rik)
+        ddf_drijdrik = - (rsq_ij + rsq_ik + rsq_jk) / (2 * rsq_ij * rsq_ik)
+        ddf_drijdrjk = rjk / (rik * rsq_ij)
+        ddf_drikdrjk = rjk / (rij * rsq_ik)
+
+        # Scalar functions
+        dE = lambda a: self.k0 * (a - self.theta0)
+        ddE = lambda a: self.k0 
+
+        darcos = lambda x: -1 / np.sqrt(1 - x**2)
+        ddarcos = lambda x: -x / (1 - x**2)**(3/2)
+
+        # Scalar derivative of theta 
+        dtheta_dx = dE(np.arccos(f)) * darcos(f)
+        ddtheta_dxdx = ddE(np.arccos(f)) * darcos(f)**2 + dE(np.arccos(f)) * ddarcos(f)
+
+        # First expression 
+        ddTheta_drijdrij = ddtheta_dxdx * df_drij * df_drij + dtheta_dx * ddf_drijdrij
+        ddTheta_drikdrik = ddtheta_dxdx * df_drik * df_drik + dtheta_dx * ddf_drikdrik
+        ddTheta_drjkdrjk = ddtheta_dxdx * df_drjk * df_drjk + dtheta_dx * ddf_drjkdrjk
+        ddTheta_drikdrij = ddtheta_dxdx * df_drik * df_drij + dtheta_dx * ddf_drijdrik
+        ddTheta_drjkdrij = ddtheta_dxdx * df_drjk * df_drij + dtheta_dx * ddf_drijdrjk
+        ddTheta_drjkdrik = ddtheta_dxdx * df_drjk * df_drik + dtheta_dx * ddf_drikdrjk
+
+        return np.stack([ddTheta_drijdrij, 
+                         ddTheta_drikdrik,
+                         ddTheta_drjkdrjk,
+                         ddTheta_drikdrij,
+                         ddTheta_drjkdrij,
+                         ddTheta_drjkdrik
+                         ])
 
