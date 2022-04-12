@@ -3,7 +3,9 @@
 import numpy as np
 
 from functools import wraps
+from typing import Iterable
 from types import SimpleNamespace
+from itertools import combinations_with_replacement
 from .newmb import Manybody
 
 
@@ -93,10 +95,10 @@ def angle_distance_defined(cls):
         hess[1] = hess[1] * (1 / (4 * rsq_ik)) - grad[1] * (1 / (4 * rik**3))
         hess[2] = hess[2] * (1 / (4 * rsq_jk)) - grad[2] * (1 / (4 * rjk**3))
         hess[3] = hess[3] * (1 / (4 * rij * rik))
-        hess[4] = hess[4] * (1 / (4 * rij * rjk)) 
-        hess[5] = hess[5] * (1 / (4 * rik * rjk)) 
+        hess[4] = hess[4] * (1 / (4 * rij * rjk))
+        hess[5] = hess[5] * (1 / (4 * rik * rjk))
 
-        return hess 
+        return hess
 
     cls.__call__ = call
     cls.gradient = gradient
@@ -156,17 +158,17 @@ class HarmonicAngle(Manybody.Theta):
         rsq_ik = rik**2
         rsq_jk = rjk**2
 
-        # cos of angle 
+        # cos of angle
         f = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
 
         # derivatives with respect to r
-        df_drij = (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik) 
+        df_drij = (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik)
         df_drik = (rsq_ik - rsq_ij + rsq_jk) / (2 * rsq_ik * rij)
         df_drjk = - rjk / (rij * rik)
 
         # Scalar derivatives
         def E(a):
-            return self.k0 * (a - self.theta0)  
+            return self.k0 * (a - self.theta0)
 
         def h(f):
             with np.errstate(divide="raise"):
@@ -183,11 +185,11 @@ class HarmonicAngle(Manybody.Theta):
         rsq_ik = rik**2
         rsq_jk = rjk**2
 
-        # cos of angle 
+        # cos of angle
         f = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
 
         # first derivatives with respect to r
-        df_drij = (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik) 
+        df_drij = (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik)
         df_drik = (rsq_ik - rsq_ij + rsq_jk) / (2 * rsq_ik * rij)
         df_drjk = - rjk / (rij * rik)
 
@@ -201,16 +203,16 @@ class HarmonicAngle(Manybody.Theta):
 
         # Scalar functions
         dE = lambda a: self.k0 * (a - self.theta0)
-        ddE = lambda a: self.k0 
+        ddE = lambda a: self.k0
 
         darcos = lambda x: -1 / np.sqrt(1 - x**2)
         ddarcos = lambda x: -x / (1 - x**2)**(3/2)
 
-        # Scalar derivative of theta 
+        # Scalar derivative of theta
         dtheta_dx = dE(np.arccos(f)) * darcos(f)
         ddtheta_dxdx = ddE(np.arccos(f)) * darcos(f)**2 + dE(np.arccos(f)) * ddarcos(f)
 
-        return np.stack([ddtheta_dxdx * df_drij * df_drij + dtheta_dx * ddf_drijdrij, 
+        return np.stack([ddtheta_dxdx * df_drij * df_drij + dtheta_dx * ddf_drijdrij,
                          ddtheta_dxdx * df_drik * df_drik + dtheta_dx * ddf_drikdrik,
                          ddtheta_dxdx * df_drjk * df_drjk + dtheta_dx * ddf_drjkdrjk,
                          ddtheta_dxdx * df_drik * df_drij + dtheta_dx * ddf_drijdrik,
@@ -218,3 +220,86 @@ class HarmonicAngle(Manybody.Theta):
                          ddtheta_dxdx * df_drjk * df_drik + dtheta_dx * ddf_drikdrjk
                          ])
 
+
+try:
+    from sympy import lambdify, Expr, Symbol
+
+    def _l(*args):
+        return lambdify(*args, 'numpy')
+
+    def _extend(res, rsq_p):
+        """Extend array in case sympy returns litteral."""
+        for i in range(len(res)):
+            if not isinstance(res[i], np.ndarray):
+                res[i] = np.full_like(rsq_p, res[i], dtype=rsq_p.dtype)
+        return res
+
+    class SymPhi(Manybody.Phi):
+        """Pair potential from Sympy symbolic expression."""
+
+        def __init__(self, energy_expression: Expr, symbols: Iterable[Symbol]):
+            assert len(symbols) == 2, "Expression should only have 2 symbols"
+
+            self.e = energy_expression
+
+            # Lambdifying expression for energy and gradient
+            self.phi = _l(symbols, self.e)
+            self.dphi = [_l(symbols, self.e.diff(v)) for v in symbols]
+
+            # Pairs of symbols for 2nd-order derivatives
+            dvars = list(combinations_with_replacement(symbols, 2))
+            dvars = [dvars[i] for i in (0, 2, 1)]  # arrange order
+
+            # Lambdifying hessian
+            self.ddphi = [_l(symbols, self.e.diff(*v)) for v in dvars]
+
+        def __call__(self, rsq_p, xi_p):
+            return self.phi(rsq_p, xi_p)
+
+        def gradient(self, rsq_p, xi_p):
+            return np.stack(_extend([
+                f(rsq_p, xi_p)
+                for f in self.dphi
+            ], rsq_p))
+
+        def hessian(self, rsq_p, xi_p):
+            return np.stack(_extend([
+                f(rsq_p, xi_p)
+                for f in self.ddphi
+            ], rsq_p))
+
+    class SymTheta(Manybody.Theta):
+        """Three-body potential from Sympy symbolic expression."""
+
+        def __init__(self, energy_expression: Expr, symbols: Iterable[Symbol]):
+            assert len(symbols) == 3, "Expression should only have 3 symbols"
+
+            self.e = energy_expression
+
+            # Lambdifying expression for energy and gradient
+            self.theta = _l(symbols, self.e)
+            self.dtheta = [_l(symbols, self.e.diff(v)) for v in symbols]
+
+            # Pairs of symbols for 2nd-order derivatives
+            dvars = list(combinations_with_replacement(symbols, 2))
+            dvars = [dvars[i] for i in (0, 3, 5, 4, 2, 1)]  # arrange order
+
+            self.ddtheta = [_l(symbols, self.e.diff(*v)) for v in dvars]
+
+        def __call__(self, R1_p, R2_p, R3_p):
+            return self.theta(R1_p, R2_p, R3_p)
+
+        def gradient(self, R1_p, R2_p, R3_p):
+            return np.stack([
+                f(R1_p, R2_p, R3_p)
+                for f in self.dtheta
+            ])
+
+        def hessian(self, R1_p, R2_p, R3_p):
+            return np.stack([
+                f(R1_p, R2_p, R3_p)
+                for f in self.ddtheta
+            ])
+
+except ImportError:
+    pass
