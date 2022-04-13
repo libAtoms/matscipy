@@ -92,8 +92,8 @@ class Manybody(MatscipyCalculator):
         return mabincount(i_p, values_p, minlength=nb_atoms)
 
     @staticmethod
-    def _assemble_triplet_to_atom(i_t, values_p, nb_atoms):
-        return mabincount(i_t, values_p, minlength=nb_atoms)
+    def _assemble_triplet_to_atom(i_t, values_t, nb_atoms):
+        return mabincount(i_t, values_t, minlength=nb_atoms)
 
     def calculate(self, atoms, properties, system_changes):
         """Calculate properties on atoms."""
@@ -102,8 +102,7 @@ class Manybody(MatscipyCalculator):
         # Topology information
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
         ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
-        i_t, j_t, k_t = i_p[ij_t], j_p[ij_t], j_p[ik_t]
-        n_p, n_t = len(i_p), len(i_t)
+        n_p, n_t = len(i_p), len(i_p[ij_t])
         n = len(atoms)
 
         # Pair and triplet types
@@ -111,7 +110,7 @@ class Manybody(MatscipyCalculator):
             *(atoms.numbers[i] for i in (i_p, j_p))
         )
         t_t = self.neighbourhood.triplet_type(
-            *(atoms.numbers[i] for i in (i_t, j_t, k_t))
+            *(atoms.numbers[i] for i in (i_p[ij_t], j_p[ij_t], j_p[ik_t]))
         )
 
         # Squared distances
@@ -137,7 +136,6 @@ class Manybody(MatscipyCalculator):
         phi_p = np.zeros(n_p)
         dphi_cp = np.zeros((2, n_p))
 
-        # Negative values for non abs --> Ask Lucas
         for t in np.unique(t_p):
             m = t_p == t  # type mask
 
@@ -148,34 +146,21 @@ class Manybody(MatscipyCalculator):
         epot = 0.5 * phi_p.sum()
 
         # Forces
-        dtdRX_rX = ein('qt,tqc->tqc', dtheta_qt, r_tqc)  # compute dΘ/dRX * rX
+        dpdxi_dtdRX_rX = dphi_cp[1][ij_t][_cc] * ein('qt,tqc->tqc', dtheta_qt, r_tqc)  # compute dp/dxi * dΘ/dRX * rX
         dpdR_r = dphi_cp[0][_c] * r_pc  # compute dɸ/dR * r
-        dpdxi = dphi_cp[1]
 
-        f_pc = self._assemble_triplet_to_pair(t, dtdRX_rX[:, 0], n_p)
+        f_nc = self._assemble_triplet_to_atom(i_p[ij_t], dpdxi_dtdRX_rX[:, 0], n) - self._assemble_triplet_to_atom(j_p[ij_t], dpdxi_dtdRX_rX[:, 0], n) \
+             + self._assemble_triplet_to_atom(i_p[ik_t], dpdxi_dtdRX_rX[:, 1], n) - self._assemble_triplet_to_atom(j_p[ik_t], dpdxi_dtdRX_rX[:, 1], n) \
+             + self._assemble_triplet_to_atom(j_p[ij_t], dpdxi_dtdRX_rX[:, 2], n) - self._assemble_triplet_to_atom(j_p[ik_t], dpdxi_dtdRX_rX[:, 2], n) 
 
-        f_pc = sum(
-            self._assemble_triplet_to_pair(t, dtdRX_rX, n_p)
-            for t in (ij_t, ik_t, jk_t)
-        )  # summing over X and assembling to pairs
-
-        f_pc *= dpdxi[_c]  # multiply by dɸ/dξ
-        f_pc += dpdR_r
-
-        f_nc = -(
-            self._assemble_pair_to_atom(j_p, f_pc, n)
-            - self._assemble_pair_to_atom(i_p, f_pc, n)
-        )  # assmbling atom forces
+        f_nc += self._assemble_pair_to_atom(i_p, dpdR_r, n) - self._assemble_pair_to_atom(j_p, dpdR_r, n)
 
         # Stresses
-        dtdRX_rXrX = ein('tXi,tXj->tij', dtdRX_rX, r_tqc)
+        dtdRX_rXrX = ein('tXi,tXj->tij', dpdxi_dtdRX_rX, r_tqc)
         dpdR_rr = ein('pi,pj->pij', dpdR_r, r_pc)
-
-        s_pcc = self._assemble_triplet_to_pair(t, dtdRX_rXrX, n_p)
-
-        s_pcc *= dpdxi[_cc]
-        s_pcc += dpdR_rr
-        s_cc = s_pcc.sum(axis=0)  # sum over all pairs
+        
+        s_cc = np.sum(dtdRX_rXrX, axis=0)
+        s_cc += np.sum(dpdR_rr, axis=0)
         s_cc *= 1 / atoms.get_volume()
 
         # Update results
