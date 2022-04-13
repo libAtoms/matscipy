@@ -11,137 +11,107 @@ from manybody_fixtures import (
     has_sympy,
     analytical_pair,
     analytical_triplet,
+    FiniteDiff,
 )
 
 
+def evaluate(pot, *args):
+    data = SimpleNamespace()
+    data.E = pot(*args)
+    data.gradient = pot.gradient(*args)
+    data.hessian = pot.hessian(*args)
+    return data
+
+
 @pytest.fixture
-def pair_derivatives(pair_potential):
+def fd_evaluated_pair(pair_potential):
     """
     Compute derivatives and finite differences.
     """
     N = 10
     L1, L2 = 0.5, 5
-    dx = (L2 - L1) / (N - 1)
     rsq, xi = np.linspace(L1, L2, N), np.linspace(L1, L2, N)
-    rsq, xi = np.meshgrid(rsq, xi, indexing='ij')
 
-    pot_data, ref_data = SimpleNamespace(), SimpleNamespace()
+    fd_pot = FiniteDiff(pair_potential, (rsq, xi))
+    args = np.meshgrid(rsq, xi, indexing='ij')
+    return evaluate(pair_potential, *args), evaluate(fd_pot, *args)
 
-    # Computing data from potential
-    pot_data.E = pair_potential(rsq, xi)
-    pot_data.gradient = pair_potential.gradient(rsq, xi)
-    pot_data.hessian = pair_potential.hessian(rsq, xi)
-
-    ref_data.gradient = np.gradient(pot_data.E, dx, edge_order=2)
-    ref_data.hessian = np.stack([
-        np.gradient(pot_data.gradient[0], dx, axis=0, edge_order=2),
-        np.gradient(pot_data.gradient[1], dx, axis=1, edge_order=2),
-        np.gradient(pot_data.gradient[0], dx, axis=1, edge_order=2),
-    ])
-
-    return pot_data, ref_data
 
 @pytest.fixture
-def angle_derivatives(three_body_potential):
+def fd_evaluated_three_body(three_body_potential):
     """
     Compute derivatives and finite differences.
     """
     N = 10
     L1, L2 = 1.0, 1.15
-    dx = (L2 - L1) / (N - 1)
 
-    rij, rik, rjk = np.linspace(L1, L2, N), np.linspace(L1, L2, N), np.linspace(L1, L2, N)
-    rij, rik, rjk = np.meshgrid(rij, rik, rjk, indexing='ij')
+    rij, rik, rjk = (
+        np.linspace(L1, L2, N),
+        np.linspace(L1, L2, N),
+        np.linspace(L1, L2, N),
+    )
 
-    pot_data, ref_data = SimpleNamespace(), SimpleNamespace()
+    fd_pot = FiniteDiff(three_body_potential, (rij, rik, rjk))
+    args = np.meshgrid(rij, rik, rjk, indexing='ij')
+    return evaluate(three_body_potential, *args), evaluate(fd_pot, *args)
 
-    # Computing data from potential
-    pot_data.E = three_body_potential(rij, rik, rjk)
-    pot_data.gradient = three_body_potential.gradient(rij, rik, rjk)
-    pot_data.hessian = three_body_potential.hessian(rij, rik, rjk)
 
-    ref_data.gradient = np.gradient(pot_data.E, dx, edge_order=2)
-    ref_data.hessian = np.stack([
-        np.gradient(pot_data.gradient[0], dx, axis=0, edge_order=2),
-        np.gradient(pot_data.gradient[1], dx, axis=1, edge_order=2),
-        np.gradient(pot_data.gradient[2], dx, axis=2, edge_order=2),
-        np.gradient(pot_data.gradient[0], dx, axis=1, edge_order=2),
-        np.gradient(pot_data.gradient[0], dx, axis=2, edge_order=2),
-        np.gradient(pot_data.gradient[1], dx, axis=2, edge_order=2)
-        ])
-
-    return pot_data, ref_data
-
-def test_pair_potentials(pair_derivatives):
-    pot, ref = pair_derivatives
+def test_fd_pair(fd_evaluated_pair):
+    pot, ref = fd_evaluated_pair
     nt.assert_allclose(pot.gradient, ref.gradient, rtol=1e-10, atol=1e-14)
     nt.assert_allclose(pot.hessian, ref.hessian, rtol=1e-10, atol=1e-14)
 
-def test_three_body_potentials(angle_derivatives):
-    pot, ref = angle_derivatives
+
+def test_fd_three_body(fd_evaluated_three_body):
+    pot, ref = fd_evaluated_three_body
     nt.assert_allclose(pot.gradient, ref.gradient, rtol=1e-4, atol=1e-4)
     nt.assert_allclose(pot.hessian, ref.hessian, rtol=1e-4, atol=1e-4)
 
 
 @pytest.fixture
-def pair_analytical_derivatives(analytical_pair):
+def analytical_evaluated_pair(analytical_pair):
     N = 10
     L1, L2 = 0.5, 5
-    dx = (L2 - L1) / (N - 1)
     rsq, xi = np.linspace(L1, L2, N), np.linspace(L1, L2, N)
-    rsq, xi = np.meshgrid(rsq, xi, indexing='ij')
+    args = np.meshgrid(rsq, xi, indexing='ij')
 
-    pot_data, ref_data = SimpleNamespace(), SimpleNamespace()
-    pair_potential, analytical_potential = analytical_pair
+    pot, analytical = analytical_pair
+    return evaluate(pot, *args), evaluate(analytical, *args)
 
-    # Computing data from potential
-    pot_data.E = pair_potential(rsq, xi)
-    pot_data.gradient = pair_potential.gradient(rsq, xi)
-    pot_data.hessian = pair_potential.hessian(rsq, xi)
-
-    # Computing from analytical expressions
-    ref_data.E = analytical_potential(rsq, xi)
-    ref_data.gradient = analytical_potential.gradient(rsq, xi)
-    ref_data.hessian = analytical_potential.hessian(rsq, xi)
-
-    return pot_data, ref_data
 
 @pytest.fixture
-def triplet_analytical_derivatives(analytical_triplet):
+def analytical_evaluated_three_body(analytical_triplet):
     """
     Compute derivatives and finite differences.
     """
     N = 10
     L1, L2 = 1.0, 1.15
-    dx = (L2 - L1) / (N - 1)
+    rij, rik, rjk = (
+        np.linspace(L1, L2, N),
+        np.linspace(L1, L2, N),
+        np.linspace(L1, L2, N),
+    )
 
-    rij, rik, rjk = np.linspace(L1, L2, N), np.linspace(L1, L2, N), np.linspace(L1, L2, N)
-    rij, rik, rjk = np.meshgrid(rij, rik, rjk, indexing='ij')
+    args = np.meshgrid(rij, rik, rjk, indexing='ij')
+    pot, analytical = analytical_triplet
+    return evaluate(pot, *args), evaluate(analytical, *args)
 
-    pot_data, ref_data = SimpleNamespace(), SimpleNamespace()
-
-    three_body_potential, analytical_potential = analytical_triplet
-
-    # Computing data from potential
-    pot_data.E = three_body_potential(rij, rik, rjk)
-    pot_data.gradient = three_body_potential.gradient(rij, rik, rjk)
-    pot_data.hessian = three_body_potential.hessian(rij, rik, rjk)
-
-    # Computing from analytical expressions
-    ref_data.E = analytical_potential(rij, rik, rjk)
-    ref_data.gradient = analytical_potential.gradient(rij, rik, rjk)
-    ref_data.hessian = analytical_potential.hessian(rij, rik, rjk)
-
-    return pot_data, ref_data
 
 @pytest.mark.skipif(not has_sympy, reason="Sympy not installed")
-def test_analytical_pairs(pair_analytical_derivatives):
-    pot, ref = pair_analytical_derivatives
-    nt.assert_allclose(pot.gradient, ref.gradient, rtol=1e-10, atol=1e-14)
-    nt.assert_allclose(pot.hessian, ref.hessian, rtol=1e-10, atol=1e-14)
+def test_analytical_pairs(analytical_evaluated_pair):
+    pot, ref = analytical_evaluated_pair
+
+    # Checking all computed fields
+    for k in pot.__dict__:
+        f, f_ref = getattr(pot, k), getattr(ref, k)
+        nt.assert_allclose(f, f_ref, rtol=1e-10, atol=1e-14)
+
 
 @pytest.mark.skipif(not has_sympy, reason="Sympy not installed")
-def test_analytical_triplets(triplet_analytical_derivatives):
-    pot, ref = triplet_analytical_derivatives
-    nt.assert_allclose(pot.gradient, ref.gradient, rtol=1e-10, atol=1e-14)
-    nt.assert_allclose(pot.hessian, ref.hessian, rtol=1e-10, atol=1e-14)
+def test_analytical_triplets(analytical_evaluated_three_body):
+    pot, ref = analytical_evaluated_three_body
+
+    # Checking all computed fields
+    for k in pot.__dict__:
+        f, f_ref = getattr(pot, k), getattr(ref, k)
+        nt.assert_allclose(f, f_ref, rtol=1e-10, atol=1e-14)

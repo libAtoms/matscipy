@@ -24,6 +24,30 @@ if getattr(potentials, 'SymPhi', None) is not None:
                 del _impl_potentials[m][i]
 
 
+class FiniteDiff:
+    """Helper class for finite difference tests."""
+
+    hessian_ordering = {
+        2: [(0, 0), (1, 1), (0, 1)],
+        3: [(0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)],
+    }
+
+    def __init__(self, pot, coords):
+        self.pot = pot
+        self.coords = coords
+    def __call__(self, *args):
+        return self.pot(*args)
+    def gradient(self, *args):
+        E = self.pot(*args)
+        return np.gradient(E, *self.coords, edge_order=2)
+    def hessian(self, *args):
+        G = self.pot.gradient(*args)
+        return np.stack([
+            np.gradient(G[i], self.coords[j], axis=j, edge_order=2)
+            for i, j in self.hessian_ordering[len(args)]
+        ])
+
+
 @pytest.fixture(params=_impl_potentials[potentials.Manybody.Phi])
 def pair_potential(request):
     """Fixture for pair potentials."""

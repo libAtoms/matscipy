@@ -227,12 +227,14 @@ try:
     def _l(*args):
         return lambdify(*args, 'numpy')
 
-    def _extend(res, rsq_p):
+    def _extend(symfunc, sample_array):
         """Extend array in case sympy returns litteral."""
-        for i in range(len(res)):
-            if not isinstance(res[i], np.ndarray):
-                res[i] = np.full_like(rsq_p, res[i], dtype=rsq_p.dtype)
-        return res
+        def f(*args):
+            res = symfunc(*args)
+            if not isinstance(res, np.ndarray):
+                return np.full_like(sample_array, res, dtype=sample_array.dtype)
+            return res
+        return f
 
     class SymPhi(Manybody.Phi):
         """Pair potential from Sympy symbolic expression."""
@@ -254,19 +256,19 @@ try:
             self.ddphi = [_l(symbols, self.e.diff(*v)) for v in dvars]
 
         def __call__(self, rsq_p, xi_p):
-            return self.phi(rsq_p, xi_p)
+            return _extend(self.phi, rsq_p)(rsq_p, xi_p)
 
         def gradient(self, rsq_p, xi_p):
-            return np.stack(_extend([
-                f(rsq_p, xi_p)
+            return np.stack([
+                _extend(f, rsq_p)(rsq_p, xi_p)
                 for f in self.dphi
-            ], rsq_p))
+            ])
 
         def hessian(self, rsq_p, xi_p):
-            return np.stack(_extend([
-                f(rsq_p, xi_p)
+            return np.stack([
+                _extend(f, rsq_p)(rsq_p, xi_p)
                 for f in self.ddphi
-            ], rsq_p))
+            ])
 
     class SymTheta(Manybody.Theta):
         """Three-body potential from Sympy symbolic expression."""
@@ -286,18 +288,18 @@ try:
 
             self.ddtheta = [_l(symbols, self.e.diff(*v)) for v in dvars]
 
-        def __call__(self, R1_p, R2_p, R3_p):
-            return self.theta(R1_p, R2_p, R3_p)
+        def __call__(self, R1_t, R2_t, R3_t):
+            return _extend(self.theta, R1_t)(R1_t, R2_t, R3_t)
 
-        def gradient(self, R1_p, R2_p, R3_p):
+        def gradient(self, R1_t, R2_t, R3_t):
             return np.stack([
-                f(R1_p, R2_p, R3_p)
+                _extend(f, R1_t)(R1_t, R2_t, R3_t)
                 for f in self.dtheta
             ])
 
-        def hessian(self, R1_p, R2_p, R3_p):
+        def hessian(self, R1_t, R2_t, R3_t):
             return np.stack([
-                f(R1_p, R2_p, R3_p)
+                _extend(f, R1_t)(R1_t, R2_t, R3_t)
                 for f in self.ddtheta
             ])
 
