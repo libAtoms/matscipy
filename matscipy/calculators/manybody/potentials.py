@@ -94,9 +94,9 @@ def angle_distance_defined(cls):
         hess[0] = hess[0] * (1 / (4 * rsq_ij)) - grad[0] * (1 / (4 * rij**3))
         hess[1] = hess[1] * (1 / (4 * rsq_ik)) - grad[1] * (1 / (4 * rik**3))
         hess[2] = hess[2] * (1 / (4 * rsq_jk)) - grad[2] * (1 / (4 * rjk**3))
-        hess[3] = hess[3] * (1 / (4 * rij * rik))
+        hess[3] = hess[3] * (1 / (4 * rik * rjk))
         hess[4] = hess[4] * (1 / (4 * rij * rjk))
-        hess[5] = hess[5] * (1 / (4 * rik * rjk))
+        hess[5] = hess[5] * (1 / (4 * rij * rik))
 
         return hess
 
@@ -210,15 +210,18 @@ class HarmonicAngle(Manybody.Theta):
 
         # Scalar derivative of theta
         dtheta_dx = dE(np.arccos(f)) * darcos(f)
-        ddtheta_dxdx = ddE(np.arccos(f)) * darcos(f)**2 + dE(np.arccos(f)) * ddarcos(f)
+        ddtheta_dxdx = (
+            ddE(np.arccos(f)) * darcos(f)**2 + dE(np.arccos(f)) * ddarcos(f)
+        )
 
-        return np.stack([ddtheta_dxdx * df_drij * df_drij + dtheta_dx * ddf_drijdrij,
-                         ddtheta_dxdx * df_drik * df_drik + dtheta_dx * ddf_drikdrik,
-                         ddtheta_dxdx * df_drjk * df_drjk + dtheta_dx * ddf_drjkdrjk,
-                         ddtheta_dxdx * df_drik * df_drij + dtheta_dx * ddf_drijdrik,
-                         ddtheta_dxdx * df_drjk * df_drij + dtheta_dx * ddf_drijdrjk,
-                         ddtheta_dxdx * df_drjk * df_drik + dtheta_dx * ddf_drikdrjk
-                         ])
+        return np.stack([
+            ddtheta_dxdx * df_drij * df_drij + dtheta_dx * ddf_drijdrij,
+            ddtheta_dxdx * df_drik * df_drik + dtheta_dx * ddf_drikdrik,
+            ddtheta_dxdx * df_drjk * df_drjk + dtheta_dx * ddf_drjkdrjk,
+            ddtheta_dxdx * df_drjk * df_drik + dtheta_dx * ddf_drikdrjk,
+            ddtheta_dxdx * df_drjk * df_drij + dtheta_dx * ddf_drijdrjk,
+            ddtheta_dxdx * df_drik * df_drij + dtheta_dx * ddf_drijdrik,
+        ])
 
 
 try:
