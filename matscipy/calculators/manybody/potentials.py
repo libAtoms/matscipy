@@ -106,6 +106,22 @@ def angle_distance_defined(cls):
     return cls
 
 
+class ZeroPair(Manybody.Phi):
+    """Implementation of zero pair interaction."""
+
+    def __call__(self, r_p, xi_p):
+        return xi_p
+
+    def gradient(self, r_p, xi_p):
+        return np.stack([
+            np.zeros_like(r_p),
+            np.ones_like(xi_p),
+        ])
+
+    def hessian(self, r_p, xi_p):
+        return np.zeros([3] + list(r_p.shape))
+
+
 @distance_defined
 class HarmonicPair(Manybody.Phi):
     """
