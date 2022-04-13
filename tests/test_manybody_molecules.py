@@ -68,7 +68,6 @@ def molecule():
         Molecules(
             bonds_connectivity=[[0, 1], [1, 2]],
             angles_connectivity=[[0, 1, 2]],
-            1
         )
     )
 
