@@ -91,6 +91,10 @@ class Manybody(MatscipyCalculator):
     def _assemble_pair_to_atom(i_p, values_p, nb_atoms):
         return mabincount(i_p, values_p, minlength=nb_atoms)
 
+    @staticmethod
+    def _assemble_triplet_to_atom(i_t, values_p, nb_atoms):
+        return mabincount(i_t, values_p, minlength=nb_atoms)
+
     def calculate(self, atoms, properties, system_changes):
         """Calculate properties on atoms."""
         super().calculate(atoms, properties, system_changes)
@@ -133,8 +137,10 @@ class Manybody(MatscipyCalculator):
         phi_p = np.zeros(n_p)
         dphi_cp = np.zeros((2, n_p))
 
+        # Negative values for non abs --> Ask Lucas
         for t in np.unique(t_p):
             m = t_p == t  # type mask
+
             phi_p[m] = self.phi[t](rsq_p[m], xi_p[m])
             dphi_cp[:, m] = self.phi[t].gradient(rsq_p[m], xi_p[m])
 
@@ -145,6 +151,8 @@ class Manybody(MatscipyCalculator):
         dtdRX_rX = ein('qt,tqc->tqc', dtheta_qt, r_tqc)  # compute dΘ/dRX * rX
         dpdR_r = dphi_cp[0][_c] * r_pc  # compute dɸ/dR * r
         dpdxi = dphi_cp[1]
+
+        f_pc = self._assemble_triplet_to_pair(t, dtdRX_rX[:, 0], n_p)
 
         f_pc = sum(
             self._assemble_triplet_to_pair(t, dtdRX_rX, n_p)
