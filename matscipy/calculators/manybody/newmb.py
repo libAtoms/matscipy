@@ -147,7 +147,7 @@ class Manybody(MatscipyCalculator):
 
         # Forces
         dpdxi = dphi_cp[1] 
-        dpdxi_dtdRX_rX = dphidxi[ij_t][_cc] * ein('qt,tqc->tqc', dtheta_qt, r_tqc)  # compute dp/dxi * dΘ/dRX * rX
+        dpdxi_dtdRX_rX = dpdxi[ij_t][_cc] * ein('qt,tqc->tqc', dtheta_qt, r_tqc)  # compute dp/dxi * dΘ/dRX * rX
         dpdR_r = dphi_cp[0][_c] * r_pc  # compute dɸ/dR * r
 
         f_nc = self._assemble_triplet_to_atom(i_p[ij_t], dpdxi_dtdRX_rX[:, 0], n) - self._assemble_triplet_to_atom(j_p[ij_t], dpdxi_dtdRX_rX[:, 0], n) \
