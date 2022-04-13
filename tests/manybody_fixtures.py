@@ -66,6 +66,7 @@ try:
         SymTheta,
         HarmonicPair,
         HarmonicAngle,
+        ZeroPair,
     )
 
     from sympy import symbols, acos, sqrt, pi
@@ -77,6 +78,7 @@ try:
 
     _analytical_pair_potentials = [
         (HarmonicPair(1, 1), SymPhi(0.5 * (sqrt(R) - 1)**2 + xi, (R, xi))),
+        (ZeroPair(), SymPhi(xi, (R, xi))),
     ]
 
     _analytical_triplet_potentials = [
@@ -85,11 +87,17 @@ try:
                   (R1, R2, R3)))
     ]
 
-    @pytest.fixture(params=_analytical_pair_potentials)
+    def _pot_names(potlist):
+        return [type(pot).__name__ for pot, _ in potlist]
+
+
+    @pytest.fixture(params=_analytical_pair_potentials,
+                    ids=_pot_names(_analytical_pair_potentials))
     def analytical_pair(request):
         return request.param
 
-    @pytest.fixture(params=_analytical_triplet_potentials)
+    @pytest.fixture(params=_analytical_triplet_potentials,
+                    ids=_pot_names(_analytical_triplet_potentials))
     def analytical_triplet(request):
         return request.param
 
