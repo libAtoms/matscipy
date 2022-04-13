@@ -3,6 +3,7 @@
 import numpy as np
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from typing import Mapping
 from ...calculators.calculator import MatscipyCalculator
 from ...neighbours import Neighbourhood
@@ -79,7 +80,14 @@ class Manybody(MatscipyCalculator):
                  neighbourhood: Neighbourhood):
         """Construct with potentials ɸ(rᵢⱼ², ξᵢⱼ) and Θ(rᵢⱼ², rᵢₖ², rⱼₖ²)."""
         super().__init__()
-        self.phi = phi
+
+        if isinstance(phi, defaultdict):
+            self.phi = phi
+        else:
+            from .potentials import ZeroPair  # noqa
+            self.phi = defaultdict(lambda: ZeroPair())
+            self.phi.update(phi)
+
         self.theta = theta
         self.neighbourhood = neighbourhood
 

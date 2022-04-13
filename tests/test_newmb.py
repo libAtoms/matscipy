@@ -77,16 +77,9 @@ def molecule():
         )
     )  
 
-def zero_pair():
-	return ZeroPair()
-
-# 
-harmonicpair = defaultdict(zero_pair)
-harmonicpair[1] = HarmonicPair(1,1)
-
 # Potentiales to be tested
 potentials = [
-    (harmonicpair, {1: HarmonicAngle(1, np.pi/4)}, molecule())
+    ({1: HarmonicPair(1, 1)}, {1: HarmonicAngle(1, np.pi/4)}, molecule())
 ]
 
 @pytest.fixture(params=potentials)
@@ -105,4 +98,4 @@ def test_properties(distance, configuration, potential):
     # Testing stresses
     s_ana = configuration.get_stress()
     s_num = numerical_stress(configuration, d=1e-6)
-    nt.assert_allclose(s_ana, s_num, rtol=1e-6)   
+    nt.assert_allclose(s_ana, s_num, rtol=1e-6)
