@@ -293,3 +293,15 @@ class Manybody(MatscipyCalculator):
         C_cccc += (ddpddxi[_cccc] * ein('pab,pmn->pabmn', dtdRx_rXrX, dtdRx_rXrX)).sum(axis=0)
 
         return 2 * C_cccc / atoms.get_volume()
+
+    def get_nonaffine_forces(self, atoms):
+        """
+        Non-affine forces
+        """
+        pass
+
+    def get_hessian(self, atoms):
+        """
+        Hessian
+        """
+        pass
