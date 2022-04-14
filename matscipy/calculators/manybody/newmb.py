@@ -29,6 +29,7 @@ class Manybody(MatscipyCalculator):
         'stress',
         'forces',
         'hessian',
+        'born_constants',        
         'nonaffine_forces',
         'birch_coefficients',
     ]
@@ -181,3 +182,69 @@ class Manybody(MatscipyCalculator):
                 "forces": f_nc,
             }
         )
+
+    def get_born_elastic_constants(self, atoms):
+        """
+        Compute the Born (affine) elastic constants.
+        """
+        if self.atoms is None:
+            self.atoms = atoms
+
+        # Topology information
+        i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
+        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
+        n_p, n_t = len(i_p), len(i_p[ij_t])
+        n = len(atoms)
+
+        # Pair and triplet types
+        t_p = self.neighbourhood.pair_type(
+            *(atoms.numbers[i] for i in (i_p, j_p))
+        )
+        t_t = self.neighbourhood.triplet_type(
+            *(atoms.numbers[i] for i in (i_p[ij_t], j_p[ij_t], j_p[ik_t]))
+        )
+
+        # Squared distances
+        rsq_p = np.sum(r_pc**2, axis=-1)
+        rsq_tq = np.sum(r_tqc**2, axis=-1)
+
+        # Three-body potential data
+        theta_t = np.zeros(n_t)
+        dtheta_qt = np.zeros((3, n_t))
+        ddtheta_qt = np.zeros((6, n_t))
+
+        for t in np.unique(t_t):
+            m = t_t == t  # type mask
+            R = rsq_tq[m].T  # distances squared
+
+            # Computing energy and gradient
+            theta_t[m] = self.theta[t](*R)
+            dtheta_qt[:, m] = self.theta[t].gradient(*R)
+            ddtheta_qt[:, m] = self.theta[t].hessian(*R)
+
+        # Aggregating xi
+        xi_p = self._assemble_triplet_to_pair(ij_t, theta_t, n_p)
+
+        # Pair potential data
+        phi_p = np.zeros(n_p)
+        dphi_cp = np.zeros((2, n_p))
+        ddphi_cp = np.zeros((3, n_p))
+
+        for t in np.unique(t_p):
+            m = t_p == t  # type mask
+
+            phi_p[m] = self.phi[t](rsq_p[m], xi_p[m])
+            dphi_cp[:, m] = self.phi[t].gradient(rsq_p[m], xi_p[m])
+            ddphi_cp[:, m] = self.phi[t].hessian(rsq_p[m], xi_p[m])
+
+        C_cccc = np.zeros((3,3,3,3))
+
+        # Term 1 vanishes 
+
+        # Term 2 
+        C_cccc = 
+
+
+        return C_cccc / atoms.get_volume()
+
+
