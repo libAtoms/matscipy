@@ -155,21 +155,29 @@ class Manybody(MatscipyCalculator):
 
         # Forces
         dpdxi = dphi_cp[1] 
-        dpdxi_dtdRX_rX = dpdxi[ij_t][_cc] * ein('qt,tqc->tqc', dtheta_qt, r_tqc)  # compute dp/dxi * dΘ/dRX * rX
+
+        # compute dɸ/dxi * dΘ/dRX * rX
+        dpdxi_dtdRX_rX = ein('t,qt,tqc->tqc', dpdxi[ij_t], dtheta_qt, r_tqc)
         dpdR_r = dphi_cp[0][_c] * r_pc  # compute dɸ/dR * r
 
-        f_nc = self._assemble_triplet_to_atom(i_p[ij_t], dpdxi_dtdRX_rX[:, 0], n) - self._assemble_triplet_to_atom(j_p[ij_t], dpdxi_dtdRX_rX[:, 0], n) \
-             + self._assemble_triplet_to_atom(i_p[ik_t], dpdxi_dtdRX_rX[:, 1], n) - self._assemble_triplet_to_atom(j_p[ik_t], dpdxi_dtdRX_rX[:, 1], n) \
-             + self._assemble_triplet_to_atom(j_p[ij_t], dpdxi_dtdRX_rX[:, 2], n) - self._assemble_triplet_to_atom(j_p[ik_t], dpdxi_dtdRX_rX[:, 2], n) 
+        # Assembling triplet force contribution for each pair in triplet
+        f_nc = sum(
+            self._assemble_triplet_to_atom(i, dpdxi_dtdRX_rX[:, a], n)
+            - self._assemble_triplet_to_atom(j, dpdxi_dtdRX_rX[:, a], n)
 
-        f_nc += self._assemble_pair_to_atom(i_p, dpdR_r, n) - self._assemble_pair_to_atom(j_p, dpdR_r, n)
+            # Loop of pairs in the ijk triplet
+            for a, (i, j) in enumerate([(i_p[ij_t], j_p[ij_t]),   # ij pair
+                                        (i_p[ik_t], j_p[ik_t]),   # ik pair
+                                        (j_p[ij_t], j_p[ik_t])])  # jk pair
+        )
+
+        # Assembling the pair force contributions
+        f_nc += self._assemble_pair_to_atom(i_p, dpdR_r, n) \
+            - self._assemble_pair_to_atom(j_p, dpdR_r, n)
 
         # Stresses
-        dtdRX_rXrX = ein('tXi,tXj->tij', dpdxi_dtdRX_rX, r_tqc)
-        dpdR_rr = ein('pi,pj->pij', dpdR_r, r_pc)
-        
-        s_cc = np.sum(dtdRX_rXrX, axis=0)
-        s_cc += np.sum(dpdR_rr, axis=0)
+        s_cc = ein('tXi,tXj->ij', dpdxi_dtdRX_rX, r_tqc)  # outer + sum triplets
+        s_cc += ein('pi,pj->ij', dpdR_r, r_pc)  # outer + sum pairs
         s_cc *= 1 / atoms.get_volume()
 
         # Update results
