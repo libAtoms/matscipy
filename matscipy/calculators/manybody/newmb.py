@@ -246,51 +246,50 @@ class Manybody(MatscipyCalculator):
             dphi_cp[:, m] = self.phi[t].gradient(rsq_p[m], xi_p[m])
             ddphi_cp[:, m] = self.phi[t].hessian(rsq_p[m], xi_p[m])
 
-        C_cccc = np.zeros((3,3,3,3))
-
         # Term 1 vanishes
+        C_cccc = np.zeros([3] * 4)
 
         # Term 2
         ddpddR = ddphi_cp[0]
-        C_cccc += (ddpddR[_cccc] * ein('pa,pb,pm,pn->pabmn', r_pc, r_pc, r_pc, r_pc)).sum(axis=0)
+        C_cccc += ein('p,pa,pb,pm,pn->abmn', ddpddR, r_pc, r_pc, r_pc, r_pc)
 
         # Term 3
         dpdxi = dphi_cp[1][ij_t]
-        C_cccc += (
-            dpdxi[_cccc] *
-            (
-              ddtheta_qt[0][_cccc] * ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0]) \
-            + ddtheta_qt[1][_cccc] * ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 1]) \
-            + ddtheta_qt[2][_cccc] * ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 2]) \
-            + ddtheta_qt[3][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 1], r_tqc[:, 1]) \
-                                    + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 2], r_tqc[:, 2])) \
-            + ddtheta_qt[4][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 2], r_tqc[:, 2]) \
-                                    + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 1], r_tqc[:, 1])) \
-            + ddtheta_qt[5][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 1], r_tqc[:, 1]) \
-                                    + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 0], r_tqc[:, 0]))
-            )
-            ).sum(axis=0)
+
+        # Combination indices involved in term 3
+        # Implicitely symmetrizes tensor ?
+        X = [0, 1, 2, 2, 1, 0, 2, 0, 1]
+        Y = [0, 1, 2, 1, 2, 2, 1, 1, 0]  # <--- if it symmetrizes Y[6] should be 0?
+        XY = [0, 1, 2, 3, 3, 4, 4, 5, 5]
+
+        C_cccc += ein('t,qt,tqa,tqb,tqm,tqn->abmn',
+                      dpdxi,
+                      ddtheta_qt[XY],
+                      r_tqc[:, X], r_tqc[:, X],
+                      r_tqc[:, Y], r_tqc[:, Y])
 
         # Term 4
         ddpdRdxi = ddphi_cp[2][ij_t]
-        C_cccc += (ddpdRdxi[_cccc] *
-                      (dtheta_qt[0][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0]) \
-                                         + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0])) \
-                     + dtheta_qt[1][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 1], r_tqc[:, 1]) \
-                                         + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 0], r_tqc[:, 0]) ) \
-                     + dtheta_qt[2][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 2], r_tqc[:, 2]) \
-                                         + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 0], r_tqc[:, 0]) ) \
-                      )
-                ).sum(axis=0)
+
+        # Combination indices involved in term 4
+        # also implicitely symmetrizes ?
+        X = [0, 0, 0, 1, 0, 2]
+        Y = [0, 0, 1, 0, 2, 0]
+        XY = [0, 0, 1, 1, 2, 2]
+
+        C_cccc += ein('t,qt,tqa,tqb,tqm,tqn->abmn',
+                      ddpdRdxi,
+                      dtheta_qt[XY],
+                      r_tqc[:, X], r_tqc[:, X],
+                      r_tqc[:, Y], r_tqc[:, Y])
 
         # Term 5
         ddpddxi = ddphi_cp[1]
-        # Replace later!
-        dtdRx_rXrX = self._assemble_triplet_to_pair(ij_t,
-                         dtheta_qt[0][_cc] * ein('ta,tb->tab', r_tqc[:, 0], r_tqc[:, 0]) \
-                       + dtheta_qt[1][_cc] * ein('ta,tb->tab', r_tqc[:, 1], r_tqc[:, 1]) \
-                       + dtheta_qt[2][_cc] * ein('ta,tb->tab', r_tqc[:, 2], r_tqc[:, 2]), n_p)
-        C_cccc += (ddpddxi[_cccc] * ein('pab,pmn->pabmn', dtdRx_rXrX, dtdRx_rXrX)).sum(axis=0)
+        dtdRx_rXrX = self._assemble_triplet_to_pair(
+            ij_t, ein('qt,tqa,tqb->tab', dtheta_qt, r_tqc, r_tqc), n_p,
+        )
+
+        C_cccc += ein('p,pab,pmn->abmn', ddpddxi, dtdRx_rXrX, dtdRx_rXrX)
 
         return 2 * C_cccc / atoms.get_volume()
 
