@@ -30,7 +30,7 @@ class Manybody(MatscipyCalculator):
         'stress',
         'forces',
         'hessian',
-        'born_constants',        
+        'born_constants',
         'nonaffine_forces',
         'birch_coefficients',
     ]
@@ -156,7 +156,7 @@ class Manybody(MatscipyCalculator):
         epot = 0.5 * phi_p.sum()
 
         # Forces
-        dpdxi = dphi_cp[1] 
+        dpdxi = dphi_cp[1]
 
         # compute dɸ/dxi * dΘ/dRX * rX
         dpdxi_dtdRX_rX = ein('t,qt,tqc->tqc', dpdxi[ij_t], dtheta_qt, r_tqc)
@@ -248,9 +248,9 @@ class Manybody(MatscipyCalculator):
 
         C_cccc = np.zeros((3,3,3,3))
 
-        # Term 1 vanishes 
+        # Term 1 vanishes
 
-        # Term 2 
+        # Term 2
         ddpddR = ddphi_cp[0]
         C_cccc += (ddpddR[_cccc] * ein('pa,pb,pm,pn->pabmn', r_pc, r_pc, r_pc, r_pc)).sum(axis=0)
 
@@ -267,7 +267,7 @@ class Manybody(MatscipyCalculator):
             + ddtheta_qt[4][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 2], r_tqc[:, 2]) \
                                     + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 1], r_tqc[:, 1])) \
             + ddtheta_qt[5][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 1], r_tqc[:, 1]) \
-                                    + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 0], r_tqc[:, 0])) 
+                                    + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 0], r_tqc[:, 0]))
             )
             ).sum(axis=0)
 
@@ -293,5 +293,3 @@ class Manybody(MatscipyCalculator):
         C_cccc += (ddpddxi[_cccc] * ein('pab,pmn->pabmn', dtdRx_rXrX, dtdRx_rXrX)).sum(axis=0)
 
         return 2 * C_cccc / atoms.get_volume()
-
-
