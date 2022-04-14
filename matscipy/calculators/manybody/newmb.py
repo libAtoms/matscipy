@@ -13,7 +13,8 @@ from ...numpy_tricks import mabincount
 # Broacast slices
 _c = np.s_[..., np.newaxis]
 _cc = np.s_[..., np.newaxis, np.newaxis]
-
+_ccc = np.s_[..., np.newaxis, np.newaxis, np.newaxis]
+_cccc = np.s_[..., np.newaxis, np.newaxis, np.newaxis, np.newaxis]
 
 def ein(*args):
     """Optimized einsum."""
@@ -242,9 +243,47 @@ class Manybody(MatscipyCalculator):
         # Term 1 vanishes 
 
         # Term 2 
-        C_cccc = 
+        ddpddR = ddphi_cp[0]
+        C_cccc += (ddpddR[_cccc] * ein('pa,pb,pm,pn->pabmn', r_pc, r_pc, r_pc, r_pc)).sum(axis=0)
 
+        # Term 3
+        dpdxi = dphi_cp[1][ij_t]
+        C_cccc += (
+            dpdxi[_cccc] *
+            (
+              ddtheta_qt[0][_cccc] * ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0]) \
+            + ddtheta_qt[1][_cccc] * ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 1]) \
+            + ddtheta_qt[2][_cccc] * ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 2]) \
+            + ddtheta_qt[3][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 1], r_tqc[:, 1]) \
+                                    + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 2], r_tqc[:, 2])) \
+            + ddtheta_qt[4][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 2], r_tqc[:, 2]) \
+                                    + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 1], r_tqc[:, 1])) \
+            + ddtheta_qt[5][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 1], r_tqc[:, 1]) \
+                                    + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 0], r_tqc[:, 0])) 
+            )
+            ).sum(axis=0)
 
-        return C_cccc / atoms.get_volume()
+        # Term 4
+        ddpdRdxi = ddphi_cp[2][ij_t]
+        C_cccc += (ddpdRdxi[_cccc] *
+                      (dtheta_qt[0][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0]) \
+                                         + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 0])) \
+                     + dtheta_qt[1][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 1], r_tqc[:, 1]) \
+                                         + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 1], r_tqc[:, 1], r_tqc[:, 0], r_tqc[:, 0]) ) \
+                     + dtheta_qt[2][_cccc] * (ein('ta,tb,tm,tn->tabmn', r_tqc[:, 0], r_tqc[:, 0], r_tqc[:, 2], r_tqc[:, 2]) \
+                                         + ein('ta,tb,tm,tn->tabmn', r_tqc[:, 2], r_tqc[:, 2], r_tqc[:, 0], r_tqc[:, 0]) ) \
+                      )
+                ).sum(axis=0)
+
+        # Term 5
+        ddpddxi = ddphi_cp[1]
+        # Replace later!
+        dtdRx_rXrX = self._assemble_triplet_to_pair(ij_t,
+                         dtheta_qt[0][_cc] * ein('ta,tb->tab', r_tqc[:, 0], r_tqc[:, 0]) \
+                       + dtheta_qt[1][_cc] * ein('ta,tb->tab', r_tqc[:, 1], r_tqc[:, 1]) \
+                       + dtheta_qt[2][_cc] * ein('ta,tb->tab', r_tqc[:, 2], r_tqc[:, 2]), n_p)
+        C_cccc += (ddpddxi[_cccc] * ein('pab,pmn->pabmn', dtdRx_rXrX, dtdRx_rXrX)).sum(axis=0)
+
+        return 2 * C_cccc / atoms.get_volume()
 
 
