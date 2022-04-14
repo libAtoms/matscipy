@@ -240,6 +240,111 @@ class HarmonicAngle(Manybody.Theta):
         ])
 
 
+@distance_defined
+class StillingerWeber(Manybody.Phi):
+    """
+    Implementation of the Stillinger-Weber Potential
+    """
+    
+    def __init__(self, parameters):
+        # Maybe set only parameters needed for \Phi
+        self.el = parameters['el']
+        self.epsilon = parameters['epsilon']
+        self.sigma = parameters['sigma']
+        self.costheta0 = parameters['costheta0']
+        self.A = parameters['A']
+        self.B = parameters['B']
+        self.p = parameters['p']
+        self.q = parameters['q']
+        self.a = parameters['a']
+        self.lambda1 = parameters['lambda1']
+        self.gamma = parameters['gamma']
+
+    def __call__(self, r_p, xi_p):
+        U2 = self.B * np.power(self.sigma / r_p, self.p) - np.power(self.sigma / r_p, self.q)
+        U2 *= self.A * self.epsilon * np.exp(self.sigma / (r_p - self.a * self.sigma))
+
+        return U2 + self.lambda1 * xi_p
+
+    def gradient(self, r_p, xi_p):
+        sigma_r_p = np.power(self.sigma / r_p, self.p)
+        sigma_r_q = np.power(self.sigma / r_p, self.q)
+
+        m = np.exp(self.sigma / (r_p - self.a * self.sigma))
+        dm = -self.sigma / np.power(r_p - self.a * self.sigma, 2) * m 
+
+        h = self.B * sigma_r_p - sigma_r_q
+        dh = -self.p * self.B * sigma_r_p / r_p + self.q * sigma_r_q / r_p
+
+        return np.stack([
+            self.A * self.epsilon * (dh * m + dm * h),
+            self.lambda1 * np.ones_like(xi_p)
+            ])
+
+    def hessian(self, r_p, xi_p):
+        sigma_r_p = np.power(self.sigma / r_p, self.p)
+        sigma_r_q = np.power(self.sigma / r_p, self.q)
+
+        m = np.exp(self.sigma / (r_p - self.a * self.sigma))
+        dm = -self.sigma / np.power(r_p - self.a * self.sigma, 2) * m 
+        ddm = m * self.sigma**2 / np.power(r_p - self.a * self.sigma, 4) 
+        ddm += m * 2 * self.sigma / np.power(r_p - self.a * self.sigma, 3)
+
+        h = self.B * sigma_r_p - sigma_r_q
+        dh = -self.p * self.B * sigma_r_p / r_p + self.q * sigma_r_q / r_p
+        ddh = self.p * self.B * sigma_r_p / r_p**2 * (1 + self.p)
+        ddh -= self.q * sigma_r_q / r_p**2 * (1 + self.q) 
+
+        return np.stack([
+            self.A * self.epsilon * (m * ddh + 2 * dh * dm + h * ddm),
+            np.zeros_like(xi_p),
+            np.zeros_like(xi_p)
+            ])
+
+@angle_distance_defined
+class StillingerWeber(Manybody.Theta):
+    """
+    Implementation of the Stillinger-Weber Potential
+    """
+
+    def __init__(self, parameters):
+        # Maybe set only parameters needed for \Phi
+        self.el = parameters['el']
+        self.epsilon = parameters['epsilon']
+        self.sigma = parameters['sigma']
+        self.costheta0 = parameters['costheta0']
+        self.A = parameters['A']
+        self.B = parameters['B']
+        self.p = parameters['p']
+        self.q = parameters['q']
+        self.a = parameters['a']
+        self.lambda1 = parameters['lambda1']
+        self.gamma = parameters['gamma']
+
+    def __call__(self, rij, rik, rjk):
+        # Squared distances
+        rsq_ij = rij**2
+        rsq_ik = rik**2
+        rsq_jk = rjk**2
+
+        # cos of angle
+        cos = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
+
+        # Functions
+        m = np.exp(self.sigma / (rij - self.a * self.sigma))
+        n = np.exp(self.sigma / (rik - self.a * self.sigma))
+        g = np.power(cos - self.costheta0, 2)
+        
+        return self.epsilon * g * m * n
+
+    def gradient(self, r_p, xi_p):
+        pass
+
+    def hessian(self, r_p, xi_p):
+        pass 
+        
+
+
 try:
     from sympy import lambdify, Expr, Symbol
 
