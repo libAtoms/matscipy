@@ -39,7 +39,7 @@ from matscipy.neighbours import MolecularNeighbourhood
 
 from collections import defaultdict
 
-@pytest.fixture(params=[1.0, 2.0, 3.0, 4.0])
+@pytest.fixture(params=[1.0])
 def distance(request):
 	return request.param 
 
@@ -99,3 +99,6 @@ def test_properties(distance, configuration, potential):
     s_ana = configuration.get_stress()
     s_num = numerical_stress(configuration, d=1e-6)
     nt.assert_allclose(s_ana, s_num, rtol=1e-6)
+
+    # Testing Born elastic constants
+    C_ana = configuration.calc.get_property("born_constants")
