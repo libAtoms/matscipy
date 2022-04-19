@@ -21,84 +21,103 @@
 
 import pytest
 
-import numpy as np 
+import numpy as np
 import numpy.testing as nt
 
-from ase import Atoms 
+from ase import Atoms
 
-from matscipy.numerical import numerical_forces, numerical_stress, numerical_hessian
+from matscipy.numerical import (
+    numerical_forces,
+    numerical_stress,
+    numerical_hessian,
+)
 
 from matscipy.calculators.manybody.newmb import Manybody
 
 from matscipy.calculators.manybody.potentials import (
-    HarmonicPair, HarmonicAngle, ZeroPair
+    ZeroPair,
+    ZeroAngle,
+    HarmonicPair,
+    HarmonicAngle,
 )
 
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood
 
-from collections import defaultdict
+
+def molecule():
+    """Return a molecule setup involing all 4 atoms."""
+    # Get all combinations of eight atoms
+    bonds = np.array(
+        np.meshgrid([np.arange(4)] * 2),
+    ).T.reshape(-1, 2)
+
+    # Get all combinations of eight atoms
+    angles = np.array(np.meshgrid([np.arange(4)] * 3)).T.reshape(-1, 3)
+
+    # Delete degenerate pairs and angles
+    bonds = bonds[bonds[:, 0] != bonds[:, 1]]
+    angles = angles[
+        (angles[:, 0] != angles[:, 1])
+        | (angles[:, 0] != angles[:, 2])
+        | (angles[:, 1] != angles[:, 2])
+    ]
+
+    return MolecularNeighbourhood(
+        Molecules(bonds_connectivity=bonds, angles_connectivity=angles)
+    )
+
+
+# Potentiales to be tested
+potentials = {
+    "Zero/Pair+Angle": (
+        {1: ZeroPair()}, {1: ZeroAngle()}, molecule()
+    ),
+
+    "Harmonic/Pair+Angle": (
+        {1: HarmonicPair(1, 1)}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
+    ),
+}
+
+
+@pytest.fixture(params=potentials.values(), ids=potentials.keys())
+def potential(request):
+    return request.param
+
 
 @pytest.fixture(params=[1.0])
 def distance(request):
-	return request.param 
+    return request.param
+
 
 @pytest.fixture
-def configuration(distance):
-	atoms = Atoms(
-		"H"*4,
-		positions=[
-		     (0, 0, 0),
-		     (1, 0, 0), 
-		     (0, 1, 0),
-		     (0, 1, 1)
-		],
-		cell=[10, 10, 10])
+def configuration(distance, potential):
+    atoms = Atoms(
+        "H" * 4,
+        positions=[(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)],
+        cell=[10, 10, 10],
+    )
 
-	atoms.positions[:] *= distance
+    atoms.positions[:] *= distance
+    atoms.calc = Manybody(*potential)
 
-	return atoms
+    return atoms
 
-def molecule():
-    # Get all combinations of eight atoms, delete pairs with i == j
-    bonds = np.array(np.meshgrid(np.linspace(0, 3, 4), np.linspace(0, 3, 4))).T.reshape(-1, 2)
-    bonds = bonds[bonds[:, 0] != bonds[:, 1]]
-    
-    # Get all combinations of eight atoms, delete pairs with i == j == k
-    angles = np.array(np.meshgrid(np.linspace(0, 3, 4), np.linspace(0, 3, 4), np.linspace(0, 3, 4))).T.reshape(-1, 3)
-    angles = angles[angles[:, 0] != angles[:, 1]]
-    angles = angles[angles[:, 0] != angles[:, 2]]
-    angles = angles[angles[:, 1] != angles[:, 2]]
 
-    return MolecularNeighbourhood(
-        Molecules(
-            bonds_connectivity=bonds,
-            angles_connectivity=angles
-        )
-    )  
+###############################################################################
 
-# Potentiales to be tested
-potentials = [
-    ({1: HarmonicPair(1, 1)}, {1: HarmonicAngle(1, np.pi/4)}, molecule())
-]
 
-@pytest.fixture(params=potentials)
-def potential(request):
-	return request.param
-
-def test_properties(distance, configuration, potential):
-    calc = Manybody(*potential)
-    configuration.calc = calc
-
-    # Testing forces
+def test_forces(configuration):
     f_ana = configuration.get_forces()
     f_num = numerical_forces(configuration, d=1e-6)
-    nt.assert_allclose(f_ana, f_num, rtol=1e-6)   
+    nt.assert_allclose(f_ana, f_num, rtol=1e-6)
 
-    # Testing stresses
+
+def test_stresses(configuration):
     s_ana = configuration.get_stress()
     s_num = numerical_stress(configuration, d=1e-6)
     nt.assert_allclose(s_ana, s_num, rtol=1e-6)
 
-    # Testing Born elastic constants
+
+def test_born_constants(configuration):
     C_ana = configuration.calc.get_property("born_constants")
