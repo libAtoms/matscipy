@@ -447,8 +447,7 @@ class Ewald(PairPotential):
 
     def calculate(self, atoms, properties, system_changes):
         """Compute Coulomb interactions with Ewald summation."""
-        if "cell" in system_changes:
-            self.reset()
+        if "cell" in system_changes or getattr(self, 'alpha', None) is None:
             self.reset_kspace(atoms)
 
         super().calculate(atoms, properties, system_changes)
