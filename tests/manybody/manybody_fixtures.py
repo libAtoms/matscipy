@@ -16,6 +16,37 @@ _impl_potentials = {
     for mother in (potentials.Manybody.Phi, potentials.Manybody.Theta)
 }
 
+# Default arguments for classes where that do not define a default constructor
+_default_arguments = {
+    potentials.StillingerWeberPair: [{
+        "el": 1,
+        "epsilon": 1,
+        "sigma": 1,
+        "costheta0": 1,
+        "A": 1,
+        "B": 1,
+        "p": 1,
+        "q": 1,
+        "a": 1,
+        "lambda1": 1,
+        "gamma": 1,
+    }],
+
+    potentials.StillingerWeberAngle: [{
+        "el": 1,
+        "epsilon": 1,
+        "sigma": 1,
+        "costheta0": 1,
+        "A": 1,
+        "B": 1,
+        "p": 1,
+        "q": 1,
+        "a": 1,
+        "lambda1": 1,
+        "gamma": 1,
+    }],
+}
+
 # Filtering out sympy classes
 if getattr(potentials, 'SymPhi', None) is not None:
     for m in _impl_potentials:
@@ -51,12 +82,16 @@ class FiniteDiff:
 @pytest.fixture(params=_impl_potentials[potentials.Manybody.Phi])
 def pair_potential(request):
     """Fixture for pair potentials."""
+    if request.param in _default_arguments:
+        return request.param(*_default_arguments[request.param])
     return request.param()
 
 
 @pytest.fixture(params=_impl_potentials[potentials.Manybody.Theta])
 def three_body_potential(request):
     """Fixture for three-body potentials."""
+    if request.param in _default_arguments:
+        return request.param(*_default_arguments[request.param])
     return request.param()
 
 
