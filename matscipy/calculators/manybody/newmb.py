@@ -105,15 +105,13 @@ class Manybody(MatscipyCalculator):
     def _assemble_triplet_to_atom(i_t, values_t, nb_atoms):
         return mabincount(i_t, values_t, minlength=nb_atoms)
 
-    def calculate(self, atoms, properties, system_changes):
-        """Calculate properties on atoms."""
-        super().calculate(atoms, properties, system_changes)
+    def _masked_compute(self, atoms, order):
+        """Compute requested derivatives of phi and theta."""
+        if not isinstance(order, list):
+            order = [order]
 
-        # Topology information
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
         ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
-        n_p, n_t = len(i_p), len(i_p[ij_t])
-        n = len(atoms)
 
         # Pair and triplet types
         t_p = self.neighbourhood.pair_type(
@@ -123,34 +121,70 @@ class Manybody(MatscipyCalculator):
             *(atoms.numbers[i] for i in (i_p[ij_t], j_p[ij_t], j_p[ik_t]))
         )
 
+        derivatives = np.array([
+            ('__call__', 1, 1),
+            ('gradient', 2, 3),
+            ('hessian', 3, 6),
+        ], dtype=object)
+
+        phi_res = {
+            d[0]: np.zeros([d[1], len(r_pc)]) for d in derivatives[order]
+        }
+
+        theta_res = {
+            d[0]: np.zeros([d[2], len(r_tqc)]) for d in derivatives[order]
+        }
+
+        # Do not allocate array for theta_t if energy is explicitely requested
+        if '__call__' in theta_res:
+            theta_t = theta_res['__call__']
+            extra_compute_theta = False
+        else:
+            theta_t = np.zeros([1, len(r_tqc)])
+            extra_compute_theta = True
+
         # Squared distances
         rsq_p = np.sum(r_pc**2, axis=-1)
         rsq_tq = np.sum(r_tqc**2, axis=-1)
-
-        # Three-body potential data
-        theta_t = np.zeros(n_t)
-        dtheta_qt = np.zeros((3, n_t))
 
         for t in np.unique(t_t):
             m = t_t == t  # type mask
             R = rsq_tq[m].T  # distances squared
 
-            # Computing energy and gradient
-            theta_t[m] = self.theta[t](*R)
-            dtheta_qt[:, m] = self.theta[t].gradient(*R)
+            # Required derivative order
+            for attr, res in theta_res.items():
+                res[:, m] = getattr(self.theta[t], attr)(*R)
+
+            # We need value of theta to compute xi
+            if extra_compute_theta:
+                theta_t[:, m] = self.theta[t](*R)
 
         # Aggregating xi
-        xi_p = self._assemble_triplet_to_pair(ij_t, theta_t, n_p)
-
-        # Pair potential data
-        phi_p = np.zeros(n_p)
-        dphi_cp = np.zeros((2, n_p))
+        xi_p = self._assemble_triplet_to_pair(ij_t, theta_t.squeeze(), len(r_pc))
 
         for t in np.unique(t_p):
             m = t_p == t  # type mask
 
-            phi_p[m] = self.phi[t](rsq_p[m], xi_p[m])
-            dphi_cp[:, m] = self.phi[t].gradient(rsq_p[m], xi_p[m])
+            # Required derivative order
+            for attr, res in phi_res.items():
+                res[:, m] = getattr(self.phi[t], attr)(
+                    rsq_p[m], xi_p[m]
+                )
+
+        return phi_res.values(), theta_res.values()
+
+    def calculate(self, atoms, properties, system_changes):
+        """Calculate properties on atoms."""
+        super().calculate(atoms, properties, system_changes)
+
+        # Topology information
+        i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
+        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
+        n = len(atoms)
+
+        # Request energy and gradient
+        (phi_p, dphi_cp), (theta_t, dtheta_qt) = \
+            self._masked_compute(atoms, order=[0, 1])
 
         # Energy
         epot = 0.5 * phi_p.sum()
@@ -193,58 +227,16 @@ class Manybody(MatscipyCalculator):
         )
 
     def get_born_elastic_constants(self, atoms):
-        """
-        Compute the Born (affine) elastic constants.
-        """
+        """Compute the Born (affine) elastic constants."""
         if self.atoms is None:
             self.atoms = atoms
 
         # Topology information
-        i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
-        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
-        n_p, n_t = len(i_p), len(i_p[ij_t])
-        n = len(atoms)
+        r_pc, = self.neighbourhood.get_pairs(atoms, 'D')
+        ij_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'iD')
 
-        # Pair and triplet types
-        t_p = self.neighbourhood.pair_type(
-            *(atoms.numbers[i] for i in (i_p, j_p))
-        )
-        t_t = self.neighbourhood.triplet_type(
-            *(atoms.numbers[i] for i in (i_p[ij_t], j_p[ij_t], j_p[ik_t]))
-        )
-
-        # Squared distances
-        rsq_p = np.sum(r_pc**2, axis=-1)
-        rsq_tq = np.sum(r_tqc**2, axis=-1)
-
-        # Three-body potential data
-        theta_t = np.zeros(n_t)
-        dtheta_qt = np.zeros((3, n_t))
-        ddtheta_qt = np.zeros((6, n_t))
-
-        for t in np.unique(t_t):
-            m = t_t == t  # type mask
-            R = rsq_tq[m].T  # distances squared
-
-            # Computing energy and gradient
-            theta_t[m] = self.theta[t](*R)
-            dtheta_qt[:, m] = self.theta[t].gradient(*R)
-            ddtheta_qt[:, m] = self.theta[t].hessian(*R)
-
-        # Aggregating xi
-        xi_p = self._assemble_triplet_to_pair(ij_t, theta_t, n_p)
-
-        # Pair potential data
-        phi_p = np.zeros(n_p)
-        dphi_cp = np.zeros((2, n_p))
-        ddphi_cp = np.zeros((3, n_p))
-
-        for t in np.unique(t_p):
-            m = t_p == t  # type mask
-
-            phi_p[m] = self.phi[t](rsq_p[m], xi_p[m])
-            dphi_cp[:, m] = self.phi[t].gradient(rsq_p[m], xi_p[m])
-            ddphi_cp[:, m] = self.phi[t].hessian(rsq_p[m], xi_p[m])
+        (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
+            self._masked_compute(atoms, order=[1, 2])
 
         # Term 1 vanishes
         C_cccc = np.zeros([3] * 4)
@@ -285,7 +277,7 @@ class Manybody(MatscipyCalculator):
         # Term 5
         ddpddxi = ddphi_cp[1]
         dtdRx_rXrX = self._assemble_triplet_to_pair(
-            ij_t, ein('qt,tqa,tqb->tab', dtheta_qt, r_tqc, r_tqc), n_p,
+            ij_t, ein('qt,tqa,tqb->tab', dtheta_qt, r_tqc, r_tqc), len(r_pc),
         )
 
         C_cccc += ein('p,pab,pmn->abmn', ddpddxi, dtdRx_rXrX, dtdRx_rXrX)
@@ -293,10 +285,8 @@ class Manybody(MatscipyCalculator):
         return 2 * C_cccc / atoms.get_volume()
 
     def get_nonaffine_forces(self, atoms):
-        """
-        Non-affine forces
-        """
-        pass
+        """Compute non-affine forces."""
+
 
     def get_hessian(self, atoms):
         """
