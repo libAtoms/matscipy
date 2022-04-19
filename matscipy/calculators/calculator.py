@@ -137,7 +137,7 @@ class MatscipyCalculator(Calculator):
 
         """
 
-        stress_ab = Voigt_6_to_full_3x3_stress(self.get_property('stress', atoms))
+        stress_ab = self.get_property('stress', atoms)
         delta_ab = np.identity(3)
 
         # Term 1
@@ -145,10 +145,12 @@ class MatscipyCalculator(Calculator):
         C1_abab = (C1_abab + C1_abab.swapaxes(0, 1) + C1_abab.swapaxes(2, 3) + C1_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
         # Term 2
-        C2_abab = (stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1) + \
-                   stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3) + \
-                   stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1) + \
-                   stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3))/4
+        C2_abab = 0.25 * (
+            stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1)
+            + stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3)
+            + stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1)
+            + stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3)
+        )
 
         return C1_abab + C2_abab
 

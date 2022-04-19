@@ -41,8 +41,32 @@ from matscipy.calculators.manybody.potentials import (
     HarmonicAngle,
 )
 
+from matscipy.elasticity import (
+    measure_triclinic_elastic_constants,
+    full_3x3x3x3_to_Voigt_6x6 as to_voigt,
+    Voigt_6x6_to_full_3x3x3x3 as from_voigt,
+)
+
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood
+
+
+def cauchy_correction(stress):
+    delta = np.eye(3)
+
+    stress_contribution = 0.5 * sum(
+        np.einsum(einsum, stress, delta)
+        for einsum in (
+                'am,bn',
+                'an,bm',
+                'bm,an',
+                'bn,am',
+        )
+    )
+
+    # Why does removing this work for the born constants?
+    # stress_contribution -= np.einsum('ab,mn', stress, delta)
+    return stress_contribution
 
 
 def molecule():
@@ -68,14 +92,18 @@ def molecule():
     )
 
 
-# Potentiales to be tested
+# Potentials to be tested
 potentials = {
-    "Zero/Pair+Angle": (
+    "Zero(Pair+Angle)": (
         {1: ZeroPair()}, {1: ZeroAngle()}, molecule()
     ),
 
-    "Harmonic/Pair+Angle": (
+    "Harmonic(Pair+Angle)": (
         {1: HarmonicPair(1, 1)}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
+    ),
+
+    "HarmonicPair+ZeroAngle": (
+        {1: HarmonicPair(1, 1)}, {1: ZeroAngle()}, molecule()
     ),
 }
 
@@ -121,3 +149,10 @@ def test_stresses(configuration):
 
 def test_born_constants(configuration):
     C_ana = configuration.calc.get_property("born_constants")
+    C_num = measure_triclinic_elastic_constants(configuration, d=1e-6)
+
+    # Compute Cauchy stress correction
+    stress = configuration.get_stress(voigt=False)
+    corr = cauchy_correction(stress)
+
+    nt.assert_allclose(C_ana + corr, C_num, rtol=2e-5)

@@ -257,9 +257,8 @@ class Manybody(MatscipyCalculator):
         dpdxi = dphi_cp[1][ij_t]
 
         # Combination indices involved in term 3
-        # Implicitely symmetrizes tensor ?
         X = [0, 1, 2, 2, 1, 0, 2, 0, 1]
-        Y = [0, 1, 2, 1, 2, 2, 1, 1, 0]  # <--- if it symmetrizes Y[6] should be 0?
+        Y = [0, 1, 2, 1, 2, 2, 0, 1, 0]
         XY = [0, 1, 2, 3, 3, 4, 4, 5, 5]
 
         C_cccc += ein('t,qt,tqa,tqb,tqm,tqn->abmn',
