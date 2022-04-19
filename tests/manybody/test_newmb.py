@@ -144,7 +144,7 @@ def test_forces(configuration):
 def test_stresses(configuration):
     s_ana = configuration.get_stress()
     s_num = numerical_stress(configuration, d=1e-6)
-    nt.assert_allclose(s_ana, s_num, rtol=1e-6)
+    nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-13)
 
 
 def test_born_constants(configuration):
