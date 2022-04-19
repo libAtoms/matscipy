@@ -122,6 +122,19 @@ class ZeroPair(Manybody.Phi):
         return np.zeros([3] + list(r_p.shape))
 
 
+class ZeroAngle(Manybody.Theta):
+    """Implementation of a zero three-body interaction."""
+
+    def __call__(self, R1, R2, R3):
+        return np.zeros_like(R1)
+
+    def gradient(self, R1, R2, R3):
+        return np.zeros([3] + list(R1.shape))
+
+    def hessian(self, R1, R2, R3):
+        return np.zeros([6] + list(R1.shape))
+
+
 @distance_defined
 class HarmonicPair(Manybody.Phi):
     """
