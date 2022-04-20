@@ -40,7 +40,7 @@
 # ======================================================================
 
 import math
-import unittest
+import pytest
 
 import numpy as np
 
@@ -57,107 +57,119 @@ from matscipy.neighbours import neighbour_list
 
 try:
     import atomistica
-except:
+except ImportError:
     atomistica = None
 
-###
 
-class TestEnergyRelease(unittest.TestCase):
+@pytest.mark.skipif(atomistica is None, reason="Atomistica not available")
+def test_J_integral():
+    """
+    Check if the J-integral returns G=2*gamma
+    """
 
-    def test_J_integral(self):
-        """
-        Check if the J-integral returns G=2*gamma
-        """
+    nx = 128
+    for calc, a0, C11, C12, C44, surface_energy, bulk_coordination in [
+        (
+            atomistica.DoubleHarmonic(
+                k1=1.0, r1=1.0, k2=1.0, r2=math.sqrt(2), cutoff=1.6
+            ),
+            clusters.sc("He", 1.0, [nx, nx, 1], [1, 0, 0], [0, 1, 0]),
+            3,
+            1,
+            1,
+            0.05,
+            6,
+        ),
+        #            ( atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=False),
+        #              clusters.fcc('He', math.sqrt(2.0), [nx/2,nx/2,1], [1,0,0],
+        #                           [0,1,0]),
+        #              math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.05, 12)
+    ]:
+        print("{} atoms.".format(len(a0)))
 
-        if not atomistica:
-            print('Atomistica not available. Skipping test.')
-            return
+        crack = CubicCrystalCrack(
+            [1, 0, 0], [0, 1, 0], C11=C11, C12=C12, C44=C44
+        )
 
-        nx = 128
-        for calc, a0, C11, C12, C44, surface_energy, bulk_coordination in [
-            ( atomistica.DoubleHarmonic(k1=1.0, r1=1.0, k2=1.0,
-                                        r2=math.sqrt(2), cutoff=1.6),
-              clusters.sc('He', 1.0, [nx,nx,1], [1,0,0], [0,1,0]),
-              3, 1, 1, 0.05, 6 ),
-#            ( atomistica.Harmonic(k=1.0, r0=1.0, cutoff=1.3, shift=False),
-#              clusters.fcc('He', math.sqrt(2.0), [nx/2,nx/2,1], [1,0,0],
-#                           [0,1,0]),
-#              math.sqrt(2), 1.0/math.sqrt(2), 1.0/math.sqrt(2), 0.05, 12)
-            ]:
-            print('{} atoms.'.format(len(a0)))
+        x, y, z = a0.positions.T
+        r2 = min(np.max(x) - np.min(x), np.max(y) - np.min(y)) / 4
+        r1 = r2 / 2
 
-            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11=C11, C12=C12, C44=C44)
+        a = a0.copy()
+        a.center(vacuum=20.0, axis=0)
+        a.center(vacuum=20.0, axis=1)
+        ref = a.copy()
+        r0 = ref.positions
 
-            x, y, z = a0.positions.T
-            r2 = min(np.max(x)-np.min(x), np.max(y)-np.min(y))/4
-            r1 = r2/2
+        a.calc = calc
+        print("epot = {}".format(a.get_potential_energy()))
 
-            a = a0.copy()
-            a.center(vacuum=20.0, axis=0)
-            a.center(vacuum=20.0, axis=1)
-            ref = a.copy()
-            r0 = ref.positions
+        sx, sy, sz = a.cell.diagonal()
+        tip_x = sx / 2
+        tip_y = sy / 2
 
-            a.set_calculator(calc)
-            print('epot = {}'.format(a.get_potential_energy()))
+        k1g = crack.k1g(surface_energy)
 
-            sx, sy, sz = a.cell.diagonal()
-            tip_x = sx/2
-            tip_y = sy/2
+        # g = a.get_array('groups')  # groups are not defined
+        g = np.ones(len(a))  # not fixing any atom
 
-            k1g = crack.k1g(surface_energy)
+        old_x = tip_x + 1.0
+        old_y = tip_y + 1.0
+        while abs(tip_x - old_x) > 1e-6 and abs(tip_y - old_y) > 1e-6:
+            a.set_constraint(None)
 
-            #g = a.get_array('groups')  # groups are not defined
-            g = np.ones(len(a))  # not fixing any atom
+            ux, uy = crack.displacements(r0[:, 0], r0[:, 1], tip_x, tip_y, k1g)
+            a.positions[:, 0] = r0[:, 0] + ux
+            a.positions[:, 1] = r0[:, 1] + uy
+            a.positions[:, 2] = r0[:, 2]
 
-            old_x = tip_x+1.0
-            old_y = tip_y+1.0
-            while abs(tip_x-old_x) > 1e-6 and abs(tip_y-old_y) > 1e-6:
-                a.set_constraint(None)
-                
-                ux, uy = crack.displacements(r0[:,0], r0[:,1], tip_x, tip_y,
-                                             k1g)
-                a.positions[:,0] = r0[:,0] + ux
-                a.positions[:,1] = r0[:,1] + uy
-                a.positions[:,2] = r0[:,2]
-                
-                a.set_constraint(ase.constraints.FixAtoms(mask=g==0))
-                opt = FIRE(a, logfile=None)
-                opt.run(fmax=1e-3)
-            
-                old_x = tip_x
-                old_y = tip_y
-                tip_x, tip_y = crack.crack_tip_position(a.positions[:,0],
-                                                        a.positions[:,1],
-                                                        r0[:,0], r0[:,1],
-                                                        tip_x, tip_y, k1g,
-                                                        mask=g!=0)
+            a.set_constraint(ase.constraints.FixAtoms(mask=g == 0))
+            opt = FIRE(a, logfile=None)
+            opt.run(fmax=1e-3)
 
-                print(tip_x, tip_y)
+            old_x = tip_x
+            old_y = tip_y
+            tip_x, tip_y = crack.crack_tip_position(
+                a.positions[:, 0],
+                a.positions[:, 1],
+                r0[:, 0],
+                r0[:, 1],
+                tip_x,
+                tip_y,
+                k1g,
+                mask=g != 0,
+            )
 
-            # Get atomic strain
-            i, j = neighbour_list("ij", a, cutoff=1.3)
-            deformation_gradient, residual = \
-                atomic_strain(a, ref, neighbours=(i, j))
+            print(tip_x, tip_y)
 
-            # Get atomic stresses
-            # Note: get_stresses returns the virial in Atomistica!
-            virial = a.get_stresses() 
-            virial = Voigt_6_to_full_3x3_stress(virial)
-            
-            # Compute J-integral
-            epot = a.get_potential_energies()
-            eref = np.zeros_like(epot)
+        # Get atomic strain
+        i, j = neighbour_list("ij", a, cutoff=1.3)
+        deformation_gradient, residual = atomic_strain(
+            a, ref, neighbours=(i, j)
+        )
 
-            for r1, r2 in [(r1, r2), (r1/2, r2/2), (r1/2, r2)]:
-                print('r1 = {}, r2 = {}'.format(r1, r2))
+        # Get atomic stresses
+        # Note: get_stresses returns the virial in Atomistica!
+        virial = a.get_stresses()
+        virial = Voigt_6_to_full_3x3_stress(virial)
 
-                J = J_integral(a, deformation_gradient, virial, epot, eref,
-                               tip_x, tip_y, r1, r2)
+        # Compute J-integral
+        epot = a.get_potential_energies()
+        eref = np.zeros_like(epot)
 
-                print('2*gamma = {0}, J = {1}'.format(2*surface_energy, J))
+        for r1, r2 in [(r1, r2), (r1 / 2, r2 / 2), (r1 / 2, r2)]:
+            print("r1 = {}, r2 = {}".format(r1, r2))
 
-###
+            J = J_integral(
+                a,
+                deformation_gradient,
+                virial,
+                epot,
+                eref,
+                tip_x,
+                tip_y,
+                r1,
+                r2,
+            )
 
-if __name__ == '__main__':
-    unittest.main()
+            print("2*gamma = {0}, J = {1}".format(2 * surface_energy, J))
