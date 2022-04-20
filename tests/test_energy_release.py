@@ -86,7 +86,7 @@ class TestEnergyRelease(unittest.TestCase):
             ]:
             print('{} atoms.'.format(len(a0)))
 
-            crack = CubicCrystalCrack(C11, C12, C44, [1,0,0], [0,1,0])
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11=C11, C12=C12, C44=C44)
 
             x, y, z = a0.positions.T
             r2 = min(np.max(x)-np.min(x), np.max(y)-np.min(y))/4
@@ -107,7 +107,8 @@ class TestEnergyRelease(unittest.TestCase):
 
             k1g = crack.k1g(surface_energy)
 
-            g = a.get_array('groups')
+            #g = a.get_array('groups')  # groups are not defined
+            g = np.ones(len(a))  # not fixing any atom
 
             old_x = tip_x+1.0
             old_y = tip_y+1.0

@@ -33,7 +33,7 @@ from ..numpy_tricks import mabincount
 class MatscipyCalculator(Calculator):
     def set_atoms(self, atoms):
         """Set inner Atoms object."""
-        self.atoms = atoms
+        self.atoms = atoms.copy()
 
     def calculate(self, atoms, properties, system_changes):
         super().calculate(atoms, properties, system_changes)
