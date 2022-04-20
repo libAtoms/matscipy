@@ -30,6 +30,7 @@ from matscipy.numerical import (
     numerical_forces,
     numerical_stress,
     numerical_hessian,
+    numerical_nonaffine_forces,
 )
 
 from matscipy.calculators.manybody.newmb import Manybody
@@ -128,7 +129,6 @@ def configuration(distance, potential):
 
     atoms.positions[:] *= distance
     atoms.calc = Manybody(*potential)
-
     return atoms
 
 
@@ -156,3 +156,21 @@ def test_born_constants(configuration):
     corr = cauchy_correction(stress)
 
     nt.assert_allclose(C_ana + corr, C_num, rtol=2e-5)
+
+
+def test_nonaffine_forces(configuration):
+    naf_ana = configuration.calc.get_property('nonaffine_forces')
+    naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
+
+    m = naf_ana.nonzero()
+    print(naf_ana[m])
+    print(naf_num[m])
+    nt.assert_allclose(naf_ana, naf_num, rtol=1e-6)
+
+
+@pytest.mark.xfail(reason="Not implemented")
+def test_hessian(configuration):
+    H_ana = configuration.calc.get_property('hessian')
+    H_num = numerical_hessian(configuration, dx=1e-6)
+
+    nt.assert_allclose(H_ana.todense(), H_num.todense(), rtol=1e-6)

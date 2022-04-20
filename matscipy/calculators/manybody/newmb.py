@@ -5,9 +5,11 @@ import numpy as np
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Mapping
+from scipy.sparse import coo_matrix as sparse_matrix
 from ...calculators.calculator import MatscipyCalculator
 from ...neighbours import Neighbourhood
 from ...numpy_tricks import mabincount
+from ...elasticity import full_3x3_to_Voigt_6_stress
 
 
 # Broacast slices
@@ -15,6 +17,7 @@ _c = np.s_[..., np.newaxis]
 _cc = np.s_[..., np.newaxis, np.newaxis]
 _ccc = np.s_[..., np.newaxis, np.newaxis, np.newaxis]
 _cccc = np.s_[..., np.newaxis, np.newaxis, np.newaxis, np.newaxis]
+
 
 def ein(*args):
     """Optimized einsum."""
@@ -104,6 +107,32 @@ class Manybody(MatscipyCalculator):
     @staticmethod
     def _assemble_triplet_to_atom(i_t, values_t, nb_atoms):
         return mabincount(i_t, values_t, minlength=nb_atoms)
+
+    @classmethod
+    def sum_ij_pi_ij_n(cls, n, pairs, values_p):
+        r"""Compute :math:`\sum_{ij}\pi_{ij|n}\Chi_{ij}`."""
+        i_p, j_p = pairs
+        return (
+            + cls._assemble_pair_to_atom(i_p, values_p, n)
+            - cls._assemble_pair_to_atom(j_p, values_p, n)
+        )
+
+    @classmethod
+    def sum_ij_sum_X_pi_X_n(cls, n, pairs, triplets, values_tq):
+        r"""Compute :math:`\sum_{ij}\sum_{k\neq i,j}\sum_{X}\pi_{X|n}\Chi_X`."""
+        i_p, j_p = pairs
+        ij_t, ik_t, _ = triplets
+
+        return sum(
+            + cls._assemble_triplet_to_atom(i, values_tq[:, q], n)
+            - cls._assemble_triplet_to_atom(j, values_tq[:, q], n)
+
+            # Loop of pairs in the ijk triplet
+            for q, (i, j) in enumerate([(i_p[ij_t], j_p[ij_t]),   # ij pair
+                                        (i_p[ik_t], j_p[ik_t]),   # ik pair
+                                        (j_p[ij_t], j_p[ik_t])])  # jk pair
+
+        )
 
     def _masked_compute(self, atoms, order):
         """Compute requested derivatives of phi and theta."""
@@ -197,19 +226,13 @@ class Manybody(MatscipyCalculator):
         dpdR_r = dphi_cp[0][_c] * r_pc  # compute dɸ/dR * r
 
         # Assembling triplet force contribution for each pair in triplet
-        f_nc = sum(
-            self._assemble_triplet_to_atom(i, dpdxi_dtdRX_rX[:, a], n)
-            - self._assemble_triplet_to_atom(j, dpdxi_dtdRX_rX[:, a], n)
-
-            # Loop of pairs in the ijk triplet
-            for a, (i, j) in enumerate([(i_p[ij_t], j_p[ij_t]),   # ij pair
-                                        (i_p[ik_t], j_p[ik_t]),   # ik pair
-                                        (j_p[ij_t], j_p[ik_t])])  # jk pair
-        )
+        f_nc = self.sum_ij_sum_X_pi_X_n(n,
+                                        (i_p, j_p),
+                                        (ij_t, ik_t, jk_t),
+                                        dpdxi_dtdRX_rX)
 
         # Assembling the pair force contributions
-        f_nc += self._assemble_pair_to_atom(i_p, dpdR_r, n) \
-            - self._assemble_pair_to_atom(j_p, dpdR_r, n)
+        f_nc += self.sum_ij_pi_ij_n(n, (i_p, j_p), dpdR_r)
 
         # Stresses
         s_cc = ein('tXi,tXj->ij', dpdxi_dtdRX_rX, r_tqc)  # outer + sum triplets
@@ -221,7 +244,7 @@ class Manybody(MatscipyCalculator):
             {
                 "energy": epot,
                 "free_energy": epot,
-                "stress": s_cc,
+                "stress": full_3x3_to_Voigt_6_stress(s_cc),
                 "forces": f_nc,
             }
         )
@@ -286,10 +309,99 @@ class Manybody(MatscipyCalculator):
 
     def get_nonaffine_forces(self, atoms):
         """Compute non-affine forces."""
+        n = len(atoms)
+        i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
+        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
 
+        (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
+            self._masked_compute(atoms, order=[1, 2])
+
+        # Term 1 and 2 have the same structure, we assemble @ same time
+        e = np.eye(3)  # I have no idea what e is
+        dpdR, ddpddR = dphi_cp[0], ddphi_cp[0]
+        term_12_pcab = (
+            ein('p,pb,ac->pcab', dpdR, r_pc, e)                  # term 1
+            + ein('p,pa,bc->pcab', dpdR, r_pc, e)                # term 1
+            + ein('p,pa,pb,pc->pcab', ddpddR, r_pc, r_pc, r_pc)  # term 2
+        )
+
+        # Assemble pair terms
+        naf_ncab = 2 * self.sum_ij_pi_ij_n(n, (i_p, j_p), term_12_pcab)
+
+        # Term 3
+        # Here we sum over Y in the inner loop, over X in the assembly
+        # because there is a pi_{X|n} in the sum
+        # terms 3 and 5 actually have the same structure
+        # maybe group up?
+        dpdxi = dphi_cp[1][ij_t]
+        # turn voigt dtdRxdRy to 3x3
+        voigt_seq = [0, 5, 4, 5, 1, 3, 4, 3, 2]
+        ddtdRXdRY = ddtheta_qt[voigt_seq].reshape(3, 3, -1)
+
+        term_3_tXcab = ein('t,XYt,tYa,tYb,tXc->tXcab',
+                           dpdxi,
+                           ddtdRXdRY,
+                           r_tqc, r_tqc, r_tqc)
+
+        naf_ncab += self.sum_ij_sum_X_pi_X_n(n,
+                                             (i_p, j_p),
+                                             (ij_t, ik_t, jk_t),
+                                             term_3_tXcab)
+
+        # Term 4
+        # Here we have to sub-terms:
+        #  - one sums over X in the inner loop and has pi_{ij|n}
+        #    => sub-term 1 (defined on pairs)
+        #  - one has pi_{X|n}
+        #    => sub-term 2 (define on triplets)
+        ddpdRdxi = ddphi_cp[2][ij_t]
+        dtdRX = dtheta_qt
+        term_4_1_pab = self._assemble_triplet_to_pair(
+            ij_t,
+            ein('t,Xt,tXa,tXb,tc->tcab',  # note: sum over X
+                ddpdRdxi,
+                dtdRX,
+                r_tqc, r_tqc, r_tqc[:, 0]),
+            len(i_p),
+        )
+
+        term_4_2_tXcab = ein('t,Xt,ta,tb,tXc->tXcab',
+                             ddpdRdxi,
+                             dtdRX,
+                             r_tqc[:, 0], r_tqc[:, 0], r_tqc)
+
+        # assembling sub-terms
+        naf_ncab += self.sum_ij_pi_ij_n(
+            n, (i_p, j_p), term_4_1_pab
+        )
+        naf_ncab += self.sum_ij_sum_X_pi_X_n(
+            n, (i_p, j_p), (ij_t, ik_t, jk_t), term_4_2_tXcab
+        )
+
+        # Term 5
+        # Like in term 3, we have a sum over Y in the inner loop,
+        # outer loop has pi_{X|n}
+        ddpddxi = ddphi_cp[1][ij_t]
+        dtdRY = dtdRX  # just for clarity
+        term_5_tXcab = ein('t,Xt,Yt,tYa,tYb,tXc->tXcab',
+                           ddpddxi,
+                           dtdRX, dtdRY,
+                           r_tqc, r_tqc, r_tqc)
+
+        naf_ncab += self.sum_ij_sum_X_pi_X_n(
+            n, (i_p, j_p), (ij_t, ik_t, jk_t), term_5_tXcab
+        )
+
+        return naf_ncab
 
     def get_hessian(self, atoms):
-        """
-        Hessian
-        """
-        pass
+        """Compute hessian."""
+        n = len(atoms)
+        i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
+
+        (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
+            self._masked_compute(atoms, order=[1, 2])
+
+        H = sparse_matrix((3 * n, 3 * n))
+
+        return H
