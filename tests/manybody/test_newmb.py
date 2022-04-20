@@ -106,6 +106,10 @@ potentials = {
     "HarmonicPair+ZeroAngle": (
         {1: HarmonicPair(1, 1)}, {1: ZeroAngle()}, molecule()
     ),
+
+    "ZeroPair+HarmonicAngle": (
+        {1: ZeroPair()}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
+    ),
 }
 
 
