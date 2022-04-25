@@ -283,14 +283,14 @@ class StillingerWeberPair(Manybody.Phi):
         sigma_r_p = np.power(self.sigma / r_p, self.p)
         sigma_r_q = np.power(self.sigma / r_p, self.q)
 
-        m = np.exp(self.sigma / (r_p - self.a * self.sigma))
-        dm = -self.sigma / np.power(r_p - self.a * self.sigma, 2) * m
+        h = np.exp(self.sigma / (r_p - self.a * self.sigma))
+        dh = -self.sigma / np.power(r_p - self.a * self.sigma, 2) * m
 
-        h = self.B * sigma_r_p - sigma_r_q
-        dh = -self.p * self.B * sigma_r_p / r_p + self.q * sigma_r_q / r_p
+        s = self.B * sigma_r_p - sigma_r_q
+        ds = -self.p * self.B * sigma_r_p / r_p + self.q * sigma_r_q / r_p
 
         return np.stack([
-            self.A * self.epsilon * (dh * m + dm * h),
+            self.A * self.epsilon * (ds * h + dh * s),
             self.lambda1 * np.ones_like(xi_p)
         ])
 
@@ -344,18 +344,102 @@ class StillingerWeberAngle(Manybody.Theta):
         cos = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
 
         # Functions
-        m = np.exp(self.sigma / (rij - self.a * self.sigma))
-        n = np.exp(self.sigma / (rik - self.a * self.sigma))
+        m = np.exp(self.gamma * self.sigma / (rij - self.a * self.sigma))
+        n = np.exp(self.gamma * self.sigma / (rik - self.a * self.sigma))
         g = np.power(cos - self.costheta0, 2)
 
         return self.epsilon * g * m * n
 
     def gradient(self, rij, rik, rjk):
-        return np.zeros([3] + list(rij.shape))
+        # Squared distances
+        rsq_ij = rij**2
+        rsq_ik = rik**2
+        rsq_jk = rjk**2
+
+        # cos of angle
+        cos = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
+
+        # Functions
+        m = np.exp(self.gamma * self.sigma / (rij - self.a * self.sigma))
+        n = np.exp(self.gamma * self.sigma / (rik - self.a * self.sigma))
+        g = np.power(cos - self.costheta0, 2)
+
+        # Derivative of scalar functions
+        dg_dcos = 2 * (cos - self.costheta0)
+        dm_drij = - self.gamma * self.sigma / np.power(rij - self.a * self.sigma, 2) * m
+        dn_drik = - self.gamma * self.sigma / np.power(rik - self.a * self.sigma, 2) * n
+
+        # Derivative of cosine 
+        dg_drij = dg_dcos * (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik)
+        dg_drik = dg_dcos * (rsq_ik - rsq_ij + rsq_jk) / (2 * rsq_ik * rij)
+        dg_drjk = - dg_dcos * rjk / (rij * rik)
+
+        return self.epsilon * np.stack([
+            dg_drij * m * n + dm_drij * g * n,
+            dg_drik * m * n + dn_drik * g * m,
+            dg_drjk * m * n
+        ])
 
     def hessian(self, rij, rik, rjk):
-        return np.zeros([6] + list(rij.shape))
+        # Squared distances
+        rsq_ij = rij**2
+        rsq_ik = rik**2
+        rsq_jk = rjk**2
 
+        # cos of angle
+        cos = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
+
+        # Functions
+        m = np.exp(self.gamma * self.sigma / (rij - self.a * self.sigma))
+        n = np.exp(self.gamma * self.sigma / (rik - self.a * self.sigma))
+        g = np.power(cos - self.costheta0, 2)
+
+        # Derivative of scalar functions
+        dg_dcos = 2 * (cos - self.costheta0)
+        ddg_ddcos =  2 * np.ones_like(rij)
+
+        dm_drij = - self.gamma * self.sigma / np.power(rij - self.a * self.sigma, 2) * m
+        ddm_ddrij = 2 * self.gamma * self.sigma / np.power(rij - self.a * self.sigma, 3)
+        ddm_ddrij += np.power(self.gamma * self.sigma, 2) / np.power(rij - self.a * self.sigma, 4)
+        ddm_ddrij *= m 
+
+        dn_drik = - self.gamma * self.sigma / np.power(rik - self.a * self.sigma, 2) * n
+        ddn_ddrik = 2 * self.gamma * self.sigma / np.power(rik - self.a * self.sigma, 3)
+        ddn_ddrik += np.power(self.gamma * self.sigma, 2) / np.power(rik - self.a * self.sigma, 4)
+        ddn_ddrik *= n 
+
+        # First derivative of cos with respect to r
+        dcos_drij = (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik)
+        dcos_drik = (rsq_ik - rsq_ij + rsq_jk) / (2 * rsq_ik * rij)
+        dcos_drjk = - rjk / (rij * rik)
+
+        # Second derivatives with respect to r
+        ddcos_drijdrij = (rsq_ik - rsq_jk) / (rij**3 * rik)
+        ddcos_drikdrik = (rsq_ij - rsq_jk) / (rik**3 * rij)
+        ddcos_drjkdrjk = - 1 / (rij * rik)
+        ddcos_drijdrik = - (rsq_ij + rsq_ik + rsq_jk) / (2 * rsq_ij * rsq_ik)
+        ddcos_drijdrjk = rjk / (rik * rsq_ij)
+        ddcos_drikdrjk = rjk / (rij * rsq_ik) 
+
+        # First and second order derivatives of g 
+        dg_drij = dg_dcos * dcos_drij
+        dg_drik = dg_dcos * dcos_drik
+        dg_drjk = dg_dcos * dcos_drjk
+        ddg_ddrij = ddg_ddcos * dcos_drij * dcos_drij + dg_dcos * ddcos_drijdrij
+        ddg_ddrik = ddg_ddcos * dcos_drik * dcos_drik + dg_dcos * ddcos_drikdrik
+        ddg_ddrjk = ddg_ddcos * dcos_drjk * dcos_drjk + dg_dcos * ddcos_drjkdrjk
+        ddg_drjkdrik = dcos_drik * ddg_ddcos * dcos_drjk + dg_dcos * ddcos_drikdrjk
+        ddg_drjkdrij = dcos_drij * ddg_ddcos * dcos_drjk + dg_dcos * ddcos_drijdrjk
+        ddg_drikdrij = dcos_drij * ddg_ddcos * dcos_drik + dg_dcos * ddcos_drijdrik
+
+        return self.epsilon * np.stack([
+            n * (ddg_ddrij * m + dg_drij * dm_drij + ddm_ddrij * g + dm_drij * dg_drij) ,
+            m * (ddg_ddrik * n + dn_drik * dg_drik + ddn_ddrik * g + dn_drik * dg_drik),
+            ddg_ddrjk * m * n,
+            m * (ddg_drjkdrik * n + dn_drik * dg_drjk),
+            n * (ddg_drjkdrij * m + dm_drij * dg_drjk),
+            ddg_drikdrij * m * n + dg_drij * dn_drik * m + dm_drij * dg_drik * n + dm_drij * dn_drik * g
+        ])
 
 try:
     from sympy import lambdify, Expr, Symbol

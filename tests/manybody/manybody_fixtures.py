@@ -21,13 +21,13 @@ _default_arguments = {
     potentials.StillingerWeberPair: [{
         "el": 1,
         "epsilon": 1,
-        "sigma": 1,
+        "sigma": 0.9,
         "costheta0": 1,
         "A": 1,
         "B": 1,
         "p": 1,
         "q": 1,
-        "a": 1,
+        "a": 2,
         "lambda1": 1,
         "gamma": 1,
     }],
@@ -35,13 +35,13 @@ _default_arguments = {
     potentials.StillingerWeberAngle: [{
         "el": 1,
         "epsilon": 1,
-        "sigma": 1,
+        "sigma": 0.9,
         "costheta0": 1,
         "A": 1,
         "B": 1,
         "p": 1,
         "q": 1,
-        "a": 1,
+        "a": 2,
         "lambda1": 1,
         "gamma": 1,
     }],
@@ -55,7 +55,7 @@ if getattr(potentials, 'SymPhi', None) is not None:
                 del _impl_potentials[m][i]
 
 # Marking expected failures / TODO fix the following classes
-xfails = [potentials.StillingerWeberPair, potentials.StillingerWeberAngle]
+xfails = []
 
 for fail in xfails:
     for m in _impl_potentials:
