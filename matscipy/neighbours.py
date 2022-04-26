@@ -128,12 +128,12 @@ class CutoffNeighbourhood(Neighbourhood):
         self.pair_type = (
             pair_types
             if pair_types is not None
-            else lambda i, j: np.zeros_like(i)
+            else lambda i, j: np.ones_like(i)
         )
         self.triplet_type = (
             triplet_types
             if triplet_types is not None
-            else lambda i, j, k: np.zeros_like(i)
+            else lambda i, j, k: np.ones_like(i)
         )
         self.cutoff = cutoff
 
