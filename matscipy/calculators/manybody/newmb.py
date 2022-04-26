@@ -255,7 +255,7 @@ class Manybody(MatscipyCalculator):
             self.atoms = atoms
 
         # Topology information
-        r_pc, = self.neighbourhood.get_pairs(atoms, 'D')
+        r_pc = self.neighbourhood.get_pairs(atoms, 'D')
         ij_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'iD')
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \

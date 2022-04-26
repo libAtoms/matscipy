@@ -71,7 +71,11 @@ class Neighbourhood(ABC):
                           for i, idx in enumerate("ijk"[:e_size])}
         quantities_map.update({'d': d, 'D': D})
 
-        return [quantities_map[data] for data in quantities]
+        res = [quantities_map[data] for data in quantities]
+
+        if len(res) == 1:
+            return res[0]
+        return res
 
     @staticmethod
     def compute_distances(atoms: ase.Atoms,
