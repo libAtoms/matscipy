@@ -19,6 +19,7 @@ _impl_potentials = {
 # Default arguments for classes where that do not define a default constructor
 _default_arguments = {
     potentials.StillingerWeberPair: [{
+        "__ref__": 1,
         "el": 1,
         "epsilon": 1,
         "sigma": 0.9,
@@ -33,6 +34,7 @@ _default_arguments = {
     }],
 
     potentials.StillingerWeberAngle: [{
+        "__ref__": 1,
         "el": 1,
         "epsilon": 1,
         "sigma": 0.9,
@@ -45,6 +47,67 @@ _default_arguments = {
         "lambda1": 1,
         "gamma": 1,
     }],
+
+    potentials.KumagaiPair: [{
+   '__ref__':  'T. Kumagai et. al., Comp. Mat. Sci. 39 (2007)',    
+    'el':            1.0,
+    'A':             1.0,
+    'B':             1.0,
+    'lambda_1':      1.0,
+    'lambda_2':      1.0,
+    'eta':           1.0,
+    'delta':         1.0,
+    'alpha':         1.0,
+    'beta':          1.0,
+    'c_1':           1.0,
+    'c_2':           1.0,
+    'c_3':           1.0,
+    'c_4':           1.0,
+    'c_5':           1.0,
+    'h':             1.0,
+    'R_1':           1.0,
+    'R_2':           4.0         
+    }],
+
+    potentials.KumagaiAngle: [{
+   '__ref__':  'T. Kumagai et. al., Comp. Mat. Sci. 39 (2007)',    
+    'el':            1.0,
+    'A':             1.0,
+    'B':             1.0,
+    'lambda_1':      1.0,
+    'lambda_2':      1.0,
+    'eta':           1.0,
+    'delta':         1.0,
+    'alpha':         1.0,
+    'beta':          1.0,
+    'c_1':           1.0,
+    'c_2':           1.0,
+    'c_3':           1.0,
+    'c_4':           1.0,
+    'c_5':           1.0,
+    'h':             1.0,
+    'R_1':           1.0,
+    'R_2':           4.0         
+    }],
+
+    potentials.TersoffBrennerPair: [{
+   '__ref__':  'Tersoff J., Phys. Rev. B 39, 5566 (1989)',   
+    'style':         'tersoff',
+    'el':            1.0,
+    'c':             1.0,
+    'd':             1.0,
+    'h':             1.0,
+    'R1':            2.7,
+    'R2':            3.0,
+    'A':             1.0,
+    'B':             1.0,
+    'lambda1':       1.0,
+    'mu':            1.0,
+    'beta':          1.0,
+    'lambda3':       1.0,
+    'chi':           1.0,
+    'n':             1.0       
+    }]
 }
 
 # Filtering out sympy classes
@@ -55,7 +118,7 @@ if getattr(potentials, 'SymPhi', None) is not None:
                 del _impl_potentials[m][i]
 
 # Marking expected failures / TODO fix the following classes
-xfails = []
+xfails = [potentials.KumagaiPair, potentials.KumagaiAngle, potentials.TersoffBrennerPair]
 
 for fail in xfails:
     for m in _impl_potentials:

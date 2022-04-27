@@ -40,6 +40,9 @@ from matscipy.calculators.manybody.potentials import (
     ZeroAngle,
     HarmonicPair,
     HarmonicAngle,
+    StillingerWeberPair,
+    StillingerWeberAngle,
+    KumagaiPair,
 )
 
 from matscipy.elasticity import (
@@ -50,7 +53,6 @@ from matscipy.elasticity import (
 
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood
-
 
 def cauchy_correction(stress):
     delta = np.eye(3)
@@ -92,7 +94,6 @@ def molecule():
         Molecules(bonds_connectivity=bonds, angles_connectivity=angles)
     )
 
-
 # Potentials to be tested
 potentials = {
     "Zero(Pair+Angle)": (
@@ -110,6 +111,7 @@ potentials = {
     "ZeroPair+HarmonicAngle": (
         {1: ZeroPair()}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
     ),
+
 }
 
 
