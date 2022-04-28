@@ -49,65 +49,71 @@ _default_arguments = {
     }],
 
     potentials.KumagaiPair: [{
-   '__ref__':  'T. Kumagai et. al., Comp. Mat. Sci. 39 (2007)',    
-    'el':            1.0,
-    'A':             1.0,
-    'B':             1.0,
-    'lambda_1':      1.0,
-    'lambda_2':      1.0,
-    'eta':           1.0,
-    'delta':         1.0,
-    'alpha':         1.0,
-    'beta':          1.0,
-    'c_1':           1.0,
-    'c_2':           1.0,
-    'c_3':           1.0,
-    'c_4':           1.0,
-    'c_5':           1.0,
-    'h':             1.0,
-    'R_1':           1.0,
-    'R_2':           4.0         
+        '__ref__':  'T. Kumagai et. al., Comp. Mat. Sci. 39 (2007)',
+        'el':            1.0,
+        'A':             1.0,
+        'B':             1.0,
+        'lambda_1':      1.0,
+        'lambda_2':      1.0,
+        'eta':           1.0,
+        'delta':         1.0,
+        'alpha':         1.0,
+        'beta':          1.0,
+        'c_1':           1.0,
+        'c_2':           1.0,
+        'c_3':           1.0,
+        'c_4':           1.0,
+        'c_5':           1.0,
+        'h':             1.0,
+        'R_1':           1.0,
+        'R_2':           4.0
     }],
 
     potentials.KumagaiAngle: [{
-   '__ref__':  'T. Kumagai et. al., Comp. Mat. Sci. 39 (2007)',    
-    'el':            1.0,
-    'A':             1.0,
-    'B':             1.0,
-    'lambda_1':      1.0,
-    'lambda_2':      1.0,
-    'eta':           1.0,
-    'delta':         1.0,
-    'alpha':         1.0,
-    'beta':          1.0,
-    'c_1':           1.0,
-    'c_2':           1.0,
-    'c_3':           1.0,
-    'c_4':           1.0,
-    'c_5':           1.0,
-    'h':             1.0,
-    'R_1':           1.0,
-    'R_2':           4.0         
+        '__ref__':  'T. Kumagai et. al., Comp. Mat. Sci. 39 (2007)',
+        'el':            1.0,
+        'A':             1.0,
+        'B':             1.0,
+        'lambda_1':      1.0,
+        'lambda_2':      1.0,
+        'eta':           1.0,
+        'delta':         1.0,
+        'alpha':         1.0,
+        'beta':          1.0,
+        'c_1':           1.0,
+        'c_2':           1.0,
+        'c_3':           1.0,
+        'c_4':           1.0,
+        'c_5':           1.0,
+        'h':             1.0,
+        'R_1':           1.0,
+        'R_2':           4.0
     }],
 
     potentials.TersoffBrennerPair: [{
-   '__ref__':  'Tersoff J., Phys. Rev. B 39, 5566 (1989)',   
-    'style':         'tersoff',
-    'el':            1.0,
-    'c':             1.0,
-    'd':             1.0,
-    'h':             1.0,
-    'R1':            2.7,
-    'R2':            3.0,
-    'A':             1.0,
-    'B':             1.0,
-    'lambda1':       1.0,
-    'mu':            1.0,
-    'beta':          1.0,
-    'lambda3':       1.0,
-    'chi':           1.0,
-    'n':             1.0       
-    }]
+        '__ref__':  'Tersoff J., Phys. Rev. B 39, 5566 (1989)',
+        'style':         'tersoff',
+        'el':            1.0,
+        'c':             1.0,
+        'd':             1.0,
+        'h':             1.0,
+        'R1':            2.7,
+        'R2':            3.0,
+        'A':             1.0,
+        'B':             1.0,
+        'lambda1':       1.0,
+        'mu':            1.0,
+        'beta':          1.0,
+        'lambda3':       1.0,
+        'chi':           1.0,
+        'n':             1.0
+    }],
+
+    potentials.LennardJones: [
+        1,
+        1e-3,  # so that we test where FD is good
+        np.inf,
+    ],
 }
 
 # Filtering out sympy classes
@@ -175,6 +181,7 @@ try:
         SymTheta,
         HarmonicPair,
         HarmonicAngle,
+        LennardJones,
         ZeroPair,
     )
 
@@ -188,6 +195,7 @@ try:
     _analytical_pair_potentials = [
         (HarmonicPair(1, 1), SymPhi(0.5 * (sqrt(R) - 1)**2 + xi, (R, xi))),
         (ZeroPair(), SymPhi(xi, (R, xi))),
+        (LennardJones(1, 1, np.inf), SymPhi(4 * ((1 / sqrt(R))**12 - (1 / sqrt(R))**6) + xi, (R, xi))),
     ]
 
     _analytical_triplet_potentials = [

@@ -7,6 +7,7 @@ from typing import Iterable
 from types import SimpleNamespace
 from itertools import combinations_with_replacement
 from .newmb import Manybody
+from ..pair_potential import LennardJonesCut
 
 
 def distance_defined(cls):
@@ -250,6 +251,30 @@ class HarmonicAngle(Manybody.Theta):
             ddtheta_dxdx * df_drjk * df_drik + dtheta_dx * ddf_drikdrjk,
             ddtheta_dxdx * df_drjk * df_drij + dtheta_dx * ddf_drijdrjk,
             ddtheta_dxdx * df_drik * df_drij + dtheta_dx * ddf_drijdrik,
+        ])
+
+
+@distance_defined
+class LennardJones(Manybody.Phi):
+    """Implementation of LennardJones potential."""
+
+    def __init__(self, epsilon=1, sigma=1, cutoff=np.inf):
+        self.lj = LennardJonesCut(epsilon, sigma, cutoff)
+
+    def __call__(self, r, xi):
+        return self.lj(r) + xi
+
+    def gradient(self, r, xi):
+        return np.stack([
+            self.lj.first_derivative(r),
+            np.ones_like(xi),
+        ])
+
+    def hessian(self, r, xi):
+        return np.stack([
+            self.lj.second_derivative(r),
+            np.zeros_like(xi),
+            np.zeros_like(xi),
         ])
 
 
