@@ -204,3 +204,30 @@ def test_pair_compare(cutoff):
     pair_e = pair.get_property('energy', atoms)
 
     assert np.abs(newmb_e - pair_e) / pair_e < 1e-10
+
+@pytest.mark.parametrize('cutoff', [10.])
+def test_energy_cutoff(cutoff):
+    atoms = Atoms(
+        "H" * 4,
+        positions=[(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)],
+        cell=[10, 10, 10],
+    )
+
+    atoms.positions[:] *= 1
+    atoms.calc = Manybody(
+        {1: HarmonicPair(1, 1)},
+        {1: HarmonicAngle(1, 0)},
+        CutoffNeighbourhood(cutoff=cutoff)
+    )
+    newmb_e = atoms.get_potential_energy()
+
+    harmonic = lambda t: 0.5 * (t)**2
+    e = (
+        + 3 * harmonic(np.pi / 2)
+        + 6 * harmonic(np.pi / 4)
+        + 3 * harmonic(np.pi / 3)
+        + 3 * harmonic(np.sqrt(2) - 1)
+    )
+
+    assert np.abs(e - newmb_e) / e < 1e-10
+
