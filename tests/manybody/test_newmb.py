@@ -34,6 +34,7 @@ from matscipy.numerical import (
 )
 
 from matscipy.calculators.manybody.newmb import Manybody
+from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut
 
 from matscipy.calculators.manybody.potentials import (
     ZeroPair,
@@ -43,6 +44,7 @@ from matscipy.calculators.manybody.potentials import (
     StillingerWeberPair,
     StillingerWeberAngle,
     KumagaiPair,
+    LennardJones,
 )
 
 from matscipy.elasticity import (
@@ -52,7 +54,7 @@ from matscipy.elasticity import (
 )
 
 from matscipy.molecules import Molecules
-from matscipy.neighbours import MolecularNeighbourhood
+from matscipy.neighbours import MolecularNeighbourhood, CutoffNeighbourhood
 
 def cauchy_correction(stress):
     delta = np.eye(3)
@@ -180,3 +182,25 @@ def test_hessian(configuration):
     H_num = numerical_hessian(configuration, dx=1e-6)
 
     nt.assert_allclose(H_ana.todense(), H_num.todense(), rtol=1e-6)
+
+
+@pytest.mark.parametrize('cutoff', np.linspace(1.1, 20, 10))
+def test_pair_compare(cutoff):
+    atoms = Atoms(
+        "H" * 4,
+        positions=[(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)],
+        cell=[10, 10, 10],
+    )
+
+    atoms.positions[:] *= 1
+    atoms.calc = Manybody(
+        {1: LennardJones(1, 1, cutoff)},
+        {1: ZeroAngle()},
+        CutoffNeighbourhood(cutoff=cutoff)
+    )
+    newmb_e = atoms.get_potential_energy()
+
+    pair = PairPotential({(1, 1): LennardJonesCut(1, 1, cutoff)})
+    pair_e = pair.get_property('energy', atoms)
+
+    assert np.abs(newmb_e - pair_e) / pair_e < 1e-10
