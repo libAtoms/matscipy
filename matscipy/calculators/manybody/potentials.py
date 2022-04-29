@@ -361,6 +361,7 @@ class StillingerWeberAngle(Manybody.Theta):
         self.a = parameters['a']
         self.lambda1 = parameters['lambda1']
         self.gamma = parameters['gamma']
+        self.cutoff = parameters['a'] * parameters['sigma']
 
     def __call__(self, rij, rik, rjk):
         # Squared distances
