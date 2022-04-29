@@ -121,7 +121,7 @@ class Manybody(MatscipyCalculator):
     def sum_ij_sum_X_pi_X_n(cls, n, pairs, triplets, values_tq):
         r"""Compute :math:`\sum_{ij}\sum_{k\neq i,j}\sum_{X}\pi_{X|n}\Chi_X`."""
         i_p, j_p = pairs
-        ij_t, ik_t, _ = triplets
+        ij_t, ik_t = triplets
 
         return sum(
             + cls._assemble_triplet_to_atom(i, values_tq[:, q], n)
@@ -140,7 +140,7 @@ class Manybody(MatscipyCalculator):
             order = [order]
 
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
-        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
+        ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
 
         # Pair and triplet types
         t_p = self.neighbourhood.pair_type(
@@ -208,7 +208,7 @@ class Manybody(MatscipyCalculator):
 
         # Topology information
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
-        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
+        ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
         n = len(atoms)
 
         # Request energy and gradient
@@ -228,7 +228,7 @@ class Manybody(MatscipyCalculator):
         # Assembling triplet force contribution for each pair in triplet
         f_nc = self.sum_ij_sum_X_pi_X_n(n,
                                         (i_p, j_p),
-                                        (ij_t, ik_t, jk_t),
+                                        (ij_t, ik_t),
                                         dpdxi_dtdRX_rX)
 
         # Assembling the pair force contributions
@@ -311,7 +311,7 @@ class Manybody(MatscipyCalculator):
         """Compute non-affine forces."""
         n = len(atoms)
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
-        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD')
+        ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2])
@@ -345,7 +345,7 @@ class Manybody(MatscipyCalculator):
 
         naf_ncab += self.sum_ij_sum_X_pi_X_n(n,
                                              (i_p, j_p),
-                                             (ij_t, ik_t, jk_t),
+                                             (ij_t, ik_t),
                                              term_3_tXcab)
 
         # Term 4
@@ -375,7 +375,7 @@ class Manybody(MatscipyCalculator):
             n, (i_p, j_p), term_4_1_pab
         )
         naf_ncab += self.sum_ij_sum_X_pi_X_n(
-            n, (i_p, j_p), (ij_t, ik_t, jk_t), term_4_2_tXcab
+            n, (i_p, j_p), (ij_t, ik_t), term_4_2_tXcab
         )
 
         # Term 5
@@ -389,7 +389,7 @@ class Manybody(MatscipyCalculator):
                            r_tqc, r_tqc, r_tqc)
 
         naf_ncab += self.sum_ij_sum_X_pi_X_n(
-            n, (i_p, j_p), (ij_t, ik_t, jk_t), term_5_tXcab
+            n, (i_p, j_p), (ij_t, ik_t), term_5_tXcab
         )
 
         return naf_ncab

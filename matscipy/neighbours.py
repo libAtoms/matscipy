@@ -54,7 +54,8 @@ class Neighbourhood(ABC):
                      atoms: ase.Atoms,
                      quantities: str,
                      neighbours=None,
-                     cutoff=None):
+                     cutoff=None,
+                     full_connectivity=False):
         """Return requested data on triplets."""
 
     @staticmethod
@@ -148,6 +149,9 @@ class CutoffNeighbourhood(Neighbourhood):
         """Return triplets and quantities from conventional neighbour list."""
         if cutoff is None:
             cutoff = self.cutoff
+
+        full_connectivity = 'k' in quantities
+
         if neighbours is None:
             i_p, j_p, d_p, D_p = neighbour_list("ijdD", atoms, cutoff)
         else:
@@ -159,15 +163,24 @@ class CutoffNeighbourhood(Neighbourhood):
         ij_t, ik_t, jk_t = triplet_list(first_n, d_p, cutoff, i_p, j_p)
         connectivity = np.array([ij_t, ik_t, jk_t]).T
 
+        if full_connectivity and np.any(jk_t == -1):
+            raise ValueError("Cutoff is too small for complete "
+                             "triplet connectivity")
+
         D, d = None, None
 
         # If any distance is requested, compute distances vectors and norms
         # Distances are computed from neighbour list
         if "d" in quantities or "D" in quantities:
             D = np.zeros((len(ij_t), 3, 3))
-            D[:, 0] = D_p[ij_t]          # i->j
-            D[:, 1] = D_p[ik_t]          # i->k
-            D[:, 2] = D_p[jk_t]          # j->k
+            D[:, 0] = D_p[ij_t]  # i->j
+            D[:, 1] = D_p[ik_t]  # i->k
+            # j->k
+            if full_connectivity:
+                D[:, 2] = D_p[jk_t]
+            else:
+                D[:, 2], _ = find_mic(D[:, 1] - D[:, 0], atoms.cell, atoms.pbc)
+
             d = np.linalg.norm(D, axis=-1)  # distances
 
         return self.make_result(quantities, connectivity, D, d, None,
