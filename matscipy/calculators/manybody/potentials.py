@@ -31,6 +31,7 @@ def distance_defined(cls):
         r_p = np.sqrt(rsq_p)
         res = old.gradient(self, r_p, xi_p)
         res[0] *= 1 / (2 * r_p)
+        
         return res
 
     @wraps(cls.hessian)
@@ -498,13 +499,13 @@ class KumagaiPair(Manybody.Phi):
         self.R_2 = parameters["R_2"]
 
     def __call__(self, r_p, xi_p):
-        fc = np.where(
-                r_p <= self.R_1, 1.0,
-                    np.where(r_p >= self.R_2, 0.0,
-                        (1 / 2 + (9 / 16) * np.cos(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1)) - 
-                        (1 / 16) * np.cos(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1)))
-                    ) 
-            )
+        # Cutoff 
+        fc = np.where(r_p <= self.R_1, 1.0,
+                np.where(r_p >= self.R_2, 0.0, 
+                    1/2 + 9 / 16 * np.cos(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                    - 1 / 16 * np.cos(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                )
+            ) 
 
         fr = self.A * np.exp(-self.lambda_1 * r_p)
 
@@ -516,20 +517,20 @@ class KumagaiPair(Manybody.Phi):
 
     def gradient(self, r_p, xi_p):
         # Cutoff function
-        fc = np.where(
-            r_p <= self.R_1, 1.0,
-                np.where(r_p >= self.R_2, 0.0,
-                    1 / 2 + (9 / 16) * np.cos(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
-                    - (1 / 16) * np.cos(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
-                ) 
-            )
+        fc = np.where(r_p <= self.R_1, 1.0,
+                np.where(r_p >= self.R_2, 0.0, 
+                    1/2 + 9 / 16 * np.cos(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                    - 1 / 16 * np.cos(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                )
+            ) 
 
-        dfc = np.where(
-            r_p >= self.R_2, 0.0,
-                np.where(r_p <= self.R_1, 0.0,
-                    - 9 * np.pi / (16 * (self.R_2 - self.R_1)) * np.sin(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
-                    + 3 * np.pi / (16 * (self.R_2 - self.R_1)) * np.sin(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
-                    )
+        dfc = np.where(r_p <= self.R_1, 0.0,
+                np.where(r_p >= self.R_2, 0.0,
+                    3 * np.pi / (16 * (self.R_2 - self.R_1)) * (
+                        np.sin(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                        - 3 * np.sin(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                        )
+                ) 
             )
 
         # Repulsive and attractive 
@@ -541,7 +542,7 @@ class KumagaiPair(Manybody.Phi):
 
         # Bond-order expression
         b = 1 / np.power(1 + xi_p**self.eta, self.delta)
-        db = - self.delta * self.eta * np.power(xi_p, self.eta - 1) / np.power(1 + xi_p**self.eta, self.delta + 1)
+        db = - self.delta * self.eta * np.power(xi_p, self.eta - 1) * (1 + xi_p**self.eta)**(-self.delta - 1)
 
         return np.stack([
             dfc * (fr + b * fa) + fc * (dfr + b * dfa),
@@ -549,21 +550,21 @@ class KumagaiPair(Manybody.Phi):
             ])        
 
     def hessian(self, r_p, xi_p):
-       # Cutoff function
-        fc = np.where(
-            r_p <= self.R_1, 1.0,
-                np.where(r_p >= self.R_2, 0.0,
-                    (1 / 2 + (9 / 16) * np.cos(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
-                    - (1 / 16) * np.cos(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1)))
-                ) 
-            )
+        # Cutoff function
+        fc = np.where(r_p <= self.R_1, 1.0,
+                np.where(r_p >= self.R_2, 0.0, 
+                    1/2 + 9 / 16 * np.cos(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                    - 1 / 16 * np.cos(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                )
+            ) 
 
-        dfc = np.where(
-            r_p <= self.R_1, 0.0,
+        dfc = np.where(r_p <= self.R_1, 0.0,
                 np.where(r_p >= self.R_2, 0.0,
-                    -9 * np.pi / (16 * (self.R_2 - self.R_1)) * np.sin(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
-                    + 3 * np.pi / (16 * (self.R_2 - self.R_1)) * np.sin(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
-                    )
+                    3 * np.pi / (16 * (self.R_2 - self.R_1)) * (
+                        np.sin(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                        - 3 * np.sin(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                        )
+                ) 
             )
 
         ddfc = np.where(
@@ -665,34 +666,34 @@ class KumagaiAngle(Manybody.Theta):
 
         # Cutoff 
         fc = np.where(rik <= self.R_1, 1.0,
-                np.where(rik > self.R_2, 0.0, 
-                    1/2 + 9 / 16 * np.cos(np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
-                    - 1 / 16 * np.cos(3 * np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
+                np.where(rik >= self.R_2, 0.0, 
+                    (1/2 + (9 / 16) * np.cos(np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
+                    - (1 / 16) * np.cos(3 * np.pi * (rik - self.R_1) / (self.R_2 - self.R_1)))
                 )
-            ) 
+            )
 
         dfc = np.where(rik <= self.R_1, 0.0,
-                np.where(rik > self.R_2, 0.0,
-                    np.pi / (16 * (self.R_2 - self.R_1)) * (
-                        3 * np.sin(3 * np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
-                        - np.sin(np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
-                        )
+                np.where(rik >= self.R_2, 0.0,
+                    3 * np.pi / (16 * (self.R_2 - self.R_1)) * (
+                        np.sin(3 * np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
+                        - 3 * np.sin(np.pi * (rik - self.R_1) / (self.R_2 - self.R_1)))
                 ) 
             )
 
         # Functions 
         m = np.exp(self.alpha * np.power(rij - rik, self.beta))
         dm_drij = self.alpha * self.beta * np.power(rij - rik, self.beta - 1) * m
-        dm_drik = -dm_drij
+        dm_drik = - dm_drij
 
         g0 = (self.c_2 * np.power(self.h - cos, 2)) / (self.c_3 + np.power(self.h - cos, 2))
-        dg0_dcos = - (2 * self.c_2 * self.c_3 * (self.h - cos)) / np.power(self.c_3 + np.power(self.h - cos, 2), 2)
+        dg0_dcos =  -1 * (2 * self.c_2 * self.c_3 * (self.h - cos)) / ((self.c_3 + np.power(self.h - cos, 2))**2)
 
         ga = 1 + self.c_4 * np.exp(-self.c_5 * np.power(self.h - cos, 2))
-        dga_dcos = - 2 * self.c_5 * self.c_4 * (self.h - cos) * np.exp(-self.c_5 * np.power(self.h - cos, 2))
+        dga_dcos = 2 * self.c_4 * self.c_5 * (self.h - cos) * np.exp(-self.c_5 * np.power(self.h - cos, 2))
 
         g = self.c_1 + g0 * ga 
         dg_dcos = dg0_dcos * ga + g0 * dga_dcos
+
         dg_drij = dg_dcos * dcos_drij
         dg_drik = dg_dcos * dcos_drik
         dg_drjk = dg_dcos * dcos_drjk
@@ -702,7 +703,6 @@ class KumagaiAngle(Manybody.Theta):
             dfc * g * m + fc * dg_drik * m + fc * g * dm_drik,
             fc * dg_drjk * m
             ])
-
 
     def hessian(self, rij, rik, rjk):
         # Squared distances
@@ -735,10 +735,10 @@ class KumagaiAngle(Manybody.Theta):
             ) 
 
         dfc = np.where(rik <= self.R_1, 0.0,
-                np.where(rik > self.R_2, 0.0,
-                    np.pi / (16 * (self.R_2 - self.R_1)) * (
-                        3 * np.sin(3 * np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
-                        - np.sin(np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
+                np.where(rik >= self.R_2, 0.0,
+                    3 * np.pi / (16 * (self.R_2 - self.R_1)) * (
+                        np.sin(3 * np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
+                        - 3 * np.sin(np.pi * (rik - self.R_1) / (self.R_2 - self.R_1))
                         )
                 ) 
             )
@@ -767,7 +767,7 @@ class KumagaiAngle(Manybody.Theta):
         ddg0_ddcos = 2 * self.c_2 * self.c_3  * (self.c_3 - 3 * np.power(self.h - cos, 2)) / np.power(self.c_3 + np.power(self.h - cos, 2), 3)
 
         ga = 1 + self.c_4 * np.exp(-self.c_5 * np.power(self.h - cos, 2))
-        dga_dcos = - 2 * self.c_5 * self.c_4 * (self.h - cos) * np.exp(-self.c_5 * np.power(self.h - cos, 2))
+        dga_dcos = 2 * self.c_5 * self.c_4 * (self.h - cos) * np.exp(-self.c_5 * np.power(self.h - cos, 2))
         ddga_ddcos = 2 * self.c_5 + np.power(2 * self.c_5 * (self.h - cos), 2)
         ddga_ddcos *= ga * self.c_4 
 
