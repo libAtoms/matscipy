@@ -36,6 +36,7 @@ from matscipy.numerical import (
 from matscipy.calculators.manybody.newmb import Manybody
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut
 from ase.lattice.cubic import Diamond
+from ase.optimize import FIRE
 
 from matscipy.calculators.manybody.potentials import (
     ZeroPair,
@@ -192,13 +193,17 @@ def test_born_constants(configuration):
 
 
 def test_nonaffine_forces(configuration):
+    # TODO: clarify why we need to optimize?
+    FIRE(configuration).run(fmax=1e-6)
     naf_ana = configuration.calc.get_property('nonaffine_forces')
     naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
 
     m = naf_ana.nonzero()
     print(naf_ana[m])
     print(naf_num[m])
-    nt.assert_allclose(naf_ana, naf_num, rtol=1e-6)
+
+    # atol here related to fmax above
+    nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=1e-6)
 
 
 @pytest.mark.xfail(reason="Not implemented")
