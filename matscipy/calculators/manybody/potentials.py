@@ -567,28 +567,31 @@ class KumagaiPair(Manybody.Phi):
                 ) 
             )
 
-        ddfc = np.where(
-            r_p <= self.R_1, 0.0,
+        ddfc = np.where(r_p <= self.R_1, 0.0,
                 np.where(r_p >= self.R_2, 0.0,
-                    -27 * np.pi**2 / np.power(16 * (self.R_2 - self.R_1), 2) * np.cos(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
-                    + np.power(3 * np.pi, 2) / (16 * np.power(self.R_2 - self.R_1, 2)) * np.cos(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1)) 
-                    )
+                    9 * np.pi**2 / (16 * np.power(self.R_2 - self.R_1, 2)) * (
+                        np.cos(3 * np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                        - np.cos(np.pi * (r_p - self.R_1) / (self.R_2 - self.R_1))
+                        )
+                ) 
             )
 
         # Repulsive and attractive 
         fr = self.A * np.exp(-self.lambda_1 * r_p)
-        dfr = - self.A * self.lambda_1 * np.exp(-self.lambda_1 * r_p)
+        dfr = - self.lambda_1 * fr
         ddfr = self.lambda_1**2 * fr
 
         fa = -self.B * np.exp(-self.lambda_2 * r_p)
-        dfa = self.B * self.lambda_2 * np.exp(-self.lambda_2 * r_p)
+        dfa = - self.lambda_2 * fa
         ddfa = self.lambda_2**2 * fa 
 
         # Bond-order expression
-        b = 1 / np.power(1 + np.power(xi_p, self.eta), self.delta)
-        db = - self.delta * self.eta * np.power(xi_p, self.eta-1) / np.power(1 + xi_p**self.eta, self.delta + 1)
-        ddb = (self.delta**2 + self.delta) / np.power(1 + xi_p**self.eta, self.delta + 2) * self.eta**2 * np.power(xi_p**(self.eta -1), 2)
-        ddb += db * (self.eta - 1) / xi_p
+        b = 1 / np.power(1 + xi_p**self.eta, self.delta)
+        db = - self.delta * self.eta * np.power(xi_p, self.eta - 1) * (1 + xi_p**self.eta)**(-self.delta - 1)
+        ddb = np.power(xi_p, 2 * self.eta - 2) * (self.eta * self.delta + 1)
+        if self.eta != 1.0:
+            ddb -= np.power(xi_p, self.eta - 2) * (self.eta -1)
+        ddb *= self.delta * self.eta * np.power(1 + xi_p**self.eta, -self.delta - 2)
 
         return np.stack([
             ddfc * (fr + b * fa) + 2 * dfc * (dfr + b * dfa) + fc * (ddfr + b * ddfa),
@@ -686,7 +689,7 @@ class KumagaiAngle(Manybody.Theta):
         dm_drik = - dm_drij
 
         g0 = (self.c_2 * np.power(self.h - cos, 2)) / (self.c_3 + np.power(self.h - cos, 2))
-        dg0_dcos =  -1 * (2 * self.c_2 * self.c_3 * (self.h - cos)) / ((self.c_3 + np.power(self.h - cos, 2))**2)
+        dg0_dcos =  (-2 * self.c_2 * self.c_3 * (self.h - cos)) / np.power(self.c_3 + np.power(self.h - cos, 2), 2)
 
         ga = 1 + self.c_4 * np.exp(-self.c_5 * np.power(self.h - cos, 2))
         dga_dcos = 2 * self.c_4 * self.c_5 * (self.h - cos) * np.exp(-self.c_5 * np.power(self.h - cos, 2))
@@ -755,21 +758,24 @@ class KumagaiAngle(Manybody.Theta):
         # Functions 
         m = np.exp(self.alpha * np.power(rij - rik, self.beta))
         dm_drij = self.alpha * self.beta * np.power(rij - rik, self.beta - 1) * m
-        dm_drik = -dm_drij
-        ddm_ddrij = self.alpha * self.beta * (self.beta - 1) * np.power(rij - rik, self.beta - 2) + \
-                    np.power(self.alpha * self.beta * np.power(rij - rik, self.beta - 1), 2)
-        ddm_ddrij *= m 
+        dm_drik = - dm_drij
+        ddm_ddrij = np.power(self.alpha * self.beta * np.power(rij - rik, self.beta - 1), 2) 
+        if self.beta != 1.0:
+            ddm_ddrij += self.alpha * self.beta * (self.beta - 1) * np.power(rij - rik, self.beta - 2)
+        ddm_ddrij *= m
         ddm_ddrik = ddm_ddrij
         ddm_drijdrik = - ddm_ddrij
 
+
+        # New
         g0 = (self.c_2 * np.power(self.h - cos, 2)) / (self.c_3 + np.power(self.h - cos, 2))
-        dg0_dcos = - (2 * self.c_2 * self.c_3 * (self.h - cos)) / np.power(self.c_3 + np.power(self.h - cos, 2), 2)
+        dg0_dcos =  (-2 * self.c_2 * self.c_3 * (self.h - cos)) / np.power(self.c_3 + np.power(self.h - cos, 2), 2)
         ddg0_ddcos = 2 * self.c_2 * self.c_3  * (self.c_3 - 3 * np.power(self.h - cos, 2)) / np.power(self.c_3 + np.power(self.h - cos, 2), 3)
 
         ga = 1 + self.c_4 * np.exp(-self.c_5 * np.power(self.h - cos, 2))
-        dga_dcos = 2 * self.c_5 * self.c_4 * (self.h - cos) * np.exp(-self.c_5 * np.power(self.h - cos, 2))
-        ddga_ddcos = 2 * self.c_5 + np.power(2 * self.c_5 * (self.h - cos), 2)
-        ddga_ddcos *= ga * self.c_4 
+        dga_dcos = 2 * self.c_4 * self.c_5 * (self.h - cos) * np.exp(-self.c_5 * np.power(self.h - cos, 2))
+        ddga_ddcos = 2 * self.c_5 * np.power(self.h - cos, 2) - 1
+        ddga_ddcos *= 2 * self.c_4 * self.c_5 * np.exp(-self.c_5 * np.power(self.h - cos, 2))
 
         g = self.c_1 + g0 * ga 
         dg_dcos = dg0_dcos * ga + g0 * dga_dcos
@@ -782,21 +788,20 @@ class KumagaiAngle(Manybody.Theta):
         ddg_drijdrij = ddg_ddcos * dcos_drij * dcos_drij + dg_dcos * ddcos_drijdrij
         ddg_drikdrik = ddg_ddcos * dcos_drik * dcos_drik + dg_dcos * ddcos_drikdrik
         ddg_drjkdrjk = ddg_ddcos * dcos_drjk * dcos_drjk + dg_dcos * ddcos_drjkdrjk
-        ddg_drjkdrik = ddg_ddcos * dcos_drik * dcos_drjk + dg_dcos * ddcos_drikdrjk
-        ddg_drjkdrij = ddg_ddcos * dcos_drij * dcos_drjk + dg_dcos * ddcos_drijdrjk
-        ddg_drikdrij = ddg_ddcos * dcos_drij * dcos_drik + dg_dcos * ddcos_drijdrik
-
+        ddg_drikdrjk = ddg_ddcos * dcos_drik * dcos_drjk + dg_dcos * ddcos_drikdrjk
+        ddg_drijdrjk = ddg_ddcos * dcos_drij * dcos_drjk + dg_dcos * ddcos_drijdrjk
+        ddg_drijdrik = ddg_ddcos * dcos_drij * dcos_drik + dg_dcos * ddcos_drijdrik
 
         return np.stack([
-            fc * ddg_drijdrij * m + fc * dg_drij * dm_drij + fc * dg_drij * dm_drij + fc * g * ddm_ddrij,
+            fc * (ddg_drijdrij * m + dg_drij * dm_drij + dg_drij * dm_drij + g * ddm_ddrij),
             ddfc * g * m + dfc * dg_drik * m + dfc * g * dm_drik + \
             dfc * dg_drik * m + fc * ddg_drikdrik * m + fc * dg_drik * dm_drik + \
             dfc * g * dm_drik + fc * dg_drik * dm_drik + fc * g * ddm_ddrik,
             fc * ddg_drjkdrjk * m,
-            dfc * dg_drjk * m + fc * ddg_drjkdrik * m + fc * dg_drjk * dm_drik,
-            fc * ddg_drjkdrij * m + fc * dg_drjk * dm_drij,
-            dfc * dg_drij * m + dfc * g * dm_drij + fc * ddg_drikdrij * m + fc * dg_drik * dm_drij + \
-            fc * dg_drij * dm_drik + fc * g * ddm_drijdrik 
+            dfc * dg_drjk * m + fc * ddg_drikdrjk * m + fc * dg_drjk * dm_drik,
+            fc * ddg_drijdrjk * m + fc * dg_drjk * dm_drij,
+            dfc * dg_drij * m + fc * ddg_drijdrik * m + fc * dg_drij * dm_drik + \
+            dfc * g * dm_drij + fc * dg_drik * dm_drij + fc * g * ddm_drijdrik 
             ])
 
 @distance_defined

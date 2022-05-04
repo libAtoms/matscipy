@@ -149,7 +149,7 @@ potentials = {
         {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)}, {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)}
     ),
 
-    "Kumagai+zeroAngle": (
+    "KumagaiPair+zeroAngle": (
         {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)}, {1: ZeroAngle()}
     ),
 
@@ -163,17 +163,21 @@ potentials = {
 def potential(request):
     return request.param
 
-@pytest.fixture
-def configuration(potential):
-    atoms = Diamond("Si", size=[1, 1, 1], latticeconstant=5.429)
-    atoms.calc = Manybody(*potential, CutoffNeighbourhood(cutoff=3.3))
+@pytest.fixture(params=[5.429, 5.1])
+def distance(request):
+    return request.param
 
+@pytest.fixture
+def configuration(distance, potential):
+    atoms = Diamond("Si", size=[1, 1, 1], latticeconstant=distance)
+    atoms.calc = Manybody(*potential, CutoffNeighbourhood(cutoff=3.3))
     return atoms
 
 @pytest.fixture
-def test_configuration(potential):
-    atoms = Atoms("Si"*3, positions=((0,0,0), (1,0,0), (0,1,0)), cell=[10,10,10], pbc=[1,1,1])
-    atoms.calc = Manybody(*potential, CutoffNeighbourhood(cutoff=1.1))
+def neq_configuration(potential):
+    atoms = Diamond("Si", size=[1, 1, 1], latticeconstant=5.3)
+    atoms.rattle(1e-4)
+    atoms.calc = Manybody(*potential, CutoffNeighbourhood(cutoff=3.3))
     return atoms
 
 
@@ -184,18 +188,33 @@ def test_forces(configuration):
     #FIRE(configuration, logfile=None).run(fmax=1e-5)
     f_ana = configuration.get_forces()
     f_num = numerical_forces(configuration, d=1e-6)
-    print("Energy: ", configuration.calc.get_property("energy") / len(configuration))
-    print("fana: ", f_ana)
-    print("f_num: ", f_num)
-    #nt.assert_allclose(f_ana, f_num, atol=1e-6, rtol=1e-6)
+    #print("Energy: ", configuration.calc.get_property("energy") / len(configuration))
+    #print("fana: ", f_ana)
+    #print("f_num: ", f_num)
+    nt.assert_allclose(f_ana, f_num, atol=1e-6, rtol=1e-6)
 
-"""
+def test_forces_neq(neq_configuration):
+    #FIRE(configuration, logfile=None).run(fmax=1e-5)
+    f_ana = neq_configuration.get_forces()
+    f_num = numerical_forces(neq_configuration, d=1e-6)
+    #print("Energy: ", neq_configuration.calc.get_property("energy") / len(neq_configuration))
+    #print("fana: ", f_ana)
+    #print("f_num: ", f_num)
+    nt.assert_allclose(f_ana, f_num, atol=1e-6, rtol=1e-6)
+
 def test_stresses(configuration):
     s_ana = configuration.get_stress()
     s_num = numerical_stress(configuration, d=1e-6)
-    print("s_ana: ", s_ana)
-    print("s_num: ", s_num)
-    nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-13)
+    #print("s_ana: ", s_ana)
+    #print("s_num: ", s_num)
+    nt.assert_allclose(s_ana, s_num, atol=1e-6, rtol=1e-6)
+
+def test_stresses_neq(neq_configuration):
+    s_ana = neq_configuration.get_stress()
+    s_num = numerical_stress(neq_configuration, d=1e-6)
+    #print("s_ana: ", s_ana)
+    #print("s_num: ", s_num)
+    nt.assert_allclose(s_ana, s_num, atol=1e-6, rtol=1e-6)
 
 
 def test_born_constants(configuration):
@@ -206,11 +225,12 @@ def test_born_constants(configuration):
     stress = configuration.get_stress(voigt=False)
     corr = cauchy_correction(stress)
     
-    print(full_3x3x3x3_to_Voigt_6x6(C_ana) / GPa)
-    print(full_3x3x3x3_to_Voigt_6x6(C_num) / GPa)
+    #print("C_ana: ", full_3x3x3x3_to_Voigt_6x6(C_ana) / GPa)
+    #print("C_num: ", full_3x3x3x3_to_Voigt_6x6(C_num+corr) / GPa)
 
-    nt.assert_allclose(C_ana + corr, C_num, rtol=2e-5)
+    nt.assert_allclose(C_ana + corr, C_num, atol=1e-5, rtol=1e-5)
 
+"""
 def test_nonaffine_forces(configuration):
     naf_ana = configuration.calc.get_property('nonaffine_forces')
     naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
