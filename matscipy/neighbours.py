@@ -96,6 +96,12 @@ class Neighbourhood(ABC):
                 D[:, i, :], d[:, i] = \
                     find_mic(positions[idx[1]] - positions[idx[0]],
                              atoms.cell, atoms.pbc)
+
+            if connectivity.shape[1] == 3:
+                for i, idx in enumerate(indices):
+                    D[:, i, :] = \
+                        (positions[idx[1]] - positions[idx[0]])
+                    d[:, i] = np.linalg.norm(D[:, i], axis=-1)
         return D.squeeze(), d.squeeze()
 
 

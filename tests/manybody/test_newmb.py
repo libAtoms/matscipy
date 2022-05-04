@@ -35,26 +35,29 @@ from matscipy.numerical import (
 
 from matscipy.calculators.manybody.newmb import Manybody
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut
+from ase.lattice.cubic import Diamond
 
 from matscipy.calculators.manybody.potentials import (
     ZeroPair,
     ZeroAngle,
     HarmonicPair,
     HarmonicAngle,
-    StillingerWeberPair,
-    StillingerWeberAngle,
     KumagaiPair,
+    KumagaiAngle,
     LennardJones,
+)
+
+from reference_params import (
+    Kumagai_Comp_Mat_Sci_39_Si,
 )
 
 from matscipy.elasticity import (
     measure_triclinic_elastic_constants,
-    full_3x3x3x3_to_Voigt_6x6 as to_voigt,
-    Voigt_6x6_to_full_3x3x3x3 as from_voigt,
 )
 
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood, CutoffNeighbourhood
+
 
 def cauchy_correction(stress):
     delta = np.eye(3)
@@ -96,6 +99,7 @@ def molecule():
         Molecules(bonds_connectivity=bonds, angles_connectivity=angles)
     )
 
+
 # Potentials to be tested
 potentials = {
     "Zero(Pair+Angle)": (
@@ -114,6 +118,11 @@ potentials = {
         {1: ZeroPair()}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
     ),
 
+    "Kumagai": (
+        {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)},
+        {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
+        CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
+    )
 }
 
 
@@ -122,13 +131,17 @@ def potential(request):
     return request.param
 
 
-@pytest.fixture(params=[1.0])
+@pytest.fixture(params=[5, 5.5])
 def distance(request):
     return request.param
 
 
-@pytest.fixture
-def configuration(distance, potential):
+@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
+def rattle(request):
+    return request.param
+
+
+def tetrahedron(distance, rattle):
     atoms = Atoms(
         "H" * 4,
         positions=[(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)],
@@ -136,6 +149,18 @@ def configuration(distance, potential):
     )
 
     atoms.positions[:] *= distance
+    return atoms
+
+
+def diamond(distance, rattle):
+    atoms = Diamond("Si", size=[1, 1, 1], latticeconstant=distance)
+    atoms.rattle(rattle)
+    return atoms
+
+
+@pytest.fixture(params=[diamond, tetrahedron])
+def configuration(distance, rattle, potential, request):
+    atoms = request.param(distance, rattle)
     atoms.calc = Manybody(*potential)
     return atoms
 
@@ -146,13 +171,13 @@ def configuration(distance, potential):
 def test_forces(configuration):
     f_ana = configuration.get_forces()
     f_num = numerical_forces(configuration, d=1e-6)
-    nt.assert_allclose(f_ana, f_num, rtol=1e-6)
+    nt.assert_allclose(f_ana, f_num, rtol=1e-6, atol=1e-8)
 
 
 def test_stresses(configuration):
     s_ana = configuration.get_stress()
     s_num = numerical_stress(configuration, d=1e-6)
-    nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-13)
+    nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-8)
 
 
 def test_born_constants(configuration):
@@ -163,7 +188,7 @@ def test_born_constants(configuration):
     stress = configuration.get_stress(voigt=False)
     corr = cauchy_correction(stress)
 
-    nt.assert_allclose(C_ana + corr, C_num, rtol=2e-5)
+    nt.assert_allclose(C_ana + corr, C_num, rtol=1e-4, atol=1e-4)
 
 
 def test_nonaffine_forces(configuration):
@@ -205,6 +230,7 @@ def test_pair_compare(cutoff):
 
     assert np.abs(newmb_e - pair_e) / pair_e < 1e-10
 
+
 @pytest.mark.parametrize('cutoff', [1.4, 1.5])
 def test_energy_cutoff(cutoff):
     atoms = Atoms(
@@ -236,4 +262,3 @@ def test_energy_cutoff(cutoff):
         )
 
     assert np.abs(e - newmb_e) / e < 1e-10
-
