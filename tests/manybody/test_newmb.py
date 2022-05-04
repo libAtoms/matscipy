@@ -60,6 +60,30 @@ from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood, CutoffNeighbourhood
 
 
+class SimpleAngle(Manybody.Theta):
+    """Implementation of a zero three-body interaction."""
+
+    def __call__(self, R1, R2, R3):
+        return 0.5 * (R1**2 + R2**2 + R3**2)
+
+    def gradient(self, R1, R2, R3):
+        return np.stack([
+            R1,
+            R2,
+            R3,
+        ])
+
+    def hessian(self, R1, R2, R3):
+        return np.stack([
+            np.ones(list(R1.shape)),
+            np.ones(list(R1.shape)),
+            np.ones(list(R1.shape)),
+            np.zeros(list(R1.shape)),
+            np.zeros(list(R1.shape)),
+            np.zeros(list(R1.shape)),
+        ])
+
+
 def cauchy_correction(stress):
     delta = np.eye(3)
 
@@ -117,6 +141,14 @@ potentials = {
 
     "ZeroPair+HarmonicAngle": (
         {1: ZeroPair()}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
+    ),
+
+    "SimpleAngle~cutoff": (
+        {1: ZeroPair()}, {1: SimpleAngle()}, CutoffNeighbourhood(cutoff=5.),
+    ),
+
+    "SimpleAngle~molecule": (
+        {1: HarmonicPair(1, 5)}, {1: SimpleAngle()}, molecule(),
     ),
 
     "Kumagai": (
@@ -194,7 +226,9 @@ def test_born_constants(configuration):
 
 def test_nonaffine_forces(configuration):
     # TODO: clarify why we need to optimize?
-    FIRE(configuration).run(fmax=1e-6)
+    FIRE(configuration, trajectory='test.traj').run(fmax=1e-9)
+    # from ase.io import write
+    # write('test.traj', configuration)
     naf_ana = configuration.calc.get_property('nonaffine_forces')
     naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
 
