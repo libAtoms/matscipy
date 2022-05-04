@@ -320,13 +320,13 @@ class Manybody(MatscipyCalculator):
         e = np.eye(3)  # I have no idea what e is
         dpdR, ddpddR = dphi_cp[0], ddphi_cp[0]
         term_12_pcab = (
-            ein('p,pb,ac->pcab', dpdR, r_pc, e)                  # term 1
-            + ein('p,pa,bc->pcab', dpdR, r_pc, e)                # term 1
-            + ein('p,pa,pb,pc->pcab', ddpddR, r_pc, r_pc, r_pc)  # term 2
+            ein('p,pa,bg->pgab', dpdR, r_pc, e)                  # term 1
+            + ein('p,pb,ag->pgab', dpdR, r_pc, e)                # term 1
+            + 2 * ein('p,pa,pb,pg->pgab', ddpddR, r_pc, r_pc, r_pc)  # term 2
         )
 
         # Assemble pair terms
-        naf_ncab = 2 * self.sum_ij_pi_ij_n(n, (i_p, j_p), term_12_pcab)
+        naf_ncab = self.sum_ij_pi_ij_n(n, (i_p, j_p), term_12_pcab)
 
         # Term 3
         # Here we sum over Y in the inner loop, over X in the assembly

@@ -230,17 +230,17 @@ def test_born_constants(configuration):
 
     nt.assert_allclose(C_ana + corr, C_num, atol=1e-5, rtol=1e-5)
 
-"""
+
 def test_nonaffine_forces(configuration):
     naf_ana = configuration.calc.get_property('nonaffine_forces')
-    naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
+    naf_num = numerical_nonaffine_forces(configuration, d=1e-7)
 
-    m = naf_ana.nonzero()
-    print(naf_ana[m])
-    print(naf_num[m])
-    nt.assert_allclose(naf_ana, naf_num, rtol=1e-6)
+    #m = naf_ana.nonzero()
+    print("naF_ana: ", naf_ana)
+    print("naf_num: ", naf_num)
+    nt.assert_allclose(naf_ana, naf_num, atol=1e-5, rtol=1e-6)
 
-
+"""
 @pytest.mark.xfail(reason="Not implemented")
 def test_hessian(configuration):
     H_ana = configuration.calc.get_property('hessian')
