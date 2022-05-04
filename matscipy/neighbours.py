@@ -179,7 +179,7 @@ class CutoffNeighbourhood(Neighbourhood):
             if full_connectivity:
                 D[:, 2] = D_p[jk_t]
             else:
-                D[:, 2], _ = find_mic(D[:, 1] - D[:, 0], atoms.cell, atoms.pbc)
+                D[:, 2] = D[:, 1] - D[:, 0]
 
             d = np.linalg.norm(D, axis=-1)  # distances
 
