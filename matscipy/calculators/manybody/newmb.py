@@ -338,10 +338,15 @@ class Manybody(MatscipyCalculator):
         voigt_seq = [0, 5, 4, 5, 1, 3, 4, 3, 2]
         ddtdRXdRY = ddtheta_qt[voigt_seq].reshape(3, 3, -1)
 
-        term_3_tXcab = ein('t,XYt,tYa,tYb,tXc->tXcab',
-                           dpdxi,
-                           ddtdRXdRY,
-                           r_tqc, r_tqc, r_tqc)
+        term_3_tXcab = 2 * ein('XYt,tYa,tYb,tXc->tXcab',
+                               ddtdRXdRY,
+                               r_tqc, r_tqc, r_tqc)
+        term_3_tXcab += (
+            ein('Xt,tXa,bg->tXgab', dtheta_qt, r_tqc, e)
+            + ein('Xt,tXb,ag->tXgab', dtheta_qt, r_tqc, e)
+        )
+
+        term_3_tXcab *= dpdxi[_cccc]
 
         naf_ncab += self.sum_ij_sum_X_pi_X_n(n,
                                              (i_p, j_p),
@@ -371,10 +376,10 @@ class Manybody(MatscipyCalculator):
                              r_tqc[:, 0], r_tqc[:, 0], r_tqc)
 
         # assembling sub-terms
-        naf_ncab += self.sum_ij_pi_ij_n(
+        naf_ncab += 2 * self.sum_ij_pi_ij_n(
             n, (i_p, j_p), term_4_1_pab
         )
-        naf_ncab += self.sum_ij_sum_X_pi_X_n(
+        naf_ncab += 2 * self.sum_ij_sum_X_pi_X_n(
             n, (i_p, j_p), (ij_t, ik_t), term_4_2_tXcab
         )
 
@@ -388,7 +393,7 @@ class Manybody(MatscipyCalculator):
                            dtdRX, dtdRY,
                            r_tqc, r_tqc, r_tqc)
 
-        naf_ncab += self.sum_ij_sum_X_pi_X_n(
+        naf_ncab += 2 * self.sum_ij_sum_X_pi_X_n(
             n, (i_p, j_p), (ij_t, ik_t), term_5_tXcab
         )
 
