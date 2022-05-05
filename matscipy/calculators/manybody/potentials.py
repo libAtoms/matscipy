@@ -136,6 +136,50 @@ class ZeroAngle(Manybody.Theta):
     def hessian(self, R1, R2, R3):
         return np.zeros([6] + list(R1.shape))
 
+@distance_defined
+class SimplePair(Manybody.Phi):
+    """
+    Implementation of a harmonic pair interaction.
+    """
+
+    def __call__(self, r_p, xi_p):
+        return 0.5 * r_p**2 + xi_p * r_p
+
+    def gradient(self, r_p, xi_p):
+        return np.stack([
+            r_p + xi_p,
+            r_p,
+        ])
+
+    def hessian(self, r_p, xi_p):
+        return np.stack([
+            np.ones_like(r_p),
+            np.zeros_like(xi_p),
+            np.ones_like(r_p),
+        ])
+
+@distance_defined
+class SimplePairNoMix(Manybody.Phi):
+    """
+    Implementation of a harmonic pair interaction.
+    """
+
+    def __call__(self, r_p, xi_p):
+        return 0.5 * r_p**2 + 0.5 * xi_p**2
+
+    def gradient(self, r_p, xi_p):
+        return np.stack([
+            r_p,
+            xi_p,
+        ])
+
+    def hessian(self, r_p, xi_p):
+        return np.stack([
+            np.ones_like(r_p),
+            np.ones_like(xi_p),
+            np.zeros_like(r_p),
+        ])
+
 
 @distance_defined
 class HarmonicPair(Manybody.Phi):

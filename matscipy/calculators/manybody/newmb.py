@@ -328,6 +328,8 @@ class Manybody(MatscipyCalculator):
         # Assemble pair terms
         naf_ncab = self.sum_ij_pi_ij_n(n, (i_p, j_p), term_12_pcab)
 
+        print("Term1+2: ", np.all(naf_ncab==0))
+
         # Term 3
         # Here we sum over Y in the inner loop, over X in the assembly
         # because there is a pi_{X|n} in the sum
@@ -342,16 +344,20 @@ class Manybody(MatscipyCalculator):
                                ddtdRXdRY,
                                r_tqc, r_tqc, r_tqc)
         term_3_tXcab += (
-            ein('Xt,tXa,bg->tXgab', dtheta_qt, r_tqc, e)
-            + ein('Xt,tXb,ag->tXgab', dtheta_qt, r_tqc, e)
+            ein('Xt,tXb,ag->tXgab', dtheta_qt, r_tqc, e)
+            + ein('Xt,tXa,bg->tXgab', dtheta_qt, r_tqc, e)
         )
 
         term_3_tXcab *= dpdxi[_cccc]
 
-        naf_ncab += self.sum_ij_sum_X_pi_X_n(n,
+        naf3_ncab = self.sum_ij_sum_X_pi_X_n(n,
                                              (i_p, j_p),
                                              (ij_t, ik_t),
                                              term_3_tXcab)
+
+        print("Term3: ", np.all(naf3_ncab==0))        
+
+        naf_ncab += naf3_ncab
 
         # Term 4
         # Here we have to sub-terms:
@@ -376,12 +382,17 @@ class Manybody(MatscipyCalculator):
                              r_tqc[:, 0], r_tqc[:, 0], r_tqc)
 
         # assembling sub-terms
-        naf_ncab += 2 * self.sum_ij_pi_ij_n(
+        naf41_ncab = 2 * self.sum_ij_pi_ij_n(
             n, (i_p, j_p), term_4_1_pab
         )
-        naf_ncab += 2 * self.sum_ij_sum_X_pi_X_n(
+        naf42_ncab = 2 * self.sum_ij_sum_X_pi_X_n(
             n, (i_p, j_p), (ij_t, ik_t), term_4_2_tXcab
         )
+
+        print("Term4_1: ", np.all(naf41_ncab==0))
+        print("Term4_2: ", np.all(naf42_ncab==0))
+
+        naf_ncab += (naf41_ncab + naf42_ncab)
 
         # Term 5
         # Like in term 3, we have a sum over Y in the inner loop,
@@ -393,9 +404,15 @@ class Manybody(MatscipyCalculator):
                            dtdRX, dtdRY,
                            r_tqc, r_tqc, r_tqc)
 
-        naf_ncab += 2 * self.sum_ij_sum_X_pi_X_n(
+        naf5_ncab = 2 * self.sum_ij_sum_X_pi_X_n(
             n, (i_p, j_p), (ij_t, ik_t), term_5_tXcab
         )
+        #term_51_tab = ein('t,tXa,tXb->tab', dtdRX, r_tqc, r_tqc)
+
+       # term_52_tc = ein('t,tYc->', dtdRY, r_tqc)
+
+        print("Term5: ", np.all(naf5_ncab==0))
+        naf_ncab += naf5_ncab
 
         return naf_ncab
 
