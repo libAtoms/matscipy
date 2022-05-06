@@ -5,12 +5,13 @@ import numpy as np
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Mapping
+# Delete one of these imports if it is clear which one is more useful 
 from scipy.sparse import coo_matrix as sparse_matrix
+from scipy.sparse import bsr_matrix
 from ...calculators.calculator import MatscipyCalculator
-from ...neighbours import Neighbourhood
+from ...neighbours import Neighbourhood, first_neighbours
 from ...numpy_tricks import mabincount
 from ...elasticity import full_3x3_to_Voigt_6_stress
-
 
 # Broacast slices
 _c = np.s_[..., np.newaxis]
@@ -420,10 +421,35 @@ class Manybody(MatscipyCalculator):
         """Compute hessian."""
         n = len(atoms)
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
+        first_n = first_neighbours(n, i_p)
+        nb_pairs = len(i_p) 
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2])
 
-        H = sparse_matrix((3 * n, 3 * n))
+        # Term 1, merge with T2 in the end 
+        e = np.identity(3).reshape(-1,3,3)
+        e_pcc = np.repeat(e, nb_pairs, axis=0)
+        dpdR = dphi_cp[0]
+        H_pcc = ein('p,pab->pab', -2 * dpdR, e)
+
+        # Term 2, merge with T1 in the end
+        ddpddR = ddphi_cp[0]
+        H_pcc += ein('p,pa,pb->pab', -4 * ddpddR, r_pc, r_pc) # Factor of 4 comes from including factor of 2 from main diagonal summation
+
+        # Term 3
+
+
+        # Compute the diagonal elements by bincount the off-diagonal elements
+        # Be carful with prefactors !!!
+        H_acc = np.zeros([n, 3, 3])
+        for x in range(3):
+            for y in range(3):
+                H_acc[:, x, y] = -np.bincount(i_p, weights=H_pcc[:, x, y],
+                                              minlength=n)
+
+        H = bsr_matrix((H_pcc, j_p, first_n), shape=(3 * n, 3 * n)) \
+          + bsr_matrix((H_acc, np.arange(n), np.arange(n + 1)), shape=(3 * n, 3 * n))
+
 
         return H

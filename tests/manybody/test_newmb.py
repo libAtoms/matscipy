@@ -159,6 +159,12 @@ potentials = {
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
     ),
 
+    "KumagaiPair+ZeroAngle": (
+        {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)},
+        {1: ZeroAngle()},
+        CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
+    ),
+
     "SimplePair+KumagaiAngle": (
         {1: SimplePair()},
         {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
@@ -261,12 +267,15 @@ def test_nonaffine_forces(configuration):
     nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=5e-5)
 
 
-@pytest.mark.xfail(reason="Not implemented")
+#@pytest.mark.xfail(reason="Not implemented")
 def test_hessian(configuration):
-    H_ana = configuration.calc.get_property('hessian')
-    H_num = numerical_hessian(configuration, dx=1e-6)
+    H_ana = configuration.calc.get_property('hessian').todense()
+    H_num = numerical_hessian(configuration, dx=1e-6).todense()
 
-    nt.assert_allclose(H_ana.todense(), H_num.todense(), rtol=1e-6)
+    print("H_ana: \n", H_ana[:6,:6])
+    print("H_num: \n", H_num[:6,:6])
+
+    nt.assert_allclose(H_ana, H_num, rtol=1e-6)
 
 
 @pytest.mark.parametrize('cutoff', np.linspace(1.1, 20, 10))
