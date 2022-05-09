@@ -9,7 +9,7 @@ from typing import Mapping
 from scipy.sparse import coo_matrix as sparse_matrix
 from scipy.sparse import bsr_matrix
 from ...calculators.calculator import MatscipyCalculator
-from ...neighbours import Neighbourhood, first_neighbours
+from ...neighbours import Neighbourhood, first_neighbours, find_indices_of_reversed_pairs
 from ...numpy_tricks import mabincount
 from ...elasticity import full_3x3_to_Voigt_6_stress
 
@@ -422,23 +422,34 @@ class Manybody(MatscipyCalculator):
         n = len(atoms)
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
         first_n = first_neighbours(n, i_p)
-        nb_pairs = len(i_p) 
+        tr_p = find_indices_of_reversed_pairs(i_p, j_p, np.linalg.norm(r_pc, axis=-1))
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2])
 
         # Term 1, merge with T2 in the end 
         e = np.identity(3).reshape(-1,3,3)
-        e_pcc = np.repeat(e, nb_pairs, axis=0)
+        e_pcc = np.repeat(e, len(i_p), axis=0)
         dpdR = dphi_cp[0]
-        H_pcc = ein('p,pab->pab', -2 * dpdR, e)
+        H_pcc = ein('p,pab->pab', -1 * dpdR, e)
 
         # Term 2, merge with T1 in the end
         ddpddR = ddphi_cp[0]
-        H_pcc += ein('p,pa,pb->pab', -4 * ddpddR, r_pc, r_pc) # Factor of 4 comes from including factor of 2 from main diagonal summation
+        H_pcc -= ein('p,pa,pb->pab', 2 * ddpddR, r_pc, r_pc)
 
         # Term 3
 
+
+        # Term 4
+        # Pair distribution 
+        #ddpdRdxi = ddphi_cp[2][ij_t]
+        #dtdRX = dtheta_qt
+
+        #H41_tcc = ein('t,t,ta,tb->tab', -4 * ddpdRdxi, dtdRX[0], r_tqc[:,0], r_tqc[:,0])
+
+        
+        # Symmetrization with H_nm 
+        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
 
         # Compute the diagonal elements by bincount the off-diagonal elements
         # Be carful with prefactors !!!
