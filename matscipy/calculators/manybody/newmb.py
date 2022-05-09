@@ -135,6 +135,21 @@ class Manybody(MatscipyCalculator):
 
         )
 
+
+    @classmethod
+    def sum_X_pi_X_n(cls, n, pairs, triplets, values_tq):
+        i_p, j_p = pairs
+        ij_t, ik_t = triplets
+        res = np.zeros((len(i_p), 3))
+
+        for q, (i, j) in enumerate([(i_p[ij_t], j_p[ij_t]),   # ij pair
+                                    (i_p[ik_t], j_p[ik_t]),   # ik pair
+                                    (j_p[ij_t], j_p[ik_t])]):  # jk pair
+
+            res += cls._assemble_triplet_to_pair(i, values_tq[:, q], n) - cls._assemble_triplet_to_pair(j, values_tq[:, q], n)        
+
+        return res
+
     def _masked_compute(self, atoms, order):
         """Compute requested derivatives of phi and theta."""
         if not isinstance(order, list):
@@ -329,8 +344,6 @@ class Manybody(MatscipyCalculator):
         # Assemble pair terms
         naf_ncab = self.sum_ij_pi_ij_n(n, (i_p, j_p), term_12_pcab)
 
-        print("Term1+2: ", np.all(naf_ncab==0))
-
         # Term 3
         # Here we sum over Y in the inner loop, over X in the assembly
         # because there is a pi_{X|n} in the sum
@@ -351,15 +364,11 @@ class Manybody(MatscipyCalculator):
 
         term_3_tXcab *= dpdxi[_cccc]
 
-        naf3_ncab = self.sum_ij_sum_X_pi_X_n(n,
+        naf_ncab += self.sum_ij_sum_X_pi_X_n(n,
                                              (i_p, j_p),
                                              (ij_t, ik_t),
                                              term_3_tXcab)
-
-        print("Term3: ", np.all(naf3_ncab==0))        
-
-        naf_ncab += naf3_ncab
-
+   
         # Term 4
         # Here we have to sub-terms:
         #  - one sums over X in the inner loop and has pi_{ij|n}
@@ -383,37 +392,25 @@ class Manybody(MatscipyCalculator):
                              r_tqc[:, 0], r_tqc[:, 0], r_tqc)
 
         # assembling sub-terms
-        naf41_ncab = 2 * self.sum_ij_pi_ij_n(
+        naf_ncab += 2 * self.sum_ij_pi_ij_n(
             n, (i_p, j_p), term_4_1_pab
         )
-        naf42_ncab = 2 * self.sum_ij_sum_X_pi_X_n(
+        naf_ncab += 2 * self.sum_ij_sum_X_pi_X_n(
             n, (i_p, j_p), (ij_t, ik_t), term_4_2_tXcab
         )
 
-        print("Term4_1: ", np.all(naf41_ncab==0))
-        print("Term4_2: ", np.all(naf42_ncab==0))
-
-        naf_ncab += (naf41_ncab + naf42_ncab)
-
         # Term 5
-        # Like in term 3, we have a sum over Y in the inner loop,
-        # outer loop has pi_{X|n}
         ddpddxi = ddphi_cp[1][ij_t]
         dtdRY = dtdRX  # just for clarity
-        term_5_tXcab = ein('t,Xt,Yt,tYa,tYb,tXc->tXcab',
-                           ddpddxi,
-                           dtdRX, dtdRY,
-                           r_tqc, r_tqc, r_tqc)
+        term_5_1_pab = self._assemble_triplet_to_pair(
+            ij_t, ein('qt,tqa,tqb->tab', dtdRX, r_tqc, r_tqc), len(i_p)
+            )
 
-        naf5_ncab = 2 * self.sum_ij_sum_X_pi_X_n(
-            n, (i_p, j_p), (ij_t, ik_t), term_5_tXcab
-        )
-        #term_51_tab = ein('t,tXa,tXb->tab', dtdRX, r_tqc, r_tqc)
-
-       # term_52_tc = ein('t,tYc->', dtdRY, r_tqc)
-
-        print("Term5: ", np.all(naf5_ncab==0))
-        naf_ncab += naf5_ncab
+        term_5_2_tYgab = ein('t,Yt,tab,tYg->tYgab', ddpddxi, dtdRY, term_5_1_pab[ij_t], r_tqc)
+        naf_ncab += 2 * self.sum_ij_sum_X_pi_X_n(n,
+                                        (i_p, j_p),
+                                        (ij_t, ik_t),
+                                        term_5_2_tYgab)
 
         return naf_ncab
 
@@ -441,11 +438,18 @@ class Manybody(MatscipyCalculator):
 
 
         # Term 4
-        # Pair distribution 
-        #ddpdRdxi = ddphi_cp[2][ij_t]
-        #dtdRX = dtheta_qt
+        # Pair term 
+        ddpdRdxi = ddphi_cp[2][ij_t]
+        dtdRX = dtheta_qt
 
-        #H41_tcc = ein('t,t,ta,tb->tab', -4 * ddpdRdxi, dtdRX[0], r_tqc[:,0], r_tqc[:,0])
+        # Same structure as T1 and T2
+        # Based on triplets, needs to be reduced to pair list 
+        H41_tcc = ein('t,t,ta,tb->tab', -2 * ddpdRdxi, dtdRX[0], r_tqc[:,0], r_tqc[:,0])
+        # Is this correct
+        H_pcc += self._assemble_triplet_to_pair(ij_t, )
+
+
+        xi_p = self._assemble_triplet_to_pair(ij_t, theta_t.squeeze(), len(r_pc))
 
         
         # Symmetrization with H_nm 
