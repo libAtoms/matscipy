@@ -48,10 +48,13 @@ from matscipy.calculators.manybody.potentials import (
     KumagaiPair,
     KumagaiAngle,
     LennardJones,
+    StillingerWeberPair,
+    StillingerWeberAngle
 )
 
 from reference_params import (
     Kumagai_Comp_Mat_Sci_39_Si,
+    Stillinger_Weber_PRB_31_5262_Si,
 )
 
 from matscipy.elasticity import (
@@ -60,7 +63,6 @@ from matscipy.elasticity import (
 
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood, CutoffNeighbourhood
-
 
 class SimpleAngle(Manybody.Theta):
     """Implementation of a zero three-body interaction."""
@@ -181,7 +183,13 @@ potentials = {
         {1: SimplePairNoMix()},
         {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
-    )
+    ),
+
+    "StillingerWeber": (
+        {1: StillingerWeberPair(Stillinger_Weber_PRB_31_5262_Si)},
+        {1: StillingerWeberAngle(Stillinger_Weber_PRB_31_5262_Si)},
+        CutoffNeighbourhood(cutoff=Stillinger_Weber_PRB_31_5262_Si["a"] * Stillinger_Weber_PRB_31_5262_Si["sigma"]),
+    ),
 }
 
 
@@ -190,13 +198,13 @@ def potential(request):
     return request.param
 
 
-@pytest.fixture(params=[5.429])
+@pytest.fixture(params=[5.2, 5.3, 5.431, 5.5])
 def distance(request):
     return request.param
 
 
-#@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
-@pytest.fixture(params=[0])
+@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
+#@pytest.fixture(params=[0])
 def rattle(request):
     return request.param
 
@@ -239,7 +247,6 @@ def test_stresses(configuration):
     s_num = numerical_stress(configuration, d=1e-6)
     nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-8)
 
-
 def test_born_constants(configuration):
     C_ana = configuration.calc.get_property("born_constants")
     C_num = measure_triclinic_elastic_constants(configuration, d=1e-6)
@@ -253,21 +260,16 @@ def test_born_constants(configuration):
 
 def test_nonaffine_forces(configuration):
     # TODO: clarify why we need to optimize?
-    FIRE(configuration, trajectory="test.xyz").run(fmax=1e-9)
-    # from ase.io import write
-    # write('test.traj', configuration)
+    FIRE(configuration).run(fmax=1e-9)
+
     naf_ana = configuration.calc.get_property('nonaffine_forces')
     naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
-
-    #m = naf_ana.nonzero()
-    print("naf_ana: \n", naf_ana[0])
-    print("naf_num: \n", naf_num[0])
 
     # atol here related to fmax above
     nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=5e-5)
 
 
-#@pytest.mark.xfail(reason="Not implemented")
+@pytest.mark.xfail(reason="Not implemented")
 def test_hessian(configuration):
     H_ana = configuration.calc.get_property('hessian').todense()
     H_num = numerical_hessian(configuration, dx=1e-6).todense()

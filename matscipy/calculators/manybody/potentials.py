@@ -346,10 +346,10 @@ class StillingerWeberPair(Manybody.Phi):
         self.cutoff = parameters['a'] * parameters['sigma']
 
     def __call__(self, r_p, xi_p):
-        U2 = self.B * np.power(self.sigma / r_p, self.p) - np.power(self.sigma / r_p, self.q)
-        U2 *= self.A * self.epsilon * np.exp(self.sigma / (r_p - self.a * self.sigma))
+        s = self.B * np.power(self.sigma / r_p, self.p) - np.power(self.sigma / r_p, self.q)
+        h = np.exp(self.sigma / (r_p - self.a * self.sigma))
 
-        return U2 + self.lambda1 * xi_p
+        return np.where(r_p <= self.cutoff, self.A * self.epsilon * s * h + self.lambda1 * xi_p, 0.0)
 
     def gradient(self, r_p, xi_p):
         sigma_r_p = np.power(self.sigma / r_p, self.p)
@@ -361,10 +361,11 @@ class StillingerWeberPair(Manybody.Phi):
         s = self.B * sigma_r_p - sigma_r_q
         ds = -self.p * self.B * sigma_r_p / r_p + self.q * sigma_r_q / r_p
 
-        return np.stack([
-            self.A * self.epsilon * (ds * h + dh * s),
-            self.lambda1 * np.ones_like(xi_p)
-        ])
+        return np.where(r_p <= self.cutoff,
+            np.stack([
+                self.A * self.epsilon * (ds * h + dh * s),
+                self.lambda1 * np.ones_like(xi_p)
+            ]), 0.0)
 
     def hessian(self, r_p, xi_p):
         sigma_r_p = np.power(self.sigma / r_p, self.p)
@@ -380,11 +381,12 @@ class StillingerWeberPair(Manybody.Phi):
         dds = self.p * self.B * sigma_r_p / r_p**2 * (1 + self.p)
         dds -= self.q * sigma_r_q / r_p**2 * (1 + self.q)
 
-        return np.stack([
-            self.A * self.epsilon * (h * dds + 2 * ds * dh + s * ddh),
-            np.zeros_like(xi_p),
-            np.zeros_like(xi_p)
-        ])
+        return np.where(r_p <= self.cutoff,
+            np.stack([
+                self.A * self.epsilon * (h * dds + 2 * ds * dh + s * ddh),
+                np.zeros_like(xi_p),
+                np.zeros_like(xi_p)
+            ]), 0.0)
 
 @angle_distance_defined
 class StillingerWeberAngle(Manybody.Theta):
@@ -420,9 +422,9 @@ class StillingerWeberAngle(Manybody.Theta):
         # Functions
         m = np.exp(self.gamma * self.sigma / (rij - self.a * self.sigma))
         n = np.exp(self.gamma * self.sigma / (rik - self.a * self.sigma))
-        g = np.power(cos - self.costheta0, 2)
+        g = np.power(cos + self.costheta0, 2)
 
-        return self.epsilon * g * m * n
+        return np.where(rik <= self.cutoff, self.epsilon * g * m * n, 0.0)
 
     def gradient(self, rij, rik, rjk):
         # Squared distances
@@ -436,10 +438,10 @@ class StillingerWeberAngle(Manybody.Theta):
         # Functions
         m = np.exp(self.gamma * self.sigma / (rij - self.a * self.sigma))
         n = np.exp(self.gamma * self.sigma / (rik - self.a * self.sigma))
-        g = np.power(cos - self.costheta0, 2)
+        g = np.power(cos + self.costheta0, 2)
 
         # Derivative of scalar functions
-        dg_dcos = 2 * (cos - self.costheta0)
+        dg_dcos = 2 * (cos + self.costheta0)
         dm_drij = - self.gamma * self.sigma / np.power(rij - self.a * self.sigma, 2) * m
         dn_drik = - self.gamma * self.sigma / np.power(rik - self.a * self.sigma, 2) * n
 
@@ -448,11 +450,12 @@ class StillingerWeberAngle(Manybody.Theta):
         dg_drik = dg_dcos * (rsq_ik - rsq_ij + rsq_jk) / (2 * rsq_ik * rij)
         dg_drjk = - dg_dcos * rjk / (rij * rik)
 
-        return self.epsilon * np.stack([
-            dg_drij * m * n + dm_drij * g * n,
-            dg_drik * m * n + dn_drik * g * m,
-            dg_drjk * m * n
-        ])
+        return self.epsilon * np.where(rik <= self.cutoff,
+            np.stack([
+                dg_drij * m * n + dm_drij * g * n,
+                dg_drik * m * n + dn_drik * g * m,
+                dg_drjk * m * n
+            ]), 0.0)
 
     def hessian(self, rij, rik, rjk):
         # Squared distances
@@ -466,10 +469,10 @@ class StillingerWeberAngle(Manybody.Theta):
         # Functions
         m = np.exp(self.gamma * self.sigma / (rij - self.a * self.sigma))
         n = np.exp(self.gamma * self.sigma / (rik - self.a * self.sigma))
-        g = np.power(cos - self.costheta0, 2)
+        g = np.power(cos + self.costheta0, 2)
 
         # Derivative of scalar functions
-        dg_dcos = 2 * (cos - self.costheta0)
+        dg_dcos = 2 * (cos + self.costheta0)
         ddg_ddcos =  2 * np.ones_like(rij)
 
         dm_drij = - self.gamma * self.sigma / np.power(rij - self.a * self.sigma, 2) * m
@@ -506,14 +509,15 @@ class StillingerWeberAngle(Manybody.Theta):
         ddg_drjkdrij = dcos_drij * ddg_ddcos * dcos_drjk + dg_dcos * ddcos_drijdrjk
         ddg_drikdrij = dcos_drij * ddg_ddcos * dcos_drik + dg_dcos * ddcos_drijdrik
 
-        return self.epsilon * np.stack([
-            n * (ddg_ddrij * m + dg_drij * dm_drij + ddm_ddrij * g + dm_drij * dg_drij) ,
-            m * (ddg_ddrik * n + dn_drik * dg_drik + ddn_ddrik * g + dn_drik * dg_drik),
-            ddg_ddrjk * m * n,
-            m * (ddg_drjkdrik * n + dn_drik * dg_drjk),
-            n * (ddg_drjkdrij * m + dm_drij * dg_drjk),
-            ddg_drikdrij * m * n + dg_drij * dn_drik * m + dm_drij * dg_drik * n + dm_drij * dn_drik * g
-        ])
+        return self.epsilon * np.where(rik <= self.cutoff,
+            np.stack([
+                n * (ddg_ddrij * m + dg_drij * dm_drij + ddm_ddrij * g + dm_drij * dg_drij) ,
+                m * (ddg_ddrik * n + dn_drik * dg_drik + ddn_ddrik * g + dn_drik * dg_drik),
+                ddg_ddrjk * m * n,
+                m * (ddg_drjkdrik * n + dn_drik * dg_drjk),
+                n * (ddg_drjkdrij * m + dm_drij * dg_drjk),
+                ddg_drikdrij * m * n + dg_drij * dn_drik * m + dm_drij * dg_drik * n + dm_drij * dn_drik * g
+        ]), 0.0)
 
 
 @distance_defined
