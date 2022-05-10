@@ -5,7 +5,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Mapping
-# Delete one of these imports if it is clear which one is more useful 
+# Delete one of these imports if it is clear which one is more useful
 from scipy.sparse import coo_matrix as sparse_matrix
 from scipy.sparse import bsr_matrix
 from ...calculators.calculator import MatscipyCalculator
@@ -134,21 +134,6 @@ class Manybody(MatscipyCalculator):
                                         (j_p[ij_t], j_p[ik_t])])  # jk pair
 
         )
-
-
-    @classmethod
-    def sum_X_pi_X_n(cls, n, pairs, triplets, values_tq):
-        i_p, j_p = pairs
-        ij_t, ik_t = triplets
-        res = np.zeros((len(i_p), 3))
-
-        for q, (i, j) in enumerate([(i_p[ij_t], j_p[ij_t]),   # ij pair
-                                    (i_p[ik_t], j_p[ik_t]),   # ik pair
-                                    (j_p[ij_t], j_p[ik_t])]):  # jk pair
-
-            res += cls._assemble_triplet_to_pair(i, values_tq[:, q], n) - cls._assemble_triplet_to_pair(j, values_tq[:, q], n)        
-
-        return res
 
     def _masked_compute(self, atoms, order):
         """Compute requested derivatives of phi and theta."""
@@ -368,7 +353,7 @@ class Manybody(MatscipyCalculator):
                                              (i_p, j_p),
                                              (ij_t, ik_t),
                                              term_3_tXcab)
-   
+
         # Term 4
         # Here we have to sub-terms:
         #  - one sums over X in the inner loop and has pi_{ij|n}
@@ -424,11 +409,10 @@ class Manybody(MatscipyCalculator):
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2])
 
-        # Term 1, merge with T2 in the end 
-        e = np.identity(3).reshape(-1,3,3)
-        e_pcc = np.repeat(e, len(i_p), axis=0)
+        # Term 1, merge with T2 in the end
+        e = np.identity(3)
         dpdR = dphi_cp[0]
-        H_pcc = ein('p,pab->pab', -1 * dpdR, e)
+        H_pcc = ein('p,ab->pab', -1 * dpdR, e)
 
         # Term 2, merge with T1 in the end
         ddpddR = ddphi_cp[0]
@@ -438,12 +422,12 @@ class Manybody(MatscipyCalculator):
 
 
         # Term 4
-        # Pair term 
+        # Pair term
         ddpdRdxi = ddphi_cp[2][ij_t]
         dtdRX = dtheta_qt
 
         # Same structure as T1 and T2
-        # Based on triplets, needs to be reduced to pair list 
+        # Based on triplets, needs to be reduced to pair list
         H41_tcc = ein('t,t,ta,tb->tab', -2 * ddpdRdxi, dtdRX[0], r_tqc[:,0], r_tqc[:,0])
         # Is this correct
         H_pcc += self._assemble_triplet_to_pair(ij_t, )
@@ -451,8 +435,8 @@ class Manybody(MatscipyCalculator):
 
         xi_p = self._assemble_triplet_to_pair(ij_t, theta_t.squeeze(), len(r_pc))
 
-        
-        # Symmetrization with H_nm 
+
+        # Symmetrization with H_nm
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
 
         # Compute the diagonal elements by bincount the off-diagonal elements
