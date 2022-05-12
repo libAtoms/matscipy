@@ -4,7 +4,7 @@ import numpy as np
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from itertools import permutations
+from itertools import product
 from typing import Mapping
 # Delete one of these imports if it is clear which one is more useful
 from scipy.sparse import coo_matrix as sparse_matrix
@@ -192,7 +192,7 @@ class Manybody(MatscipyCalculator):
 
         return sum(
             cls.sum_ijk_tau_XY_mn(n, triplets, X, Y, values_tq)
-            for X, Y in permutations(X_indices, repeat=2)
+            for X, Y in product(X_indices, repeat=2)
         )
 
     def _masked_compute(self, atoms, order):
