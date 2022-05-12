@@ -4,6 +4,7 @@ import numpy as np
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from itertools import permutations
 from typing import Mapping
 # Delete one of these imports if it is clear which one is more useful
 from scipy.sparse import coo_matrix as sparse_matrix
@@ -85,6 +86,31 @@ class Manybody(MatscipyCalculator):
                     ∂₁₂Θ(rᵢⱼ², rᵢₖ², rⱼₖ²)].
             """
 
+    class _idx:
+        """Helper class for index algebra."""
+
+        def __init__(self, idx, sign=1):
+            self.idx = idx
+            self.sign = sign
+
+        def __str__(self):
+            return ("-" if self.sign < 0 else "") + self.idx
+
+        def __repr__(self):
+            return str(self)
+
+        def __mul__(self, other):
+            return type(self)(self.idx + other.idx, self.sign * other.sign)
+
+        def __neg__(self):
+            return type(self)(self.idx, -self.sign)
+
+        def offdiagonal(self):
+            for c in "ijk":
+                if self.idx.count(c) > 1:
+                    return False
+            return True
+
     def __init__(self, phi: Mapping[int, Phi], theta: Mapping[int, Theta],
                  neighbourhood: Neighbourhood):
         """Construct with potentials ɸ(rᵢⱼ², ξᵢⱼ) and Θ(rᵢⱼ², rᵢₖ², rⱼₖ²)."""
@@ -137,6 +163,37 @@ class Manybody(MatscipyCalculator):
                                         (j_p[ij_t], j_p[ik_t])])  # jk pair
 
         )  # yapf: disable
+
+    @classmethod
+    def sum_ijk_tau_XY_mn(cls, n, triplets, X, Y, values_tq):
+        triplets = {
+            k: (v, q) for k, v, q in zip(["ij", "ik", "jk", "ji", "ki", "kj"],
+                                         triplets * 2,
+                                         list(range(3)) * 2)
+        }
+
+        # All indices in τ_XY|mn
+        indices = np.ravel(X[np.newaxis] * Y[np.newaxis].T)
+        # Indices relevant for off-diagonal terms
+        indices = filter(lambda i: i.offdiagonal(), indices)
+
+        return sum(
+            idx.sign * mabincount(triplets[idx.idx][0],
+                                  values_tq[:, triplets[idx.idx][1]], n)
+            for idx in indices
+        )
+
+    @classmethod
+    def sum_XY_sum_ijk_tau_XY_mn(cls, n, triplets, values_tq):
+        i, j, k = map(cls._idx, 'ijk')
+        X_indices = np.array([[i, -j],
+                              [i, -k],
+                              [j, -k]])
+
+        return sum(
+            cls.sum_ijk_tau_XY_mn(n, triplets, X, Y, values_tq)
+            for X, Y in permutations(X_indices, repeat=2)
+        )
 
     def _masked_compute(self, atoms, order):
         """Compute requested derivatives of phi and theta."""
