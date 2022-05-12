@@ -165,10 +165,11 @@ class Manybody(MatscipyCalculator):
         )  # yapf: disable
 
     @classmethod
-    def sum_ijk_tau_XY_mn(cls, n, triplets, X, Y, values_tq):
+    def sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, X, Y, values_tq):
         triplets = {
             k: (v, q) for k, v, q in zip(["ij", "ik", "jk", "ji", "ki", "kj"],
-                                         triplets * 2,
+                                         list(triplets)
+                                         + [tr_p for t in triplets],
                                          list(range(3)) * 2)
         }
 
@@ -184,14 +185,14 @@ class Manybody(MatscipyCalculator):
         )
 
     @classmethod
-    def sum_XY_sum_ijk_tau_XY_mn(cls, n, triplets, values_tq):
+    def sum_XY_sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, values_tq):
         i, j, k = map(cls._idx, 'ijk')
         X_indices = np.array([[i, -j],
                               [i, -k],
                               [j, -k]])
 
         return sum(
-            cls.sum_ijk_tau_XY_mn(n, triplets, X, Y, values_tq)
+            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, Y, values_tq)
             for X, Y in product(X_indices, repeat=2)
         )
 
@@ -446,10 +447,9 @@ class Manybody(MatscipyCalculator):
     def get_hessian(self, atoms):
         """Compute hessian."""
         n = len(atoms)
-        i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijdD')
         first_n = first_neighbours(n, i_p)
-        tr_p = find_indices_of_reversed_pairs(i_p, j_p,
-                                              np.linalg.norm(r_pc, axis=-1))
+        tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
         ij_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'iD')
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
