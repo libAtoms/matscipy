@@ -165,12 +165,10 @@ class Manybody(MatscipyCalculator):
         )  # yapf: disable
 
     @classmethod
-    def sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, X, Y, values_tq):
+    def sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, X, Y, values_t):
         triplets = {
-            k: (v, q) for k, v, q in zip(["ij", "ik", "jk", "ji", "ki", "kj"],
-                                         list(triplets)
-                                         + [tr_p for t in triplets],
-                                         list(range(3)) * 2)
+            k: v for k, v in zip(["ij", "ik", "jk", "ji", "ki", "kj"],
+                                 list(triplets) + [tr_p for t in triplets])
         }
 
         # All indices in τ_XY|mn
@@ -179,21 +177,20 @@ class Manybody(MatscipyCalculator):
         indices = filter(lambda i: i.offdiagonal(), indices)
 
         return sum(
-            idx.sign * mabincount(triplets[idx.idx][0],
-                                  values_tq[:, triplets[idx.idx][1]], n)
+            idx.sign * mabincount(triplets[idx.idx], values_t, n)
             for idx in indices
         )
 
     @classmethod
-    def sum_XY_sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, values_tq):
+    def sum_XY_sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, values_tXY):
         i, j, k = map(cls._idx, 'ijk')
         X_indices = np.array([[i, -j],
                               [i, -k],
                               [j, -k]])
 
         return sum(
-            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, Y, values_tq)
-            for X, Y in product(X_indices, repeat=2)
+            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, Y, values_tXY[:, x, y])
+            for (x, X), (y, Y) in product(enumerate(X_indices), repeat=2)
         )
 
     def _masked_compute(self, atoms, order):
