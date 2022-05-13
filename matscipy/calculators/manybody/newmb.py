@@ -4,7 +4,7 @@ import numpy as np
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from itertools import product
+from itertools import combinations_with_replacement
 from typing import Mapping
 # Delete one of these imports if it is clear which one is more useful
 from scipy.sparse import coo_matrix as sparse_matrix
@@ -171,20 +171,24 @@ class Manybody(MatscipyCalculator):
                                  list(triplets) + [tr_p[t] for t in triplets])
         }
 
-        # All indices in τ_XY|mn
-        indices = X[np.newaxis] * Y[np.newaxis].T
-        # Remove inverted indices
-        indices = np.ravel(indices[~np.tri(2, 2, -1)])
-        # Indices relevant for off-diagonal terms
-        indices = filter(lambda i: i.offdiagonal(), indices)
+        #print("Full triplets: ", triplets)
+        #print("X: ", X)
+        #print("Y: ", Y)
+        if np.all(X == Y):
+            indices = X[np.newaxis] * Y[np.newaxis].T
+            # Remove inverted indices
+            indices = np.ravel(indices[np.tri(2, 2, -1, bool)])
+            # Indices relevant for off-diagonal terms
+            indices = filter(lambda i: i.offdiagonal(), indices)
+        else:
+            # All indices in τ_XY|mn
+            indices = np.ravel(X[np.newaxis] * Y[np.newaxis].T)
+            # Indices relevant for off-diagonal terms
+            indices = filter(lambda i: i.offdiagonal(), indices)
 
-        print("triplets: ", triplets)
-        print("X: ", X)
-        print("Y: ", Y)
-        for idx in indices:
-            print("indices: ", idx.idx)
-            print("sign: ", idx.sign)
-            print("trip: ", triplets[idx.idx])
+        #for idx in indices:
+        #    print("indices: ", idx.idx)
+        #    print("triplets: ", triplets[idx.idx])
 
         return sum(
             idx.sign * mabincount(triplets[idx.idx], values_t, n)
@@ -200,7 +204,7 @@ class Manybody(MatscipyCalculator):
 
         return sum(
             cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, Y, values_tXY[:, x, y])
-            for (x, X), (y, Y) in product(enumerate(X_indices), repeat=2)
+            for (x, X), (y, Y) in combinations_with_replacement(enumerate(X_indices), r=2)
         )
 
     @classmethod
@@ -508,56 +512,12 @@ class Manybody(MatscipyCalculator):
 
         dp_ddt_rX_rY = ein('t,XYt,tXa,tYb->tXYab', 2 * dpdxi, ddtdRXdRY, r_tqc, r_tqc)
 
-        #H3_pcc = self.sum_XY_sum_ijk_tau_XY_mn(nb_pairs, (ij_t, ik_t, jk_t),
-        #                                       tr_p, dp_ddt_rX_rY)
+        H_pcc += self.sum_XY_sum_ijk_tau_XY_mn(nb_pairs, (ij_t, ik_t, jk_t),
+                                               tr_p, dp_ddt_rX_rY)
 
-        H32_pcc = self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
+        H_pcc += self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, dp_dt_e)
   
-        # Term 3.1
-        ddtdRijdRij = ddtheta_qt[0]
-        ddtdRikdRik = ddtheta_qt[1]
-        ddtdRjkdRjk = ddtheta_qt[2]
-        ddtdRijdRik = ddtheta_qt[5]
-        ddtdRijdRjk = ddtheta_qt[4]
-        ddtdRikdRjk = ddtheta_qt[3]
-
-        # rij x rik 
-        old_H3_pcc = self._assemble_triplet_to_pair(ik_t, ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRijdRik, r_tqc[:,0], r_tqc[:,1]), len(i_p))
-        old_H3_pcc += self._assemble_triplet_to_pair(tr_p[ij_t], ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRijdRik, r_tqc[:,0], r_tqc[:,1]), len(i_p))
-        old_H3_pcc += self._assemble_triplet_to_pair(jk_t, ein('t,t,ta,tb->tab', 2*dpdxi, ddtdRijdRik, r_tqc[:,0], r_tqc[:,1]), len(i_p))
-
-        # rij x rjk 
-        old_H3_pcc += self._assemble_triplet_to_pair(ij_t, ein('t,t,ta,tb->tab', 2*dpdxi, ddtdRijdRjk, r_tqc[:,0], r_tqc[:,2]), len(i_p))
-        old_H3_pcc += self._assemble_triplet_to_pair(ik_t, ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRijdRjk, r_tqc[:,0], r_tqc[:,2]), len(i_p))
-        old_H3_pcc += self._assemble_triplet_to_pair(jk_t, ein('t,t,ta,tb->tab', 2*dpdxi, ddtdRijdRjk, r_tqc[:,0], r_tqc[:,2]), len(i_p))
-
-        # rik x rjk 
-        old_H3_pcc += self._assemble_triplet_to_pair(ij_t, ein('t,t,ta,tb->tab', 2*dpdxi, ddtdRikdRjk, r_tqc[:,1], r_tqc[:,2]), len(i_p))
-        old_H3_pcc += self._assemble_triplet_to_pair(ik_t, ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRikdRjk, r_tqc[:,1], r_tqc[:,2]), len(i_p))
-        old_H3_pcc += self._assemble_triplet_to_pair(tr_p[jk_t], ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRikdRjk, r_tqc[:,1], r_tqc[:,2]), len(i_p))
-
-        # Second expression
-        old_H3_pcc += self._assemble_triplet_to_pair(ij_t, -2 * ein('t,t,ta,tb->tab', dpdxi, ddtdRijdRij, r_tqc[:,0], r_tqc[:,0]), len(i_p))
-        old_H3_pcc += self._assemble_triplet_to_pair(ik_t, -2 * ein('t,t,ta,tb->tab', dpdxi, ddtdRikdRik, r_tqc[:,1], r_tqc[:,1]), len(i_p))
-        old_H3_pcc += self._assemble_triplet_to_pair(jk_t, -2 * ein('t,t,ta,tb->tab', dpdxi, ddtdRjkdRjk, r_tqc[:,2], r_tqc[:,2]), len(i_p))
-
-
-        dtheta_drij = dtheta_qt[0]
-        dtheta_drik = dtheta_qt[1]
-        dtheta_drjk = dtheta_qt[2]
-        # First expression
-        old_H32_pcc = self._assemble_triplet_to_pair(ij_t, -ein('t,t,ab->tab', dpdxi, dtheta_drij, e), len(i_p))
-        old_H32_pcc += self._assemble_triplet_to_pair(ik_t, -ein('t,t,ab->tab', dpdxi, dtheta_drik, e), len(i_p))
-        old_H32_pcc += self._assemble_triplet_to_pair(jk_t, -ein('t,t,ab->tab', dpdxi, dtheta_drjk, e), len(i_p))
-
-        print("Old H32_pcc: ", old_H32_pcc[0])   
-        print("New H32_pcc: ", H32_pcc[0])
-
-        H_pcc += old_H3_pcc
-        H_pcc += old_H32_pcc
-
-
         # Term 4
         ddpdRdxi = ddphi_cp[2]
         ddpdRdxi[mask] = 0.0
