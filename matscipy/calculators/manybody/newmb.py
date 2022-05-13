@@ -166,17 +166,16 @@ class Manybody(MatscipyCalculator):
 
     @classmethod
     def sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, X, Y, values_t):
+        #breakpoint()
         triplets = {
             k: v for k, v in zip(["ij", "ik", "jk", "ji", "ki", "kj"],
-                                 list(triplets) + [tr_p for t in triplets])
+                                 list(triplets) + [tr_p[t] for t in triplets])
         }
 
         # All indices in τ_XY|mn
         indices = np.ravel(X[np.newaxis] * Y[np.newaxis].T)
         # Indices relevant for off-diagonal terms
         indices = filter(lambda i: i.offdiagonal(), indices)
-
-        print("indices: ", indices)
 
         return sum(
             idx.sign * mabincount(triplets[idx.idx], values_t, n)
@@ -193,6 +192,18 @@ class Manybody(MatscipyCalculator):
         return sum(
             cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, Y, values_tXY[:, x, y])
             for (x, X), (y, Y) in product(enumerate(X_indices), repeat=2)
+        )
+
+    @classmethod
+    def sum_XX_sum_ijk_tau_XX_mn(cls, n, triplets, tr_p, values_tX):
+        i, j, k = map(cls._idx, 'ijk')
+        X_indices = np.array([[i, -j],
+                              [i, -k],
+                              [j, -k]])
+
+        return sum(
+            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, X, values_tX[:, x])
+            for x, X in enumerate(X_indices)
         )
 
     def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None):
@@ -463,7 +474,6 @@ class Manybody(MatscipyCalculator):
 
         nb_pairs = len(i_p)
 
-
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2], list_ij=[i_p, j_p, r_pc], list_ijk=[ij_t, ik_t, r_tqc])
 
@@ -484,17 +494,23 @@ class Manybody(MatscipyCalculator):
         dpdxi = dpdxi[ij_t]
         dtdRX = dtheta_qt
         ddtdRXdRX = ddtheta_qt[:3]
+        ddtdRXdRY = ddtheta_qt[self._voigt_seq].reshape(3, 3, -1)
 
-        # Expr. 1
-        expres_1 = ein('t,Xt,ab->tXab', dpdxi, dtdRX, e) + \
-                   ein('t,Xt,tXa,tXb->tXab', 2 * dpdxi, ddtdRXdRX, r_tqc, r_tqc)
+        dp_dt_e = ein('t,Xt,ab->tXab', dpdxi, dtdRX, e)
 
-        H31_pcc = self.sum_XY_sum_ijk_tau_XY_mn(nb_pairs, (ij_t, ij_t),
-                                               tr_p, expres_1)
+        dp_ddt_rX_rY = ein('t,XYt,tXa,tYb->tXYab', 2 * dpdxi, ddtdRXdRY, r_tqc, r_tqc)
+
+        H_pcc += self.sum_XY_sum_ijk_tau_XY_mn(nb_pairs, (ij_t, ik_t, jk_t),
+                                               tr_p, dp_ddt_rX_rY)
+        H_pcc += self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
+                                               tr_p, dp_dt_e)
   
-        print("H31_pcc[0]: ", H31_pcc[0])
-
         # Term 4
+        ddpdRdxi = ddphi_cp[2]
+        ddpdRdxi[mask] = 0.0
+        ddpdRdxi = ddpdRdxi[ij_t]
+
+        ddp_dt_rij_rx = ein('t,Xt,ta,tXb->tXab', 2 * ddpdRdxi, dtdRX, r_tqc[:,0], r_tqc)
 
 
         # Symmetrization with H_nm
