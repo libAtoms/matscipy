@@ -93,6 +93,9 @@ class Manybody(MatscipyCalculator):
             self.idx = idx
             self.sign = sign
 
+        def __eq__(self, other):
+            return self.idx == other.idx and self.sign == other.sign
+
         def __str__(self):
             return ("-" if self.sign < 0 else "") + self.idx
 
