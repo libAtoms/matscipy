@@ -174,28 +174,17 @@ class Manybody(MatscipyCalculator):
                                  list(triplets) + [tr_p[t] for t in triplets])
         }
 
-        #print("Full triplets: ", triplets)
-        #print("X: ", X)
-        #print("Y: ", Y)
-        if np.all(X == Y):
-            indices = X[np.newaxis] * Y[np.newaxis].T
-            # Remove inverted indices
-            indices = np.ravel(indices[np.tri(2, 2, -1, bool)])
-            # Indices relevant for off-diagonal terms
-            indices = filter(lambda i: i.offdiagonal(), indices)
-        else:
-            # All indices in τ_XY|mn
-            indices = np.ravel(X[np.newaxis] * Y[np.newaxis].T)
-            # Indices relevant for off-diagonal terms
-            indices = filter(lambda i: i.offdiagonal(), indices)
+        # All indices in τ_XY|mn
+        indices = X[np.newaxis] * Y[np.newaxis].T
 
-        #for idx in indices:
-        #    print("indices: ", idx.idx)
-        #    print("triplets: ", triplets[idx.idx])
+        # Avoid double counting symmetric indices
+        if np.all(X == Y):
+            indices = indices[np.tri(2, 2, -1, dtype=bool)]
 
         return sum(
             idx.sign * mabincount(triplets[idx.idx], values_t, n)
-            for idx in indices
+            # Indices relevant for off-diagonal terms
+            for idx in np.ravel(indices) if idx.offdiagonal()
         )
 
     @classmethod
