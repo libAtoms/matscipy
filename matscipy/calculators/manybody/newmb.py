@@ -173,7 +173,9 @@ class Manybody(MatscipyCalculator):
         }
 
         # All indices in τ_XY|mn
-        indices = np.ravel(X[np.newaxis] * Y[np.newaxis].T)
+        indices = X[np.newaxis] * Y[np.newaxis].T
+        # Remove inverted indices
+        indices = np.ravel(indices[~np.tri(2, 2, -1)])
         # Indices relevant for off-diagonal terms
         indices = filter(lambda i: i.offdiagonal(), indices)
 
