@@ -176,6 +176,8 @@ class Manybody(MatscipyCalculator):
         # Indices relevant for off-diagonal terms
         indices = filter(lambda i: i.offdiagonal(), indices)
 
+        print("indices: ", indices)
+
         return sum(
             idx.sign * mabincount(triplets[idx.idx], values_t, n)
             for idx in indices
@@ -193,13 +195,17 @@ class Manybody(MatscipyCalculator):
             for (x, X), (y, Y) in product(enumerate(X_indices), repeat=2)
         )
 
-    def _masked_compute(self, atoms, order):
+    def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None):
         """Compute requested derivatives of phi and theta."""
         if not isinstance(order, list):
             order = [order]
 
-        i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
-        ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
+        if list_ijk == None and list_ij == None:
+            i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
+            ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
+        else:
+            i_p, j_p, r_pc = list_ij
+            ij_t, ik_t, r_tqc = list_ijk
 
         # Pair and triplet types
         t_p = self.neighbourhood.pair_type(*(atoms.numbers[i]
@@ -444,41 +450,52 @@ class Manybody(MatscipyCalculator):
     def get_hessian(self, atoms):
         """Compute hessian."""
         n = len(atoms)
-        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijdD')
+        cutoff = self.neighbourhood.cutoff
+
+        # We nned twice the cutoff to get jk  
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijdD', cutoff=2*cutoff)
+        mask = r_p > cutoff
+
         first_n = first_neighbours(n, i_p)
         tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
-        ij_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'iD')
+
+        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD', neighbours=[i_p, j_p, r_p, r_pc])
+
+        nb_pairs = len(i_p)
+
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
-            self._masked_compute(atoms, order=[1, 2])
+            self._masked_compute(atoms, order=[1, 2], list_ij=[i_p, j_p, r_pc], list_ijk=[ij_t, ik_t, r_tqc])
 
         # Term 1, merge with T2 in the end
         e = np.identity(3)
         dpdR = dphi_cp[0]
+        dpdR[mask] = 0.0
         H_pcc = ein('p,ab->pab', dpdR, -e)
 
         # Term 2, merge with T1 in the end
         ddpddR = ddphi_cp[0]
+        ddpddR[mask] = 0.0
         H_pcc -= ein('p,pa,pb->pab', 2 * ddpddR, r_pc, r_pc)
 
         # Term 3
         dpdxi = dphi_cp[1]
-        ddtdRXdRY = ddtheta_qt[self._voigt_seq].reshape(3, 3, -1)
-        dpdxi_ddtdRXdRY_rXrY = ein('t,XYt,tXc,tYc->tXYc', dpdxi, ddtdRXdRY,
-                                   r_tqc, r_tqc)
+        dpdxi[mask] = 0.0
+        dpdxi = dpdxi[ij_t]
+        dtdRX = dtheta_qt
+        ddtdRXdRX = ddtheta_qt[:3]
+
+        # Expr. 1
+        expres_1 = ein('t,Xt,ab->tXab', dpdxi, dtdRX, e) + \
+                   ein('t,Xt,tXa,tXb->tXab', 2 * dpdxi, ddtdRXdRX, r_tqc, r_tqc)
+
+        H31_pcc = self.sum_XY_sum_ijk_tau_XY_mn(nb_pairs, (ij_t, ij_t),
+                                               tr_p, expres_1)
+  
+        print("H31_pcc[0]: ", H31_pcc[0])
 
         # Term 4
-        # Pair term
-        ddpdRdxi = ddphi_cp[2][ij_t]
-        dtdRX = dtheta_qt
 
-        # Same structure as T1 and T2
-        # Based on triplets, needs to be reduced to pair list
-        H41_tcc = ein('t,t,ta,tb->tab', -2 * ddpdRdxi, dtdRX[0], r_tqc[:, 0],
-                      r_tqc[:, 0])
-
-        # Is this correct
-        H_pcc += self._assemble_triplet_to_pair(ij_t, )
 
         # Symmetrization with H_nm
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]

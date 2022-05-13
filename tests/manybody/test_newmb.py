@@ -43,6 +43,7 @@ from matscipy.calculators.manybody.potentials import (
     ZeroAngle,
     SimplePair,
     SimplePairNoMix,
+    SimplePairNoMixNoSecond,
     HarmonicPair,
     HarmonicAngle,
     KumagaiPair,
@@ -185,6 +186,12 @@ potentials = {
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
     ),
 
+    "SimplePairNoMixNoSecond+KumagaiAngle": (
+        {1: SimplePairNoMixNoSecond()},
+        {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
+        CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
+    ),
+
     "StillingerWeber": (
         {1: StillingerWeberPair(Stillinger_Weber_PRB_31_5262_Si)},
         {1: StillingerWeberAngle(Stillinger_Weber_PRB_31_5262_Si)},
@@ -198,13 +205,14 @@ def potential(request):
     return request.param
 
 
-@pytest.fixture(params=[5.2, 5.3, 5.431, 5.5])
+#@pytest.fixture(params=[5.2, 5.3, 5.431, 5.5])
+@pytest.fixture(params=[5.431])
 def distance(request):
     return request.param
 
 
-@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
-#@pytest.fixture(params=[0])
+#@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
+@pytest.fixture(params=[0])
 def rattle(request):
     return request.param
 
@@ -269,8 +277,9 @@ def test_nonaffine_forces(configuration):
     nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=5e-5)
 
 
-@pytest.mark.xfail(reason="Not implemented")
+#@pytest.mark.xfail(reason="Not implemented")
 def test_hessian(configuration):
+    configuration.set_cell([100, 100, 100])
     H_ana = configuration.calc.get_property('hessian').todense()
     H_num = numerical_hessian(configuration, dx=1e-6).todense()
 
