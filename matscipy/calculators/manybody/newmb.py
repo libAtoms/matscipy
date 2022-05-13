@@ -166,7 +166,6 @@ class Manybody(MatscipyCalculator):
 
     @classmethod
     def sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, X, Y, values_t):
-        #breakpoint()
         triplets = {
             k: v for k, v in zip(["ij", "ik", "jk", "ji", "ki", "kj"],
                                  list(triplets) + [tr_p[t] for t in triplets])
@@ -178,6 +177,14 @@ class Manybody(MatscipyCalculator):
         indices = np.ravel(indices[~np.tri(2, 2, -1)])
         # Indices relevant for off-diagonal terms
         indices = filter(lambda i: i.offdiagonal(), indices)
+
+        print("triplets: ", triplets)
+        print("X: ", X)
+        print("Y: ", Y)
+        for idx in indices:
+            print("indices: ", idx.idx)
+            print("sign: ", idx.sign)
+            print("trip: ", triplets[idx.idx])
 
         return sum(
             idx.sign * mabincount(triplets[idx.idx], values_t, n)
@@ -495,18 +502,62 @@ class Manybody(MatscipyCalculator):
         dpdxi[mask] = 0.0
         dpdxi = dpdxi[ij_t]
         dtdRX = dtheta_qt
-        ddtdRXdRX = ddtheta_qt[:3]
         ddtdRXdRY = ddtheta_qt[self._voigt_seq].reshape(3, 3, -1)
 
         dp_dt_e = ein('t,Xt,ab->tXab', dpdxi, dtdRX, e)
 
         dp_ddt_rX_rY = ein('t,XYt,tXa,tYb->tXYab', 2 * dpdxi, ddtdRXdRY, r_tqc, r_tqc)
 
-        H_pcc += self.sum_XY_sum_ijk_tau_XY_mn(nb_pairs, (ij_t, ik_t, jk_t),
-                                               tr_p, dp_ddt_rX_rY)
-        H_pcc += self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
+        #H3_pcc = self.sum_XY_sum_ijk_tau_XY_mn(nb_pairs, (ij_t, ik_t, jk_t),
+        #                                       tr_p, dp_ddt_rX_rY)
+
+        H32_pcc = self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, dp_dt_e)
   
+        # Term 3.1
+        ddtdRijdRij = ddtheta_qt[0]
+        ddtdRikdRik = ddtheta_qt[1]
+        ddtdRjkdRjk = ddtheta_qt[2]
+        ddtdRijdRik = ddtheta_qt[5]
+        ddtdRijdRjk = ddtheta_qt[4]
+        ddtdRikdRjk = ddtheta_qt[3]
+
+        # rij x rik 
+        old_H3_pcc = self._assemble_triplet_to_pair(ik_t, ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRijdRik, r_tqc[:,0], r_tqc[:,1]), len(i_p))
+        old_H3_pcc += self._assemble_triplet_to_pair(tr_p[ij_t], ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRijdRik, r_tqc[:,0], r_tqc[:,1]), len(i_p))
+        old_H3_pcc += self._assemble_triplet_to_pair(jk_t, ein('t,t,ta,tb->tab', 2*dpdxi, ddtdRijdRik, r_tqc[:,0], r_tqc[:,1]), len(i_p))
+
+        # rij x rjk 
+        old_H3_pcc += self._assemble_triplet_to_pair(ij_t, ein('t,t,ta,tb->tab', 2*dpdxi, ddtdRijdRjk, r_tqc[:,0], r_tqc[:,2]), len(i_p))
+        old_H3_pcc += self._assemble_triplet_to_pair(ik_t, ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRijdRjk, r_tqc[:,0], r_tqc[:,2]), len(i_p))
+        old_H3_pcc += self._assemble_triplet_to_pair(jk_t, ein('t,t,ta,tb->tab', 2*dpdxi, ddtdRijdRjk, r_tqc[:,0], r_tqc[:,2]), len(i_p))
+
+        # rik x rjk 
+        old_H3_pcc += self._assemble_triplet_to_pair(ij_t, ein('t,t,ta,tb->tab', 2*dpdxi, ddtdRikdRjk, r_tqc[:,1], r_tqc[:,2]), len(i_p))
+        old_H3_pcc += self._assemble_triplet_to_pair(ik_t, ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRikdRjk, r_tqc[:,1], r_tqc[:,2]), len(i_p))
+        old_H3_pcc += self._assemble_triplet_to_pair(tr_p[jk_t], ein('t,t,ta,tb->tab', -2*dpdxi, ddtdRikdRjk, r_tqc[:,1], r_tqc[:,2]), len(i_p))
+
+        # Second expression
+        old_H3_pcc += self._assemble_triplet_to_pair(ij_t, -2 * ein('t,t,ta,tb->tab', dpdxi, ddtdRijdRij, r_tqc[:,0], r_tqc[:,0]), len(i_p))
+        old_H3_pcc += self._assemble_triplet_to_pair(ik_t, -2 * ein('t,t,ta,tb->tab', dpdxi, ddtdRikdRik, r_tqc[:,1], r_tqc[:,1]), len(i_p))
+        old_H3_pcc += self._assemble_triplet_to_pair(jk_t, -2 * ein('t,t,ta,tb->tab', dpdxi, ddtdRjkdRjk, r_tqc[:,2], r_tqc[:,2]), len(i_p))
+
+
+        dtheta_drij = dtheta_qt[0]
+        dtheta_drik = dtheta_qt[1]
+        dtheta_drjk = dtheta_qt[2]
+        # First expression
+        old_H32_pcc = self._assemble_triplet_to_pair(ij_t, -ein('t,t,ab->tab', dpdxi, dtheta_drij, e), len(i_p))
+        old_H32_pcc += self._assemble_triplet_to_pair(ik_t, -ein('t,t,ab->tab', dpdxi, dtheta_drik, e), len(i_p))
+        old_H32_pcc += self._assemble_triplet_to_pair(jk_t, -ein('t,t,ab->tab', dpdxi, dtheta_drjk, e), len(i_p))
+
+        print("Old H32_pcc: ", old_H32_pcc[0])   
+        print("New H32_pcc: ", H32_pcc[0])
+
+        H_pcc += old_H3_pcc
+        H_pcc += old_H32_pcc
+
+
         # Term 4
         ddpdRdxi = ddphi_cp[2]
         ddpdRdxi[mask] = 0.0
