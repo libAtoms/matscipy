@@ -212,15 +212,15 @@ class Manybody(MatscipyCalculator):
         )
 
     @classmethod
-    def sum_X_sum_ijk_tau_ijX_mn(cls, n, triplets, tr_p, values_tXY):
+    def sum_X_sum_ijk_tau_ijX_mn(cls, n, triplets, tr_p, values_tX):
         i, j, k = map(cls._idx, 'ijk')
         X_indices = np.array([[i, -j],
                               [i, -k],
                               [j, -k]])
 
         return sum(
-            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, Y, values_tXY[:, x, y])
-            for (x, X), (y, Y) in combinations_with_replacement(enumerate(X_indices), r=2)
+            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X_indices[0], X, values_tX[:, x])
+            for x, X in enumerate(X_indices)
         )
 
     def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None):
@@ -306,7 +306,7 @@ class Manybody(MatscipyCalculator):
 
         # Request energy and gradient
         (phi_p, dphi_cp), (theta_t, dtheta_qt) = \
-            self._masked_compute(atoms, order=[0, 1])
+            self._masked_compute(atoms, order=[0, 1], list_ij=[i_p, j_p, r_pc], list_ijk=[ij_t, ik_t, r_tqc])
 
         # Energy
         epot = 0.5 * phi_p.sum()
@@ -484,11 +484,11 @@ class Manybody(MatscipyCalculator):
         i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijdD', cutoff=2*cutoff)
         mask = r_p > cutoff
 
-        first_n = first_neighbours(n, i_p)
         tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
 
-        ij_t, ik_t, jk_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkD', neighbours=[i_p, j_p, r_p, r_pc])
+        ij_t, ik_t, jk_t, r_tq, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkdD', neighbours=[i_p, j_p, r_p, r_pc])
 
+        first_n = first_neighbours(n, i_p)
         nb_pairs = len(i_p)
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
@@ -521,17 +521,35 @@ class Manybody(MatscipyCalculator):
 
         H_pcc += self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, dp_dt_e)
-  
-        # Term 4
+
+        # Term 4 --> Not working 
         ddpdRdxi = ddphi_cp[2]
         ddpdRdxi[mask] = 0.0
         ddpdRdxi = ddpdRdxi[ij_t]
+        dtdRX = dtheta_qt
+        dtdRij = dtheta_qt[0]
+        dtdRik = dtheta_qt[1]
+        dtdRjk = dtheta_qt[2]
 
-        ddp_dt_rij_rx = ein('t,Xt,ta,tXb->tXab', 2 * ddpdRdxi, dtdRX, r_tqc[:,0], r_tqc)
+        ddp_dt_rij_rX = ein('t,Xt,ta,tXb->tXab', 2 * ddpdRdxi, dtdRX, r_tqc[:, 0], r_tqc)
+        #ddp_dt_rX_rij = ein('t,Xt,tXa,tb->tXab', 2 * ddpdRdxi, dtdRX, r_tqc, r_tqc[:, 0])
 
+        H4_pcc = self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
+                                                tr_p, ddp_dt_rij_rX)
+
+        # Term 5
+        ddpddxi = ddphi_cp[1]
+        ddpddxi[mask] = 0.0
+        ddpddxi = ddpddxi[ij_t]
+        dtdRX = dtheta_qt
+        dtdRY = dtheta_qt
+
+        dtdRX_rX = ein('t,Xt,tXa->tXa', 2 * ddpddxi, dtdRX, r_tqc)
+        dtdRY_rY = ein('t,Xt,tXb->tXb', 2 * ddpddxi, dtdRY, r_tqc)
 
         # Symmetrization with H_nm
-        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
+        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]  
+
 
         # Compute the diagonal elements by bincount the off-diagonal elements
         # Be carful with prefactors !!!

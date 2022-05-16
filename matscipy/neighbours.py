@@ -181,11 +181,7 @@ class CutoffNeighbourhood(Neighbourhood):
             D = np.zeros((len(ij_t), 3, 3))
             D[:, 0] = D_p[ij_t]  # i->j
             D[:, 1] = D_p[ik_t]  # i->k
-            # j->k
-            if full_connectivity:
-                D[:, 2] = D_p[jk_t]
-            else:
-                D[:, 2] = D[:, 1] - D[:, 0]
+            D[:, 2] = D[:, 1] - D[:, 0] # j->k
 
             d = np.linalg.norm(D, axis=-1)  # distances
 
