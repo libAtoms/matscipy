@@ -211,6 +211,18 @@ class Manybody(MatscipyCalculator):
             for x, X in enumerate(X_indices)
         )
 
+    @classmethod
+    def sum_X_sum_ijk_tau_ijX_mn(cls, n, triplets, tr_p, values_tXY):
+        i, j, k = map(cls._idx, 'ijk')
+        X_indices = np.array([[i, -j],
+                              [i, -k],
+                              [j, -k]])
+
+        return sum(
+            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, Y, values_tXY[:, x, y])
+            for (x, X), (y, Y) in combinations_with_replacement(enumerate(X_indices), r=2)
+        )
+
     def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None):
         """Compute requested derivatives of phi and theta."""
         if not isinstance(order, list):
