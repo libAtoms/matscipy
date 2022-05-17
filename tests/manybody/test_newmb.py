@@ -50,12 +50,15 @@ from matscipy.calculators.manybody.potentials import (
     KumagaiAngle,
     LennardJones,
     StillingerWeberPair,
-    StillingerWeberAngle
+    StillingerWeberAngle,
+    TersoffBrennerPair,
+    TersoffBrennerAngle,
 )
 
 from reference_params import (
     Kumagai_Comp_Mat_Sci_39_Si,
     Stillinger_Weber_PRB_31_5262_Si,
+    Tersoff_PRB_39_5566_Si_C,
 )
 
 from matscipy.elasticity import (
@@ -149,7 +152,7 @@ potentials = {
     ),
 
     "SimpleAngle~cutoff": (
-        {1: ZeroPair()}, {1: SimpleAngle()}, CutoffNeighbourhood(cutoff=5.),
+        {1: ZeroPair()}, {1: SimpleAngle()}, CutoffNeighbourhood(cutoff=3.0),
     ),
 
     "SimpleAngle~molecule": (
@@ -197,6 +200,12 @@ potentials = {
         {1: StillingerWeberAngle(Stillinger_Weber_PRB_31_5262_Si)},
         CutoffNeighbourhood(cutoff=Stillinger_Weber_PRB_31_5262_Si["a"] * Stillinger_Weber_PRB_31_5262_Si["sigma"]),
     ),
+
+    "Tersoff3": (
+        {1: TersoffBrennerPair(Tersoff_PRB_39_5566_Si_C)},
+        {1: TersoffBrennerAngle(Tersoff_PRB_39_5566_Si_C)},
+        CutoffNeighbourhood(cutoff=Tersoff_PRB_39_5566_Si_C["R2"]),
+    ),
 }
 
 
@@ -205,14 +214,13 @@ def potential(request):
     return request.param
 
 
-#@pytest.fixture(params=[5.2, 5.3, 5.431, 5.5])
-@pytest.fixture(params=[5.431])
+@pytest.fixture(params=[5.2, 5.3, 5.431, 5.432, 5.5])
+#@pytest.fixture(params=[5.432])
 def distance(request):
     return request.param
 
 
-#@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
-@pytest.fixture(params=[0])
+@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
 def rattle(request):
     return request.param
 
@@ -246,11 +254,12 @@ def configuration(distance, rattle, potential, request):
 
 def test_forces(configuration):
     f_ana = configuration.get_forces()
-    f_num = numerical_forces(configuration, d=1e-6)
-    nt.assert_allclose(f_ana, f_num, rtol=1e-6, atol=1e-8)
+    f_num = numerical_forces(configuration, d=1e-5)
+    nt.assert_allclose(f_ana, f_num, rtol=1e-6, atol=1e-7)
 
 
 def test_stresses(configuration):
+    print("energy: ", configuration.get_potential_energy()/len(configuration))
     s_ana = configuration.get_stress()
     s_num = numerical_stress(configuration, d=1e-6)
     nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-8)
@@ -269,7 +278,6 @@ def test_born_constants(configuration):
 def test_nonaffine_forces(configuration):
     # TODO: clarify why we need to optimize?
     FIRE(configuration).run(fmax=1e-9)
-
     naf_ana = configuration.calc.get_property('nonaffine_forces')
     naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
 
@@ -277,17 +285,17 @@ def test_nonaffine_forces(configuration):
     nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=5e-5)
 
 
-#@pytest.mark.xfail(reason="Not implemented")
+@pytest.mark.xfail(reason="Not implemented")
 def test_hessian(configuration):
-    configuration.set_cell([10, 10, 10])
+    #configuration.set_cell([10, 10, 10])
     # The other way around fucks up the whole computation--> Check why? Cutoff? 
-    H_num = numerical_hessian(configuration, dx=1e-6).todense()
     H_ana = configuration.calc.get_property('hessian').todense()
+    H_num = numerical_hessian(configuration, dx=1e-6).todense()
 
     print("H_ana: \n", H_ana[:6,:6])
     print("H_num: \n", H_num[:6,:6])
 
-    #nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
+    nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
 
 
 @pytest.mark.parametrize('cutoff', np.linspace(1.1, 20, 10))

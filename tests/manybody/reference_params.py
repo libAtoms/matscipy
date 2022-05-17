@@ -33,3 +33,23 @@ Kumagai_Comp_Mat_Sci_39_Si = {
     'R_1': 2.70,
     'R_2': 3.30
 }
+
+# Cutted to test only Si
+Tersoff_PRB_39_5566_Si_C = {
+    '__ref__':  'Tersoff J., Phys. Rev. B 39, 5566 (1989)',
+    'style':    'Tersoff',
+    'el':       'Si',
+    'A':        1.8308e3,
+    'B':        4.7118e2,
+    'chi':      1.0,
+    'lambda1':  2.4799e0,
+    'mu':       1.7322e0,
+    'lambda3':  0.0,
+    'beta':     1.1000e-6,
+    'n':        7.8734e-1,
+    'c':        1.0039e5,
+    'd':        1.6217e1,
+    'h':        -5.9825e-1,
+    'R1':       2.70,
+    'R2':       3.00,
+}

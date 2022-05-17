@@ -932,20 +932,22 @@ class TersoffBrennerPair(Manybody.Phi):
 
 
     def __call__(self, r_p, xi_p):
-        # Cutoff 
+        # Cutoff function
         fc = np.where(r_p <= self.R1, 1.0,
                 np.where(r_p > self.R2, 0.0,
                     (1 + np.cos(np.pi * (r_p - self.R1) / (self.R2 - self.R1))) / 2
                 )
             )
 
-        # Attractive and repulsive 
-        fa = self.A * np.exp(-self.lambda1 * r_p)
-        fr = -self.B * np.exp(-self.mu * r_p)   
+        # Attractive interaction
+        fa = -self.B * np.exp(-self.mu * r_p)  
+        
+        # Repulsive interaction
+        fr = self.A * np.exp(-self.lambda1 * r_p) 
 
         # Bond-order parameter
         if self.style == 'tersoff':
-            b = self.chi * np.power(1 + (self.beta * xi_p)**self.n, -1 / (2 * self.n))
+            b = self.chi / np.power(1 + np.power(self.beta * xi_p, self.n), 1 / (2 * self.n))
 
         else:
             raise ValueError(f'Brenner not implemented {self.style}')
@@ -953,7 +955,7 @@ class TersoffBrennerPair(Manybody.Phi):
         return fc * (fr + b * fa)
 
     def gradient(self, r_p, xi_p):
-        # Cutoff 
+        # Cutoff function
         fc = np.where(r_p <= self.R1, 1.0,
                 np.where(r_p > self.R2, 0.0,
                     (1 + np.cos(np.pi * (r_p - self.R1) / (self.R2 - self.R1))) / 2
@@ -962,22 +964,23 @@ class TersoffBrennerPair(Manybody.Phi):
 
         dfc = np.where(r_p <= self.R1, 0.0,
                 np.where(r_p > self.R2, 0.0,
-                    - np.pi / (2 * (self.R2 - self.R1)) * np.sin(np.pi * (r_p - self.R1) / (self.R2 - self.R1)) 
+                    -np.pi / (2 * (self.R2 - self.R1)) * np.sin(np.pi * (r_p - self.R1) / (self.R2 - self.R1)) 
                 )
             )     
 
-        # Attractive and repulsive 
-        fa = self.A * np.exp(-self.lambda1 * r_p)
-        dfa = -self.lambda1 * fa
+        # Attractive interaction
+        fa = -self.B * np.exp(-self.mu * r_p)
+        dfa = -self.mu * fa
+        
+        # Repulsive interaction
+        fr = self.A * np.exp(-self.lambda1 * r_p)
+        dfr = -self.lambda1 * fr
 
-        fr = -self.B * np.exp(-self.mu * r_p)   
-        dfr = -self.mu * fr
-
-        # Bond-order parameter
+        # Bond-order
         if self.style == 'tersoff':
-            b = self.chi * np.power(1 + (self.beta * xi_p)**self.n, -1 / (2 * self.n))
-            db = -0.5 * self.beta * self.chi * np.power(self.beta * xi_p, self.n - 1) 
-            db *= 1 / np.power(1 + (self.beta * xi_p)**self.n, 1 + 1 / (2 * self.n))
+            b = self.chi * np.power(1 + np.power(self.beta * xi_p, self.n), -1 / (2 * self.n))
+            db = -0.5 * self.beta * self.chi * np.power(self.beta * xi_p, self.n - 1)
+            db *= 1 / np.power(1 + np.power(self.beta * xi_p, self.n), 1 + 1 / (2 * self.n))
 
         else:
             raise ValueError(f'Brenner not implemented {self.style}')
@@ -988,12 +991,249 @@ class TersoffBrennerPair(Manybody.Phi):
             ])   
 
     def hessian(self, r_p, xi_p):
-        return np.stack([
-            np.zeros_like(r_p),
-            np.zeros_like(r_p),
-            np.zeros_like(r_p)
-            ])    
+        # Cutoff function
+        fc = np.where(r_p <= self.R1, 1.0,
+                np.where(r_p > self.R2, 0.0,
+                    (1 + np.cos(np.pi * (r_p - self.R1) / (self.R2 - self.R1))) / 2
+                )
+            )
 
+        dfc = np.where(r_p <= self.R1, 0.0,
+                np.where(r_p > self.R2, 0.0,
+                    -np.pi / (2 * (self.R2 - self.R1)) * np.sin(np.pi * (r_p - self.R1) / (self.R2 - self.R1)) 
+                )
+            )     
+
+        ddfc = np.where(r_p <= self.R1, 0.0,
+                np.where(r_p > self.R2, 0.0,
+                    -np.pi**2 / (2 * np.power(self.R2 - self.R1, 2)) * np.cos(np.pi * (r_p - self.R1) / (self.R2 - self.R1)) 
+                )
+            )     
+
+        # Attractive interaction
+        fa = -self.B * np.exp(-self.mu * r_p)
+        dfa = -self.mu * fa
+        ddfa = self.mu**2 * fa
+        
+        # Repulsive interaction
+        fr = self.A * np.exp(-self.lambda1 * r_p)
+        dfr = -self.lambda1 * fr
+        ddfr = self.lambda1**2 * fr
+
+        # Bond-order
+        if self.style == 'tersoff':
+            b = self.chi * np.power(1 + np.power(self.beta * xi_p, self.n), -1 / (2 * self.n))
+            db = -0.5 * self.beta * self.chi * np.power(self.beta * xi_p, self.n - 1)
+            db *= 1 / np.power(1 + np.power(self.beta * xi_p, self.n), 1 + 1 / (2 * self.n))
+            ddb = (self.n - 1) * np.power(self.beta * xi_p, self.n - 2) / np.power(1 + np.power(self.beta * xi_p, self.n), 1 + 0.5 * self.n)
+            ddb += (-self.n - 0.5) * np.power(self.beta * xi_p, 2 * self.n - 2) / np.power(1 + np.power(self.beta * xi_p, self.n), 2 + 0.5 * self.n)
+            ddb *= -0.5 * self.chi * self.beta**2
+
+        else:
+            raise ValueError(f'Brenner not implemented {self.style}')
+
+
+        return np.stack([
+            ddfc * (fr + b * fa) + 2 * dfc * (dfr + b * dfa) + fc * (ddfr + b * ddfa),
+            fc * fa * ddb,
+            dfc * fa * db + fc * dfa * db
+        ])  
+
+
+
+@angle_distance_defined
+class TersoffBrennerAngle(Manybody.Theta):
+    """
+    Implementation of Theta for Tersoff-Brenner potentials 
+    """
+
+    def __init__(self, parameters):
+        self.ref = parameters['__ref__']
+        self.style = parameters['style'].lower()
+        self.el = parameters['el']
+        self.c = np.array(parameters['c'])
+        self.d = np.array(parameters['d'])
+        self.h = np.array(parameters['h'])
+        self.R1 = np.array(parameters['R1'])
+        self.R2 = np.array(parameters['R2'])
+
+        if self.style == 'tersoff':
+            # These are Tersoff-style parameters. The symbols follow the notation in
+            # Tersoff J., Phys. Rev. B 39, 5566 (1989)
+            #
+            # In particular, pair terms are characterized by A, B, lam, mu and parameters for the three body terms ijk
+            # depend only on the type of atom i
+            self.A = np.array(parameters['A'])
+            self.B = np.array(parameters['B'])
+            self.lambda1 = np.array(parameters['lambda1'])
+            self.mu = np.array(parameters['mu'])
+            self.beta = np.array(parameters['beta'])
+            self.lambda3 = np.array(parameters['lambda3'])
+            self.chi = np.array(parameters['chi'])
+            self.n = np.array(parameters['n'])
+
+        elif self.style == 'brenner':
+            # These are Brenner/Erhart-Albe-style parameters. The symbols follow the notation in
+            # Brenner D., Phys. Rev. B 42, 9458 (1990) and
+            # Erhart P., Albe K., Phys. Rev. B 71, 035211 (2005)
+            #
+            # In particular, pairs terms are characterized by D0, S, beta, r0, the parameters n, chi are always unity and
+            # parameters for the three body terms ijk depend on the type of the bond ij
+            _D0 = np.array(parameters['D0'])
+            _S = np.array(parameters['S'])
+            _r0 = np.array(parameters['r0'])
+            _beta = np.array(parameters['beta'])
+            _mu = np.array(parameters['mu'])
+            gamma = np.array(parameters['gamma'])
+
+            # Convert to Tersoff parameters
+            self.lambda3 = 2 * _mu
+            self.lam = _beta * np.sqrt(2 * _S)
+            self.mu = _beta * np.sqrt(2 / _S)
+            self.A = _D0 / (_S - 1) * np.exp(lam * _r0)
+            self.B = _S * _D0 / (_S - 1) * np.exp(mu * _r0)
+
+        else:
+            raise ValueError(f'Unknown parameter style {self.style}')
+
+
+    def __call__(self, rij, rik, rjk):
+        # Squared distances
+        rsq_ij = rij**2
+        rsq_ik = rik**2
+        rsq_jk = rjk**2
+
+        # cos of angle
+        cos = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
+
+        # Cutoff function
+        fc = np.where(rik <= self.R1, 1.0,
+                np.where(rik >= self.R2, 0.0, 
+                    (1 + np.cos(np.pi * (rik - self.R1) / (self.R2 - self.R1))) / 2
+                )
+            ) 
+
+        if self.style == 'tersoff':
+            g = 1 + np.power(self.c / self.d, 2) - self.c**2 / (self.d**2 + np.power(self.h - cos, 2))
+
+        else:
+            raise ValueError(f'Brenner not implemented {self.style}')
+
+        return fc * g 
+
+    def gradient(self, rij, rik, rjk):
+        # Squared distances
+        rsq_ij = rij**2
+        rsq_ik = rik**2
+        rsq_jk = rjk**2
+
+        # cos of angle
+        cos = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
+
+        # First derivative of cos with respect to r
+        dcos_drij = (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik)
+        dcos_drik = (rsq_ik - rsq_ij + rsq_jk) / (2 * rsq_ik * rij)
+        dcos_drjk = - rjk / (rij * rik)
+
+        # Cutoff function
+        fc = np.where(rik <= self.R1, 1.0,
+                np.where(rik > self.R2, 0.0,
+                    (1 + np.cos(np.pi * (rik - self.R1) / (self.R2 - self.R1))) / 2
+                )
+            )
+
+        dfc = np.where(rik <= self.R1, 0.0,
+                np.where(rik > self.R2, 0.0,
+                    -np.pi / (2 * (self.R2 - self.R1)) * np.sin(np.pi * (rik - self.R1) / (self.R2 - self.R1)) 
+                )
+            )
+
+        if self.style == 'tersoff':
+            g = 1 + np.power(self.c / self.d, 2) - self.c**2 / (self.d**2 + np.power(self.h - cos, 2))
+            dg_dcos = -2 * self.c**2 * (self.h - cos) / np.power(self.d**2 + np.power(self.h - cos, 2) , 2) 
+
+            dg_drij = dg_dcos * dcos_drij
+            dg_drik = dg_dcos * dcos_drik
+            dg_drjk = dg_dcos * dcos_drjk
+
+        else:
+            raise ValueError(f'Brenner not implemented {self.style}')
+
+        return np.stack([
+            fc * dg_drij,
+            dfc * g + fc * dg_drik,
+            fc * dg_drjk
+            ])
+
+    def hessian(self, rij, rik, rjk):
+        # Squared distances
+        rsq_ij = rij**2
+        rsq_ik = rik**2
+        rsq_jk = rjk**2
+
+        # cos of angle
+        cos = (rsq_ij + rsq_ik - rsq_jk) / (2 * rij * rik)
+
+        # First derivative of cos with respect to r
+        dcos_drij = (rsq_ij - rsq_ik + rsq_jk) / (2 * rsq_ij * rik)
+        dcos_drik = (rsq_ik - rsq_ij + rsq_jk) / (2 * rsq_ik * rij)
+        dcos_drjk = - rjk / (rij * rik)
+
+        # Second derivatives with respect to r
+        ddcos_drijdrij = (rsq_ik - rsq_jk) / (rij**3 * rik)
+        ddcos_drikdrik = (rsq_ij - rsq_jk) / (rik**3 * rij)
+        ddcos_drjkdrjk = - 1 / (rij * rik)
+        ddcos_drijdrik = - (rsq_ij + rsq_ik + rsq_jk) / (2 * rsq_ij * rsq_ik)
+        ddcos_drijdrjk = rjk / (rik * rsq_ij)
+        ddcos_drikdrjk = rjk / (rij * rsq_ik) 
+
+        # Cutoff function
+        fc = np.where(rik <= self.R1, 1.0,
+                np.where(rik >= self.R2, 0.0, 
+                    (1 + np.cos(np.pi * (rik - self.R1) / (self.R2 - self.R1))) / 2
+                )
+            ) 
+
+        dfc = np.where(rik <= self.R1, 0.0,
+                np.where(rik >= self.R2, 0.0, 
+                    -np.pi / (2 * (self.R2 - self.R1)) * np.sin(np.pi * (rik - self.R1) / (self.R2 - self.R1)) 
+                )
+            ) 
+
+        ddfc = np.where(rik <= self.R1, 0.0,
+                np.where(rik > self.R2, 0.0,
+                    -np.pi**2 / (2 * np.power(self.R2 - self.R1, 2)) * np.cos(np.pi * (rik - self.R1) / (self.R2 - self.R1)) 
+                )
+            )     
+
+        if self.style == 'tersoff':
+            g = 1 + np.power(self.c / self.d, 2) - self.c**2 / (self.d**2 + np.power(self.h - cos, 2))
+            dg_dcos = -2 * self.c**2 * (self.h - cos) / np.power(self.d**2 + np.power(self.h - cos, 2) , 2) 
+            ddg_ddcos = ((self.d**2 + np.power(self.h - cos, 2)) - 4 * np.power(self.h - cos, 2)) / np.power(self.d**2 + np.power(self.h - cos, 2), 3)
+            ddg_ddcos *= 2 * self.c**2
+            
+            dg_drij = dg_dcos * dcos_drij
+            dg_drik = dg_dcos * dcos_drik
+            dg_drjk = dg_dcos * dcos_drjk
+
+            ddg_drijdrij = ddg_ddcos * dcos_drij * dcos_drij + dg_dcos * ddcos_drijdrij
+            ddg_drikdrik = ddg_ddcos * dcos_drik * dcos_drik + dg_dcos * ddcos_drikdrik
+            ddg_drjkdrjk = ddg_ddcos * dcos_drjk * dcos_drjk + dg_dcos * ddcos_drjkdrjk
+            ddg_drikdrjk = ddg_ddcos * dcos_drik * dcos_drjk + dg_dcos * ddcos_drikdrjk
+            ddg_drijdrjk = ddg_ddcos * dcos_drij * dcos_drjk + dg_dcos * ddcos_drijdrjk
+            ddg_drijdrik = ddg_ddcos * dcos_drij * dcos_drik + dg_dcos * ddcos_drijdrik
+
+        else:
+            raise ValueError(f'Brenner not implemented {self.style}')
+
+        return np.stack([
+            fc * ddg_drijdrij,
+            ddfc * g + dfc * dg_drik + dfc * dg_drik + fc * ddg_drikdrik,
+            fc * ddg_drjkdrjk,
+            dfc * dg_drjk + fc * ddg_drikdrjk,
+            fc * ddg_drijdrjk,
+            dfc * dg_drij + fc * ddg_drijdrik
+            ])
 
 
 
