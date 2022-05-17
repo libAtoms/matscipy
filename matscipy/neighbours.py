@@ -181,7 +181,7 @@ class CutoffNeighbourhood(Neighbourhood):
             D = np.zeros((len(ij_t), 3, 3))
             D[:, 0] = D_p[ij_t]  # i->j
             D[:, 1] = D_p[ik_t]  # i->k
-            D[:, 2] = D[:, 1] - D[:, 0] # j->k
+            D[:, 2] = D[:, 1] - D[:, 0]  # j->k
 
             d = np.linalg.norm(D, axis=-1)  # distances
 

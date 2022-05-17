@@ -41,7 +41,6 @@ from ase.optimize import FIRE
 from matscipy.calculators.manybody.potentials import (
     ZeroPair,
     ZeroAngle,
-    SimplePair,
     SimplePairNoMix,
     SimplePairNoMixNoSecond,
     HarmonicPair,
@@ -65,6 +64,7 @@ from matscipy.elasticity import (
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood, CutoffNeighbourhood
 
+
 class SimpleAngle(Manybody.Theta):
     """Implementation of a zero three-body interaction."""
 
@@ -86,6 +86,50 @@ class SimpleAngle(Manybody.Theta):
             np.zeros(list(R1.shape)),
             np.zeros(list(R1.shape)),
             np.zeros(list(R1.shape)),
+        ])
+
+
+class MixPair(Manybody.Phi):
+    """
+    Implementation of a harmonic pair interaction.
+    """
+
+    def __call__(self, r_p, xi_p):
+        return xi_p * r_p
+
+    def gradient(self, r_p, xi_p):
+        return np.stack([
+            xi_p,
+            r_p,
+        ])
+
+    def hessian(self, r_p, xi_p):
+        return np.stack([
+            np.zeros_like(r_p),
+            np.zeros_like(xi_p),
+            np.ones_like(r_p),
+        ])
+
+
+class LinearPair(Manybody.Phi):
+    """
+    Implementation of a harmonic pair interaction.
+    """
+
+    def __call__(self, r_p, xi_p):
+        return r_p + xi_p
+
+    def gradient(self, r_p, xi_p):
+        return np.stack([
+            np.ones_like(r_p),
+            np.ones_like(xi_p),
+        ])
+
+    def hessian(self, r_p, xi_p):
+        return np.stack([
+            np.zeros_like(r_p),
+            np.zeros_like(xi_p),
+            np.zeros_like(xi_p),
         ])
 
 
@@ -168,8 +212,26 @@ potentials = {
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
     ),
 
-    "SimplePair+KumagaiAngle": (
-        {1: SimplePair()},
+    "MixPair+HarmonicAngle": (
+        {1: MixPair()},
+        {1: HarmonicAngle(1, np.pi/3)},
+        CutoffNeighbourhood(cutoff=3.3),
+    ),
+
+    "LinearPair+HarmonicAngle": (
+        {1: LinearPair()},
+        {1: HarmonicAngle(1, np.pi/3)},
+        CutoffNeighbourhood(cutoff=3.3),
+    ),
+
+    "LinearPair+KumagaiAngle": (
+        {1: LinearPair()},
+        {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
+        CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
+    ),
+
+    "MixPair+KumagaiAngle": (
+        {1: MixPair()},
         {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
     ),
@@ -184,6 +246,13 @@ potentials = {
         {1: SimplePairNoMix()},
         {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
+    ),
+
+    "SimplePairNoMixNoSecond+HarmonicAngle": (
+        {1: SimplePairNoMixNoSecond()},
+        {1: HarmonicAngle()},
+        CutoffNeighbourhood(cutoff=3.3),
+
     ),
 
     "SimplePairNoMixNoSecond+KumagaiAngle": (
@@ -211,8 +280,7 @@ def distance(request):
     return request.param
 
 
-#@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
-@pytest.fixture(params=[0])
+@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
 def rattle(request):
     return request.param
 
@@ -229,7 +297,7 @@ def tetrahedron(distance, rattle):
 
 
 def diamond(distance, rattle):
-    atoms = Diamond("Si", size=[1, 1, 1], latticeconstant=distance)
+    atoms = Diamond("Si", size=[2, 2, 2], latticeconstant=distance)
     atoms.rattle(rattle)
     return atoms
 
@@ -256,7 +324,7 @@ def test_stresses(configuration):
     nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-8)
 
 def test_born_constants(configuration):
-    C_ana = configuration.calc.get_property("born_constants")
+    C_ana = configuration.calc.get_property("born_constants", configuration)
     C_num = measure_triclinic_elastic_constants(configuration, d=1e-6)
 
     # Compute Cauchy stress correction
@@ -270,24 +338,22 @@ def test_nonaffine_forces(configuration):
     # TODO: clarify why we need to optimize?
     FIRE(configuration).run(fmax=1e-9)
 
-    naf_ana = configuration.calc.get_property('nonaffine_forces')
+    naf_ana = configuration.calc.get_property('nonaffine_forces', configuration)
     naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
 
     # atol here related to fmax above
     nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=5e-5)
 
 
-#@pytest.mark.xfail(reason="Not implemented")
 def test_hessian(configuration):
-    configuration.set_cell([10, 10, 10])
-    # The other way around fucks up the whole computation--> Check why? Cutoff? 
-    H_num = numerical_hessian(configuration, dx=1e-6).todense()
-    H_ana = configuration.calc.get_property('hessian').todense()
+    # The other way around fucks up the whole computation--> Check why? Cutoff?
+    H_num = numerical_hessian(configuration, dx=1e-8).todense()
+    H_ana = configuration.calc.get_property('hessian', configuration).todense()
 
-    print("H_ana: \n", H_ana[:6,:6])
-    print("H_num: \n", H_num[:6,:6])
+    print("H_ana: \n", H_ana[0:3,3:6])
+    print("H_num: \n", H_num[0:3,3:6])
 
-    #nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
+    nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
 
 
 @pytest.mark.parametrize('cutoff', np.linspace(1.1, 20, 10))

@@ -179,7 +179,7 @@ class Manybody(MatscipyCalculator):
 
         # Avoid double counting symmetric indices
         if np.all(X == Y):
-            indices = indices[np.tri(2, 2, -1, dtype=bool)]
+            indices = indices[~np.tri(2, 2, -1, dtype=bool)]
 
         return sum(
             idx.sign
@@ -189,23 +189,26 @@ class Manybody(MatscipyCalculator):
         )
 
     @classmethod
-    def sum_XY_sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, values_tXY):
+    def _X_indices(cls):
         i, j, k = map(cls._idx, 'ijk')
-        X_indices = np.array([[i, -j],
-                              [i, -k],
-                              [j, -k]])
+        return np.array([[i, -j],
+                         [i, -k],
+                         [j, -k]])
+
+    @classmethod
+    def sum_XY_sum_ijk_tau_XY_mn(cls, n, triplets, tr_p, values_tXY):
+        X_indices = cls._X_indices()
 
         return sum(
             cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, Y, values_tXY[:, x, y])
-            for (x, X), (y, Y) in combinations_with_replacement(enumerate(X_indices), r=2)
+            for (x, X), (y, Y) in combinations_with_replacement(
+                    enumerate(X_indices), r=2
+            )
         )
 
     @classmethod
     def sum_XX_sum_ijk_tau_XX_mn(cls, n, triplets, tr_p, values_tX):
-        i, j, k = map(cls._idx, 'ijk')
-        X_indices = np.array([[i, -j],
-                              [i, -k],
-                              [j, -k]])
+        X_indices = cls._X_indices()
 
         return sum(
             cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X, X, values_tX[:, x])
@@ -214,13 +217,11 @@ class Manybody(MatscipyCalculator):
 
     @classmethod
     def sum_X_sum_ijk_tau_ijX_mn(cls, n, triplets, tr_p, values_tX):
-        i, j, k = map(cls._idx, 'ijk')
-        X_indices = np.array([[i, -j],
-                              [i, -k],
-                              [j, -k]])
+        X_indices = cls._X_indices()
 
         return sum(
-            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p, X_indices[0], X, values_tX[:, x])
+            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p,
+                                  X_indices[0], X, values_tX[:, x])
             for x, X in enumerate(X_indices)
         )
 
@@ -229,7 +230,7 @@ class Manybody(MatscipyCalculator):
         if not isinstance(order, list):
             order = [order]
 
-        if list_ijk == None and list_ij == None:
+        if list_ijk is None and list_ij is None:
             i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
             ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
         else:
@@ -307,7 +308,9 @@ class Manybody(MatscipyCalculator):
 
         # Request energy and gradient
         (phi_p, dphi_cp), (theta_t, dtheta_qt) = \
-            self._masked_compute(atoms, order=[0, 1], list_ij=[i_p, j_p, r_pc], list_ijk=[ij_t, ik_t, r_tqc])
+            self._masked_compute(atoms, order=[0, 1],
+                                 list_ij=[i_p, j_p, r_pc],
+                                 list_ijk=[ij_t, ik_t, r_tqc])
 
         # Energy
         epot = 0.5 * phi_p.sum()
@@ -481,7 +484,7 @@ class Manybody(MatscipyCalculator):
         n = len(atoms)
         cutoff = self.neighbourhood.cutoff
 
-        # We nned twice the cutoff to get jk  
+        # We nned twice the cutoff to get jk
         i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(
             atoms, 'ijdD', cutoff=2*cutoff
         )
@@ -531,25 +534,19 @@ class Manybody(MatscipyCalculator):
         H_pcc += self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, dp_dt_e)
 
-        # Term 4 --> Not working 
+        # Term 4 --> Not working
         ddpdRdxi = ddphi_cp[2]
         ddpdRdxi = ddpdRdxi[ij_t]
         dtdRX = dtheta_qt
-        dtdRij = dtheta_qt[0]
-        dtdRik = dtheta_qt[1]
-        dtdRjk = dtheta_qt[2]
 
         ddp_dt_rij_rX = ein('t,Xt,ta,tXb->tXab', 2 * ddpdRdxi, dtdRX,
                             r_tqc[:, 0], r_tqc)
-        # ddp_dt_rX_rij = ein('t,Xt,tXa,tb->tXab', 2 * ddpdRdxi, dtdRX,
-        #                     r_tqc, r_tqc[:, 0])
 
-        H4_pcc = self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
-                                                tr_p, ddp_dt_rij_rX)
+        H_pcc += self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
+                                               tr_p, ddp_dt_rij_rX)
 
         # Term 5
         ddpddxi = ddphi_cp[1]
-        ddpddxi[mask] = 0.0
         ddpddxi = ddpddxi[ij_t]
         dtdRX = dtheta_qt
         dtdRY = dtheta_qt
@@ -558,8 +555,7 @@ class Manybody(MatscipyCalculator):
         dtdRY_rY = ein('t,Xt,tXb->tXb', 2 * ddpddxi, dtdRY, r_tqc)
 
         # Symmetrization with H_nm
-        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]  
-
+        H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
 
         # Compute the diagonal elements by bincount the off-diagonal elements
         # Be carful with prefactors !!!
