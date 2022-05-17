@@ -182,7 +182,8 @@ class Manybody(MatscipyCalculator):
             indices = indices[np.tri(2, 2, -1, dtype=bool)]
 
         return sum(
-            idx.sign * mabincount(triplets[idx.idx], values_t, n)
+            idx.sign
+            * cls._assemble_triplet_to_pair(triplets[idx.idx], values_t, n)
             # Indices relevant for off-diagonal terms
             for idx in np.ravel(indices) if idx.offdiagonal()
         )
@@ -481,58 +482,67 @@ class Manybody(MatscipyCalculator):
         cutoff = self.neighbourhood.cutoff
 
         # We nned twice the cutoff to get jk  
-        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijdD', cutoff=2*cutoff)
+        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(
+            atoms, 'ijdD', cutoff=2*cutoff
+        )
+
+        # TODO: make sure this works with different atom types
         mask = r_p > cutoff
 
         tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
 
-        ij_t, ik_t, jk_t, r_tq, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijkdD', neighbours=[i_p, j_p, r_p, r_pc])
+        ij_t, ik_t, jk_t, r_tq, r_tqc = self.neighbourhood.get_triplets(
+            atoms, 'ijkdD', neighbours=[i_p, j_p, r_p, r_pc]
+        )
 
         first_n = first_neighbours(n, i_p)
         nb_pairs = len(i_p)
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
-            self._masked_compute(atoms, order=[1, 2], list_ij=[i_p, j_p, r_pc], list_ijk=[ij_t, ik_t, r_tqc])
+            self._masked_compute(atoms, order=[1, 2],
+                                 list_ij=[i_p, j_p, r_pc],
+                                 list_ijk=[ij_t, ik_t, r_tqc])
+
+        # Masking extraneous pair contributions
+        dphi_cp[:, mask] = 0
+        ddphi_cp[:, mask] = 0
 
         # Term 1, merge with T2 in the end
         e = np.identity(3)
         dpdR = dphi_cp[0]
-        dpdR[mask] = 0.0
         H_pcc = ein('p,ab->pab', dpdR, -e)
 
         # Term 2, merge with T1 in the end
         ddpddR = ddphi_cp[0]
-        ddpddR[mask] = 0.0
         H_pcc -= ein('p,pa,pb->pab', 2 * ddpddR, r_pc, r_pc)
 
         # Term 3
         dpdxi = dphi_cp[1]
-        dpdxi[mask] = 0.0
         dpdxi = dpdxi[ij_t]
         dtdRX = dtheta_qt
         ddtdRXdRY = ddtheta_qt[self._voigt_seq].reshape(3, 3, -1)
 
         dp_dt_e = ein('t,Xt,ab->tXab', dpdxi, dtdRX, e)
-
-        dp_ddt_rX_rY = ein('t,XYt,tXa,tYb->tXYab', 2 * dpdxi, ddtdRXdRY, r_tqc, r_tqc)
+        dp_ddt_rX_rY = ein('t,XYt,tXa,tYb->tXYab', 2 * dpdxi, ddtdRXdRY,
+                           r_tqc, r_tqc)
 
         H_pcc += self.sum_XY_sum_ijk_tau_XY_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, dp_ddt_rX_rY)
-
         H_pcc += self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, dp_dt_e)
 
         # Term 4 --> Not working 
         ddpdRdxi = ddphi_cp[2]
-        ddpdRdxi[mask] = 0.0
         ddpdRdxi = ddpdRdxi[ij_t]
         dtdRX = dtheta_qt
         dtdRij = dtheta_qt[0]
         dtdRik = dtheta_qt[1]
         dtdRjk = dtheta_qt[2]
 
-        ddp_dt_rij_rX = ein('t,Xt,ta,tXb->tXab', 2 * ddpdRdxi, dtdRX, r_tqc[:, 0], r_tqc)
-        #ddp_dt_rX_rij = ein('t,Xt,tXa,tb->tXab', 2 * ddpdRdxi, dtdRX, r_tqc, r_tqc[:, 0])
+        ddp_dt_rij_rX = ein('t,Xt,ta,tXb->tXab', 2 * ddpdRdxi, dtdRX,
+                            r_tqc[:, 0], r_tqc)
+        # ddp_dt_rX_rij = ein('t,Xt,tXa,tb->tXab', 2 * ddpdRdxi, dtdRX,
+        #                     r_tqc, r_tqc[:, 0])
 
         H4_pcc = self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                 tr_p, ddp_dt_rij_rX)
@@ -553,12 +563,7 @@ class Manybody(MatscipyCalculator):
 
         # Compute the diagonal elements by bincount the off-diagonal elements
         # Be carful with prefactors !!!
-        # TODO write this with mabincount
-        H_acc = np.zeros([n, 3, 3])
-        for x in range(3):
-            for y in range(3):
-                H_acc[:, x, y] = -np.bincount(
-                    i_p, weights=H_pcc[:, x, y], minlength=n)
+        H_acc = -self._assemble_pair_to_atom(i_p, H_pcc, n)
 
         H = (
             bsr_matrix((H_pcc, j_p, first_n), shape=(3 * n, 3 * n))
