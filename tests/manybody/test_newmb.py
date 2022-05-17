@@ -257,9 +257,7 @@ def test_forces(configuration):
     f_num = numerical_forces(configuration, d=1e-5)
     nt.assert_allclose(f_ana, f_num, rtol=1e-6, atol=1e-7)
 
-
 def test_stresses(configuration):
-    print("energy: ", configuration.get_potential_energy()/len(configuration))
     s_ana = configuration.get_stress()
     s_num = numerical_stress(configuration, d=1e-6)
     nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-8)
@@ -274,21 +272,18 @@ def test_born_constants(configuration):
 
     nt.assert_allclose(C_ana + corr, C_num, rtol=1e-4, atol=1e-4)
 
-
 def test_nonaffine_forces(configuration):
     # TODO: clarify why we need to optimize?
-    FIRE(configuration).run(fmax=1e-9)
+    FIRE(configuration).run(fmax=1e-8, steps=400)
     naf_ana = configuration.calc.get_property('nonaffine_forces')
-    naf_num = numerical_nonaffine_forces(configuration, d=1e-9)
+    naf_num = numerical_nonaffine_forces(configuration, d=1e-8)
 
     # atol here related to fmax above
-    nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=5e-5)
+    nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=1e-4)
 
 
 @pytest.mark.xfail(reason="Not implemented")
 def test_hessian(configuration):
-    #configuration.set_cell([10, 10, 10])
-    # The other way around fucks up the whole computation--> Check why? Cutoff? 
     H_ana = configuration.calc.get_property('hessian').todense()
     H_num = numerical_hessian(configuration, dx=1e-6).todense()
 

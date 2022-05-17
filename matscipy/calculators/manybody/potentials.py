@@ -930,7 +930,6 @@ class TersoffBrennerPair(Manybody.Phi):
         else:
             raise ValueError(f'Unknown parameter style {self.style}')
 
-
     def __call__(self, r_p, xi_p):
         # Cutoff function
         fc = np.where(r_p <= self.R1, 1.0,
@@ -976,7 +975,7 @@ class TersoffBrennerPair(Manybody.Phi):
         fr = self.A * np.exp(-self.lambda1 * r_p)
         dfr = -self.lambda1 * fr
 
-        # Bond-order
+        # Bond-order parameter
         if self.style == 'tersoff':
             b = self.chi * np.power(1 + np.power(self.beta * xi_p, self.n), -1 / (2 * self.n))
             db = -0.5 * self.beta * self.chi * np.power(self.beta * xi_p, self.n - 1)
@@ -1020,18 +1019,18 @@ class TersoffBrennerPair(Manybody.Phi):
         dfr = -self.lambda1 * fr
         ddfr = self.lambda1**2 * fr
 
-        # Bond-order
+        # Bond-order parameter
         if self.style == 'tersoff':
             b = self.chi * np.power(1 + np.power(self.beta * xi_p, self.n), -1 / (2 * self.n))
             db = -0.5 * self.beta * self.chi * np.power(self.beta * xi_p, self.n - 1)
             db *= 1 / np.power(1 + np.power(self.beta * xi_p, self.n), 1 + 1 / (2 * self.n))
-            ddb = (self.n - 1) * np.power(self.beta * xi_p, self.n - 2) / np.power(1 + np.power(self.beta * xi_p, self.n), 1 + 0.5 * self.n)
-            ddb += (-self.n - 0.5) * np.power(self.beta * xi_p, 2 * self.n - 2) / np.power(1 + np.power(self.beta * xi_p, self.n), 2 + 0.5 * self.n)
+
+            ddb = (self.n - 1) * np.power(self.beta * xi_p, self.n - 2) / np.power(1 + np.power(self.beta * xi_p, self.n), 1 + 1 / (2 * self.n))
+            ddb += (-self.n - 0.5) * np.power(self.beta * xi_p, 2 * self.n - 2) / np.power(1 + np.power(self.beta * xi_p, self.n), 2 + 1 / (2 * self.n))
             ddb *= -0.5 * self.chi * self.beta**2
 
         else:
             raise ValueError(f'Brenner not implemented {self.style}')
-
 
         return np.stack([
             ddfc * (fr + b * fa) + 2 * dfc * (dfr + b * dfa) + fc * (ddfr + b * ddfa),
@@ -1095,7 +1094,6 @@ class TersoffBrennerAngle(Manybody.Theta):
 
         else:
             raise ValueError(f'Unknown parameter style {self.style}')
-
 
     def __call__(self, rij, rik, rjk):
         # Squared distances
@@ -1209,8 +1207,8 @@ class TersoffBrennerAngle(Manybody.Theta):
         if self.style == 'tersoff':
             g = 1 + np.power(self.c / self.d, 2) - self.c**2 / (self.d**2 + np.power(self.h - cos, 2))
             dg_dcos = -2 * self.c**2 * (self.h - cos) / np.power(self.d**2 + np.power(self.h - cos, 2) , 2) 
-            ddg_ddcos = ((self.d**2 + np.power(self.h - cos, 2)) - 4 * np.power(self.h - cos, 2)) / np.power(self.d**2 + np.power(self.h - cos, 2), 3)
-            ddg_ddcos *= 2 * self.c**2
+
+            ddg_ddcos = (2 * self.c**2 * (self.d**2 - 3 * np.power(self.h - cos, 2))) / np.power(self.d**2 + np.power(self.h - cos, 2) , 3)
             
             dg_drij = dg_dcos * dcos_drij
             dg_drik = dg_dcos * dcos_drik
@@ -1234,8 +1232,6 @@ class TersoffBrennerAngle(Manybody.Theta):
             fc * ddg_drijdrjk,
             dfc * dg_drij + fc * ddg_drijdrik
             ])
-
-
 
 try:
     from sympy import lambdify, Expr, Symbol
