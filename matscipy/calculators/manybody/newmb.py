@@ -545,6 +545,8 @@ class Manybody(MatscipyCalculator):
         H_pcc += self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, ddp_dt_rij_rX)
 
+        H_pcc += self._assemble_triplet_to_pair(tr_p[ij_t], -ddp_dt_rij_rX[:, 0], nb_pairs)
+
         # Term 5
         ddpddxi = ddphi_cp[1]
         ddpddxi = ddpddxi[ij_t]
