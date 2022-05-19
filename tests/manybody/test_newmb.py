@@ -283,13 +283,12 @@ def potential(request):
     return request.param
 
 
-@pytest.fixture(params=[5.2, 5.3, 5.431, 5.432, 5.5])
-#@pytest.fixture(params=[5.432])
+@pytest.fixture(params=[5.3, 5.431, 5.432])
 def distance(request):
     return request.param
 
 
-@pytest.fixture(params=[0, 1e-3, 1e-2, 1e-1])
+@pytest.fixture(params=[0, 1e-2])
 def rattle(request):
     return request.param
 
@@ -306,7 +305,7 @@ def tetrahedron(distance, rattle):
 
 
 def diamond(distance, rattle):
-    atoms = Diamond("Si", size=[2, 2, 2], latticeconstant=distance)
+    atoms = Diamond("Si", size=[1, 1, 1], latticeconstant=distance)
     atoms.rattle(rattle)
     return atoms
 
