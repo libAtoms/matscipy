@@ -481,7 +481,6 @@ class Manybody(MatscipyCalculator):
 
     def get_hessian(self, atoms):
         """Compute hessian."""
-        n = len(atoms)
         cutoff = self.neighbourhood.cutoff
 
         # We nned twice the cutoff to get jk
@@ -498,8 +497,11 @@ class Manybody(MatscipyCalculator):
             atoms, 'ijkdD', neighbours=[i_p, j_p, r_p, r_pc]
         )
 
-        first_n = first_neighbours(n, i_p)
+        n = len(atoms)
         nb_pairs = len(i_p)
+        nb_triplets = len(ij_t)
+        first_n = first_neighbours(n, i_p)
+        first_p = first_neighbours(nb_pairs, ij_t)
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2],
@@ -534,7 +536,7 @@ class Manybody(MatscipyCalculator):
         H_pcc += self.sum_XX_sum_ijk_tau_XX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, dp_dt_e)
 
-        # Term 4 --> Not working
+        # Term 4
         ddpdRdxi = ddphi_cp[2]
         ddpdRdxi = ddpdRdxi[ij_t]
         dtdRX = dtheta_qt
@@ -548,13 +550,64 @@ class Manybody(MatscipyCalculator):
         H_pcc += self._assemble_triplet_to_pair(tr_p[ij_t], -ddp_dt_rij_rX[:, 0], nb_pairs)
 
         # Term 5
+        print("H5!")
         ddpddxi = ddphi_cp[1]
         ddpddxi = ddpddxi[ij_t]
         dtdRX = dtheta_qt
-        dtdRY = dtheta_qt
 
-        dtdRX_rX = ein('t,Xt,tXa->tXa', 2 * ddpddxi, dtdRX, r_tqc)
-        dtdRY_rY = ein('t,Xt,tXb->tXb', 2 * ddpddxi, dtdRY, r_tqc)
+        ddp_dtdRij_dtdRX_rij_rX = ein('t,t,Xt,ta,tXb->tXab', 2 * ddpddxi, dtdRX[0], dtdRX, r_tqc[:, 0], r_tqc)
+
+        # Pair term 
+        H_pcc += self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
+                                               tr_p, ddp_dtdRij_dtdRX_rij_rX)
+
+        # Quadruplets
+        # Expressions for dt_drx
+        dtdRx_rx = ein('Xt,tXa->tXa', dtdRX, r_tqc)
+
+        Q1 = ein('t,ta,tb->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 1])
+        H_pcc -= self._assemble_triplet_to_pair(ik_t, Q1, nb_pairs)
+
+        Q2 = ein('t,tb,ta->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 1])
+        H_pcc -= self._assemble_triplet_to_pair(tr_p[ik_t], Q2, nb_pairs)
+
+        # Q4 is simple 
+        H_pcc += ein('p,pa,pb->pab', 2 * ddphi_cp[1], self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs), 
+                                                      self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs))
+
+        # Q5 
+        Q5 = ein('t,ta,tb->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 2])
+        H_pcc -= self._assemble_triplet_to_pair(ik_t, Q5, nb_pairs)
+
+        # Q6
+        Q6 = ein('t,tb,ta->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs)[ij_t], dtdRx_rx[:, 1])
+        H_pcc -= self._assemble_triplet_to_pair(tr_p[jk_t], Q6, nb_pairs)
+
+        # Is there an additional expression necessary? 
+
+
+        # Deal with strange ij_im and ij_il expression
+        for im_in in range(nb_triplets):
+            pair_im = ij_t[im_in]
+            pair_in = ik_t[im_in]
+            pair_mn = jk_t[im_in]
+
+            for t in range(first_p[pair_im], first_p[pair_im + 1]):
+
+                pair_ij = ik_t[t]
+
+                if pair_ij != pair_im and pair_ij != pair_in:
+                    rim_c = np.sum(r_pc[pair_im]**2)
+                    rin_c = np.sum(r_pc[pair_in]**2)
+                    rij_c = np.sum(r_pc[pair_ij]**2)
+
+                    # We also need the distances jm and jn
+                    rjm_c = np.sum((r_pc[pair_im] - r_pc[pair_ij])**2)
+                    rjn_c = np.sum((r_pc[pair_in] - r_pc[pair_ij])**2)
+
+                    # Assume monoatomic system for now, this einsum is useless!
+                    H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * ein('a,b->ab', self.theta[1].gradient(rij_c, rim_c, rjm_c)[1] * r_pc[pair_im],
+                                                                            self.theta[1].gradient(rij_c, rim_c, rjn_c)[1] * r_pc[pair_in])
 
         # Symmetrization with H_nm
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
