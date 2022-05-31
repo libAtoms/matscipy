@@ -225,6 +225,16 @@ class Manybody(MatscipyCalculator):
             for x, X in enumerate(X_indices)
         )
 
+    @classmethod
+    def sum_X_sum_ijk_tau_ij_XOR_X_mn(cls, n, triplets, tr_p, values_tX):
+        X_indices = cls._X_indices()
+
+        return sum(
+            cls.sum_ijk_tau_XY_mn(n, triplets, tr_p,
+                                  X_indices[0], X, values_tX[:, x + 1])
+            for x, X in enumerate(X_indices[1:])
+        )
+
     def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None):
         """Compute requested derivatives of phi and theta."""
         if not isinstance(order, list):
@@ -554,80 +564,19 @@ class Manybody(MatscipyCalculator):
         ddpddxi = ddpddxi[ij_t]
         dtdRX = dtheta_qt
 
-        ddp_dtdRij_dtdRX_rij_rX = ein('t,t,Xt,ta,tXb->tXab', 2 * ddpddxi, dtdRX[0], dtdRX, r_tqc[:, 0], r_tqc)
-
-        # Pair and triplet term 
-        H51_pcc = self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
-                                               tr_p, ddp_dtdRij_dtdRX_rij_rX)
-
-        # Brute force implementation in order to check if the sum is correct
-        dtdRij = dtheta_qt[0]
-        dtdRik = dtheta_qt[1]
-        dtdRjk = dtheta_qt[2]
-
-        # Pair expression
-        H52_pcc = ein('p,p,p,pa,pb->pab', -2 * ddphi_cp[1],
-                                        self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs),
-                                        self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs),
+        # Pair 
+        H_pcc += ein('p,p,p,pa,pb->pab', -2 * ddphi_cp[1],
+                                        self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs),
+                                        self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs),
                                         r_pc, r_pc)
 
-        # Simple triplet expressions
-        H52_pcc += self._assemble_triplet_to_pair(ik_t,
-            ein('t,t,t,ta,tb->tab', -2 * ddpddxi,
-                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
-                          dtdRik,
-                          r_tqc[:, 0],
-                          r_tqc[:, 1]
-                     ), nb_pairs)
-
-        H52_pcc += self._assemble_triplet_to_pair(tr_p[ij_t],
-            ein('t,t,t,ta,tb->tab', -2 * ddpddxi,
-                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
-                          dtdRik,
-                          r_tqc[:, 0],
-                          r_tqc[:, 1]
-                     ), nb_pairs)
-
-        H52_pcc += self._assemble_triplet_to_pair(jk_t,
-            ein('t,t,t,ta,tb->tab', 2 * ddpddxi,
-                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
-                          dtdRik,
-                          r_tqc[:, 0],
-                          r_tqc[:, 1]
-                     ), nb_pairs)
-
-        H52_pcc += self._assemble_triplet_to_pair(ij_t,
-            ein('t,t,t,ta,tb->tab', 2 * ddpddxi,
-                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
-                          dtdRjk,
-                          r_tqc[:, 0],
-                          r_tqc[:, 2]
-                     ), nb_pairs)
-
-        H52_pcc += self._assemble_triplet_to_pair(ik_t,
-            ein('t,t,t,ta,tb->tab', -2 * ddpddxi,
-                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
-                          dtdRjk,
-                          r_tqc[:, 0],
-                          r_tqc[:, 2]
-                     ), nb_pairs)
-
-        H52_pcc += self._assemble_triplet_to_pair(jk_t,
-            ein('t,t,t,ta,tb->tab', 2 * ddpddxi,
-                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
-                          dtdRjk,
-                          r_tqc[:, 0],
-                          r_tqc[:, 2]
-                     ), nb_pairs)
-
-        # Arrays are identical --> Pair and Triplet appear to be correct
-        print("H51_pcc and H52_pcc equal? ", np.allclose(H51_pcc, H52_pcc, rtol=1e-6, atol=1e-6))
-
-        H_pcc += H52_pcc
+        # Triplet  
+        ddp_dtdRij_dtdRX_rij_rX = ein('t,t,Xt,ta,tXb->tXab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs)[ij_t], dtdRX, r_tqc[:, 0], r_tqc)
+        
+        H_pcc += self.sum_X_sum_ijk_tau_ij_XOR_X_mn(nb_pairs, (ij_t, ik_t, jk_t),
+                                               tr_p, ddp_dtdRij_dtdRX_rij_rX)
 
         # Quadruplets
-        # Expressions for dt_drx
-        dtdRX = dtheta_qt
         dtdRx_rx = ein('Xt,tXa->tXa', dtdRX, r_tqc)
 
         Q1 = ein('t,ta,tb->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 1])
