@@ -550,43 +550,109 @@ class Manybody(MatscipyCalculator):
         H_pcc += self._assemble_triplet_to_pair(tr_p[ij_t], -ddp_dt_rij_rX[:, 0], nb_pairs)
 
         # Term 5
-        print("H5!")
         ddpddxi = ddphi_cp[1]
         ddpddxi = ddpddxi[ij_t]
         dtdRX = dtheta_qt
 
         ddp_dtdRij_dtdRX_rij_rX = ein('t,t,Xt,ta,tXb->tXab', 2 * ddpddxi, dtdRX[0], dtdRX, r_tqc[:, 0], r_tqc)
 
-        # Pair term 
-        H_pcc += self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
+        # Pair and triplet term 
+        H51_pcc = self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, ddp_dtdRij_dtdRX_rij_rX)
+
+        # Brute force implementation in order to check if the sum is correct
+        dtdRij = dtheta_qt[0]
+        dtdRik = dtheta_qt[1]
+        dtdRjk = dtheta_qt[2]
+
+        # Pair expression
+        H52_pcc = ein('p,p,p,pa,pb->pab', -2 * ddphi_cp[1],
+                                        self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs),
+                                        self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs),
+                                        r_pc, r_pc)
+
+        # Simple triplet expressions
+        H52_pcc += self._assemble_triplet_to_pair(ik_t,
+            ein('t,t,t,ta,tb->tab', -2 * ddpddxi,
+                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
+                          dtdRik,
+                          r_tqc[:, 0],
+                          r_tqc[:, 1]
+                     ), nb_pairs)
+
+        H52_pcc += self._assemble_triplet_to_pair(tr_p[ij_t],
+            ein('t,t,t,ta,tb->tab', -2 * ddpddxi,
+                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
+                          dtdRik,
+                          r_tqc[:, 0],
+                          r_tqc[:, 1]
+                     ), nb_pairs)
+
+        H52_pcc += self._assemble_triplet_to_pair(jk_t,
+            ein('t,t,t,ta,tb->tab', 2 * ddpddxi,
+                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
+                          dtdRik,
+                          r_tqc[:, 0],
+                          r_tqc[:, 1]
+                     ), nb_pairs)
+
+        H52_pcc += self._assemble_triplet_to_pair(ij_t,
+            ein('t,t,t,ta,tb->tab', 2 * ddpddxi,
+                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
+                          dtdRjk,
+                          r_tqc[:, 0],
+                          r_tqc[:, 2]
+                     ), nb_pairs)
+
+        H52_pcc += self._assemble_triplet_to_pair(ik_t,
+            ein('t,t,t,ta,tb->tab', -2 * ddpddxi,
+                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
+                          dtdRjk,
+                          r_tqc[:, 0],
+                          r_tqc[:, 2]
+                     ), nb_pairs)
+
+        H52_pcc += self._assemble_triplet_to_pair(jk_t,
+            ein('t,t,t,ta,tb->tab', 2 * ddpddxi,
+                          self._assemble_triplet_to_pair(ij_t, dtdRij, nb_pairs)[ij_t],
+                          dtdRjk,
+                          r_tqc[:, 0],
+                          r_tqc[:, 2]
+                     ), nb_pairs)
+
+        # Arrays are identical --> Pair and Triplet appear to be correct
+        print("H51_pcc and H52_pcc equal? ", np.allclose(H51_pcc, H52_pcc, rtol=1e-6, atol=1e-6))
+
+        H_pcc += H52_pcc
 
         # Quadruplets
         # Expressions for dt_drx
+        dtdRX = dtheta_qt
         dtdRx_rx = ein('Xt,tXa->tXa', dtdRX, r_tqc)
 
         Q1 = ein('t,ta,tb->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 1])
         H_pcc -= self._assemble_triplet_to_pair(ik_t, Q1, nb_pairs)
 
-        Q2 = ein('t,tb,ta->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 1])
-        H_pcc -= self._assemble_triplet_to_pair(tr_p[ik_t], Q2, nb_pairs)
+        # Q2 is an im_in expression
 
-        # Q4 is simple 
-        H_pcc += ein('p,pa,pb->pab', 2 * ddphi_cp[1], self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs), 
+        Q3 = ein('t,ta,tb->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs)[ij_t], dtdRx_rx[:, 2])
+        H_pcc -= self._assemble_triplet_to_pair(jk_t, Q3, nb_pairs)
+
+        # Q4 is again an im_in expression
+
+        Q5 = ein('p,pa,pb->pab', 2 * ddphi_cp[1], self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs), 
                                                       self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs))
+        H_pcc += Q5
 
-        # Q5 
-        Q5 = ein('t,ta,tb->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 2])
-        H_pcc -= self._assemble_triplet_to_pair(ik_t, Q5, nb_pairs)
+        Q6 = ein('t,ta,tb->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 2])
+        H_pcc -= self._assemble_triplet_to_pair(ik_t, Q6, nb_pairs)
 
-        # Q6
-        Q6 = ein('t,tb,ta->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs)[ij_t], dtdRx_rx[:, 1])
-        H_pcc -= self._assemble_triplet_to_pair(tr_p[jk_t], Q6, nb_pairs)
+        Q7 = ein('t,tb,ta->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs)[ij_t], dtdRx_rx[:, 1])
+        H_pcc -= self._assemble_triplet_to_pair(tr_p[jk_t], Q7, nb_pairs) 
 
-        # Is there an additional expression necessary? 
+        # Q8 is again an im_in expression
 
-
-        # Deal with strange ij_im and ij_il expression
+        # Deal with strange ij_im and ij_in expression
         for im_in in range(nb_triplets):
             pair_im = ij_t[im_in]
             pair_in = ik_t[im_in]
@@ -597,23 +663,32 @@ class Manybody(MatscipyCalculator):
                 pair_ij = ik_t[t]
 
                 if pair_ij != pair_im and pair_ij != pair_in:
-                    rim_c = np.sum(r_pc[pair_im]**2)
-                    rin_c = np.sum(r_pc[pair_in]**2)
-                    rij_c = np.sum(r_pc[pair_ij]**2)
+                    rim = np.sum(r_pc[pair_im]**2)
+                    rin = np.sum(r_pc[pair_in]**2)
+                    rij = np.sum(r_pc[pair_ij]**2)
 
                     # We also need the distances jm and jn
-                    rjm_c = np.sum((r_pc[pair_im] - r_pc[pair_ij])**2)
-                    rjn_c = np.sum((r_pc[pair_in] - r_pc[pair_ij])**2)
+                    rjn_c = r_pc[pair_in] - r_pc[pair_ij]
+                    rjm_c = r_pc[pair_im] - r_pc[pair_ij]
+                    rjm = np.sum(rjm_c**2)
+                    rjn = np.sum(rjn_c**2)
 
                     # Assume monoatomic system for now, this einsum is useless!
-                    H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * ein('a,b->ab', self.theta[1].gradient(rij_c, rim_c, rjm_c)[1] * r_pc[pair_im],
-                                                                            self.theta[1].gradient(rij_c, rim_c, rjn_c)[1] * r_pc[pair_in])
+                    # Q2 
+                    H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * ein('a,b->ab', self.theta[1].gradient(rij, rim, rjm)[1] * r_pc[pair_im],
+                                                                            self.theta[1].gradient(rij, rin, rjn)[1] * r_pc[pair_in])
+ 
+                    # Q4
+                    H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * ein('a,b->ab', self.theta[1].gradient(rij, rim, rjm)[2] * rjm_c,
+                                                                            self.theta[1].gradient(rij, rin, rjn)[2] * rjn_c)
 
+                    # Q8 
+                    H_pcc[pair_mn] += 2 * ddphi_cp[1][pair_ij] * ein('a,b->ab', self.theta[1].gradient(rij, rim, rjm)[1] * r_pc[pair_im],
+                                                                                self.theta[1].gradient(rij, rin, rjn)[2] * rjn_c)   
         # Symmetrization with H_nm
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
 
         # Compute the diagonal elements by bincount the off-diagonal elements
-        # Be carful with prefactors !!!
         H_acc = -self._assemble_pair_to_atom(i_p, H_pcc, n)
 
         H = (
