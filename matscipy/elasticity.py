@@ -829,7 +829,7 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
 
             # colour the plot depending on the strain pattern
             colourDict = {0: '#BAD0EF', 1:'#FFCECE', 2:'#BDF4CB', 3:'#EEF093',4:'#FFA4FF',5:'#75ECFD'}
-            sp.set_axis_bgcolor(colourDict[patt])
+            sp.set_facecolor(colourDict[patt])
 
             # plot the data
             plt.plot([strain[0,index2],strain[-1,index2]],
