@@ -325,6 +325,39 @@ class LennardJones(Manybody.Phi):
 
 
 @distance_defined
+class BornMayerCut(Manybody.Phi):
+    """
+    Implementation of the Born-Mayer potential.
+    Energy is shifted to zero at the cutoff
+    """
+
+    def __init__(self, A=1, B=1, C=1, sigma=1, rho=1, cutoff=10.0):
+        self.A = A
+        self.B = B
+        self.C = C
+        self.sigma = sigma
+        self.rho = rho
+        self.cutoff = cutoff
+        self.offset = self.A * np.exp((self.sigma - cutoff) / self.rho) - self.C / cutoff**6 + self.D / cutoff**8
+
+    def __call__(self, r, xi):
+        return self.A * np.exp((self.sigma - r) / self.rho) - self.C / r**6 + self.D / r**8 - self.offset + xi
+
+    def gradient(self, r, xi):
+        return np.stack([
+            (-self.A / self.rho) * np.exp((self.sigma - r) / self.rho) + 6 * self.C / r**7 - 8 * self.D / r**9,
+            np.ones_like(xi),
+        ])
+
+    def hessian(self, r, xi):
+        return np.stack([
+            (self.A / self.rho**2) * np.exp((self.sigma - r) / self.rho) - 42 * self.C / r**8 + 72 * self.D / r**9,
+            np.zeros_like(xi),
+            np.zeros_like(xi),
+        ])
+
+
+@distance_defined
 class StillingerWeberPair(Manybody.Phi):
     """
     Implementation of the Stillinger-Weber Potential
