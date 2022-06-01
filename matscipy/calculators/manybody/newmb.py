@@ -6,8 +6,6 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import combinations_with_replacement
 from typing import Mapping
-# Delete one of these imports if it is clear which one is more useful
-from scipy.sparse import coo_matrix as sparse_matrix
 from scipy.sparse import bsr_matrix
 from ...calculators.calculator import MatscipyCalculator
 from ...neighbours import Neighbourhood, first_neighbours, find_indices_of_reversed_pairs
@@ -41,6 +39,7 @@ class Manybody(MatscipyCalculator):
         'born_constants',
         'nonaffine_forces',
         'birch_coefficients',
+        'elastic_constants',
     ]
 
     _voigt_seq = [0, 5, 4, 5, 1, 3, 4, 3, 2]
@@ -489,7 +488,7 @@ class Manybody(MatscipyCalculator):
 
         return naf_ncab
 
-    def get_hessian(self, atoms):
+    def get_hessian(self, atoms, divide_by_masses=False):
         """Compute hessian."""
         cutoff = self.neighbourhood.cutoff
 
@@ -578,7 +577,7 @@ class Manybody(MatscipyCalculator):
                                                tr_p, ddp_dtdRij_dtdRX_rij_rX)
 
         # Quadruplets
-        #ddp_dtdRx_rx_dtdRy_ry = ein('t,tXa,tYb->tXYab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx, nb_pairs)[ij_t], dtdRx_rx)
+        # ddp_dtdRx_rx_dtdRy_ry = ein('t,tXa,tYb->tXYab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx, nb_pairs)[ij_t], dtdRx_rx)
 
         Q1 = ein('t,ta,tb->tab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs)[ij_t], dtdRx_rx[:, 1])
         H_pcc -= self._assemble_triplet_to_pair(ik_t, Q1, nb_pairs)
@@ -630,6 +629,13 @@ class Manybody(MatscipyCalculator):
 
         # Compute the diagonal elements by bincount the off-diagonal elements
         H_acc = -self._assemble_pair_to_atom(i_p, H_pcc, n)
+
+
+        if divide_by_masses:
+            mass_p = atoms.get_masses()
+            H_pcc /= np.sqrt(mass_p[i_p] * mass_n[j_p])
+            H_acc /= mass_p[i_p]
+
 
         H = (
             bsr_matrix((H_pcc, j_p, first_n), shape=(3 * n, 3 * n))

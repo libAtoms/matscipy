@@ -62,6 +62,10 @@ from reference_params import (
 
 from matscipy.elasticity import (
     measure_triclinic_elastic_constants,
+    fit_elastic_constants,
+    nonaffine_elastic_contribution,
+    full_3x3x3x3_to_Voigt_6x6,
+    Voigt_6_to_full_3x3_stress
 )
 
 from matscipy.molecules import Molecules
@@ -135,25 +139,6 @@ class LinearPair(Manybody.Phi):
             np.zeros_like(xi_p),
         ])
 
-
-def cauchy_correction(stress):
-    delta = np.eye(3)
-
-    stress_contribution = 0.5 * sum(
-        np.einsum(einsum, stress, delta)
-        for einsum in (
-                'am,bn',
-                'an,bm',
-                'bm,an',
-                'bn,am',
-        )
-    )
-
-    # Why does removing this work for the born constants?
-    # stress_contribution -= np.einsum('ab,mn', stress, delta)
-    return stress_contribution
-
-
 def molecule():
     """Return a molecule setup involing all 4 atoms."""
     # Get all combinations of eight atoms
@@ -203,7 +188,7 @@ potentials = {
         {1: HarmonicPair(1, 5)}, {1: SimpleAngle()}, molecule(),
     ),
 
-    "Kumagai": (
+    "KumagaiPair+KumagaiAngle": (
         {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)},
         {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
@@ -213,12 +198,6 @@ potentials = {
         {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)},
         {1: ZeroAngle()},
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
-    ),
-
-    "MixPair+HarmonicAngle": (
-        {1: MixPair()},
-        {1: HarmonicAngle(1, np.pi/3)},
-        CutoffNeighbourhood(cutoff=3.3),
     ),
 
     "LinearPair+HarmonicAngle": (
@@ -277,13 +256,12 @@ potentials = {
     ),
 }
 
-
 @pytest.fixture(params=potentials.values(), ids=potentials.keys())
 def potential(request):
     return request.param
 
 
-@pytest.fixture(params=[5.3, 5.431, 5.432])
+@pytest.fixture(params=[5.3, 5.431])
 def distance(request):
     return request.param
 
@@ -331,38 +309,36 @@ def test_stresses(configuration):
     s_num = numerical_stress(configuration, d=1e-6)
     nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-8)
 
-
-def test_born_constants(configuration):
-    C_ana = configuration.calc.get_property("born_constants", configuration)
-    C_num = measure_triclinic_elastic_constants(configuration, d=1e-6)
-
-    # Compute Cauchy stress correction
-    stress = configuration.get_stress(voigt=False)
-    corr = cauchy_correction(stress)
-
-    nt.assert_allclose(C_ana + corr, C_num, rtol=1e-4, atol=1e-4)
-
-
 def test_nonaffine_forces(configuration):
     # TODO: clarify why we need to optimize?
-    FIRE(configuration).run(fmax=1e-8, steps=400)
+    FIRE(configuration, logfile=None).run(fmax=1e-8, steps=400)
     naf_ana = configuration.calc.get_property('nonaffine_forces')
     naf_num = numerical_nonaffine_forces(configuration, d=1e-8)
 
     # atol here related to fmax above
     nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=1e-4)
 
-
-@pytest.mark.xfail(reason="Not implemented")
 def test_hessian(configuration):
     H_ana = configuration.calc.get_property('hessian').todense()
     H_num = numerical_hessian(configuration, dx=1e-6).todense()
 
-    print("H_ana: \n", H_ana[0:3, 3:6])
-    print("H_num: \n", H_num[0:3, 3:6])
-
     nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
 
+def test_birch_constants(configuration):
+    B_ana = configuration.calc.get_property("birch_coefficients", configuration)
+    C_num = measure_triclinic_elastic_constants(configuration, delta=1e-4)
+
+    nt.assert_allclose(B_ana, C_num, rtol=1e-4, atol=1e-4)
+
+def test_elastic_constants(configuration):
+    # Needed since zero-temperature elastic constants defined in local minimum 
+    FIRE(configuration, logfile=None).run(fmax=1e-6, steps=400)
+    C_ana = configuration.calc.get_property("elastic_constants", configuration)
+    C_num = measure_triclinic_elastic_constants(configuration, delta=1e-3, optimizer=FIRE, fmax=1e-6, steps=500)
+
+    nt.assert_allclose(np.where(C_ana < 1e-6, 0.0, C_ana),
+                       np.where(C_num < 1e-6, 0.0, C_num),
+                       rtol=1e-3, atol=1e-3)
 
 @pytest.mark.parametrize('cutoff', np.linspace(1.1, 20, 10))
 def test_pair_compare(cutoff):

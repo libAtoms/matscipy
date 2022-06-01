@@ -476,12 +476,10 @@ def measure_triclinic_elastic_constants(a, delta=0.001, optimizer=None,
             e[j, i] += 0.5*delta
 
             F = np.eye(3) + e
-            #F = sqrtm(np.eye(3) + 2*e)
             a.set_cell(np.dot(F, cell.T).T, scale_atoms=True)
             if optimizer is not None:
                 optimizer(a, logfile=logfile).run(**kwargs)
-            #sp = Voigt_6_to_full_3x3_stress(a.get_stress() * volume)
-            sp = Voigt_6_to_full_3x3_stress(a.get_stress()*a.get_volume())
+            sp = Voigt_6_to_full_3x3_stress(a.get_stress())
 
             e = np.zeros((3, 3))
             e[i, j] -= 0.5*delta
@@ -492,10 +490,9 @@ def measure_triclinic_elastic_constants(a, delta=0.001, optimizer=None,
             a.set_cell(np.dot(F, cell.T).T, scale_atoms=True)
             if optimizer is not None:
                 optimizer(a, logfile=logfile).run(**kwargs)
-            #sm = Voigt_6_to_full_3x3_stress(a.get_stress() * volume)
-            sm = Voigt_6_to_full_3x3_stress(a.get_stress()*a.get_volume())
+            sm = Voigt_6_to_full_3x3_stress(a.get_stress())
 
-            C[:,:,i,j] = (sp-sm)/(2*delta*volume)
+            C[:,:,i,j] = (sp-sm)/(2*delta)
 
     a.set_cell(cell, scale_atoms=True)
     a.set_positions(r0)
