@@ -24,7 +24,11 @@ from scipy.sparse.linalg import cg
 from ase.calculators.calculator import Calculator
 from numpy import deprecate
 
-from ..elasticity import Voigt_6_to_full_3x3_stress
+from ..elasticity import (
+    Voigt_6_to_full_3x3_stress,
+    nonaffine_elastic_contribution,
+)
+
 from ..numerical import numerical_nonaffine_forces
 
 from ..numpy_tricks import mabincount
@@ -48,6 +52,8 @@ class MatscipyCalculator(Calculator):
             'birch_coefficients': self.get_birch_coefficients,
             'nonaffine_elastic_contribution':
             self.get_non_affine_contribution_to_elastic_constants,
+            'elastic_constants':
+            self.get_elastic_constants
         }
 
         for prop in filter(lambda p: p in properties, properties_map):
@@ -144,22 +150,19 @@ class MatscipyCalculator(Calculator):
 
         delta_ab = np.identity(3)
 
-        # Term 1
-        C1_abab = -stress_ab.reshape(3, 3, 1, 1) * delta_ab.reshape(1, 1, 3, 3)
-        C1_abab = (C1_abab
-                   + C1_abab.swapaxes(0, 1)
-                   + C1_abab.swapaxes(2, 3)
-                   + C1_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
-
-        # Term 2
-        C2_abab = 0.25 * (
-            stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1)
-            + stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3)
-            + stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1)
-            + stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3)
+        stress_contribution = 0.5 * sum(
+            np.einsum(einsum, stress_ab, delta_ab)
+            for einsum in (
+                    'am,bn',
+                    'an,bm',
+                    'bm,an',
+                    'bn,am',
+            )
         )
+   
+        stress_contribution -= np.einsum('ab,mn', stress_ab, delta_ab)
 
-        return C1_abab + C2_abab
+        return stress_contribution
 
     def get_birch_coefficients(self, atoms):
         """
@@ -203,6 +206,57 @@ class MatscipyCalculator(Calculator):
         naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
 
         return naforces_icab
+
+    def get_elastic_constants(self, 
+                              atoms, 
+                              cg_parameters={
+                                  "x0": None,
+                                  "tol": 1e-5,
+                                  "maxiter": None,
+                                  "M": None,
+                                  "callback": None,
+                                  "atol": 1e-5}):
+        """
+        Compute the elastic constants at zero temperature.
+        These are sum of the born, the non-affine and the stress contribution.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        cg_parameters: dict
+            Dictonary for the conjugate-gradient solver.
+
+            x0: {array, matrix}
+                Starting guess for the solution.
+
+            tol/atol: float, optional
+                Tolerances for convergence, norm(residual) <= max(tol*norm(b), atol).
+
+            maxiter: int
+                Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.
+
+            M: {sparse matrix, dense matrix, LinearOperator}
+                Preconditioner for A.
+
+            callback: function
+                User-supplied function to call after each iteration.
+        """
+        if self.atoms is None:
+            self.atoms = atoms
+
+        # Born (affine) elastic constants
+        calculator = self
+        C = calculator.get_born_elastic_constants(atoms)
+
+        # Stress contribution to elastic constants
+        C += calculator.get_stress_contribution_to_elastic_constants(atoms)
+
+        # Non-affine contribution
+        C += nonaffine_elastic_contribution(atoms, cg_parameters=cg_parameters)
+
+        return C
 
     @deprecate(new_name="elasticity.nonaffine_elastic_contribution")
     def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "tol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
