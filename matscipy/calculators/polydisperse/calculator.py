@@ -153,18 +153,32 @@ class InversePowerLawPotential():
 
 ###
 
-
 class Polydisperse(MatscipyCalculator):
-    implemented_properties = ["energy", "free_energy", "stress", "forces", "hessian"]
+    implemented_properties = [
+        "energy",
+        "free_energy",
+        "stress",
+        "forces",
+        "hessian",
+        "dynamical_matrix",
+        "nonaffine_forces",
+        "birch_coefficients",
+        "nonaffine_elastic_contribution",
+        "stress_elastic_contribution",
+        "born_constants",
+        'elastic_constants',
+    ]
+
     default_parameters = {}
     name = "Polydisperse"
 
     def __init__(self, f, cutoff=None):
         MatscipyCalculator.__init__(self)
         self.f = f
+        self.reset()
 
     def calculate(self, atoms, properties, system_changes):
-        MatscipyCalculator.calculate(self, atoms, properties, system_changes)
+        super().calculate(atoms, properties, system_changes)
 
         f = self.f
         nb_atoms = len(self.atoms)
@@ -203,10 +217,14 @@ class Polydisperse(MatscipyCalculator):
                               r_pc[:, 0] * df_pc[:, 2],               # xz
                               r_pc[:, 0] * df_pc[:, 1]]).sum(axis=1)  # xy
 
-        self.results = {'energy': epot,
-                        'free_energy': epot,
-                        'stress': virial_v/self.atoms.get_volume(),
-                        'forces': f_nc}
+        self.results.update(
+            {
+                'energy': epot,
+                'free_energy': epot,
+                'stress': virial_v / self.atoms.get_volume(),
+                'forces': f_nc,
+            }
+        )
 
     ###
 
@@ -298,3 +316,9 @@ class Polydisperse(MatscipyCalculator):
         # Neighbour list format
         elif format == "neighbour-list":
             return H_pcc, i_p, j_p, r_pc, r_p
+
+    def get_dynamical_matrix(self, atoms):
+        """
+        Compute dynamical matrix (=mass weighted Hessian).
+        """
+        return self.get_hessian(atoms, format="sparse", divide_by_masses=True)
