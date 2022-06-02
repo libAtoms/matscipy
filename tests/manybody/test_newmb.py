@@ -324,6 +324,15 @@ def test_hessian(configuration):
 
     nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
 
+def test_dynamical_matrix(configuration):
+    # Maybe restrict this test to a single potential to reduce testing ?
+    D_ana = configuration.calc.get_property('dynamical_matrix').todense()
+    H_ana = configuration.calc.get_property('hessian').todense()
+    mass = np.repeat(configuration.get_masses(), 3)
+    H_ana /= np.sqrt(mass.reshape(-1, 1) * mass.reshape(1, -1)) 
+
+    nt.assert_allclose(D_ana, H_ana, atol=1e-10, rtol=1e-10)
+
 def test_birch_constants(configuration):
     B_ana = configuration.calc.get_property("birch_coefficients", configuration)
     C_num = measure_triclinic_elastic_constants(configuration, delta=1e-4)

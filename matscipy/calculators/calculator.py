@@ -45,6 +45,7 @@ class MatscipyCalculator(Calculator):
         # Dispatching calls to special properties
         properties_map = {
             'hessian': self.get_hessian,
+            'dynamical_matrix': self.get_dynamical_matrix,
             'nonaffine_forces': self.get_nonaffine_forces,
             'born_constants': self.get_born_elastic_constants,
             'stress_elastic_contribution':

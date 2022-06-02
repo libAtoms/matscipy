@@ -36,6 +36,7 @@ class Manybody(MatscipyCalculator):
         'stress',
         'forces',
         'hessian',
+        'dynamical_matrix',
         'born_constants',
         'nonaffine_forces',
         'birch_coefficients',
@@ -630,12 +631,10 @@ class Manybody(MatscipyCalculator):
         # Compute the diagonal elements by bincount the off-diagonal elements
         H_acc = -self._assemble_pair_to_atom(i_p, H_pcc, n)
 
-
         if divide_by_masses:
             mass_p = atoms.get_masses()
-            H_pcc /= np.sqrt(mass_p[i_p] * mass_n[j_p])
-            H_acc /= mass_p[i_p]
-
+            H_pcc /= np.sqrt(mass_p[i_p] * mass_p[j_p])[_cc]
+            H_acc /= mass_p[_cc]
 
         H = (
             bsr_matrix((H_pcc, j_p, first_n), shape=(3 * n, 3 * n))
@@ -644,3 +643,9 @@ class Manybody(MatscipyCalculator):
         )
 
         return H
+
+    def get_dynamical_matrix(self, atoms):
+        """
+        Compute dynamical matrix (=mass weighted Hessian).
+        """
+        return self.get_hessian(atoms, divide_by_masses=True)
