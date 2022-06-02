@@ -123,12 +123,18 @@ class MatscipyCalculator(Calculator):
         """
         H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.get_hessian(atoms, 'neighbour-list')
 
-        # Second derivative
+        # Second derivative with respect to displacement gradient
         C_pabab = H_pcc.reshape(-1, 3, 1, 3, 1) * dr_pc.reshape(-1, 1, 3, 1, 1) * dr_pc.reshape(-1, 1, 1, 1, 3)
-        C_abab = -C_pabab.sum(axis=0) / (2*atoms.get_volume())
+        C_abab = -C_pabab.sum(axis=0) / (2 * atoms.get_volume())
 
-        # Symmetrize elastic constant tensor
-        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        # This contribution is necessary in order to obtain second derivative with respect to Green-Lagrange
+        stress_ab = self.get_property('stress', atoms)
+        delta_ab = np.identity(3)
+
+        if stress_ab.shape != (3, 3):
+            stress_ab = Voigt_6_to_full_3x3_stress(stress_ab)
+
+        C_abab -= stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1)
 
         return C_abab
 
