@@ -24,6 +24,7 @@ from __future__ import print_function
 import numpy as np
 
 from ase.lattice.cubic import Diamond, FaceCenteredCubic, SimpleCubic, BodyCenteredCubic
+from matscipy.neighbours import neighbour_list
 
 ###
 
@@ -65,11 +66,21 @@ def set_regions(cryst, r_I, cutoff, r_III):
     cx, cy = sx/2, sy/2
     r = np.sqrt((x - cx)**2 + (y - cy)**2)
 
-    # Regions I-III defined by radial distance from center
+    # Regions I and III defined by radial distance from center
     regionI = r < r_I
-    regionII = (r >= r_I) & (r < (r_I + cutoff))
-    regionIII = (r >= (r_I + cutoff)) & (r < r_III)
+    regionIII = (r >= r_I) & (r < r_III)
     regionIV = (r >= r_III) & (r < (r_III + cutoff))
+
+    regionII = np.zeros(len(cryst), bool)
+    i, j = neighbour_list('ij', cryst, cutoff)
+    for idx in regionI.nonzero()[0]:
+        neighbs = j[i == idx] 
+        mask = np.zeros(len(cryst), bool)
+        mask[neighbs] = True # include all neighbours of atom `idx`
+        # print(f'adding {mask.sum()} neigbours of atom {idx} to regionII')
+        mask[regionI] = False # exclude those in region I already
+        regionII[mask] = True # add to region I
+        regionIII[mask] = False # remove from region III
 
     cryst.new_array('region', np.zeros(len(cryst), dtype=int))
     region = cryst.arrays['region']
