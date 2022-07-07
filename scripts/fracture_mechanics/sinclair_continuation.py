@@ -9,6 +9,7 @@ import h5py
 import ase.io
 from ase.units import GPa
 from ase.constraints import FixAtoms
+from ase.optimize import LBFGSLineSearch
 from ase.optimize.precon import PreconLBFGS
 
 from matscipy import parameter
@@ -128,8 +129,9 @@ if not continuation:
         atoms = sc.atoms.copy()
         atoms.calc = sc.calc
         atoms.set_constraint(FixAtoms(mask=~sc.regionI))
-        opt = PreconLBFGS(atoms, logfile=None)
-        opt.run(fmax=1e-5)
+        #opt = PreconLBFGS(atoms, logfile=None)
+        opt = LBFGSLineSearch(atoms)
+        opt.run(fmax=1e-3)
         atoms.write(traj, format="extxyz")
         sc.set_atoms(atoms)
         f_alpha = sc.get_crack_tip_force(mask=mask)
