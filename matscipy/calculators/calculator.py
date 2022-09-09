@@ -74,6 +74,12 @@ class MatscipyCalculator(Calculator):
                       optimize=True)
         ])
 
+    def get_dynamical_matrix(self, atoms):
+        """
+        Compute dynamical matrix (=mass weighted Hessian).
+        """
+        return self.get_hessian(atoms, format="sparse", divide_by_masses=True)
+
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a pair potential. For an atomic
@@ -166,7 +172,7 @@ class MatscipyCalculator(Calculator):
                     'bn,am',
             )
         )
-   
+
         stress_contribution -= np.einsum('ab,mn', stress_ab, delta_ab)
 
         return stress_contribution
@@ -214,8 +220,8 @@ class MatscipyCalculator(Calculator):
 
         return naforces_icab
 
-    def get_elastic_constants(self, 
-                              atoms, 
+    def get_elastic_constants(self,
+                              atoms,
                               cg_parameters={
                                   "x0": None,
                                   "tol": 1e-5,

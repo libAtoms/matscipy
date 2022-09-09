@@ -520,9 +520,3 @@ class PairPotential(MatscipyCalculator):
         # Neighbour list format
         elif format == "neighbour-list":
             return H_pcc, i_p, j_p, r_pc, r_p
-
-    def get_dynamical_matrix(self, atoms):
-        """
-        Compute dynamical matrix (=mass weighted Hessian).
-        """
-        return self.get_hessian(atoms, format="sparse", divide_by_masses=True)
