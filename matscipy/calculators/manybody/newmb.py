@@ -510,6 +510,11 @@ class Manybody(MatscipyCalculator):
         n = len(atoms)
         nb_pairs = len(i_p)
         nb_triplets = len(ij_t)
+
+        # Otherwise we get a segmentation fault because ij_t is empty
+        if nb_triplets == 0:
+            raise RuntimeError("No triplet in hessian computation!")
+
         first_n = first_neighbours(n, i_p)
         first_p = first_neighbours(nb_pairs, ij_t)
 
@@ -564,13 +569,13 @@ class Manybody(MatscipyCalculator):
         ddpddxi = ddpddxi[ij_t]
         dtdRX = dtheta_qt
 
-        # Pair 
+        # Pair
         H_pcc += ein('p,p,p,pa,pb->pab', -2 * ddphi_cp[1],
                                         self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs),
                                         self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs),
                                         r_pc, r_pc)
 
-        # Triplet  
+        # Triplet
         dtdRx_rx = ein('Xt,tXa->tXa', dtdRX, r_tqc)
         ddp_dtdRx_rx_dtdRy_ry = ein('t,tXa,tYb->tXYab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx, nb_pairs)[ij_t], dtdRx_rx)
 
@@ -583,7 +588,7 @@ class Manybody(MatscipyCalculator):
         H_pcc -= self._assemble_triplet_to_pair(ik_t, ddp_dtdRx_rx_dtdRy_ry[:, 1, 2], nb_pairs)
         H_pcc -= self._assemble_triplet_to_pair(tr_p[jk_t], ddp_dtdRx_rx_dtdRy_ry[:, 2, 1], nb_pairs)
 
-        H_pcc += ein('p,pa,pb->pab', 2 * ddphi_cp[1], self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs), 
+        H_pcc += ein('p,pa,pb->pab', 2 * ddphi_cp[1], self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs),
                                                       self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs))
 
         # Deal with ij_im / ij_in expression
@@ -612,12 +617,12 @@ class Manybody(MatscipyCalculator):
                     # TODO: Assumes monoatomic system at the moment
                     H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[1] * rim_c,
                                                                       self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[1] * rin_c)
- 
+
                     H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[2] * rjm_c,
                                                                       self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[2] * rjn_c)
 
                     H_pcc[pair_mn] += 2 * ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[1] * rim_c,
-                                                                          self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[2] * rjn_c)   
+                                                                          self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[2] * rjn_c)
         # Symmetrization with H_nm
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
 
@@ -636,9 +641,3 @@ class Manybody(MatscipyCalculator):
         )
 
         return H
-
-    def get_dynamical_matrix(self, atoms):
-        """
-        Compute dynamical matrix (=mass weighted Hessian).
-        """
-        return self.get_hessian(atoms, divide_by_masses=True)
