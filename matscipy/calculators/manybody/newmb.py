@@ -489,7 +489,7 @@ class Manybody(MatscipyCalculator):
 
         return naf_ncab
 
-    def get_hessian(self, atoms, divide_by_masses=False):
+    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """Compute hessian."""
         cutoff = self.neighbourhood.cutoff
 
