@@ -81,6 +81,7 @@ class Manybody(MatscipyCalculator):
         'nonaffine_forces',
         'birch_coefficients',
         'dynamical_matrix',
+        'elastic_constants',
     ]
 
     default_parameters = {}

@@ -14,7 +14,7 @@ _impl_potentials = {
 # Default arguments for classes where that do not define a default constructor
 _default_arguments = {
     potentials.StillingerWeberPair: [{
-        "__ref__": 1,
+        "__ref__": "",
         "el": 1,
         "epsilon": 1,
         "sigma": 0.9,
@@ -26,9 +26,9 @@ _default_arguments = {
         "a": 2,
         "lambda1": 1,
         "gamma": 1,
-    }],
+    }, np.inf],
     potentials.StillingerWeberAngle: [{
-        "__ref__": 1,
+        "__ref__": "",
         "el": 1,
         "epsilon": 1,
         "sigma": 0.9,
@@ -82,6 +82,24 @@ _default_arguments = {
         'R_2': 4.0
     }],
     potentials.TersoffBrennerPair: [{
+        '__ref__': 'Tersoff J., Phys. Rev. B 39, 5566 (1989)',
+        'style': 'tersoff',
+        'el': 1.0,
+        'c': 1.0,
+        'd': 1.0,
+        'h': 1.0,
+        'R1': 2.7,
+        'R2': 3.0,
+        'A': 1.0,
+        'B': 1.0,
+        'lambda1': 1.0,
+        'mu': 1.0,
+        'beta': 1.0,
+        'lambda3': 1.0,
+        'chi': 1.0,
+        'n': 1.0
+    }],
+    potentials.TersoffBrennerAngle: [{
         '__ref__': 'Tersoff J., Phys. Rev. B 39, 5566 (1989)',
         'style': 'tersoff',
         'el': 1.0,
@@ -179,9 +197,10 @@ try:
         HarmonicAngle,
         LennardJones,
         ZeroPair,
+        BornMayerCut,
     )
 
-    from sympy import symbols, acos, sqrt, pi
+    from sympy import symbols, acos, sqrt, pi, exp
     from sympy.abc import R, xi
 
     has_sympy = True
@@ -193,6 +212,8 @@ try:
         (ZeroPair(), SymPhi(xi, (R, xi))),
         (LennardJones(1, 1, np.inf),
          SymPhi(4 * ((1 / sqrt(R))**12 - (1 / sqrt(R))**6) + xi, (R, xi))),
+        (BornMayerCut(),
+         SymPhi(exp((1-sqrt(R))) - 1/R**3 + 1/R**4 + xi, (R, xi))),
     ]
 
     _analytical_triplet_potentials = [

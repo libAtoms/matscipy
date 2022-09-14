@@ -309,6 +309,7 @@ def test_stresses(configuration):
     s_num = numerical_stress(configuration, d=1e-6)
     nt.assert_allclose(s_ana, s_num, rtol=1e-6, atol=1e-8)
 
+
 def test_nonaffine_forces(configuration):
     # TODO: clarify why we need to optimize?
     FIRE(configuration, logfile=None).run(fmax=1e-8, steps=400)
@@ -318,20 +319,23 @@ def test_nonaffine_forces(configuration):
     # atol here related to fmax above
     nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=1e-4)
 
+
 def test_hessian(configuration):
     H_ana = configuration.calc.get_property('hessian').todense()
     H_num = numerical_hessian(configuration, dx=1e-6).todense()
 
     nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
 
+
 def test_dynamical_matrix(configuration):
     # Maybe restrict this test to a single potential to reduce testing ?
     D_ana = configuration.calc.get_property('dynamical_matrix').todense()
     H_ana = configuration.calc.get_property('hessian').todense()
     mass = np.repeat(configuration.get_masses(), 3)
-    H_ana /= np.sqrt(mass.reshape(-1, 1) * mass.reshape(1, -1)) 
+    H_ana /= np.sqrt(mass.reshape(-1, 1) * mass.reshape(1, -1))
 
     nt.assert_allclose(D_ana, H_ana, atol=1e-10, rtol=1e-10)
+
 
 def test_birch_constants(configuration):
     B_ana = configuration.calc.get_property("birch_coefficients", configuration)
@@ -339,11 +343,18 @@ def test_birch_constants(configuration):
 
     nt.assert_allclose(B_ana, C_num, rtol=1e-4, atol=1e-4)
 
+
 def test_elastic_constants(configuration):
-    # Needed since zero-temperature elastic constants defined in local minimum 
+    # Needed since zero-temperature elastic constants defined in local minimum
     FIRE(configuration, logfile=None).run(fmax=1e-6, steps=400)
     C_ana = configuration.calc.get_property("elastic_constants", configuration)
-    C_num = measure_triclinic_elastic_constants(configuration, delta=1e-3, optimizer=FIRE, fmax=1e-6, steps=500)
+    C_num = measure_triclinic_elastic_constants(
+        configuration,
+        delta=1e-3,
+        optimizer=FIRE,
+        fmax=1e-6,
+        steps=500,
+    )
 
     nt.assert_allclose(np.where(C_ana < 1e-6, 0.0, C_ana),
                        np.where(C_num < 1e-6, 0.0, C_num),

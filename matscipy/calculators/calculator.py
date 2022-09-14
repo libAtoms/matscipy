@@ -199,7 +199,6 @@ class MatscipyCalculator(Calculator):
 
         return bornC_abab + stressC_abab
 
-
     def get_nonaffine_forces(self, atoms):
         """
         Compute the non-affine forces which result from an affine deformation of atoms.
