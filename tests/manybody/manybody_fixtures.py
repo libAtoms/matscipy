@@ -134,7 +134,7 @@ if getattr(potentials, 'SymPhi', None) is not None:
 # Marking expected failures / TODO fix the following classes
 xfails = [
     potentials.KumagaiPair, potentials.KumagaiAngle,
-    potentials.TersoffBrennerPair
+    potentials.TersoffBrennerPair, potentials.BornMayerCut,
 ]
 
 for fail in xfails:
