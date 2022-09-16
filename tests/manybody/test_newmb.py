@@ -62,14 +62,27 @@ from reference_params import (
 
 from matscipy.elasticity import (
     measure_triclinic_elastic_constants,
-    fit_elastic_constants,
-    nonaffine_elastic_contribution,
-    full_3x3x3x3_to_Voigt_6x6,
-    Voigt_6_to_full_3x3_stress
 )
 
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood, CutoffNeighbourhood
+
+
+def tetrahedron(distance, rattle):
+    atoms = Atoms(
+        "H" * 4,
+        positions=[(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)],
+        cell=[10, 10, 10],
+    )
+    atoms.positions *= distance
+    atoms.rattle(rattle)
+    return atoms
+
+
+def diamond(distance, rattle):
+    atoms = Diamond("Si", size=[1, 1, 1], latticeconstant=distance)
+    atoms.rattle(rattle)
+    return atoms
 
 
 class SimpleAngle(Manybody.Theta):
@@ -139,6 +152,7 @@ class LinearPair(Manybody.Phi):
             np.zeros_like(xi_p),
         ])
 
+
 def molecule():
     """Return a molecule setup involing all 4 atoms."""
     # Get all combinations of eight atoms
@@ -186,12 +200,6 @@ potentials = {
 
     "SimpleAngle~molecule": (
         {1: HarmonicPair(1, 5)}, {1: SimpleAngle()}, molecule(),
-    ),
-
-    "KumagaiPair+KumagaiAngle": (
-        {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)},
-        {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
-        CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
     ),
 
     "KumagaiPair+ZeroAngle": (
@@ -246,13 +254,20 @@ potentials = {
     "StillingerWeber": (
         {1: StillingerWeberPair(Stillinger_Weber_PRB_31_5262_Si)},
         {1: StillingerWeberAngle(Stillinger_Weber_PRB_31_5262_Si)},
-        CutoffNeighbourhood(cutoff=Stillinger_Weber_PRB_31_5262_Si["a"] * Stillinger_Weber_PRB_31_5262_Si["sigma"]),
+        CutoffNeighbourhood(cutoff=Stillinger_Weber_PRB_31_5262_Si["a"]
+                            * Stillinger_Weber_PRB_31_5262_Si["sigma"]),
     ),
 
     "Tersoff3": (
         {1: TersoffBrennerPair(Tersoff_PRB_39_5566_Si_C)},
         {1: TersoffBrennerAngle(Tersoff_PRB_39_5566_Si_C)},
         CutoffNeighbourhood(cutoff=Tersoff_PRB_39_5566_Si_C["R2"]),
+    ),
+
+    "KumagaiPair+KumagaiAngle": (
+        {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)},
+        {1: KumagaiAngle(Kumagai_Comp_Mat_Sci_39_Si)},
+        CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
     ),
 }
 
@@ -261,7 +276,8 @@ def potential(request):
     return request.param
 
 
-@pytest.fixture(params=[5.3, 5.431])
+# @pytest.fixture(params=[5.3, 5.431])
+@pytest.fixture(params=[5.431])
 def distance(request):
     return request.param
 
@@ -271,24 +287,7 @@ def rattle(request):
     return request.param
 
 
-def tetrahedron(distance, rattle):
-    atoms = Atoms(
-        "H" * 4,
-        positions=[(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)],
-        cell=[10, 10, 10],
-    )
-
-    atoms.positions[:] *= distance
-    return atoms
-
-
-def diamond(distance, rattle):
-    atoms = Diamond("Si", size=[1, 1, 1], latticeconstant=distance)
-    atoms.rattle(rattle)
-    return atoms
-
-
-@pytest.fixture(params=[diamond, tetrahedron])
+@pytest.fixture(params=[diamond])
 def configuration(distance, rattle, potential, request):
     atoms = request.param(distance, rattle)
     atoms.calc = Manybody(*potential)
@@ -321,6 +320,7 @@ def test_nonaffine_forces(configuration):
 
 
 def test_hessian(configuration):
+    FIRE(configuration, logfile=None).run(fmax=1e-8, steps=400)
     H_ana = configuration.calc.get_property('hessian').todense()
     H_num = numerical_hessian(configuration, dx=1e-6).todense()
 
@@ -360,6 +360,7 @@ def test_elastic_constants(configuration):
                        np.where(C_num < 1e-6, 0.0, C_num),
                        rtol=1e-3, atol=1e-3)
 
+
 @pytest.mark.parametrize('cutoff', np.linspace(1.1, 20, 10))
 def test_pair_compare(cutoff):
     atoms = Atoms(
@@ -396,7 +397,9 @@ def test_energy_cutoff(cutoff):
         CutoffNeighbourhood(cutoff=cutoff)
     )
     newmb_e = atoms.get_potential_energy()
-    harmonic = lambda t: 0.5 * (t)**2
+
+    def harmonic(t):
+        return 0.5 * (t)**2
 
     # 90 angles with next-neighbor cutoff
     # next-neighbor pairs have 0 energy
