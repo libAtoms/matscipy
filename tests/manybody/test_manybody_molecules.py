@@ -67,13 +67,15 @@ def molecule():
     return MolecularNeighbourhood(
         Molecules(
             bonds_connectivity=[[0, 1], [1, 2]],
-            angles_connectivity=[[0, 1, 2]],
+            angles_connectivity=[[0, 1, 2]]
         )
     )
 
 
 def test_harmonic_bond(co2, molecule):
     k, r0 = 1, 0.5
+
+    print(molecule)
 
     calc = NiceManybody(HarmonicBond(r0, k), ZeroTriplet(), molecule)
     co2.calc = calc

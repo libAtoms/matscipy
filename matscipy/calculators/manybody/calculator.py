@@ -80,6 +80,8 @@ class Manybody(MatscipyCalculator):
         'hessian',
         'nonaffine_forces',
         'birch_coefficients',
+        'dynamical_matrix',
+        'elastic_constants',
     ]
 
     default_parameters = {}
@@ -91,7 +93,7 @@ class Manybody(MatscipyCalculator):
                  d11F, d22F, d12F,
                  d1G, d11G, d2G, d22G, d12G,
                  cutoff, neighbourhood: Neighbourhood = None):
-        Calculator.__init__(self)
+        super().__init__()
         self.atom_type = atom_type
         self.pair_type = pair_type
         self.F = F

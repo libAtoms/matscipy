@@ -111,8 +111,10 @@ def numerical_nonaffine_forces(atoms, d=1e-6):
 
     Parameters
     ----------
-    atoms: ase.Atoms
+    atoms : ase.Atoms
         Atomic configuration in a local or global minima.
+    d : float
+        Finite difference step size.
 
     """
     nat = len(atoms)

@@ -328,11 +328,13 @@ class PairPotential(MatscipyCalculator):
         "stress",
         "forces",
         "hessian",
+        "dynamical_matrix",
         "nonaffine_forces",
         "birch_coefficients",
         "nonaffine_elastic_contribution",
         "stress_elastic_contribution",
         "born_constants",
+        'elastic_constants',
     ]
 
     default_parameters = {}
@@ -423,7 +425,7 @@ class PairPotential(MatscipyCalculator):
 
     ###
 
-    def get_hessian(self, atoms, format="dense", divide_by_masses=False):
+    def get_hessian(self, atoms, format="sparse", divide_by_masses=False):
         """
         Calculate the Hessian matrix for a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
@@ -514,38 +516,6 @@ class PairPotential(MatscipyCalculator):
                 )
 
             return H
-
-        # Dense matrix format
-        elif format == "dense":
-            H = np.zeros((3 * nb_atoms, 3 * nb_atoms))
-            for atom in range(len(i_p)):
-                H[
-                    3 * i_p[atom] : 3 * i_p[atom] + 3,
-                    3 * j_p[atom] : 3 * j_p[atom] + 3,
-                ] += H_pcc[atom]
-
-            Hdiag_icc = np.empty((nb_atoms, 3, 3))
-            for x in range(3):
-                for y in range(3):
-                    Hdiag_icc[:, x, y] = -np.bincount(
-                        i_p, weights=H_pcc[:, x, y], minlength=nb_atoms
-                    )
-
-            Hdiag_ncc = np.zeros((3 * nb_atoms, 3 * nb_atoms))
-            for atom in range(nb_atoms):
-                Hdiag_ncc[
-                    3 * atom : 3 * atom + 3, 3 * atom : 3 * atom + 3
-                ] += Hdiag_icc[atom]
-
-            H += Hdiag_ncc
-
-            if divide_by_masses:
-                masses_p = (atoms.get_masses()).repeat(3)
-                H /= np.sqrt(masses_p.reshape(-1, 1) * masses_p.reshape(1, -1))
-                return H
-
-            else:
-                return H
 
         # Neighbour list format
         elif format == "neighbour-list":

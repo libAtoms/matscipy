@@ -24,19 +24,28 @@ from scipy.sparse.linalg import cg
 from ase.calculators.calculator import Calculator
 from numpy import deprecate
 
-from ..elasticity import Voigt_6_to_full_3x3_stress
+from ..elasticity import (
+    Voigt_6_to_full_3x3_stress,
+    nonaffine_elastic_contribution,
+)
+
 from ..numerical import numerical_nonaffine_forces
 
 from ..numpy_tricks import mabincount
 
 
 class MatscipyCalculator(Calculator):
+    def set_atoms(self, atoms):
+        """Set inner Atoms object."""
+        self.atoms = atoms.copy()
+
     def calculate(self, atoms, properties, system_changes):
         super().calculate(atoms, properties, system_changes)
 
         # Dispatching calls to special properties
         properties_map = {
             'hessian': self.get_hessian,
+            'dynamical_matrix': self.get_dynamical_matrix,
             'nonaffine_forces': self.get_nonaffine_forces,
             'born_constants': self.get_born_elastic_constants,
             'stress_elastic_contribution':
@@ -44,10 +53,32 @@ class MatscipyCalculator(Calculator):
             'birch_coefficients': self.get_birch_coefficients,
             'nonaffine_elastic_contribution':
             self.get_non_affine_contribution_to_elastic_constants,
+            'elastic_constants':
+            self.get_elastic_constants
         }
 
         for prop in filter(lambda p: p in properties, properties_map):
             self.results[prop] = properties_map[prop](atoms)
+
+    @staticmethod
+    def _virial(pair_distance_vectors, pair_forces):
+        r_pc = pair_distance_vectors
+        f_pc = pair_forces
+
+        return np.concatenate([
+            # diagonal components (xx, yy, zz)
+            np.einsum('pi,pi->i', r_pc, f_pc, optimize=True),
+
+            # off-diagonal (yz, xz, xy)
+            np.einsum('pi,pi->i', r_pc[:, (1, 0, 0)], f_pc[:, (2, 2, 1)],
+                      optimize=True)
+        ])
+
+    def get_dynamical_matrix(self, atoms):
+        """
+        Compute dynamical matrix (=mass weighted Hessian).
+        """
+        return self.get_hessian(atoms, format="sparse", divide_by_masses=True)
 
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
@@ -98,12 +129,18 @@ class MatscipyCalculator(Calculator):
         """
         H_pcc, i_p, j_p, dr_pc, abs_dr_p = self.get_hessian(atoms, 'neighbour-list')
 
-        # Second derivative
+        # Second derivative with respect to displacement gradient
         C_pabab = H_pcc.reshape(-1, 3, 1, 3, 1) * dr_pc.reshape(-1, 1, 3, 1, 1) * dr_pc.reshape(-1, 1, 1, 1, 3)
-        C_abab = -C_pabab.sum(axis=0) / (2*atoms.get_volume())
+        C_abab = -C_pabab.sum(axis=0) / (2 * atoms.get_volume())
 
-        # Symmetrize elastic constant tensor
-        C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        # This contribution is necessary in order to obtain second derivative with respect to Green-Lagrange
+        stress_ab = self.get_property('stress', atoms)
+        delta_ab = np.identity(3)
+
+        if stress_ab.shape != (3, 3):
+            stress_ab = Voigt_6_to_full_3x3_stress(stress_ab)
+
+        C_abab -= stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1)
 
         return C_abab
 
@@ -119,20 +156,26 @@ class MatscipyCalculator(Calculator):
 
         """
 
-        stress_ab = Voigt_6_to_full_3x3_stress(self.get_property('stress', atoms))
+        stress_ab = self.get_property('stress', atoms)
+
+        if stress_ab.shape != (3, 3):
+            stress_ab = Voigt_6_to_full_3x3_stress(stress_ab)
+
         delta_ab = np.identity(3)
 
-        # Term 1
-        C1_abab = -stress_ab.reshape(3, 3, 1, 1) * delta_ab.reshape(1, 1, 3, 3)
-        C1_abab = (C1_abab + C1_abab.swapaxes(0, 1) + C1_abab.swapaxes(2, 3) + C1_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
+        stress_contribution = 0.5 * sum(
+            np.einsum(einsum, stress_ab, delta_ab)
+            for einsum in (
+                    'am,bn',
+                    'an,bm',
+                    'bm,an',
+                    'bn,am',
+            )
+        )
 
-        # Term 2
-        C2_abab = (stress_ab.reshape(3, 1, 1, 3) * delta_ab.reshape(1, 3, 3, 1) + \
-                   stress_ab.reshape(3, 1, 3, 1) * delta_ab.reshape(1, 3, 1, 3) + \
-                   stress_ab.reshape(1, 3, 1, 3) * delta_ab.reshape(3, 1, 3, 1) + \
-                   stress_ab.reshape(1, 3, 3, 1) * delta_ab.reshape(3, 1, 1, 3))/4
+        stress_contribution -= np.einsum('ab,mn', stress_ab, delta_ab)
 
-        return C1_abab + C2_abab
+        return stress_contribution
 
     def get_birch_coefficients(self, atoms):
         """
@@ -156,7 +199,6 @@ class MatscipyCalculator(Calculator):
 
         return bornC_abab + stressC_abab
 
-
     def get_nonaffine_forces(self, atoms):
         """
         Compute the non-affine forces which result from an affine deformation of atoms.
@@ -176,6 +218,57 @@ class MatscipyCalculator(Calculator):
         naforces_icab = mabincount(i_p, naF_pcab, nat) - mabincount(j_p, naF_pcab, nat)
 
         return naforces_icab
+
+    def get_elastic_constants(self,
+                              atoms,
+                              cg_parameters={
+                                  "x0": None,
+                                  "tol": 1e-5,
+                                  "maxiter": None,
+                                  "M": None,
+                                  "callback": None,
+                                  "atol": 1e-5}):
+        """
+        Compute the elastic constants at zero temperature.
+        These are sum of the born, the non-affine and the stress contribution.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Atomic configuration in a local or global minima.
+
+        cg_parameters: dict
+            Dictonary for the conjugate-gradient solver.
+
+            x0: {array, matrix}
+                Starting guess for the solution.
+
+            tol/atol: float, optional
+                Tolerances for convergence, norm(residual) <= max(tol*norm(b), atol).
+
+            maxiter: int
+                Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.
+
+            M: {sparse matrix, dense matrix, LinearOperator}
+                Preconditioner for A.
+
+            callback: function
+                User-supplied function to call after each iteration.
+        """
+        if self.atoms is None:
+            self.atoms = atoms
+
+        # Born (affine) elastic constants
+        calculator = self
+        C = calculator.get_born_elastic_constants(atoms)
+
+        # Stress contribution to elastic constants
+        C += calculator.get_stress_contribution_to_elastic_constants(atoms)
+
+        # Non-affine contribution
+        C += nonaffine_elastic_contribution(atoms, cg_parameters=cg_parameters)
+
+        return C
 
     @deprecate(new_name="elasticity.nonaffine_elastic_contribution")
     def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "tol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
