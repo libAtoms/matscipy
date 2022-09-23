@@ -450,7 +450,7 @@ class Manybody(MatscipyCalculator):
                                              term_3_tXcab)
 
         # Term 4
-        # Here we have to sub-terms:
+        # Here we have two sub-terms:
         #  - one sums over X in the inner loop and has pi_{ij|n}
         #    => sub-term 1 (defined on pairs)
         #  - one has pi_{X|n}
@@ -582,7 +582,8 @@ class Manybody(MatscipyCalculator):
         H_pcc += self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, ddp_dt_rij_rX)
 
-        H_pcc -= self._assemble_triplet_to_pair(tr_p[ij_t], ddp_dt_rij_rX[:, 0], nb_pairs)
+        H_pcc -= self._assemble_triplet_to_pair(tr_p[ij_t], ddp_dt_rij_rX[:, 0],
+                                                nb_pairs)
 
         # Term 5
         ddpddxi = ddphi_cp[1]
@@ -590,17 +591,23 @@ class Manybody(MatscipyCalculator):
         dtdRX = dtheta_qt
 
         # Pair
-        H_pcc += ein('p,p,p,pa,pb->pab', -2 * ddphi_cp[1],
-                                        self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs),
-                                        self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs),
-                                        r_pc, r_pc)
+        dtdRp = self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs)
+        H_pcc += ein('p,p,p,pa,pb->pab',
+                     -2 * ddphi_cp[1], dtdRp, dtdRp, r_pc, r_pc)
 
         # Triplet
         dtdRx_rx = ein('Xt,tXa->tXa', dtdRX, r_tqc)
-        ddp_dtdRx_rx_dtdRy_ry = ein('t,tXa,tYb->tXYab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx, nb_pairs)[ij_t], dtdRx_rx)
+        ddp_dtdRx_rx_dtdRy_ry = ein(
+            't,tXa,tYb->tXYab',
+            2 * ddpddxi,
+            self._assemble_triplet_to_pair(ij_t, dtdRx_rx, nb_pairs)[ij_t],
+            dtdRx_rx
+        )
 
-        H_pcc += self.sum_X_sum_ijk_tau_ij_XOR_X_mn(nb_pairs, (ij_t, ik_t, jk_t),
-                                               tr_p, ddp_dtdRx_rx_dtdRy_ry[:, 0])
+        H_pcc += self.sum_X_sum_ijk_tau_ij_XOR_X_mn(
+            nb_pairs, (ij_t, ik_t, jk_t),
+            tr_p, ddp_dtdRx_rx_dtdRy_ry[:, 0]
+        )
 
         # Quadruplets
         H_pcc -= self._assemble_triplet_to_pair(ik_t, ddp_dtdRx_rx_dtdRy_ry[:, 1, 1], nb_pairs)
@@ -608,8 +615,12 @@ class Manybody(MatscipyCalculator):
         H_pcc -= self._assemble_triplet_to_pair(ik_t, ddp_dtdRx_rx_dtdRy_ry[:, 1, 2], nb_pairs)
         H_pcc -= self._assemble_triplet_to_pair(tr_p[jk_t], ddp_dtdRx_rx_dtdRy_ry[:, 2, 1], nb_pairs)
 
-        H_pcc += ein('p,pa,pb->pab', 2 * ddphi_cp[1], self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs),
-                                                      self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs))
+        H_pcc += ein(
+            'p,pa,pb->pab',
+            2 * ddphi_cp[1],
+            self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs),
+            self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs)
+        )
 
         # Deal with ij_im / ij_in expression
         for im_in in range(nb_triplets):
@@ -618,31 +629,40 @@ class Manybody(MatscipyCalculator):
             pair_mn = jk_t[im_in]
 
             for t in range(first_p[pair_im], first_p[pair_im + 1]):
-
                 pair_ij = ik_t[t]
 
-                if pair_ij != pair_im and pair_ij != pair_in:
-                    rim_c = r_pc[pair_im]
-                    rin_c = r_pc[pair_in]
-                    rsq_im = np.sum(r_pc[pair_im]**2)
-                    rsq_in = np.sum(r_pc[pair_in]**2)
-                    rsq_ij = np.sum(r_pc[pair_ij]**2)
+                if pair_ij == pair_im or pair_ij == pair_in:
+                    continue
 
-                    # Distances jm and jn
-                    rjn_c = r_pc[pair_in] - r_pc[pair_ij]
-                    rjm_c = r_pc[pair_im] - r_pc[pair_ij]
-                    rsq_jm = np.sum(rjm_c**2)
-                    rsq_jn = np.sum(rjn_c**2)
+                rij_c = r_pc[pair_ij]
+                rsq_ij = np.sum(rij_c**2)
 
-                    # TODO: Assumes monoatomic system at the moment
-                    H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[1] * rim_c,
-                                                                      self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[1] * rin_c)
+                ddphi_t5 = ddphi_cp[1][pair_ij]
 
-                    H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[2] * rjm_c,
-                                                                      self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[2] * rjn_c)
+                rim_c = r_pc[pair_im]
+                rin_c = r_pc[pair_in]
+                rsq_im = np.sum(rim_c**2)
+                rsq_in = np.sum(rin_c**2)
 
-                    H_pcc[pair_mn] += 2 * ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[1] * rim_c,
-                                                                          self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[2] * rjn_c)
+                # Distances jm and jn
+                rjn_c = rin_c - rij_c
+                rjm_c = rim_c - rij_c
+                rsq_jm = np.sum(rjm_c**2)
+                rsq_jn = np.sum(rjn_c**2)
+
+                # TODO: Assumes monoatomic system at the moment
+                dtheta_t5_mm = self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)
+                dtheta_t5_nn = self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)
+
+                H5 = np.outer(dtheta_t5_mm[1] * rim_c, dtheta_t5_nn[1] * rin_c)
+                H5 += np.outer(dtheta_t5_mm[2] * rjm_c, dtheta_t5_nn[2] * rjn_c)
+                H5 += 2 * np.outer(dtheta_t5_mm[1] * rim_c,
+                                   dtheta_t5_nn[2] * rjn_c)
+                H5 *= ddphi_t5
+
+                H_pcc[pair_mn] += H5
+
+
         # Symmetrization with H_nm
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
 
