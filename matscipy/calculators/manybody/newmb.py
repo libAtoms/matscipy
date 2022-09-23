@@ -11,11 +11,12 @@ from ...calculators.calculator import MatscipyCalculator
 from ...neighbours import Neighbourhood, first_neighbours, find_indices_of_reversed_pairs
 from ...numpy_tricks import mabincount
 from ...elasticity import full_3x3_to_Voigt_6_stress
+from copy import deepcopy
 
 
 __all__ = ["Manybody"]
 
-# Broacast slices
+# Broadcast slices
 _c = np.s_[..., np.newaxis]
 _cc = np.s_[..., np.newaxis, np.newaxis]
 _ccc = np.s_[..., np.newaxis, np.newaxis, np.newaxis]
@@ -493,13 +494,32 @@ class Manybody(MatscipyCalculator):
         """Compute hessian."""
         cutoff = self.neighbourhood.cutoff
 
-        # We nned twice the cutoff to get jk
+        # Handling heterogeneous cutoffs
+        double_cutoff = deepcopy(cutoff)
+
+        if isinstance(cutoff, defaultdict):
+            double_cutoff.default_factory = lambda: 2 * cutoff.default_factory()
+
+        if isinstance(double_cutoff, dict):
+            for k in double_cutoff:
+                double_cutoff[k] *= 2
+        else:
+            double_cutoff *= 2
+
+        # We need twice the cutoff to get jk
         i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(
-            atoms, 'ijdD', cutoff=2*cutoff
+            atoms, 'ijdD', cutoff=double_cutoff
         )
 
-        # TODO: make sure this works with different atom types
-        mask = r_p > cutoff
+        if isinstance(cutoff, dict):
+            pairwise_cutoffs = np.array([
+                cutoff[pair] for pair in zip(atoms.numbers[i_p],
+                                             atoms.numbers[j_p])
+            ])
+        else:
+            pairwise_cutoffs = cutoff
+
+        mask = r_p > pairwise_cutoffs
 
         tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
 
