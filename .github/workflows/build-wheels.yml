@@ -1,0 +1,74 @@
+name: Build wheels
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+    tags:
+      - v*
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.9.0
+
+      - name: Build wheels
+        run: |
+           python -m cibuildwheel --output-dir wheelhouse
+        env:
+           CIBW_SKIP: cp27-* cp35-* cp36-* cp311-* pp*
+#           CIBW_BEFORE_ALL_MACOS: "brew install gcc && brew unlink gfortran && brew link gfortran"
+#           CIBW_BEFORE_ALL_LINUX: "which yum && yum install -y gcc-gfortran || apk add gfortran"
+           CIBW_BEFORE_BUILD: "pip install oldest-supported-numpy"
+           CIBW_TEST_COMMAND: "cd {project}/examples; make clean; make test"
+           CIBW_TEST_SKIP: "*-macosx_arm64"
+           
+      # Uncomment to get SSH access for testing
+      - name: Setup tmate session
+        if: failure()
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 15
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+      - name: Release wheels
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: wheelhouse/*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check tag
+        id: check-tag
+        run: |
+          if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo ::set-output name=match::true
+          fi
+      - name: Deploy to PyPI
+        if: steps.check-tag.outputs.match == 'true'
+        run: |
+          pip install twine
+          twine upload wheelhouse/*.whl
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
