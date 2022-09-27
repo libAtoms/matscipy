@@ -37,8 +37,8 @@ jobs:
            CIBW_SKIP: cp27-* cp35-* cp36-* cp311-* pp*
 #           CIBW_BEFORE_ALL_MACOS: "brew install gcc && brew unlink gfortran && brew link gfortran"
 #           CIBW_BEFORE_ALL_LINUX: "which yum && yum install -y gcc-gfortran || apk add gfortran"
-           CIBW_BEFORE_BUILD: "pip install oldest-supported-numpy"
-           CIBW_TEST_COMMAND: "cd {project}/examples; make clean; make test"
+           CIBW_BEFORE_BUILD: "pip install oldest-supported-numpy pytest"
+           CIBW_TEST_COMMAND: "cd {project}/test; pytest -v --junitxml=report.xml --durations=20"
            CIBW_TEST_SKIP: "*-macosx_arm64"
            
       # Uncomment to get SSH access for testing
