@@ -28,6 +28,7 @@
 #include <numpy/arrayobject.h>
 
 #include <limits.h>
+#include <float.h> 
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -39,8 +40,7 @@
 
 /* Map i back to the interval [0,n) by shifting by integer multiples of n */
 int
-bin_wrap(int i, int n)
-{
+bin_wrap(int i, int n) {
     while (i < 0)  i += n;
     while (i >= n)  i -= n;
     return i;
@@ -318,9 +318,17 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
 #if PY_MAJOR_VERSION >= 3
     PyObject *py_bquantities = PyUnicode_AsASCIIString(py_quantities);
+    if (!py_bquantities) {
+        PyErr_SetString(PyExc_TypeError, "Conversion to ASCII string failed.");
+        goto fail;
+    }
     char *quantities = PyBytes_AS_STRING(py_bquantities);
 #else
-    char *quantities = PyString_AS_STRING(py_quantities);
+    char *quantities = PyString_AsString(py_quantities);
+    if (!quantities) {
+        PyErr_SetString(PyExc_TypeError, "Conversion to string failed.");
+        goto fail;
+    }
 #endif
     i = 0;
     npy_intp dims[2] = { neighsize, 3 };
@@ -611,38 +619,37 @@ py_neighbour_list(PyObject *self, PyObject *args)
     Py_DECREF(py_inv_cell);
     Py_DECREF(py_pbc);
     Py_DECREF(py_r);
-    if (py_types)  Py_DECREF(py_types);
+    Py_XDECREF(py_types);
 
     return py_ret;
 
     fail:
     /* Cleanup. Sorry for the goto. */
 #if PY_MAJOR_VERSION >= 3
-    Py_DECREF(py_bquantities);
+    Py_XDECREF(py_bquantities);
 #endif
     Py_XDECREF(py_cutoffs);
-    Py_DECREF(py_cell_origin);
-    Py_DECREF(py_cell);
-    Py_DECREF(py_inv_cell);
-    Py_DECREF(py_pbc);
-    Py_DECREF(py_r);
-    if (py_types)  Py_DECREF(py_types);
+    Py_XDECREF(py_cell_origin);
+    Py_XDECREF(py_cell);
+    Py_XDECREF(py_inv_cell);
+    Py_XDECREF(py_pbc);
+    Py_XDECREF(py_r);
+    Py_DECREF(py_types);
 
     if (seed)  free(seed);
     if (next)  free(next);
     if (cutoffs_sq)  free(cutoffs_sq);
-    if (py_first)  Py_DECREF(py_first);
-    if (py_secnd)  Py_DECREF(py_secnd);
-    if (py_distvec)  Py_DECREF(py_distvec);
-    if (py_absdist)  Py_DECREF(py_absdist);
-    if (py_shift)  Py_DECREF(py_shift);
+    Py_XDECREF(py_first);
+    Py_XDECREF(py_secnd);
+    Py_XDECREF(py_distvec);
+    Py_XDECREF(py_absdist);
+    Py_XDECREF(py_shift);
     return NULL;
 }
 
 /*
  * Construct seed array that points to start of rows: O(n)
  */
-
 void
 first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed)
 {
@@ -651,16 +658,23 @@ first_neighbours(int n, int nn, npy_int *i_n, npy_int *seed)
     for (k = 0; k < n; k++) {
         seed[k] = -1;
     }
-    seed[n] = nn;
 
     seed[i_n[0]] = 0;
 
     for (k = 1; k < nn; k++) {
         if (i_n[k] != i_n[k-1]) {
-            seed[i_n[k]] = k;
+            int l;
+            for (l = i_n[k-1]+1; l <= i_n[k]; l++) {
+                seed[l] = k;
+            }
         }
     }
+    // seed[n] = nn;
+    for (k = i_n[nn-1]+1; k <= n; k++) {
+        seed[k] = nn;
+    }
 }
+
 
 /*
  * Python wrapper for seed array calculation
@@ -688,6 +702,168 @@ py_first_neighbours(PyObject *self, PyObject *args)
 
     /* Construct seed array */
     first_neighbours(n, nn, PyArray_DATA(py_i), PyArray_DATA(py_seed));
+
+    return py_seed;
+}
+
+/*
+ * Python wrapper for triplet list calculation
+ */
+
+PyObject *
+py_triplet_list(PyObject *self, PyObject *args)
+{
+    /* parse python args */
+    PyObject *py_fi, *py_absdist = NULL, *py_cutoff = NULL;
+    npy_double *absdist = NULL;
+
+    if (!PyArg_ParseTuple(args, "O|OO", &py_fi, &py_absdist, &py_cutoff)) {
+        return NULL;
+    }
+
+
+    npy_int *fi = NULL, *ij_t = NULL, *ik_t = NULL, *jk_t = NULL;
+
+    py_fi = PyArray_FROMANY(py_fi, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    fi = PyArray_DATA((PyArrayObject *) py_fi);
+
+    if (!fi) return NULL;
+
+    double cutoff = DBL_MAX;
+
+    if (py_cutoff || py_absdist) {
+        if (!py_absdist || !py_cutoff) {
+    	    PyErr_SetString(PyExc_TypeError, "Cutoff and distances must "
+                                                    "be specified together.");
+    	    return NULL;
+    	}
+        py_absdist = PyArray_FROMANY(py_absdist, NPY_DOUBLE,
+				         1, 1, NPY_C_CONTIGUOUS);
+       	if (!py_absdist) {
+            PyErr_SetString(PyExc_TypeError, "Distances must be an "
+                                             "array of floats.");
+            return NULL;
+	    }
+    	absdist = PyArray_DATA((PyArrayObject *) py_absdist);
+        // absdist_length = (int) PyArray_SIZE(py_absdist);
+    	if (PyFloat_Check(py_cutoff)) {
+        	cutoff = PyFloat_AsDouble(py_cutoff);
+        	py_cutoff = NULL;
+   	    }
+    	else {
+            PyErr_SetString(PyExc_NotImplementedError, "Cutoff must be a single "
+                                             "float.");
+            return NULL;
+    	}
+    }
+
+    /* guess initial triplet list size */
+    npy_intp dim = (int) PyArray_SIZE(py_fi);
+    dim *= 2;
+
+    /* initialize triplet lists */
+    PyObject *py_ij_t = PyArray_ZEROS(1, &dim, NPY_INT, 0);
+    ij_t = PyArray_DATA((PyArrayObject *) py_ij_t);
+    PyObject *py_ik_t = PyArray_ZEROS(1, &dim, NPY_INT, 0);
+    ik_t = PyArray_DATA((PyArrayObject *) py_ik_t);
+
+    int init_length = (int) PyArray_SIZE(py_fi);
+
+    /* compute the triplet list */
+    int index_trip = 0;
+    for (int r = 0; r < (init_length - 1); r++) {
+        for (int ij= fi[r]; ij < fi[r+1]; ij++) {
+            for (int ik = fi[r]; ik < fi[r+1]; ik++) {
+                /* resize array if necessary */
+                int length_trip = (int) PyArray_SIZE(py_ij_t);
+                if (index_trip >= length_trip) {
+                    length_trip *= 2;
+                    if (py_ij_t && !(ij_t = resize_array(py_ij_t, length_trip)))
+                        goto fail;
+                    if (py_ik_t && !(ik_t = resize_array(py_ik_t, length_trip)))
+                        goto fail;
+                }
+        		if ((ij != ik)) {
+        		    if (absdist) { 
+            		    if ((absdist[ij] >= cutoff) || (absdist[ik] >= cutoff)) {
+        			        continue; 
+        			    };
+        		    }
+               	    ij_t[index_trip] = ij;
+                    ik_t[index_trip++] = ik;
+        	    }
+            }
+        }
+    }
+
+    /* set final array sizes of the triplet lists */
+    if (py_ij_t && !(ij_t = resize_array(py_ij_t, index_trip))) goto fail;
+    if (py_ik_t && !(ik_t = resize_array(py_ik_t, index_trip))) goto fail;
+
+    npy_intp d1 = (int) PyArray_SIZE(py_ij_t);
+    PyObject *py_jk_t = PyArray_ZEROS(1, &d1, NPY_INT, 0);
+    jk_t = PyArray_DATA((PyArrayObject *) py_jk_t);
+    index_trip++;
+
+    // TODO: ask Lars and/or use an ordered j_n list
+    /*for (int t = 0; t < index_trip; t++) {
+    	int ij = ij_t[t];
+	int ik = ik_t[t];
+	continue;
+    } */
+
+    /* create return tuple */
+    PyObject *py_ret = PyTuple_New(2);
+    PyTuple_SetItem(py_ret, 0, py_ij_t);
+    PyTuple_SetItem(py_ret, 1, py_ik_t);
+
+    return py_ret;
+
+    fail:
+    /* Cleanup */
+    if (py_fi)  Py_DECREF(py_fi);
+    if (py_cutoff)  Py_DECREF(py_cutoff);
+    if (py_ij_t)  Py_DECREF(py_ij_t);
+    if (py_ik_t)  Py_DECREF(py_ik_t);
+    return NULL;
+}
+
+/*
+ *  construct array that points to the index jumps of a continous, sorted array
+ *  starting with 0 at index 0
+ */
+
+PyObject*
+py_get_jump_indicies(PyObject *self, PyObject *args)
+{
+    PyObject *py_sorted;
+
+    if (!PyArg_ParseTuple(args, "O", &py_sorted))
+        return NULL;
+
+    /* Make sure our arrays are contiguous */
+    py_sorted = PyArray_FROMANY(py_sorted, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    if (!py_sorted) return NULL;
+
+    /* sorted imput array size */
+    int nn = (int) PyArray_SIZE(py_sorted);
+
+    /* calculate number of jumps */
+    npy_int *sorted = PyArray_DATA((PyArrayObject *) py_sorted);
+    int n = 0;
+    for (int i = 0; i < nn-1; i++) {
+            if (sorted[i] != sorted[i+1]) {
+            n++;
+        }
+    }
+    n++;
+
+    /* Create seed array of length n */
+    npy_intp n1 = n+1;
+    PyObject *py_seed = PyArray_ZEROS(1, &n1, NPY_INT, 0);
+
+    /* Construct seed array */
+    first_neighbours(n, nn, sorted, PyArray_DATA(py_seed));
 
     return py_seed;
 }

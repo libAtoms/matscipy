@@ -1,10 +1,10 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
-#                  Wolfram Nöhring, University of Freiburg
+# Copyright 2019-2020 Wolfram G. Nöhring (U. Freiburg)
+#           2015, 2019 Lars Pastewka (U. Freiburg)
+#           2015 Adrien Gola (KIT)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
+#
 """EAM calculator"""
 
 import numpy as np
@@ -59,7 +59,7 @@ def _make_derivative(x, n=1):
 ###
 
 class EAM(Calculator):
-    implemented_properties = ['energy', 'stress', 'forces']
+    implemented_properties = ['energy', 'free_energy', 'stress', 'forces']
     default_parameters = {}
     name = 'EAM'
        
@@ -559,7 +559,7 @@ class EAM(Calculator):
     
     def _calculate_hessian_embedding_term_1(self, nat, ddemb_i, df_e_ni, 
         divide_by_masses=False, masses_i=None, symmetry_check=False):
-        """Calculate term 1 in the embedding part of the Hessian matrix.
+        r"""Calculate term 1 in the embedding part of the Hessian matrix.
 
         .. math::
 
@@ -601,7 +601,7 @@ class EAM(Calculator):
     
     def _calculate_hessian_embedding_term_2(self, nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni, 
         divide_by_masses=False, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 2 in the embedding part of the Hessian matrix.
+        r"""Calculate term 2 in the embedding part of the Hessian matrix.
 
         .. math::
 
@@ -657,7 +657,7 @@ class EAM(Calculator):
     
     def _calculate_hessian_embedding_term_3(self, nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni, 
         divide_by_masses=False, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 3 in the embedding part of the Hessian matrix.
+        r"""Calculate term 3 in the embedding part of the Hessian matrix.
 
         .. math::
 
@@ -715,7 +715,7 @@ class EAM(Calculator):
     def _calculate_hessian_embedding_terms_4_and_5(
         self, nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 4 and 5 in the embedding part of the Hessian matrix.
+        r"""Calculate term 4 and 5 in the embedding part of the Hessian matrix.
 
         .. math::
 
@@ -787,7 +787,7 @@ class EAM(Calculator):
     def _calculate_hessian_embedding_terms_6_and_7(
         self, nat, i_n, j_n, first_i, abs_dr_n, eye_minus_outer_e_ncc, demb_i_n, demb_j_n, df_n, df_i_n,
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 6 and 7 in the embedding part of the Hessian matrix.
+        r"""Calculate term 6 and 7 in the embedding part of the Hessian matrix.
 
         .. math::
 
@@ -864,7 +864,7 @@ class EAM(Calculator):
     
     def _calculate_hessian_embedding_term_8(self, nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 8 in the embedding part of the Hessian matrix.
+        r"""Calculate term 8 in the embedding part of the Hessian matrix.
 
         .. math::
 

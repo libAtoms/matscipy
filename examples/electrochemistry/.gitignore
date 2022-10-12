@@ -1,0 +1,8 @@
+*.png
+.ipynb_checkpoints
+*.txt
+*.npz
+**/jitfailure*
+*.xyz
+*.lammps
+*.ipynb

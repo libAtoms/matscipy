@@ -1,9 +1,10 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright 2014-2015, 2017, 2021 Lars Pastewka (U. Freiburg)
+#           2014-2016, 2018, 2020-2021 James Kermode (Warwick U.)
+#           2015-2017 Punit Patel (Warwick U.)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,9 +18,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
-
-from __future__ import print_function
+#
 
 import math
 import warnings
@@ -27,6 +26,7 @@ import time
 
 import numpy as np
 from numpy.linalg import inv
+
 try:
     from scipy.optimize.nonlin import NoConvergence
     from scipy.optimize import brentq, leastsq, minimize, root
@@ -915,8 +915,6 @@ class SinclairCrack:
         self.update_atoms()
 
     def get_crack_tip_force(self, forces=None, mask=None):
-        assert self.variable_alpha
-
         # V_alpha = -\nabla_1 U_CLE(alpha)
         tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
@@ -2034,7 +2032,7 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
     clf()
     for i, (ii, jj), label in zip(range(3),
                                   [(0,0), (1,1), (0,1)],
-                                  ['\sigma_{xx}', r'\sigma_{yy}', r'\sigma_{xy}']):
+                                  [r'\sigma_{xx}', r'\sigma_{yy}', r'\sigma_{xy}']):
         subplot(3,3,i+1)
         gca().set_aspect('equal')
         contourf(X, Y, grid_sigma[...,i]*GPA, contours[i])

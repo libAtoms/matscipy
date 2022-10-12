@@ -1,3 +1,24 @@
+#
+# Copyright 2018, 2020-2021 Petr Grigorev (Warwick U.)
+#           2020 James Kermode (Warwick U.)
+#           2019 Lars Pastewka (U. Freiburg)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 import os
 import unittest
 import matscipytest
@@ -24,6 +45,11 @@ try:
     import atomman
 except ImportError:
     print("atomman not found: skipping some tests")
+
+try:
+    import ovito
+except ImportError:
+    print("ovito not found: skipping some tests")
 
 
 class TestDislocation(matscipytest.MatSciPyTestCase):
@@ -109,10 +135,11 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
 
     # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
-    @unittest.skipIf("lammps" not in sys.modules,
-                     "LAMMPS installation is required and thus is not good for automated testing")
+    @unittest.skipIf("lammps" not in sys.modules or
+                     "atomman" not in sys.modules,
+                     "LAMMPS installation and Stroh solution are required")
     def test_screw_cyl_lammpslib(self):
-        """Test make_crew_cyl() and call lammpslib caclulator.
+        """Test make_crew_cyl() and call lammpslib calculator.
 
         If lammps crashes, check "lammps.log" file in the tests directory
         See lammps and ASE documentation on how to make lammpslib work
@@ -142,14 +169,14 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                                                      cylinder_r=cylinder_r,
                                                      l_extend=center)
 
-        disloc_ini.set_calculator(lammps)
+        disloc_ini.calc = lammps
         ini_toten = disloc_ini.get_potential_energy()
         self.assertAlmostEqual(ini_toten, target_toten, places=4)
 
         disloc_fin, __, __ = sd.make_screw_cyl(alat, C11, C12, C44,
                                                cylinder_r=cylinder_r,
                                                center=center)
-        disloc_fin.set_calculator(lammps)
+        disloc_fin.calc = lammps
         fin_toten = disloc_fin.get_potential_energy()
         self.assertAlmostEqual(fin_toten, target_toten, places=4)
         os.remove("lammps.log")
@@ -237,7 +264,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         alat = 3.14
         C11 = 523.0
-        C12 = 202.0
+        C12 = 202.05
         C44 = 160.49
 
         # A = 2. * C44 / (C11 - C12)
@@ -255,8 +282,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         u_volterra = np.arctan2(y, x) * burgers / (2.0 * np.pi)
 
         # compare x and y components with zeros - isotropic solution
-        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 0], tol=1e-5)
-        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 1], tol=1e-5)
+        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 0], tol=1e-4)
+        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 1], tol=1e-4)
         #  compare z component with simple Volterra solution
         self.assertArrayAlmostEqual(u_volterra, u_stroh[:, 2])
 
@@ -340,6 +367,267 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         sliced_left_kink, _ = sd.slice_long_dislo(left_kink, kink_bulk, b)
         # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
+
+    def check_disloc(self, cls, ref_angle, structure="BCC", test_u=True,
+                     burgers=0.5 * np.array([1.0, 1.0, 1.0]), tol=10.0):
+        alat = 3.14339177996466
+        C11 = 523.0266819809012
+        C12 = 202.1786296941397
+        C44 = 160.88179872237012
+
+        d = cls(alat, C11, C12, C44)
+        bulk, disloc = d.build_cylinder(20.0)
+        assert len(bulk) == len(disloc)
+
+        if test_u:
+            # test the consistency
+            # displacement = disloc.positions - bulk.positions
+            stroh_displacement = d.displacements(bulk.positions,
+                                                 np.diag(bulk.cell) / 2.0,
+                                                 self_consistent=d.self_consistent)
+
+            displacement = disloc.positions - bulk.positions
+
+            np.testing.assert_array_almost_equal(displacement, stroh_displacement)
+
+        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
+        assert len(results) == 1
+        position, b, line, angle = results[0]
+        self.assertArrayAlmostEqual(np.abs(b), burgers)  # signs can change
+
+        err = angle - ref_angle
+        print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
+        assert abs(err) < tol
+
+    @unittest.skipIf("atomman" not in sys.modules or 
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_screw_dislocation(self):
+        self.check_disloc(sd.BCCScrew111Dislocation, 0.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or 
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge_dislocation(self):        
+        self.check_disloc(sd.BCCEdge111Dislocation, 90.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge100_dislocation(self,):
+        self.check_disloc(sd.BCCEdge100Dislocation, 90.0,
+                          burgers=np.array([1.0, 0.0, 0.0]))
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge100110_dislocation(self,):
+        self.check_disloc(sd.BCCEdge100110Dislocation, 90.0,
+                          burgers=np.array([1.0, 0.0, 0.0]))
+
+    @unittest.skipIf("atomman" not in sys.modules or 
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_mixed_dislocation(self):
+        self.check_disloc(sd.BCCMixed111Dislocation, 70.5)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_30degree_diamond_partial_dislocation(self,):
+        self.check_disloc(sd.DiamondGlide30degreePartial, 30.0,
+                          structure="Diamond",
+                          burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_90degree_diamond_partial_dislocation(self,):
+        self.check_disloc(sd.DiamondGlide90degreePartial, 90.0,
+                          structure="Diamond",
+                          burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]))
+
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_screw_diamond_dislocation(self,):
+        self.check_disloc(sd.DiamondGlideScrew, 0.0,
+                          structure="Diamond", test_u=False,
+                          burgers=(1.0 / 2.0) * np.array([0.0, 1.0, 1.0]))
+
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_60degree_diamond_dislocation(self,):
+        self.check_disloc(sd.DiamondGlide60Degree, 60.0,
+                          structure="Diamond", test_u=False,
+                          burgers=(1.0 / 2.0) * np.array([1.0, 0.0, 1.0]))
+
+    def check_glide_configs(self, cls, structure="BCC"):
+        alat = 3.14339177996466
+        C11 = 523.0266819809012
+        C12 = 202.1786296941397
+        C44 = 160.88179872237012
+
+        d = cls(alat, C11, C12, C44)
+        bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40)
+
+        assert len(bulk) == len(disloc_ini)
+        assert len(disloc_ini) == len(disloc_fin)
+
+        assert all(disloc_ini.get_array("fix_mask") ==
+                   disloc_fin.get_array("fix_mask"))
+
+        results = sd.ovito_dxa_straight_dislo_info(disloc_ini,
+                                                   structure=structure)
+        assert len(results) == 1
+        ini_x_position = results[0][0][0]
+
+        results = sd.ovito_dxa_straight_dislo_info(disloc_fin,
+                                                   structure=structure)
+        assert len(results) == 1
+        fin_x_position = results[0][0][0]
+        # test that difference between initial and final positions are
+        # roughly equal to glide distance.
+        # Since the configurations are unrelaxed dxa gives
+        # a very rough estimation (especially for edge dislcoations)
+        # thus tolerance is taken to be ~1 Angstom
+        np.testing.assert_almost_equal(fin_x_position - ini_x_position,
+                                       d.glide_distance, decimal=0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_screw_glide(self):
+        self.check_glide_configs(sd.BCCScrew111Dislocation)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge_glide(self):
+        self.check_glide_configs(sd.BCCEdge111Dislocation)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_mixed_glide(self):
+        self.check_glide_configs(sd.BCCMixed111Dislocation)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge100_glide(self):
+        self.check_glide_configs(sd.BCCEdge100Dislocation)
+
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge100110_glide(self):
+            self.check_glide_configs(sd.BCCEdge100110Dislocation)
+
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_30degree_diamond_partial_glide(self):
+            self.check_glide_configs(sd.DiamondGlide30degreePartial,
+                                     structure="Diamond")
+
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_90degree_diamond_partial_glide(self):
+            self.check_glide_configs(sd.DiamondGlide90degreePartial,
+                                     structure="Diamond")
+
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_screw_diamond_partial_glide(self):
+            self.check_glide_configs(sd.DiamondGlideScrew,
+                                     structure="Diamond")
+
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_60degree_diamond_partial_glide(self):
+            self.check_glide_configs(sd.DiamondGlide60Degree,
+                                     structure="Diamond")
+
+    def test_fixed_line_atoms(self):
+
+        from ase.build import bulk
+
+        pot_name = "w_eam4.fs"
+        calc_EAM = EAM(pot_name)
+        # slightly pressurised cell to avoid exactly zero forces
+        W = bulk("W", a=0.9 * 3.143392, cubic=True)
+
+        W = W * [2, 2, 2]
+        del W[0]
+        W.calc = calc_EAM
+        for line_direction in [[1, 0, 0],
+                               [0, 1, 0],
+                               [0, 0, 1],
+                               [1, 1, 0],
+                               [0, 1, 1],
+                               [1, 0, 1],
+                               [1, 1, 1]]:
+
+            fixed_mask = W.positions.T[0] > W.cell[0, 0] / 2.0 - 0.1
+            W.set_constraint(sd.FixedLineAtoms(fixed_mask, line_direction))
+
+            line_dir_mask = np.array(line_direction, dtype=bool)
+            # forces in direction other than line dir are zero
+            assert (W.get_forces()[fixed_mask].T[~line_dir_mask] == 0.0).all()
+            # forces in line direction are non zero
+            assert (W.get_forces()[fixed_mask].T[line_dir_mask] != 0.0).all()
+            # forces on unconstrained atoms are non zero
+            assert (W.get_forces()[~fixed_mask] != 0.0).all()
+
+
+    @unittest.skipIf("lammps" not in sys.modules,
+                     "LAMMPS installation is required and thus is not good for automated testing")
+    def test_gamma_line(self):
+
+        # eam_4 parameters
+        eam4_elastic_param = 3.143392, 527.025604, 206.34803, 165.092165
+        dislocation = sd.BCCEdge111Dislocation(*eam4_elastic_param)
+        unit_cell = dislocation.unit_cell
+
+        pot_name = "w_eam4.fs"
+        # calc_EAM = EAM(pot_name) eam calculator is way too slow
+        lammps = LAMMPSlib(lmpcmds=["pair_style eam/fs",
+                                    "pair_coeff * * %s W" % pot_name],
+                           atom_types={'W': 1}, keep_alive=True,
+                           log_file="lammps.log")
+
+        unit_cell.calc = lammps
+        shift, E = sd.gamma_line(unit_cell, surface=1, factor=5)
+
+        # target values corresponding to fig 2(a) of
+        # J.Phys.: Condens.Matter 25(2013) 395502
+        # http://iopscience.iop.org/0953-8984/25/39/395502
+        target_E = [0.00000000e+00, 1.57258669e-02,
+                    5.31974533e-02, 8.01241031e-02,
+                    9.37911067e-02, 9.54010452e-02,
+                    9.37911067e-02, 8.01241032e-02,
+                    5.31974533e-02, 1.57258664e-02,
+                    4.33907234e-14]
+
+        target_shift = [0., 0.27222571, 0.54445143, 0.81667714,
+                        1.08890285, 1.36112857, 1.63335428,
+                        1.90557999, 2.17780571, 2.45003142,
+                        2.72225714]
+
+        np.testing.assert_almost_equal(E, target_E, decimal=3)
+        np.testing.assert_almost_equal(shift, target_shift, decimal=3)
 
 if __name__ == '__main__':
     unittest.main()

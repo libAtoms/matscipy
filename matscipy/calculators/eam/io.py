@@ -1,11 +1,10 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
-#                  Adrien Gola, Karlsruhe Institute of Technology
-#                  Wolfram Nöhring, University of Freiburg
+# Copyright 2015, 2021 Lars Pastewka (U. Freiburg)
+#           2019-2020 Wolfram G. Nöhring (U. Freiburg)
+#           2015 Adrien Gola (KIT)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,15 +13,13 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 """Read and write tabulated EAM potentials"""
-
-from __future__ import division, print_function
 
 from collections import namedtuple
 
@@ -35,8 +32,22 @@ except:
 
 import os
 
+from ase.units import Hartree, Bohr
+
 ###
 
+
+"""Conversion factor from Hartree to Electronvolt. \
+Use 1 Hartree = 27.2 eV to be consistent with Lammps EAM."""
+_hartree_in_electronvolt = 27.2
+
+"""Conversion factor from Bohr radii to Angstrom. \
+Use 1 Bohr radius = 0.529 A to be consistent with Lammps EAM."""
+_bohr_in_angstrom = 0.529
+
+"""Conversion factor for charge function of EAM potentials \
+of kind 'eam' (DYNAMO funcfl format)."""
+_hartree_bohr_in_electronvolt_angstrom = _hartree_in_electronvolt * _bohr_in_angstrom
 
 # Todo: replace by data class (requires Python > 3.7)
 class EAMParameters(
@@ -154,10 +165,13 @@ def read_eam(eam_file, kind="eam/alloy"):
                 "expected four values on second line of EAM setfl file: "
                 "atomic number, mass, lattice constant, lattice"
             )
-        atomic_numbers = int(words[0])
-        atomic_masses = float(words[1])
-        lattice_parameters = float(words[2])
-        crystal_structures = words[3]
+        # Turn atomic numbers and masses, lattice parameter, and crystal
+        # structures into arrays to be consistent with the other EAM styles
+        atomic_numbers = np.array((int(words[0]), ), dtype=int)
+        atomic_masses = np.array((float(words[1]), ), dtype=float)
+        lattice_parameters = np.array((float(words[2]),), dtype=float)
+        crystal_structures = np.empty(1).astype(str)
+        crystal_structures[0] = words[3] 
 
         words = lines[2].strip().split()
         if len(words) != 5:
@@ -187,9 +201,18 @@ def read_eam(eam_file, kind="eam/alloy"):
             raise ValueError(f"expected {expected_length} tabulated values, but there are {true_length}")
         data = np.array(remaining_words, dtype=float)
         F = data[0:Nrho]
-        f = data[Nrho:Nrho+Nr]
-        rep = data[Nrho+Nr:2*Nr+Nrho]
-        return source, parameters, F, f, rep
+        # 'eam' (DYNAMO funcfl) tables contain the charge function :math:`Z`,
+        # and not the pair potential :math:`\phi`. :math:`Z` needs to be 
+        # converted into :math:`\phi` first, which involves unit conversion.
+        # To be consistent with the other eam styles (and avoid complications
+        # later), we convert into :math:`r*\phi`, where :math:`r` is the pair distance, i.e.
+        # r = np.arange(0, rep.size) * dr
+        charge = data[Nrho:Nrho+Nr]
+        rep = charge**2
+        rep *= _hartree_bohr_in_electronvolt_angstrom 
+        f = data[Nrho+Nr:2*Nr+Nrho]
+        # Reshape in order to be consistent with other EAM styles
+        return source, parameters, F.reshape(1, Nrho), f.reshape(1, Nr), rep.reshape(1, 1, Nr)
 
     if kind in ["eam/alloy", "eam/fs"]:
         """eam/alloy and eam/fs have almost the same structure, except for the electron density section"""
@@ -241,7 +264,7 @@ def read_eam(eam_file, kind="eam/alloy"):
         atomic_numbers = np.zeros(true_num_elements, dtype=int)
         atomic_masses = np.zeros(true_num_elements)
         lattice_parameters = np.zeros(true_num_elements)
-        crystal_structures = np.empty(true_num_elements).astype(np.str) # fixme: be careful with string length
+        crystal_structures = np.empty(true_num_elements).astype(str) # fixme: be careful with string length
         F = np.zeros((true_num_elements, Nrho))
         for i in range(true_num_elements):
             offset = i * expected_num_words_per_element
@@ -352,7 +375,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         max_cutoff = cutoff.argmax()
         max_prod = (Nrho*drho).argmax()
         max_prod_r = (Nr*dr).argmax()
-        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
+        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(str),np.empty(0).astype(str)
         Nr_ = Nr[max_prod_r]
         dr_ = ((Nr*dr).max())/Nr_
         Nrho_ = Nrho[max_prod]
@@ -414,7 +437,7 @@ def mix_eam(files,kind,method,f=[],rep_ab=[],alphas=[],betas=[]):
         max_cutoff = cutoff.argmax()
         max_prod = (Nrho*drho).argmax()
         max_prod_r = (Nr*dr).argmax()
-        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(np.str),np.empty(0).astype(np.str)
+        atomic_numbers,atomic_masses,lattice_parameters,crystal_structures,elements = np.empty(0),np.empty(0),np.empty(0),np.empty(0).astype(str),np.empty(0).astype(str)
         Nr_ = Nr[max_prod_r]
         dr_ = ((Nr*dr).max())/Nr_
         Nrho_ = Nrho[max_prod]
@@ -523,17 +546,29 @@ def write_eam(source, parameters, F, f, rep, out_file, kind="eam"):
     
     if kind == "eam":
         # parameters unpacked
-        atline = f"{int(atomic_numbers)} {float(atomic_masses)}  {float(lattice_parameters)} {str(crystal_structures)}"
+        # FIXME: atomic numbers etc are now arrays, and not scalars
+        crystal_structures_str = ' '.join(s for s in crystal_structures)
+        atline = f"{int(atomic_numbers)} {float(atomic_masses)}  {float(lattice_parameters)} {crystal_structures_str}"
         parameterline = f'{int(Nrho)}\t{float(drho):.16e}\t{int(Nr)}\t{float(dr):.16e}\t{float(cutoff):.10e}'
         potheader = f"# EAM potential from : # {source} \n {atline} \n {parameterline}"
         # --- Writing new EAM alloy pot file --- #
         # write header and file parameters
         potfile = open(out_file,'wb')
-        # write F and f tables
-        np.savetxt(potfile, F, fmt='%.16e', header=potheader, comments='')
-        np.savetxt(potfile, f, fmt='%.16e')
-        # write pair interactions tables
-        np.savetxt(potfile, rep, fmt='%.16e')
+        # write F and pair charge tables
+        Nr = parameters.number_of_distance_grid_points
+        Nrho = parameters.number_of_density_grid_points
+        np.savetxt(potfile, F.reshape(Nrho), fmt='%.16e', header=potheader, comments='')
+        # 'eam' (DYNAMO funcfl) tables contain the charge function :math:`Z`,
+        # and not the pair potential :math:`\phi`. The array :code:`rep` 
+        # stores :math:`r*\phi`, where :math:`r` is the pair distance, 
+        # and we can convert using the relation :math:`r\phi=z*z`, where
+        # additional unit conversion to units of sqrt(Hartree*Bohr-radii)
+        # is required.
+        charge = rep / _hartree_bohr_in_electronvolt_angstrom 
+        charge = np.sqrt(charge)
+        np.savetxt(potfile, charge.reshape(Nr), fmt='%.16e')
+        # write electron density tables
+        np.savetxt(potfile, f.reshape(Nr), fmt='%.16e')
         potfile.close()  
     elif kind == "eam/alloy":
         num_elements = len(elements)

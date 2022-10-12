@@ -1,3 +1,29 @@
+#
+# Copyright 2014-2017, 2020-2021 Lars Pastewka (U. Freiburg)
+#           2018, 2020-2021 Jan Griesser (U. Freiburg)
+#           2020 Jonas Oldenstaedt (U. Freiburg)
+#           2014-2015, 2017, 2019-2020 James Kermode (Warwick U.)
+#           2019-2020 Johannes Hoermann (U. Freiburg)
+#           2018 libAtomsBuildSystem@users.noreply.github.com
+#           2018 Jacek Golebiowski (Imperial College London)
+#           2016 Adrien Gola (KIT)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 import setuptools
 import os
 import glob
@@ -240,7 +266,7 @@ class build_ext_subclass(build_ext):
                extra_postargs=extra_link_args,
                export_symbols=self.get_export_symbols(ext),
                debug=self.debug,
-               build_temp=self.build_temp,**kws)
+               build_temp=self.build_temp, **kws)
 
 
 cmdclass = versioneer.get_cmdclass()
@@ -254,18 +280,43 @@ setup(name='matscipy',
       license='LGPLv2.1+',
       package_dir={'matscipy': 'matscipy'},
       packages=['matscipy',
+                'matscipy.io',
+                'matscipy.tool',
                 'matscipy.fracture_mechanics',
                 'matscipy.contact_mechanics',
                 'matscipy.electrochemistry',
                 'matscipy.calculators',
-                'matscipy.calculators.eam','matscipy.io','matscipy.tool',
+                'matscipy.calculators.eam',
                 'matscipy.calculators.pair_potential',
                 'matscipy.calculators.polydisperse',
                 'matscipy.calculators.mcfm',
                 'matscipy.calculators.mcfm.mcfm_parallel',
                 'matscipy.calculators.mcfm.neighbour_list_mcfm',
-                'matscipy.calculators.mcfm.qm_cluster_tools'],
+                'matscipy.calculators.mcfm.qm_cluster_tools',
+                'matscipy.calculators.manybody',
+                'matscipy.calculators.ewald',
+                'matscipy.calculators.manybody.explicit_forms',
+                'matscipy.cli.electrochemistry',
+            ],
       scripts=scripts,
+      extras_require={
+            'cli': [],
+            'fenics': [
+                'fenics-dijitso',
+                'fenics-dolfin',
+                'fenics-ffc',
+                'fenics-fiat',
+                'fenics-ufl',
+                'mshr',
+            ]
+      },
+      entry_points={
+            'console_scripts': [
+                'c2d = matscipy.cli.electrochemistry.c2d:main [cli]',
+                'pnp = matscipy.cli.electrochemistry.pnp:main [cli]',
+                'stericify = matscipy.cli.electrochemistry.stericify:main [cli]'
+            ],
+        },
       ext_modules=[
         Extension(
             '_matscipy',
@@ -278,5 +329,7 @@ setup(name='matscipy',
             )
         ],
       download_url=download_url,
-      url="https://github.com/libAtoms/matscipy"
+      url="https://github.com/libAtoms/matscipy",
+      setup_requires=['pytest-runner'],
+      test_require=['pytest']
       )

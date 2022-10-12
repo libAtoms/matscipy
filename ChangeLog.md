@@ -1,8 +1,26 @@
 Change log
 ==========
 
+v0.8.0 (not yet released) 
+-------------------------
+
+- Calculator for traditional Ewald summation 
+- Analytic computation of Hessian and zero-temperature elastic constants for potentials with electrostatic interaction
+- Writing and reading inhomogenous (and non numeric) data with savetbl/readtbl
+
+v0.7.0 (29Jul21)
+----------------
+
+- Calculator for Manybody potentials e.g. Stillinger-Weber and Bond-order
+- Specific parametrizations for Tersoff-Brenner potentials, Stillinger-Weber and Kumagai 
+- Analytic computation of Hessian matrix for manybody potentials
+- Analytic computation of zero-temperature elastic constants for pair potential and manybody potentials
+- CLI for electrochemistry functions
+- Proper molecular id numbering in electrochemistry
+- Generation of dislocations
+
 v0.6.0 (10Sep20)
------------------------
+----------------
 
 - Numerical computation of the Hessian matrix 
 - Calculator for polydisperse systems in which particles interact via a pair potential 

@@ -1,3 +1,26 @@
+#
+# Copyright 2019, 2021 Lars Pastewka (U. Freiburg)
+#           2018-2021 Petr Grigorev (Warwick U.)
+#           2020 James Kermode (Warwick U.)
+#           2019 Arnaud Allera (U. Lyon 1)
+#           2019 Wolfram G. Nöhring (U. Freiburg)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 import numpy as np
 
 from scipy.optimize import minimize
@@ -8,11 +31,13 @@ from ase.optimize import FIRE
 from ase.build import bulk
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
-from ase.lattice.cubic import SimpleCubicFactory
+from ase.lattice.cubic import SimpleCubicFactory, Diamond
 from ase.io import read
+from ase.geometry import get_distances
 
 from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
+
 
 def make_screw_cyl(alat, C11, C12, C44,
                    cylinder_r=10, cutoff=5.5,
@@ -59,7 +84,6 @@ def make_screw_cyl(alat, C11, C12, C44,
     u : np.array
         displacement per atom.
     """
-    # https://github.com/usnistgov/atomman
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -190,7 +214,6 @@ def make_edge_cyl(alat, C11, C12, C44,
         Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
         default is "W" for tungsten
     '''
-    # https://github.com/usnistgov/atomman
     from atomman import ElasticConstants
     from atomman.defect import Stroh
     # Create a Stroh ojbect with junk data
@@ -305,7 +328,6 @@ def plot_vitek(dislo, bulk,
     from atomman import load
     from atomman.defect import differential_displacement
 
-
     lengthB = 0.5*np.sqrt(3.)*alat
     burgers = np.array([0.0, 0.0, lengthB])
 
@@ -326,17 +348,14 @@ def plot_vitek(dislo, bulk,
     # distance between atoms on the plot
     plot_scale = 1.885618083
 
-    differential_displacement(base_system, disl_system,
-                              burgers,
-                              cutoff=neighborListCutoff,
-                              xlim=plot_range[0],
-                              ylim=plot_range[1],
-                              zlim=plot_range[2],
-                              plot_scale=plot_scale,
-                              plot_axes=plot_axes)
-
-    return None
-
+    fig = differential_displacement(base_system, disl_system,
+                                    burgers,
+                                    cutoff=neighborListCutoff,
+                                    xlim=plot_range[0],
+                                    ylim=plot_range[1],
+                                    zlim=plot_range[2],
+                                    matplotlib_axes=plot_axes,
+                                    plot_scale=plot_scale)
 
 def show_NEB_configurations(images, bulk, xyscale=7,
                             show=True, core_positions=None):
@@ -368,7 +387,7 @@ def show_NEB_configurations(images, bulk, xyscale=7,
     fig2 = plt.figure(figsize=(n_images * 4, 4))
 
     for i, image in enumerate(images):
-        ax1 = fig2.add_subplot("1%i%i" % (n_images, i+1))
+        ax1 = fig2.add_subplot(1, n_images, i + 1)
         plot_vitek(image, bulk, plot_axes=ax1, xyscale=xyscale)
         if core_positions is not None:
             x, y = core_positions[i]
@@ -386,26 +405,26 @@ def show_configuration(disloc, bulk, u, fixed_mask=None):
     fig = plt.figure(figsize=(16, 4))
 
     ax1 = fig.add_subplot(131)
-    ax1.set_title("z displacement, $\AA$")
+    ax1.set_title(r"z displacement, $\AA$")
     sc = ax1.scatter(bulk.positions[:, 0], bulk.positions[:, 1], c=u.T[2])
     ax1.axvline(0.0, color="red", linestyle="dashed")
-    ax1.set_xlabel("x, $\AA$")
-    ax1.set_ylabel("y, $\AA$")
+    ax1.set_xlabel(r"x, $\AA$")
+    ax1.set_ylabel(r"y, $\AA$")
     plt.colorbar(sc)
 
     ax2 = fig.add_subplot(132)
-    ax2.set_title("x displacement, $\AA$")
+    ax2.set_title(r"x displacement, $\AA$")
     sc = ax2.scatter(bulk.positions[:, 0], bulk.positions[:, 1], c=u.T[0])
-    ax2.set_xlabel("x, $\AA$")
-    ax2.set_ylabel("y, $\AA$")
+    ax2.set_xlabel(r"x, $\AA$")
+    ax2.set_ylabel(r"y, $\AA$")
     plt.colorbar(sc, format="%.1e")
 
     ax3 = fig.add_subplot(133)
-    ax3.set_title("y displacement, $\AA$")
+    ax3.set_title(r"y displacement, $\AA$")
     sc = ax3.scatter(bulk.positions[:, 0], bulk.positions[:, 1], c=u.T[1])
     plt.colorbar(sc, format="%.1e")
-    ax3.set_xlabel("x, $\AA$")
-    ax3.set_ylabel("y, $\AA$")
+    ax3.set_xlabel(r"x, $\AA$")
+    ax3.set_ylabel(r"y, $\AA$")
 
     if fixed_mask is not None:
 
@@ -446,7 +465,7 @@ def get_elastic_constants(pot_path=None,
                            atom_types={'W': 1}, keep_alive=True)
         calculator = lammps
 
-    unit_cell.set_calculator(calculator)
+    unit_cell.calc = calculator
 
 #   simple calculation to get the lattice constant and cohesive energy
 #    alat0 = W.cell[0][1] - W.cell[0][0]
@@ -529,13 +548,13 @@ def make_barrier_configurations(elastic_param=None,
 
     elif calculator is not None:
         alat, C11, C12, C44 = get_elastic_constants(calculator=calculator)
-        cutoff = 5.0  # the value for trainig data for GAP from paper
+        cutoff = 5.0  # the value for training data for GAP from paper
 
     elif elastic_param is not None:
         alat, C11, C12, C44 = elastic_param
         cutoff = 5.5
 
-    cent_x = np.sqrt(6.0)*alat/3.0
+    cent_x = np.sqrt(6.0) * alat / 3.0
     center = [cent_x, 0.0, 0.0]
 
     disloc_ini, bulk_ini, __ = make_screw_cyl(alat, C11, C12, C44,
@@ -556,7 +575,7 @@ def make_barrier_configurations(elastic_param=None,
     fixed_atoms_indices = FixAtoms.get_indices()
 
     # make the average position of fixed atoms
-    # between initial and the lastlast position
+    # between initial and the last position
     ini_fix_pos = disloc_ini.get_positions()[fixed_atoms_indices]
     fin_fix_pos = disloc_fin.get_positions()[fixed_atoms_indices]
 
@@ -929,7 +948,6 @@ def cost_function(pos, dislo, bulk, cylinder_r, elastic_param,
         Error for optimisation (result from `compare_configurations` function)
 
     """
-    # https://github.com/usnistgov/atomman
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1091,7 +1109,6 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
         positions around dislocation core.
 
     """
-    # https://github.com/usnistgov/atomman
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1148,7 +1165,7 @@ def screw_cyl_tetrahedral(alat, C11, C12, C44,
     # leave only atoms inside the cylinder
     bulk_tetra = bulk_tetra[final_mask]
 
-    # Create a Stroh ojbect with junk data
+    # Create a Stroh object with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
                   np.array([0, 0, 1]))
 
@@ -1214,7 +1231,6 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
     # TODO: Make one function for impurities and pass factory to it:
     # TODO: i.e. octahedral or terahedral
 
-    # https://github.com/usnistgov/atomman
     from atomman import ElasticConstants
     from atomman.defect import Stroh
 
@@ -1306,12 +1322,12 @@ class BodyCenteredCubicOctahedralFactory(SimpleCubicFactory):
     """A factory for creating octahedral lattices in bcc structure"""
     xtal_name = "bcc_octahedral"
 
-    bravais_basis = [[0.0, 0.0, 0.5],
+    bravais_basis = [[0.5, 0.5, 0.0],
+                     [0.0, 0.0, 0.5],
                      [0.5, 0.0, 0.0],
                      [0.5, 0.0, 0.5],
                      [0.0, 0.5, 0.0],
-                     [0.0, 0.5, 0.5],
-                     [0.5, 0.5, 0.0]]
+                     [0.0, 0.5, 0.5]]
 
 
 def dipole_displacement_angle(W_bulk, dislo_coord_left, dislo_coord_right,
@@ -1373,7 +1389,7 @@ def make_screw_quadrupole(alat,
                           right_shift=0,
                           n1u=5,
                           symbol="W"):
-    """Generates a screw dislocation dipole configuration
+    r"""Generates a screw dislocation dipole configuration
        for effective quadrupole arrangement. Works for BCC systems.
 
     Parameters
@@ -1826,10 +1842,9 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     disp : np.array
         Corresponding displacement.
     """
-    # https://github.com/usnistgov/atomman
     from atomman import ElasticConstants
     from atomman.defect import Stroh
-    # Create a Stroh ojbect with junk data
+    # Create a Stroh object with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
                   np.array([0, 0, 1]))
 
@@ -1841,7 +1856,6 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
     burgers = a0 * np.array([1., 0., 0.])
 
     # Solving a new problem with Stroh.solve
-    # Does not work with the new version of atomman
     stroh.solve(c, burgers, axes=axes)
 
     unit_cell = BodyCenteredCubic(directions=axes.tolist(),
@@ -1910,9 +1924,10 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
 
 def read_dislo_QMMM(filename=None, image=None):
 
-    """Reads extended xyz file with QMMM configuration
-       Uses "region" for mapping of QM, MM and fixed atoms
-       Sets ase.constraints.FixAtoms constraint on fixed atoms
+    """
+    Reads extended xyz file with QMMM configuration
+    Uses "region" for mapping of QM, MM and fixed atoms
+    Sets ase.constraints.FixAtoms constraint on fixed atoms
 
     Parameters
     ----------
@@ -1968,3 +1983,953 @@ def read_dislo_QMMM(filename=None, image=None):
                                    qm_atom_type))
 
     return dislo_QMMM, qm_mask
+
+
+def plot_bulk(atoms, n_planes=3, ax=None, ms=200):
+    """
+    Plots x, y coordinates of atoms colored according
+    to non-equivalent planes in z plane
+    """
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    x, y, z = atoms.positions.T
+
+    zlim = atoms.cell[2, 2] / n_planes
+
+    bins = np.linspace(zlim, atoms.cell[2, 2], num=n_planes)
+    bins -= atoms.cell[2, 2] / (2.0 * n_planes)
+
+    plane_ids = np.digitize(z, bins=bins)
+
+    for plane_id in np.unique(plane_ids):
+        mask = plane_id == plane_ids
+        ax.scatter(x[mask], y[mask], s=ms, edgecolor="k")
+
+
+def ovito_dxa_straight_dislo_info(disloc, structure="BCC", replicate_z=3):
+    """
+    A function to extract information from ovito dxa analysis.
+    Current version works for 1b thick configurations
+    containing straight dislocations.
+
+    Parameters
+    ----------
+    disloc: ase.Atoms
+        Atoms object containing the atomic configuration to analyse
+    replicate_z: int
+        Specifies number of times to replicate the configuration
+        along the dislocation line.
+        Ovito dxa analysis needs at least 3b thick cell to work.
+
+    Returns
+    -------
+    Results: np.array(position, b, line, angle)
+
+    """
+    from ovito.io.ase import ase_to_ovito
+    from ovito.modifiers import ReplicateModifier, DislocationAnalysisModifier
+    from ovito.pipeline import StaticSource, Pipeline
+
+    dxa_disloc = disloc.copy()
+    if 'fix_mask' in dxa_disloc.arrays:
+        del dxa_disloc.arrays['fix_mask']
+
+    input_crystal_structures = {"BCC": DislocationAnalysisModifier.Lattice.BCC,
+                                "FCC": DislocationAnalysisModifier.Lattice.FCC,
+                                "Diamond": DislocationAnalysisModifier.Lattice.CubicDiamond}
+
+    data = ase_to_ovito(dxa_disloc)
+    pipeline = Pipeline(source=StaticSource(data=data))
+    pipeline.modifiers.append(ReplicateModifier(num_z=replicate_z))
+    dxa = DislocationAnalysisModifier(
+          input_crystal_structure=input_crystal_structures[structure])
+    pipeline.modifiers.append(dxa)
+
+    data = pipeline.compute()
+    results = []
+    for segment in data.dislocations.segments:
+
+        #  insure that this is a straight dislocation in a 1b thick cell
+        length = segment.length / replicate_z
+        try:
+            np.testing.assert_almost_equal(length, dxa_disloc.cell[2, 2],
+                                           decimal=2)
+        except AssertionError as error:
+            print("Dislocation might not be straight:")
+            print(error)
+
+        b = segment.true_burgers_vector
+
+        b_hat = np.array(segment.spatial_burgers_vector)
+        b_hat /= np.linalg.norm(b_hat)
+
+        lines = np.diff(segment.points, axis=0)
+        angles = []
+        positions = []
+        for point in segment.points:
+            positions.append(point[:2])
+
+        for line in lines:
+            t_hat = line / np.linalg.norm(line)
+            dot = np.abs(np.dot(t_hat, b_hat))
+            angle = np.degrees(np.arccos(dot))
+            angles.append(angle)
+
+        position = np.array(positions).mean(axis=0)
+        line = np.array(lines).mean(axis=0)
+        angle = np.array(angles).mean()
+        results.append([position, b, line, angle])
+
+    return results
+
+
+def get_centering_mask(atoms, radius,
+                       core_position=[0., 0., 0.],
+                       extension=[0., 0., 0.],):
+
+    center = np.diag(atoms.cell) / 2
+
+    r = np.sqrt(((atoms.positions[:, [0, 1]]
+                  - center[[0, 1]]) ** 2).sum(axis=1))
+    mask = r < radius
+
+    core_position = np.array(core_position)
+    shifted_center = center + core_position
+    shifted_r = np.sqrt(((atoms.positions[:, [0, 1]] -
+                          shifted_center[[0, 1]]) ** 2).sum(axis=1))
+    shifted_mask = shifted_r < radius
+
+    extension = np.array(extension)
+    extended_center = center + extension
+    extended_r = np.sqrt(((atoms.positions[:, [0, 1]] -
+                           extended_center[[0, 1]]) ** 2).sum(axis=1))
+    extended_mask = extended_r < radius
+
+    final_mask = mask | shifted_mask | extended_mask
+
+    return final_mask
+
+
+def check_duplicates(atoms, distance=0.1):
+    """
+    Returns a mask of atoms that have at least one other atom closer than distance
+    """
+    mask = atoms.get_all_distances() < distance
+    duplicates = np.full_like(atoms, False)
+    for i, row in enumerate(mask):
+        if any(row[i+1:]):
+            duplicates[i] = True
+    # print(f"found {duplicates.sum()} duplicates")
+    return duplicates.astype(np.bool)
+
+
+class CubicCrystalDislocation:
+    def __init__(self, unit_cell, alat, C11, C12, C44, axes, burgers,
+                 unit_cell_core_position=None,
+                 parity=None, glide_distance=None, n_planes=None,
+                 self_consistent=None):
+        """
+        This class represents a dislocation in a cubic crystal
+
+        The dislocation is defined by the crystal unit cell,
+        elastic constants C11, C12 and C44, crystal axes,
+        burgers vector and optional shift and parity vectors.
+
+        Parameters
+        ----------
+        unit_cell : unit cell to build the dislocation configuration
+        alat : lattice constant
+        C11 : elastic constants
+        C12
+        C44
+        axes : cell axes (b is normally along z direction)
+        burgers : burgers vector of the dislocation
+        unit_cell_core_position : dislocation core position in the unit cell
+                                  used to shift atomic positions to
+                                  make the dislocation core the center
+                                  of the cell
+        parity
+        glide_distance : distance to the next equivalent
+                         core position in the glide direction
+        n_planes : int
+            number of non equivalent planes in z direction
+        self_consistent : float
+            default value for the displacement calculation
+        """
+
+        self.unit_cell = unit_cell.copy()
+        self.alat = alat
+        self.C11 = C11
+        self.C12 = C12
+        self.C44 = C44
+
+        self.axes = axes
+        self.burgers = burgers
+        if unit_cell_core_position is None:
+            unit_cell_core_position = np.zeroes(3)
+        self.unit_cell_core_position = unit_cell_core_position
+        if parity is None:
+            parity = np.zeros(2, dtype=int)
+        self.parity = parity
+        if glide_distance is None:
+            glide_distance = 0.0
+        self.glide_distance = glide_distance
+        if n_planes is None:
+            n_planes = 3
+        self.n_planes = n_planes
+        if self_consistent is None:
+            self_consistent = True
+        self.self_consistent = self_consistent
+
+        self.stroh = None
+
+    def init_stroh(self):
+
+        from atomman import ElasticConstants
+        from atomman.defect import Stroh
+        c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
+        self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
+
+
+    def set_burgers(self, burgers):
+        self.burgers = burgers
+        if self.stroh is None:
+            self.init_stroh()
+
+
+    def plot_unit_cell(self, ms=250, ax=None):
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, ax = plt.subplots()
+
+        plot_bulk(self.unit_cell, self.n_planes, ax=ax, ms=ms)
+
+        x_core, y_core, _ = self.unit_cell_core_position
+        ax.scatter(x_core, y_core, marker="x", s=ms, c="red")
+        ax.scatter(x_core + self.glide_distance, y_core, marker="x", s=ms,
+                   c="blue")
+        ax.set_aspect('equal')
+
+        x0, y0, _ = np.diag(self.unit_cell.cell)
+
+        ax.plot([0.0, 0.0, x0, x0, 0.0],
+                [0.0, y0, y0, 0.0, 0.0], color="black", zorder=0)
+
+        bulk_atoms = ax.scatter([], [], color="w", edgecolor="k",
+                             label="lattice atoms")
+        core1 = ax.scatter([], [], marker="x", label="initial core position",
+                           c="r")
+        core2 = ax.scatter([], [], marker="x", label="glide core position",
+                           c="b")
+
+        ax.legend(handles=[bulk_atoms, core1, core2], fontsize=12)
+        ax.set_xlabel(r"$\AA$")
+        ax.set_ylabel(r"$\AA$")
+
+
+    def displacements(self, bulk_positions, center, self_consistent=True, 
+                      tol=1e-6, max_iter=100, verbose=True):
+        if self.stroh is None:
+            self.init_stroh()
+
+        disp1 = np.real(self.stroh.displacement(bulk_positions - center))
+        if not self_consistent:
+            return disp1
+
+        res = np.inf
+        i = 0
+        while res > tol:
+            disloc_positions = bulk_positions + disp1
+            disp2 = np.real(self.stroh.displacement(disloc_positions - center))
+            res = np.abs(disp1 - disp2).max()
+            disp1 = disp2
+            if verbose:
+                print('disloc SCF', i, '|d1-d2|_inf =', res)
+            i += 1
+            if i > max_iter:
+                raise RuntimeError(f'Self-consistency did not converge in {max_iter} cycles')
+        return disp2
+
+    def build_cylinder(self, radius,
+                       core_position=np.array([0., 0., 0.]),
+                       extension=np.array([0., 0., 0.]),
+                       fix_width=10.0, self_consistent=None):
+
+        if self_consistent is None:
+            self_consistent = self.self_consistent
+
+        extent = np.array([2 * (radius + fix_width),
+                           2 * (radius + fix_width), 1.])
+        repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
+
+        # if the extension and core position is
+        # within the unit cell, do not add extra unit cells
+        repeat_extension = np.floor(2.0 * extension /
+                                    np.diag(self.unit_cell.cell)).astype(int)
+        repeat_core_position = np.floor(2.0 * core_position /
+                                    np.diag(self.unit_cell.cell)).astype(int)
+
+        extra_repeat = np.stack((repeat_core_position,
+                                 repeat_extension)).max(axis=0)
+
+        repeat += extra_repeat
+
+        repeat[2] = 1  # exactly one cell in the periodic direction
+
+        # ensure correct parity in x and y directions
+        if repeat[0] % 2 != self.parity[0]:
+            repeat[0] += 1
+        if repeat[1] % 2 != self.parity[1]:
+            repeat[1] += 1
+
+        bulk = self.unit_cell * repeat
+        # in order to get center from an atom to the desired position
+        # we have to move the atoms in the opposite direction
+        bulk.positions -= self.unit_cell_core_position
+
+        center = np.diag(bulk.cell) / 2
+        shifted_center = center + core_position
+
+        cylinder_mask = get_centering_mask(bulk, radius, core_position, extension)
+
+        # add square borders for the case of large extension or core position
+        x, y, _ = bulk.positions.T
+        x_mask = x - center[0] < extension[0] + core_position[0]
+        x_mask = x_mask * (x - center[0] > 0)
+        y_mask = np.abs(y - center[1]) < radius
+        square_mask = y_mask & x_mask
+
+        final_mask = square_mask | cylinder_mask
+
+        bulk = bulk[final_mask]
+
+        # disloc is a copy of bulk with displacements applied
+        disloc = bulk.copy()
+
+        disloc.positions += self.displacements(bulk.positions, shifted_center,
+                                               self_consistent=self_consistent)
+
+        r = np.sqrt(((bulk.positions[:, [0, 1]]
+                      - center[[0, 1]])**2).sum(axis=1))
+
+        fix_mask = r > radius - fix_width
+
+        shifted_r = np.sqrt(((bulk.positions[:, [0, 1]] -
+                              shifted_center[[0, 1]]) ** 2).sum(axis=1))
+
+        shifted_fix_max = shifted_r > radius - fix_width
+        extension = np.array(extension)
+        extended_center = center + extension
+        extended_r = np.sqrt(((bulk.positions[:, [0, 1]] -
+                               extended_center[[0, 1]]) ** 2).sum(axis=1))
+        extended_fix_max = extended_r > radius - fix_width
+        final_fix_mask = fix_mask & shifted_fix_max & extended_fix_max
+
+        x, y, _ = bulk.positions.T
+        x_mask = x - center[0] < extension[0] + core_position[0]
+        x_mask = x_mask * (x - center[0] > 0)
+        y_mask = np.abs(y - center[1]) > radius - fix_width
+
+        # change mask only between the centers of the cylinders
+        final_fix_mask[x_mask] = y_mask[x_mask]
+
+        disloc.set_array('fix_mask', final_fix_mask)
+        disloc.set_constraint(FixAtoms(mask=final_fix_mask))
+
+        # adding vacuum and centering breaks consistency
+        # of displacement =  dislo.positions - bulk.positions
+        # which is essential for plot_vitek and other tools
+        # I could not find a way to add vacuum to both disloc and bulk
+        # without spoiling the displacement
+        # disloc.center(vacuum=2 * fix_width, axis=(0, 1))
+
+        return bulk, disloc
+
+    def build_glide_configurations(self, radius,
+                                   average_positions=False, **kwargs):
+
+        final_core_position = np.array([self.glide_distance, 0.0, 0.0])
+
+        bulk_ini, disloc_ini = self.build_cylinder(radius,
+                                                   extension=final_core_position,
+                                                   **kwargs)
+
+        _, disloc_fin = self.build_cylinder(radius,
+                                            core_position=final_core_position,
+                                            **kwargs)
+        if average_positions:
+            # get the fixed atoms constrain
+            FixAtoms = disloc_ini.constraints[0]
+            # get the indices of fixed atoms
+            fixed_atoms_indices = FixAtoms.get_indices()
+
+            # make the average position of fixed atoms
+            # between initial and the last position
+            ini_fix_pos = disloc_ini.get_positions()[fixed_atoms_indices]
+            fin_fix_pos = disloc_fin.get_positions()[fixed_atoms_indices]
+
+            new_av_pos = (ini_fix_pos + fin_fix_pos) / 2.0
+
+            positions = disloc_ini.get_positions()
+            positions[fixed_atoms_indices] = new_av_pos
+            disloc_ini.set_positions(positions, apply_constraint=False)
+
+            positions = disloc_fin.get_positions()
+            positions[fixed_atoms_indices] = new_av_pos
+            disloc_fin.set_positions(positions, apply_constraint=False)
+
+        averaged_cell = (disloc_ini.cell + disloc_fin.cell) / 2.0
+        disloc_ini.set_cell(averaged_cell)
+        disloc_fin.set_cell(averaged_cell)
+
+        return bulk_ini, disloc_ini, disloc_fin
+
+    def build_impurity_cylinder(self, disloc, impurity, radius,
+                                imp_symbol="H",
+                                core_position=np.array([0., 0., 0.]),
+                                extension=np.array([0., 0., 0.]),
+                                self_consistent=False,
+                                extra_bulk_at_core=False,
+                                core_radius=0.5,
+                                shift=np.array([0.0, 0.0, 0.0])):
+
+        extent = np.array([2 * radius + np.linalg.norm(self.burgers),
+                           2 * radius + np.linalg.norm(self.burgers), 1.])
+        repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
+
+        # if the extension and core position is
+        # within the unit cell, do not add extra unit cells
+        repeat_extension = np.floor(extension /
+                                    np.diag(self.unit_cell.cell)).astype(int)
+        repeat_core_position = np.floor(core_position /
+                                    np.diag(self.unit_cell.cell)).astype(int)
+
+        extra_repeat = np.stack((repeat_core_position,
+                                 repeat_extension)).max(axis=0)
+
+        repeat += extra_repeat
+
+        repeat[2] = 1  # exactly one cell in the periodic direction
+
+        # ensure correct parity in x and y directions
+        if repeat[0] % 2 != self.parity[0]:
+            repeat[0] += 1
+        if repeat[1] % 2 != self.parity[1]:
+            repeat[1] += 1
+
+        impurities_unit_cell = impurity(directions=self.axes.tolist(),
+                                        size=(1, 1, 1),
+                                        symbol=imp_symbol,
+                                        pbc=(False, False, True),
+                                        latticeconstant=self.alat)
+
+        impurities_unit_cell.cell = self.unit_cell.cell
+        impurities_unit_cell.wrap(pbc=True)
+        duplicates = check_duplicates(impurities_unit_cell)
+        impurities_unit_cell = impurities_unit_cell[np.logical_not(duplicates)]
+
+        impurities_bulk = impurities_unit_cell * repeat
+        # in order to get center from an atom to the desired position
+        # we have to move the atoms in the opposite direction
+        impurities_bulk.positions -= self.unit_cell_core_position
+
+        # build a bulk impurities cylinder
+        mask = get_centering_mask(impurities_bulk,
+                                  radius + np.linalg.norm(self.burgers),
+                                  core_position, extension)
+
+        impurities_bulk = impurities_bulk[mask]
+
+        center = np.diag(impurities_bulk.cell) / 2
+        shifted_center = center + core_position
+
+        # use stroh displacement for impurities
+        # disloc is a copy of bulk with displacements applied
+        impurities_disloc = impurities_bulk.copy()
+
+        core_mask = get_centering_mask(impurities_bulk,
+                                       core_radius,
+                                       core_position, extension)
+
+        print(f"Ignoring {core_mask.sum()} core impurities")
+        non_core_mask = np.logical_not(core_mask)
+
+        displacemets = self.displacements(impurities_bulk.positions[non_core_mask],
+                                                          shifted_center,
+                                                          self_consistent=self_consistent)
+
+        impurities_disloc.positions[non_core_mask] += displacemets
+
+        if extra_bulk_at_core:  # add extra bulk positions at dislocation core
+            bulk_mask = get_centering_mask(impurities_bulk,
+                                           1.1 * self.unit_cell_core_position[1],
+                                           core_position + shift, extension)
+
+            print(f"Adding {bulk_mask.sum()} extra atoms")
+            impurities_disloc.extend(impurities_bulk[bulk_mask])
+
+        mask = get_centering_mask(impurities_disloc,
+                                  radius,
+                                  core_position,
+                                  extension)
+
+        impurities_disloc = impurities_disloc[mask]
+
+        disloc_center = np.diag(disloc.cell) / 2.
+        delta = disloc_center - center
+        delta[2] = 0.0
+        impurities_disloc.positions += delta
+        impurities_disloc.cell = disloc.cell
+
+        return impurities_disloc
+
+class BCCScrew111Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, 1, -2],
+                         [-1, 1, 0],
+                         [1, 1, 1]])
+        burgers = alat * np.array([1, 1, 1]) / 2.0
+        unit_cell_core_position = alat * np.array([np.sqrt(6.)/6.0,
+                                                   np.sqrt(2.)/6.0, 0])
+        parity = [0, 0]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)
+        glide_distance = alat * np.linalg.norm(axes[0]) / 3.0
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance)
+
+        
+class BCCEdge111Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, 1, 1],
+                         [1, -1, 0],
+                         [1, 1, -2]])
+        burgers = alat * np.array([1, 1, 1]) / 2.0
+        unit_cell_core_position = alat * np.array([(1.0/3.0) * np.sqrt(3.0)/2.0,
+                                  0.25 * np.sqrt(2.0), 0])
+        parity = [0, 0]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)
+        glide_distance = np.linalg.norm(burgers) / 3.0
+        n_planes = 6
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes)
+
+
+class BCCMixed111Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, -1, -2],
+                         [1, 1, 0],
+                         [1, -1, 1]])
+        burgers = alat * np.array([1, -1, -1]) / 2.0
+        parity = [0, 0]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)
+
+        # middle of the right edge of the first upward triangle
+        core_position = (unit_cell.positions[1] +
+                         unit_cell.positions[2]) / 2.0
+
+        unit_cell_core_position = np.array([core_position[0],
+                                            core_position[1], 0])
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 3.0
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance)
+
+
+class BCCEdge100Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, 0, 0],
+                         [0, 0, -1],
+                         [0, 1, 0]])
+        burgers = alat * np.array([1, 0, 0])
+        unit_cell_core_position = alat * np.array([0.25,
+                                                   0.25, 0])
+        parity = [0, 0]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)
+        glide_distance = alat
+        n_planes = 2
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes)
+
+
+class BCCEdge100110Dislocation(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='W'):
+        axes = np.array([[1, 0, 0],
+                         [0, 1, 1],
+                         [0, -1, 1]])
+        burgers = alat * np.array([1, 0, 0])
+        unit_cell_core_position = alat * np.array([0.5,
+                                                   np.sqrt(2.) / 4.0, 0])
+        parity = [0, 0]
+        unit_cell = BodyCenteredCubic(directions=axes.tolist(),
+                                      size=(1, 1, 1), symbol=symbol,
+                                      pbc=True,
+                                      latticeconstant=alat)
+        glide_distance = 0.5 * alat
+        n_planes = 2
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes)
+
+
+class DiamondGlide30degreePartial(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='C'):
+        axes = np.array([[1, 1, -2],
+                         [1, 1, 1],
+                         [1, -1, 0]])
+
+        burgers = alat * np.array([1, -2, 1.]) / 6.
+
+        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
+        # 1/4 + 1/2 * (1/3 - 1/4) - to be in the middle of the glide set
+        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        parity = [0, 0]
+
+        unit_cell = Diamond(symbol, directions=axes.tolist(),
+                            pbc=(False, False, True),
+                            latticeconstant=alat)
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 2
+        # There is very small distance between
+        # atomic planes in glide configuration.
+        # Due to significant anisotropy application of the self consistent
+        # displacement field leads to deformation of the atomic planes.
+        # This leads to the cut plane crossing one of the atomic planes and
+        # thus breaking the stacking fault.
+        self_consistent = False
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
+
+
+class DiamondGlide90degreePartial(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='C'):
+        axes = np.array([[1, 1, -2],
+                         [1, 1, 1],
+                         [1, -1, 0]])
+
+        burgers = alat * np.array([1., 1., -2.]) / 6.
+
+        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
+        # 1/4 + 1/2 * (1/3 - 1/4) - to be in the middle of the glide set
+        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        parity = [0, 0]
+
+        unit_cell = Diamond(symbol, directions=axes.tolist(),
+                            pbc=(False, False, True),
+                            latticeconstant=alat)
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 2
+        # There is very small distance between
+        # atomic planes in glide configuration.
+        # Due to significant anisotropy application of the self consistent
+        # displacement field leads to deformation of the atomic planes.
+        # This leads to the cut plane crossing one of the atomic planes and
+        # thus breaking the stacking fault.
+        self_consistent = False
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
+
+
+class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
+    """
+        This class represents a dissociated dislocation in a cubic crystal
+        with b = b_left + b_right.
+        'left_dislocation' and 'right_dislocations' are expected
+        to be instances of classes derived from CubicCrystalDislocation class.
+    """
+    def __init__(self, left_dislocation, right_dislocation,
+                 *args, **kwargs):
+
+        self.left_dislocation = left_dislocation
+        self.right_dislocation = right_dislocation
+
+        super().__init__(*args, **kwargs)
+
+
+    def build_cylinder(self, radius, partial_distance=0,
+                       core_position=np.array([0., 0., 0.]),
+                       extension=np.array([0., 0., 0.]),
+                       fix_width=10.0, self_consistent=None):
+        """
+        Overloaded function to make dissociated dislocations.
+        Partial distance is provided as an integer to define number
+        of glide distances between two partials.
+
+        Parameters
+        ----------
+        radius: float
+            radius of the cell
+        partial_distance: int
+            distance between partials (SF length) in number of glide distances.
+            Default is 0 -> non dissociated dislocation
+            with b = b_left + b_right is produced
+        """
+
+        if self_consistent is None:
+            self_consistent = self.self_consistent
+
+        partial_distance_Angstrom = np.array(
+            [self.glide_distance * partial_distance, 0.0, 0.0])
+
+        bulk, disloc = self.left_dislocation.build_cylinder(radius,
+                                                  extension=extension + partial_distance_Angstrom,
+                                                  core_position=core_position,
+                                                  fix_width=fix_width,
+                                                  self_consistent=self_consistent)
+
+        _, disloc_right = self.right_dislocation.build_cylinder(radius,
+                                                      core_position=core_position + partial_distance_Angstrom,
+                                                      extension=extension,
+                                                      fix_width=fix_width,
+                                                      self_consistent=self_consistent)
+
+        u_right = disloc_right.positions - bulk.positions
+        disloc.positions += u_right
+
+        return bulk, disloc
+
+
+class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='C'):
+
+        axes = np.array([[1, 1, -2],
+                        [1, 1, 1],
+                        [1, -1, 0]])
+
+        # aiming for the resulting burgers vector
+        burgers = alat * np.array([1, -1, 0]) / 2.
+
+        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
+        # 1/4 + 1/2 (1/3 - 1/4) - to be in the middle of the glide set
+        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        parity = [0, 0]
+
+        unit_cell = Diamond(symbol, directions=axes.tolist(),
+                            pbc=(False, False, True),
+                            latticeconstant=alat)
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 2
+
+        # 30 degree
+        burgers_left = alat * np.array([2., -1., -1.]) / 6.
+        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+        left30.set_burgers(burgers_left)
+        # another 30 degree
+        burgers_right = alat * np.array([1, -2, 1.]) / 6.
+        right30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+        self_consistent = False
+        super().__init__(left30, right30, unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
+
+
+class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='C'):
+        axes = np.array([[1, 1, -2],
+                         [1, 1, 1],
+                         [1, -1, 0]])
+
+        # aiming for the resulting burgers vector
+        burgers = alat * np.array([1, 0, -1]) / 2.
+
+        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
+        # 1/4 + 1/2 (1/3 - 1/4) - to be in the middle of the glide set
+        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        parity = [0, 0]
+
+        unit_cell = Diamond(symbol, directions=axes.tolist(),
+                            pbc=(False, False, True),
+                            latticeconstant=alat)
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 2
+
+        # 30 degree
+        burgers_left = alat * np.array([2., -1., -1.]) / 6.
+        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+        left30.set_burgers(burgers_left)
+        # 90 degree
+        burgers_right = alat * np.array([1, 1, -2.]) / 6.
+        right90 = DiamondGlide90degreePartial(alat, C11, C12, C44)
+        self_consistent = False
+        super().__init__(left30, right90, unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
+
+
+class FixedLineAtoms:
+    """Constrain atoms to move along a given direction only."""
+    def __init__(self, a, direction):
+        self.a = a
+        self.dir = direction / np.sqrt(np.dot(direction, direction))
+
+    def adjust_positions(self, atoms, newpositions):
+        steps = newpositions[self.a] - atoms.positions[self.a]
+        newpositions[self.a] = (atoms.positions[self.a] +
+                                np.einsum("ij,j,k", steps, self.dir, self.dir))
+
+    def adjust_forces(self, atoms, forces):
+        forces[self.a] = np.einsum("ij,j,k", forces[self.a], self.dir, self.dir)
+
+
+def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
+               size=[2, 2, 2], factor=15, n_dots=11,
+               relax=True, fmax=1.0e-2, return_images=False):
+    """
+    This function performs a calculation of a cross-sections in 'shift_dir`
+    of the generalized stacking fault (GSF) gamma
+    surface with `surface` orientation.
+    *A gamma surface is defined as the energy variation when the
+    crystal is cut along a particular plane and then one of the
+    resulting parts is displaced along a particular direction. This
+    quantity is related to the energy landscape of dislocations and
+    provides data out of equilibrium, preserving the crystal state.*
+    For examples for the case of W and more details see section 4.2
+    and figure 2 in [J. Phys.: Condens. Matter 25 (2013) 395502 (15pp)]\
+                    (http://iopscience.iop.org/0953-8984/25/39/395502)
+
+    Parameters
+    ----------
+    unit_cell: ase.Atoms
+        Unit cell to construct gamma surface from.
+        Should have a ase.calculator attached as calc
+        in order to perform relaxation.
+    calc: ase.calculator
+        if unit_cell.calc is None set unit_cell.calc to calc
+    shift_dir: int
+        index of unit_cell axes to shift atoms
+    surface: int
+        index of unit_cell axes to be the surface normal direction
+    size: list of ints
+        start size of the cell
+    factor: int
+        factor to increase the size of the cell along
+        the surface normal direction
+    n_dots: int
+        number of images along the gamma line
+    relax: bool
+        flag to perform relaxation
+    fmax: float
+        maximum force value for relaxation
+    return_images: bool
+        flag to control if the atomic configurations are returned
+        together with the results
+
+    Returns
+    -------
+    deltas: np.array
+        shift distance of every image in Angstroms
+    totens: np.array
+        gamma surface energy in eV / Angstroms^2
+    images: list of ase.Atoms
+            images along the gamma surface. Returned if return_images is True
+    """
+
+    from ase.optimize import LBFGSLineSearch
+
+    if unit_cell.calc is None:
+        if calc is None:
+            raise RuntimeError("Please set atoms calculator or provide calc")
+        else:
+            unit_cell.calc = calc
+
+    size = np.array(size)
+    directions = np.array([0, 1, 2])
+
+    period = unit_cell.cell[shift_dir, shift_dir]
+    size[surface] *= factor
+    slab = unit_cell * size.tolist()
+
+    top_mask = slab.positions.T[surface] > slab.cell[surface, surface] / 2.0
+
+    surface_direction = directions == surface
+    slab.pbc = (~surface_direction).tolist()
+    slab.center(axis=surface, vacuum=10)
+
+    images = []
+    totens = []
+    deltas = []
+
+    for delta in np.linspace(0.0, period, num=n_dots):
+
+        image = slab.copy()
+        image.positions[:, shift_dir][top_mask] += delta
+
+        select_all = np.full_like(image, True, dtype=bool)
+        image.set_constraint(
+            FixedLineAtoms(select_all, surface_direction.astype(int)))
+        image.calc = unit_cell.calc
+
+        if image.get_forces().max() < fmax:
+            raise RuntimeError(
+                "Initial max force is smaller than fmax! Check surface direction")
+
+        if relax:
+            opt = LBFGSLineSearch(image)
+            opt.run(fmax=fmax)
+            images.append(image)
+
+        deltas.append(delta)
+        totens.append(image.get_potential_energy())
+
+    totens = np.array(totens)
+    totens -= totens[0]
+
+    surface_area_dirs = directions[~(directions == surface)]
+    surface_area = (slab.cell.lengths()[surface_area_dirs[0]] *
+                    slab.cell.lengths()[surface_area_dirs[1]])
+
+    totens /= surface_area  # results in eV/A^2
+
+    if return_images:
+        return np.array(deltas), totens, images
+    else:
+        return np.array(deltas), totens

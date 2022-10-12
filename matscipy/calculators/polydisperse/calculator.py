@@ -1,9 +1,12 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014-2018) James Kermode, King's College London
-#                       Lars Pastewka, University of Freiburg
+# Copyright 2020-2021 Jan Griesser (U. Freiburg)
+#           2020 griesserj@fp-10-126-132-144.eduroam-fp.privat
+#           2020 Arnaud Allera (U. Lyon 1)
+#           2014 Lars Pastewka (U. Freiburg)
+#           2014 James Kermode (Warwick U.)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,29 +20,18 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
-
-from __future__ import division
-
-import os
-
-import sys
-
-import time
+#
 
 import numpy as np
 
+from scipy.special import factorial2
+from scipy.sparse import bsr_matrix
+
 import ase
 
-from ase.calculators.calculator import Calculator
-
-from matscipy.neighbours import neighbour_list, first_neighbours
-
-try:
-    from scipy.special import factorial2
-    from scipy.sparse import bsr_matrix
-except ImportError:
-    warnings.warn('Warning: no scipy')
+from ...neighbours import neighbour_list, first_neighbours
+from ..calculator import MatscipyCalculator
+from ...numpy_tricks import mabincount
 
 ###
 
@@ -161,70 +153,82 @@ class InversePowerLawPotential():
 
 ###
 
+class Polydisperse(MatscipyCalculator):
+    implemented_properties = [
+        "energy",
+        "free_energy",
+        "stress",
+        "forces",
+        "hessian",
+        "dynamical_matrix",
+        "nonaffine_forces",
+        "birch_coefficients",
+        "nonaffine_elastic_contribution",
+        "stress_elastic_contribution",
+        "born_constants",
+        'elastic_constants',
+    ]
 
-class Polydisperse(Calculator):
-    implemented_properties = ["energy", "stress", "forces"]
     default_parameters = {}
     name = "Polydisperse"
 
     def __init__(self, f, cutoff=None):
-        Calculator.__init__(self)
+        MatscipyCalculator.__init__(self)
         self.f = f
+        self.reset()
 
     def calculate(self, atoms, properties, system_changes):
-        Calculator.calculate(self, atoms, properties, system_changes)
+        super().calculate(atoms, properties, system_changes)
 
         f = self.f
-        nat = len(self.atoms)
+        nb_atoms = len(self.atoms)
         if atoms.has("size"):
             size = self.atoms.get_array("size")
         else:
             raise AttributeError(
                 "Attribute error: Unable to load atom sizes from atoms object!")
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list(
-            "ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
-        ijsize = f.mix_sizes(size[i_n], size[j_n])
+        i_p, j_p, r_pc, r_p = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
+        ijsize = f.mix_sizes(size[i_p], size[j_p])
 
         # Mask neighbour list to consider only true neighbors
-        mask = abs_dr_n <= f.get_cutoff() * ijsize
-        i_n = i_n[mask]
-        j_n = j_n[mask]
-        dr_nc = dr_nc[mask]
-        abs_dr_n = abs_dr_n[mask]
+        mask = r_p <= f.get_cutoff() * ijsize
+        i_p = i_p[mask]
+        j_p = j_p[mask]
+        r_pc = r_pc[mask]
+        r_p = r_p[mask]
         ijsize = ijsize[mask]
-        e_n = f(abs_dr_n, ijsize)
-        de_n = f.first_derivative(abs_dr_n, ijsize)
+        e_p = f(r_p, ijsize)
+        de_p = f.first_derivative(r_p, ijsize)
 
         # Energy
-        epot = 0.5*np.sum(e_n)
+        epot = 0.5*np.sum(e_p)
 
         # Forces
-        df_nc = 0.5*de_n.reshape(-1, 1)*dr_nc/abs_dr_n.reshape(-1, 1)
+        df_pc = -0.5*de_p.reshape(-1, 1)*r_pc/r_p.reshape(-1, 1)
 
-        # Sum for each atom
-        fx_i = np.bincount(i_n, weights=df_nc[:, 0], minlength=nat) - \
-            np.bincount(j_n, weights=df_nc[:, 0], minlength=nat)
-        fy_i = np.bincount(i_n, weights=df_nc[:, 1], minlength=nat) - \
-            np.bincount(j_n, weights=df_nc[:, 1], minlength=nat)
-        fz_i = np.bincount(i_n, weights=df_nc[:, 2], minlength=nat) - \
-            np.bincount(j_n, weights=df_nc[:, 2], minlength=nat)
+        f_nc = mabincount(j_p, df_pc, nb_atoms) - mabincount(i_p, df_pc, nb_atoms)
 
         # Virial
-        virial_v = -np.array([dr_nc[:, 0]*df_nc[:, 0],               # xx
-                              dr_nc[:, 1]*df_nc[:, 1],               # yy
-                              dr_nc[:, 2]*df_nc[:, 2],               # zz
-                              dr_nc[:, 1]*df_nc[:, 2],               # yz
-                              dr_nc[:, 0]*df_nc[:, 2],               # xz
-                              dr_nc[:, 0]*df_nc[:, 1]]).sum(axis=1)  # xy
+        virial_v = -np.array([r_pc[:, 0] * df_pc[:, 0],               # xx
+                              r_pc[:, 1] * df_pc[:, 1],               # yy
+                              r_pc[:, 2] * df_pc[:, 2],               # zz
+                              r_pc[:, 1] * df_pc[:, 2],               # yz
+                              r_pc[:, 0] * df_pc[:, 2],               # xz
+                              r_pc[:, 0] * df_pc[:, 1]]).sum(axis=1)  # xy
 
-        self.results = {'energy': epot,
-                        'stress': virial_v/self.atoms.get_volume(),
-                        'forces': np.transpose([fx_i, fy_i, fz_i])}
+        self.results.update(
+            {
+                'energy': epot,
+                'free_energy': epot,
+                'stress': virial_v / self.atoms.get_volume(),
+                'forces': f_nc,
+            }
+        )
 
     ###
 
-    def hessian_matrix(self, atoms, divide_by_masses=False):
+    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """
         Calculate the Hessian matrix for a polydisperse systems where atoms interact via a pair potential.
         For an atomic configuration with N atoms in d dimensions the hessian matrix is a symmetric, hermitian matrix
@@ -236,6 +240,9 @@ class Polydisperse(Calculator):
         ----------
         atoms: ase.Atoms
             Atomic configuration in a local or global minima.
+
+        format: "sparse" or "neighbour-list"
+            Output format of the hessian matrix.
 
         divide_by_masses: bool
             Divide the block "l,m" by the corresponding atomic masses "sqrt(m_l, m_m)" to obtain dynamical matrix.
@@ -250,58 +257,62 @@ class Polydisperse(Calculator):
             self.atoms = atoms
 
         f = self.f
-        nat = len(self.atoms)
+        nb_atoms = len(self.atoms)
         if atoms.has("size"):
-            size = self.atoms.get_array("size")
+            size = atoms.get_array("size")
         else:
             raise AttributeError(
                 "Attribute error: Unable to load atom sizes from atoms object! Probably missing size array.")
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list(
-            "ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
-        ijsize = f.mix_sizes(size[i_n], size[j_n])
+        i_p, j_p, r_pc, r_p = neighbour_list("ijDd", self.atoms, f.get_maxSize()*f.get_cutoff())
+        ijsize = f.mix_sizes(size[i_p], size[j_p])
 
         # Mask neighbour list to consider only true neighbors
-        mask = abs_dr_n <= f.get_cutoff()*ijsize
-        i_n = i_n[mask]
-        j_n = j_n[mask]
-        dr_nc = dr_nc[mask]
-        abs_dr_n = abs_dr_n[mask]
+        mask = r_p <= f.get_cutoff()*ijsize
+        i_p = i_p[mask]
+        j_p = j_p[mask]
+        r_pc = r_pc[mask]
+        r_p = r_p[mask]
         ijsize = ijsize[mask]
-        first_i = first_neighbours(nat, i_n)
+        first_i = first_neighbours(nb_atoms, i_p)
 
         if divide_by_masses:
-            mass_nat = self.atoms.get_masses()
-            geom_mean_mass_n = np.sqrt(mass_nat[i_n]*mass_nat[j_n])
+            mass_n = atoms.get_masses()
+            geom_mean_mass_p = np.sqrt(mass_n[i_p]*mass_n[j_p])
 
         # Hessian 
-        de_n = f.first_derivative(abs_dr_n, ijsize)
-        dde_n = f.second_derivative(abs_dr_n, ijsize)
-        e_nc = (dr_nc.T/abs_dr_n).T
-        H_ncc = -(dde_n * (e_nc.reshape(-1, 3, 1)
-                           * e_nc.reshape(-1, 1, 3)).T).T
-        H_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype)
-                                   - (e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3))).T).T
+        de_p = f.first_derivative(r_p, ijsize)
+        dde_p = f.second_derivative(r_p, ijsize)
+        n_pc = (r_pc.T/r_p).T
+        H_pcc = -(dde_p * (n_pc.reshape(-1, 3, 1)
+                           * n_pc.reshape(-1, 1, 3)).T).T
+        H_pcc += -(de_p/r_p * (np.eye(3, dtype=n_pc.dtype)
+                                   - (n_pc.reshape(-1, 3, 1) * n_pc.reshape(-1, 1, 3))).T).T
 
-        if divide_by_masses:
-            H = bsr_matrix(((H_ncc.T/geom_mean_mass_n).T,
-                            j_n, first_i), shape=(3*nat, 3*nat))
+        if format == "sparse":
+            if divide_by_masses:
+                H = bsr_matrix(((H_pcc.T/geom_mean_mass_p).T,
+                                j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
-        else:
-            H = bsr_matrix((H_ncc, j_n, first_i), shape=(3*nat, 3*nat))
+            else:
+                H = bsr_matrix((H_pcc, j_p, first_i), shape=(3*nb_atoms, 3*nb_atoms))
 
-        Hdiag_icc = np.empty((nat, 3, 3))
-        for x in range(3):
-            for y in range(3):
-                Hdiag_icc[:, x, y] = - \
-                    np.bincount(i_n, weights=H_ncc[:, x, y])
+            Hdiag_icc = np.empty((nb_atoms, 3, 3))
+            for x in range(3):
+                for y in range(3):
+                    Hdiag_icc[:, x, y] = - \
+                        np.bincount(i_p, weights=H_pcc[:, x, y])
 
-        if divide_by_masses:
-            H += bsr_matrix(((Hdiag_icc.T/mass_nat).T, np.arange(nat),
-                    np.arange(nat+1)), shape=(3*nat, 3*nat))         
+            if divide_by_masses:
+                H += bsr_matrix(((Hdiag_icc.T/mass_n).T, np.arange(nb_atoms),
+                        np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))         
 
-        else:
-            H += bsr_matrix((Hdiag_icc, np.arange(nat),
-                     np.arange(nat+1)), shape=(3*nat, 3*nat))
+            else:
+                H += bsr_matrix((Hdiag_icc, np.arange(nb_atoms),
+                         np.arange(nb_atoms+1)), shape=(3*nb_atoms, 3*nb_atoms))
 
-        return H
+            return H
+
+        # Neighbour list format
+        elif format == "neighbour-list":
+            return H_pcc, i_p, j_p, r_pc, r_p

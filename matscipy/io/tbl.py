@@ -1,9 +1,9 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright 2014-2017, 2021 Lars Pastewka (U. Freiburg)
+#           2015 James Kermode (Warwick U.)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
+#
 
+import io
 import re
 
 import numpy as np
@@ -42,12 +43,13 @@ def savetbl(fn, **kwargs):
     sorted_kwargs = sorted(kwargs.items(), key=lambda t: t[0])
     header = ''
     for i, (x, y) in enumerate(sorted_kwargs):
-        header = '{0} {1}:{2}'.format(header, i+1, x)
+        header = '{0} {1}:{2}'.format(header, i + 1, x)
     data = np.transpose([y for x, y in sorted_kwargs])
-    np.savetxt(fn, data, header=header)
+    fmt = ['%s' if x.dtype.kind == 'U' else '%.18e' for x in data.T]
+    np.savetxt(fn, data, header=header, fmt=fmt)
 
 
-def loadtbl(fn, usecols=None, converters=None, fromfile=False, **kwargs):
+def loadtbl(fn, usecols=None, types=None, fromfile=False, **kwargs):
     """
     Load tabulated data from column header strings.
 
@@ -65,6 +67,8 @@ def loadtbl(fn, usecols=None, converters=None, fromfile=False, **kwargs):
         Name of file to load.
     usecols : list of strings
         List of column names.
+    types : dictionary
+        Types per column.
     fromfile : bool
         Use numpy.fromfile instead of numpy.loadtxt if set to True. Can be
         faster in some circumstances.
@@ -82,16 +86,20 @@ def loadtbl(fn, usecols=None, converters=None, fromfile=False, **kwargs):
     while line.startswith('#'):
         line = line[1:].strip()
         column_labels = [s.strip() for s in re.split('[\s,]+', line)]
+        pos = f.tell()
         line = f.readline()
+    f.seek(pos)
     if column_labels is None:
         f.close()
         raise RuntimeError("No header found in file '{}'".format(fn))
 
     sep_i = [x.find(':') for x in column_labels]
-    column_labels = [s[i+1:] if i >= 0 else s for s, i
+    column_labels = [s[i + 1:] if i >= 0 else s for s, i
                      in zip(column_labels, sep_i)]
 
     if fromfile:
+        if types is not None:
+            raise ValueError('`types` argument cannot be used with fromfile=True')
         data = np.fromfile(f, sep=' ')
         f.close()
         data.shape = (-1, len(column_labels))
@@ -100,16 +108,19 @@ def loadtbl(fn, usecols=None, converters=None, fromfile=False, **kwargs):
         else:
             return [data[:, column_labels.index(s)] for s in usecols]
     else:
+        raw_data = f.read()
         f.close()
-        converters_i = None
-        if converters is not None:
-            converters_i = {column_labels.index(s): c for s, c
-                            in converters.items()}
         if usecols is None:
-            data = np.loadtxt(fn, converters=converters_i, unpack=True,
-                              **kwargs)
+            if types is not None:
+                raise ValueError('`types` argument can only be used when specifying `usecols`')
+            data = np.loadtxt(io.StringIO(raw_data), unpack=True, **kwargs)
             return dict((s, d) for s, d in zip(column_labels, data))
         else:
-            column_i = [column_labels.index(s) for s in usecols]
-            return np.loadtxt(fn, usecols=column_i, converters=converters_i,
-                              unpack=True, **kwargs)
+            if types is None:
+                types = {}
+            return (np.loadtxt(io.StringIO(raw_data),
+                               usecols=[column_labels.index(s)],
+                               dtype=types[s] if s in types else np.float,
+                               unpack=True,
+                               **kwargs)
+                    for s in usecols)

@@ -1,0 +1,6 @@
+*.out
+*.txt
+
+crack_*.xyz
+cryst_*.xyz
+HCOOH.cfg

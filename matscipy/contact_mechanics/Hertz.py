@@ -1,12 +1,12 @@
-# ======================================================================
-# matscipy - Python materials science tools
+#
+# Copyright 2014-2015, 2021 Lars Pastewka (U. Freiburg)
+#           2015 Till Junge (EPFL)
+#
+# matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
-#
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNUGeneral Public License as published by
+# it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -17,9 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
-
-from __future__ import division
+#
 
 import math
 

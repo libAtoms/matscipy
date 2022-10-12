@@ -1,3 +1,23 @@
+#
+# Copyright 2021 Lars Pastewka (U. Freiburg)
+#           2019-2021 Johannes Hoermann (U. Freiburg)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 import ase.io
 import io
 import matscipytest
@@ -38,11 +58,11 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
             os.path.join(self.data_path,'NaCl.lammps'),format='lammps-data')
 
         # command line interface scripts are expected to reside within
-        # ../scripts/electrochemistry relative to thi test directory
+        # ../matscipy/cli/electrochemistry relative to this test directory
         self.pnp_cli = os.path.join(
-            self.test_path,os.path.pardir,'scripts','electrochemistry','pnp.py')
+            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','pnp.py')
         self.c2d_cli = os.path.join(
-            self.test_path,os.path.pardir,'scripts','electrochemistry','c2d.py')
+            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','c2d.py')
 
         self.assertTrue(os.path.exists(self.pnp_cli))
         self.assertTrue(os.path.exists(self.c2d_cli))
@@ -62,7 +82,6 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
         self.myenv["PATH"] = os.pathsep.join((
             self.bin_path.name, self.myenv["PATH"]))
 
-
     def tearDown(self):
         self.bin_path.cleanup()
 
@@ -74,7 +93,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
                 [ 'c2d', os.path.join(self.data_path,'NaCl.npz'), 'NaCl.xyz' ],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, env=self.myenv)
-            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'))
+            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'), format='extxyz')
             self.assertEqual(len(xyz),len(self.ref_xyz))
             self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges() ==
@@ -89,12 +108,12 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
                 [ 'c2d', os.path.join(self.data_path,'NaCl.txt'), 'NaCl.xyz' ],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, env=self.myenv)
-            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'))
+            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'), format='extxyz')
             self.assertEqual(len(xyz), len(self.ref_xyz))
-            self.assertTrue( ( xyz.symbols ==  self.ref_xyz.symbols ).all() )
+            self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges()
-                ==  self.ref_xyz.get_initial_charges() ).all() )
-            self.assertTrue( ( xyz.cell ==  self.ref_xyz.cell ).all() )
+                == self.ref_xyz.get_initial_charges() ).all() )
+            self.assertTrue( ( xyz.cell == self.ref_xyz.cell ).all() )
 
     @unittest.skipUnless(LooseVersion(ase.__version__) > LooseVersion('3.19.0'),
         """ LAMMPS data file won't work for ASE version up until 3.18.1,
@@ -128,9 +147,10 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             test_npz = np.load(os.path.join(tmpdir,'out.npz'))
 
-            self.assertArrayAlmostEqual(test_npz['x'],self.ref_npz['x'])
-            self.assertArrayAlmostEqual(test_npz['u'],self.ref_npz['u'])
-            self.assertArrayAlmostEqual(test_npz['c'],self.ref_npz['c'])
+            # depending on which solver is used for the tests, absolute values might deviate more than the default tolerance
+            self.assertArrayAlmostEqual(test_npz['x'], self.ref_npz['x'], tol=1e-7)
+            self.assertArrayAlmostEqual(test_npz['u'], self.ref_npz['u'], tol=1e-5)
+            self.assertArrayAlmostEqual(test_npz['c'], self.ref_npz['c'], tol=1e-3)
 
     def test_pnp_output_format_txt(self):
         """pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell NaCl.txt"""
@@ -144,21 +164,10 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             test_txt = np.loadtxt(os.path.join(tmpdir,'out.txt'), unpack=True)
 
-            self.assertArrayAlmostEqual(test_txt[0,:],self.ref_txt[0,:]) # x
-            self.assertArrayAlmostEqual(test_txt[1,:],self.ref_txt[1,:]) # u
-            self.assertArrayAlmostEqual(test_txt[2:,:],self.ref_txt[2:,:]) # c
-
-            # dx = test_txt[0,:] - ref_x
-            # du = test_txt[1,:] - ref_u
-            # dc = test_txt[2:,:] - ref_c
-            #
-            # rel_err_norm_x = np.linalg.norm(dx)/np.linalg.norm(ref_x)
-            # rel_err_norm_u = np.linalg.norm(du)/np.linalg.norm(ref_u)
-            # rel_err_norm_c = np.linalg.norm(dc)/np.linalg.norm(ref_c)
-            #
-            # assert rel_err_norm_x < rel_err_norm_tol
-            # assert rel_err_norm_u < rel_err_norm_tol
-            # assert rel_err_norm_c < rel_err_norm_tol
+            # depending on which solver is used for the tests, absolute values might deviate more than the default tolerance
+            self.assertArrayAlmostEqual(test_txt[0,:], self.ref_txt[0,:], tol=1e-5) # x
+            self.assertArrayAlmostEqual(test_txt[1,:],self.ref_txt[1,:], tol=1e-5) # u
+            self.assertArrayAlmostEqual(test_txt[2:,:],self.ref_txt[2:,:], tol=1e-3) # c
 
     def test_pnp_c2d_pipeline_mode(self):
         """pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell | c2d > NaCl.xyz"""
@@ -180,7 +189,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             c2d_output = c2d.communicate()[0]
             with io.StringIO(c2d_output) as xyz_instream:
-                xyz = ase.io.read(xyz_instream, format='xyz')
+                xyz = ase.io.read(xyz_instream, format='extxyz')
             self.assertEqual(len(xyz),len(self.ref_xyz))
             self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges()

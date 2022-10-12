@@ -22,6 +22,12 @@ If building on Mac OS X, we recommend you use the GCC toolchain
 ::
 
    CC=gcc CXX=g++ python setup.py build
+   
+If you have a recent version of gcc you may also need to set
+
+::
+
+    CFLAGS="-std=c99"
 
 Documentation
 -------------
@@ -35,7 +41,7 @@ Dependencies
 The package requires :
 
 -  **numpy** - http://www.numpy.org/
--  **scipy** (optional) - http://www.scipy.org/
+-  **scipy** - http://www.scipy.org/
 -  **ASE** - https://wiki.fysik.dtu.dk/ase/
 
 Optional packages :
