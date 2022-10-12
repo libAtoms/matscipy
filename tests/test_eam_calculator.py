@@ -378,7 +378,7 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
                   precon=precon, method='spline')
         # neb.interpolate()
         opt = NEBOptimizer(neb)
-        opt.run(fmax=1e-3)
+        opt.run(fmax=0.1) # large tolerance for test speed
         
 
 if __name__ == '__main__':

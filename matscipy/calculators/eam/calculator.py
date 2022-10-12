@@ -981,3 +981,6 @@ class EAMHessianPrecon(Precon):
                                 None, None) #self.P.copy(),
                                 # self.old_positions.copy())
 
+    def asarray(self):
+        return self.P.copy()
+
