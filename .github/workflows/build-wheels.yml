@@ -34,9 +34,16 @@ jobs:
 
       - name: Build wheels
         run: |
-           python -m cibuildwheel --output-dir wheelhouse
+           if [[ $RUNNER_OS == "Linux" ]]; then
+              for image in manylinux2010 manylinux2014; do
+                 export CIBW_MANYLINUX_X86_64_IMAGE=$image
+                 python -m cibuildwheel --output-dir wheelhouse           
+              done
+           else
+              python -m cibuildwheel --output-dir wheelhouse
+           fi
         env:
-           CIBW_SKIP: cp27-* cp35-* cp36-* cp311-* pp*
+           CIBW_SKIP: cp27-* cp35-* cp36-* cp311-* pp* *musllinux*
            CIBW_ARCHS_MACOS: "x86_64 arm64"
            CIBW_BEFORE_BUILD: "pip install oldest-supported-numpy"
            CIBW_TEST_COMMAND: "cd {project}/tests; pip install -r ../requirements.txt; pytest"
