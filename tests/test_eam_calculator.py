@@ -43,7 +43,7 @@ import matscipytest
 from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
 from matscipy.neighbours import neighbour_list
 from matscipy.numerical import numerical_stress
-
+from matscipy.calculators.eam import EAM
 
 ###
 
