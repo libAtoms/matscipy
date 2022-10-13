@@ -29,12 +29,10 @@ import unittest
 import numpy as np
 from numpy.linalg import norm
 
-import scipy.sparse.linalg as sla
 
 import ase.io as io
 from ase.calculators.test import numeric_force
 from ase.constraints import StrainFilter, UnitCellFilter
-from ase.build import bulk
 from ase.lattice.compounds import B1, B2, L1_0, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.lattice.hexagonal import HexagonalClosedPacked
@@ -42,10 +40,9 @@ from ase.optimize import FIRE
 from ase.units import GPa
 
 import matscipytest
-from matscipy.calculators.eam import EAM, EAMHessianPrecon
 from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
 from matscipy.neighbours import neighbour_list
-from matscipy.numerical import numerical_forces, numerical_stress
+from matscipy.numerical import numerical_stress
 
 
 ###
