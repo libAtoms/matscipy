@@ -24,7 +24,6 @@
 import numpy as np
 
 from ase.calculators.calculator import Calculator
-from ase.optimize.precon import Precon
 
 try:
     from scipy.interpolate import InterpolatedUnivariateSpline
@@ -59,7 +58,7 @@ def _make_derivative(x, n=1):
 ###
 
 class EAM(Calculator):
-    implemented_properties = ['energy', 'free_energy', 'stress', 'forces']
+    implemented_properties = ['energy', 'free_energy', 'stress', 'forces', 'hessian']
     default_parameters = {}
     name = 'EAM'
        
@@ -506,6 +505,12 @@ class EAM(Calculator):
             divide_by_masses, masses_i, geom_mean_mass_n
         )
         return D
+    
+    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
+        H = self.calculate_hessian_matrix(atoms, divide_by_masses=divide_by_masses)
+        if format == 'dense':
+            H = H.todense()
+        return H        
 
     def _calculate_hessian_pair_term(
         self, nat, i_n, j_n, abs_dr_n, first_i, drep_n, ddrep_n, outer_e_ncc, eye_minus_outer_e_ncc, 
@@ -940,47 +945,3 @@ class EAM(Calculator):
     @property
     def cutoff(self):
         return self._db_cutoff
-
-
-class EAMHessianPrecon(Precon):
-    def __init__(self, calc, c_stab=0.01, move_tol=0.1, P=None, old_positions=None):
-        self.calc = calc
-        self.P = P        
-        self.c_stab = c_stab
-        self.move_tol = move_tol
-        self.old_positions = old_positions        
-        
-    def make_precon(self, atoms):
-        if self.P is None or self.old_positions is None:
-            max_move = np.inf
-        else:
-            max_move = np.abs(atoms.positions - self.old_positions).max()
-        if self.P is None or max_move > self.move_tol:
-            print('Recomputing precon...')
-            P = self.calc.calculate_hessian_matrix(atoms).todense()
-            P += np.diag([self.c_stab] * 3 * len(atoms))
-            D, Q = np.linalg.eigh(P)
-            print(D[:10])
-            if np.any(D < 0):
-                print(f'Flipping {np.sum(D < 0)} negative eigenvalues')
-                self.P = np.array(Q @ np.diag(np.abs(D)) @ Q.T)
-            else:
-                self.P = np.array(P)
-            self.old_positions = atoms.positions.copy()
-                
-    def Pdot(self, x):
-        return self.P.dot(x)
-        
-    def solve(self, x):
-        return np.linalg.solve(self.P, x)
-    
-    def copy(self):
-        return EAMHessianPrecon(self.calc, 
-                                self.c_stab,
-                                self.move_tol,
-                                None, None) #self.P.copy(),
-                                # self.old_positions.copy())
-
-    def asarray(self):
-        return self.P.copy()
-

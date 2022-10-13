@@ -22,6 +22,6 @@
 #
 """Implements the Embedded Atom Method"""
 
-from .calculator import EAM, EAMHessianPrecon
+from .calculator import EAM
 from .io import mix_eam, read_eam, write_eam
 from .average_atom import average_potential
