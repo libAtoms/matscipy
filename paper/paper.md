@@ -11,6 +11,7 @@ authors:
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1" # (Multiple affiliations must be quoted)
   - name: James R. Kermode
+    orcid: 0000-0001-6755-6271
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 2
   - name: Lars Pastewka
@@ -23,18 +24,18 @@ affiliations:
  - name: Warwick Centre for Predictive Modelling, School of Engineering, University of Warwick, Coventry CV4 7AL, United Kingdom
    index: 2
  - name: Department of Microsystems Engineering, University of Freiburg, 79110 Freiburg, Germany
-   index: 3
+    index: 3
 date: 14 October 2022
 bibliography: paper.bib
 ---
 
 # Summary
 
-The python package `matscipy` contains a set of tools for researchers in a field of materials science and atomistic modelling. It is built around around Atomistic Simulation Environment (ASE) [@Larsen2017] that offers great flexibility and python interface to tens of atomistic simulation codes.
+Materials science at atomic scale including fracture mechanics, plasticity,  contact mechanics and electrochemistry.
 
 # Statement of need
 
-Material science at atomistic scale.
+The python package `matscipy` contains a set of tools for researchers in a field of materials science and atomistic modelling. It is built around around Atomistic Simulation Environment (ASE) [@Larsen2017] that offers great flexibility and python interface to tens of atomistic simulation codes.
 
 # Acknowledgements
 
