@@ -19,11 +19,11 @@ authors:
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 3
 affiliations:
- - name: Aix-Marseille Universit ́e, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
-   index: 1
- - name: Warwick Centre for Predictive Modelling, School of Engineering, University of Warwick, Coventry CV4 7AL, United Kingdom
-   index: 2
- - name: Department of Microsystems Engineering, University of Freiburg, 79110 Freiburg, Germany
+  - name: Aix-Marseille Universit ́e, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
+    index: 1
+  - name: Warwick Centre for Predictive Modelling, School of Engineering, University of Warwick, Coventry CV4 7AL, United Kingdom
+    index: 2
+  - name: Department of Microsystems Engineering, University of Freiburg, 79110 Freiburg, Germany
     index: 3
 date: 14 October 2022
 bibliography: paper.bib
