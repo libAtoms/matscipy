@@ -108,13 +108,13 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         a.set_calculator(calc)
         FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         e_Cu = a.get_potential_energy()/len(a)
- 
+
         a = FaceCenteredCubic('Ag', size=[2,2,2])
         a.set_calculator(calc)
         FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         e_Ag = a.get_potential_energy()/len(a)
         self.assertTrue(abs(e_Ag+2.85)<1e-6)
- 
+
         a = L1_2(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
         a.set_calculator(calc)
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
@@ -122,7 +122,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         syms = np.array(a.get_chemical_symbols())
         self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
                                (syms=='Ag').sum()*e_Ag)/len(a)-0.096)<0.0005)
- 
+
         a = B1(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
         a.set_calculator(calc)
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
@@ -130,7 +130,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         syms = np.array(a.get_chemical_symbols())
         self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
                                (syms=='Ag').sum()*e_Ag)/len(a)-0.516)<0.0005)
- 
+
         a = B2(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
         a.set_calculator(calc)
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
@@ -138,7 +138,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         syms = np.array(a.get_chemical_symbols())
         self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
                                (syms=='Ag').sum()*e_Ag)/len(a)-0.177)<0.0003)
- 
+
         a = L1_2(['Cu', 'Ag'], size=[2,2,2], latticeconstant=4.0)
         a.set_calculator(calc)
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
@@ -146,7 +146,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         syms = np.array(a.get_chemical_symbols())
         self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
                                 (syms=='Ag').sum()*e_Ag)/len(a)-0.083)<0.0005)
-   
+
     def test_CuZr(self):
         # This is a test for the potential published in:
         # Mendelev, Sordelet, Kramer, J. Appl. Phys. 102, 043501 (2007)
@@ -157,7 +157,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         a_Cu = a.cell.diagonal().mean()/2
         #print('a_Cu (3.639) = ', a_Cu)
         self.assertAlmostEqual(a_Cu, 3.639, 3)
- 
+
         a = HexagonalClosedPacked('Zr', size=[2,2,2])
         a.set_calculator(calc)
         FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
@@ -167,19 +167,19 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         self.assertAlmostEqual(norm(a), 3.220, 3)
         self.assertAlmostEqual(norm(b), 3.220, 3)
         self.assertAlmostEqual(norm(c), 5.215, 3)
- 
+
         # CuZr3
         a = L1_2(['Cu', 'Zr'], size=[2,2,2], latticeconstant=4.0)
         a.set_calculator(calc)
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         self.assertAlmostEqual(a.cell.diagonal().mean()/2, 4.324, 3)
- 
+
         # Cu3Zr
         a = L1_2(['Zr', 'Cu'], size=[2,2,2], latticeconstant=4.0)
         a.set_calculator(calc)
         FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         self.assertAlmostEqual(a.cell.diagonal().mean()/2, 3.936, 3)
- 
+
         # CuZr
         a = B2(['Zr', 'Cu'], size=[2,2,2], latticeconstant=3.3)
         a.set_calculator(calc)
@@ -189,7 +189,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
     def test_forces_CuZr_glass(self):
         """Calculate interatomic forces in CuZr glass
 
-        Reference: tabulated forces from a calculation 
+        Reference: tabulated forces from a calculation
         with Lammmps (git version patch_29Mar2019-2-g585403d65)
 
         The forces can be re-calculated using the following
@@ -234,7 +234,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
                     break
             dump = np.loadtxt(file)
         forces_dump = dump[:, 5:8]
-        self.assertArrayAlmostEqual(forces, forces_dump, tol=1e-3) 
+        self.assertArrayAlmostEqual(forces, forces_dump, tol=1e-3)
 
     def test_funcfl(self):
         """Test eam kind 'eam' (DYNAMO funcfl format)
@@ -266,7 +266,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
             # grep '^#a,E' log.lammps  | awk '{print $2,$3}' > aE.txt
             # to extract info from log file
 
-        The reference data was calculated using Lammps 
+        The reference data was calculated using Lammps
         (git commit a73f1d4f037f670cd4295ecc1a576399a31680d2).
         """
         da   = 0.02775
@@ -281,7 +281,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
             print(energy)
 
 
-###        
+###
 
 if __name__ == '__main__':
     unittest.main()
