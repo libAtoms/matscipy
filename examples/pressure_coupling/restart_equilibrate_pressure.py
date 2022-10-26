@@ -1,6 +1,6 @@
 #
 # Copyright 2021 Lars Pastewka (U. Freiburg)
-#           2020 Thomas Reichenbach (Fraunhofer IWM)
+#           2020, 2022 Thomas Reichenbach (Fraunhofer IWM)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -29,18 +29,20 @@ from io import open
 dt = 1.0 * fs  # MD time step
 C11 = 500.0 * GPa  # material constant
 M_factor = 1.0  # scaling factor for lid mass during equilibration
-                # 1.0 will give fast equilibration for expensive
-                # calculators
+# 1.0 will give fast equilibration for expensive
+# calculators
+
 Pdir = 2  # index of cell axis along normal pressure is applied
 P = 5.0 * GPa  # target normal pressure
 v = 0.0  # no sliding yet, only apply pressure
 vdir = 0  # index of cell axis along sliding happens
 T = 300.0  # target temperature for thermostat
-           # thermostat is applied in the third direction which
-           # is neither pressure nor sliding direction and only
-           # in the middle region between top and bottom.
-           # This makes sense for small systems which cannot have
-           # a dedicated thermostat region.
+# thermostat is applied in the third direction which
+# is neither pressure nor sliding direction and only
+# in the middle region between top and bottom.
+# This makes sense for small systems which cannot have
+# a dedicated thermostat region.
+
 t_langevin = 75.0 * fs  # time constant for Langevin thermostat
 gamma_langevin = 1. / t_langevin  # derived Langevin parameter
 t_integrate = 1000.0 * fs  # simulation time
@@ -53,7 +55,8 @@ bottom_mask = np.loadtxt("bottom_mask.txt").astype(bool)
 top_mask = np.loadtxt("top_mask.txt").astype(bool)
 
 damp = pc.FixedMassCriticalDamping(C11, M_factor)
-slider = pc.SlideWithNormalPressureCuboidCell(top_mask, bottom_mask, Pdir, P, vdir, v, damp)
+slider = pc.SlideWithNormalPressureCuboidCell(top_mask, bottom_mask,
+                                              Pdir, P, vdir, v, damp)
 atoms.set_constraint(slider)
 
 calc = ASE_CALCULATOR_OBJECT  # put a specific calculator here
@@ -67,7 +70,8 @@ integrator = Langevin(atoms, dt, temps, gammas, fixcm=False)
 trajectory = Trajectory('equilibrate_pressure.traj', 'a', atoms)  # append
 with open('log_equilibrate.txt', 'r', encoding='utf-8') as log_handle:
     step_offset = pc.SlideLog(log_handle).step[-1]
-log_handle = open('log_equilibrate.txt', 'a', 1, encoding='utf-8')  # line buffered append
+log_handle = open('log_equilibrate.txt',
+                  'a', 1, encoding='utf-8')  # line buffered append
 logger = pc.SlideLogger(log_handle, atoms, slider, integrator, step_offset)
 
 integrator.attach(logger)
