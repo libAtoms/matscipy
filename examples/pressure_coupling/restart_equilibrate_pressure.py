@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from ase.io import Trajectory, read
-from ase.units import GPa, kB, fs
+from ase.units import GPa, fs
 import numpy as np
 from ase.md.langevin import Langevin
 from matscipy import pressurecoupling as pc
@@ -63,10 +63,11 @@ calc = ASE_CALCULATOR_OBJECT  # put a specific calculator here
 
 atoms.set_calculator(calc)
 temps = np.zeros((len(atoms), 3))
-temps[slider.middle_mask, slider.Tdir] = kB * T
+temps[slider.middle_mask, slider.Tdir] = T
 gammas = np.zeros((len(atoms), 3))
 gammas[slider.middle_mask, slider.Tdir] = gamma_langevin
-integrator = Langevin(atoms, dt, temps, gammas, fixcm=False)
+integrator = Langevin(atoms, dt, temperature_K=temps,
+                      friction=gammas, fixcm=False)
 trajectory = Trajectory('equilibrate_pressure.traj', 'a', atoms)  # append
 with open('log_equilibrate.txt', 'r', encoding='utf-8') as log_handle:
     step_offset = pc.SlideLog(log_handle).step[-1]

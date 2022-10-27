@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from ase.io import Trajectory
-from ase.units import GPa, kB, fs
+from ase.units import GPa, fs
 import numpy as np
 from ase.md.langevin import Langevin
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
@@ -63,7 +63,7 @@ slider = pc.SlideWithNormalPressureCuboidCell(top_mask, bottom_mask, Pdir,
 atoms.set_constraint(slider)
 # if we start from local minimum, zero potential energy,
 # use double temperature for faster temperature convergence in the beginning:
-MaxwellBoltzmannDistribution(atoms, 2 * kB * T)
+MaxwellBoltzmannDistribution(atoms, temperature_K=2 * T)
 # clear momenta in constraint regions, otherwise lid might run away
 atoms.arrays['momenta'][top_mask, :] = 0
 atoms.arrays['momenta'][bottom_mask, :] = 0
@@ -74,11 +74,12 @@ atoms.set_calculator(calc)
 
 # only thermalize middle region in one direction
 temps = np.zeros((len(atoms), 3))
-temps[slider.middle_mask, slider.Tdir] = kB * T
+temps[slider.middle_mask, slider.Tdir] = T
 gammas = np.zeros((len(atoms), 3))
 gammas[slider.middle_mask, slider.Tdir] = gamma_langevin
 
-integrator = Langevin(atoms, dt, temps, gammas, fixcm=False)
+integrator = Langevin(atoms, dt, temperature_K=temps,
+                      friction=gammas, fixcm=False)
 trajectory = Trajectory('equilibrate_pressure.traj', 'w', atoms)
 log_handle = open('log_equilibrate.txt',
                   'w', 1, encoding='utf-8')  # 1 means line buffered

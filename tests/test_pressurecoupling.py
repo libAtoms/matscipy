@@ -156,10 +156,11 @@ class TestPressureCoupling(matscipytest.MatSciPyTestCase):
             damping)
         atoms.set_constraint(slider)
         temps = np.zeros((len(atoms), 3))
-        temps[slider.middle_mask, slider.Tdir] = kB * T
+        temps[slider.middle_mask, slider.Tdir] = T
         gammas = np.zeros((len(atoms), 3))
         gammas[slider.middle_mask, slider.Tdir] = gamma_langevin
-        integrator = Langevin(atoms, dt, temps, gammas, fixcm=False)
+        integrator = Langevin(atoms, dt, temperature_K=temps,
+                              friction=gammas, fixcm=False)
 
         forces_ini = atoms.get_forces(apply_constraint=False)
         forces_ini_const = atoms.get_forces(apply_constraint=True)
@@ -265,16 +266,17 @@ class TestPressureCoupling(matscipytest.MatSciPyTestCase):
             damping
         )
         atoms.set_constraint(slider)
-        MaxwellBoltzmannDistribution(atoms, 2 * kB * T)
+        MaxwellBoltzmannDistribution(atoms, temperature_K=2 * T)
         atoms.arrays['momenta'][top_mask, :] = 0
         atoms.arrays['momenta'][bottom_mask, :] = 0
         handle = StringIO()
         beginning = handle.tell()
         temps = np.zeros((len(atoms), 3))
-        temps[slider.middle_mask, slider.Tdir] = kB * T
+        temps[slider.middle_mask, slider.Tdir] = T
         gammas = np.zeros((len(atoms), 3))
         gammas[slider.middle_mask, slider.Tdir] = gamma_langevin
-        integrator = Langevin(atoms, dt, temps, gammas, fixcm=False)
+        integrator = Langevin(atoms, dt, temperature_K=temps,
+                              friction=gammas, fixcm=False)
         logger = pc.SlideLogger(handle, atoms, slider, integrator)
         logger.write_header()
         logger()
