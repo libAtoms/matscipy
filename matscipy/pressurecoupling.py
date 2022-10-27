@@ -312,10 +312,7 @@ class SlideLogger(object):
     """Logger to be attached to an ASE integrator.
 
     For new files (not restart jobs), the write_header method should
-    be called once in order to write the header to the file. Also note
-    that ASE does not write the time step 0 automatically.
-    You can do so by calling the SlideLogger instance once
-    before starting the integration as in example 1 below.
+    be called once in order to write the header to the file.
 
     Parameters
     ----------
@@ -336,7 +333,6 @@ class SlideLogger(object):
         log_handle = open(logfn, 'w', 1)  # line buffered
         logger = SlideLogger(log_handle, ...)
         logger.write_header()
-        logger()
         integrator.attach(logger)
         integrator.run(steps_integrate)
         log_handle.close()

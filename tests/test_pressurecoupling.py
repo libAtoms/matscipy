@@ -279,7 +279,6 @@ class TestPressureCoupling(matscipytest.MatSciPyTestCase):
                               friction=gammas, fixcm=False)
         logger = pc.SlideLogger(handle, atoms, slider, integrator)
         logger.write_header()
-        logger()
         integrator.attach(logger)
         integrator.run(10)
         integrator.logfile.close()

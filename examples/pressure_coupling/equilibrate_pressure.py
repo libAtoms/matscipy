@@ -86,9 +86,6 @@ log_handle = open('log_equilibrate.txt',
 logger = pc.SlideLogger(log_handle, atoms, slider, integrator)
 # log can be read using pc.SlideLog (see docstring there)
 logger.write_header()
-
-logger()  # step 0
-trajectory.write()  # step 0
 integrator.attach(logger)
 integrator.attach(trajectory)
 integrator.run(steps_integrate)
