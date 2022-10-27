@@ -34,7 +34,7 @@ affiliations:
     index: 2
   - name: Department of Microsystems Engineering, University of Freiburg, 79110 Freiburg, Germany
     index: 3
-  - name: Fraunhofer IWM, MicroTribology Center $\mu$TC, W\"ohlerstr. 11, 79108, Freiburg, Germany
+  - name: Fraunhofer IWM, MicroTribology Center $\mu$TC, Wöhlerstr. 11, 79108, Freiburg, Germany
     index: 4
 date: 27 October 2022
 bibliography: paper.bib
@@ -53,7 +53,7 @@ The python package `matscipy` contains a set of tools for researchers in a fie
 - Fracture mechanics
 - Contact mechanics
 - Electrochemistry
-- Tribology. Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain insights into the atomistic mechanisms underlying friction and wear. The `matscipy` module `pressurecoupling.py` provides tools to perform such simulations under a constant normal load and sliding velocity. The module includes an implementation of the pressure coupling algorithm described in Ref.~[@Pastewka2010]. By dynamically adjusting the distance between the two sliding surfaces according to the local pressure, the algorithm ensures mechanical boundary conditions that account for the inertia of the bulk material which is not explicitly included in the simulation. 
+- Tribology. Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain insights into the atomistic mechanisms underlying friction and wear. The `matscipy` module `pressurecoupling.py` provides tools to perform such simulations under a constant normal load and sliding velocity. The module includes an implementation of the pressure coupling algorithm described in Ref. [@Pastewka2010]. By dynamically adjusting the distance between the two sliding surfaces according to the local pressure, the algorithm ensures mechanical boundary conditions that account for the inertia of the bulk material which is not explicitly included in the simulation. 
 
 # Acknowledgements
 We thank Alexander Held for initial contributions to the `pressurecoupling.py` module.
