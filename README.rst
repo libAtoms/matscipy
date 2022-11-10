@@ -52,3 +52,8 @@ Optional packages :
 
 .. |Build Status| image:: https://travis-ci.org/libAtoms/matscipy.svg?branch=master
    :target: https://travis-ci.org/libAtoms/matscipy
+
+Funding
+-------
+
+**matscipy** was partially funded by the Deutsch Forschungsgemeinschaft (project `258153560 <https://gepris.dfg.de/gepris/projekt/258153560>`__).
