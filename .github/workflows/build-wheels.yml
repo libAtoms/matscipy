@@ -48,6 +48,7 @@ jobs:
            CIBW_BEFORE_BUILD: "pip install oldest-supported-numpy"
            CIBW_TEST_COMMAND: "cd {project}/tests; pip install -r ../requirements.txt; pytest"
            CIBW_TEST_SKIP: "*"
+        shell: bash
            
       # Uncomment to get SSH access for testing
       - name: Setup tmate session
@@ -73,6 +74,7 @@ jobs:
           if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo ::set-output name=match::true
           fi
+        shell: bash          
           
       - name: Deploy to PyPI
         if: steps.check-tag.outputs.match == 'true'
@@ -82,3 +84,4 @@ jobs:
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        shell: bash          
