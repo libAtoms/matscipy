@@ -27,6 +27,9 @@
 #define NPY_NO_DEPRECATED_API NPY_1_5_API_VERSION
 #include <numpy/arrayobject.h>
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include "angle_distribution.h"
 
 /*
