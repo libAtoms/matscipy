@@ -104,23 +104,6 @@ class build_ext_subclass(build_ext):
         cxx_extra_args = ext.extra_compile_args or []
         extra_link_args = ext.extra_link_args or []
 
-        c = os.path.basename(self.compiler.compiler[0])
-        cxx = os.path.basename(self.compiler.compiler_cxx[0])
-        if None in copt:
-            extra_args += copt[None]
-        if c in copt:
-            extra_args += copt[c]
-        if None in cxxopt:
-            cxx_extra_args += cxxopt[None]
-        if cxx in cxxopt:
-            cxx_extra_args += cxxopt[cxx]
-        if None in lopt:
-            extra_link_args += lopt[None]
-        if c in lopt:
-            extra_link_args += lopt[c]
-        if cxx in lopt:
-            extra_link_args += lopt[cxx]
-
         macros = ext.define_macros[:]
         for undef in ext.undef_macros:
             macros.append((undef,))
@@ -136,6 +119,23 @@ class build_ext_subclass(build_ext):
             # problem, msvc uses its own convention :(
             c_sources += cxx_sources
             cxx_sources = []
+        else:
+            c = os.path.basename(self.compiler.compiler[0])
+            cxx = os.path.basename(self.compiler.compiler_cxx[0])
+            if None in copt:
+                extra_args += copt[None]
+            if c in copt:
+                extra_args += copt[c]
+            if None in cxxopt:
+                cxx_extra_args += cxxopt[None]
+            if cxx in cxxopt:
+                cxx_extra_args += cxxopt[cxx]
+            if None in lopt:
+                extra_link_args += lopt[None]
+            if c in lopt:
+                extra_link_args += lopt[c]
+            if cxx in lopt:
+                extra_link_args += lopt[cxx]
 
         # Set Fortran/C++ compilers for compilation and linking.
         if ext.language=='f90':
