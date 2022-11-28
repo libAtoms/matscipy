@@ -77,11 +77,11 @@ py_angle_distribution(PyObject *self, PyObject *args)
   PyObject *h_arr = PyArray_ZEROS(1, &dim, NPY_INT, 1);
   PyObject *tmp_arr = PyArray_ZEROS(1, &dim, NPY_INT, 1);
 
-  npy_int *i = PyArray_DATA(i_arr);
-  npy_int *j = PyArray_DATA(j_arr);
-  double *r = PyArray_DATA(r_arr);
-  npy_int *h = PyArray_DATA(h_arr);
-  npy_int *tmp = PyArray_DATA(tmp_arr);
+  npy_int *i = (npy_int*)PyArray_DATA(i_arr);
+  npy_int *j = (npy_int*)PyArray_DATA(j_arr);
+  double *r = (double*)PyArray_DATA(r_arr);
+  npy_int *h = (npy_int*)PyArray_DATA(h_arr);
+  npy_int *tmp = (npy_int*)PyArray_DATA(tmp_arr);
 
   npy_int last_i = i[0], i_start = 0;
   memset(tmp, 0, nbins*sizeof(npy_int));
