@@ -320,12 +320,12 @@ setup(name='matscipy',
       ext_modules=[
         Extension(
             '_matscipy',
-            ['c/tools.c',
-             'c/angle_distribution.c',
-             'c/neighbours.c',
+            ['c/tools.cpp',
+             'c/angle_distribution.cpp',
+             'c/neighbours.cpp',
              'c/islands.cpp',
              'c/ring_statistics.cpp',
-             'c/matscipymodule.c'],
+             'c/matscipymodule.cpp'],
             )
         ],
       download_url=download_url,
