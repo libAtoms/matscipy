@@ -16,7 +16,7 @@ module = python.extension_module(
         'matscipymodule.c'
     ],
     install: true,  # Install it
-#    include_directories: include_directories(include_numpy),
+    include_directories: include_directories(include_numpy),
     dependencies: [ # List of dependencies
         python.dependency(), # Add Python.h as dependency
     ]
