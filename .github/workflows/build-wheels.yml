@@ -48,7 +48,8 @@ jobs:
           CIBW_SKIP: cp27-* cp35-* cp36-* cp311-* pp* *musllinux*
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_BEFORE_BUILD: "pip install oldest-supported-numpy"
-          CIBW_TEST_COMMAND: "cd {project}; pip install .[test]; cd {project}/tests; pytest"
+          CIBW_TEST_REQUIRES: "pytest"
+          CIBW_TEST_COMMAND: "pytest {project}/tests"
           CIBW_TEST_SKIP: "*"
 
       # Uncomment to get SSH access for testing
