@@ -3,7 +3,9 @@
 # Pure Python sources
 python_sources = [
     '__init__.py',
+    'calculator.py',
     'fitting.py',
+    'molecular_calculator.py',
     'supercell_calculator.py'
 ]
 
@@ -14,6 +16,8 @@ python.install_sources(
 )
 
 subdir('eam')
+subdir('ewald')
+subdir('manybody')
 subdir('mcfm')
 subdir('pair_potential')
 subdir('polydisperse')
