@@ -13,5 +13,5 @@ python_sources = [
 # Install pure Python
 python.install_sources(
     python_sources,
-    subdir: 'matscipy/calculators/fracture_mechanics'
+    subdir: 'matscipy/fracture_mechanics'
 )
