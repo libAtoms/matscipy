@@ -16,24 +16,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-    - name: install_python
-      run: |
-        sudo apt-get update -qy
-        sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev
+      - name: install_python
+        run: |
+          sudo apt-get update -qy
+          sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev
 
-    - name: build_c
-      run: |
-        sudo pip install .[test]
+      - name: build_c
+        run: |
+          sudo pip install .[test]
 
-    - name: pytest
-      run: |
-        cd tests
-        pytest -v --junitxml=report.xml --durations=20
+      - name: pytest
+        run: |
+          cd tests
+          pytest -v --junitxml=report.xml --durations=20
 
-    - name: report
-      uses: mikepenz/action-junit-report@v2
-      if: always()
-      with:
-        report_paths: "**/report.xml"
+      - name: report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: "**/report.xml"
