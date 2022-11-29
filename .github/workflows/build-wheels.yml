@@ -45,6 +45,7 @@ jobs:
              python -m cibuildwheel --output-dir wheelhouse
           fi
         env:
+          CIBW_BUILD_VERBOSITY: 1
           CIBW_SKIP: cp27-* cp35-* cp36-* cp311-* pp* *musllinux*
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_BEFORE_BUILD: "pip install oldest-supported-numpy"
