@@ -15,14 +15,15 @@ work in 2018, the branch could be called "18_line_scans".
 Commits
 -------
 Prepend you commits with a shortcut indicating the type of changes they contain:
+* API: changes to the user exposed API
 * BUG: Bug fix
+* BUILD: Changes to the build system
 * CI: Changes to the CI configuration
 * DOC: Changes to documentation strings or documentation in general (not only typos)
 * ENH: Enhancement (e.g. a new feature)
-* MAINT: Maintenance (e.g. fixing a typo)
+* MAINT: Maintenance (e.g. fixing a typo, or changing code without affecting function)
 * TST: Changes to the unit test environment
 * WIP: Work in progress
-* API: changes to the user exposed API
 
 The changelog will be based on the content of the commits with tag BUG, API and ENH.
 
