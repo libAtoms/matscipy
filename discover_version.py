@@ -47,6 +47,7 @@ def get_version_from_git():
     # Make version PEP 440 compliant
     if dirty:
         version = version.replace('-dirty', '')
+    version = version.strip('v')  # Remove leading 'v' if it exists
     version = version.replace('-', '.dev', 1)
     version = version.replace('-', '+', 1)
     if dirty:

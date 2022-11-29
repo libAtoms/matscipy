@@ -1,9 +1,17 @@
 # https://mesonbuild.com/Python-module.html
 
+conf_data = configuration_data()
+conf_data.set('VERSION', meson.project_version())
+version_file = configure_file(
+    input: '_version.py.in',
+    output: '_version.py',
+    configuration: conf_data
+)
+
 # Pure Python sources
 python_sources = [
     '__init__.py',
-    '_version.py',
+    version_file,
     'angle_distribution.py',
     'atomic_strain.py',
     'deformation.py',

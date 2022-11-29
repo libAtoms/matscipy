@@ -5,7 +5,7 @@ build-backend = "mesonpy"
 [project]
 name = "matscipy"
 description = "Generic Python Materials Science tools"
-readme = "README.md"
+readme = "README.rst"
 license = { file = "LICENSE" }
 authors = [
     { name = "James Kermode", email = "james.kermode@gmail.com"},
@@ -18,31 +18,18 @@ classifiers = [
 requires-python = ">=3.7.0"
 dynamic = [ "version" ]
 dependencies = [
-    "defusedxml",
-    "h5py",
-    "igor",
-    "matplotlib>=1.0.0",
-    "muFFT>=0.24.0",
-    "NuMPI>=0.3.1",
-    "numpyencoder",
-    "openpyxl",
-    "Pillow",
-    "python-dateutil",
-    "pyyaml",
-    "requests",
-    "scipy",
-    "tiffile",
-    "numpy"
+    "numpy>=1.16.0",
+    "scipy>=1.2.3",
+    "ase>=3.16.0",
+    "sympy"
 ]
 
 [project.optional-dependencies]
-test = []
+test = [
+    "pytest"
+]
 
 [project.urls]
-documentation = "https://contactengineering.github.io/SurfaceTopography/"
+documentation = "http://libatoms.github.io/matscipy/"
 repository = "https://github.com/libAtoms/matscipy"
 changelog = "https://github.com/libAtoms/matscipy/blob/master/ChangeLog.md"
-
-[tool.mesonpep517.metadata]
-summary = "Read and analyze surface topographies"  # This should actually be deprecated
-meson-python-option-name = "python3"

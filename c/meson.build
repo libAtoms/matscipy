@@ -6,7 +6,7 @@ include_numpy = run_command(python,
 
 # Build and install the extension module
 module = python.extension_module(
-    '_SurfaceTopography', # Name of the module
+    '_matscipy', # Name of the module
     [  # List of sources
         'angle_distribution.c',
         'islands.cpp',
@@ -16,7 +16,7 @@ module = python.extension_module(
         'matscipymodule.c'
     ],
     install: true,  # Install it
-    include_directories: include_directories(include_numpy),
+#    include_directories: include_directories(include_numpy),
     dependencies: [ # List of dependencies
         python.dependency(), # Add Python.h as dependency
     ]
