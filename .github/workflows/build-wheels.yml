@@ -39,8 +39,8 @@ jobs:
 
       - name: Build wheels
         run: |
+           git describe
            git describe --tags --always
-           cat matscipy/_version.py 
            if [[ $RUNNER_OS == "Linux" ]]; then
               for image in manylinux2010 manylinux2014; do
                  export CIBW_MANYLINUX_X86_64_IMAGE=$image
