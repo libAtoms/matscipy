@@ -19,13 +19,12 @@ jobs:
       run: |
         sudo apt-get update -qy
         sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev
-        sudo pip3 install -r requirements.txt
+        sudo pip install --upgrade sphinxcontrib-napoleon sphinx_rtd_theme
 
     - name: build
       run: |
-        python3 setup.py build
-        sudo python3 setup.py install
-        
+        sudo pip install .[test]
+
     - name: pytest
       run: |
         cd tests
@@ -33,7 +32,8 @@ jobs:
 
     - name: package_dist
       run: |
-        sudo python3 setup.py sdist
+        sudo pip install build
+        sudo python3 -m build . -s
 
     # Standard drop-in approach that should work for most people.
     - name: build_doc
