@@ -32,24 +32,18 @@ jobs:
       - uses: actions/setup-python@v2
 
       - name: Install cibuildwheel
-        run: |
-          echo {{ runner.os }}
-          if [[ "{{ runner.os }}" == "Windows" ]]; then
-             sudo rm /usr/bin/link
-          fi
-          python -m pip install cibuildwheel==2.9.0
-        shell: bash
+        run: python -m pip install cibuildwheel==2.9.0
 
       - name: Build wheels
-        run: |
-          if [[ "{{ runner.os }}" == "Linux" ]]; then
-             for image in manylinux2010 manylinux2014; do
-                export CIBW_MANYLINUX_X86_64_IMAGE=$image
-                python -m cibuildwheel --output-dir wheelhouse           
-             done
-          else
-             python -m cibuildwheel --output-dir wheelhouse
-          fi
+        run: python -m cibuildwheel --output-dir wheelhouse
+#          if [[ "{{ runner.os }}" == "Linux" ]]; then
+#             for image in manylinux2010 manylinux2014; do
+#                export CIBW_MANYLINUX_X86_64_IMAGE=$image
+#                python -m cibuildwheel --output-dir wheelhouse
+#             done
+#          else
+#             python -m cibuildwheel --output-dir wheelhouse
+#          fi
         env:
           CIBW_BUILD_VERBOSITY: 1
           CIBW_SKIP: cp27-* cp35-* cp36-* cp311-* pp* *musllinux*
@@ -58,7 +52,7 @@ jobs:
           CIBW_TEST_REQUIRES: "pytest"
           CIBW_TEST_COMMAND: "pytest {project}/tests"
           CIBW_TEST_SKIP: "*"
-        shell: bash
+#        shell: bash
 
       # Uncomment to get SSH access for testing
       #       - name: Setup tmate session
