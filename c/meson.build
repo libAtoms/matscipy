@@ -8,7 +8,7 @@ include_numpy = run_command(python,
 module = python.extension_module(
     '_matscipy', # Name of the module
     [  # List of sources
-        'angle_distribution.c',
+        'angle_distribution.cpp',
         'islands.cpp',
         'neighbours.c',
         'ring_statistics.cpp',
