@@ -48,11 +48,7 @@ def get_version_from_git():
     if dirty:
         version = version.replace('-dirty', '')
     version = version.strip('v')  # Remove leading 'v' if it exists
-    if 'rc' in version:
-        # If version has a .rc1, .rc2, we cannot attach another .dev
-        version = version.replace('-', '+dev', 1)
-    else:
-        version = version.replace('-', '.dev', 1)
+    version = version.replace('-', '.dev', 1)
     version = version.replace('-', '+', 1)
     if dirty:
         version += '-dirty'
