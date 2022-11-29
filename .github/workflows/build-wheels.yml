@@ -34,6 +34,7 @@ jobs:
 
       - name: Build wheels
         run: |
+           git describe --tags --always
            if [[ $RUNNER_OS == "Linux" ]]; then
               for image in manylinux2010 manylinux2014; do
                  export CIBW_MANYLINUX_X86_64_IMAGE=$image
