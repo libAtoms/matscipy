@@ -27,7 +27,7 @@ import subprocess
 
 def get_version_from_git():
     """
-    Discover muSpectre version from git repository.
+    Discover matscipy version from git repository.
     """
     git_describe = subprocess.run(
         ['git', 'describe', '--tags', '--dirty', '--always'],
