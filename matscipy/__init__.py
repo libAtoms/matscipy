@@ -24,7 +24,6 @@
 
 from matscipy.logger import screen
 from .distributed_computation import BaseWorker, BaseResultManager
-###
 
 def has_parameter(name):
     """
@@ -80,6 +79,4 @@ def parameter(name, default=None, logger=screen):
             raise
     return value
 
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
+from ._version import __version__
