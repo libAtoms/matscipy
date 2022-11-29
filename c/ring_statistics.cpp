@@ -141,7 +141,7 @@ py_distances_on_graph(PyObject *self, PyObject *args)
     int nat = *std::max_element(i, i+nneigh)+1;
 
     /* Construct seed array */
-    int seed[nat+1];
+    int* seed = new int[nat+1];
     first_neighbours(nat, nneigh, i, seed);
 
     npy_intp dims[2];
@@ -456,7 +456,7 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     }
 
     /* Construct seed array */
-    int seed[nat+1];
+    int* seed = new int[nat+1];
     first_neighbours(nat, nneigh, i, seed);
 
     std::vector<npy_int> ringstat;
