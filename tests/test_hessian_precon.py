@@ -2,14 +2,11 @@ import unittest
 
 import numpy as np
 import matscipytest
+import scipy.sparse.linalg as sla
 
 from matscipy.calculators.eam import EAM
-from matscipy.calculators.manybody.newmb import HessianPrecon
-
-import numpy as np
+from matscipy.precon import HessianPrecon
 from numpy.linalg import norm
-
-import scipy.sparse.linalg as sla
 
 from ase.build import bulk
 from ase.optimize.precon import PreconLBFGS
@@ -17,42 +14,43 @@ from ase.optimize import ODE12r
 from ase.neb import NEB, NEBOptimizer
 from ase.geometry.geometry import get_distances
 
+
 class TestHessianPrecon(matscipytest.MatSciPyTestCase):
-    
+
     def setUp(self):
         self.atoms = bulk("Ni", cubic=True) * 3
-        del self.atoms[0]      
-        np.random.seed(0)  
+        del self.atoms[0]
+        np.random.seed(0)
         self.atoms.rattle(1e-2)
-        self.eam = EAM('Mishin-Ni-Al-2009.eam.alloy')        
+        self.eam = EAM('Mishin-Ni-Al-2009.eam.alloy')
         self.tol = 1e-6
-    
+
     def test_newton_opt(self):
         atoms, eam = self.atoms, self.eam
-        
+
         f = eam.get_forces(atoms)
         norm_f = norm(f, np.inf)
         while norm_f > self.tol:
             H = eam.get_hessian(atoms).tocsc()
             D, P = sla.eigs(H, which='SM')
             print(D[D > 1e-6])
-            print(f'|F| = {norm_f:12.6f}')            
+            print(f'|F| = {norm_f:12.6f}')
             step = sla.spsolve(H, f.reshape(-1)).reshape(-1, 3)
             atoms.positions += step
             f = eam.get_forces(atoms)
             norm_f = norm(f, np.inf)
-            
+
     def test_precon_opt(self):
         atoms, eam = self.atoms, self.eam
         atoms.calc = eam
         precon = HessianPrecon(eam)
         opt = PreconLBFGS(atoms, precon=precon)
         opt.run(fmax=self.tol)
-        
+
     def test_precon_neb(self):
         N_cell = 4
         N_intermediate = 5
-        
+
         initial = bulk('Ni', cubic=True)
         initial *= N_cell
 
@@ -99,8 +97,8 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
 
         dummy_neb = NEB(images)
         dummy_neb.interpolate()
-        
-        neb = NEB(dummy_neb.images, allow_shared_calculator=True, 
+
+        neb = NEB(dummy_neb.images, allow_shared_calculator=True,
                   precon=precon, method='spline')
         # neb.interpolate()
         opt = NEBOptimizer(neb)
