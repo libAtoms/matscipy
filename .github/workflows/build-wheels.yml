@@ -31,9 +31,9 @@ jobs:
         with:
           arch: win32
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.7'
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: '3.7'
 
       - name: Install cibuildwheel
         run: python3 -m pip install cibuildwheel==2.9.0
