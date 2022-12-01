@@ -7,10 +7,11 @@ import scipy.sparse.linalg as sla
 from matscipy.calculators.eam import EAM
 from matscipy.precon import HessianPrecon
 from numpy.linalg import norm
+from numpy.testing import assert_allclose
 
 from ase.build import bulk
 from ase.optimize.precon import PreconLBFGS
-from ase.optimize import ODE12r
+from ase.optimize import ODE12r, LBFGS
 from ase.neb import NEB, NEBOptimizer
 from ase.geometry.geometry import get_distances
 
@@ -42,10 +43,19 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
 
     def test_precon_opt(self):
         atoms, eam = self.atoms, self.eam
+        noprecon_atoms = atoms.copy()
         atoms.calc = eam
+        noprecon_atoms.calc = eam
         precon = HessianPrecon(eam)
         opt = PreconLBFGS(atoms, precon=precon)
         opt.run(fmax=self.tol)
+
+        opt = LBFGS(noprecon_atoms)
+        opt.run(fmax=self.tol)
+
+        assert_allclose(atoms.positions,
+                        noprecon_atoms.positions,
+                        atol=self.tol)
 
     def test_precon_neb(self):
         N_cell = 4
