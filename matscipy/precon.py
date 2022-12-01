@@ -3,6 +3,7 @@
 import numpy as np
 
 from ase.optimize.precon import Precon
+from ase.calculators.calculator import equal
 
 
 class HessianPrecon(Precon):
@@ -21,18 +22,17 @@ class HessianPrecon(Precon):
         self.old_positions = old_positions
 
     def make_precon(self, atoms):
-        if self.P is None or self.old_positions is None:
-            max_move = np.inf
-        else:
-            max_move = np.abs(atoms.positions - self.old_positions).max()
-        if self.P is None or max_move > self.move_tol:
-            print('Recomputing Hessian...')
-            P = self.calc.get_hessian(atoms, format='dense')
-            P += np.diag([self.c_stab] * 3 * len(atoms))
+        has_moved = not equal(atoms.positions,
+                              self.old_positions,
+                              atol=self.move_tol)
+        initialized = self.P is not None and self.old_positions is not None
+
+        if not initialized or has_moved:
+            P = self.calc.get_property("hessian", atoms).todense()
+            di = np.diag_indices_from(P)
+            P[di] += self.c_stab
             D, Q = np.linalg.eigh(P)
-            print(D[:10])
             if np.any(D < 0):
-                print(f'Flipping {np.sum(D < 0)} negative eigenvalues')
                 self.P = np.array(Q @ np.diag(np.abs(D)) @ Q.T)
             else:
                 self.P = np.array(P)

@@ -211,9 +211,9 @@ class EAM(MatscipyCalculator):
 
         epot, virial_v, forces_ic = self.energy_virial_and_forces(atoms.numbers, i_n, j_n, dr_nc, abs_dr_n)
 
-        self.results = {'energy': epot, 'free_energy': epot,
-                        'stress': virial_v/atoms.get_volume(),
-                        'forces': forces_ic}
+        self.results.update({'energy': epot, 'free_energy': epot,
+                             'stress': virial_v/atoms.get_volume(),
+                             'forces': forces_ic})
 
     def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
         r"""Compute the Hessian matrix
