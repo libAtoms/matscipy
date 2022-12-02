@@ -1,4 +1,7 @@
-matscipy/_version.py export-subst
+# Tags in this file will be replaced during git archive. git archive is used
+# by meson to create source packages.
+discover_version.py export-subst
+
 *.fs -linguist-detectable
 .gitattributes text eol=lf
 *.py text eol=lf
