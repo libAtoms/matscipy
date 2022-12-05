@@ -21,12 +21,12 @@ dependencies = [
     "numpy>=1.16.0",
     "scipy>=1.2.3",
     "ase>=3.16.0",
-    "sympy"
 ]
 
 [project.optional-dependencies]
 test = [
-    "pytest"
+    "pytest",
+    "sympy"
 ]
 
 [project.urls]
