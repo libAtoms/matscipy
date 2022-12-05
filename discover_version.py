@@ -121,10 +121,10 @@ def get_version_from_git():
 
 
 try:
-    dirty, version, hash = get_archived_version()
+    dirty, version, hash = get_version_from_git()
 except CannotDiscoverVersion:
     try:
-        dirty, version, hash = get_version_from_git()
+        dirty, version, hash = get_archived_version()
     except CannotDiscoverVersion:
         # We return version 0.0.0.0 if version discovery fails
         version = '0.0.0.0'
