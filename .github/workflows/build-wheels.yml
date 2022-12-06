@@ -91,10 +91,10 @@ jobs:
         # python -m pip wheel --config-settings builddir=build .
 #        if: >-
 #          ( ! contains(matrix.buildplat[2], 'arm64' ) )
-#        env:
-#          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
-#          CIBW_ARCHS: ${{ matrix.buildplat[2] }}
-#          CIBW_ENVIRONMENT_PASS_LINUX: RUNNER_OS
+        env:
+          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
+          CIBW_ARCHS: ${{ matrix.buildplat[2] }}
+          CIBW_ENVIRONMENT_PASS_LINUX: RUNNER_OS
 
 #      - name: Build cp38-macosx_arm64
 #        # This is solely used to build cp38-macosx_arm64. As soon as 3.8 is
