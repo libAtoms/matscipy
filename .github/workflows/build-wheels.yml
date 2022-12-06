@@ -62,7 +62,7 @@ jobs:
         if: ${{ runner.os == 'Windows' && env.IS_32_BIT == 'false' }}
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2
+        uses: pypa/cibuildwheel@v2.11.3
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
           CIBW_ARCHS: ${{ matrix.buildplat[2] }}
