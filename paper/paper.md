@@ -19,6 +19,12 @@ authors:
   - name: Gianpietro Moras
     orcid: 0000-0002-4623-2881
     affiliation: 4
+  - name: Jan Grießer
+    orcid: 0000-0003-2149-6730
+    affiliation: 3
+  - name: Lucas Frérot
+    orcid: 0000-0002-4138-1052
+    affiliation: 3
   - name: James R. Kermode
     orcid: 0000-0001-6755-6271
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
@@ -53,7 +59,8 @@ The python package `matscipy` contains a set of tools for researchers in a fie
 - Fracture mechanics
 - Contact mechanics
 - Electrochemistry
-- Tribology. Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain insights into the atomistic mechanisms underlying friction and wear. The `matscipy` module `pressurecoupling.py` provides tools to perform such simulations under a constant normal load and sliding velocity. The module includes an implementation of the pressure coupling algorithm described in Ref. [@Pastewka2010]. By dynamically adjusting the distance between the two sliding surfaces according to the local pressure, the algorithm ensures mechanical boundary conditions that account for the inertia of the bulk material which is not explicitly included in the simulation. 
+- Tribology. Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain insights into the atomistic mechanisms underlying friction and wear. The `matscipy` module `pressurecoupling.py` provides tools to perform such simulations under a constant normal load and sliding velocity. The module includes an implementation of the pressure coupling algorithm described in Ref. [@Pastewka2010]. By dynamically adjusting the distance between the two sliding surfaces according to the local pressure, the algorithm ensures mechanical boundary conditions that account for the inertia of the bulk material which is not explicitly included in the simulation.
+- Elastic properties and second-order potential derivatives. The multiscale simulation of material behavior often requires homogenization of second-order properties, such as elastic constants. While the module `elasticity` provides a wide range of routines for the numerical evaluation of elastic properties (e.g. least-square approximation on deformed configurations, with or without energy minimization), `matscipy` implements analytic second-order potential derivatives for a wide range of force-fields (e.g. EAM, Ewald, Lennard-Jones), in particular for a generic manybody potential form [@Griesser2022] in `calculators.manybody`, which can encompass a host of classical potentials [@StillingerWeber1985;@Kumagai2007;@Tersoff1986;@Brenner1990]. These second-order potential derivatives allow for the accurate computation of elastic constants in crystalline and amorphous materials, even in unstable configurations. Since they are exposed as calculator properties, second-order derivatives for different force-fields can be easily combined.
 
 # Acknowledgements
 We thank Alexander Held for initial contributions to the `pressurecoupling.py` module.
