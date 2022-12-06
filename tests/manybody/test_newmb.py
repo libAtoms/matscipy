@@ -1,6 +1,6 @@
 #
-# Copyright 2021 Lars Pastewka (U. Freiburg)
-#           2021 Jan Griesser (U. Freiburg)
+# Copyright 2022 Lucas Frérot (U. Freiburg)
+#           2022 Jan Griesser (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -39,10 +39,9 @@ from ase.lattice.cubic import Diamond
 from ase.optimize import FIRE
 
 from matscipy.calculators.manybody.potentials import (
+    distance_defined,
     ZeroPair,
     ZeroAngle,
-    SimplePairNoMix,
-    SimplePairNoMixNoSecond,
     HarmonicPair,
     HarmonicAngle,
     KumagaiPair,
@@ -150,6 +149,52 @@ class LinearPair(Manybody.Phi):
             np.zeros_like(r_p),
             np.zeros_like(xi_p),
             np.zeros_like(xi_p),
+        ])
+
+
+@distance_defined
+class SimplePairNoMix(Manybody.Phi):
+    """
+    Implementation of a harmonic pair interaction.
+    """
+
+    def __call__(self, r_p, xi_p):
+        return 0.5 * r_p**2 + 0.5 * xi_p**2
+
+    def gradient(self, r_p, xi_p):
+        return np.stack([
+            r_p,
+            xi_p,
+        ])
+
+    def hessian(self, r_p, xi_p):
+        return np.stack([
+            np.ones_like(r_p),
+            np.ones_like(xi_p),
+            np.zeros_like(r_p),
+        ])
+
+
+@distance_defined
+class SimplePairNoMixNoSecond(Manybody.Phi):
+    """
+    Implementation of a harmonic pair interaction.
+    """
+
+    def __call__(self, r_p, xi_p):
+        return 0.5 * r_p**2 + xi_p
+
+    def gradient(self, r_p, xi_p):
+        return np.stack([
+            r_p,
+            np.ones_like(xi_p),
+        ])
+
+    def hessian(self, r_p, xi_p):
+        return np.stack([
+            np.ones_like(r_p),
+            np.zeros_like(xi_p),
+            np.zeros_like(r_p),
         ])
 
 
@@ -270,6 +315,7 @@ potentials = {
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
     ),
 }
+
 
 @pytest.fixture(params=potentials.values(), ids=potentials.keys())
 def potential(request):

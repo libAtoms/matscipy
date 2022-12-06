@@ -1,3 +1,24 @@
+#
+# Copyright 2022 Lucas Frérot (U. Freiburg)
+#           2022 Jan Griesser (U. Freiburg)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 """Manybody potential definitions."""
 
 import numpy as np
@@ -136,51 +157,6 @@ class ZeroAngle(Manybody.Theta):
     def hessian(self, R1, R2, R3):
         return np.zeros([6] + list(R1.shape))
 
-@distance_defined
-class SimplePairNoMix(Manybody.Phi):
-    """
-    Implementation of a harmonic pair interaction.
-    """
-
-    def __call__(self, r_p, xi_p):
-        return 0.5 * r_p**2 + 0.5 * xi_p**2
-
-    def gradient(self, r_p, xi_p):
-        return np.stack([
-            r_p,
-            xi_p,
-        ])
-
-    def hessian(self, r_p, xi_p):
-        return np.stack([
-            np.ones_like(r_p),
-            np.ones_like(xi_p),
-            np.zeros_like(r_p),
-        ])
-
-@distance_defined
-class SimplePairNoMixNoSecond(Manybody.Phi):
-    """
-    Implementation of a harmonic pair interaction.
-    """
-
-    def __call__(self, r_p, xi_p):
-        return 0.5 * r_p**2 + xi_p
-
-    def gradient(self, r_p, xi_p):
-        return np.stack([
-            r_p,
-            np.ones_like(xi_p),
-        ])
-
-    def hessian(self, r_p, xi_p):
-        return np.stack([
-            np.ones_like(r_p),
-            np.zeros_like(xi_p),
-            np.zeros_like(r_p),
-        ])
-
-
 
 @distance_defined
 class HarmonicPair(Manybody.Phi):
@@ -208,6 +184,7 @@ class HarmonicPair(Manybody.Phi):
             np.zeros_like(xi_p),
         ])
 
+
 @angle_distance_defined
 class HarmonicAngle(Manybody.Theta):
     """
@@ -227,8 +204,8 @@ class HarmonicAngle(Manybody.Theta):
         return 0.5 * self.k0 * (f - self.theta0)**2
 
     def gradient(self, rij, rik, rjk):
-        r"""
-        First order derivatives of :math:`\Theta` w/r to :math:`r_{ij}, r_{ik}, r_{jk}`
+        r"""First order derivatives of :math:`\Theta` w/r to :math:`r_{ij}, r_{ik},
+        r_{jk}`
         """
         rsq_ij = rij**2
         rsq_ik = rik**2
@@ -254,8 +231,8 @@ class HarmonicAngle(Manybody.Theta):
         return h(f) * np.stack([df_drij, df_drik, df_drjk])
 
     def hessian(self, rij, rik, rjk):
-        r"""
-        Second order derivatives of :math:`\Theta` w/r to :math:`r_{ij}, r_{ik}, r_{jk}`
+        r"""Second order derivatives of :math:`\Theta` w/r to :math:`r_{ij}, r_{ik},
+        r_{jk}`
         """
         rsq_ij = rij**2
         rsq_ik = rik**2
@@ -290,14 +267,28 @@ class HarmonicAngle(Manybody.Theta):
             ddE(np.arccos(f)) * darcos(f)**2 + dE(np.arccos(f)) * ddarcos(f)
         )
 
-        return np.stack([
-            ddtheta_dxdx * df_drij * df_drij + dtheta_dx * ddf_drijdrij,
-            ddtheta_dxdx * df_drik * df_drik + dtheta_dx * ddf_drikdrik,
-            ddtheta_dxdx * df_drjk * df_drjk + dtheta_dx * ddf_drjkdrjk,
-            ddtheta_dxdx * df_drjk * df_drik + dtheta_dx * ddf_drikdrjk,
-            ddtheta_dxdx * df_drjk * df_drij + dtheta_dx * ddf_drijdrjk,
-            ddtheta_dxdx * df_drik * df_drij + dtheta_dx * ddf_drijdrik,
+        df_prods = np.stack([
+            df_drij * df_drij,
+            df_drik * df_drik,
+            df_drjk * df_drjk,
+            df_drjk * df_drik,
+            df_drjk * df_drij,
+            df_drik * df_drij,
         ])
+
+        ddf = np.stack([
+            ddf_drijdrij,
+            ddf_drikdrik,
+            ddf_drjkdrjk,
+            ddf_drikdrjk,
+            ddf_drijdrjk,
+            ddf_drijdrik,
+        ])
+
+        return (
+            # Derivative of product rule
+            ddtheta_dxdx[np.newaxis] * df_prods + dtheta_dx[np.newaxis] * ddf
+        )
 
 
 @distance_defined
@@ -514,11 +505,11 @@ class StillingerWeberAngle(Manybody.Theta):
         dg_drjk = - dg_dcos * rjk / (rij * rik)
 
         return self.epsilon * np.where(rik <= self.cutoff,
-            np.stack([
-                dg_drij * m * n + dm_drij * g * n,
-                dg_drik * m * n + dn_drik * g * m,
-                dg_drjk * m * n
-            ]), 0.0)
+                                       np.stack([
+                                           dg_drij * m * n + dm_drij * g * n,
+                                           dg_drik * m * n + dn_drik * g * m,
+                                           dg_drjk * m * n
+                                       ]), 0.0)
 
     def hessian(self, rij, rik, rjk):
         # Squared distances
@@ -536,7 +527,7 @@ class StillingerWeberAngle(Manybody.Theta):
 
         # Derivative of scalar functions
         dg_dcos = 2 * (cos + self.costheta0)
-        ddg_ddcos =  2 * np.ones_like(rij)
+        ddg_ddcos = 2 * np.ones_like(rij)
 
         dm_drij = - self.gamma * self.sigma / np.power(rij - self.a * self.sigma, 2) * m
         ddm_ddrij = 2 * self.gamma * self.sigma / np.power(rij - self.a * self.sigma, 3)
@@ -1272,6 +1263,7 @@ class TersoffBrennerAngle(Manybody.Theta):
             fc * ddg_drijdrjk,
             dfc * dg_drij + fc * ddg_drijdrik
             ])
+
 
 try:
     from sympy import lambdify, Expr, Symbol
