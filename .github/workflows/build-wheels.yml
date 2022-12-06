@@ -54,10 +54,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
-
       - name: win_amd64 - install rtools
         run: |
           # mingw-w64
