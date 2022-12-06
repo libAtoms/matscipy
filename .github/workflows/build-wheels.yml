@@ -47,13 +47,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: win_amd64 - install rtools
-        run: |
-          # mingw-w64
-          choco install rtools --no-progress
-          echo "c:\rtools40\ucrt64\bin;" >> $env:GITHUB_PATH
-        if: ${{ runner.os == 'Windows' && env.IS_32_BIT == 'false' }}
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.11.3
         env:
