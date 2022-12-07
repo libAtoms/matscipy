@@ -57,7 +57,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
-          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
 
       - name: Release wheels
         uses: softprops/action-gh-release@v1
