@@ -10,12 +10,10 @@ class HessianPrecon(Precon):
     """Preconditioner for dense Hessian."""
 
     def __init__(self,
-                 calc,
                  c_stab=0.01,
                  move_tol=0.1,
                  P=None,
                  old_positions=None):
-        self.calc = calc
         self.P = P
         self.c_stab = c_stab
         self.move_tol = move_tol
@@ -28,7 +26,7 @@ class HessianPrecon(Precon):
         initialized = self.P is not None and self.old_positions is not None
 
         if not initialized or has_moved:
-            P = self.calc.get_property("hessian", atoms).todense()
+            P = atoms.calc.get_property("hessian", atoms).todense()
             di = np.diag_indices_from(P)
             P[di] += self.c_stab
             D, Q = np.linalg.eigh(P)
@@ -45,7 +43,7 @@ class HessianPrecon(Precon):
         return np.linalg.solve(self.P, x)
 
     def copy(self):
-        return HessianPrecon(self.calc, self.c_stab, self.move_tol, None, None)
+        return HessianPrecon(self.c_stab, self.move_tol, None, None)
 
     def asarray(self):
         return self.P.copy()

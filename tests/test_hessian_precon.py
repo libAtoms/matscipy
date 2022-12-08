@@ -46,16 +46,14 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
         noprecon_atoms = atoms.copy()
         atoms.calc = eam
         noprecon_atoms.calc = eam
-        precon = HessianPrecon(eam)
-        opt = PreconLBFGS(atoms, precon=precon)
+        opt = PreconLBFGS(atoms, precon=HessianPrecon())
         opt.run(fmax=self.tol)
 
         opt = LBFGS(noprecon_atoms)
         opt.run(fmax=self.tol)
 
-        assert_allclose(atoms.positions,
-                        noprecon_atoms.positions,
-                        atol=self.tol)
+        assert_allclose(
+            atoms.positions, noprecon_atoms.positions, atol=self.tol)
 
     def test_precon_neb(self):
         N_cell = 4
@@ -65,17 +63,16 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
         initial *= N_cell
 
         # place vacancy near centre of cell
-        D, D_len = get_distances(np.diag(initial.cell) / 2,
-                                initial.positions,
-                                initial.cell, initial.pbc)
+        D, D_len = get_distances(
+            np.diag(initial.cell) / 2, initial.positions, initial.cell,
+            initial.pbc)
         vac_index = D_len.argmin()
         vac_pos = initial.positions[vac_index]
         del initial[vac_index]
 
         # identify two opposing nearest neighbours of the vacancy
-        D, D_len = get_distances(vac_pos,
-                                initial.positions,
-                                initial.cell, initial.pbc)
+        D, D_len = get_distances(vac_pos, initial.positions, initial.cell,
+                                 initial.pbc)
         D = D[0, :]
         D_len = D_len[0, :]
 
@@ -84,7 +81,7 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
         i2 = ((D + D[i1])**2).sum(axis=1).argmin()
 
         print(f'vac_index={vac_index} i1={i1} i2={i2} '
-            f'distance={initial.get_distance(i1, i2, mic=True)}')
+              f'distance={initial.get_distance(i1, i2, mic=True)}')
 
         final = initial.copy()
         final.positions[i1] = vac_pos
@@ -92,7 +89,7 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
         initial.calc = self.eam
         final.calc = self.eam
 
-        precon = HessianPrecon(self.eam, c_stab=0.1)
+        precon = HessianPrecon(c_stab=0.1)
         qn = ODE12r(initial, precon=precon)
         qn.run(fmax=1e-3)
         qn = ODE12r(final, precon=precon)
@@ -108,11 +105,15 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
         dummy_neb = NEB(images)
         dummy_neb.interpolate()
 
-        neb = NEB(dummy_neb.images, allow_shared_calculator=True,
-                  precon=precon, method='spline')
+        neb = NEB(
+            dummy_neb.images,
+            allow_shared_calculator=True,
+            precon=precon,
+            method='spline')
         # neb.interpolate()
         opt = NEBOptimizer(neb)
-        opt.run(fmax=0.1) # large tolerance for test speed
+        opt.run(fmax=0.1)  # large tolerance for test speed
+
 
 if __name__ == '__main__':
     unittest.main()
