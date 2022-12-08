@@ -101,22 +101,16 @@ jobs:
           # the cross-compile specification is contained in that directory.
           python -m pip wheel -w dist -vvv --config-settings builddir=build .
 
-          # change wheel names from
-          # matscipy-1.10.0.dev0-cp38-cp38-macosx_11_0_arm64.whl
-          # to
-          # matscipy-1.10.0.dev0-cp38-cp38-macosx_12_0_arm64.whl
-          # so they're only installable on Monterey
-          pushd dist
-          rm numpy*.whl
-          for i in *11_0*.whl; do [[ -e ${i/11_0/12_0} ]] || mv "$i" "${i/11_0/12_0}"; done
-          popd
+          # Let's see what's in the dist directory
+          ls dist
 
           # The `.so` are all converted to `-rpath/libgfortran` by
           # gfortran/meson, with all absolute paths removed.
           # Enables delocate to find the libopenblas/libgfortran libraries.
-          export DYLD_LIBRARY_PATH=/opt/gfortran-darwin-arm64/lib/gcc/arm64-apple-darwin20.0.0/10.2.1:/opt/arm64-builds/lib
-          delocate-listdeps dist/scipy*.whl
-          delocate-wheel --require-archs=arm64 -k -w wheelhouse dist/scipy*.whl
+          #export DYLD_LIBRARY_PATH=/opt/gfortran-darwin-arm64/lib/gcc/arm64-apple-darwin20.0.0/10.2.1:/opt/arm64-builds/lib
+          export DYLD_LIBRARY_PATH=/opt/arm64-builds/lib
+          delocate-listdeps dist/matscipy*.whl
+          delocate-wheel --require-archs=arm64 -k -w wheelhouse dist/matscipy*.whl
 
       - uses: actions/upload-artifact@v2
         with:
