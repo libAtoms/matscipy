@@ -47,6 +47,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+        if: >-
+          contains(matrix.buildplat[2], 'arm64' )
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.11.3
         if: >-
