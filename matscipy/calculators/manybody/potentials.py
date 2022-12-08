@@ -76,6 +76,7 @@ def distance_defined(cls):
     cls.hessian = hessian
     return cls
 
+
 def angle_distance_defined(cls):
     """
     Decorate class to help potential definition from distance.
@@ -204,8 +205,8 @@ class HarmonicAngle(Manybody.Theta):
         return 0.5 * self.k0 * (f - self.theta0)**2
 
     def gradient(self, rij, rik, rjk):
-        r"""First order derivatives of :math:`\Theta` w/r to :math:`r_{ij}, r_{ik},
-        r_{jk}`
+        r"""First order derivatives of :math:`\Theta` w/r to
+        :math:`r_{ij}, r_{ik}, r_{jk}`
         """
         rsq_ij = rij**2
         rsq_ik = rik**2
@@ -231,8 +232,8 @@ class HarmonicAngle(Manybody.Theta):
         return h(f) * np.stack([df_drij, df_drik, df_drjk])
 
     def hessian(self, rij, rik, rjk):
-        r"""Second order derivatives of :math:`\Theta` w/r to :math:`r_{ij}, r_{ik},
-        r_{jk}`
+        r"""Second order derivatives of :math:`\Theta` w/r to
+        :math:`r_{ij}, r_{ik}, r_{jk}`
         """
         rsq_ij = rij**2
         rsq_ik = rik**2
