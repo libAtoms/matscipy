@@ -61,7 +61,7 @@ class Manybody(MatscipyCalculator):
         def hessian(self, rsq_p, xi_p):
             """Return [∂₁₁ɸ(rᵢⱼ², ξᵢⱼ), ∂₂₂ɸ(rᵢⱼ², ξᵢⱼ), ∂₁₂ɸ(rᵢⱼ², ξᵢⱼ)]."""
 
-    class Theta:
+    class Theta(ABC):
         """Define the three-body term Θ(rᵢⱼ², rᵢₖ², rⱼₖ²)."""
 
         @abstractmethod
