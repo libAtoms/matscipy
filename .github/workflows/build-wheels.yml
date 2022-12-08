@@ -93,7 +93,7 @@ jobs:
           # install dependencies for the build machine
           pip install meson cython pybind11 pythran ninja oldest-supported-numpy build delocate meson-python
 
-          meson setup --cross-file $(pwd)/tools/wheels/cross_arm64.txt build
+          meson setup --cross-file $(pwd)/maintenance/cross_arm64.txt build
           # use the pip frontend because the build front end does not end up
           # obeying the configuration flags it's passed.
           # For example: `python -m build -Cbuilddir=dir` does not end up using
