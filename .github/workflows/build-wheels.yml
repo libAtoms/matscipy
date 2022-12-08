@@ -91,7 +91,7 @@ jobs:
           export LD_LIBRARY_PATH="/opt/arm64-builds/lib:$FC_LIBDIR:$LD_LIBRARY_PATH"
           
           # install dependencies for the build machine
-          pip install meson cython pybind11 pythran ninja oldest-supported-numpy build delocate meson-python
+          pip install meson ninja numpy build delocate meson-python
 
           meson setup --cross-file $(pwd)/maintenance/cross_arm64.txt build
           # use the pip frontend because the build front end does not end up
@@ -114,9 +114,9 @@ jobs:
           # The `.so` are all converted to `-rpath/libgfortran` by
           # gfortran/meson, with all absolute paths removed.
           # Enables delocate to find the libopenblas/libgfortran libraries.
-          #export DYLD_LIBRARY_PATH=/opt/gfortran-darwin-arm64/lib/gcc/arm64-apple-darwin20.0.0/10.2.1:/opt/arm64-builds/lib
-          #delocate-listdeps dist/scipy*.whl
-          #delocate-wheel --require-archs=arm64 -k -w wheelhouse dist/scipy*.whl
+          export DYLD_LIBRARY_PATH=/opt/gfortran-darwin-arm64/lib/gcc/arm64-apple-darwin20.0.0/10.2.1:/opt/arm64-builds/lib
+          delocate-listdeps dist/scipy*.whl
+          delocate-wheel --require-archs=arm64 -k -w wheelhouse dist/scipy*.whl
 
       - uses: actions/upload-artifact@v2
         with:
