@@ -59,7 +59,7 @@ jobs:
       - name: Build cp38-macosx_arm64
         # This is solely used to build cp38-macosx_arm64. As soon as 3.8 is
         # dropped then this entry can be removed
-        if: ${{ matrix.python[1] == '3.8' && matrix.buildplat[1] == 'macosx' && matrix.buildplat[2] == 'arm64' }}
+        if: ${{ matrix.python == 'cp38' && matrix.buildplat[1] == 'macosx' && matrix.buildplat[2] == 'arm64' }}
         run: |
           export PLAT="arm64"
           export _PYTHON_HOST_PLATFORM="macosx-12.0-arm64"
