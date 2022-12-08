@@ -368,7 +368,7 @@ def test_nonaffine_forces(configuration):
 def test_hessian(configuration):
     FIRE(configuration, logfile=None).run(fmax=1e-8, steps=400)
     H_ana = configuration.calc.get_property('hessian').todense()
-    H_num = numerical_hessian(configuration, dx=1e-6).todense()
+    H_num = numerical_hessian(configuration, d=1e-6).todense()
 
     nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
 
