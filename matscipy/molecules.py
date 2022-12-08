@@ -109,7 +109,7 @@ class Molecules:
 
         # WARNING: returns angles in degrees
         return get_angles(positions[1] - positions[0],
-                          positions[2] - positions[1],
+                          positions[2] - positions[0],
                           atoms.cell, atoms.pbc)
 
     def get_dihedrals(self, atoms) -> np.ndarray:
@@ -156,7 +156,7 @@ class Molecules:
             parse_tuples(bre, (0, 1), 'bonds')
         if 'angles' in atoms.arrays:
             are = re.compile(r'(\d+)-(\d+)\((\d+)\)')
-            parse_tuples(are, (1, 0, 2), 'angles')
+            parse_tuples(are, (0, 1, 2), 'angles')
         if 'dihedrals' in atoms.arrays:
             dre = re.compile(r'(\d+)-(\d+)-(\d+)\((\d+)\)')
             parse_tuples(dre, (0, 1, 2, 3), 'dihedrals')
