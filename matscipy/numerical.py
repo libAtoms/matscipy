@@ -25,11 +25,14 @@
 
 import numpy as np
 
+import ase
+
 from scipy.sparse import coo_matrix
+
 from ase.calculators.calculator import Calculator
 
 
-def numerical_forces(atoms, d=1e-3):
+def numerical_forces(atoms: ase.Atoms, d: float = 1e-5):
     """
     Compute numerical forces using finite differences.
 
@@ -43,7 +46,7 @@ def numerical_forces(atoms, d=1e-3):
     return Calculator().calculate_numerical_forces(atoms, d=d)
 
 
-def numerical_stress(atoms, d=1e-6, voigt=True):
+def numerical_stress(atoms: ase.Atoms, d: float = 1e-5, voigt: bool = True):
     """
     Compute numerical stresses using finite differences.
 
@@ -59,19 +62,16 @@ def numerical_stress(atoms, d=1e-6, voigt=True):
     return Calculator().calculate_numerical_stress(atoms, d=d, voigt=voigt)
 
 
-def numerical_hessian(atoms, dx=1e-5, indices=None):
+def numerical_hessian(atoms: ase.Atoms, d: float = 1e-5, indices=None):
     """
-
-    Compute the hessian matrix from Jacobian of forces via central differences.
+    Compute the hessian matrix from Jacobian of forces using central differences.
 
     Parameters
     ----------
     atoms: ase.Atoms
         Atomic configuration in a local or global minima.
-
-    dx: float
+    d: float
         Displacement increment
-
     indices:
         Compute the hessian only for these atom IDs
 
@@ -85,12 +85,12 @@ def numerical_hessian(atoms, dx=1e-5, indices=None):
     H = []
     for i, AtomId1 in enumerate(indices):
         for direction in range(3):
-            atoms.positions[AtomId1, direction] += dx
+            atoms.positions[AtomId1, direction] += d
             fp_nc = atoms.get_forces().ravel()
-            atoms.positions[AtomId1, direction] -= 2 * dx
+            atoms.positions[AtomId1, direction] -= 2 * d
             fn_nc = atoms.get_forces().ravel()
-            atoms.positions[AtomId1, direction] += dx
-            dH_nc = (fn_nc - fp_nc) / (2 * dx)
+            atoms.positions[AtomId1, direction] += d
+            dH_nc = (fn_nc - fp_nc) / (2 * d)
 
             for j, AtomId2 in enumerate(range(nat)):
                 for k in range(3):
@@ -103,9 +103,9 @@ def numerical_hessian(atoms, dx=1e-5, indices=None):
     )
 
 
-def numerical_nonaffine_forces(atoms, d=1e-6):
+def numerical_nonaffine_forces(atoms: ase.Atoms, d: float = 1e-5):
     """
-    Calculate numerical non-affine forces using central finite differences.
+    Calculate numerical non-affine forces using central differences.
 
     This is done by deforming the box, rescaling atoms and measure the force.
 
@@ -147,3 +147,110 @@ def numerical_nonaffine_forces(atoms, d=1e-6):
         fna_ncc[..., i, j] = fna_ncc[..., j, i] = (fplus - fminus) / (4 * d)
 
     return fna_ncc
+
+def get_derivative_volume(atoms: ase.Atoms, d: float = 1e-5):
+    """
+    Calculate the derivative of the volume with respect to strain using central differences.
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+        Atomic configuration in a local or global minima.
+    d : float
+        Finite difference step size.
+
+    """
+    cell = atoms.cell.copy()
+    dvol = np.zeros((3, 3))
+
+    for i in range(3):
+        # Diagonal
+        x = np.eye(3)
+        x[i, i] += d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        Vplus = atoms.get_volume()
+
+        x[i, i] -= 2 * d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        Vminus = atoms.get_volume()
+
+        derivative_volume = (Vplus - Vminus) / (2 * d)
+
+        dvol[i, i] = derivative_volume
+
+        # Off diagonal
+        j = i - 2
+        x[i, j] = d
+        x[j, i] = d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        Vplus = atoms.get_volume()
+
+        x[i, j] = -d
+        x[j, i] = -d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        Vminus = atoms.get_volume()
+
+        derivative_volume = (Vplus - Vminus) / (4 * d)
+        dvol[i, j] = derivative_volume
+        dvol[j, i] = derivative_volume
+
+    return dvol
+
+def get_derivative_wave_vector(atoms: ase.Atoms, d: float = 1e-5):
+    """
+    Calculate the derivative of a wave vector with respect to strain using central differences.
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+        Atomic configuration in a local or global minima.
+    d : float
+        Finite difference step size.
+
+    """
+    cell = atoms.cell.copy()
+
+    e = np.ones(3)
+    initial_k = 2 * np.pi * np.dot(np.linalg.inv(cell), e)
+
+    dk = np.zeros((3, 3, 3))
+
+    for i in range(3):
+        # Diagonal
+        x = np.eye(3)
+        x[i, i] += d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        k_pos = 2 * np.pi * np.dot(np.linalg.inv(atoms.get_cell()), e)
+
+        x[i, i] -= 2 * d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        k_minus = 2 * np.pi * np.dot(np.linalg.inv(atoms.get_cell()), e)
+        derivative_k = (k_pos - k_minus) / (2 * d)
+        dk[:, i, i] = derivative_k
+
+        # Off diagonal --> xy, xz, yz
+        j = i - 2
+        x[i, j] = d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        k_pos = 2 * np.pi * np.dot(np.linalg.inv(atoms.get_cell()), e)
+
+        x[i, j] = -d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        k_minus = 2 * np.pi * np.dot(np.linalg.inv(atoms.get_cell()), e)
+
+        derivative_k = (k_pos - k_minus) / (2 * d)
+        dk[:, i, j] = derivative_k
+
+        # Odd diagonal --> yx, zx, zy
+        x[j, i] = d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        k_pos = 2 * np.pi * np.dot(np.linalg.inv(atoms.get_cell()), e)
+
+        x[j, i] = -d
+        atoms.set_cell(np.dot(cell, x), scale_atoms=True)
+        k_minus = 2 * np.pi * np.dot(np.linalg.inv(atoms.get_cell()), e)
+
+        derivative_k = (k_pos - k_minus) / (2 * d)
+        dk[:, j, i] = derivative_k
+
+    return dk
