@@ -62,6 +62,14 @@ As well as these domain-specific tools, `matscipy` contains general utility func
 
 - **Neighbour list**. An efficient linear-scaling neighbour list implemented in C which delivers orders-of-magnitude faster performance for large systems that the pure Python implementation in ASE [@Larsen2017]. This is becoming widely used for post-processing and structural analysis of the trajectories resulting from molecular dynamics simulations. 
 
+- **Atomic strain**
+
+- **Ring analysis**
+
+- **Radial, angular and spatial correlation functions**
+
+- **Hessian calculation**
+
 # Acknowledgements
 
 We thank Alexander Held for initial contributions to the `pressurecoupling.py` module.
