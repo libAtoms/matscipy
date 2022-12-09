@@ -48,14 +48,22 @@ Behaviour of materials is governed by physical phenomena happening at an extreme
 
 The python package `matscipy` contains a set of tools for researchers in a field of materials science and atomistic modelling. It is built around Atomic Simulation Environment (ASE) [@Larsen2017] that offers great flexibility and interoperability by providing a python interface to tens of simulation codes implementing different physical models. Below, we give a short summary for every application domain:
 
-- Plasticity. Dislocations are extended defects in the material and are the main carriers of plasticity. `matscipy` module `dislocation.py` focuses on tools for studying structure and movement of dislocations. Construction and analysis of model atomic systems is implemented for compact and dissociated screw, as well as edge dislocations in cubic crystals. The implementation also includes large scale systems for single and double kinks. The module was employed in a study of interaction of hydrogen with screw dislocation in tungsten [@Grigorev2020].
+- **Plasticity.** Dislocations are extended defects in the material and are the main carriers of plasticity. `matscipy` module `dislocation.py` focuses on tools for studying structure and movement of dislocations. Construction and analysis of model atomic systems is implemented for compact and dissociated screw, as well as edge dislocations in cubic crystals. The implementation also includes large scale systems for single and double kinks. The module was employed in a study of interaction of hydrogen with screw dislocation in tungsten [@Grigorev2020].
 
-- Fracture mechanics
-- Contact mechanics
-- Electrochemistry
-- Tribology. Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain insights into the atomistic mechanisms underlying friction and wear. The `matscipy` module `pressurecoupling.py` provides tools to perform such simulations under a constant normal load and sliding velocity. The module includes an implementation of the pressure coupling algorithm described in Ref. [@Pastewka2010]. By dynamically adjusting the distance between the two sliding surfaces according to the local pressure, the algorithm ensures mechanical boundary conditions that account for the inertia of the bulk material which is not explicitly included in the simulation. 
+- **Fracture mechanics.** The `matscipy.fracture_mechanics` module provides functionality for generating and applying the continuum linear elastic displacement fields near to crack tips, including support for anisotropy in cubic crystals [@Sih1965]. This functionality has been used to quantify 'lattice trapping', i.e. the effects of the discreteness of the atomic lattice on crack propagation and to compare simulations with experimental measurements of crack speeds in silicon [@Kermode2015]. There is also support for flexible boundary conditions in fracture simulations using the formalism proposed by Sinclair [@Sinclair1975] where the finite atomistic domain is coupled to an infinite elastic continuum. Finally, we provide an extension of this approach to give a numerical-continuation-enhanced flexible boundary scheme, enabling full solution paths for cracks to be computed with pseudo-arclength continuation [@Buze2021].
+
+- **Contact mechanics**
+ 
+- **Electrochemistry**
+
+- **Tribology.** Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain insights into the atomistic mechanisms underlying friction and wear. The `matscipy` module `pressurecoupling.py` provides tools to perform such simulations under a constant normal load and sliding velocity. The module includes an implementation of the pressure coupling algorithm described in Ref. [@Pastewka2010]. By dynamically adjusting the distance between the two sliding surfaces according to the local pressure, the algorithm ensures mechanical boundary conditions that account for the inertia of the bulk material which is not explicitly included in the simulation. 
+
+As well as these domain-specific tools, `matscipy` contains general utility functionality which is widely applicable:
+
+- **Neighbour list**. An efficient linear-scaling neighbour list implemented in C which delivers orders-of-magnitude faster performance for large systems that the pure Python implementation in ASE [@Larsen2017]. This is becoming widely used for post-processing and structural analysis of the trajectories resulting from molecular dynamics simulations. 
 
 # Acknowledgements
+
 We thank Alexander Held for initial contributions to the `pressurecoupling.py` module.
 
 # References
