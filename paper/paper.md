@@ -66,4 +66,6 @@ As well as these domain-specific tools, `matscipy` contains general utility func
 
 We thank Alexander Held for initial contributions to the `pressurecoupling.py` module.
 
+`matscipy` was partially funded by the Deutsch Forschungsgemeinschaft (project 258153560) and by the Engineering and Physical Sciences Research Council (grants EP/P002188/1, EP/R012474/1 and EP/R043612/1).
+
 # References
