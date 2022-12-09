@@ -154,6 +154,8 @@ def test_affine_elastic_constants(polyphosphate):
     atoms.cell *= 0.8
     atoms.positions *= 0.8
 
+    stress = atoms.get_stress()
+
     # Numerical Birch
     C_many_ref = num_constants(atoms, delta=1e-2)
 
@@ -162,7 +164,9 @@ def test_affine_elastic_constants(polyphosphate):
         latoms = atoms.copy()
         set_lammps(latoms, 'polyphosphate.data')
         C_lammps = num_constants(latoms, delta=1e-2, verbose=False)
+        lstress = latoms.get_stress()
         assert norm(C_lammps - C_many_ref) / norm(C_lammps) < 1e-7
+        assert norm(lstress - stress) / norm(lstress) < 1e-7
     except AssertionError as e:
         raise(e)
     except Exception as e:

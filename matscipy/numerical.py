@@ -62,7 +62,7 @@ def numerical_stress(atoms: ase.Atoms, d: float = 1e-5, voigt: bool = True):
     return Calculator().calculate_numerical_stress(atoms, d=d, voigt=voigt)
 
 
-def numerical_hessian(atoms: ase.Atoms, d: float = 1e-5, indices=None):
+def numerical_hessian(atoms: ase.Atoms, d: float = 1e-5, indices=None) -> coo_matrix:
     """
     Compute the hessian matrix from Jacobian of forces using central differences.
 

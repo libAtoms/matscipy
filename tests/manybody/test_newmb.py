@@ -216,6 +216,9 @@ def molecule():
         | (angles[:, 1] != angles[:, 2])
     ]
 
+    #angles = angles[:, (1, 0, 2)]
+    print(angles)
+
     return MolecularNeighbourhood(
         Molecules(bonds_connectivity=bonds, angles_connectivity=angles)
     )
@@ -345,8 +348,8 @@ def configuration(distance, rattle, potential, request):
 
 def test_forces(configuration):
     f_ana = configuration.get_forces()
-    f_num = numerical_forces(configuration, d=1e-5)
-    nt.assert_allclose(f_ana, f_num, rtol=1e-6, atol=1e-7)
+    f_num = numerical_forces(configuration, d=1e-6)
+    nt.assert_allclose(f_ana, f_num, rtol=1e-6, atol=1e-6)
 
 
 def test_stresses(configuration):
