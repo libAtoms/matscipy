@@ -21,7 +21,7 @@
 
 import numpy as np
 
-import _matscipy
+from . import _matscipy as ffi
 
 ###
 
@@ -38,5 +38,5 @@ def angle_distribution(i, j, dr, nbins, *args):
     cutoff : float, optional
         Bond length cutoff, i.e. consider only bonds shorter than this length.
     """
-    return _matscipy.angle_distribution(np.asarray(i), np.asarray(j),
-                                        np.asarray(dr), nbins, *args)
+    return ffi.angle_distribution(np.asarray(i), np.asarray(j),
+                                  np.asarray(dr), nbins, *args)

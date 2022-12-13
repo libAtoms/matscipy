@@ -32,9 +32,10 @@ import ase
 from ase.data import atomic_numbers
 from ase.geometry import find_mic
 
-import _matscipy
-from _matscipy import first_neighbours, get_jump_indicies  # noqa
+from ._matscipy import first_neighbours, get_jump_indicies
 from .molecules import Molecules
+
+from . import _matscipy as ffi
 
 
 class Neighbourhood(ABC):
@@ -602,9 +603,9 @@ e_nc = (dr_nc.T/abs_dr_n).T
         _cutoff = cutoff
 
     try:
-        return _matscipy.neighbour_list(quantities, cell_origin, cell,
-                                        np.linalg.inv(cell.T), pbc, positions,
-                                        _cutoff, numbers)
+        return ffi.neighbour_list(quantities, cell_origin, cell,
+                                  np.linalg.inv(cell.T), pbc, positions,
+                                  _cutoff, numbers)
     except ValueError as e:
         if str(e) == "object of too small depth for desired array":
             raise TypeError(f"cutoff of invalid type {type(_cutoff)}")
@@ -651,9 +652,9 @@ def triplet_list(first_neighbours,
 
     """
     if not (abs_dr_p is None or cutoff is None):
-        res = _matscipy.triplet_list(first_neighbours, abs_dr_p, cutoff)
+        res = ffi.triplet_list(first_neighbours, abs_dr_p, cutoff)
     else:
-        res = _matscipy.triplet_list(first_neighbours)
+        res = ffi.triplet_list(first_neighbours)
     # TODO: should be wrapped in c and be independet of i_n
     # and j_n as of j_n is sorted; related issue #50
     # add some tests!!!
@@ -800,7 +801,7 @@ def find_common_neighbours(i_n, j_n, nat):
     i_n_2 = i_n[j_order]
     j_n_2 = j_n[j_order]
     # Find indices in the copy where contiguous blocks with same j_n_2 start
-    first_j = _matscipy.first_neighbours(nat, j_n_2)
+    first_j = first_neighbours(nat, j_n_2)
     num_rows_per_j = first_j[j_n + 1] - first_j[j_n]
     num_rows_cnl = np.sum(num_rows_per_j)
 

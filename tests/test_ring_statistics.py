@@ -51,7 +51,7 @@ import ase.lattice.hexagonal
 import matscipytest
 from matscipy.neighbours import neighbour_list
 from matscipy.rings import ring_statistics
-from _matscipy import distances_on_graph, find_sp_rings
+from matscipy._matscipy import distances_on_graph, find_sp_rings
 
 ###
 

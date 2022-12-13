@@ -22,7 +22,7 @@ import numpy as np
 
 ###
 
-from _matscipy import count_islands, count_segments, distance_map
+from .._matscipy import count_islands, count_segments, distance_map
 
 ###
 
