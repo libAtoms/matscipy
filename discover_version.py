@@ -77,7 +77,7 @@ def get_version_from_git():
     version = version.replace('-', '.dev', 1)
     version = version.replace('-', '+', 1)
     if dirty:
-        version += '-dirty'
+        version += '.dirty'
 
     return version
 
