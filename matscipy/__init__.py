@@ -25,6 +25,7 @@
 from matscipy.logger import screen
 from .distributed_computation import BaseWorker, BaseResultManager
 
+
 def has_parameter(name):
     """
     Test if a parameter has been provided in params.py.

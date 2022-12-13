@@ -19,6 +19,7 @@ python_sources = [
     'distributed_computation.py',
     'drift.py',
     'elasticity.py',
+    'ffi.py',
     'hessian_finite_differences.py',
     'hydrogenate.py',
     'logger.py',

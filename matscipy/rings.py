@@ -24,7 +24,7 @@ import itertools
 import numpy as np
 
 from matscipy.neighbours import neighbour_list
-from ._matscipy import distances_on_graph, find_sp_rings
+from .ffi import distances_on_graph, find_sp_rings
 
 ###
 

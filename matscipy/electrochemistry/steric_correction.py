@@ -141,7 +141,7 @@ import numpy as np
 import scipy.optimize
 import scipy.spatial.distance
 
-from ._matscipy import neighbour_list
+from . import ffi
 
 
 # https://stackoverflow.com/questions/21377020/python-how-to-do-lazy-debug-logging
@@ -699,7 +699,7 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
     # If thhe parameter 'cutoff' is a per-atom value, then it must be a
     # diamater, not a radius (as wrongly stated within the function's
     # docstring)
-    i, j, dxijnorm, dxijvec = neighbour_list(
+    i, j, dxijnorm, dxijvec = ffi.neighbour_list(
         'ijdD', cell_origin, cell, np.linalg.inv(cell.T), [0,0,0],
         x, 2.0*Ri, np.ones(len(x),dtype=np.int32))
     # i, j are coordinate point indices, dxijnorm is pairwise distance,

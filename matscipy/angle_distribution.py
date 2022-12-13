@@ -21,7 +21,7 @@
 
 import numpy as np
 
-from . import _matscipy as ffi
+from . import ffi
 
 ###
 

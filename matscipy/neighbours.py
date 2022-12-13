@@ -32,10 +32,9 @@ import ase
 from ase.data import atomic_numbers
 from ase.geometry import find_mic
 
-from ._matscipy import first_neighbours, get_jump_indicies
+from . import ffi
+from .ffi import first_neighbours, get_jump_indicies
 from .molecules import Molecules
-
-from . import _matscipy as ffi
 
 
 class Neighbourhood(ABC):
