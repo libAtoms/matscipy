@@ -28,6 +28,9 @@ authors:
   - name: Lucas Frérot
     orcid: 0000-0002-4138-1052
     affiliation: 3
+  - name: Wolfram G. Nöhring
+    orcid: 0000-0003-4203-755X
+    affiliation: 3
   - name: James R. Kermode
     orcid: 0000-0001-6755-6271
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
