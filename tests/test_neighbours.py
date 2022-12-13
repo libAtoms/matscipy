@@ -334,7 +334,7 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
                           bonds_types=[1, 2, 3],
                           angles_connectivity=[
                               [0, 1, 2],
-                              [0, 2, 1],
+                              [2, 0, 1],
                               [1, 0, 2],
                           ],
                           angles_types=[1, 2, 3])
@@ -345,15 +345,15 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
     def test_pairs(self):
         cutoff_d = self.cutoff.get_pairs(self.atoms, "ijdD")
         molecule_d = self.molecule.get_pairs(self.atoms, "ijdD")
-        p = np.array([1, 0, 2, 3, 5, 4])
+        p = np.array([0, 1, 2, 3, 5, 4])
         mask_extra_bonds = self.molecule.connectivity["bonds"]["type"] >= 0
 
         # print("CUTOFF", cutoff_d)
         # print("MOLECULE", molecule_d)
 
         for c, m in zip(cutoff_d, molecule_d):
-            # print("c =", c)
-            # print("m =", m[mask_extra_bonds])
+            print("c =", c)
+            print("m =", m[mask_extra_bonds][p])
             self.assertArrayAlmostEqual(c, m[mask_extra_bonds][p], tol=1e-10)
 
     def test_triplets(self):
@@ -365,8 +365,8 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
 
         # We compare the refered pairs, not the triplet info directly
         for c, m in zip(cutoff_d, molecule_d):
-            # print("c =", cutoff_pairs[:][c])
-            # print("m =", molecules_pairs[:][m])
+            print("c =", cutoff_pairs[:][c])
+            print("m =", molecules_pairs[:][m])
             self.assertArrayAlmostEqual(cutoff_pairs[:, 0][c],
                                         molecules_pairs[:, 0][m][p], tol=1e-10)
             self.assertArrayAlmostEqual(cutoff_pairs[:, 1][c],
@@ -374,7 +374,7 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
 
         # Testing computed distances and vectors
         cutoff_d = self.cutoff.get_triplets(self.atoms, "dD")
-        molecule_d = self.cutoff.get_triplets(self.atoms, "dD")
+        molecule_d = self.molecule.get_triplets(self.atoms, "dD")
 
         # TODO why no permutation?
         for c, m in zip(cutoff_d, molecule_d):

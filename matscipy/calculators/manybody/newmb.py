@@ -8,7 +8,10 @@ from itertools import combinations_with_replacement
 from typing import Mapping
 from scipy.sparse import bsr_matrix
 from ...calculators.calculator import MatscipyCalculator
-from ...neighbours import Neighbourhood, first_neighbours, find_indices_of_reversed_pairs
+from ...neighbours import (
+    Neighbourhood, first_neighbours, find_indices_of_reversed_pairs,
+    MolecularNeighbourhood
+)
 from ...numpy_tricks import mabincount
 from ...elasticity import full_3x3_to_Voigt_6_stress
 from copy import deepcopy
@@ -236,24 +239,28 @@ class Manybody(MatscipyCalculator):
             for x, X in enumerate(X_indices[1:])
         )
 
-    def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None):
+    def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None,
+                        neighbourhood=None):
         """Compute requested derivatives of phi and theta."""
         if not isinstance(order, list):
             order = [order]
 
+        if neighbourhood is None:
+            neighbourhood = self.neighbourhood
+
         if list_ijk is None and list_ij is None:
-            i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
-            ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
+            i_p, j_p, r_pc = neighbourhood.get_pairs(atoms, 'ijD')
+            ij_t, ik_t, r_tqc = neighbourhood.get_triplets(atoms, 'ijD')
         else:
             i_p, j_p, r_pc = list_ij
             ij_t, ik_t, r_tqc = list_ijk
 
         # Pair and triplet types
-        t_p = self.neighbourhood.pair_type(*(atoms.numbers[i]
-                                             for i in (i_p, j_p)))
-        t_t = self.neighbourhood.triplet_type(*(atoms.numbers[i]
-                                                for i in (i_p[ij_t], j_p[ij_t],
-                                                          j_p[ik_t])))
+        t_p = neighbourhood.pair_type(*(atoms.numbers[i]
+                                        for i in (i_p, j_p)))
+        t_t = neighbourhood.triplet_type(*(atoms.numbers[i]
+                                           for i in (i_p[ij_t], j_p[ij_t],
+                                                     j_p[ik_t])))
 
         derivatives = np.array([
             ('__call__', 1, 1),
@@ -490,8 +497,11 @@ class Manybody(MatscipyCalculator):
 
         return naf_ncab
 
-    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
-        """Compute hessian."""
+
+    def _double_cutoff(self):
+        if isinstance(self.neighbourhood, MolecularNeighbourhood):
+            return np.inf, np.inf, self.neighbourhood.double()
+
         cutoff = self.neighbourhood.cutoff
 
         # Handling heterogeneous cutoffs
@@ -506,11 +516,6 @@ class Manybody(MatscipyCalculator):
         else:
             double_cutoff *= 2
 
-        # We need twice the cutoff to get jk
-        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(
-            atoms, 'ijdD', cutoff=double_cutoff
-        )
-
         if isinstance(cutoff, dict):
             pairwise_cutoffs = np.array([
                 cutoff[pair] for pair in zip(atoms.numbers[i_p],
@@ -519,11 +524,23 @@ class Manybody(MatscipyCalculator):
         else:
             pairwise_cutoffs = cutoff
 
-        mask = r_p > pairwise_cutoffs
+        return double_cutoff, pairwise_cutoffs, self.neighbourhood
+
+    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
+        """Compute hessian."""
+
+        double_cutoff, pairwise_cutoff, neigh = self._double_cutoff()
+
+        # We need twice the cutoff to get jk
+        i_p, j_p, r_p, r_pc = neigh.get_pairs(
+            atoms, 'ijdD', cutoff=double_cutoff
+        )
+
+        mask = r_p > pairwise_cutoff
 
         tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
 
-        ij_t, ik_t, jk_t, r_tq, r_tqc = self.neighbourhood.get_triplets(
+        ij_t, ik_t, jk_t, r_tq, r_tqc = neigh.get_triplets(
             atoms, 'ijkdD', neighbours=[i_p, j_p, r_p, r_pc]
         )
 
@@ -541,7 +558,8 @@ class Manybody(MatscipyCalculator):
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2],
                                  list_ij=[i_p, j_p, r_pc],
-                                 list_ijk=[ij_t, ik_t, r_tqc])
+                                 list_ijk=[ij_t, ik_t, r_tqc],
+                                 neighbourhood=neigh)
 
         # Masking extraneous pair contributions
         dphi_cp[:, mask] = 0

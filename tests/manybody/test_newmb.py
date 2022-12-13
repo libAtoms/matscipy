@@ -234,7 +234,7 @@ potentials = {
         {1: HarmonicPair(1, 1)}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
     ),
 
-    "HarmonicPair+ZeroAngle": (
+    "HarmonicPair+ZeroAngle~molecule": (
         {1: HarmonicPair(1, 1)}, {1: ZeroAngle()}, molecule()
     ),
 

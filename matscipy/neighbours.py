@@ -98,6 +98,11 @@ class Neighbourhood(ABC):
                 D[:, i, :], d[:, i] = \
                     find_mic(positions[idx[1]] - positions[idx[0]],
                              atoms.cell, atoms.pbc)
+        # if connectivity.shape[1] == 3:
+        #     for i, idx in enumerate(indices):
+        #         D[:, i, :] = \
+        #             (positions[idx[1]] - positions[idx[0]])
+        #         d[:, i] = np.linalg.norm(D[:, i], axis=-1)
         return D.squeeze(), d.squeeze()
 
     def connected_triplets(self, atoms: ase.Atoms, pair_list, triplet_list,
@@ -224,11 +229,22 @@ class CutoffNeighbourhood(Neighbourhood):
 class MolecularNeighbourhood(Neighbourhood):
     """Class defining neighbourhood based on molecular connectivity."""
 
-    def __init__(self, molecules: Molecules, atom_types=None):
+    def __init__(self,
+                 molecules: Molecules,
+                 atom_types=None,
+                 double_cutoff=False):
         """Initialze with atoms and molecules."""
         super().__init__(atom_types)
-        self.molecules = molecules
+        self.double_cutoff = double_cutoff
         self.cutoff = np.inf
+        self.molecules = molecules
+
+    def double(self):
+        if not self.double_cutoff:
+            return MolecularNeighbourhood(self.molecules,
+                                          self.atom_type,
+                                          True)
+        return self
 
     @property
     def molecules(self):
@@ -243,8 +259,11 @@ class MolecularNeighbourhood(Neighbourhood):
         # Get ij + ji pairs and ijk + kji angles to mimic the cutoff behavior
         self.connectivity = {
             "bonds": self.double_connectivity(molecules.bonds),
-            "angles": molecules.angles,
         }
+
+        self.connectivity["angles"] = \
+            self.double_connectivity(molecules.angles) if self.double_cutoff \
+            else molecules.angles
 
         # Add pairs from the angle connectivity with negative types
         # This way they should be ignored for the pair potentials
@@ -253,10 +272,11 @@ class MolecularNeighbourhood(Neighbourhood):
                 typeoffset=-(np.max(molecules.angles["type"]) + 1))
 
             # Double angles connectivity after completing bonds
-            self.connectivity["angles"] = \
-                self.double_connectivity(molecules.angles)
-            self.triplet_list = np.vstack([self.triplet_list,
-                                           self.triplet_list[:, (1, 0, 2)]])
+            if not self.double_cutoff:
+                self.connectivity["angles"] = \
+                    self.double_connectivity(molecules.angles)
+                self.triplet_list = np.vstack([self.triplet_list,
+                                               self.triplet_list[:, (1, 0, 2)]])
         else:
             self.triplet_list = np.zeros([0, 3], dtype=np.int32)
 
