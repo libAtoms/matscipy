@@ -3,7 +3,13 @@ import numpy as np
 
 from numpy.linalg import norm
 from ase.io import read
+from ase.optimize import FIRE
 from ase.calculators.mixing import SumCalculator
+from ase.calculators.calculator import PropertyNotImplementedError
+from matscipy.numerical import (numerical_forces, numerical_stress,
+                                numerical_nonaffine_forces, numerical_hessian)
+from matscipy.elasticity import \
+    measure_triclinic_elastic_constants as numerical_birch
 from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut
@@ -11,6 +17,20 @@ from matscipy.calculators.ewald import Ewald
 from matscipy.calculators.manybody.newmb import Manybody
 from matscipy.calculators.manybody.potentials import \
     ZeroPair, HarmonicAngle
+
+
+NUM_PROPERTIES = {
+    "forces": numerical_forces,
+    "stress": numerical_stress,
+    "nonaffine_forces": numerical_nonaffine_forces,
+    "hessian": numerical_hessian,
+    "birch_coefficients": numerical_birch,
+}
+
+
+def here(path):
+    from pathlib import Path
+    return Path(__file__).parent / path
 
 
 def set_lammps(atoms, lammps_datafile):
@@ -46,14 +66,15 @@ def set_lammps(atoms, lammps_datafile):
     pair_coeff * * 0 1
     """.split("\n")
 
-    calc = LAMMPSlib(lmpcmds=[],
-                     atom_types=atom_symbol_to_lammps,
-                     lammps_header=header,
-                     create_atoms=False,
-                     create_box=False,
-                     boundary=False,
-                     keep_alive=True,
-                     log_file='log.lammps')
+    calc = LAMMPSlib(
+        lmpcmds=[],
+        atom_types=atom_symbol_to_lammps,
+        lammps_header=header,
+        create_atoms=False,
+        create_box=False,
+        boundary=False,
+        keep_alive=True,
+        log_file='log.lammps')
     atoms.calc = calc
 
 
@@ -69,11 +90,9 @@ def set_legacy_manybody(atoms, molecules):
     }
 
     pair = PairPotential(lj_interactions)
-    triplet = NiceManybody(ZeroPair(),
-                           HarmonicAngle(
-                               np.radians(109.47), 2 * 1.77005, atoms
-                           ),
-                           MolecularNeighbourhood(molecules))
+    triplet = NiceManybody(
+        ZeroPair(), HarmonicAngle(np.radians(109.47), 2 * 1.77005, atoms),
+        MolecularNeighbourhood(molecules))
     ewald = Ewald()
     ewald.set(accuracy=1e-4, cutoff=10., verbose=False)
     atoms.arrays['charge'] = atoms.get_initial_charges()
@@ -105,7 +124,7 @@ def set_manybody(atoms, molecules):
 def map_ase_types(atoms):
     """Convert atom types to atomic numbers."""
     lammps_to_atom_num = {
-        1: 8,   # O
+        1: 8,  # O
         2: 15,  # P
         3: 30,  # Zn
     }
@@ -118,10 +137,11 @@ def map_ase_types(atoms):
 
 @pytest.fixture
 def polyphosphate():
-    atoms = read('polyphosphate.data',
-                 format='lammps-data',
-                 style='full',
-                 units='metal')
+    atoms = read(
+        here('polyphosphate.data'),
+        format='lammps-data',
+        style='full',
+        units='metal')
 
     atoms = map_ase_types(atoms)
     mol = Molecules.from_atoms(atoms)
@@ -129,7 +149,25 @@ def polyphosphate():
         1: HarmonicAngle(2 * 1.77005, np.radians(109.47)),
         2: HarmonicAngle(2 * 10.4663, np.radians(135.58)),
     }, MolecularNeighbourhood(mol))
+
+    # So that Cauchy stress is non-zero
+    atoms.cell *= 0.8
+    atoms.positions *= 0.8
     return atoms, mol
+
+
+def lammps_prop(atoms, prop):
+    """Return property computed with LAMMPS if installed."""
+    atoms = atoms.copy()
+
+    try:
+        set_lammps(atoms, here('polyphosphate.data'))
+        return atoms.calc.get_property(prop, atoms)
+    except PropertyNotImplementedError:
+        return NUM_PROPERTIES[prop](atoms)
+    except Exception as e:
+        print(type(e), e)
+        return None
 
 
 def test_angles_energy(polyphosphate):
@@ -143,37 +181,35 @@ def test_angles_energy(polyphosphate):
 
     assert np.abs(epot_ref - epot) / epot_ref < 1e-14
 
+    epot_ref = lammps_prop(atoms, 'energy')
 
-def test_affine_elastic_constants(polyphosphate):
-    from matscipy.elasticity import \
-        measure_triclinic_elastic_constants as num_constants
+    if epot_ref is not None:
+        assert np.abs(epot_ref - epot) / epot_ref < 1e-13
 
+
+PROPERTIES = [
+    "forces",
+    "stress",
+    "nonaffine_forces",
+    "birch_coefficients",
+    # "hessian",
+]
+
+
+@pytest.mark.parametrize("prop", PROPERTIES)
+def test_properties(polyphosphate, prop):
     atoms, _ = polyphosphate
+    atol, rtol = 3e-7, 1e-7
 
-    # So that Cauchy stress is non-zero
-    atoms.cell *= 0.8
-    atoms.positions *= 0.8
+    if prop in ('nonaffine_forces', 'hessian'):
+        FIRE(atoms, logfile=None).run(fmax=1e-9, steps=500)
+        atol, rtol = 1e-3, 1e-7
 
-    stress = atoms.get_stress()
+    data = atoms.calc.get_property(prop, atoms)
+    ref = NUM_PROPERTIES[prop](atoms)
 
-    # Numerical Birch
-    C_many_ref = num_constants(atoms, delta=1e-2)
+    lref = lammps_prop(atoms, prop)
+    if lref is not None:
+        np.testing.assert_allclose(data, lref, atol=atol, rtol=rtol)
 
-    # Consistency test if LAMMPS is installed
-    try:
-        latoms = atoms.copy()
-        set_lammps(latoms, 'polyphosphate.data')
-        C_lammps = num_constants(latoms, delta=1e-2, verbose=False)
-        lstress = latoms.get_stress()
-        assert norm(lstress - stress) / norm(lstress) < 1e-7, \
-            "LAMMPS stress failed"
-        assert norm(C_lammps - C_many_ref) / norm(C_lammps) < 1e-7, \
-            "LAMMPS constants failed"
-    except AssertionError as e:
-        raise(e)
-    except Exception as e:
-        print(e)
-
-    C_birch = atoms.calc.get_property('birch_coefficients', atoms)
-    assert norm(C_birch - C_many_ref) / norm(C_many_ref) < 1e-2
-    np.testing.assert_allclose(C_birch, C_many_ref, atol=3e-5, rtol=1e-3)
+    np.testing.assert_allclose(data, ref, atol=atol, rtol=rtol)
