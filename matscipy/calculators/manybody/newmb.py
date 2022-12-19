@@ -497,48 +497,20 @@ class Manybody(MatscipyCalculator):
 
         return naf_ncab
 
-
-    def _double_cutoff(self):
-        if isinstance(self.neighbourhood, MolecularNeighbourhood):
-            return np.inf, np.inf, self.neighbourhood.double()
-
-        cutoff = self.neighbourhood.cutoff
-
-        # Handling heterogeneous cutoffs
-        double_cutoff = deepcopy(cutoff)
-
-        if isinstance(cutoff, defaultdict):
-            double_cutoff.default_factory = lambda: 2 * cutoff.default_factory()
-
-        if isinstance(double_cutoff, dict):
-            for k in double_cutoff:
-                double_cutoff[k] *= 2
-        else:
-            double_cutoff *= 2
-
-        if isinstance(cutoff, dict):
-            pairwise_cutoffs = np.array([
-                cutoff[pair] for pair in zip(atoms.numbers[i_p],
-                                             atoms.numbers[j_p])
-            ])
-        else:
-            pairwise_cutoffs = cutoff
-
-        return double_cutoff, pairwise_cutoffs, self.neighbourhood
-
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """Compute hessian."""
 
-        double_cutoff, pairwise_cutoff, neigh = self._double_cutoff()
+        double_cutoff, pairwise_cutoff, neigh = \
+            self.neighbourhood.double_neighbourhood()
 
         # We need twice the cutoff to get jk
         i_p, j_p, r_p, r_pc = neigh.get_pairs(
             atoms, 'ijdD', cutoff=double_cutoff
         )
 
-        mask = r_p > pairwise_cutoff
+        mask = r_p > pairwise_cutoff  # TODO: make generic for pair cutoffs
 
-        tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
+        tr_p = neigh.reverse_pair_indices(i_p, j_p, r_p)
 
         ij_t, ik_t, jk_t, r_tq, r_tqc = neigh.get_triplets(
             atoms, 'ijkdD', neighbours=[i_p, j_p, r_p, r_pc]
@@ -548,12 +520,9 @@ class Manybody(MatscipyCalculator):
         nb_pairs = len(i_p)
         nb_triplets = len(ij_t)
 
-        # Otherwise we get a segmentation fault because ij_t is empty
-        if nb_triplets == 0:
-            raise RuntimeError("No triplet in hessian computation!")
-
         first_n = first_neighbours(n, i_p)
-        first_p = first_neighbours(nb_pairs, ij_t)
+        first_p = first_neighbours(nb_pairs, ij_t) \
+            if nb_triplets != 0 else [0, 0]
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2],
@@ -655,7 +624,7 @@ class Manybody(MatscipyCalculator):
                 rij_c = r_pc[pair_ij]
                 rsq_ij = np.sum(rij_c**2)
 
-                ddphi_t5 = ddphi_cp[1][pair_ij]
+                ddphi_t5 = ddphi_cp[1][pair_ij]  # TODO
 
                 rim_c = r_pc[pair_im]
                 rin_c = r_pc[pair_in]

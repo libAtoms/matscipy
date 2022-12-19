@@ -60,6 +60,7 @@ def co2(length, angle):
         cell=[5, 5, 5],
     )
 
+    atoms.pbc[:] = False
     atoms.positions[:] *= length
     return atoms
 

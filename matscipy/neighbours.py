@@ -26,6 +26,7 @@ import itertools as it
 import typing as ts
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from copy import deepcopy
 
 import numpy as np
 import ase
@@ -144,6 +145,17 @@ class Neighbourhood(ABC):
         """Return triplet types from atom ids."""
         return self.triplet_type(*self.triplet_to_numbers(atoms, i, j, k))
 
+    @abstractmethod
+    def double_neighbourhood(self):
+        """Return neighbourhood with double cutoff/connectivity."""
+
+    @abstractmethod
+    def reverse_pair_indices(self,
+                             i_p: np.ndarray,
+                             j_p: np.ndarray,
+                             r_p: np.ndarray):
+        """Return indices of reverse pairs."""
+
 
 class CutoffNeighbourhood(Neighbourhood):
     """Class defining neighbourhood based on proximity."""
@@ -225,6 +237,27 @@ class CutoffNeighbourhood(Neighbourhood):
         return self.make_result(
             quantities, connectivity, D, d, None, accepted_quantities="ijkdD")
 
+    def double_neighbourhood(self):
+        double_cutoff = deepcopy(self.cutoff)
+
+        if isinstance(self.cutoff, defaultdict):
+            double_cutoff.default_factory = \
+                lambda: 2 * self.cutoff.default_factory()
+
+        if isinstance(double_cutoff, dict):
+            for k in double_cutoff:
+                double_cutoff[k] *= 2
+        else:
+            double_cutoff *= 2
+
+        return double_cutoff, self.cutoff, self
+
+    def reverse_pair_indices(self,
+                             i_p: np.ndarray,
+                             j_p: np.ndarray,
+                             r_p: np.ndarray):
+        return find_indices_of_reversed_pairs(i_p, j_p, r_p)
+
 
 class MolecularNeighbourhood(Neighbourhood):
     """Class defining neighbourhood based on molecular connectivity."""
@@ -239,12 +272,12 @@ class MolecularNeighbourhood(Neighbourhood):
         self.cutoff = np.inf
         self.molecules = molecules
 
-    def double(self):
+    def double_neighbourhood(self):
         if not self.double_cutoff:
-            return MolecularNeighbourhood(self.molecules,
-                                          self.atom_type,
-                                          True)
-        return self
+            return np.inf, np.inf, MolecularNeighbourhood(self.molecules,
+                                                          self.atom_type,
+                                                          True)
+        return np.inf, np.inf, self
 
     @property
     def molecules(self):
@@ -402,6 +435,20 @@ class MolecularNeighbourhood(Neighbourhood):
             ]
 
         return all_types
+
+    def reverse_pair_indices(self,
+                             i_p: np.ndarray,
+                             j_p: np.ndarray,
+                             r_p: np.ndarray):
+        inverse = np.zeros_like(self.connectivity["bonds"]["type"])
+        idx = np.arange(inverse.size)
+
+        for t in np.unique(self.connectivity["bonds"]["type"]):
+            mask = self.connectivity["bonds"]["type"] == t
+            inverse[mask] = idx[mask][find_indices_of_reversed_pairs(i_p[mask],
+                                                                     j_p[mask],
+                                                                     r_p[mask])]
+        return inverse
 
 
 def mic(dr, cell, pbc=None):
