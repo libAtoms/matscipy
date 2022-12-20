@@ -61,7 +61,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}*
           CIBW_ARCHS: ${{ matrix.buildplat[2] }}
           CIBW_ENVIRONMENT_PASS_LINUX: RUNNER_OS
-          CIBW_TEST_COMMAND: python3 {project}/tests/test_ffi.py
+          CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
 
       - name: Build cp38-macosx_arm64
         # This is solely used to build cp38-macosx_arm64. As soon as 3.8 is
