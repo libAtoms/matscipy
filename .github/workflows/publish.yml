@@ -2,7 +2,7 @@ name: Test compilation and publish documentation
 
 on:
   push:
-    branches:    
+    branches:
       - master
     tags:
       - '*'
@@ -13,59 +13,61 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-    - name: install_python
-      run: |
-        sudo apt-get update -qy
-        sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev
-        sudo pip3 install -r requirements.txt
+      - name: install_python
+        run: |
+          sudo apt-get update -qy
+          sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev
+          sudo pip install --upgrade sphinxcontrib-napoleon sphinx_rtd_theme
 
-    - name: build
-      run: |
-        python3 setup.py build
-        sudo python3 setup.py install
-        
-    - name: pytest
-      run: |
-        cd tests
-        pytest -s --verbose
+      - name: build
+        run: |
+          sudo pip install .[test]
 
-    - name: package_dist
-      run: |
-        sudo python3 setup.py sdist
+      - name: pytest
+        run: |
+          cd tests
+          pytest -s --verbose
 
-    # Standard drop-in approach that should work for most people.
-    - name: build_doc
-      run: |
-        cd docs
-        make html
-        cd ..
+      - name: package_dist
+        run: |
+          sudo pip install build
+          sudo python3 -m build . -s
 
-    # Publish built docs to gh-pages branch.
-    # ===============================
-    - name: Commit documentation changes
-      run: |
-        git clone https://github.com/libAtoms/matscipy.git --branch gh-pages --single-branch gh-pages
-        cp -r docs/_build/html/* gh-pages/
-        cd gh-pages
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .
-        git commit -m "Update documentation" -a || true
-        # The above command will fail if no changes were present, so we ignore
-        # that.
+      # Standard drop-in approach that should work for most people.
+      - name: build_doc
+        run: |
+          cd docs
+          make html
+          cd ..
 
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        branch: gh-pages
-        directory: gh-pages
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+      # Publish built docs to gh-pages branch.
+      # ===============================
+      - name: Commit documentation changes
+        run: |
+          git clone https://github.com/libAtoms/matscipy.git --branch gh-pages --single-branch gh-pages
+          cp -r docs/_build/html/* gh-pages/
+          cd gh-pages
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Update documentation" -a || true
+          # The above command will fail if no changes were present, so we ignore
+          # that.
 
-    - name: Publish package
-      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: gh-pages
+          directory: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish package
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}
