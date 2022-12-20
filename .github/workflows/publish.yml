@@ -20,7 +20,7 @@ jobs:
       - name: install_python
         run: |
           sudo apt-get update -qy
-          sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev
+          sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev meson
           sudo pip install --upgrade sphinxcontrib-napoleon sphinx_rtd_theme
 
       - name: build
