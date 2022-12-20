@@ -34,7 +34,7 @@ Example usage:
 
 try:
     from ._matscipy import *  # noqa
-except ImportError:
+except ModuleNotFoundError:
     from _matscipy import *  # noqa
     from warnings import warn as _warn
     _warn("importing top-level _matscipy")
