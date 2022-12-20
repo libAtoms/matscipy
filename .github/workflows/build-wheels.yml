@@ -26,17 +26,9 @@ jobs:
         buildplat:
         - [ubuntu-20.04, manylinux, x86_64]
         - [macos-10.15, macosx, x86_64]
-        - [macos-12, macosx, arm64]
         - [windows-2019, win, AMD64]
 
         python: ["cp38", "cp39", "cp310", "cp311"]
-        exclude:
-          - buildplat: [macos-12, macosx, arm64]
-            python: "cp39"
-          - buildplat: [macos-12, macosx, arm64]
-            python: "cp310"
-          - buildplat: [macos-12, macosx, arm64]
-            python: "cp311"
       fail-fast: false
 
     env:
@@ -50,68 +42,14 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.8'
-        if: >-
-          contains(matrix.buildplat[2], 'arm64' )
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.11.3
-        if: >-
-          ( ! contains(matrix.buildplat[2], 'arm64' ) )
         env:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}*
           CIBW_ARCHS: ${{ matrix.buildplat[2] }}
           CIBW_ENVIRONMENT_PASS_LINUX: RUNNER_OS
           CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
-
-      - name: Build cp38-macosx_arm64
-        # This is solely used to build cp38-macosx_arm64. As soon as 3.8 is
-        # dropped then this entry can be removed
-        if: ${{ matrix.python == 'cp38' && matrix.buildplat[1] == 'macosx' && matrix.buildplat[2] == 'arm64' }}
-        run: |
-          export PLAT="arm64"
-          export _PYTHON_HOST_PLATFORM="macosx-12.0-arm64"
-          export CROSS_COMPILE=1
-          # Need macOS >= 11 for arm compilation.
-          export MACOSX_DEPLOYMENT_TARGET=11.0
-
-          # SDK root needs to be set early, installation of gfortran/openblas
-          # needs to go in the correct location.
-          export SDKROOT=/Applications/Xcode_13.2.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk
-          export ARCHFLAGS=" -arch arm64 "
-
-          # OpenBLAS
-          curl -L https://anaconda.org/multibuild-wheels-staging/openblas-libs/v0.3.20-140-gbfd9c1b5/download/openblas-v0.3.20-140-gbfd9c1b5-macosx_11_0_arm64-gf_f26990f.tar.gz -o openblas.tar.gz
-          sudo tar -xv -C / -f openblas.tar.gz
-          # force a dynamic link, there may be a more elegant way of doing this.
-          sudo rm /opt/arm64-builds/lib/*.a
-
-          export PKG_CONFIG_PATH=/opt/arm64-builds/lib/pkgconfig
-          export PKG_CONFIG=/usr/local/bin/pkg-config
-          export CFLAGS=" -arch arm64 $CFLAGS"
-          export CXXFLAGS=" -arch arm64 $CXXFLAGS"
-          export LD_LIBRARY_PATH="/opt/arm64-builds/lib:$FC_LIBDIR:$LD_LIBRARY_PATH"
-          
-          # install dependencies for the build machine
-          pip install meson ninja numpy build delocate meson-python
-
-          meson setup --cross-file $(pwd)/maintenance/cross_arm64.txt build
-          # use the pip frontend because the build front end does not end up
-          # obeying the configuration flags it's passed.
-          # For example: `python -m build -Cbuilddir=dir` does not end up using
-          # dir as the meson build directory. This is an issue because
-          # the cross-compile specification is contained in that directory.
-          python -m pip wheel -w dist -vvv --config-settings builddir=build .
-
-          # Let's see what's in the dist directory
-          ls dist
-
-          # The `.so` are all converted to `-rpath/libgfortran` by
-          # gfortran/meson, with all absolute paths removed.
-          # Enables delocate to find the libopenblas/libgfortran libraries.
-          #export DYLD_LIBRARY_PATH=/opt/gfortran-darwin-arm64/lib/gcc/arm64-apple-darwin20.0.0/10.2.1:/opt/arm64-builds/lib
-          export DYLD_LIBRARY_PATH=/opt/arm64-builds/lib
-          delocate-listdeps dist/matscipy*.whl
-          delocate-wheel --require-archs=arm64 -k -w wheelhouse dist/matscipy*.whl
 
       - uses: actions/upload-artifact@v2
         with:
