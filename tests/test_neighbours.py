@@ -218,10 +218,10 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
                 for p3 in range(2):
                     atoms.set_pbc((p1, p2, p3))
                     i, j, d, D, S = neighbour_list("ijdDS", atoms, atoms.numbers * 0.2 + 0.5)
-                    c = np.bincount(i)
+                    c = np.bincount(i, minlength=nat)
                     atoms2 = atoms.repeat((p1 + 1, p2 + 1, p3 + 1))
                     i2, j2, d2, D2, S2 = neighbour_list("ijdDS", atoms2, atoms2.numbers * 0.2 + 0.5)
-                    c2 = np.bincount(i2)
+                    c2 = np.bincount(i2, minlength=nat)
                     c2.shape = (-1, nat)
                     dd = d.sum() * (p1 + 1) * (p2 + 1) * (p3 + 1) - d2.sum()
                     dr = np.linalg.solve(atoms.cell.T, (atoms.positions[1]-atoms.positions[0]).T).T+np.array([0,0,3])

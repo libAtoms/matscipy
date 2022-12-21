@@ -35,9 +35,29 @@ from ..numpy_tricks import mabincount
 
 
 class MatscipyCalculator(Calculator):
-    def set_atoms(self, atoms):
-        """Set inner Atoms object."""
-        self.atoms = atoms.copy()
+    """Base class for calculators in Matscipy.
+
+    This class defines an interface for higher-order derivatives of the
+    potential, to be implemented by daughter calculators.
+
+    The extra properties defined by this calculator are:
+
+    - 'hessian'
+    - 'dynamical_matrix'
+    - 'nonaffine_forces'
+    - 'born_constants'
+    - 'stress_elastic_contribution'
+    - 'birch_coefficients'
+    - 'nonaffine_elastic_contribution'
+    - 'elastic_constants'
+
+    From the user's perspective, these can be accessed with e.g.:
+
+    >>> calc.get_property('born_constants', atoms)
+
+    Accessing properties this way makes it possible to mix different
+    calculators, e.g. with ``ase.calculators.mixing.SumCalculator``.
+    """
 
     def calculate(self, atoms, properties, system_changes):
         super().calculate(atoms, properties, system_changes)

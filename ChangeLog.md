@@ -7,6 +7,7 @@ v0.8.0 (not yet released)
 - Calculator for traditional Ewald summation 
 - Analytic computation of Hessian and zero-temperature elastic constants for potentials with electrostatic interaction
 - Writing and reading inhomogenous (and non numeric) data with savetbl/readtbl
+- Hessian-based preconditioner
 - Changed build system to Meson
 
 v0.7.0 (29Jul21)

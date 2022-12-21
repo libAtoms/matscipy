@@ -8,9 +8,13 @@ from itertools import combinations_with_replacement
 from typing import Mapping
 from scipy.sparse import bsr_matrix
 from ...calculators.calculator import MatscipyCalculator
-from ...neighbours import Neighbourhood, first_neighbours, find_indices_of_reversed_pairs
 from ...numpy_tricks import mabincount
 from ...elasticity import full_3x3_to_Voigt_6_stress
+from ...neighbours import (
+    Neighbourhood,
+    first_neighbours,
+    find_indices_of_reversed_pairs,
+)
 
 
 __all__ = ["Manybody"]
