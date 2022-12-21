@@ -21,11 +21,10 @@ jobs:
         run: |
           sudo apt-get update -qy
           sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev meson
-          sudo pip install --upgrade sphinxcontrib-napoleon sphinx_rtd_theme
 
       - name: install_package
         run: |
-          sudo pip install .[test]
+          sudo pip install .[docs]
 
       # Standard drop-in approach that should work for most people.
       - name: build_doc
