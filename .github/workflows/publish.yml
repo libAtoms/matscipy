@@ -1,4 +1,4 @@
-name: Test compilation and publish documentation
+name: Build and publish documentation
 
 on:
   push:
@@ -23,19 +23,9 @@ jobs:
           sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt-dev zlib1g-dev meson
           sudo pip install --upgrade sphinxcontrib-napoleon sphinx_rtd_theme
 
-      - name: build
+      - name: install_package
         run: |
           sudo pip install .[test]
-
-      - name: pytest
-        run: |
-          cd tests
-          pytest -s --verbose
-
-      - name: package_dist
-        run: |
-          sudo pip install build
-          sudo python3 -m build . -s
 
       # Standard drop-in approach that should work for most people.
       - name: build_doc
