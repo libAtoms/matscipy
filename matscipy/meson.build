@@ -28,6 +28,7 @@ python_sources = [
     'numerical.py',
     'numpy_tricks.py',
     'opls.py',
+    'precon.py',
     'pressurecoupling.py',
     'rings.py',
     'socketcalc.py',
