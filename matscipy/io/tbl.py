@@ -120,7 +120,7 @@ def loadtbl(fn, usecols=None, types=None, fromfile=False, **kwargs):
                 types = {}
             return (np.loadtxt(io.StringIO(raw_data),
                                usecols=[column_labels.index(s)],
-                               dtype=types[s] if s in types else np.float,
+                               dtype=types[s] if s in types else np.float64,
                                unpack=True,
                                **kwargs)
                     for s in usecols)

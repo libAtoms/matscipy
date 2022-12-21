@@ -28,8 +28,7 @@ import numpy as np
 from numpy.linalg import inv
 
 try:
-    from scipy.optimize.nonlin import NoConvergence
-    from scipy.optimize import brentq, leastsq, minimize, root
+    from scipy.optimize import NoConvergence, brentq, leastsq, minimize, root
     from scipy.sparse import csc_matrix, spdiags
     from scipy.sparse.linalg import spsolve, spilu, LinearOperator
 except ImportError:

@@ -47,7 +47,7 @@ const double TOL = 0.0001;
  * Look for the shortest distance starting at atom *root*,
  */
 bool
-find_shortest_distances(int *seed, int *neighbours, int root, int *dist)
+find_shortest_distances(const std::vector<npy_int> &seed, int *neighbours, int root, int *dist)
 {
     int n_walker, walker[MAX_WALKER];
 
@@ -93,7 +93,7 @@ find_shortest_distances(int *seed, int *neighbours, int root, int *dist)
  * look only for elements *f*
  */
 bool
-distances_on_graph(int nat, int *seed, int *neighbours, int *dist, int *diameter)
+distances_on_graph(int nat, const std::vector<npy_int> &seed, int *neighbours, int *dist, int *diameter)
 {
     if (diameter) *diameter = 0;
     std::fill(dist, dist+nat*nat, 0);
@@ -141,8 +141,8 @@ py_distances_on_graph(PyObject *self, PyObject *args)
     int nat = *std::max_element(i, i+nneigh)+1;
 
     /* Construct seed array */
-    int seed[nat+1];
-    first_neighbours(nat, nneigh, i, seed);
+    std::vector<npy_int>seed(nat+1);
+    first_neighbours(nat, nneigh, i, seed.data());
 
     npy_intp dims[2];
     dims[0] = nat;
@@ -218,7 +218,7 @@ public:
 bool
 step_away(std::vector<Walker> &new_walkers, Walker &walker,
           int root, /* root vertex */
-          int nat, int *seed, int *neighbours, double *r, /* neighbour list */
+          int nat, const std::vector<npy_int> &seed, int *neighbours, double *r, /* neighbour list */
           int *dist, /* distance map */
           std::vector<bool> &done, npy_intp maxlength)
 {
@@ -265,7 +265,7 @@ step_away(std::vector<Walker> &new_walkers, Walker &walker,
 bool
 step_closer(std::vector<Walker> &new_walkers, Walker &walker,
             int root, /* root vertex */
-            int nat, int *seed, int *neighbours, double *r, /* neighbour list */
+            int nat, const std::vector<npy_int> &seed, int *neighbours, double *r, /* neighbour list */
             int *dist, /* distance map */
             std::vector<bool> &done,
             std::vector<npy_int> &ringstat)
@@ -334,9 +334,8 @@ step_closer(std::vector<Walker> &new_walkers, Walker &walker,
  * look only for elements *f*
  */
 bool
-find_sp_ring_vertices(int nat, int *seed, int neighbours_size, int *neighbours,
-                      double *r, int *dist, int maxlength,
-                      std::vector<int> &ringstat)
+find_sp_ring_vertices(int nat, const std::vector<npy_int> &seed, int neighbours_size, int *neighbours,
+                      double *r, int *dist, int maxlength, std::vector<int> &ringstat)
 {
     std::vector<bool> done(neighbours_size, false);
 
@@ -456,8 +455,8 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     }
 
     /* Construct seed array */
-    int seed[nat+1];
-    first_neighbours(nat, nneigh, i, seed);
+    std::vector<npy_int> seed(nat+1);
+    first_neighbours(nat, nneigh, i, seed.data());
 
     std::vector<npy_int> ringstat;
     if (!find_sp_ring_vertices(nat, seed, nneigh, (int *) PyArray_DATA(py_j),

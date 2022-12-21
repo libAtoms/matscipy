@@ -1,6 +1,5 @@
 #
-# Copyright 2014-2015 Lars Pastewka (U. Freiburg)
-#           2014 James Kermode (Warwick U.)
+# Copyright 2022 Lucas Frérot (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -17,26 +16,26 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
-import numpy as np
+"""Foreign function interface module.
 
-from . import ffi
+Depending on the build-system (particularly pip version), the compiled extension
+_matscipy.<cpython>.so may be installed in site-packages/ or in matscipy/, with
+the latter being the intended destination. This module abstracts away the
+import of symbols from the extension.
 
-###
+Example usage:
+--------------
 
-def angle_distribution(i, j, dr, nbins, *args):
-    """
-    Compute a bond angle distribution from a neighbour list.
+>>> from .ffi import first_neighbours  # imports a function from extension
+>>> from . import ffi   # import as module
 
-    Parameters
-    ----------
-    i, j, dr : array_like
-        Neighbour list, including list of distance vectors.
-    nbins : int
-        Number of bins for bond angle histogram.
-    cutoff : float, optional
-        Bond length cutoff, i.e. consider only bonds shorter than this length.
-    """
-    return ffi.angle_distribution(np.asarray(i), np.asarray(j),
-                                  np.asarray(dr), nbins, *args)
+"""
+
+try:
+    from ._matscipy import *  # noqa
+except ModuleNotFoundError:
+    from _matscipy import *  # noqa
+    from warnings import warn as _warn
+    _warn("importing top-level _matscipy")
+
