@@ -28,6 +28,10 @@ test = [
     "pytest",
     "sympy"
 ]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+]
 
 [project.urls]
 documentation = "http://libatoms.github.io/matscipy/"
