@@ -245,7 +245,9 @@ class OPLSStructure(ase.Atoms):
         tags2cutoffs = np.full([len(types), len(types)], -1.)
         for i, itype in enumerate(types):
             for j, jtype in enumerate(types):
-                tags2cutoffs[i,j] = self.cutoffs.get_value(itype, jtype)
+                cutoff = self.cutoffs.get_value(itype, jtype)
+                if cutoff is not None:
+                    tags2cutoffs[i, j] = self.cutoffs.get_value(itype, jtype)
 
         cutoff_undef = np.where(tags2cutoffs < 0.)
         if np.shape(cutoff_undef)[1] > 0:
