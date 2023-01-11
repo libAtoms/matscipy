@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Set up QEMU to emulate arm64 on x86_64
-        if: ${{ matrix.buildplat[2] == arm64 }}
+        if: ${{ matrix.buildplat[2] == 'arm64' }}
         id: qemu-arm64
         uses: docker/setup-qemu-action@v1
         with:
