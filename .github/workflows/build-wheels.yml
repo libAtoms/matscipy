@@ -26,9 +26,9 @@ jobs:
         buildplat:
         - [ubuntu-20.04, manylinux, x86_64]
         - [macos-10.15, macosx, x86_64]
-        - [macos-latest, macosx, ARM64]
+        - [macos-latest, macosx, arm64]
         - [windows-2019, win, AMD64]
-        - [windows-2019, win, ARM64]
+        - [windows-2019, win, arm64]
 
 
         python: ["cp38", "cp39", "cp310", "cp311"]
@@ -38,6 +38,14 @@ jobs:
       IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}
 
     steps:
+      - name: Set up QEMU to emulate arm64 on x86_64
+        if: ${{ matrix.buildplat[2] == arm64 }}
+        id: qemu-arm64
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: arm64
+
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
