@@ -53,10 +53,3 @@ jobs:
           branch: gh-pages
           directory: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish package
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_password }}
