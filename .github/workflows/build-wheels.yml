@@ -83,7 +83,7 @@ jobs:
         shell: bash
         
       - name: Deploy sdist to PyPI
-        if: ${{ steps.check-tag.outputs.match == 'true' && startsWith(matrix.os, 'ubuntu') && matrix.python == 'cp311' }}
+        if: ${{ steps.check-tag.outputs.match == 'true' && startsWith(matrix.buildplat[0], 'ubuntu') && matrix.python == 'cp311' }}
         run: |
           pip install build
           python -m build
