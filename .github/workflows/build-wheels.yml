@@ -73,7 +73,7 @@ jobs:
         shell: bash
 
       - name: Deploy to PyPI
-        if: steps.check-tag.outputs.match == 'true'
+        if: steps.check-tag.outputs.match == 'true' && matrix.python == 'cp31'
         run: |
           pip install twine
           if [ "$RUNNER_OS" == "Linux" ]; then
