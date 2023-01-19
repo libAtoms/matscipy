@@ -50,7 +50,6 @@ jobs:
           CIBW_ARCHS: ${{ matrix.buildplat[2] }}
           CIBW_ENVIRONMENT_PASS_LINUX: RUNNER_OS
           CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
-          CIBW_CONFIG_SETTINGS: "--cross-file={project}/.github/workflows/cross_arm64.txt"
 
       - uses: actions/upload-artifact@v2
         with:
