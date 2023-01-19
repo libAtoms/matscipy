@@ -4,12 +4,13 @@ build_and_store_wheels: &BUILD_AND_STORE_WHEELS
   install_cibuildwheel_script:
     - python -m pip install cibuildwheel==2.11.4
   cibuildwheel_script:
+    - echo "Building wheels for matscipy version $(python discover_version.py)"
     - cibuildwheel
     - tools/wheels/release-wheels.sh
   env:
-    GITHUB_TOKEN: ENCRYPTED[442a58e6ea575035b2894e799eca4d2639c539e264a4a7e54f03952460c10f8690c388009aebd9eeee26b1d62726d5bb]
+    GITHUB_TOKEN: ENCRYPTED[054da715bf3596559d27a6c74738981a8e878dbbc0dd896cb57a0a758c6a57143fca006376d0eb58d777c25e43ed91cb]
     TWINE_USERNAME: __token__
-    TWINE_PASSWORD: ENCRYPTED[e0e8298d5f80b1badbcf84fbead7557701c9365b82eae0326df13e82659a8003f52c09a6b23142479a5c36ab8c1f2b4e]
+    TWINE_PASSWORD: ENCRYPTED[13d27e71fe29d4d18d53c7b9dffa4472b8abcd094933530310e8dfe4fae4b8b576d1d7c1a7965918e1c4cff5ad4dc326]
   wheels_artifacts:
     path: "wheelhouse/*"
 
@@ -52,7 +53,7 @@ cirrus_wheels_macos_arm64_task:
         CIBW_BUILD: cp38-* cp39-* cp310-* cp311-*
   env:
     PATH: /opt/homebrew/opt/python@3.10/bin:$PATH
-    CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=12.0 _PYTHON_HOST_PLATFORM="macosx-12.0-arm64"
+    CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=12.0 _PYTHON_HOST_PLATFORM="macosx-12.0-arm64" CC=clang CXX=clang++
     PKG_CONFIG_PATH: /opt/arm64-builds/lib/pkgconfig
     # assumes that the cmake config is in /usr/local/lib/cmake
     CMAKE_PREFIX_PATH: /opt/arm64-builds/
@@ -61,9 +62,6 @@ cirrus_wheels_macos_arm64_task:
       DYLD_LIBRARY_PATH=/usr/local/gfortran/lib:/opt/arm64-builds/lib delocate-listdeps {wheel} &&
       DYLD_LIBRARY_PATH=/usr/local/gfortran/lib:/opt/arm64-builds/lib delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
     CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
-    CC: clang
-    CXX: clang++
-
 
   install_pre_requirements_script:
     - brew install python@3.10
