@@ -36,6 +36,8 @@ cirrus_wheels_linux_aarch64_task:
     apt install -y python3-venv python-is-python3
     which python
     echo $CIRRUS_CHANGE_MESSAGE
+    # needed for discover_version.py
+    git fetch --all
     # needed for submodules
     git submodule update --init
   <<: *BUILD_AND_STORE_WHEELS
@@ -69,6 +71,8 @@ cirrus_wheels_macos_arm64_task:
 
   build_script:
     - which python
+    # needed for discover_version.py
+    - git fetch --all
     # needed for submodules
     - git submodule update --init
     - uname -m
