@@ -192,7 +192,7 @@ PROPERTIES = [
     "stress",
     "nonaffine_forces",
     "birch_coefficients",
-    # "hessian",
+    "hessian",
 ]
 
 
@@ -207,9 +207,16 @@ def test_properties(polyphosphate, prop):
 
     data = atoms.calc.get_property(prop, atoms)
     ref = NUM_PROPERTIES[prop](atoms)
-
     lref = lammps_prop(atoms, prop)
+
+    def dense_cast(x):
+        from scipy.sparse import issparse
+        return x.todense() if issparse(x) else x
+
+    data = dense_cast(data)
+    ref = dense_cast(data)
+    lref = dense_cast(lref)
+
     if lref is not None:
         np.testing.assert_allclose(data, lref, atol=atol, rtol=rtol)
-
     np.testing.assert_allclose(data, ref, atol=atol, rtol=rtol)
