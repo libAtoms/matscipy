@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2017 Andreas Klemenz (Fraunhofer IWM)
+# Copyright 2016-2017, 2023 Andreas Klemenz (Fraunhofer IWM)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -27,6 +27,19 @@ import matscipy.neighbours
 
 
 def twochar(name):
+    """
+    Forces the length of the particle names to be two characters.
+
+    Parameters
+    ----------
+    name : str
+        Partice name.
+
+    Returns
+    -------
+    str
+        Partice name with exactly 2 characters.
+    """
     if len(name) > 1:
         return name[:2]
     else:
@@ -34,6 +47,12 @@ def twochar(name):
 
 
 class BondData:
+    """
+    Store spring constants and equilibrium distances for harmonic potentials
+    and ensure correct handling of permutations. See documentation of the
+    LAMMPS 'bond_style harmonic' command for details.
+    """
+
     def __init__(self, name_value_hash=None):
         if name_value_hash:
             self.nvh = name_value_hash
@@ -73,11 +92,23 @@ class BondData:
 
 
 class CutoffList(BondData):
+    """
+    Store cutoffs for pair interactions and ensure correct handling of
+    permutations. Cutoffs can be used to automatically find all interacting
+    atoms of an OPLSStructure object based on a simple distance criterion.
+    """
+
     def max(self):
         return max(self.nvh.values())
 
 
 class AnglesData:
+    """
+    Store spring constants and equilibrium angles for harmonic potentials
+    and ensure correct handling of permutations. See documentation of the
+    LAMMPS 'angle_style harmonic' command for details.
+    """
+
     def __init__(self, name_value_hash=None):
         if name_value_hash:
             self.nvh = name_value_hash
@@ -139,6 +170,12 @@ class AnglesData:
 
 
 class DihedralsData:
+    """
+    Store energy constants for dihedral potentials and ensure correct handling
+    of permutations. See documentation of the LAMMPS 'dihedral_style opls'
+    command for details.
+    """
+
     def __init__(self, name_value_hash=None):
         if name_value_hash:
             self.nvh = name_value_hash
@@ -192,6 +229,10 @@ class DihedralsData:
 
 
 class OPLSStructure(ase.Atoms):
+    """
+    Extension of the ASE Atoms class for non-reactive simulations.
+    """
+
     default_map = {
         'BR': 'Br',
         'Be': 'Be',
@@ -203,6 +244,25 @@ class OPLSStructure(ase.Atoms):
         }
 
     def __init__(self, *args, **kwargs):
+        """
+        Set a type for each atom to specify the interaction with its neighbors.
+        This enables atoms of the same element to have different interaction
+        potentials. During initialization, the types are initially derived from
+        the chemical symbols of the atoms.
+
+        Notes
+        -----
+
+        self._combinations
+        Angle lists are generated from neighbor lists. Assume an atom with the
+        number 2 has the three neighbors [4, 6, 9]. Then the following angles
+        with 2 in the middle are possible: (4-2-6), (4-2-9), (6-2-9) and the
+        equivalent angles (6-2-4), (9-2-4) and (9-2-6). self._combinations
+        contains predefined combinations of indices of the neighbor lists for
+        the most frequently occurring numbers of nearest neighbors. With these,
+        the list of occurring angles can be determined much faster than if the
+        combinations had to be calculated in each step.
+        """
         ase.Atoms.__init__(self, *args, **kwargs)
         if len(self) == 0:
             self.types = None
@@ -240,16 +300,47 @@ class OPLSStructure(ase.Atoms):
                                  (4, 7), (5, 7), (6, 7)]
 
     def _get_combinations(self, n):
+        """
+        Fallback for a large number of neighbors for which the
+        possible combinations are not included in self._combinations
+
+        Parameters
+        ----------
+        n : int
+            Number of next neighbors of an atom.
+
+        Returns
+        -------
+        list
+            See documentation of self._combinations for details.
+
+        """
         r = range(n)
         i = np.tile(r, n)
         j = np.repeat(r, n)
         return zip(i[i < j], j[i < j])
 
     def append(self, atom):
-        """Append atom to end."""
+        """
+        Append atom to end.
+
+        Parameters
+        ----------
+        atom : ase.Atoms
+        """
         self.extend(ase.Atoms([atom]))
 
     def set_types(self, types):
+        """
+        Set a type for each atom to specify the interaction with its
+        neighbors. This enables atoms of the same element to have different
+        interaction potentials.
+
+        Parameters
+        ----------
+        types : list
+            A list of strings that specify the type of each atom.
+        """
         types = np.array(types)
         self.types = np.unique(types)
 
@@ -259,12 +350,33 @@ class OPLSStructure(ase.Atoms):
         self.set_tags(tags)
 
     def get_types(self):
+        """
+        Returns a unique list of atom types.
+
+        Returns
+        -------
+        numpy.ndarray
+            Each element is a str with two characters.
+        """
         return self.types
 
     def set_cutoffs(self, cutoffs):
+        """
+        Add a CutoffList object to the structure. This allows the
+        'get_neighbors' method to find all interacting atoms of the structure
+        based on a simple distance criterion.
+
+        Parameters
+        ----------
+        cutoffs : opls.CutoffList
+        """
         self.cutoffs = cutoffs
 
     def get_neighbors(self):
+        """
+        Find all atoms which might interact with each
+        other based on a simple distance criterion.
+        """
         atoms = ase.Atoms(self)
         types = np.array(self.get_types())
         tags = atoms.get_tags()
@@ -291,11 +403,34 @@ class OPLSStructure(ase.Atoms):
         self.jbond = nj[dr <= cut]
 
     def set_atom_data(self, atom_data):
+        """
+        Set Lennard-Jones parameters and atomic charges. Notice that each
+        atom has exactly one set of Lennard-Jones parameters. Parameters
+        for interactions between different types of atoms are calculated
+        by geometric mixing. See documentation of the LAMMPS 'pair_modify'
+        command for details.
+
+        Parameters
+        ----------
+        atom_data : dict
+            Dictionary containing Lennard-Jones parameters and charges for
+            each particle type. key: Particle type, one or two characters,
+            value: [LJ-epsilon, LJ-sigma, charge].
+        """
         self.atom_data = atom_data
 
     def get_charges(self):
-        types = self.types[self.get_tags()]
-        self.charges = np.zeros(len(self))
+        """
+        Return an array of atomic charges. Same functionality as the
+        'get_charges' method of the 'ase.Atoms' class, but atomic charges
+        are taken from a user definition instead of the result of a
+        calculation.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        self.charges = np.zeros(len(self), dtype=float)
 
         for i, itype in enumerate(self.types):
             self.charges[self.get_tags() == i] = self.atom_data[itype][2]
@@ -303,6 +438,39 @@ class OPLSStructure(ase.Atoms):
         return self.charges
 
     def get_bonds(self, bonds=None):
+        """
+        Returns an array of all bond types and
+        an array of all bonds in the system.
+
+        Parameters
+        ----------
+        bonds : opls.BondData, optional
+
+        Returns
+        -------
+        bond_types : numpy.ndarray
+            Array of strings characterizing all present bond types.
+            Example: A system consists of particles with the types 'A1' and
+            'A2'. If all particles interact with each other, bond_types
+            will be ['A1-A1', 'A1-A2', 'A2-A2']. If there were no
+            interactions between the types 'A1' and 'A2', bond_types would
+            be ['A1-A1', 'A2-A2'].
+        bond_list : numpy.ndarray
+            bond_list.shape = (n, 3) where n is the number of particles in
+            the system. Contains arrays of 3 integers for each bond in the
+            system. First number: interaction type, index of bond_types,
+            second and third numbers: indicees of participating particles.
+            Example: A system consists of 3 particles of type 'AA', all
+            particles are interacting. bond_types would be ['AA-AA'] and
+            bond_list would be [[0, 0, 1], [0, 0, 2], [0, 1, 2]].
+
+        Raises
+        ------
+        RuntimeError
+            If 'bonds' is present and bonds are found for which no
+            parameters are defined. In this case a warning a full list of
+            all affected bonds will be printed on STDOUT.
+        """
         types = np.array(self.get_types())
         tags = self.get_tags()
 
@@ -357,6 +525,38 @@ class OPLSStructure(ase.Atoms):
         return self.bond_types, self.bond_list
 
     def get_angles(self, angles=None):
+        """
+        Returns an array of all angle types and
+        an array of all angles in the system.
+
+        Parameters
+        ----------
+        angles : opls.BondData, optional
+
+        Returns
+        -------
+        ang_types : list
+            Array of strings characterizing all present angle types.
+            Example: A system consists of atoms of types 'A1' and 'A2',
+            all conceivable angle types are present in the system.
+            ang_types would be ['A1-A1-A1', 'A1-A1-A2', 'A1-A2-A1',
+            'A1-A2-A2', 'A2-A1-A2', 'A2-A2-A2'].
+        ang_list : list
+            len(ang_list) = n where n is the number of particles in the
+            system. Each list entry is a list of 4 integers, characterizing
+            the angles present in the system. Example: A system contains 7
+            atoms, (0,1,2) of type 'A1' and (3,4,5,6) of type 'A2'. If
+            there are angles between (0,1,2), (0,3,4) and (0,5,6), ang_list
+            would be ['A1-A1-A1', 'A2-A1-A2'] and ang list would be
+            [[0, 0, 1, 2], [1, 0, 3, 4], [1, 0, 5, 6]].
+
+        Raises
+        ------
+        RuntimeError
+            If 'angles' is present and angles are found for which no
+            parameters are defined. In this case a warning a full list of
+            all affected angles will be printed on STDOUT.
+        """
         types = np.array(self.get_types())
         tags = self.get_tags()
 
@@ -427,6 +627,39 @@ class OPLSStructure(ase.Atoms):
         return self.ang_types, self.ang_list
 
     def get_dihedrals(self, dihedrals=None, full_output=False):
+        """
+        Returns an array of all dihedral types and
+        an array of all dihedrals in the system.
+
+        Parameters
+        ----------
+        dihedrals : opls.BondData, optional
+        full_output : bool, optional
+
+        Returns
+        -------
+        dih_types : list
+            Array of strings characterizing all present dihedral types.
+            Example: Consider a system consisting of one benzene molecule.
+            There are three possible types of dihedrals and dih_type would
+            be ['C-C-C-C', 'C-C-C-H', 'H-C-C-H'].
+        dih_list : list
+            len(dih_list) = n where n is the number of particles in the
+            system. Each list entry is a list of 5 integers, characterizing
+            the dihedrals present in the system. Example: Consider a system
+            consisting of one benzene molecule with the 'C' atoms
+            (0,1,2,3,4,5) and the 'H' atoms (6,7,8,9,10,11). dih_type would
+            be ['C-C-C-C', 'C-C-C-H', 'H-C-C-H'] and dih_list would be
+            [[0, 0, 1, 2, 3], [0, 1, 2, 3, 4], ... , [1, 6, 0, 1, 2],
+            [1, 7, 1, 2, 3], ... , [2, 6, 0, 1, 7], [2, 7, 1, 2, 8], ...].
+
+        Notes
+        -----
+        Prints a warning to STDOUT if dihedrals are found for which no
+        parameters are defined. If full_output is set, a complete list of
+        all affected dihedrals is printed, if not, an example is printed
+        for each dihedral type.
+        """
         types = self.get_types()
         tags = self.get_tags()
 
