@@ -33,6 +33,9 @@ authors:
     orcid: 0000-0001-8351-7336
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 3
+  - name: Johannes L. Hörmann
+    orcid: 0000-0001-5867-695X
+    affiliation: 3
 affiliations:
   - name: Aix-Marseille Universit ́e, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
     index: 1
