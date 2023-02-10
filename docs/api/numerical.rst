@@ -1,0 +1,4 @@
+Numerical
+---------
+
+.. automodule:: matscipy.numerical
