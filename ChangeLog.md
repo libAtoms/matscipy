@@ -9,6 +9,9 @@ v0.8.0 (not yet released)
 - Writing and reading inhomogenous (and non numeric) data with savetbl/readtbl
 - Hessian-based preconditioner
 - Changed build system to Meson
+- Removed `contact_mechanics` submodule. Stable alternatives:
+  [ContactMechanics](https://github.com/ContactEngineering/ContactMechanics) or
+  [Tamaas](https://gitlab.com/tamaas/tamaas)
 
 v0.7.0 (29Jul21)
 ----------------
