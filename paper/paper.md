@@ -39,6 +39,9 @@ authors:
     orcid: 0000-0001-8351-7336
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 3
+  - name: Johannes L. Hörmann
+    orcid: 0000-0001-5867-695X
+    affiliation: 3
 affiliations:
   - name: Aix-Marseille Universit ́e, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
     index: 1
@@ -65,8 +68,8 @@ The python package `matscipy` contains a set of tools for researchers in a fie
 - **Fracture mechanics.** The `matscipy.fracture_mechanics` module provides functionality for generating and applying the continuum linear elastic displacement fields near to crack tips, including support for anisotropy in cubic crystals [@Sih1965]. This functionality has been used to quantify 'lattice trapping', i.e. the effects of the discreteness of the atomic lattice on crack propagation and to compare simulations with experimental measurements of crack speeds in silicon [@Kermode2015]. There is also support for flexible boundary conditions in fracture simulations using the formalism proposed by Sinclair [@Sinclair1975] where the finite atomistic domain is coupled to an infinite elastic continuum. Finally, we provide an extension of this approach to give a numerical-continuation-enhanced flexible boundary scheme, enabling full solution paths for cracks to be computed with pseudo-arclength continuation [@Buze2021].
 
 - **Contact mechanics**
- 
-- **Electrochemistry**
+
+- **Electrochemistry.** Classical continuum models describing species transport are limited in their applicability. Neither do they account for structured layering of ions in a polar solvent like water [@Seidl2021] nor do they describe finite size effects at high concentrations. Their smooth concentration distributions may, however, yield good approximations for sampling discrete particle positions to serve as initial configurations in atomistic calculations for further investigation of phenomena arising on the molecular scale. The `matscipy.electrochemistry` module provides tools that sample discrete coordinate sets from continuum distributions and apply a steric correction [@Martinez2009] to such sampled coordinate sets in order to avoid overlap of finite size species. In addition, a controlled volumes solver [@Selberherr1984] for the Poisson-Nernst-Planck equations [@Bazant2006] on a one-dimensional interval for a variety of typical boundary conditions and constraints provides a prototypical use case for the sampling and steric correction utilities.
 
 - **Tribology.** Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain insights into the atomistic mechanisms underlying friction and wear. The `matscipy` module `pressurecoupling.py` provides tools to perform such simulations under a constant normal load and sliding velocity. The module includes an implementation of the pressure coupling algorithm described in Ref. [@Pastewka2010]. By dynamically adjusting the distance between the two sliding surfaces according to the local pressure, the algorithm ensures mechanical boundary conditions that account for the inertia of the bulk material which is not explicitly included in the simulation. 
 

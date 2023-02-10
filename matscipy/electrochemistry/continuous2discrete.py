@@ -28,18 +28,20 @@ Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
   Lukas Elflein <elfleinl@cs.uni-freiburg.de>
 """
-import logging, os, sys
+import logging
+import os
 import os.path
+import sys
 from six.moves import builtins
 from collections.abc import Iterable
 
 import numpy as np
-# import matplotlib.pyplot as plt
 
 import scipy.constants as sc
 from scipy import integrate, optimize
 
 logger = logging.getLogger(__name__)
+
 
 def exponential(x, rate=0.1):
     """Exponential distribution."""
@@ -49,6 +51,7 @@ def exponential(x, rate=0.1):
 def uniform(x, *args, **kwargs):
     """Uniform distribution."""
     return np.ones(np.array(x).shape) / 2
+
 
 def pdf_to_cdf(pdf):
     """Transform partial distribution to cumulative distribution function
@@ -60,6 +63,7 @@ def pdf_to_cdf(pdf):
     cdf /= cdf[-1]
 
     return cdf
+
 
 def get_nearest_pos(array, value):
     """Find the value of an array clostest to the second argument.
@@ -88,6 +92,7 @@ def get_histogram(struc, box, n_bins=100):
         histograms += [(hist, bins)]
     return histograms
 
+
 def quartile_function(distribution, p, support=None):
     """Inverts a distribution x->p, and returns the x-value belonging to the provided p.
 
@@ -96,38 +101,40 @@ def quartile_function(distribution, p, support=None):
 
     Parameters
     ----------
-    distribution: a function x -> p; x should be approximatable by a compact support
-    p: an output of the distribution function, probablities in (0,1) are preferrable
+    distribution: a function x -> p; x should be approximable by a compact support
+    p: an output of the distribution function, probabilities in (0,1) are preferable
+    support: interval to evaluate distribution function on, default: [0,1) in steps of 0.01
     """
     if support is None:
         # Define the x-values to evaluate the function on
-        support = np.arange(0,1,0.01)
+        support = np.arange(0, 1, 0.01)
 
     # Calculate the histogram of the distribution
     hist = distribution(support)
 
-    # Sum the distribution to get the cumulatative distribution
-    cdf =  pdf_to_cdf(hist)
+    # Sum the distribution to get the cumulative distribution
+    cdf = pdf_to_cdf(hist)
 
     # If the p is not in the image of the support, get the nearest hit instead
     nearest_pos = get_nearest_pos(cdf, p)
 
-    # Get the x-value belonging to the probablity value provided in the input
+    # Get the x-value belonging to the probability value provided in the input
     x = support[nearest_pos]
     return x
+
 
 def inversion_sampler(distribution, support):
     """Wrapper for quartile_function."""
     # z is distributed according to the given distribution
-    # To approximate this, we insert an atom with probablity dis(z) at place z.
-    # This we do by inverting the distribution, and sampling uniformely from distri^-1:
+    # To approximate this, we insert an atom with probability dis(z) at place z.
+    # This we do by inverting the distribution, and sampling uniformly from distri^-1:
     p = np.random.uniform()
     sample = quartile_function(distribution, p, support=support)
 
     return sample
 
 
-def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000, scale_M=1.1):
+def rejection_sampler(distribution, support=(0.0, 1.0), max_tries=10000, scale_M=1.1):
     """Sample distribution by drawing from support and keeping according to distribution.
 
     Draw a random sample from our support, and keep it if another random number is
@@ -138,10 +145,10 @@ def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000, scale_M=
     Parameters
     ----------
     distribution: callable(x)
-        target distribut10on
+        target distribution
     support: list or 2-tuple
         either discrete list of locations in space where our distribution is
-        defined, or 2-tuple defining conitnuous support interval
+        defined, or 2-tuple defining continuous support interval
     max_tries: how often the sampler should attempt to draw before giving up.
        If the distribution is very sparse, increase this parameter to still get results.
     scale_M: float, optional
@@ -149,7 +156,7 @@ def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000, scale_M=
 
     Returns
     -------
-    sample: a location which is conistent (in expectation) with being drawn from the distribution.
+    sample: a location which is consistent (in expectation) with being drawn from the distribution.
     """
 
     # rejection sampling (https://en.wikipedia.org/wiki/Rejection_sampling):
@@ -169,38 +176,40 @@ def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000, scale_M=
     logger.debug("Rejection sampler on distribution f(x) ({}) with".format(
         distribution))
 
-    # coninuous support case
-    if isinstance(support,tuple) and len(support) == 2:
+    # continuous support case
+    if isinstance(support, tuple) and len(support) == 2:
         a = support[0]
         b = support[1]
-        logger.debug("continuous support X (interval [{},{}]".format(a,b))
+        logger.debug("continuous support X (interval [{},{}]".format(a, b))
         # uniform probability density g(x) on support is
-        g = 1 / ( b - a )
+        g = 1 / (b - a)
         # find maximum value fmax on distribution at x0
-        xatol = (b - a)*1e-6 # optimization absolute tolerance
-        x0 = optimize.minimize_scalar( lambda x: -distribution(x),
-            bounds=(a,b), method='bounded', options={'xatol':xatol}).x
+        xatol = (b - a)*1e-6  # optimization absolute tolerance
+        x0 = optimize.minimize_scalar(lambda x: -distribution(x),
+                                      bounds=(a, b),
+                                      method='bounded',
+                                      options={'xatol': xatol}).x
         fmax = distribution(x0)
         M = scale_M*fmax / g
         logger.debug("Uniform probability density g(x) = {:g} and".format(g))
         logger.debug("maximum probability density f(x0) = {:g} at x0 = {:g}".format(fmax, x0))
         logger.debug("require M >= scale_M*g(x)/max(f(x)), i.e. M = {:g}.".format(M))
 
-        for i in range(max_tries):
+        for _ in range(max_tries):
             # draw a sample from a uniformly distributed support
             sample = np.random.random() * (b-a) + a
 
             # Generate random float in the half-open interval [0.0, 1.0) and .
-            # keep sample with probablity of distribution
+            # keep sample with probability of distribution
             if np.random.random() < distribution(sample) / (M*g):
                 return sample
 
-    else: # discrete support case
+    else:  # discrete support case
         logger.debug("discrete support X ({:d} points in interval [{},{}]".format(
             len(support), np.min(support), np.max(support)))
         # uniform probability density g(x) on support is
-        g = 1.0 / len(support) # for discrete support
-        # maximum probability on distributiom f(x) is
+        g = 1.0 / len(support)  # for discrete support
+        # maximum probability on distribution f(x) is
         fmax = np.max(distribution(support))
         # thus M must be at least
         M = scale_M * fmax / g
@@ -208,39 +217,37 @@ def rejection_sampler(distribution, support=(0.0,1.0), max_tries=10000, scale_M=
         logger.debug("maximum probability max(f(x)) = {:g} require".format(fmax))
         logger.debug("M >= scale_M*g(x)/max(f(x)), i.e. M = {:g}.".format(M))
 
-        for i in range(max_tries):
+        for _ in range(max_tries):
             # draw a sample from support
             sample = np.random.choice(support)
 
             # Generate random float in the half-open interval [0.0, 1.0) and .
-            # keep sample with probablity of distribution
+            # keep sample with probability of distribution
             if np.random.random() < distribution(sample) / (M*g):
                 return sample
 
     raise RuntimeError('Maximum of attempts max_tries {} exceeded!'.format(max_tries))
     
 
-def generate_structure(
-    distribution, box=np.array([50, 50, 100]),
-    count=100, n_gridpoints=np.nan):
-    """Generate 'atoms' from continuous distributuion(s).
+def generate_structure(distribution, box=np.array([50, 50, 100]), count=100, n_gridpoints=np.nan):
+    """Generate 'atoms' from continuous distribution(s).
 
     Coordinates are distributed according to given distributions.
 
-    Per default, X and Y coordinates are drawn uniformely.
+    Per default, X and Y coordinates are drawn uniformly.
 
     Parameters
     ----------
     distribution: func(x) or list of func(x)
-      With one function, uniform sampling appplies along x and y axes,
+      With one function, uniform sampling applies along x and y axes,
       while applying 'distribution' along z axis. With a list of functions,
-      apllies the respective distribution function along x, y and z direction.
+      applies the respective distribution function along x, y and z direction.
     box: np.ndarray(3), optional (default: np.array([50, 50, 100]) )
       dimensions of volume to be filled with samples
     count: int, optional (default: 100)
       number of samples to draw
     n_gridpoints: int or (int,int,int), optional (default: np.nan)
-      If spcefified, samples are not placed arbitrarily, but on an evenly spaced
+      If specified, samples are not placed arbitrarily, but on an evenly spaced
       grid of this many grid points along each axis. Specify np.nan for
       continuous sampling, i.e. (10,np.nan,20)
 
@@ -254,18 +261,17 @@ def generate_structure(
         logger.info("Using uniform distribution along x and y direction.")
         logger.info("Using distribution {} along z direction.".format(
             distribution))
-        distribution = [ uniform, uniform, distribution]
+        distribution = [uniform, uniform, distribution]
 
     for d in distribution:
         assert callable(d), "distribution {} must be callable".format(d)
 
     assert np.array(box).shape == (3,), "wrong specification of 3d box dimensions"
 
-    #if isinstance(n_gridpoints,int) or n_gridpoints == np.nan:
     if not isinstance(n_gridpoints, Iterable):
-        n_gridpoints = 3*[n_gridpoints] # to list
+        n_gridpoints = 3*[n_gridpoints]  # to list
 
-    n_gridpoints = np.array(n_gridpoints,dtype=float)
+    n_gridpoints = np.array(n_gridpoints, dtype=float)
     logger.info("Using {} grid as sampling support.".format(
         n_gridpoints))
 
@@ -277,22 +283,22 @@ def generate_structure(
     for k, d in enumerate(distribution):
         # Using the box parameter, we construct a grid inside the box
         # This results in a 100x100x100 grid:
-        if np.isnan( n_gridpoints[k] ): # continuous support
-            support.append((0,box[k])) # interval
+        if np.isnan(n_gridpoints[k]):  # continuous support
+            support.append((0, box[k]))  # interval
             # Normalization constant:
             Z, _ = integrate.quad(d, support[-1][0], support[-1][1])
-        else : # discrete supoport
+        else:  # discrete support
             support.append(np.linspace(0, box[k], n_gridpoints[k]))
             Z = np.sum(d(support[-1])) # Normalization constant
 
-        logger.info("Normalizing 'distribution' {} by {}.".format(d,Z))
+        logger.info("Normalizing 'distribution' {} by {}.".format(d, Z))
         normalized_distribution.append(
-            lambda x,k=k,Z=Z: distribution[k](x) / Z )
+            lambda x, k=k, Z=Z: distribution[k](x) / Z)
 
     # For every atom, draw random x, y and z coordinates
-    positions = np.array( [ [
-        rejection_sampler(d,s) for d,s in zip(normalized_distribution,support) ]
-            for i in range(int(count)) ])
+    positions = np.array([[
+        rejection_sampler(d, s) for d, s in zip(normalized_distribution, support)]
+            for _ in range(int(count))])
 
     logger.info("Drew {} samples from distributions.".format(positions.shape))
     return positions
