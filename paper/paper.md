@@ -70,7 +70,7 @@ As well as these domain-specific tools, `matscipy` contains general utility func
 
 - **Hessian calculation**
 
-- **Setup of simulations with non-reactive force fields** Non-reactive force fields for molecular dynamics simulations consist of non-bonded and bonded interaction terms [@Jorgensen1996]. The latter describe the structure of molecules and solids through lists of bonds, angles, and dihedrals. The construction of these force fields is mathematically simple but requires a considerable bookkeeping effort. The module 'matscipy.opls.py' provides efficient tools for this purpose. Input and output routines for reading and writing the corresponding control files for LAMMPS [@Thompson2022] are implemented in the module 'matscipy.io.opls.py'. We have used this approach in various studies on tribology, wetting and nanoscale rheology [@Mayrhofer2016, @Falk2020, @Reichenbach2020, @vonGoeldel2021, @Falk2022].
+- **Setup of simulations with non-reactive force fields** Non-reactive force fields for molecular dynamics simulations consist of non-bonded and bonded interaction terms [@Jorgensen1996]. The latter describe the structure of molecules and solids through lists of bonds, angles, and dihedrals. The construction of these force fields is mathematically simple but requires a considerable bookkeeping effort. The module `matscipy.opls.py` provides efficient tools for this purpose. Input and output routines for reading and writing the corresponding control files for LAMMPS [@Thompson2022] are implemented in the module `matscipy.io.opls.py`. We have used this approach in various studies on tribology, wetting and nanoscale rheology [@Mayrhofer2016, @Falk2020, @Reichenbach2020, @vonGoeldel2021, @Falk2022].
 
 # Acknowledgements
 
