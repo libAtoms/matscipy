@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 
-from numpy.linalg import norm
 from ase.io import read
 from ase.optimize import FIRE
 from ase.calculators.mixing import SumCalculator
@@ -81,7 +80,8 @@ def set_lammps(atoms, lammps_datafile):
 def set_legacy_manybody(atoms, molecules):
     """Set matscipy calculators for system."""
     from matscipy.calculators.manybody.calculator import NiceManybody
-    from matscipy.calculators.manybody.explicit_forms import HarmonicAngle, ZeroPair
+    from matscipy.calculators.manybody.explicit_forms import \
+        HarmonicAngle, ZeroPair
 
     lj_interactions = {
         (8, 8): LennardJonesCut(0.012185, 2.9170696728, 10),

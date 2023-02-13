@@ -133,8 +133,14 @@ def test_harmonic_angle(co2, molecule):
     # Checking zeros
     nt.assert_allclose(np.abs(f.sum()), 0, atol=1e-13)
 
+    # Testing stress
+    s = co2.get_stress()
+    s_ref = numerical_stress(co2, d=1e-6)
+    nt.assert_allclose(s, s_ref, rtol=1e-6, atol=2e-9)
+
     # Testing hessian
     h = co2.calc.get_property('hessian', co2)
     h_ref = numerical_hessian(co2, d=1e-4)
-    # print(f"{h}\n\n{h_ref}")
+    # print(f"{calc.get_block_sparse_hessian(co2)[0]}")
+    # print(f"{h.todense()}\n\n{h_ref.todense()}")
     nt.assert_allclose(h.todense(), h_ref.todense(), atol=1e-5)
