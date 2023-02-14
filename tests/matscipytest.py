@@ -62,14 +62,14 @@ class MatSciPyTestCase(unittest.TestCase):
             else:
                 return k
 
-        d1 = dict([(lower_if_ignore_case(k),v) for (k,v) in d1.iteritems() if k not in skip_keys])
-        d2 = dict([(lower_if_ignore_case(k),v) for (k,v) in d2.iteritems() if k not in skip_keys])
+        d1 = dict([(lower_if_ignore_case(k),v) for (k,v) in d1.items() if k not in skip_keys])
+        d2 = dict([(lower_if_ignore_case(k),v) for (k,v) in d2.items() if k not in skip_keys])
 
         if sorted(d1.keys()) != sorted(d2.keys()):
             self.fail('Dictionaries differ: d1.keys() (%r) != d2.keys() (%r)'  % (d1.keys(), d2.keys()))
         for key in d1:
             v1, v2 = d1[key], d2[key]
-            if isinstance(v1, np.ndarray):
+            if isinstance(v1, list) or isinstance(v1, np.ndarray):
                 try:
                     self.assertArrayAlmostEqual(v1, v2)
                 except AssertionError:
