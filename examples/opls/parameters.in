@@ -1,0 +1,33 @@
+# the blocks are separated by empty lines
+# comments are allowed
+#
+# All potential parameters in this file are for illustrative
+# purposes only! Do not use them for real simulations!
+#
+# Lennard-Jones and Charges
+# Element Epsilon(eV) Sigma(A) Charge(e)
+C1 0.0028 3.50 -0.06
+H1 0.0013 2.50  0.06
+H2 0.0013 2.42  0.12
+
+# Bonds (style harmonic)
+C1-C1 13.4 1.5
+C1-H1 14.3 1.1
+C1-H2  9.0 1.2
+
+# Angles (style harmonic)
+C1-C1-H1 1.5 110.0
+C1-C1-H2 1.1 115.0
+H1-C1-H1 0.7 110.0
+H2-C1-H2 0.7 110.0
+
+# Dihedrals 
+H1-C1-C1-H2 0.0 0.0 0.016 0.0
+
+# Cutoffs 
+C1-C1 1.85
+C1-H1 1.15
+C1-H2 1.15
+H1-H1 0.0
+H2-H2 0.0
+H1-H2 0.0
