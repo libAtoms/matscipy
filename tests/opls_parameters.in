@@ -3,8 +3,8 @@
 #
 # Lennard-Jones and Charges
 # Element Epsilon(eV) Sigma(A) Charge(e) Reference
-C1 0.001 3.5 -0.01
-H1 0.001 2.5  0.01
+C1 0.001 3.500 -0.010
+H1 0.001 2.500  0.010
 
 # Bonds (style harmonic)
 C1-C1 10.0 1.0
@@ -15,7 +15,7 @@ H1-C1-C1 1.0 100.0
 H1-C1-H1 1.0 100.0
 
 # Dihedrals 
-H1-C1-C1-H1 0.0 0.0 0.01 0.0
+H1-C1-C1-H1 0.00 0.00 0.01 0.00
 
 # Cutoffs 
 C1-C1 1.85

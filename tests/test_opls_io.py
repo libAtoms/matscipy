@@ -19,6 +19,7 @@
 #
 
 import unittest
+import matscipytest
 
 import numpy as np
 import ase
@@ -26,18 +27,19 @@ import ase.io
 import matscipy.opls
 import matscipy.io.opls
 
-class TestOPLSIO(unittest.TestCase):
+
+class TestOPLSIO(matscipytest.MatSciPyTestCase):
     def test_read_extended_xyz(self):
         struct = matscipy.io.opls.read_extended_xyz('opls_extxyz.xyz')
 
         self.assertIsInstance(struct, matscipy.opls.OPLSStructure)
         self.assertListEqual(list(struct.numbers), [1, 1])
-        self.assertAlmostEqual(struct[0].x, 4.5, places=1)
-        self.assertAlmostEqual(struct[0].y, 5.0, places=1)
-        self.assertAlmostEqual(struct[0].z, 5.0, places=1)
-        self.assertAlmostEqual(struct[1].x, 5.5, places=1)
-        self.assertAlmostEqual(struct[1].y, 5.0, places=1)
-        self.assertAlmostEqual(struct[1].z, 5.0, places=1)
+        self.assertArrayAlmostEqual(
+            struct.positions,
+            [[4.5, 5.0, 5.0],
+             [5.5, 5.0, 5.0]],
+            tol=0.01
+            )
         self.assertListEqual(list(struct.get_array('molid')), [1, 1])
         self.assertListEqual(list(struct.types), ['H1'])
         self.assertListEqual(list(struct.get_array('type')), ['H1', 'H1'])
@@ -46,15 +48,11 @@ class TestOPLSIO(unittest.TestCase):
 
     def test_read_block(self):
         data = matscipy.io.opls.read_block('opls_parameters.in', 'Dihedrals')
-
-        self.assertIsInstance(data, dict)
-        self.assertListEqual(list(data.keys()), ['H1-C1-C1-H1'])
-        self.assertIsInstance(data['H1-C1-C1-H1'], list)
-        self.assertEqual(len(data['H1-C1-C1-H1']), 4)
-        self.assertAlmostEqual(data['H1-C1-C1-H1'][0], 0.0, places=1)
-        self.assertAlmostEqual(data['H1-C1-C1-H1'][1], 0.0, places=1)
-        self.assertAlmostEqual(data['H1-C1-C1-H1'][2], 0.01, places=2)
-        self.assertAlmostEqual(data['H1-C1-C1-H1'][3], 0.0, places=1)
+        self.assertDictionariesEqual(
+            data,
+            {'H1-C1-C1-H1': [0.00, 0.00, 0.01, 0.00]},
+            ignore_case=False
+            )
 
         with self.assertRaises(RuntimeError):
             matscipy.io.opls.read_block('opls_parameters.in', 'Charges')
@@ -64,133 +62,81 @@ class TestOPLSIO(unittest.TestCase):
         cutoffs = matscipy.io.opls.read_cutoffs('opls_cutoffs.in')
 
         self.assertIsInstance(cutoffs, matscipy.opls.CutoffList)
-        cutoff_keys = list(cutoffs.nvh.keys())
-        self.assertEqual(len(cutoff_keys), 2)
-        self.assertTrue('C1-C1' in cutoff_keys)
-        self.assertTrue('C1-H1' in cutoff_keys)
-        self.assertIsInstance(cutoffs.nvh['C1-C1'], float)
-        self.assertIsInstance(cutoffs.nvh['C1-H1'], float)
-        self.assertAlmostEqual(cutoffs.nvh['C1-C1'], 1.85, places=2)
-        self.assertAlmostEqual(cutoffs.nvh['C1-H1'], 1.15, places=2)
+        self.assertDictionariesEqual(
+            cutoffs.nvh,
+            {'C1-C1': 1.85, 'C1-H1': 1.15},
+            ignore_case=False
+            )
 
 
     def test_read_parameter_file(self):
         cutoffs, ljq, bonds, angles, dihedrals = matscipy.io.opls.read_parameter_file('opls_parameters.in')
 
         self.assertIsInstance(cutoffs, matscipy.opls.CutoffList)
-        cutoff_keys = list(cutoffs.nvh.keys())
-        self.assertEqual(len(cutoff_keys), 3)
-        self.assertTrue('C1-C1' in cutoff_keys)
-        self.assertTrue('C1-H1' in cutoff_keys)
-        self.assertTrue('H1-H1' in cutoff_keys)
-        self.assertAlmostEqual(cutoffs.nvh['C1-C1'], 1.85, places=2)
-        self.assertAlmostEqual(cutoffs.nvh['C1-H1'], 1.15, places=2)
-        self.assertAlmostEqual(cutoffs.nvh['H1-H1'], 0.0, places=1)
+        self.assertDictionariesEqual(
+            cutoffs.nvh,
+            {'C1-C1': 1.85, 'C1-H1': 1.15, 'H1-H1': 0.0},
+            ignore_case=False
+            )
 
         self.assertIsInstance(ljq, dict)
-        ljq_keys = list(ljq.keys())
-        self.assertEqual(len(ljq_keys), 2)
-        self.assertTrue('C1' in ljq_keys)
-        self.assertTrue('H1' in ljq_keys)
-        self.assertIsInstance(ljq['C1'], list)
-        self.assertIsInstance(ljq['H1'], list)
-        self.assertEqual(len(ljq['C1']), 3)
-        self.assertEqual(len(ljq['H1']), 3)
-        self.assertAlmostEqual(ljq['C1'][0], 0.001, places=3)
-        self.assertAlmostEqual(ljq['C1'][1], 3.5, places=1)
-        self.assertAlmostEqual(ljq['C1'][2], -0.01, places=2)
-        self.assertAlmostEqual(ljq['H1'][0], 0.001, places=3)
-        self.assertAlmostEqual(ljq['H1'][1], 2.5, places=1)
-        self.assertAlmostEqual(ljq['H1'][2], 0.01, places=2)
+        self.assertDictionariesEqual(
+            ljq,
+            {'C1': [0.001, 3.500, -0.010], 'H1': [0.001, 2.500, 0.010]},
+            ignore_case=False
+            )
 
         self.assertIsInstance(bonds, matscipy.opls.BondData)
-        bonds_keys = list(bonds.nvh.keys())
-        self.assertEqual(len(bonds_keys), 2)
-        self.assertTrue('C1-C1' in bonds_keys)
-        self.assertTrue('C1-H1' in bonds_keys)
-        self.assertIsInstance(bonds.nvh['C1-C1'], list)
-        self.assertIsInstance(bonds.nvh['C1-H1'], list)
-        self.assertEqual(len(bonds.nvh['C1-C1']), 2)
-        self.assertEqual(len(bonds.nvh['C1-H1']), 2)
-        self.assertAlmostEqual(bonds.nvh['C1-C1'][0], 10.0, places=1)
-        self.assertAlmostEqual(bonds.nvh['C1-C1'][1], 1.0, places=1)
-        self.assertAlmostEqual(bonds.nvh['C1-H1'][0], 10.0, places=1)
-        self.assertAlmostEqual(bonds.nvh['C1-H1'][1], 1.0, places=1)
+        self.assertDictionariesEqual(
+            bonds.nvh,
+            {'C1-C1': [10.0, 1.0], 'C1-H1': [10.0, 1.0]},
+            ignore_case=False
+            )
 
         self.assertIsInstance(angles, matscipy.opls.AnglesData)
-        angles_keys = list(angles.nvh.keys())
-        self.assertEqual(len(angles_keys), 2)
-        self.assertTrue('H1-C1-C1' in angles_keys)
-        self.assertTrue('H1-C1-H1' in angles_keys)
-        self.assertIsInstance(angles.nvh['H1-C1-C1'], list)
-        self.assertIsInstance(angles.nvh['H1-C1-H1'], list)
-        self.assertEqual(len(angles.nvh['H1-C1-C1']), 2)
-        self.assertEqual(len(angles.nvh['H1-C1-H1']), 2)
-        self.assertAlmostEqual(angles.nvh['H1-C1-C1'][0], 1.0, places=1)
-        self.assertAlmostEqual(angles.nvh['H1-C1-C1'][1], 100.0, places=1)
-        self.assertAlmostEqual(angles.nvh['H1-C1-H1'][0], 1.0, places=1)
-        self.assertAlmostEqual(angles.nvh['H1-C1-H1'][1], 100.0, places=1)
+        self.assertDictionariesEqual(
+            angles.nvh,
+            {'H1-C1-C1': [1.0, 100.0], 'H1-C1-H1': [1.0, 100.0]},
+            ignore_case=False
+            )
 
         self.assertIsInstance(dihedrals, matscipy.opls.DihedralsData)
-        self.assertListEqual(list(dihedrals.nvh.keys()), ['H1-C1-C1-H1'])
-        self.assertIsInstance(dihedrals.nvh['H1-C1-C1-H1'], list)
-        self.assertEqual(len(dihedrals.nvh['H1-C1-C1-H1']), 4)
-        self.assertAlmostEqual(dihedrals.nvh['H1-C1-C1-H1'][0], 0.0, places=1)
-        self.assertAlmostEqual(dihedrals.nvh['H1-C1-C1-H1'][1], 0.0, places=1)
-        self.assertAlmostEqual(dihedrals.nvh['H1-C1-C1-H1'][2], 0.01, places=2)
-        self.assertAlmostEqual(dihedrals.nvh['H1-C1-C1-H1'][3], 0.0, places=1)
+        self.assertDictionariesEqual(
+            dihedrals.nvh,
+            {'H1-C1-C1-H1': [0.00, 0.00, 0.01, 0.00]},
+            ignore_case=False
+            )
 
 
     def test_read_lammps_data(self):
         test_structure = matscipy.io.opls.read_lammps_data('opls_test.atoms')
 
-        cell = test_structure.cell
-        self.assertAlmostEqual(cell[0][0], 10.0, places=1)
-        self.assertAlmostEqual(cell[0][1], 0.0, places=1)
-        self.assertAlmostEqual(cell[0][2], 0.0, places=1)
-        self.assertAlmostEqual(cell[1][0], 0.0, places=1)
-        self.assertAlmostEqual(cell[1][1], 10.0, places=1)
-        self.assertAlmostEqual(cell[1][2], 0.0, places=1)
-        self.assertAlmostEqual(cell[2][0], 0.0, places=1)
-        self.assertAlmostEqual(cell[2][1], 0.0, places=1)
-        self.assertAlmostEqual(cell[2][2], 10.0, places=1)
+        self.assertArrayAlmostEqual(test_structure.cell,
+                                    [[10.0, 0.0, 0.0],
+                                     [0.0, 10.0, 0.0],
+                                     [0.0, 0.0, 10.0]],
+                                    tol=0.01)
         self.assertEqual(len(test_structure), 4)
         self.assertListEqual(list(test_structure.numbers), [1, 6, 6, 1])
-        self.assertAlmostEqual(test_structure[0].x, 3.5, places=1)
-        self.assertAlmostEqual(test_structure[0].y, 5.0, places=1)
-        self.assertAlmostEqual(test_structure[0].z, 5.0, places=1)
-        self.assertAlmostEqual(test_structure[1].x, 4.5, places=1)
-        self.assertAlmostEqual(test_structure[1].y, 5.0, places=1)
-        self.assertAlmostEqual(test_structure[1].z, 5.0, places=1)
-        self.assertAlmostEqual(test_structure[2].x, 5.5, places=1)
-        self.assertAlmostEqual(test_structure[2].y, 5.0, places=1)
-        self.assertAlmostEqual(test_structure[2].z, 5.0, places=1)
-        self.assertAlmostEqual(test_structure[3].x, 6.5, places=1)
-        self.assertAlmostEqual(test_structure[3].y, 5.0, places=1)
-        self.assertAlmostEqual(test_structure[3].z, 5.0, places=1)
-        vel = test_structure.get_velocities()
-        self.assertAlmostEqual(vel[0][0], 0.1, places=1)
-        self.assertAlmostEqual(vel[0][1], 0.2, places=1)
-        self.assertAlmostEqual(vel[0][2], 0.3, places=1)
-        self.assertAlmostEqual(vel[1][0], 0.0, places=1)
-        self.assertAlmostEqual(vel[1][1], 0.0, places=1)
-        self.assertAlmostEqual(vel[1][2], 0.0, places=1)
-        self.assertAlmostEqual(vel[2][0], 0.4, places=1)
-        self.assertAlmostEqual(vel[2][1], 0.5, places=1)
-        self.assertAlmostEqual(vel[2][2], 0.6, places=1)
-        self.assertAlmostEqual(vel[3][0], 0.0, places=1)
-        self.assertAlmostEqual(vel[3][1], 0.0, places=1)
-        self.assertAlmostEqual(vel[3][2], 0.0, places=1)
-        masses = test_structure.get_masses()
-        self.assertAlmostEqual(masses[0], 1.008, places=3)
-        self.assertAlmostEqual(masses[1], 12.011, places=3)
-        self.assertAlmostEqual(masses[2], 12.011, places=3)
-        self.assertAlmostEqual(masses[3], 1.008, places=3)
-        charges = test_structure.get_charges()
-        self.assertAlmostEqual(charges[0], 0.01, places=2)
-        self.assertAlmostEqual(charges[1], -0.01, places=2)
-        self.assertAlmostEqual(charges[2], -0.01, places=2)
-        self.assertAlmostEqual(charges[3], 0.01, places=2)
+        self.assertArrayAlmostEqual(test_structure.positions,
+                                    [[3.5, 5.0, 5.0],
+                                     [4.5, 5.0, 5.0],
+                                     [5.5, 5.0, 5.0],
+                                     [6.5, 5.0, 5.0]],
+                                    tol=0.01)
+        self.assertArrayAlmostEqual(test_structure.get_velocities(),
+                                    [[0.1, 0.2, 0.3],
+                                     [0.0, 0.0, 0.0],
+                                     [0.4, 0.5, 0.6],
+                                     [0.0, 0.0, 0.0]
+                                    ],
+                                    tol=0.01)
+        self.assertArrayAlmostEqual(test_structure.get_masses(),
+                                    [1.008, 12.011, 12.011, 1.008],
+                                    tol=0.0001)
+        self.assertArrayAlmostEqual(test_structure.get_charges(),
+                                    [0.01, -0.01, -0.01, 0.01],
+                                    tol=0.001)
         self.assertListEqual(
             list(test_structure.get_array('molid')), [1, 1, 1, 1]
             )
@@ -215,7 +161,7 @@ class TestOPLSIO(unittest.TestCase):
             (test_structure.bond_list[2] == [0, 2, 3]).all() or
             (test_structure.bond_list[2] == [0, 3, 2]).all()
             )
-        
+
         self.assertEqual(len(test_structure.ang_types), 1)
         self.assertTrue('H1-C1-C1' in test_structure.ang_types or
                         'C1-C1-H1' in test_structure.ang_types)
@@ -241,10 +187,10 @@ class TestOPLSIO(unittest.TestCase):
     def test_write_lammps_atoms(self):
         c2h2 = ase.Atoms('HC2H', cell=[10., 10., 10.])
         c2h2.set_positions([
-            [0.,  0.,  0.],
-            [1.,  0.,  0.],
-            [2.,  0.,  0.],
-            [3.,  0.,  0.]
+            [0., 0., 0.],
+            [1., 0., 0.],
+            [2., 0., 0.],
+            [3., 0., 0.]
             ])
 
         opls_c2h2 = matscipy.opls.OPLSStructure(c2h2)
@@ -264,57 +210,30 @@ class TestOPLSIO(unittest.TestCase):
         # Read written structure
         c2h2_written = matscipy.io.opls.read_lammps_data('temp.atoms')
 
-
-        cell = c2h2_written.cell
-        self.assertAlmostEqual(cell[0][0], 10.0, places=1)
-        self.assertAlmostEqual(cell[0][1], 0.0, places=1)
-        self.assertAlmostEqual(cell[0][2], 0.0, places=1)
-        self.assertAlmostEqual(cell[1][0], 0.0, places=1)
-        self.assertAlmostEqual(cell[1][1], 10.0, places=1)
-        self.assertAlmostEqual(cell[1][2], 0.0, places=1)
-        self.assertAlmostEqual(cell[2][0], 0.0, places=1)
-        self.assertAlmostEqual(cell[2][1], 0.0, places=1)
-        self.assertAlmostEqual(cell[2][2], 10.0, places=1)
+        self.assertArrayAlmostEqual(c2h2_written.cell,
+                                    [[10.0, 0.0, 0.0],
+                                     [0.0, 10.0, 0.0],
+                                     [0.0, 0.0, 10.0]],
+                                    tol=0.01)
         self.assertEqual(len(c2h2_written), 4)
         self.assertListEqual(list(c2h2_written.numbers), [1, 6, 6, 1])
-        self.assertAlmostEqual(c2h2_written[0].x, 0.0, places=1)
-        self.assertAlmostEqual(c2h2_written[0].y, 0.0, places=1)
-        self.assertAlmostEqual(c2h2_written[0].z, 0.0, places=1)
-        self.assertAlmostEqual(c2h2_written[1].x, 1.0, places=1)
-        self.assertAlmostEqual(c2h2_written[1].y, 0.0, places=1)
-        self.assertAlmostEqual(c2h2_written[1].z, 0.0, places=1)
-        self.assertAlmostEqual(c2h2_written[2].x, 2.0, places=1)
-        self.assertAlmostEqual(c2h2_written[2].y, 0.0, places=1)
-        self.assertAlmostEqual(c2h2_written[2].z, 0.0, places=1)
-        self.assertAlmostEqual(c2h2_written[3].x, 3.0, places=1)
-        self.assertAlmostEqual(c2h2_written[3].y, 0.0, places=1)
-        self.assertAlmostEqual(c2h2_written[3].z, 0.0, places=1)
-        vel = c2h2_written.get_velocities()
-        self.assertAlmostEqual(vel[0][0], 0.0, places=1)
-        self.assertAlmostEqual(vel[0][1], 0.0, places=1)
-        self.assertAlmostEqual(vel[0][2], 0.0, places=1)
-        self.assertAlmostEqual(vel[1][0], 0.0, places=1)
-        self.assertAlmostEqual(vel[1][1], 0.0, places=1)
-        self.assertAlmostEqual(vel[1][2], 0.0, places=1)
-        self.assertAlmostEqual(vel[2][0], 0.0, places=1)
-        self.assertAlmostEqual(vel[2][1], 0.0, places=1)
-        self.assertAlmostEqual(vel[2][2], 0.0, places=1)
-        self.assertAlmostEqual(vel[3][0], 0.0, places=1)
-        self.assertAlmostEqual(vel[3][1], 0.0, places=1)
-        self.assertAlmostEqual(vel[3][2], 0.0, places=1)
-        masses = c2h2_written.get_masses()
-        self.assertAlmostEqual(masses[0], 1.008, places=3)
-        self.assertAlmostEqual(masses[1], 12.011, places=3)
-        self.assertAlmostEqual(masses[2], 12.011, places=3)
-        self.assertAlmostEqual(masses[3], 1.008, places=3)
-        charges = c2h2_written.get_charges()
-        self.assertAlmostEqual(charges[0], 0.01, places=2)
-        self.assertAlmostEqual(charges[1], -0.01, places=2)
-        self.assertAlmostEqual(charges[2], -0.01, places=2)
-        self.assertAlmostEqual(charges[3], 0.01, places=2)
-        self.assertListEqual(
-            list(c2h2_written.get_array('molid')), [1, 1, 1, 1]
-            )
+        self.assertArrayAlmostEqual(c2h2_written.positions,
+                                    [[0.0, 0.0, 0.0],
+                                     [1.0, 0.0, 0.0],
+                                     [2.0, 0.0, 0.0],
+                                     [3.0, 0.0, 0.0]],
+                                    tol=0.01)
+        self.assertArrayAlmostEqual(c2h2_written.get_velocities(),
+                                    np.zeros([4, 3], dtype=float),
+                                    tol=0.01)
+        self.assertArrayAlmostEqual(c2h2_written.get_masses(),
+                                    [1.008, 12.011, 12.011, 1.008],
+                                    tol=0.0001)
+        self.assertArrayAlmostEqual(c2h2_written.get_charges(),
+                                    [0.01, -0.01, -0.01, 0.01],
+                                    tol=0.001)
+        self.assertListEqual(list(c2h2_written.get_array('molid')),
+                             [1, 1, 1, 1])
         self.assertEqual(len(c2h2_written.get_types()), 2)
         self.assertTrue('C1' in c2h2_written.get_types())
         self.assertTrue('H1' in c2h2_written.get_types())
@@ -324,7 +243,7 @@ class TestOPLSIO(unittest.TestCase):
         self.assertTrue('C1-H1' in c2h2_written.bond_types or
                         'H1-C1' in c2h2_written.bond_types)
         self.assertTupleEqual(c2h2_written.bond_list.shape, (3, 3))
-        bonds = c2h2_written.bond_list[:,1:].tolist()
+        bonds = c2h2_written.bond_list[:, 1:].tolist()
         self.assertTrue([0, 1] in bonds or
                         [1, 0] in bonds)
         self.assertTrue([1, 2] in bonds or
@@ -336,7 +255,7 @@ class TestOPLSIO(unittest.TestCase):
         self.assertTrue('H1-C1-C1' in c2h2_written.ang_types or
                         'C1-C1-H1' in c2h2_written.ang_types)
         self.assertTupleEqual(c2h2_written.ang_list.shape, (2, 4))
-        angles = c2h2_written.ang_list[:,1:].tolist()
+        angles = c2h2_written.ang_list[:, 1:].tolist()
         self.assertTrue([0, 1, 2] in angles or
                         [2, 1, 0] in angles)
         self.assertTrue([1, 2, 3] in angles or
@@ -353,12 +272,12 @@ class TestOPLSIO(unittest.TestCase):
 
     def test_write_lammps_definitions(self):
         c2h2 = ase.Atoms('HC2H', cell=[10., 10., 10.])
-        c2h2.set_positions([
-            [0.,  0.,  0.],
-            [1.,  0.,  0.],
-            [2.,  0.,  0.],
-            [3.,  0.,  0.]
-            ])
+        c2h2.set_positions(
+            [[0., 0., 0.],
+             [1., 0., 0.],
+             [2., 0., 0.],
+             [3., 0., 0.]]
+            )
 
         opls_c2h2 = matscipy.opls.OPLSStructure(c2h2)
         opls_c2h2.set_types(['H1', 'C1', 'C1', 'H1'])
@@ -374,14 +293,15 @@ class TestOPLSIO(unittest.TestCase):
         matscipy.io.opls.write_lammps_definitions('temp', opls_c2h2)
 
 
+        # Read written parameters
         pair_coeff = []
         bond_coeff = []
         angle_coeff = []
         dihedral_coeff = []
         charges = []
 
-        with open('temp.opls', 'r') as f:
-            for line in f.readlines():
+        with open('temp.opls', 'r') as fileobj:
+            for line in fileobj.readlines():
                 if line.startswith('pair_coeff'):
                     pair_coeff.append(line.split())
                 elif line.startswith('bond_coeff'):
@@ -391,7 +311,7 @@ class TestOPLSIO(unittest.TestCase):
                 elif line.startswith('dihedral_coeff'):
                     dihedral_coeff.append(line.split())
                 elif len(line.split()) > 3:
-                     if line.split()[3] == 'charge':
+                    if line.split()[3] == 'charge':
                         charges.append(line.split())
 
         self.assertEqual(len(charges), 2)
