@@ -8,3 +8,4 @@ API Reference
    ./api/neighbours
    ./api/numerical
    ./api/fracture_mechanics
+   ./api/dislocation
