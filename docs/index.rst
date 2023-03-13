@@ -46,6 +46,7 @@
 
    ./calculators
    ./fracture_mechanics
+   ./plasticity
    ./elastic_constants
    ./api_reference
 
