@@ -1,0 +1,96 @@
+# This is partially adopted from scipy.
+# See: https://github.com/scipy/scipy/blob/main/.github/workflows/wheels.yml
+# License: 3-clause BSD, https://github.com/scipy/scipy/blob/main/LICENSE.txt
+
+name: Build wheels
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+    tags:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    name: Build wheel for ${{ matrix.python }}-${{ matrix.buildplat[1] }} ${{ matrix.buildplat[2] }}
+    runs-on: ${{ matrix.buildplat[0] }}
+    strategy:
+      matrix:
+        buildplat:
+        - [ubuntu-20.04, manylinux, x86_64]
+        - [macos-10.15, macosx, x86_64]
+        - [windows-2019, win, AMD64]
+
+        python: ["cp38", "cp39", "cp310", "cp311"]
+      fail-fast: false
+
+    env:
+      IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.11.3
+        env:
+          CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}*
+          CIBW_ARCHS: ${{ matrix.buildplat[2] }}
+          CIBW_ENVIRONMENT_PASS_LINUX: RUNNER_OS
+          CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
+
+      - name: Release wheels
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: wheelhouse/*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check tag
+        id: check-tag
+        run: |
+          if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              echo "match=true" >> $GITHUB_OUTPUT              
+          fi
+        shell: bash
+
+      - name: Deploy wheels to PyPI
+        if: steps.check-tag.outputs.match == 'true'
+        run: |
+          pip install twine
+          twine upload wheelhouse/*.whl          
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        shell: bash
+        
+      - name: Deploy sdist to PyPI
+        if: ${{ steps.check-tag.outputs.match == 'true' && startsWith(matrix.buildplat[0], 'ubuntu') && matrix.python == 'cp311' }}
+        run: |
+          pip install build
+          python -m build
+          twine upload dist/matscipy-*.tar.gz
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        shell: bash
+         
+         

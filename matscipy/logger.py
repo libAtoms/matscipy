@@ -1,9 +1,8 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright 2015-2017, 2021 Lars Pastewka (U. Freiburg)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,13 +16,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
+#
 
 """
 Log status to screen.
 """
-
-from __future__ import print_function
 
 import os
 import sys
@@ -33,6 +30,8 @@ import inspect
 from functools import reduce
 from math import isnan, isinf
 from numbers import Real
+
+from ase.parallel import world
 
 ###
 
@@ -116,6 +115,8 @@ class Logger(object):
 
 
     def __open_logfile(self):
+        if world.rank != 0:
+            return
         if self.logfile is None and self.logfn is not None and \
                 not self.__all_output_to_stdout:
             self.outcounter = self.outevery
@@ -131,6 +132,8 @@ class Logger(object):
 
 
     def _print(self, s, logfile=None):
+        if world.rank != 0:
+            return
         if logfile and self.logfile != logfile:
             print(s, file=logfile)
         if self.logfile:
@@ -145,6 +148,8 @@ class Logger(object):
 
 
     def set_logfile(self, logfile):
+        if world.rank != 0:
+            return
         if self.__all_output_to_stdout:
             self.logfile = sys.stdout
         elif isinstance(logfile, str):
@@ -225,6 +230,8 @@ class Logger(object):
 
 
     def has_logfile(self):
+        if world.rank != 0:
+            raise RuntimeError('`has_logfile` only works on the root rank.')
         return self.logfile is not None
 
 

@@ -1,10 +1,10 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
-#                  Wolfram Nöhring, University of Freiburg
+# Copyright 2019-2020 Wolfram G. Nöhring (U. Freiburg)
+#           2015, 2019 Lars Pastewka (U. Freiburg)
+#           2015 Adrien Gola (KIT)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,26 +18,24 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
+#
 """EAM calculator"""
-
-import os
 
 import numpy as np
 
-import ase
 from ase.calculators.calculator import Calculator
+from matscipy.calculators.calculator import MatscipyCalculator
 
 try:
     from scipy.interpolate import InterpolatedUnivariateSpline
-except:
+except ImportError:
     InterpolatedUnivariateSpline = None
 
 from scipy.sparse import bsr_matrix
 from matscipy.calculators.eam.io import read_eam
 from matscipy.neighbours import (
-    neighbour_list, 
-    first_neighbours, 
+    neighbour_list,
+    first_neighbours,
     find_indices_of_reversed_pairs,
     find_common_neighbours
 )
@@ -60,14 +58,14 @@ def _make_derivative(x, n=1):
 
 ###
 
-class EAM(Calculator):
-    implemented_properties = ['energy', 'stress', 'forces']
+class EAM(MatscipyCalculator):
+    implemented_properties = ['energy', 'free_energy', 'stress', 'forces', 'hessian']
     default_parameters = {}
     name = 'EAM'
-       
+
     def __init__(self, fn=None, atomic_numbers=None, F=None, f=None, rep=None,
                  cutoff=None, kind='eam/alloy'):
-        Calculator.__init__(self)
+        super().__init__()
         if fn is not None:
             source, parameters, F, f, rep = read_eam(fn, kind=kind)
             self._db_atomic_numbers = parameters.atomic_numbers
@@ -206,26 +204,26 @@ class EAM(Calculator):
         return epot, virial_v, np.transpose([fx_i, fy_i, fz_i])
 
     def calculate(self, atoms, properties, system_changes):
-        Calculator.calculate(self, atoms, properties, system_changes)
+        super().calculate(atoms, properties, system_changes)
 
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', self.atoms,
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms,
                                                    self._db_cutoff)
 
-        epot, virial_v, forces_ic = self.energy_virial_and_forces(self.atoms.numbers, i_n, j_n, dr_nc, abs_dr_n)
+        epot, virial_v, forces_ic = self.energy_virial_and_forces(atoms.numbers, i_n, j_n, dr_nc, abs_dr_n)
 
-        self.results = {'energy': epot, 'free_energy': epot,
-                        'stress': virial_v/self.atoms.get_volume(),
-                        'forces': forces_ic}
+        self.results.update({'energy': epot, 'free_energy': epot,
+                             'stress': virial_v/atoms.get_volume(),
+                             'forces': forces_ic})
 
     def calculate_hessian_matrix(self, atoms, divide_by_masses=False):
         r"""Compute the Hessian matrix
 
-        The Hessian matrix is the matrix of second derivatives 
-        of the potential energy :math:`\mathcal{V}_\mathrm{int}` 
+        The Hessian matrix is the matrix of second derivatives
+        of the potential energy :math:`\mathcal{V}_\mathrm{int}`
         with respect to coordinates, i.e.\
 
-        .. math:: 
-        
+        .. math::
+
             \frac{\partial^2 \mathcal{V}_\mathrm{int}}
                  {\partial r_{\nu{}i}\partial r_{\mu{}j}},
 
@@ -234,59 +232,59 @@ class EAM(Calculator):
         position vector :math:`r_\nu` along the three spatial directions.
 
         The Hessian matrix has contributions from the pair potential
-        and the embedding energy, 
+        and the embedding energy,
 
         .. math::
 
-            \frac{\partial^2 \mathcal{V}_\mathrm{int}}{\partial r_{\nu{}i}\partial r_{\mu{}j}} = 
+            \frac{\partial^2 \mathcal{V}_\mathrm{int}}{\partial r_{\nu{}i}\partial r_{\mu{}j}} =
             \frac{\partial^2 \mathcal{V}_\mathrm{pair}}{ \partial r_{\nu i} \partial r_{\mu j}} +
-            \frac{\partial^2 \mathcal{V}_\mathrm{embed}}{\partial r_{\nu i} \partial r_{\mu j}}. 	
+            \frac{\partial^2 \mathcal{V}_\mathrm{embed}}{\partial r_{\nu i} \partial r_{\mu j}}.
 
 
         The contribution from the pair potential is
 
         .. math::
 
-            \frac{\partial^2 \mathcal{V}_\mathrm{pair}}{ \partial r_{\nu i} \partial r_{\mu j}} &= 
+            \frac{\partial^2 \mathcal{V}_\mathrm{pair}}{ \partial r_{\nu i} \partial r_{\mu j}} &=
             -\phi_{\nu\mu}'' \left(
-            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
-            \frac{r_{\nu\mu j}}{r_{\nu\mu}} 
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}}
+            \frac{r_{\nu\mu j}}{r_{\nu\mu}}
             \right)
             -\frac{\phi_{\nu\mu}'}{r_{\nu\mu}}\left(
             \delta_{ij}-
-            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
-            \frac{r_{\nu\mu j}}{r_{\nu\mu}} 
-            \right) \\ 
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}}
+            \frac{r_{\nu\mu j}}{r_{\nu\mu}}
+            \right) \\
             &+\delta_{\nu\mu}\sum_{\gamma\neq\nu}^{N}
             \phi_{\nu\gamma}'' \left(
-            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
-            \frac{r_{\nu\gamma j}}{r_{\nu\gamma}} 
+            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
+            \frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
             \right)
             +\delta_{\nu\mu}\sum_{\gamma\neq\nu}^{N}\frac{\phi_{\nu\gamma}'}{r_{\nu\gamma}}\left(
             \delta_{ij}-
-            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
-            \frac{r_{\nu\gamma j}}{r_{\nu\gamma}} 
+            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
+            \frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
             \right).
 
         The contribution of the embedding energy to the Hessian matrix is a sum of eight terms,
-        
+
         .. math::
 
-            \frac{\mathcal{V}_\mathrm{embed}}{\partial r_{\mu j} \partial r_{\nu i}} 
-            	&= T_1 + T_2 + T_3 + T_4 + T_5 + T_6 + T_7 + T_8 \\ 
-            T_1 &= 
+            \frac{\mathcal{V}_\mathrm{embed}}{\partial r_{\mu j} \partial r_{\nu i}}
+                &= T_1 + T_2 + T_3 + T_4 + T_5 + T_6 + T_7 + T_8 \\
+            T_1 &=
             \delta_{\nu\mu}U_\nu''
             \sum_{\gamma\neq\nu}^{N}g_{\nu\gamma}'\frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
             \sum_{\gamma\neq\nu}^{N}g_{\nu\gamma}'\frac{r_{\nu\gamma j}}{r_{\nu\gamma}} \\
-            T_2 &= 
-            -u_\nu''g_{\nu\mu}' \frac{r_{\nu\mu j}}{r_{\nu\mu}} \sum_{\gamma\neq\nu}^{N} 
+            T_2 &=
+            -u_\nu''g_{\nu\mu}' \frac{r_{\nu\mu j}}{r_{\nu\mu}} \sum_{\gamma\neq\nu}^{N}
             G_{\nu\gamma}' \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} \\
             T_3 &=
-            +u_\mu''g_{\mu\nu}' \frac{r_{\nu\mu i}}{r_{\nu\mu}} \sum_{\gamma\neq\mu}^{N} 
+            +u_\mu''g_{\mu\nu}' \frac{r_{\nu\mu i}}{r_{\nu\mu}} \sum_{\gamma\neq\mu}^{N}
             G_{\mu\gamma}' \frac{r_{\mu\gamma j}}{r_{\mu\gamma}} \\
             T_4 &= -\left(u_\mu'g_{\mu\nu}'' + u_\nu'g_{\nu\mu}''\right)
             \left(
-            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}}
             \frac{r_{\nu\mu j}}{r_{\nu\mu}}
             \right)\\
             T_5 &= \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{N}
@@ -297,20 +295,20 @@ class EAM(Calculator):
             \right) \\
             T_6 &= -\left(U_\mu'g_{\mu\nu}' + U_\nu'g_{\nu\mu}'\right) \frac{1}{r_{\nu\mu}}
             \left(
-            \delta_{ij}- 
-            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+            \delta_{ij}-
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}}
             \frac{r_{\nu\mu j}}{r_{\nu\mu}}
             \right) \\
             T_7 &= \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{N}
             \left(U_\gamma'g_{\gamma\nu}' + U_\nu'g_{\nu\gamma}'\right) \frac{1}{r_{\nu\gamma}}
             \left(\delta_{ij}-
-            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
+            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
             \frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
             \right) \\
             T_8 &= \sum_{\substack{\gamma\neq\nu \\ \gamma \neq \mu}}^{N}
-            U_\gamma'' g_{\gamma\nu}'g_{\gamma\mu}' 
+            U_\gamma'' g_{\gamma\nu}'g_{\gamma\mu}'
             \frac{r_{\gamma\nu i}}{r_{\gamma\nu}}
-            \frac{r_{\gamma\mu j}}{r_{\gamma\mu}} 
+            \frac{r_{\gamma\mu j}}{r_{\gamma\mu}}
 
 
         Parameters
@@ -327,16 +325,16 @@ class EAM(Calculator):
         Notes
         -----
         Notation:
-         * :math:`N` Number of atoms 
-         * :math:`\mathcal{V}_\mathrm{int}`  Total potential energy 
-         * :math:`\mathcal{V}_\mathrm{pair}` Pair potential 
-         * :math:`\mathcal{V}_\mathrm{embed}` Embedding energy 
-         * :math:`r_{\nu{}i}`  Component :math:`i` of the position vector of atom :math:`\nu` 
-         * :math:`r_{\nu\mu{}i} = r_{\mu{}i}-r_{\nu{}i}` 
+         * :math:`N` Number of atoms
+         * :math:`\mathcal{V}_\mathrm{int}`  Total potential energy
+         * :math:`\mathcal{V}_\mathrm{pair}` Pair potential
+         * :math:`\mathcal{V}_\mathrm{embed}` Embedding energy
+         * :math:`r_{\nu{}i}`  Component :math:`i` of the position vector of atom :math:`\nu`
+         * :math:`r_{\nu\mu{}i} = r_{\mu{}i}-r_{\nu{}i}`
          * :math:`r_{\nu\mu{}}` Norm of :math:`r_{\nu\mu{}i}`, i.e.\ :math:`\left(r_{\nu\mu{}1}^2+r_{\nu\mu{}2}^2+r_{\nu\mu{}3}^2\right)^{1/2}`
-         * :math:`\phi_{\nu\mu}(r_{\nu\mu{}})` Pair potential energy of atoms :math:`\nu` and :math:`\mu` 
-         * :math:`\rho_{\nu}` Total electron density of atom :math:`\nu`  
-         * :math:`U_\nu(\rho_nu)` Embedding energy of atom :math:`\nu` 
+         * :math:`\phi_{\nu\mu}(r_{\nu\mu{}})` Pair potential energy of atoms :math:`\nu` and :math:`\mu`
+         * :math:`\rho_{\nu}` Total electron density of atom :math:`\nu`
+         * :math:`U_\nu(\rho_nu)` Embedding energy of atom :math:`\nu`
          * :math:`g_{\delta}\left(r_{\gamma\delta}\right) \equiv g_{\gamma\delta}` Contribution from atom :math:`\delta` to :math:`\rho_\gamma`
          * :math:`m_\nu` mass of atom :math:`\nu`
         """
@@ -384,9 +382,9 @@ class EAM(Calculator):
         df_n = np.zeros_like(abs_dr_n)  # first derivative
         ddf_n = np.zeros_like(abs_dr_n) # second derivative
         for atidx1, atnum1 in enumerate(self._db_atomic_numbers):
-            f1 = self.f[atidx1]     
-            df1 = self.df[atidx1]   
-            ddf1 = self.ddf[atidx1] 
+            f1 = self.f[atidx1]
+            df1 = self.df[atidx1]
+            ddf1 = self.ddf[atidx1]
             mask1 = atnums[j_n]==atnum1
             if mask1.sum() > 0:
                 if type(f1) == list:
@@ -422,7 +420,7 @@ class EAM(Calculator):
         # to memory consumption. If we would divide by masses afterwards,
         # we would have to create a sparse matrix with the same size as the
         # Hessian matrix, i.e. we would momentarily need twice the given memory.
-        if divide_by_masses: 
+        if divide_by_masses:
             masses_i = atoms.get_masses().reshape(-1, 1, 1)
             geom_mean_mass_n = np.sqrt(
                 np.take(masses_i, i_n) * np.take(masses_i, j_n)
@@ -431,25 +429,25 @@ class EAM(Calculator):
             masses_i = None
             geom_mean_mass_n = None
 
-        #------------------------------------------------------------------------ 
+        #------------------------------------------------------------------------
         # Calculate pair contribution to the Hessian matrix
-        #------------------------------------------------------------------------ 
+        #------------------------------------------------------------------------
         first_i = first_neighbours(nat, i_n)
         e_nc = (dr_nc.T / abs_dr_n).T # normalized distance vectors r_i^{\mu\nu}
         outer_e_ncc = e_nc.reshape(-1, 3, 1) * e_nc.reshape(-1, 1, 3)
         eye_minus_outer_e_ncc = np.eye(3, dtype=e_nc.dtype) - outer_e_ncc
         D = self._calculate_hessian_pair_term(
-            nat, i_n, j_n, abs_dr_n, first_i, 
-            drep_n, ddrep_n, outer_e_ncc, eye_minus_outer_e_ncc, 
+            nat, i_n, j_n, abs_dr_n, first_i,
+            drep_n, ddrep_n, outer_e_ncc, eye_minus_outer_e_ncc,
             divide_by_masses, geom_mean_mass_n, masses_i
         )
         drep_n = None
         ddrep_n = None
 
-        #------------------------------------------------------------------------ 
+        #------------------------------------------------------------------------
         # Calculate contribution of embedding term
-        #------------------------------------------------------------------------ 
-        # For each pair in the neighborlist, create arrays which store the 
+        #------------------------------------------------------------------------
+        # For each pair in the neighborlist, create arrays which store the
         # derivatives of the embedding energy of the corresponding atoms.
         demb_i_n = np.take(demb_i, i_n)
         demb_j_n = np.take(demb_i, j_n)
@@ -463,7 +461,7 @@ class EAM(Calculator):
         reverse = find_indices_of_reversed_pairs(i_n, j_n, abs_dr_n)
         df_i_n = np.take(df_n, reverse)
         ddf_i_n = np.take(ddf_n, reverse)
-        #we already have ddf_j_n = ddf_n 
+        #we already have ddf_j_n = ddf_n
         reverse = None
 
         df_n_e_nc_outer_product = (df_n * e_nc.T).T
@@ -475,20 +473,20 @@ class EAM(Calculator):
         df_n_e_nc_outer_product = None
 
         D += self._calculate_hessian_embedding_term_1(
-            nat, ddemb_i, df_e_ni, 
+            nat, ddemb_i, df_e_ni,
             divide_by_masses, masses_i
         )
         D += self._calculate_hessian_embedding_term_2(
-            nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni, 
+            nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni,
             divide_by_masses, geom_mean_mass_n
         )
         D += self._calculate_hessian_embedding_term_3(
-            nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni, 
+            nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni,
             divide_by_masses, geom_mean_mass_n
         )
         df_e_ni = None
         D += self._calculate_hessian_embedding_terms_4_and_5(
-            nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
+            nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n,
             divide_by_masses, masses_i, geom_mean_mass_n
         )
         outer_e_ncc = None
@@ -509,8 +507,14 @@ class EAM(Calculator):
         )
         return D
 
+    def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
+        H = self.calculate_hessian_matrix(atoms, divide_by_masses=divide_by_masses)
+        if format == 'dense':
+            H = H.todense()
+        return H
+
     def _calculate_hessian_pair_term(
-        self, nat, i_n, j_n, abs_dr_n, first_i, drep_n, ddrep_n, outer_e_ncc, eye_minus_outer_e_ncc, 
+        self, nat, i_n, j_n, abs_dr_n, first_i, drep_n, ddrep_n, outer_e_ncc, eye_minus_outer_e_ncc,
         divide_by_masses=False, geom_mean_mass_n=None, masses_i=None):
         """Calculate the pair energy contribution to the Hessian.
 
@@ -523,7 +527,7 @@ class EAM(Calculator):
         abs_dr_n : array_like
             Length of distance vectors between neighbors
         first_i : array_like
-            Indices in :code:`i_n` where contiguous 
+            Indices in :code:`i_n` where contiguous
             blocks with the same value start
         drep_n : array_like
             First derivative of the pair energy with
@@ -544,7 +548,7 @@ class EAM(Calculator):
         D_ncc += -(drep_n / abs_dr_n * eye_minus_outer_e_ncc.T).T
         if divide_by_masses:
             D = bsr_matrix(
-                (D_ncc / geom_mean_mass_n, j_n, first_i), 
+                (D_ncc / geom_mean_mass_n, j_n, first_i),
                 shape=(3*nat, 3*nat)
             )
         else:
@@ -558,20 +562,20 @@ class EAM(Calculator):
         # put 3x3 blocks on diagonal (Kronecker Delta delta_{\mu\nu})
         D += bsr_matrix((Ddiag, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
         return D
-    
-    def _calculate_hessian_embedding_term_1(self, nat, ddemb_i, df_e_ni, 
+
+    def _calculate_hessian_embedding_term_1(self, nat, ddemb_i, df_e_ni,
         divide_by_masses=False, masses_i=None, symmetry_check=False):
-        """Calculate term 1 in the embedding part of the Hessian matrix.
+        r"""Calculate term 1 in the embedding part of the Hessian matrix.
 
         .. math::
 
             T_{\nu\mu}^{(1)} = \delta_{\nu\mu}U_\nu''
-            \sum_{\gamma\neq\nu}^{\natoms}g_{\nu\gamma}'\frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
-            \sum_{\gamma\neq\nu}^{\natoms}g_{\nu\gamma}'\frac{r_{\nu\gamma j}}{r_{\nu\gamma}} 
+            \sum_{\gamma\neq\nu}^{\natoms}g_{\nu\gamma}'\frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
+            \sum_{\gamma\neq\nu}^{\natoms}g_{\nu\gamma}'\frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
 
         This term is likely zero in equilibrium because
         the sum is zero (appears in the force vector).
-            
+
         Parameters
         ----------
         nat : int
@@ -596,24 +600,24 @@ class EAM(Calculator):
         term_1_ncc = ((ddemb_i * df_e_ni.T).T).reshape(-1,3,1) * df_e_ni.reshape(-1,1,3)
         if divide_by_masses:
             term_1_ncc /= masses_i
-        term_1 = bsr_matrix((term_1_ncc, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat)) 
-        if symmetry_check: 
+        term_1 = bsr_matrix((term_1_ncc, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
+        if symmetry_check:
             print("check term 1", np.linalg.norm(term_1.todense() - term_1.todense().T))
         return term_1
-    
-    def _calculate_hessian_embedding_term_2(self, nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni, 
+
+    def _calculate_hessian_embedding_term_2(self, nat, j_n, first_i, ddemb_i, df_i_n, e_nc, df_e_ni,
         divide_by_masses=False, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 2 in the embedding part of the Hessian matrix.
+        r"""Calculate term 2 in the embedding part of the Hessian matrix.
 
         .. math::
 
-            T_{\nu\mu}^{(2)} = 
-            -u_\nu''g_{\nu\mu}' \frac{r_{\nu\mu j}}{r_{\nu\mu}} \sum_{\gamma\neq\nu}^{\natoms} 
+            T_{\nu\mu}^{(2)} =
+            -u_\nu''g_{\nu\mu}' \frac{r_{\nu\mu j}}{r_{\nu\mu}} \sum_{\gamma\neq\nu}^{\natoms}
             g_{\nu\gamma}' \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
 
         This term is likely zero in equilibrium because
         the sum is zero (appears in the force vector).
-            
+
         Parameters
         ----------
         nat : int
@@ -621,7 +625,7 @@ class EAM(Calculator):
         j_n : array_like
             Indices of neighbor atoms
         first_i : array_like
-            Indices in :code:`i_n` where contiguous 
+            Indices in :code:`i_n` where contiguous
             blocks with the same value start
         ddemb_i : array_like
             Second derivative of the embedding energy
@@ -653,23 +657,23 @@ class EAM(Calculator):
         if divide_by_masses:
             term_2_ncc /= geom_mean_mass_n
         term_2 = bsr_matrix((term_2_ncc, j_n, first_i), shape=(3*nat, 3*nat))
-        if symmetry_check: 
+        if symmetry_check:
             print("check term 2", np.linalg.norm(term_2.todense() - term_2.todense().T))
         return term_2
-    
-    def _calculate_hessian_embedding_term_3(self, nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni, 
+
+    def _calculate_hessian_embedding_term_3(self, nat, i_n, j_n, first_i, ddemb_i, df_n, e_nc, df_e_ni,
         divide_by_masses=False, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 3 in the embedding part of the Hessian matrix.
+        r"""Calculate term 3 in the embedding part of the Hessian matrix.
 
         .. math::
 
-            T_{\nu\mu}^{(3)} = 
-            +u_\mu''g_{\mu\nu}' \frac{r_{\nu\mu i}}{r_{\nu\mu}} \sum_{\gamma\neq\mu}^{\natoms} 
-            g_{\mu\gamma}' \frac{r_{\mu\gamma j}}{r_{\mu\gamma}} 
+            T_{\nu\mu}^{(3)} =
+            +u_\mu''g_{\mu\nu}' \frac{r_{\nu\mu i}}{r_{\nu\mu}} \sum_{\gamma\neq\mu}^{\natoms}
+            g_{\mu\gamma}' \frac{r_{\mu\gamma j}}{r_{\mu\gamma}}
 
         This term is likely zero in equilibrium because
         the sum is zero (appears in the force vector).
-            
+
         Parameters
         ----------
         nat : int
@@ -677,7 +681,7 @@ class EAM(Calculator):
         i_n, j_n : array_like
             Neighbor pairs
         first_i : array_like
-            Indices in :code:`i_n` where contiguous 
+            Indices in :code:`i_n` where contiguous
             blocks with the same value start
         ddemb_i : array_like
             Second derivative of the embedding energy
@@ -710,20 +714,20 @@ class EAM(Calculator):
         if divide_by_masses:
             term_3_ncc /= geom_mean_mass_n
         term_3 = bsr_matrix((term_3_ncc, j_n, first_i), shape=(3*nat, 3*nat))
-        if symmetry_check: 
+        if symmetry_check:
             print("check term 3", np.linalg.norm(term_3.todense() - term_3.todense().T))
         return term_3
-    
+
     def _calculate_hessian_embedding_terms_4_and_5(
-        self, nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n, 
+        self, nat, first_i, i_n, j_n, outer_e_ncc, demb_i_n, demb_j_n, ddf_i_n, ddf_n,
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 4 and 5 in the embedding part of the Hessian matrix.
+        r"""Calculate term 4 and 5 in the embedding part of the Hessian matrix.
 
         .. math::
 
             T_{\nu\mu}^{(4)} &= -\left(u_\mu'g_{\mu\nu}'' + u_\nu'g_{\nu\mu}''\right)
             \left(
-            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}}
             \frac{r_{\nu\mu j}}{r_{\nu\mu}}
             \right)\\
             T_{\nu\mu}^{(5)} &= \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{N}
@@ -731,7 +735,7 @@ class EAM(Calculator):
             \left(
             \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
             \frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
-            \right) 
+            \right)
 
         Parameters
         ----------
@@ -740,7 +744,7 @@ class EAM(Calculator):
         i_n, j_n : array_like
             Neighbor pairs
         first_i : array_like
-            Indices in :code:`i_n` where contiguous 
+            Indices in :code:`i_n` where contiguous
             blocks with the same value start
         ddemb_i : array_like
             Second derivative of the embedding energy
@@ -766,45 +770,45 @@ class EAM(Calculator):
         -------
         D : scipy.sparse.bsr_matrix
         """
-        tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_e_ncc.T).T 
-        # We don't immediately add term 4 to the matrix, because it would have 
+        tmp_1 = -((demb_j_n * ddf_i_n + demb_i_n * ddf_n) * outer_e_ncc.T).T
+        # We don't immediately add term 4 to the matrix, because it would have
         # to be normalized by the masses if divide_by_masses is true. However,
         # for construction of term 5, we need term 4 without normalization
         tmp_1_summed = np.empty((nat, 3, 3), dtype=tmp_1.dtype)
         for x in range(3):
             for y in range(3):
-                tmp_1_summed[:, x, y] = -np.bincount(i_n, weights=tmp_1[:, x, y]) 
+                tmp_1_summed[:, x, y] = -np.bincount(i_n, weights=tmp_1[:, x, y])
         if divide_by_masses:
             tmp_1_summed /= masses_i
         term_5 = bsr_matrix((tmp_1_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
-        if symmetry_check: 
+        if symmetry_check:
             print("check term 5", np.linalg.norm(term_5.todense() - term_5.todense().T))
         if divide_by_masses:
             tmp_1 /= geom_mean_mass_n
         term_4 = bsr_matrix((tmp_1, j_n, first_i), shape=(3*nat, 3*nat))
-        if symmetry_check: 
+        if symmetry_check:
             print("check term 4", np.linalg.norm(term_4.todense() - term_4.todense().T))
         return term_4 + term_5
-    
+
     def _calculate_hessian_embedding_terms_6_and_7(
         self, nat, i_n, j_n, first_i, abs_dr_n, eye_minus_outer_e_ncc, demb_i_n, demb_j_n, df_n, df_i_n,
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 6 and 7 in the embedding part of the Hessian matrix.
+        r"""Calculate term 6 and 7 in the embedding part of the Hessian matrix.
 
         .. math::
 
             T_{\nu\mu}^{(6)} &= -\left(U_\mu'g_{\mu\nu}' + U_\nu'g_{\nu\mu}'\right) \frac{1}{r_{\nu\mu}}
             \left(
-            \delta_{ij}- 
-            \frac{r_{\nu\mu i}}{r_{\nu\mu}} 
+            \delta_{ij}-
+            \frac{r_{\nu\mu i}}{r_{\nu\mu}}
             \frac{r_{\nu\mu j}}{r_{\nu\mu}}
             \right) \\
             T_{\nu\mu}^{(7)}&= \delta_{\nu\mu} \sum_{\gamma\neq\nu}^{N}
             \left(U_\gamma'g_{\gamma\nu}' + U_\nu'g_{\nu\gamma}'\right) \frac{1}{r_{\nu\gamma}}
             \left(\delta_{ij}-
-            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}} 
+            \frac{r_{\nu\gamma i}}{r_{\nu\gamma}}
             \frac{r_{\nu\gamma j}}{r_{\nu\gamma}}
-            \right) 
+            \right)
 
         Parameters
         ----------
@@ -813,7 +817,7 @@ class EAM(Calculator):
         i_n, j_n : array_like
             Neighbor pairs
         first_i : array_like
-            Indices in :code:`i_n` where contiguous 
+            Indices in :code:`i_n` where contiguous
             blocks with the same value start
         abs_dr_n : array_like
             Length of distance vectors between neighbors
@@ -845,36 +849,36 @@ class EAM(Calculator):
         -------
         D : scipy.sparse.bsr_matrix
         """
-        # Like term 4, which was needed to construct term 5, we don't add 
+        # Like term 4, which was needed to construct term 5, we don't add
         # term 6 immediately, because it is needed for construction of term 7
         tmp_2 = -((demb_j_n * df_i_n + demb_i_n * df_n) / abs_dr_n * eye_minus_outer_e_ncc.T).T
         tmp_2_summed = np.empty((nat, 3, 3), dtype=tmp_2.dtype)
         for x in range(3):
             for y in range(3):
-                tmp_2_summed[:, x, y] = -np.bincount(i_n, weights=tmp_2[:, x, y]) 
+                tmp_2_summed[:, x, y] = -np.bincount(i_n, weights=tmp_2[:, x, y])
         if divide_by_masses:
             tmp_2_summed /= masses_i
         term_7 = bsr_matrix((tmp_2_summed, np.arange(nat), np.arange(nat+1)), shape=(3*nat, 3*nat))
-        if symmetry_check: 
+        if symmetry_check:
             print("check term 7", np.linalg.norm(term_7.todense() - term_7.todense().T))
         if divide_by_masses:
             tmp_2 /= geom_mean_mass_n
         term_6 = bsr_matrix((tmp_2, j_n, first_i), shape=(3*nat, 3*nat))
-        if symmetry_check: 
+        if symmetry_check:
             print("check term 6", np.linalg.norm(term_6.todense() - term_6.todense().T))
         return term_6 + term_7
-    
+
     def _calculate_hessian_embedding_term_8(self, nat, i_n, j_n, e_nc, ddemb_i, df_i_n,
         divide_by_masses=False, masses_i=None, geom_mean_mass_n=None, symmetry_check=False):
-        """Calculate term 8 in the embedding part of the Hessian matrix.
+        r"""Calculate term 8 in the embedding part of the Hessian matrix.
 
         .. math::
 
-            T_{\nu\mu}^{(8)} = 
+            T_{\nu\mu}^{(8)} =
             \sum_{\substack{\gamma\neq\nu \\ \gamma \neq \mu}}^{N}
-            U_\gamma'' g_{\gamma\nu}'g_{\gamma\mu}' 
+            U_\gamma'' g_{\gamma\nu}'g_{\gamma\mu}'
             \frac{r_{\gamma\nu i}}{r_{\gamma\nu}}
-            \frac{r_{\gamma\mu j}}{r_{\gamma\mu}} 
+            \frac{r_{\gamma\mu j}}{r_{\gamma\mu}}
 
         This term requires knowledge of common neighbors of pairs of atoms.
 
@@ -885,7 +889,7 @@ class EAM(Calculator):
         i_n, j_n : array_like
             Neighbor pairs
         first_i : array_like
-            Indices in :code:`i_n` where contiguous 
+            Indices in :code:`i_n` where contiguous
             blocks with the same value start
         ddemb_i : array_like
             Second derivative of the embedding energy
@@ -915,14 +919,14 @@ class EAM(Calculator):
         cnl_j1 = None
         tmp_3_summed = np.empty((unique_pairs_i1_i2.shape[0], 3, 3), dtype=e_nc.dtype)
         for x, y in np.ndindex(3, 3):
-            weights = (tmp_3 * 
-                np.take(e_nc[:, x], nl_index_i1_j1) * 
+            weights = (tmp_3 *
+                np.take(e_nc[:, x], nl_index_i1_j1) *
                 np.take(e_nc[:, y], nl_index_i2_j1)
             )
             tmp_3_summed[:, x, y] = np.bincount(
-                    bincount_bins, weights=weights, 
+                    bincount_bins, weights=weights,
                     minlength=unique_pairs_i1_i2.shape[0]
-            ) 
+            )
         nl_index_i1_j1 = None
         nl_index_i2_j1 = None
         weights = None

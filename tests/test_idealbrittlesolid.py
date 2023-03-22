@@ -1,4 +1,23 @@
-#! /usr/bin/env python
+#
+# Copyright 2014-2015, 2017, 2020-2021 Lars Pastewka (U. Freiburg)
+#           2014 James Kermode (Warwick U.)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 # ======================================================================
 # matscipy - Python materials science tools
@@ -29,9 +48,12 @@ import ase
 import ase.lattice.hexagonal
 
 import matscipytest
-from matscipy.fracture_mechanics.idealbrittlesolid import (find_triangles_2d,
-                                                           IdealBrittleSolid,
-                                                           triangular_lattice_slab)
+from matscipy.fracture_mechanics.idealbrittlesolid import (
+    find_triangles_2d,
+    IdealBrittleSolid,
+    triangular_lattice_slab,
+)
+from matscipy.numerical import numerical_forces, numerical_stress
 
 ###
 
@@ -45,10 +67,10 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         a.set_calculator(calc)
         a.rattle(0.1)
         f = a.get_forces()
-        fn = calc.calculate_numerical_forces(a)
+        fn = numerical_forces(a)
         self.assertArrayAlmostEqual(f, fn, tol=self.tol)
         self.assertArrayAlmostEqual(a.get_stress(),
-                                    calc.calculate_numerical_stress(a),
+                                    numerical_stress(a),
                                     tol=self.tol)
 
     def test_forces_linear(self):
@@ -58,7 +80,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         a.set_calculator(calc)
         a.rattle(0.01)
         f = a.get_forces()
-        fn = calc.calculate_numerical_forces(a)
+        fn = numerical_forces(a)
         self.assertArrayAlmostEqual(f, fn, tol=self.tol)
 
     def test_two_triangles(self):

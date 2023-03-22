@@ -1,9 +1,10 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
+# Copyright 2014-2015, 2017, 2021 Lars Pastewka (U. Freiburg)
+#           2014-2016, 2018, 2020-2021 James Kermode (Warwick U.)
+#           2015-2017 Punit Patel (Warwick U.)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,9 +18,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
-
-from __future__ import print_function
+#
 
 import math
 import warnings
@@ -27,9 +26,9 @@ import time
 
 import numpy as np
 from numpy.linalg import inv
+
 try:
-    from scipy.optimize.nonlin import NoConvergence
-    from scipy.optimize import brentq, leastsq, minimize, root
+    from scipy.optimize import NoConvergence, brentq, leastsq, minimize, root
     from scipy.sparse import csc_matrix, spdiags
     from scipy.sparse.linalg import spsolve, spilu, LinearOperator
 except ImportError:
@@ -1909,8 +1908,8 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     a.set_array('above', above)
     a.set_array('below', below)
 
-    bond1 = np.asscalar(above.nonzero()[0][a.positions[above, 0].argmax()])
-    bond2 = np.asscalar(below.nonzero()[0][a.positions[below, 0].argmax()])
+    bond1 = above.nonzero()[0][a.positions[above, 0].argmax()]
+    bond2 = below.nonzero()[0][a.positions[below, 0].argmax()]
 
     # These need to be ints, otherwise they are no JSON serializable.
     a.info['bond1'] = bond1
@@ -2064,7 +2063,7 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
     clf()
     for i, (ii, jj), label in zip(range(3),
                                   [(0,0), (1,1), (0,1)],
-                                  ['\sigma_{xx}', r'\sigma_{yy}', r'\sigma_{xy}']):
+                                  [r'\sigma_{xx}', r'\sigma_{yy}', r'\sigma_{xy}']):
         subplot(3,3,i+1)
         gca().set_aspect('equal')
         contourf(X, Y, grid_sigma[...,i]*GPA, contours[i])

@@ -1,8 +1,8 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2020) Johannes Hoermann, University of Freiburg
+# Copyright 2020 Johannes Hoermann (U. Freiburg)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -11,12 +11,12 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 """Enforces minimum distances on coordinates within discrete distribtution.
 
 Copyright 2020 IMTEK Simulation
@@ -136,11 +136,12 @@ Benchmark different scipy optimizers for the steric correction problem:
 import logging
 import time
 
-import _matscipy
 import numpy as np
 
 import scipy.optimize
 import scipy.spatial.distance
+
+from . import ffi
 
 
 # https://stackoverflow.com/questions/21377020/python-how-to-do-lazy-debug-logging
@@ -698,7 +699,7 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
     # If thhe parameter 'cutoff' is a per-atom value, then it must be a
     # diamater, not a radius (as wrongly stated within the function's
     # docstring)
-    i, j, dxijnorm, dxijvec = _matscipy.neighbour_list(
+    i, j, dxijnorm, dxijvec = ffi.neighbour_list(
         'ijdD', cell_origin, cell, np.linalg.inv(cell.T), [0,0,0],
         x, 2.0*Ri, np.ones(len(x),dtype=np.int32))
     # i, j are coordinate point indices, dxijnorm is pairwise distance,

@@ -1,4 +1,8 @@
 .gitignore
+.idea
+
+# Meson files
+.mesonpy-native-file.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -23,6 +27,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+.eggs
 
 # Installer logs
 pip-log.txt

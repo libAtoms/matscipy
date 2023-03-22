@@ -1,3 +1,23 @@
+#
+# Copyright 2021 Lars Pastewka (U. Freiburg)
+#           2019-2021 Johannes Hoermann (U. Freiburg)
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 import ase.io
 import io
 import matscipytest
@@ -38,11 +58,11 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
             os.path.join(self.data_path,'NaCl.lammps'),format='lammps-data')
 
         # command line interface scripts are expected to reside within
-        # ../scripts/electrochemistry relative to thi test directory
+        # ../matscipy/cli/electrochemistry relative to this test directory
         self.pnp_cli = os.path.join(
-            self.test_path,os.path.pardir,'scripts','electrochemistry','pnp.py')
+            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','pnp.py')
         self.c2d_cli = os.path.join(
-            self.test_path,os.path.pardir,'scripts','electrochemistry','c2d.py')
+            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','c2d.py')
 
         self.assertTrue(os.path.exists(self.pnp_cli))
         self.assertTrue(os.path.exists(self.c2d_cli))
@@ -73,7 +93,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
                 [ 'c2d', os.path.join(self.data_path,'NaCl.npz'), 'NaCl.xyz' ],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, env=self.myenv)
-            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'))
+            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'), format='extxyz')
             self.assertEqual(len(xyz),len(self.ref_xyz))
             self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges() ==
@@ -88,12 +108,12 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
                 [ 'c2d', os.path.join(self.data_path,'NaCl.txt'), 'NaCl.xyz' ],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, env=self.myenv)
-            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'))
+            xyz = ase.io.read(os.path.join(tmpdir,'NaCl.xyz'), format='extxyz')
             self.assertEqual(len(xyz), len(self.ref_xyz))
-            self.assertTrue( ( xyz.symbols ==  self.ref_xyz.symbols ).all() )
+            self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges()
-                ==  self.ref_xyz.get_initial_charges() ).all() )
-            self.assertTrue( ( xyz.cell ==  self.ref_xyz.cell ).all() )
+                == self.ref_xyz.get_initial_charges() ).all() )
+            self.assertTrue( ( xyz.cell == self.ref_xyz.cell ).all() )
 
     @unittest.skipUnless(LooseVersion(ase.__version__) > LooseVersion('3.19.0'),
         """ LAMMPS data file won't work for ASE version up until 3.18.1,
@@ -169,7 +189,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             c2d_output = c2d.communicate()[0]
             with io.StringIO(c2d_output) as xyz_instream:
-                xyz = ase.io.read(xyz_instream, format='xyz')
+                xyz = ase.io.read(xyz_instream, format='extxyz')
             self.assertEqual(len(xyz),len(self.ref_xyz))
             self.assertTrue( ( xyz.symbols == self.ref_xyz.symbols ).all() )
             self.assertTrue( ( xyz.get_initial_charges()

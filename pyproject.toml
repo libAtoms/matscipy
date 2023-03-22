@@ -1,0 +1,39 @@
+[build-system]
+requires = ["meson>=0.46.0", "meson-python>=0.11.0", "ninja", "oldest-supported-numpy"]
+build-backend = "mesonpy"
+
+[project]
+name = "matscipy"
+description = "Generic Python Materials Science tools"
+readme = "README.rst"
+license = { file = "LICENSE" }
+authors = [
+    { name = "James Kermode", email = "james.kermode@gmail.com"},
+    { name = "Lars Pastewka", email = "lars.pastewka@imtek.uni-freiburg.de" }
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python"
+]
+requires-python = ">=3.7.0"
+dynamic = [ "version" ]
+dependencies = [
+    "numpy>=1.16.0",
+    "scipy>=1.2.3",
+    "ase>=3.16.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "sympy"
+]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+]
+
+[project.urls]
+documentation = "http://libatoms.github.io/matscipy/"
+repository = "https://github.com/libAtoms/matscipy"
+changelog = "https://github.com/libAtoms/matscipy/blob/master/ChangeLog.md"

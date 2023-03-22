@@ -1,10 +1,10 @@
-# ======================================================================
-# matscipy - Python materials science tools
-# https://github.com/libAtoms/matscipy
 #
-# Copyright (2014) James Kermode, King's College London
-#                  Lars Pastewka, Karlsruhe Institute of Technology
-#                  Adrien Gola, Karlsruhe Institute of Technology
+# Copyright 2015, 2021 Lars Pastewka (U. Freiburg)
+#           2015-2016 Adrien Gola (KIT)
+#           2015 gola@cmsserv.iam-cms.kit.edu
+#
+# matscipy - Materials science with Python at the atomic-scale
+# https://github.com/libAtoms/matscipy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,18 +13,16 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-# ======================================================================
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 """
 Helper routines for potential fitting
 """
-
-from __future__ import print_function
 
 from math import atanh, sqrt, tanh, isnan
 import sys
