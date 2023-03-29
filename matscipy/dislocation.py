@@ -27,7 +27,8 @@ from scipy.optimize import minimize
 
 from ase.lattice.cubic import BodyCenteredCubic
 from ase.constraints import FixAtoms, StrainFilter
-from ase.optimize import FIRE
+#from ase.optimize import FIRE
+from ase.optimize.precon import PreconLBFGS
 from ase.build import bulk
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
@@ -470,7 +471,8 @@ def get_elastic_constants(pot_path=None,
 #   simple calculation to get the lattice constant and cohesive energy
 #    alat0 = W.cell[0][1] - W.cell[0][0]
     sf = StrainFilter(unit_cell)  # or UnitCellFilter(W) -> to minimise wrt pos, cell
-    opt = FIRE(sf)
+    #opt = FIRE(sf)
+    opt = PreconLBFGS(sf)
     opt.run(fmax=1e-4)  # max force in eV/A
     alat = unit_cell.cell[0][1] - unit_cell.cell[0][0]
 #    print("a0 relaxation %.4f --> %.4f" % (a0, a))
