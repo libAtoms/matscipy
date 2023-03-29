@@ -28,7 +28,8 @@ import numpy as np
 from numpy.linalg import inv
 
 try:
-    from scipy.optimize import NoConvergence, brentq, leastsq, minimize, root
+    from scipy.optimize.nonlin import NoConvergence
+    from scipy.optimize import brentq, leastsq, minimize, root
     from scipy.sparse import csc_matrix, spdiags
     from scipy.sparse.linalg import spsolve, spilu, LinearOperator
 except ImportError:
@@ -36,6 +37,7 @@ except ImportError:
 
 import ase.units as units
 from ase.optimize.precon import Exp
+from ase.optimize.ode import ode12r
 
 from matscipy.atomic_strain import atomic_strain
 from matscipy.elasticity import (rotate_elastic_constants,
@@ -44,6 +46,7 @@ from matscipy.elasticity import (rotate_elastic_constants,
 from matscipy.surface import MillerDirection, MillerPlane
 
 from matscipy.neighbours import neighbour_list
+
 
 ###
 
@@ -770,7 +773,7 @@ class SinclairCrack:
 
         a0 = self.atoms.copy()
         self.x0 = a0.get_positions()
-        self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
+        #self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
         a0_II_III = a0[self.regionII | self.regionIII]
         f0bar = self.calc.get_forces(a0_II_III)
         self.f0bar = f0bar[a0_II_III.arrays['region'] == 2]
@@ -1192,6 +1195,17 @@ class SinclairCrack:
                                 'maxiter': steps,
                                 'jac_options': {'inner_M': M}},
                        callback=log)
+            
+        elif method == 'ode12r':
+
+            class ODEResult:
+                def __init__(self, success, x, nit):
+                    self.success = success
+                    self.x = x
+                    self.nit = nit
+
+            x = ode12r(residuals, x0, verbose=2, fmax=ftol, steps=steps)
+            res = ODEResult(True, x, 1)
         else:
             raise RuntimeError(f'unknown method {method}')
 
@@ -1204,8 +1218,8 @@ class SinclairCrack:
 
     def get_potential_energy(self):
         # E1: energy of region I and II atoms
-        E = self.atoms.get_potential_energies()[self.regionI_II].sum()
-        E1 = E - self.E0
+        #E = self.atoms.get_potential_energies()[self.regionI_II].sum()
+        #E1 = E - self.E0
 
         # E2: energy of far-field (region III)
         regionII_III = self.regionII | self.regionIII
@@ -1242,7 +1256,7 @@ class SinclairCrack:
                                 continuation=False, traj_file='x_traj.h5',
                                 traj_interval=1,
                                 precon=False,
-                                ds_max=np.inf,
+                                ds_max=np.inf, ds_min=0,
                                 ds_aggressiveness=2,
                                 cos_alpha_min=0.9):
         import h5py
@@ -1281,11 +1295,16 @@ class SinclairCrack:
             self.set_dofs(x2)
             try:
                 num_steps = self.optimize(ftol, max_steps, args=(x1, xdot1, ds), precon=precon)
+                #num_steps = self.optimize(ftol, max_steps, args=(x1, xdot1, ds), precon=precon,method='ode12r')
                 print(f'Corrector converged in {num_steps}/{max_steps} steps')
             except NoConvergence:
-                ds *= 0.5
-                print(f'Corrector failed to converge, reducing step size to ds={ds}')
-                continue
+                if ds < ds_min:
+                    print(f'Corrector failed to converge even with ds={ds}<{ds_min}. Aborting job.')
+                    break
+                else:
+                    ds *= 0.5
+                    print(f'Corrector failed to converge, reducing step size to ds={ds}')
+                    continue
 
             x2 = self.get_dofs()
             xdot2 = self.get_xdot(x1, x2, ds)
@@ -1332,7 +1351,7 @@ class SinclairCrack:
                 + ds_aggressiveness
                 * ((max_steps - num_steps) / (max_steps - 1)) ** 2
             )
-            ds = min(ds_max, ds)
+            ds = min(ds_max, ds) 
             i += 1
 
     def plot(self, ax=None, regions='1234', styles=None, bonds=None, cutoff=2.8,
