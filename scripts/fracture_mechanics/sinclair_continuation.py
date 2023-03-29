@@ -27,7 +27,7 @@ import h5py
 import ase.io
 from ase.units import GPa
 from ase.constraints import FixAtoms
-from ase.optimize import LBFGSLineSearch
+#from ase.optimize import LBFGSLineSearch
 from ase.optimize.precon import PreconLBFGS
 
 from matscipy import parameter
@@ -35,12 +35,12 @@ from matscipy.elasticity import  fit_elastic_constants
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 
 from scipy.optimize import fsolve, fminbound
+from scipy.optimize.nonlin import NoConvergence
 
 import sys
 sys.path.insert(0, '.')
 
 import params
-
 calc = parameter('calc')
 fmax = parameter('fmax', 1e-3)
 max_opt_steps = parameter('max_opt_steps', 100)
@@ -61,43 +61,54 @@ traj_file = parameter('traj_file', 'x_traj.h5')
 restart_file = parameter('restart_file', traj_file)
 traj_interval = parameter('traj_interval', 1)
 direction = parameter('direction', +1)
+ds_max = parameter('ds_max', 0.1)
+ds_min = parameter('ds_min', 1e-6)
+ds_aggressiveness=parameter('ds_aggressiveness', 1.25)
+
+
+# make copies of initial configs
+cryst = params.cryst.copy()
+cluster = params.cluster.copy()
 
 # compute elastic constants
-cryst = params.cryst.copy()
 cryst.pbc = True
 cryst.calc = calc
-C, C_err = fit_elastic_constants(cryst,
-                                 symmetry=parameter('elastic_symmetry',
-                                                    'triclinic'))
+C, C_err = fit_elastic_constants(cryst, symmetry=parameter('elastic_symmetry','triclinic'))
 
+# setup the crack
 crk = CubicCrystalCrack(parameter('crack_surface'),
                         parameter('crack_front'),
                         Crot=C/GPa)
 
-# Get Griffith's k1.
+# get Griffith's stess intensity factor
 k1g = crk.k1g(parameter('surface_energy'))
 print('Griffith k1 = %f' % k1g)
 
-cluster = params.cluster.copy()
-
+# check for restart files if continuation=True
 if continuation and not os.path.exists(restart_file):
     continuation = False
-
 if continuation:
+
+    # works only if restart file contains atleast two consecutive flex solutions
     with h5py.File(restart_file, 'r') as hf:
         x = hf['x']
         restart_index = parameter('restart_index', x.shape[0] - 1)
         x0 = x[restart_index-1, :]
         x1 = x[restart_index, :]
-        k0 = x0[-1] / k1g
+        k0 = x0[-1] / k1g ; k1 = x1[-1] / k1g
+        alpha0 = x0[-2] / k1g ; alpha1 = x1[-2] / k1g
+        # print restart info
+        print(f'Restarting from k0={k0}, k1={k1} --> alpha0={alpha0}, alpha1={alpha1}')
 
-sc = SinclairCrack(crk, cluster, calc, k0 * k1g,
-                   alpha=alpha0,
+else:
+
+    # setup Sinclair boundary conditions with variable_alpha and no variable_k, for approx solution
+    sc = SinclairCrack(crk, cluster, calc, 
+                   k0*k1g, alpha=alpha0,
                    vacuum=vacuum,
                    variable_alpha=flexible,
                    extended_far_field=extended_far_field)
 
-if not continuation:
     traj = None
     dk = parameter('dk', 1e-4)
     dalpha = parameter('dalpha', 1e-3)
@@ -108,6 +119,7 @@ if not continuation:
         a = ase.io.read(f'k_{int(k0 * 1000):04d}.xyz')
         sc.set_atoms(a)
 
+    # setup mask fpr relevant regions
     mask = sc.regionI | sc.regionII
     if extended_far_field:
         mask = sc.regionI | sc.regionII | sc.regionIII
@@ -119,23 +131,21 @@ if not continuation:
         sc.update_atoms()
         return sc.get_crack_tip_force(mask=mask)
 
-    # # identify approximate range of stable k
-    # alpha_range = parameter('alpha_range', np.linspace(-a0, a0, 100))
-    # k = k0  # initial guess for k
-    # alpha_k = []
-    # for alpha in alpha_range:
-    #     # look for solution to f(k, alpha) = 0 close to alpha = alpha
-    #     (k,) = fsolve(f, k, args=(alpha,))
-    #     print(f'alpha={alpha:.3f} k={k:.3f} ')
-    #     alpha_k.append((alpha, k))
-    # alpha_k = np.array(alpha_k)
-    # kmin, kmax = alpha_k[:, 1].min(), alpha_k[:, 1].max()
-    # print(f'Estimated stable K range is {kmin} < k / k_G < {kmax}')
+    # identify approximate range of stable k
+    alpha_range = parameter('alpha_range', np.linspace(-a0, a0, 20))
+    k = k0  # initial guess for k
+    alpha_k = []
+    for alpha in alpha_range:
+        # look for solution to f(k, alpha) = 0 close to alpha = alpha
+        (k,) = fsolve(f, k, args=(alpha,))
+        print(f'alpha={alpha:.3f} k={k:.3f} ')
+        alpha_k.append((alpha, k))
+    alpha_k = np.array(alpha_k)
+    kmin, kmax = alpha_k[:, 1].min(), alpha_k[:, 1].max()
+    print(f'Estimated stable K range is {kmin} < k / k_G < {kmax}')
 
     # define a function to relax with static scheme at a given value of k
-
     traj = open("traj.xyz", "w")
-
     def g(k, do_abs=True):
         print(f'Static minimisation with k={k}, alpha={alpha0}.')
         sc.k = k * k1g
@@ -146,8 +156,8 @@ if not continuation:
         atoms = sc.atoms.copy()
         atoms.calc = sc.calc
         atoms.set_constraint(FixAtoms(mask=~sc.regionI))
-        #opt = PreconLBFGS(atoms, logfile=None)
-        opt = LBFGSLineSearch(atoms)
+        opt = PreconLBFGS(atoms, logfile=None)
+        #opt = LBFGSLineSearch(atoms)
         opt.run(fmax=1e-3)
         atoms.write(traj, format="extxyz")
         sc.set_atoms(atoms)
@@ -157,63 +167,59 @@ if not continuation:
             f_alpha = abs(f_alpha)
         return f_alpha
 
-    # ks = np.linspace(0.7, 1.3, 20)
-    # f_alphas = []
-    # for k in ks:
-    #     f_alphas.append(g(k, do_abs=False))
-    # np.savetxt('k_alpha.txt', np.c_[ks, f_alphas])
-
     # minimise g(k) in [kmin, kmax]
-    # kopt, falpha_min, ierr, funccalls = fminbound(g, kmin, kmax, xtol=1e-8, full_output=True)
-    # print(f'Brent minimisation yields f_alpha={falpha_min} for k = {kopt} after {funccalls} calls')
-
-    (kopt,) = fsolve(g, k0)
-    print(f'Line minimisation yields k = {kopt}')
-
+    kopt, falpha_min, ierr, funccalls = fminbound(g, kmin, kmax, xtol=1e-8, full_output=True)
+    print(f'Brent minimisation yields f_alpha={falpha_min} for k = {kopt} after {funccalls} calls')
     traj.close()
 
-    # re-optimize, first with static scheme, then flexible scheme
-    sc.k = kopt * k1g
+    # Find flex1
+    # first optimize with static scheme
+    #sc.k = kopt * k1g
+    k0 = kopt
+    sc.rescale_k(k0 * k1g)
     sc.alpha = alpha0
     sc.variable_alpha = False
-    sc.optimize(ftol=1e-3, steps=max_opt_steps)
-
-    # finally, we revert to target fmax precision
-    sc.variable_alpha = flexible
-    sc.optimize(ftol=fmax, steps=max_opt_steps)
-
+    sc.optimize(ftol=1e-3, steps=max_opt_steps,method='ode12r')
+    # then revert to target fmax precision and optimize with flexible scheme
+    sc.variable_alpha = flexible #True
+    sc.optimize(ftol=fmax, steps=max_opt_steps,method='ode12r')
+    # save flex1
     sc.atoms.write('x0.xyz')
     x0 = np.r_[sc.get_dofs(), k0 * k1g]
     alpha0 = sc.alpha
 
-    # obtain a second solution x1 = (u_1, alpha_1, k_1) where
+    # Find flex2: a second solution x1 = (u_1, alpha_1, k_1) where
     # k_1 ~= k_0 and alpha_1 ~= alpha_0
-
+    # Increase k, and rescale Us accordingly
     print(f'Rescaling K_I from {sc.k} to {sc.k + dk * k1g}')
     k1 = k0 + dk
     sc.rescale_k(k1 * k1g)
-
-
+    # optimize at target fmax precision with flexible scheme
+    sc.variable_alpha = flexible #True
+    sc.optimize(ftol=fmax, steps=max_opt_steps,method='ode12r')
+    # save flex2
     sc.atoms.write('x1.xyz')
     x1 = np.r_[sc.get_dofs(), k1 * k1g]
-    # check crack tip didn't jump too far
     alpha1 = sc.alpha
+
+    # check crack tip didn't jump too far
     print(f'k0={k0}, k1={k1} --> alpha0={alpha0}, alpha1={alpha1}')
     assert abs(alpha1 - alpha0) < dalpha
 
-scv = SinclairCrack(crk, cluster, calc, k0 * k1g,
-                    alpha=alpha0,
+# setup new crack with variable_k for full solution
+scv = SinclairCrack(crk, cluster, calc, 
+                    k0*k1g, alpha=alpha0,
                     vacuum=vacuum,
-                    variable_alpha=flexible,
-                    variable_k=True,
+                    variable_alpha=flexible, variable_k=True,
                     extended_far_field=extended_far_field)
 
+# run full arc length continuation
 scv.arc_length_continuation(x0, x1, N=nsteps,
-                            ds=ds, ftol=fmax, max_steps=max_arc_steps,
-                            direction=direction,
-                            continuation=continuation,
-                            traj_file=traj_file,
-                            traj_interval=traj_interval,
-                            precon=precon,
-                            ds_max=parameter('ds_max', 0.1),
-                            ds_aggressiveness=parameter('ds_aggressiveness', 2))
+                        ds=ds, ftol=fmax, max_steps=max_arc_steps,
+                        direction=direction,
+                        continuation=continuation,
+                        traj_file=traj_file,
+                        traj_interval=traj_interval,
+                        precon=precon,
+                        ds_max=ds_max, ds_min=ds_min,
+                        ds_aggressiveness=ds_aggressiveness)

@@ -1311,7 +1311,7 @@ class SinclairCrack:
 
             if self.variable_alpha:
                 # monitor sign of \dot{alpha} and flip if necessary
-                udot1, alphadot1, kdot1 = self.unpack(xdot1)
+                #udot1, alphadot1, kdot1 = self.unpack(xdot1)
                 udot2, alphadot2, kdot2 = self.unpack(xdot2)
                 if direction * np.sign(alphadot2) < 0:
                     xdot2 = -xdot2            
