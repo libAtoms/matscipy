@@ -26,7 +26,8 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "pytest",
-    "sympy"
+    "sympy",
+    "quippy-ase"
 ]
 docs = [
     "sphinx",
