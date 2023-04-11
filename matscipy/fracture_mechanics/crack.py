@@ -37,7 +37,8 @@ except ImportError:
 
 import ase.units as units
 from ase.optimize.precon import Exp
-from ase.optimize.ode import ode12r
+#from ase.optimize.ode import ode12r
+from ode import ode12r
 
 from matscipy.atomic_strain import atomic_strain
 from matscipy.elasticity import (rotate_elastic_constants,
@@ -1060,7 +1061,7 @@ class SinclairCrack:
             Pf = self.P_ilu.solve(F)
             print(f'norm(F) = {np.linalg.norm(F)}, norm(P^-1 F) = {np.linalg.norm(Pf)}')
             Pfu, Pfalpha, Pfk = self.unpack(Pf)
-            print(f'|P^-1 f_I| = {np.linalg.norm(Pfu, np.inf)}, P^-1 f_alpha = {Pfalpha}')
+            print(f'|P^-1 f_I| = {np.linalg.norm(Pfu, np.inf)}, P^-1 f_alpha = {Pfalpha}, P^-1 f_k = {Pfk}')
 
     def get_precon(self, x, F):
         self.update_precon(x, F)
@@ -1204,8 +1205,31 @@ class SinclairCrack:
                     self.x = x
                     self.nit = nit
 
-            x = ode12r(residuals, x0, verbose=2, fmax=ftol, steps=steps)
-            res = ODEResult(True, x, 1)
+            if args is None:
+                # args==None -> variable_k=False (flex1 and flex2)
+                x, nit = ode12r(residuals, x0, verbose=2, fmax=ftol, steps=steps)
+
+            else:
+                # args!=None -> variable_k=True (arc_continuation)
+
+                def oderes(f,x):
+                    return np.linalg.norm(f, np.inf)
+
+                if precon:
+                    def odeprecon(f,x):
+                        M = self.get_precon(x,f)
+                        Fp = M@f
+                        Rp = oderes(f,x)
+                        return Fp, Rp # returns preconditioned forces and residual
+                else:
+                    def odeprecon(f,x):
+                        Rp = oderes(f,x)
+                        return f, Rp #this precon function doesn't do anything
+                    
+                x, nit = ode12r(residuals, x0, args, verbose=1, fmax=ftol, steps=steps, apply_precon=odeprecon, residual=oderes, maxtol=np.inf) 
+            
+            res = ODEResult(True, x, nit)
+
         else:
             raise RuntimeError(f'unknown method {method}')
 
@@ -1258,6 +1282,7 @@ class SinclairCrack:
                                 precon=False,
                                 ds_max=np.inf, ds_min=0,
                                 ds_aggressiveness=2,
+                                opt_method='krylov',
                                 cos_alpha_min=0.9):
         import h5py
         assert self.variable_k  # only makes sense if K can vary
@@ -1272,7 +1297,7 @@ class SinclairCrack:
             _, alphadot1, _ = self.unpack(xdot1)
             if direction * np.sign(alphadot1) < 0:
                 xdot1 = -xdot1
-
+        
         row = 0
         with h5py.File(traj_file, 'a') as hf:
             if 'x' in hf.keys():
@@ -1294,15 +1319,17 @@ class SinclairCrack:
                   f' |F| = {np.linalg.norm(self.get_forces(x1=x1, xdot1=xdot1, ds=ds)):.4f}')
             self.set_dofs(x2)
             try:
-                num_steps = self.optimize(ftol, max_steps, args=(x1, xdot1, ds), precon=precon)
-                #num_steps = self.optimize(ftol, max_steps, args=(x1, xdot1, ds), precon=precon,method='ode12r')
+                if opt_method == 'krylov':
+                    num_steps = self.optimize(ftol, max_steps, args=(x1, xdot1, ds), precon=precon, method=opt_method)
+                elif opt_method == 'ode12r':
+                    num_steps = self.optimize(ftol, max_steps, args=[x1, xdot1, ds], precon=precon, method=opt_method)
                 print(f'Corrector converged in {num_steps}/{max_steps} steps')
             except NoConvergence:
                 if ds < ds_min:
                     print(f'Corrector failed to converge even with ds={ds}<{ds_min}. Aborting job.')
                     break
                 else:
-                    ds *= 0.5
+                    ds /= ds_aggressiveness
                     print(f'Corrector failed to converge, reducing step size to ds={ds}')
                     continue
 
@@ -1314,7 +1341,7 @@ class SinclairCrack:
                 #udot1, alphadot1, kdot1 = self.unpack(xdot1)
                 udot2, alphadot2, kdot2 = self.unpack(xdot2)
                 if direction * np.sign(alphadot2) < 0:
-                    xdot2 = -xdot2            
+                    xdot2 = -xdot2  
 
             # cos_alpha = np.dot(xdot1, xdot2) / np.linalg.norm(xdot1) / np.linalg.norm(xdot2)
             # print(f'cos_alpha = {cos_alpha}')
@@ -1325,6 +1352,7 @@ class SinclairCrack:
             #     ds *= 0.5
             #     continue
 
+            # Write new relaxed point to the traj file
             if i % traj_interval == 0:
                 for nattempt in range(1000):
                     try:
@@ -1340,18 +1368,16 @@ class SinclairCrack:
                         continue
                 else:
                     raise IOError("ran out of attempts to access trajectory file")
-
+            
+            # Update variables
             x1[:] = x2
             xdot1[:] = xdot2
 
-            # Stepsize update -
-            # adapted from https://github.com/nschloe/pacopy/blob/main/pacopy/euler_newton.py
-            ds *= (
-                1
-                + ds_aggressiveness
-                * ((max_steps - num_steps) / (max_steps - 1)) ** 2
-            )
+            # Update the stepsize
+            ds *= ( 1 + ds_aggressiveness * ((max_steps - num_steps) / (max_steps - 1)) ** 2 )
             ds = min(ds_max, ds) 
+
+            # Increase iteration number
             i += 1
 
     def plot(self, ax=None, regions='1234', styles=None, bonds=None, cutoff=2.8,

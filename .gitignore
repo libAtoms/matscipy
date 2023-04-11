@@ -64,3 +64,5 @@ docs/_build/
 
 #MAC DS_Store
 .DS_Store
+.eggs/README.txt
+.mesonpy-native-file.ini

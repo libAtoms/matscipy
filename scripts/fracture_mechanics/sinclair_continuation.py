@@ -64,6 +64,7 @@ direction = parameter('direction', +1)
 ds_max = parameter('ds_max', 0.1)
 ds_min = parameter('ds_min', 1e-6)
 ds_aggressiveness=parameter('ds_aggressiveness', 1.25)
+opt_method=parameter('opt_method', 'krylov')
 
 
 # make copies of initial configs
@@ -179,10 +180,10 @@ else:
     sc.rescale_k(k0 * k1g)
     sc.alpha = alpha0
     sc.variable_alpha = False
-    sc.optimize(ftol=1e-3, steps=max_opt_steps,method='ode12r')
+    sc.optimize(ftol=1e-3, steps=max_opt_steps,method=opt_method)
     # then revert to target fmax precision and optimize with flexible scheme
     sc.variable_alpha = flexible #True
-    sc.optimize(ftol=fmax, steps=max_opt_steps,method='ode12r')
+    sc.optimize(ftol=fmax, steps=max_opt_steps,method=opt_method)
     # save flex1
     sc.atoms.write('x0.xyz')
     x0 = np.r_[sc.get_dofs(), k0 * k1g]
@@ -196,7 +197,7 @@ else:
     sc.rescale_k(k1 * k1g)
     # optimize at target fmax precision with flexible scheme
     sc.variable_alpha = flexible #True
-    sc.optimize(ftol=fmax, steps=max_opt_steps,method='ode12r')
+    sc.optimize(ftol=fmax, steps=max_opt_steps,method=opt_method)
     # save flex2
     sc.atoms.write('x1.xyz')
     x1 = np.r_[sc.get_dofs(), k1 * k1g]
@@ -222,4 +223,5 @@ scv.arc_length_continuation(x0, x1, N=nsteps,
                         traj_interval=traj_interval,
                         precon=precon,
                         ds_max=ds_max, ds_min=ds_min,
-                        ds_aggressiveness=ds_aggressiveness)
+                        ds_aggressiveness=ds_aggressiveness,
+                        opt_method='krylov') # 'ode12r' preconditioning needs debugging
