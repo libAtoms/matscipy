@@ -141,3 +141,57 @@ def bcc(*args, **kwargs):
 def sc(*args, **kwargs):
     kwargs['lattice'] = SimpleCubic
     return cluster(*args, **kwargs)
+
+
+def find_surface_energy(symbol,calc,a0,surface,size=(8,1,1),vacuum=10,fmax=0.0001,unit='0.1J/m^2'):
+
+    # Import required lattice builder
+    if surface.startswith('bcc'):
+        from ase.lattice.cubic import BodyCenteredCubic as lattice_builder
+    elif surface.startswith('fcc'):
+        from ase.lattice.cubic import FaceCenteredCubic as lattice_builder #untested
+    elif surface.startswith('diamond'):
+        from ase.lattice.cubic import Diamond as lattice_builder #untested
+    ## Append other lattice builders here
+    else:
+        print('Error: Unsupported lattice ordering.')
+
+    # Set orthogonal directions for cell axes
+    if surface.endswith('100'):
+        directions=[[1,0,0], [0,1,0], [0,0,1]] #tested for bcc
+    elif surface.endswith('110'):
+        directions=[[1,1,0], [-1,1,0], [0,0,1]] #tested for bcc
+    elif surface.endswith('111'):
+        directions=[[1,1,1], [-2,1,1],[0,-1,1]] #tested for bcc
+    ## Append other cell axis options here
+    else:
+        print('Error: Unsupported surface orientation.')
+    
+    # Make bulk and slab with same number of atoms (size)
+    bulk = lattice_builder(directions=directions, size=size, symbol=symbol, latticeconstant=a0, pbc=(1,1,1))
+    cell = bulk.get_cell() ; cell[0,:] *=2 # vacuum along x axis (surface normal)
+    slab = bulk.copy() ; slab.set_cell(cell)
+    
+    # Optimize the geometries
+    from ase.optimize import LBFGSLineSearch
+    bulk.calc = calc ; opt_bulk = LBFGSLineSearch(bulk) ; opt_bulk.run(fmax=fmax)
+    slab.calc = calc ; opt_slab = LBFGSLineSearch(slab) ; opt_slab.run(fmax=fmax)
+
+    # Find surface energy
+    import numpy as np
+    Ebulk = bulk.get_potential_energy() ; Eslab = slab.get_potential_energy()
+    area = np.linalg.norm(np.cross(slab.get_cell()[1,:],slab.get_cell()[2,:]))
+    gamma_ase = (Eslab - Ebulk)/(2*area)
+
+    # Convert to required units
+    if unit == 'ASE':
+        return [gamma_ase,'ase_units']
+    else:
+        from ase import units
+        gamma_SI = (gamma_ase / units.J ) * (units.m)**2
+        if unit =='J/m^2':
+            return [gamma_SI,'J/m^2']
+        elif unit == '0.1J/m^2':
+            return [10*gamma_SI,'0.1J/m^2'] # units required for the fracture code
+        else:
+            print('Error: Unsupported unit of surface energy.')
