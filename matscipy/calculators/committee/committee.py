@@ -296,6 +296,10 @@ class Committee:
         N_val = len(vals_ref)
         M = self.number
         alpha_squared = -1/M + (M - 3)/(M - 1) * 1/N_val * np.sum(np.power(vals_ref-vals_pred, 2) / vars_pred)
+        logger.info(f'Calculated alpha')
+        logger.debug(f'\tN_val          = {N_val}')
+        logger.debug(f'\tM              = {M}')
+        logger.debug(f'\talpha_squared  = {alpha_squared}')
         assert alpha_squared > 0, f'Obtained negative value for `alpha_squared`: {alpha_squared}'
         return np.sqrt(alpha_squared)
 

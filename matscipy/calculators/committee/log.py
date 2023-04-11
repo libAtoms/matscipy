@@ -62,4 +62,4 @@ def set_logging(level='warning', log_file=None):
     log_file: str, optional default=None
         Path to the file, in case you want to log to a file rather than standard out.
     """
-    logger = create_logger('ape', level=level, log_file=log_file)
+    logger = create_logger('matscipy.calculators.committee', level=level, log_file=log_file)

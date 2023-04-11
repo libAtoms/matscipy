@@ -7,7 +7,7 @@ import numpy as np
 
 import ase.io
 import ase.calculators.emt
-import quippy.potential
+import ase.calculators.lj
 
 import matscipy.calculators.committee
 
@@ -31,10 +31,14 @@ def committee_minimal(committeemember):
 @pytest.fixture
 def committee():
     committee = matscipy.calculators.committee.Committee()
-    for idx_i in range(10):
+    num_members = 10
+    epsilons = np.linspace(0.98, 1.01, num_members)
+    np.random.seed(123)
+    np.random.shuffle(epsilons)
+    for idx_i in range(num_members):
         basepath_i = os.path.join(f'{os.path.dirname(__file__)}/committee_data/committee_{idx_i}')
         committee += matscipy.calculators.committee.CommitteeMember(
-            calculator=quippy.potential.Potential(param_filename=f'{basepath_i}/fit/GAP.xml'),
+            calculator=ase.calculators.lj.LennardJones(sigma=1, epsilon=epsilons[idx_i]),
             training_data=f'{basepath_i}/train.xyz'
         )
     return committee
@@ -43,8 +47,8 @@ def committee():
 @pytest.fixture
 def committee_calibrated(committee):
     committee.set_internal_validation_set(appearance_threshold=3)
-    committee.calibrate(prop='energy', key='E_dftbplus_d4', location='info')
-    committee.calibrate(prop='forces', key='F_dftbplus_d4', location='arrays')
+    committee.calibrate(prop='energy', key='E_lj', location='info')
+    committee.calibrate(prop='forces', key='F_lj', location='arrays')
     return committee
 
 
@@ -53,9 +57,9 @@ def test_committeemember_initialize():
 
     training_data = os.path.join(f'{os.path.dirname(__file__)}/committee_data/training_data_minimal.xyz')
     matscipy.calculators.committee.CommitteeMember(calculator=ase.calculators.emt.EMT(),
-                                              training_data=training_data)
+                                                   training_data=training_data)
     matscipy.calculators.committee.CommitteeMember(calculator=ase.calculators.emt.EMT(),
-                                              training_data=ase.io.read(training_data, ':'))
+                                                   training_data=ase.io.read(training_data, ':'))
 
 
 def test_committeemember_set_training_data(committeemember):
@@ -152,10 +156,10 @@ def test_committee_member(committee_minimal):
 def test_committee_set_internal_validation_set(committee):
 
     with pytest.raises(AssertionError):
-        committee.set_internal_validation_set(0)
+        committee.set_internal_validation_set(appearance_threshold=0)
 
     with pytest.raises(AssertionError):
-        committee.set_internal_validation_set(committee.number - 1)
+        committee.set_internal_validation_set(appearance_threshold=committee.number - 1)
 
     committee.set_internal_validation_set(appearance_threshold=3)
     obtained = set([atoms_i.info['_Index_FullTrainingSet'] for atoms_i
@@ -168,13 +172,13 @@ def test_committee_set_internal_validation_set(committee):
 def test_committee_calibrate(committee):
     committee.set_internal_validation_set(appearance_threshold=3)
 
-    committee.calibrate(prop='energy', key='E_dftbplus_d4', location='info')
+    committee.calibrate(prop='energy', key='E_lj', location='info')
     assert committee.calibrated_for == set(['energy'])
-    np.testing.assert_array_almost_equal(committee.alphas['energy'], 0.8717093014393091, decimal=6)
+    np.testing.assert_array_almost_equal(committee.alphas['energy'], 0.6295416920992463, decimal=6)
 
-    committee.calibrate(prop='forces', key='F_dftbplus_d4', location='arrays')
+    committee.calibrate(prop='forces', key='F_lj', location='arrays')
     assert committee.calibrated_for == set(['energy', 'forces'])
-    np.testing.assert_array_almost_equal(committee.alphas['forces'], 8.960552103437163, decimal=6)
+    np.testing.assert_array_almost_equal(committee.alphas['forces'], 0.6195847443699875, decimal=6)
 
     with pytest.warns(Warning,
                       match=re.escape('`alphas` will be reset to avoid inconsistencies with new validation set.')):
