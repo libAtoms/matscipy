@@ -31,15 +31,16 @@ def committee_minimal(committeemember):
 @pytest.fixture
 def committee():
     committee = matscipy.calculators.committee.Committee()
+    committee_training_data = ase.io.read(f'{os.path.dirname(__file__)}/committee_data/training_data.xyz', ':')
     num_members = 10
     epsilons = np.linspace(0.98, 1.01, num_members)
     np.random.seed(123)
     np.random.shuffle(epsilons)
     for idx_i in range(num_members):
-        basepath_i = os.path.join(f'{os.path.dirname(__file__)}/committee_data/committee_{idx_i}')
         committee += matscipy.calculators.committee.CommitteeMember(
             calculator=ase.calculators.lj.LennardJones(sigma=1, epsilon=epsilons[idx_i]),
-            training_data=f'{basepath_i}/train.xyz'
+            training_data=[atoms_i for atoms_i in committee_training_data
+                           if idx_i in atoms_i.info['appears_in_committee']]
         )
     return committee
 
