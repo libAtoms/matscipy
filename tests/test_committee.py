@@ -47,7 +47,7 @@ def committee():
 
 @pytest.fixture
 def committee_calibrated(committee):
-    committee.set_internal_validation_set(appearance_threshold=3)
+    committee.set_internal_validation_set(appearance_threshold=5)
     committee.calibrate(prop='energy', key='E_lj', location='info')
     committee.calibrate(prop='forces', key='F_lj', location='arrays')
     return committee
@@ -162,7 +162,7 @@ def test_committee_set_internal_validation_set(committee):
     with pytest.raises(AssertionError):
         committee.set_internal_validation_set(appearance_threshold=committee.number - 1)
 
-    committee.set_internal_validation_set(appearance_threshold=3)
+    committee.set_internal_validation_set(appearance_threshold=5)
     obtained = set([atoms_i.info['_Index_FullTrainingSet'] for atoms_i
                     in committee.validation_set])
     expected = set([atoms_i.info['_Index_FullTrainingSet'] for atoms_i
@@ -171,7 +171,7 @@ def test_committee_set_internal_validation_set(committee):
 
 
 def test_committee_calibrate(committee):
-    committee.set_internal_validation_set(appearance_threshold=3)
+    committee.set_internal_validation_set(appearance_threshold=5)
 
     committee.calibrate(prop='energy', key='E_lj', location='info')
     assert committee.calibrated_for == set(['energy'])
