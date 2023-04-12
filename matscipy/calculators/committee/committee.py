@@ -199,7 +199,7 @@ class Committee:
 
         self._validation_set = []
         for id_i, appearance_i in self.id_counter.most_common()[::-1]:
-            if appearance_i < appearance_threshold:
+            if appearance_i > appearance_threshold:
                 break
             self._validation_set.append(self.id_to_atoms[id_i])
 
