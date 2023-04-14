@@ -125,25 +125,34 @@ else:
     if extended_far_field:
         mask = sc.regionI | sc.regionII | sc.regionIII
 
-    # first use the CLE-only approximation`: define a function f_alpha0(k, alpha)
-    def f(k, alpha):
-        sc.k = k * k1g
-        sc.alpha = alpha
-        sc.update_atoms()
-        return sc.get_crack_tip_force(mask=mask)
+    
+    # estimate the stable K range
+    k_range= parameter('k_range', 'Unknown') 
+    if isinstance(k_range,list) and len(k_range)==2:
+        kmin, kmax = k_range
+        print(f'Using K range from params file: {kmin} < k / k_G < {kmax}')
+    else:
+        print('No k_range=[kmin,kmax] given in params.')
+        print('Running CLE-only approximation to estimate stable K range.')
+        # first use the CLE-only approximation`: define a function f_alpha0(k, alpha)
+        def f(k, alpha):
+            sc.k = k * k1g
+            sc.alpha = alpha
+            sc.update_atoms()
+            return sc.get_crack_tip_force(mask=mask)
 
-    # identify approximate range of stable k
-    alpha_range = parameter('alpha_range', np.linspace(-a0, a0, 20))
-    k = k0  # initial guess for k
-    alpha_k = []
-    for alpha in alpha_range:
-        # look for solution to f(k, alpha) = 0 close to alpha = alpha
-        (k,) = fsolve(f, k, args=(alpha,))
-        print(f'alpha={alpha:.3f} k={k:.3f} ')
-        alpha_k.append((alpha, k))
-    alpha_k = np.array(alpha_k)
-    kmin, kmax = alpha_k[:, 1].min(), alpha_k[:, 1].max()
-    print(f'Estimated stable K range is {kmin} < k / k_G < {kmax}')
+        # identify approximate range of stable k
+        alpha_range = parameter('alpha_range', np.linspace(-a0, a0, 20))
+        k = k0  # initial guess for k
+        alpha_k = []
+        for alpha in alpha_range:
+            # look for solution to f(k, alpha) = 0 close to alpha = alpha
+            (k,) = fsolve(f, k, args=(alpha,))
+            print(f'alpha={alpha:.3f} k={k:.3f} ')
+            alpha_k.append((alpha, k))
+        alpha_k = np.array(alpha_k)
+        kmin, kmax = alpha_k[:, 1].min(), alpha_k[:, 1].max()
+        print(f'Estimated stable K range is {kmin} < k / k_G < {kmax}')
 
     # define a function to relax with static scheme at a given value of k
     traj = open("traj.xyz", "w")
