@@ -31,6 +31,8 @@ from ase.calculators.lammpslib import LAMMPSlib
 from scipy.optimize import minimize
 from matscipy.calculators.eam import EAM
 
+test_dir = os.path.dirname(os.path.realpath(__file__))
+
 try:
     import matplotlib
     matplotlib.use("Agg")  # Activate 'agg' backend for off-screen plotting for testing.
@@ -99,7 +101,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                                   160.88179872237012])  # C44 for eam4
 
         pot_name = "w_eam4.fs"
-        calc_EAM = EAM(pot_name)
+        pot_path = os.path.join(test_dir, pot_name)
+        calc_EAM = EAM(pot_path)
         obtained_values = sd.get_elastic_constants(calculator=calc_EAM,
                                                    delta=1.0e-3)
 
@@ -122,9 +125,9 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                                   160.88179872237012])  # C44 for eam4
 
         pot_name = "w_eam4.fs"
-
+        pot_path = os.path.join(test_dir, pot_name)
         lammps = LAMMPSlib(lmpcmds=["pair_style eam/fs",
-                                    "pair_coeff * * %s W" % pot_name],
+                                    "pair_coeff * * %s W" % pot_path],
                            atom_types={'W': 1}, keep_alive=True,
                            log_file="lammps.log")
 
@@ -159,10 +162,11 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         center = (cent_x, 0.0, 0.0)
 
         pot_name = "w_eam4.fs"
+        pot_path = os.path.join(test_dir, pot_name)
         target_toten = -13086.484626  # Target value for w_eam4
 
         lammps = LAMMPSlib(lmpcmds=["pair_style eam/fs",
-                                    "pair_coeff * * %s W" % pot_name],
+                                    "pair_coeff * * %s W" % pot_path],
                            atom_types={'W': 1}, keep_alive=True,
                            log_file="lammps.log")
 
@@ -566,7 +570,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         from ase.build import bulk
 
         pot_name = "w_eam4.fs"
-        calc_EAM = EAM(pot_name)
+        pot_path = os.path.join(test_dir, pot_name)
+        calc_EAM = EAM(pot_path)
         # slightly pressurised cell to avoid exactly zero forces
         W = bulk("W", a=0.9 * 3.143392, cubic=True)
 
@@ -603,9 +608,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         unit_cell = dislocation.unit_cell
 
         pot_name = "w_eam4.fs"
+        pot_path = os.path.join(test_dir, pot_name)
         # calc_EAM = EAM(pot_name) eam calculator is way too slow
         lammps = LAMMPSlib(lmpcmds=["pair_style eam/fs",
-                                    "pair_coeff * * %s W" % pot_name],
+                                    "pair_coeff * * %s W" % pot_path],
                            atom_types={'W': 1}, keep_alive=True,
                            log_file="lammps.log")
 
