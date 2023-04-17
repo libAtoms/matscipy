@@ -33,6 +33,7 @@ from matscipy.calculators.eam import EAM
 
 try:
     import matplotlib
+    matplotlib.use("Agg")  # Activate 'agg' backend for off-screen plotting for testing.
 except ImportError:
     print("matplotlib not found: skipping some tests")
 
