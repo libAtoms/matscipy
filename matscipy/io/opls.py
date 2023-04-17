@@ -173,11 +173,24 @@ def read_parameter_file(filename):
     lines, comments begin with '#'. For more information about the
     potentials, refer to the documentation of the LAMMPS commands
     bond_style harmonic, angle_style harmonic, dihedral_style harmonic.
+    The default global cutoffs for Lennard-Jones and Coulomb interactions
+    are 10.0 and 7.4 A. They can be overridden with the optional
+    'Cutoffs-LJ-Coulomb' block. By default, geometric mixing is applied
+    between Lennard-Jones parameters of different particle types and the
+    global cutoff is used for all pairs. This behavior can be overridden
+    using the optional 'LJ-pairs' block.
 
     ====== Example ======
     # Element
     C1 0.001 3.5 -0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)
     H1 0.001 2.5  0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)
+
+    # Cutoffs-LJ-Coulomb (this block is optional)
+    LJ 10.0  # distance (A)
+    C  10.0  # distance (A)
+    
+    # LJ-pairs (this block is optional)
+    C1-H1 0.002 2.1 12.0  # name, epsilon (eV), sigma (A), cutoff (A)
 
     # Bonds
     C1-C1 10.0 1.0  # name, spring constant*2 (eV/A**2), distance (A)
@@ -200,12 +213,25 @@ def read_parameter_file(filename):
     Returns
     -------
     cutoffs : matscipy.opls.CutoffList
-    ljq : dict
+    ljq : matscipy.opls.LJQData
     bonds : matscipy.opls.BondData
     angles : matscipy.opls.AnglesData
     dihedrals : matscipy.opls.DihedralsData
     """
-    ljq       = read_block(filename, 'Element')
+    ljq = matscipy.opls.LJQData(read_block(filename, 'Element'))
+
+    try:
+        ljq_cut = read_block(filename, 'Cutoffs-LJ-Coulomb')
+        ljq.lj_cutoff = ljq_cut['LJ']
+        ljq.c_cutoff = ljq_cut['C']
+    except:
+        pass
+
+    try:
+        ljq.lj_pairs = read_block(filename, 'LJ-pairs')
+    except:
+        pass
+
     bonds     = matscipy.opls.BondData(read_block(filename, 'Bonds'))
     angles    = matscipy.opls.AnglesData(read_block(filename, 'Angles'))
     dihedrals = matscipy.opls.DihedralsData(read_block(filename, 'Dihedrals'))
@@ -456,16 +482,37 @@ def write_lammps_definitions(prefix, atoms):
 
             # Lennard Jones settings
             fileobj.write('\n# L-J parameters\n')
-            fileobj.write('pair_style lj/cut/coul/long 10.0 7.4' +
-                          ' # consider changing these parameters\n')
+            fileobj.write('pair_style lj/cut/coul/long %10.8f %10.8f\n' %
+                          (atoms.atom_data.lj_cutoff, atoms.atom_data.c_cutoff))
             fileobj.write('special_bonds lj/coul 0.0 0.0 0.5\n')
             for ia, atype in enumerate(atoms.types):
                 if len(atype) < 2:
                     atype = atype + ' '
-                fileobj.write('pair_coeff ' + str(ia + 1) + ' ' + str(ia + 1))
-                for value in atoms.atom_data[atype][:2]:
-                    fileobj.write(' ' + str(value))
-                fileobj.write(' # ' + atype + '\n')
+                if (atype + '-' + atype) in atoms.atom_data.lj_pairs:
+                    pair = atype + '-' + atype
+                    fileobj.write('pair_coeff ' + str(ia + 1) + ' ' + str(ia + 1))
+                    for value in atoms.atom_data.lj_pairs[pair]:
+                        fileobj.write(' ' + str(value))
+                    fileobj.write(' # ' + pair + '\n')
+                else:
+                    fileobj.write('pair_coeff ' + str(ia + 1) + ' ' + str(ia + 1))
+                    for value in atoms.atom_data[atype][:2]:
+                        fileobj.write(' ' + str(value))
+                    fileobj.write(' # ' + atype + '\n')
+
+            if len(atoms.atom_data.lj_pairs) > 0:
+                for pair in atoms.atom_data.lj_pairs:
+                    atype, btype = pair.split('-')
+                    if atype != btype:
+                        ia = atoms.types.tolist().index(atype)
+                        ib = atoms.types.tolist().index(btype)
+                        if ia > ib:
+                            ia, ib = ib, ia
+                        fileobj.write('pair_coeff ' + str(ia + 1) + ' ' + str(ib + 1))
+                        for value in atoms.atom_data.lj_pairs[pair]:
+                            fileobj.write(' ' + str(value))
+                        fileobj.write(' # ' + pair + '\n')
+
             fileobj.write('pair_modify shift yes mix geometric\n')
 
             # Charges

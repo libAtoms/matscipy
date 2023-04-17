@@ -18,6 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import sys
 import unittest
 import matscipytest
 
@@ -83,6 +84,16 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
         self.assertDictionariesEqual(
             ljq,
             {'C1': [0.001, 3.500, -0.010], 'H1': [0.001, 2.500, 0.010]},
+            ignore_case=False
+            )
+        self.assertIsInstance(ljq.lj_cutoff, float)
+        self.assertIsInstance(ljq.c_cutoff, float)
+        self.assertAlmostEqual(ljq.lj_cutoff, 12.0, places=2)
+        self.assertAlmostEqual(ljq.c_cutoff,  15.0, places=2)
+        self.assertIsInstance(ljq.lj_pairs, dict)
+        self.assertDictionariesEqual(
+            ljq.lj_pairs,
+            {'C1-H1': [0.001, 3.4, 11.0]},
             ignore_case=False
             )
 
@@ -302,7 +313,10 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
 
         with open('temp.opls', 'r') as fileobj:
             for line in fileobj.readlines():
-                if line.startswith('pair_coeff'):
+                if line.startswith('pair_style'):
+                    lj_cutoff = line.split()[2]
+                    q_cutoff = line.split()[3]
+                elif line.startswith('pair_coeff'):
                     pair_coeff.append(line.split())
                 elif line.startswith('bond_coeff'):
                     bond_coeff.append(line.split())
@@ -321,7 +335,9 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
             elif charge[6] == 'H1':
                 self.assertAlmostEqual(float(charge[4]), 0.01, places=2)
 
-        self.assertEqual(len(pair_coeff), 2)
+        self.assertAlmostEqual(float(lj_cutoff), 12.0, places=1)
+        self.assertAlmostEqual(float(q_cutoff), 15.0, places=1)
+        self.assertEqual(len(pair_coeff), 3)
         for pair in pair_coeff:
             if pair[6] == 'C1':
                 self.assertAlmostEqual(float(pair[3]), 0.001, places=3)
@@ -329,6 +345,10 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
             elif pair[6] == 'H1':
                 self.assertAlmostEqual(float(pair[3]), 0.001, places=3)
                 self.assertAlmostEqual(float(pair[4]), 2.5, places=1)
+            elif pair[7] == 'H1-C1' or pair[7] == 'C1-H1':
+                self.assertAlmostEqual(float(pair[3]), 0.001, places=3)
+                self.assertAlmostEqual(float(pair[4]), 3.4, places=1)
+                self.assertAlmostEqual(float(pair[5]), 11.0, places=1)
 
         self.assertEqual(len(bond_coeff), 2)
         for bond in bond_coeff:

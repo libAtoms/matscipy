@@ -33,17 +33,35 @@ def twochar(name):
     Parameters
     ----------
     name : str
-        Partice name.
+        Particle name.
 
     Returns
     -------
     str
-        Partice name with exactly 2 characters.
+        Particle name with exactly 2 characters.
     """
     if len(name) > 1:
         return name[:2]
     else:
         return name + ' '
+
+
+class LJQData(dict):
+    """
+    Store Lennard-Jones parameters and charges for each particle type. In
+    the simplest version, each particle type has one set of Lennard-Jones
+    parameters, with geometric mixing applied between parameters of
+    different types. Parameters for individual pairs of particle types can
+    be specified in the 'lj_pairs' dictionary.
+    """
+    def __init__(self, args):
+        dict.__init__(self, args)
+
+        # default cutoffs
+        self.lj_cutoff = 10.0
+        self.c_cutoff = 7.4
+
+        self.lj_pairs = {}
 
 
 class BondData:
