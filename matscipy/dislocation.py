@@ -25,13 +25,13 @@ import numpy as np
 
 from scipy.optimize import minimize
 
-from ase.lattice.cubic import BodyCenteredCubic
+from ase.lattice.cubic import BodyCenteredCubic, FaceCenteredCubic, Diamond, \
+                              SimpleCubicFactory
 from ase.constraints import FixAtoms, StrainFilter
 from ase.optimize import FIRE
 from ase.build import bulk
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
-from ase.lattice.cubic import SimpleCubicFactory, Diamond
 from ase.io import read
 from ase.geometry import get_distances
 
@@ -2800,6 +2800,39 @@ class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
         right90 = DiamondGlide90degreePartial(alat, C11, C12, C44)
         self_consistent = False
         super().__init__(left30, right90, unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
+
+
+class FCCScrewShockleyPartial(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='Fe'):
+        axes = np.array([[1, 1, -2],
+                         [1, 1, 1],
+                         [1, -1, 0]])
+
+        burgers = alat * np.array([1, -2, 1.]) / 6.
+
+        parity = [0, 0]
+
+        unit_cell = FaceCenteredCubic(symbol, directions=axes.tolist(),
+                                     pbc=(False, False, True),
+                                     latticeconstant=alat)
+
+        # put the dislocation in the centroid of the first triangle in xy plane
+        # get sorting of the atoms in the distance of atoms in xy plane
+        sorted_indices = np.argsort(np.linalg.norm(unit_cell.positions[:, :2], axis=1))
+        # centroid coordinates are simply mean of x y coordinates of the trianlge
+        disloCenterX, disloCenterY, _ = unit_cell.positions[sorted_indices[:3]].mean(axis=0)
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 2
+        self_consistent = True
+        super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance, n_planes=n_planes,
                          self_consistent=self_consistent)
