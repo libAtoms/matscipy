@@ -2838,6 +2838,47 @@ class FCCScrewShockleyPartial(CubicCrystalDislocation):
                          self_consistent=self_consistent)
 
 
+class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='Fe'):
+
+        axes = np.array([[1, 1, -2],
+                        [1, 1, 1],
+                        [1, -1, 0]])
+
+        # aiming for the resulting burgers vector
+        burgers = alat * np.array([1, -1, 0]) / 2.
+
+        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 4.0
+        disloCenterY = (alat * np.linalg.norm(axes[1])) / 6
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        parity = [0, 0]
+
+        unit_cell = FaceCenteredCubic(symbol, directions=axes.tolist(),
+                                      pbc=(False, False, True),
+                                      latticeconstant=alat)
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 2
+
+        # Shockley partial
+        burgers_left = alat * np.array([2., -1., -1.]) / 6.
+        left_shockley = FCCScrewShockleyPartial(alat, C11, C12, C44)
+        left_shockley.set_burgers(burgers_left)
+        # another Shockley partial
+        # burgers_right = alat * np.array([1, -2, 1.]) / 6.
+        right_shockley = FCCScrewShockleyPartial(alat, C11, C12, C44)
+        self_consistent = True
+        super().__init__(left_shockley, right_shockley,
+                         unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
+
+
 class FixedLineAtoms:
     """Constrain atoms to move along a given direction only."""
     def __init__(self, a, direction):
