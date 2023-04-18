@@ -473,7 +473,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
-    def test_fcc_shockley_partial_dislocation(self,):
+    def test_fcc_screw_shockley_partial_dislocation(self,):
         self.check_disloc(sd.FCCScrewShockleyPartial, 30.0,
                           structure="FCC",
                           burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
@@ -505,8 +505,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # test that difference between initial and final positions are
         # roughly equal to glide distance.
         # Since the configurations are unrelaxed dxa gives
-        # a very rough estimation (especially for edge dislcoations)
-        # thus tolerance is taken to be ~1 Angstom
+        # a very rough estimation (especially for edge dislocations)
+        # thus tolerance is taken to be ~1 Angstrom
         np.testing.assert_almost_equal(fin_x_position - ini_x_position,
                                        d.glide_distance, decimal=0)
 
@@ -572,6 +572,14 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_60degree_diamond_partial_glide(self):
             self.check_glide_configs(sd.DiamondGlide60Degree,
                                      structure="Diamond")
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_screw_shockley_partial_glide(self):
+            self.check_glide_configs(sd.FCCScrewShockleyPartial,
+                                     structure="FCC")
+
 
     def test_fixed_line_atoms(self):
 
