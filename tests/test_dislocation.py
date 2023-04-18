@@ -588,6 +588,12 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             self.check_glide_configs(sd.FCCScrewShockleyPartial,
                                      structure="FCC")
 
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_screw_110_glide(self):
+            self.check_glide_configs(sd.FCCScrew110Dislocation,
+                                     structure="FCC")
 
     def test_fixed_line_atoms(self):
 
