@@ -521,6 +521,14 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                           structure="FCC", test_u=False,
                           burgers=(1.0 / 2.0) * np.array([0.0, 1.0, 1.0]))
 
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_edge_shockley_partial_dislocation(self,):
+        self.check_disloc(sd.FCCEdgeShockleyPartial, 60.0,
+                          structure="FCC",
+                          burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
+
     def check_glide_configs(self, cls, structure="BCC"):
         alat = 3.14339177996466
         C11 = 523.0266819809012
@@ -695,6 +703,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         np.testing.assert_almost_equal(E, target_E, decimal=3)
         np.testing.assert_almost_equal(shift, target_shift, decimal=3)
+
 
 if __name__ == '__main__':
     unittest.main()
