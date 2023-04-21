@@ -2901,6 +2901,37 @@ class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
                          self_consistent=self_consistent)
 
 
+class FCCEdgeShockleyPartial(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='Fe'):
+        axes = np.array([[1, -1, 0],
+                         [1, 1, 1],
+                         [-1, -1, 2]])
+
+        burgers = alat * np.array([1, -2, 1.]) / 6.
+
+        parity = [0, 0]
+
+        unit_cell = FaceCenteredCubic(symbol, directions=axes.tolist(),
+                                      pbc=(False, False, True),
+                                      latticeconstant=alat)
+
+        disloCenterX = 0.0
+        # middle between two (111) planes
+        disloCenterY = unit_cell.cell[1][1] / 6.0
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 6
+        self_consistent = True
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
+
+
 class FixedLineAtoms:
     """Constrain atoms to move along a given direction only."""
     def __init__(self, a, direction):
