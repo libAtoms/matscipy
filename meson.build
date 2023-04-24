@@ -9,6 +9,7 @@ project(
 pymod = import('python')
 python = pymod.find_installation('python3',
     required: true,
+    pure: false
 )
 
 subdir('c')
