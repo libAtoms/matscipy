@@ -2741,6 +2741,25 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
 
         return bulk, disloc
 
+    def displacements(self, bulk_positions, center,
+                      partial_distance=0, **kwargs):
+        """Overloaded function to provide correct displacements
+        for the dissociated dislocation.
+        Partial distance is provided as an integer to define number
+        of glide distances between two partials.
+        """
+
+        partial_distance_Angstrom = np.array(
+            [self.glide_distance * partial_distance, 0.0, 0.0])
+
+        left_u = self.left_dislocation.displacements(bulk_positions, center,
+                                                     **kwargs)
+        right_u = self.right_dislocation.displacements(bulk_positions,
+                                                       center + partial_distance_Angstrom,
+                                                       **kwargs)
+
+        return left_u + right_u
+
 
 class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
