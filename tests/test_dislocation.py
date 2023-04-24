@@ -648,6 +648,13 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.check_glide_configs(sd.FCCEdgeShockleyPartial,
                                  structure="FCC")
 
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_edge_dislocation_glide(self):
+        self.check_glide_configs(sd.FCCEdge110Dislocation,
+                                 structure="FCC")
+
     def test_fixed_line_atoms(self):
 
         from ase.build import bulk
