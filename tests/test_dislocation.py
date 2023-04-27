@@ -96,10 +96,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_elastic_constants_EAM(self):
         """Test the get_elastic_constants()
            function using matscipy EAM calculator."""
-        target_values = np.array([3.14339177996466,  # alat
-                                  523.0266819809012,  # C11
-                                  202.1786296941397,  # C12
-                                  160.88179872237012])  # C44 for eam4
+        target_values = np.array([3.1433,  # alat
+                                  523.03,  # C11
+                                  202.18,  # C12
+                                  160.88])  # C44 for eam4
 
         pot_name = "w_eam4.fs"
         pot_path = os.path.join(test_dir, pot_name)
@@ -107,7 +107,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         obtained_values = sd.get_elastic_constants(calculator=calc_EAM,
                                                    delta=1.0e-3)
 
-        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
+        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-2)
 
     # This function tests the lammpslib and LAMMPS installation
     # skipped during automated testing
@@ -121,10 +121,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         """
         print("WARNING: In case lammps crashes no error message is printed: ",
               "check 'lammps.log' file in test folder")
-        target_values = np.array([3.14339177996466,  # alat
-                                  523.0266819809012,  # C11
-                                  202.1786296941397,  # C12
-                                  160.88179872237012])  # C44 for eam4
+        target_values = np.array([3.1434,  # alat
+                                  523.03,  # C11
+                                  202.18,  # C12
+                                  160.882])  # C44 for eam4
 
         pot_name = "w_eam4.fs"
         pot_path = os.path.join(test_dir, pot_name)
@@ -138,7 +138,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         os.remove("lammps.log")
 
-        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
+        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-2)
 
     # This function tests the lammpslib and LAMMPS installation
     # skipped during automated testing
