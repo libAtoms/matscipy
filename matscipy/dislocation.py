@@ -2691,13 +2691,68 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
         'left_dislocation' and 'right_dislocations' are expected
         to be instances of classes derived from CubicCrystalDislocation class.
     """
-    def __init__(self, left_dislocation, right_dislocation,
-                 *args, **kwargs):
+    def __init__(self, left_dislocation, right_dislocation, burgers):
+
+        try:
+            np.testing.assert_almost_equal(left_dislocation.burgers +
+                                           right_dislocation.burgers,
+                                           burgers)
+        except AssertionError as error:
+            print(error)
+            raise ValueError("Burgers vectors of left and right disloctions" +
+                             "do not add up to the desired vector")
+
+        # checking that parameters of
+        # left and right dislocations are the same
+        try:
+            assert left_dislocation.alat == right_dislocation.alat
+            assert left_dislocation.C11 == right_dislocation.C11
+            assert left_dislocation.C12 == right_dislocation.C12
+            assert left_dislocation.C44 == right_dislocation.C44
+
+            np.testing.assert_equal(left_dislocation.unit_cell.get_chemical_symbols(),
+                                    right_dislocation.unit_cell.get_chemical_symbols())
+            np.testing.assert_equal(left_dislocation.unit_cell.cell.cellpar(),
+                                    right_dislocation.unit_cell.cell.cellpar())
+            np.testing.assert_equal(left_dislocation.unit_cell.positions,
+                                    right_dislocation.unit_cell.positions)
+
+            np.testing.assert_equal(left_dislocation.axes,
+                                    right_dislocation.axes)
+
+            np.testing.assert_equal(left_dislocation.unit_cell_core_position,
+                                    right_dislocation.unit_cell_core_position)
+
+            np.testing.assert_equal(left_dislocation.parity,
+                                    right_dislocation.parity)
+
+            np.testing.assert_equal(left_dislocation.glide_distance,
+                                    right_dislocation.glide_distance)
+
+            assert left_dislocation.n_planes == right_dislocation.n_planes
+            assert left_dislocation.self_consistent == right_dislocation.self_consistent
+
+        except AssertionError as error:
+            print("Parameters of left and right partials are not the same!")
+            print(error)
+            raise ValueError("Parameters of left and right" +
+                             "partials must be the same")
 
         self.left_dislocation = left_dislocation
         self.right_dislocation = right_dislocation
 
-        super().__init__(*args, **kwargs)
+        super().__init__(left_dislocation.unit_cell,
+                         left_dislocation.alat,
+                         left_dislocation.C11,
+                         left_dislocation.C12,
+                         left_dislocation.C44,
+                         left_dislocation.axes,
+                         burgers,
+                         unit_cell_core_position=left_dislocation.unit_cell_core_position,
+                         parity=left_dislocation.parity,
+                         glide_distance=right_dislocation.glide_distance,
+                         n_planes=left_dislocation.n_planes,
+                         self_consistent=left_dislocation.self_consistent)
 
     def build_cylinder(self, radius, partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
@@ -2764,82 +2819,40 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
 class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
 
-        axes = np.array([[1, 1, -2],
-                        [1, 1, 1],
-                        [1, -1, 0]])
-
         # aiming for the resulting burgers vector
         burgers = alat * np.array([1, -1, 0]) / 2.
 
-        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
-        # 1/4 + 1/2 (1/3 - 1/4) - to be in the middle of the glide set
-        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
-
-        unit_cell_core_position = np.array([disloCenterX,
-                                            disloCenterY, 0])
-
-        parity = [0, 0]
-
-        unit_cell = Diamond(symbol, directions=axes.tolist(),
-                            pbc=(False, False, True),
-                            latticeconstant=alat)
-
-        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
-
-        n_planes = 2
-
         # 30 degree
         burgers_left = alat * np.array([2., -1., -1.]) / 6.
-        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+
+        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44,
+                                             symbol=symbol)
         left30.set_burgers(burgers_left)
         # another 30 degree
         # burgers_right = alat * np.array([1, -2, 1.]) / 6. - default value
-        right30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
-        self_consistent = False
-        super().__init__(left30, right30, unit_cell, alat, C11, C12, C44,
-                         axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes,
-                         self_consistent=self_consistent)
+        right30 = DiamondGlide30degreePartial(alat, C11, C12, C44,
+                                              symbol=symbol)
+
+        super().__init__(left30, right30, burgers)
 
 
 class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
-        axes = np.array([[1, 1, -2],
-                         [1, 1, 1],
-                         [1, -1, 0]])
 
         # aiming for the resulting burgers vector
         burgers = alat * np.array([1, 0, -1]) / 2.
 
-        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
-        # 1/4 + 1/2 (1/3 - 1/4) - to be in the middle of the glide set
-        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
-
-        unit_cell_core_position = np.array([disloCenterX,
-                                            disloCenterY, 0])
-
-        parity = [0, 0]
-
-        unit_cell = Diamond(symbol, directions=axes.tolist(),
-                            pbc=(False, False, True),
-                            latticeconstant=alat)
-
-        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
-
-        n_planes = 2
-
         # 30 degree
         burgers_left = alat * np.array([2., -1., -1.]) / 6.
-        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44,
+                                             symbol=symbol)
         left30.set_burgers(burgers_left)
         # 90 degree
         # burgers_right = alat * np.array([1, 1, -2.]) / 6. - default value
-        right90 = DiamondGlide90degreePartial(alat, C11, C12, C44)
-        self_consistent = False
-        super().__init__(left30, right90, unit_cell, alat, C11, C12, C44,
-                         axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes,
-                         self_consistent=self_consistent)
+        right90 = DiamondGlide90degreePartial(alat, C11, C12, C44,
+                                              symbol=symbol)
+
+        super().__init__(left30, right90, burgers)
 
 
 class FCCScrewShockleyPartial(CubicCrystalDislocation):
@@ -2882,42 +2895,19 @@ class FCCScrewShockleyPartial(CubicCrystalDislocation):
 class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='Fe'):
 
-        axes = np.array([[1, 1, -2],
-                        [1, 1, 1],
-                        [1, -1, 0]])
-
         # aiming for the resulting burgers vector
         burgers = alat * np.array([1, -1, 0]) / 2.
 
-        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 4.0
-        disloCenterY = (alat * np.linalg.norm(axes[1])) / 6
-
-        unit_cell_core_position = np.array([disloCenterX,
-                                            disloCenterY, 0])
-
-        parity = [0, 0]
-
-        unit_cell = FaceCenteredCubic(symbol, directions=axes.tolist(),
-                                      pbc=(False, False, True),
-                                      latticeconstant=alat)
-
-        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
-
-        n_planes = 2
-
         # Shockley partial
         burgers_left = alat * np.array([2., -1., -1.]) / 6.
-        left_shockley = FCCScrewShockleyPartial(alat, C11, C12, C44)
+        left_shockley = FCCScrewShockleyPartial(alat, C11, C12, C44,
+                                                symbol=symbol)
         left_shockley.set_burgers(burgers_left)
         # another Shockley partial
         # burgers_right = alat * np.array([1, -2, 1.]) / 6. - default value
-        right_shockley = FCCScrewShockleyPartial(alat, C11, C12, C44)
-        self_consistent = True
-        super().__init__(left_shockley, right_shockley,
-                         unit_cell, alat, C11, C12, C44,
-                         axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes,
-                         self_consistent=self_consistent)
+        right_shockley = FCCScrewShockleyPartial(alat, C11, C12, C44,
+                                                 symbol=symbol)
+        super().__init__(left_shockley, right_shockley, burgers)
 
 
 class FCCEdgeShockleyPartial(CubicCrystalDislocation):
@@ -2954,47 +2944,20 @@ class FCCEdgeShockleyPartial(CubicCrystalDislocation):
 class FCCEdge110Dislocation(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='Fe'):
 
-        axes = np.array([[1, -1, 0],
-                         [1, 1, 1],
-                         [-1, -1, 2]])
-
         # aiming for the resulting burgers vector
         burgers = alat * np.array([1, -1, 0]) / 2.
 
-        unit_cell = FaceCenteredCubic(symbol, directions=axes.tolist(),
-                                      pbc=(False, False, True),
-                                      latticeconstant=alat)
-
-        disloCenterX = 0.0
-        # middle between two (111) planes
-        disloCenterY = unit_cell.cell[1][1] / 6.0
-
-        unit_cell_core_position = np.array([disloCenterX,
-                                            disloCenterY, 0])
-
-        parity = [0, 0]
-
-        unit_cell = FaceCenteredCubic(symbol, directions=axes.tolist(),
-                                      pbc=(False, False, True),
-                                      latticeconstant=alat)
-
-        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
-
-        n_planes = 6
-
         # Shockley partial
         burgers_left = alat * np.array([2., -1., -1.]) / 6.
-        left_shockley = FCCEdgeShockleyPartial(alat, C11, C12, C44)
+        left_shockley = FCCEdgeShockleyPartial(alat, C11, C12, C44,
+                                               symbol=symbol)
         left_shockley.set_burgers(burgers_left)
         # another Shockley partial
         # burgers_right = alat * np.array([1, -2, 1.]) / 6. - default value
-        right_shockley = FCCEdgeShockleyPartial(alat, C11, C12, C44)
-        self_consistent = True
-        super().__init__(left_shockley, right_shockley,
-                         unit_cell, alat, C11, C12, C44,
-                         axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes,
-                         self_consistent=self_consistent)
+        right_shockley = FCCEdgeShockleyPartial(alat, C11, C12, C44,
+                                                symbol=symbol)
+
+        super().__init__(left_shockley, right_shockley, burgers)
 
 
 class FixedLineAtoms:
