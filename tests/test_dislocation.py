@@ -416,8 +416,13 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         C12 = 202.1786296941397
         C44 = 160.88179872237012
 
-        d = cls(alat, C11, C12, C44)
+        d = cls(alat, C11, C12, C44, symbol="Al")
         bulk, disloc = d.build_cylinder(20.0)
+
+        # test that assigning non default symbol worked
+        assert np.unique(bulk.get_chemical_symbols()) == "Al"
+        assert np.unique(disloc.get_chemical_symbols()) == "Al"
+
         assert len(bulk) == len(disloc)
 
         if test_u:
