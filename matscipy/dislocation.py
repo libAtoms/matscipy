@@ -456,7 +456,7 @@ def get_elastic_constants(pot_path=None,
         default is "W" for tungsten
     """
 
-    unit_cell = bulk(symbol)
+    unit_cell = bulk(symbol, cubic=True)
 
     if (pot_path is not None) and (calculator is None):
         # create lammps calculator with the potential
@@ -474,7 +474,7 @@ def get_elastic_constants(pot_path=None,
     # -> to minimise wrt pos, cell
     opt = FIRE(sf)
     opt.run(fmax=1e-4)  # max force in eV/A
-    alat = unit_cell.cell[0][1] - unit_cell.cell[0][0]
+    alat = unit_cell.cell.lengths()[0]
     #    print("a0 relaxation %.4f --> %.4f" % (a0, a))
     #    e_coh = W.get_potential_energy()
     #    print("Cohesive energy %.4f" % e_coh)
