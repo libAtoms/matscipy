@@ -25,8 +25,8 @@ import numpy as np
 
 from scipy.optimize import minimize
 
-from ase.lattice.cubic import BodyCenteredCubic, FaceCenteredCubic, Diamond, \
-                              SimpleCubicFactory
+from ase.lattice.cubic import (BodyCenteredCubic, FaceCenteredCubic,
+                               Diamond, SimpleCubicFactory)
 from ase.constraints import FixAtoms, StrainFilter
 from ase.optimize import FIRE
 from ase.build import bulk
@@ -289,8 +289,7 @@ def make_edge_cyl(alat, C11, C12, C44,
 
     x, y, z = bulk.positions.T
     # move lower left segment
-    bulk.positions[(y < 0.0) & (x < X_midplane_shift)] -= \
-        [alat * np.sqrt(3.0) / 2.0, 0.0, 0.0]
+    bulk.positions[(y < 0.0) & (x < X_midplane_shift)] -= [alat * np.sqrt(3.0) / 2.0, 0.0, 0.0]
     # make the dislocation extra half plane center
     bulk.positions += [(1.0/3.0)*alat*np.sqrt(3.0)/2.0, 0.0, 0.0]
 
@@ -635,11 +634,11 @@ def make_screw_cyl_kink(alat, C11, C12, C44, cylinder_r=40,
     b = np.sqrt(3.0) * alat / 2.0
     cent_x = np.sqrt(6.0) * alat / 3.0
 
-    disloc_ini, \
-        disloc_fin, \
-        bulk_ini = make_barrier_configurations((alat, C11, C12, C44),
-                                               cylinder_r=cylinder_r,
-                                               **kwargs)
+    (disloc_ini,
+     disloc_fin,
+     bulk_ini) = make_barrier_configurations((alat, C11, C12, C44),
+                                             cylinder_r=cylinder_r,
+                                             **kwargs)
 
     if kind == "double":
 
@@ -1739,17 +1738,17 @@ def make_screw_quadrupole_kink(alat, kind="double",
     b = np.sqrt(3.0) * alat / 2.0
     cent_x = np.sqrt(6.0) * alat / 3.0
 
-    ini_disloc_quadrupole, \
-        W_bulk, _, _ = make_screw_quadrupole(alat, n1u=n1u,
-                                             left_shift=0.0,
-                                             right_shift=0.0,
-                                             symbol=symbol)
+    (ini_disloc_quadrupole,
+     W_bulk, _, _) = make_screw_quadrupole(alat, n1u=n1u,
+                                           left_shift=0.0,
+                                           right_shift=0.0,
+                                           symbol=symbol)
 
-    fin_disloc_quadrupole, \
-        W_bulk, _, _ = make_screw_quadrupole(alat, n1u=n1u,
-                                             left_shift=1.0,
-                                             right_shift=1.0,
-                                             symbol=symbol)
+    (fin_disloc_quadrupole,
+     W_bulk, _, _) = make_screw_quadrupole(alat, n1u=n1u,
+                                           left_shift=1.0,
+                                           right_shift=1.0,
+                                           symbol=symbol)
 
     reference_straight_disloc = ini_disloc_quadrupole * [1, 1, kink_length]
     large_bulk = W_bulk * [1, 1, kink_length]
@@ -1920,8 +1919,8 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
         print('disloc SCF', i, '|d1-d2|_inf =', res)
         i += 1
         if i > 10:
-            raise RuntimeError('Self-consistency did \
-                                not converge in 10 cycles')
+            raise RuntimeError('Self-consistency did ' +
+                               'not converge in 10 cycles')
     disp = disp2
 
     x, y, z = disloc.positions.T
@@ -2883,9 +2882,9 @@ class FCCScrewShockleyPartial(CubicCrystalDislocation):
                                                    axis=1))
         # centroid coordinates are simply
         # mean of x y coordinates of the trianlge
-        disloCenterX, \
-            disloCenterY, \
-            _ = unit_cell.positions[sorted_indices[:3]].mean(axis=0)
+        (disloCenterX,
+         disloCenterY,
+         _) = unit_cell.positions[sorted_indices[:3]].mean(axis=0)
 
         unit_cell_core_position = np.array([disloCenterX,
                                             disloCenterY, 0])

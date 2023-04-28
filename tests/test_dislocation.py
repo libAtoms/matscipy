@@ -334,14 +334,14 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         cylinder_r = 40
         kink_length = 26
 
-        kink, \
-            large_disloc, _ = sd.make_screw_cyl_kink(alat,
-                                                     C11,
-                                                     C12,
-                                                     C44,
-                                                     kink_length=kink_length,
-                                                     cylinder_r=cylinder_r,
-                                                     kind="double")
+        (kink,
+         large_disloc, _) = sd.make_screw_cyl_kink(alat,
+                                                   C11,
+                                                   C12,
+                                                   C44,
+                                                   kink_length=kink_length,
+                                                   cylinder_r=cylinder_r,
+                                                   kind="double")
 
         # check the total number of atoms as compared to make_screw_cyl()
         disloc, _, _ = sd.make_screw_cyl(alat, C11, C12, C12,
@@ -387,22 +387,22 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # check that the size of slices are the same as single b configuration
         self.assertArrayAlmostEqual(len(quadrupole_base), len(sliced_kink[0][0]))
 
-        right_kink, _, \
-            kink_bulk = sd.make_screw_quadrupole_kink(alat=alat,
-                                                      n1u=n1u,
-                                                      kind="right",
-                                                      kink_length=kink_length)
+        (right_kink, _,
+         kink_bulk) = sd.make_screw_quadrupole_kink(alat=alat,
+                                                    n1u=n1u,
+                                                    kind="right",
+                                                    kink_length=kink_length)
 
         sliced_right_kink, _ = sd.slice_long_dislo(right_kink, kink_bulk, b)
         # check the number of sliced configurations is equal
         # to length of kink_length * 3 - 2 (for right kink)
         self.assertEqual(len(sliced_right_kink), kink_length * 3 - 2)
 
-        left_kink, _, \
-            kink_bulk = sd.make_screw_quadrupole_kink(alat=alat,
-                                                      n1u=n1u,
-                                                      kind="left",
-                                                      kink_length=kink_length)
+        (left_kink, _,
+         kink_bulk) = sd.make_screw_quadrupole_kink(alat=alat,
+                                                    n1u=n1u,
+                                                    kind="left",
+                                                    kink_length=kink_length)
 
         sliced_left_kink, _ = sd.slice_long_dislo(left_kink, kink_bulk, b)
         # check the number of sliced configurations is equal
