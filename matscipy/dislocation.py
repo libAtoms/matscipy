@@ -1,6 +1,6 @@
 #
 # Copyright 2019, 2021 Lars Pastewka (U. Freiburg)
-#           2018-2021 Petr Grigorev (Warwick U.)
+#           2018-2023 Petr Grigorev (Warwick U.)
 #           2020 James Kermode (Warwick U.)
 #           2019 Arnaud Allera (U. Lyon 1)
 #           2019 Wolfram G. Nöhring (U. Freiburg)
@@ -2685,14 +2685,22 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
 
 
 class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
-    """
-        This class represents a dissociated dislocation in a cubic crystal
-        with b = b_left + b_right.
-        'left_dislocation' and 'right_dislocations' are expected
-        to be instances of classes derived from CubicCrystalDislocation class.
-    """
     def __init__(self, left_dislocation, right_dislocation, burgers):
+        """This class represents a dissociated dislocation in a cubic crystal
+        with burgers vercor b = b_left + b_right.
 
+        Args:
+            left_dislocation (CubicCrystalDislocation): dislocation with b_left
+            right_dislocation (CubicCrystalDislocation): dislocation with b_right
+            burgers (ndarray of 3 floats): resulting burgers vector
+
+        Raises:
+            ValueError: If resulting burgers vector
+                        burgers is not a sum of burgers vectors of
+                        left and right dislocations.
+            ValueError: If one of the properties of
+                        left and righ dislocations are not the same.
+        """
         try:
             np.testing.assert_almost_equal(left_dislocation.burgers +
                                            right_dislocation.burgers,
