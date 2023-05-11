@@ -20,7 +20,9 @@
 #
 
 import time
+import copy
 import sys
+import re
 import distutils.version
 
 import numpy as np
@@ -302,6 +304,7 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
     ----------
     prefix : str
     atoms : matscipy.opls.OPLSStructure
+    units : str
     """
     if isinstance(prefix, str):
         with open(prefix + '.atoms', 'w') as fileobj:
@@ -526,6 +529,131 @@ def write_lammps_definitions(prefix, atoms):
                 fileobj.write('set type ' + str(ia + 1))
                 fileobj.write(' charge ' + str(atoms.atom_data[atype][2]))
                 fileobj.write(' # ' + atype + '\n')
+
+
+def read_lammps_definitions(filename):
+    """
+    Reads force field definitions from a LAMMPS parameter file and
+    stores the parameters in the LJQData, BondData, AnglesData and
+    DihedralsData objects. The 'number' of the particles, pairs, ...
+    for the corresponding interaction parameters is not included in
+    these objects and is output in dicts. Note that there is an
+    offset of one between LAMMPS and python numbering.
+
+    ====== Example ======
+    Parameter file:
+
+    bond_style      harmonic
+    bond_coeff      1 1.2 3.4 # AA-AA
+    bond_coeff      2 5.6 7.8 # AA-BB
+
+    Returned dictionary:
+    bond_type_index[0] = 'AA-AA'
+    bond_type_index[1] = 'AA-BB'
+    ====== End of example ======
+
+    Parameters
+    ----------
+    filename : str
+
+    Returns
+    -------
+    ljq_data : matscipy.opls.LJQData
+    bond_data : matscipy.opls.BondData
+    ang_data : matscipy.opls.AnglesData
+    dih_data : matscipy.opls.DihedralsData
+    particle_type_index : dict
+    bond_type_index : dict
+    ang_type_index : dict
+    dih_type_index : dict
+    """
+    with open(filename, 'r') as fileobj:
+        bond_nvh = {}
+        ang_nvh  = {}
+        dih_nvh  = {}
+
+        particle_type_index = {}
+        bond_type_index     = {}
+        ang_type_index      = {}
+        dih_type_index      = {}
+
+        ljq_data = matscipy.opls.LJQData({})
+
+        for line in fileobj.readlines():
+            re_lj_cut = re.match('^pair_style\s+lj/cut/coul/long\s+(\d+\.?\d*)\s+(\d+\.?\d*)$', line)
+            if re_lj_cut:
+                ljq_data.lj_cutoff = float(re_lj_cut.groups()[0])
+                ljq_data.c_cutoff  = float(re_lj_cut.groups()[1])
+
+            re_lj     = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
+            re_lj_cut = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(\d+\.?\d*)\s+\#\s+(\S+)$', line)
+            if re_lj_cut:
+                lj_pair_type = re_lj_cut.groups()[5]
+                lj_pair_p1   = float(re_lj_cut.groups()[2])
+                lj_pair_p2   = float(re_lj_cut.groups()[3])
+                lj_pair_p3   = float(re_lj_cut.groups()[4])
+                ljq_data.lj_pairs[lj_pair_type] = [lj_pair_p1, lj_pair_p2, lj_pair_p3]
+            if re_lj:
+                lj_type = re_lj.groups()[4]
+                lj_p1   = float(re_lj.groups()[2])
+                lj_p2   = float(re_lj.groups()[3])
+
+                if not lj_type in ljq_data:
+                    ljq_data[lj_type] = [lj_p1, lj_p2]
+                else:
+                    ljq_data[lj_type] = [lj_p1, lj_p2, ljq_data[lj_type][-1]]
+
+            re_q = re.match('^set\s+type\s+(\d+)\s+charge\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
+            if re_q:
+                q_type  = re_q.groups()[2]
+                q_index = int(re_q.groups()[0]) - 1
+                q_p1    = float(re_q.groups()[1])
+
+                if not q_type in ljq_data:
+                    ljq_data[q_type] = [q_p1]
+                else:
+                    ljq_data[q_type] = [ljq_data[q_type][0], ljq_data[q_type][1], q_p1]
+                particle_type_index[q_index] = q_type
+
+
+            re_bond_coeff = re.match('^bond_coeff\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
+            if re_bond_coeff:
+                bond_type  = re_bond_coeff.groups()[3]
+                bond_index = int(re_bond_coeff.groups()[0]) - 1
+                bond_p1    = float(re_bond_coeff.groups()[1])
+                bond_p2    = float(re_bond_coeff.groups()[2])
+
+                bond_nvh[bond_type] = [bond_p1, bond_p2]
+                bond_type_index[bond_index] = bond_type
+
+            re_ang_coeff = re.match('^angle_coeff\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
+            if re_ang_coeff:
+                ang_type  = re_ang_coeff.groups()[3]
+                ang_index = int(re_ang_coeff.groups()[0]) - 1
+                ang_p1    = float(re_ang_coeff.groups()[1])
+                ang_p2    = float(re_ang_coeff.groups()[2])
+
+                ang_nvh[ang_type] = [ang_p1, ang_p2]
+                ang_type_index[ang_index] = ang_type
+
+            re_dih_coeff = re.match('^dihedral_coeff\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
+            if re_dih_coeff:
+                dih_type  = re_dih_coeff.groups()[5]
+                dih_index = int(re_dih_coeff.groups()[0]) - 1
+                dih_p1    = float(re_dih_coeff.groups()[1])
+                dih_p2    = float(re_dih_coeff.groups()[2])
+                dih_p3    = float(re_dih_coeff.groups()[3])
+                dih_p4    = float(re_dih_coeff.groups()[4])
+
+                dih_nvh[dih_type] = [dih_p1, dih_p2, dih_p3, dih_p4]
+                dih_type_index[dih_index] = dih_type
+
+    bond_data = matscipy.opls.BondData(bond_nvh)
+    ang_data  = matscipy.opls.AnglesData(ang_nvh)
+    dih_data  = matscipy.opls.DihedralsData(dih_nvh)
+
+    return (ljq_data, bond_data, ang_data, dih_data,
+            particle_type_index, bond_type_index, ang_type_index, dih_type_index)
 
 
 def read_lammps_data(filename):
