@@ -656,272 +656,136 @@ def read_lammps_definitions(filename):
             particle_type_index, bond_type_index, ang_type_index, dih_type_index)
 
 
-def read_lammps_data(filename):
+def read_lammps_data(filename, filename_lammps_params=None):
     """
-    Read positions, connectivities, angles and dihedrals from a LAMMPS file.
+    Read positions, bonds, angles and dihedrals from a LAMMPS file.
+    Optionally, a LAMMPS parameter file can be specified to restore
+    all interactions from a preceding simulation.
 
     Parameters
     ----------
     filename : str
+    filename_lammps_params : str
 
     Returns
     -------
     matscipy.opls.OPLSStructure
 
     """
-    if isinstance(filename, str):
-        with open(filename, 'r') as fileobj:
-            lines = fileobj.readlines()
-            lines.pop(0)
+    atoms = ase.io.read(filename, format='lammps-data', Z_of_type=None,
+                        style='full', sort_by_id=False, units='metal')
 
-            def next_entry():
-                line = lines.pop(0).strip()
-                if len(line) > 0:
-                    lines.insert(0, line)
+    tags = copy.deepcopy(atoms.numbers)
 
-            def next_key():
-                while len(lines):
-                    line = lines.pop(0).strip()
-                    if len(line) > 0:
-                        lines.pop(0)
-                        return line
-                return None
+    # try to guess the atomic numbers from the particle masses
+    atomic_numbers = np.empty(len(atoms), dtype=int)
+    ams = ase.data.atomic_masses[:]
+    ams[np.isnan(ams)] = 0
+    for i, mass in enumerate(atoms.get_masses()):
+        m2 = (ams - mass)**2
+        atomic_numbers[i] = m2.argmin()
+    atoms.numbers = atomic_numbers
 
-            next_entry()
-            header = {}
-            while True:
-                line = lines.pop(0).strip()
-                if len(line):
-                    w = line.split()
-                    if len(w) == 2:
-                        header[w[1]] = int(w[0])
-                    else:
-                        header[w[1] + ' ' + w[2]] = int(w[0])
-                else:
-                    break
+    opls_struct = matscipy.opls.OPLSStructure(atoms)
+    opls_struct.charges = opls_struct.get_array('initial_charges')
+    opls_struct.set_tags(tags)
+    opls_struct.set_array('molid', atoms.get_array('mol-id'))
 
-            # read box
-            next_entry()
-            cell = np.zeros(3)
-            for i in range(3):
-                line = lines.pop(0).strip()
-                cell[i] = float(line.split()[1])
+    if filename_lammps_params:
+        if 'bonds' in atoms.arrays:
+            bond_list = []
+            for bond_i, bond in enumerate(atoms.get_array('bonds')):
+                for item in bond.split(','):
+                    re_bond = re.match('(\d+)\((\d+)\)', item)
+                    if re_bond:
+                        bond_j        = int(re_bond.groups()[0])
+                        bond_type_num = int(re_bond.groups()[1])-1
+                        bond_list.append([bond_type_num, bond_i, bond_j])
+            opls_struct.bond_list = np.array(bond_list)
+        else:
+            opls_struct.bond_list = []
 
-            while not lines.pop(0).startswith('Atoms'):
-                pass
-            lines.pop(0)
+        if 'angles' in atoms.arrays:
+            ang_list = []
+            for ang_j, ang in enumerate(atoms.get_array('angles')):
+                for item in ang.split(','):
+                    re_ang = re.match('(\d+)-(\d+)\((\d+)\)', item)
+                    if re_ang:
+                        ang_i        = int(re_ang.groups()[0])
+                        ang_k        = int(re_ang.groups()[1])
+                        ang_type_num = int(re_ang.groups()[2])-1
+                        ang_list.append([ang_type_num, ang_i, ang_j, ang_k])
+            opls_struct.ang_list = np.array(ang_list)
+        else:
+            opls_struct.ang_list = []
 
-            natoms = header['atoms']
-            molid     = np.ones(natoms, dtype=int)
-            tags      = np.ones(natoms, dtype=int)
-            charges   = np.zeros(natoms, dtype=float)
-            positions = np.zeros([natoms, 3])
-            types     = ['']*header['atom types']
-            inconsistent = False
-
-            for line in lines[:natoms]:
-                w = line.split()
-                i = int(w[0])-1
-                molid[i]        = int(w[1])
-                tags[i]         = int(w[2])-1
-                charges[i]      = float(w[3])
-                positions[i][0] = float(w[4])
-                positions[i][1] = float(w[5])
-                positions[i][2] = float(w[6])
-
-                # try to read atom type from comment
-                if len(w) >= 8:
-                    type = ''.join(w[8:])
-                    if types[tags[i]] == type:
-                        pass
-                    elif types[tags[i]] == '':
-                        types[tags[i]] = type
-                    else:
-                        inconsistent = True
-
-            if inconsistent:
-                print('WARNING: Inconsistency between particle descriptions and particle tags found.')
-                types = []
-                for type in np.unique(tags):
-                    types.append(str(type))
+        if 'dihedrals' in atoms.arrays:
+            dih_list = []
+            for dih_i, dih in enumerate(atoms.get_array('dihedrals')):
+                for item in dih.split(','):
+                    re_dih = re.match('(\d+)-(\d+)-(\d+)\((\d+)\)', item)
+                    if re_dih:
+                        dih_j        = int(re_dih.groups()[0])
+                        dih_k        = int(re_dih.groups()[1])
+                        dih_l        = int(re_dih.groups()[2])
+                        dih_type_num = int(re_dih.groups()[3])-1
+                        dih_list.append([dih_type_num, dih_i, dih_j, dih_k, dih_l])
+            opls_struct.dih_list = np.array(dih_list)
+        else:
+            opls_struct.dih_list = []
 
 
-            opls_struct = matscipy.opls.OPLSStructure(str(natoms)+'H', positions=positions, cell=cell)
-            opls_struct.set_tags(tags)
-            opls_struct.set_array('molid', molid)
+        # further settings require data in 'filename_lammps_params'
+        lammps_params = read_lammps_definitions(filename_lammps_params)
 
-            opls_struct.atom_data = {}
-            opls_struct.types = types
-            for tag, type in zip(np.unique(tags), types):
-                opls_struct.atom_data[type] = [0.0, 0.0, charges[tags == tag][0]]
 
-            del lines[:natoms]
+        opls_struct.set_atom_data(lammps_params[0])
 
-            key = next_key()
+        part_type_index = lammps_params[4]
 
-            velocities = np.zeros([natoms, 3])
-            if key == 'Velocities':
-                for line in lines[:natoms]:
-                    w = line.split()
-                    i = int(w[0])-1
-                    velocities[i][0] = float(w[1])
-                    velocities[i][1] = float(w[2])
-                    velocities[i][2] = float(w[3])
+        part_types = np.full(len(opls_struct), None)
+        for i, part_type in enumerate(atoms.get_array('type') - 1):
+            part_types[i] = part_type_index[part_type]
+        opls_struct.set_types(part_types)
 
-                del lines[:natoms]
 
-                key = next_key()
+        if 'bonds' in atoms.arrays:
+            opls_struct.bonds = lammps_params[1]
 
-            if key == 'Masses':
-                ntypes = len(opls_struct.atom_data)
-                masses = np.empty((ntypes))
-                for line in lines[:ntypes]:
-                    w = line.split()
-                    i = int(w[0])-1
-                    masses[i] = float(w[1])
+            bond_type_index = lammps_params[5]
 
-                del lines[:ntypes]
-
-                opls_struct.set_masses(masses[tags])
-                opls_struct.set_velocities(velocities)
-
-                # get the elements from the masses
-                # this ensures that we have the right elements
-                # even when reading from a lammps dump file
-                def newtype(element, types):
-                    if len(element) > 1:
-                        # can not extend, we are restricted to
-                        # two characters
-                        return element
-                    count = 0
-                    for type in types:
-                        if type[0] == element:
-                            count += 1
-                    label = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                    return element + label[count]
-
-                atomic_numbers = np.empty(ntypes, dtype=int)
-                ams = ase.data.atomic_masses[:]
-                ams[np.isnan(ams)] = 0
-                for i, mass in enumerate(masses):
-                    m2 = (ams - mass)**2
-                    atomic_numbers[i] = m2.argmin()
-
-                opls_struct.set_atomic_numbers(atomic_numbers[tags])
-
-                key = next_key()
-
-            if key != 'Bonds':
-                bond_list = np.empty([0, 3], dtype=int)
-                bond_types = np.empty(0, dtype=str)
-            else:
-                nbonds = header['bonds']
-                bond_list  = np.empty([nbonds, 3], dtype=int)
-                bond_types = ['']*header['bond types']
-                inconsistent = False
-
-                for line in lines[:nbonds]:
-                    w = line.split()
-                    i = int(w[0])-1
-                    bond_list[i][0] = int(w[1])-1
-                    bond_list[i][1] = int(w[2])-1
-                    bond_list[i][2] = int(w[3])-1
-
-                    # try to read bond type info from comment
-                    if len(w) >= 5:
-                        bond_type = ''.join(w[5:])
-                        if bond_types[bond_list[i][0]-1] == bond_type:
-                            pass
-                        elif bond_types[bond_list[i][0]-1] == '':
-                            bond_types[bond_list[i][0]-1] = bond_type
-                        else:
-                            inconsistent = True
-
-                if inconsistent:
-                    print('WARNING: Inconsistency between bond descriptions and bond type numbers found.')
-                    bond_types = ['']*header['bond types']
-
-                del lines[:nbonds]
-
-                key = next_key()
-
+            bond_types = []
+            for bond_type_num in np.unique(opls_struct.bond_list.T[0]):
+                bond_types.append(bond_type_index[bond_type_num])
             opls_struct.bond_types = bond_types
-            opls_struct.bond_list = bond_list
+        else:
+            opls_struct.bond_types = []
 
-            if key != 'Angles':
-                ang_list = np.empty([0, 4], dtype=int)
-                ang_types = np.empty(0, dtype=str)
-            else:
-                nangles = header['angles']
-                ang_list  = np.empty([nangles, 4], dtype=int)
-                ang_types = ['']*header['angle types']
-                inconsistent = False
 
-                for line in lines[:nangles]:
-                    w = line.split()
-                    i = int(w[0])-1
-                    ang_list[i][0] = int(w[1])-1
-                    ang_list[i][1] = int(w[2])-1
-                    ang_list[i][2] = int(w[3])-1
-                    ang_list[i][3] = int(w[4])-1
+        if 'angles' in atoms.arrays:
+            opls_struct.angles = lammps_params[2]
 
-                    # try to read angle type info from comment
-                    if len(w) >= 5:
-                        ang_type = ''.join(w[6:])
-                        if ang_types[ang_list[i][0]-1] == ang_type:
-                            pass
-                        elif ang_types[ang_list[i][0]-1] == '':
-                            ang_types[ang_list[i][0]-1] = ang_type
-                        else:
-                            inconsistent = True
+            ang_type_index = lammps_params[6]
 
-                if inconsistent:
-                    print('WARNING: Inconsistency between angle descriptions and angle type numbers found.')
-                    ang_types = ['']*header['angle types']
-
-                del lines[:nangles]
-
-                key = next_key()
-
+            ang_types = []
+            for ang_type_num in np.unique(opls_struct.ang_list.T[0]):
+                ang_types.append(ang_type_index[ang_type_num])
             opls_struct.ang_types = ang_types
-            opls_struct.ang_list = ang_list
+        else:
+            opls_struct.ang_types = []
 
-            if key != 'Dihedrals':
-                dih_list = np.empty([0, 5], dtype=int)
-                dih_types = np.empty(header['dihedral types'], dtype=str)
-            else:
-                ndihedrals = header['dihedrals']
-                dih_list = np.empty([ndihedrals, 5], dtype=int)
-                dih_types = ['']*header['dihedral types']
-                inconsistent = False
 
-                for line in lines[:ndihedrals]:
-                    w = line.split()
-                    i = int(w[0])-1
-                    dih_list[i][0] = int(w[1])-1
-                    dih_list[i][1] = int(w[2])-1
-                    dih_list[i][2] = int(w[3])-1
-                    dih_list[i][3] = int(w[4])-1
-                    dih_list[i][4] = int(w[5])-1
+        if 'dihedrals' in atoms.arrays:
+            opls_struct.dihedrals = lammps_params[3]
 
-                    # try to read dihedral type info from comment
-                    if len(w) >= 7:
-                        dih_type = ''.join(w[7:])
-                        if dih_types[dih_list[i][0]-1] == dih_type:
-                            pass
-                        elif dih_types[dih_list[i][0]-1] == '':
-                            dih_types[dih_list[i][0]-1] = dih_type
-                        else:
-                            inconsistent = True
+            dih_type_index = lammps_params[7]
 
-                if inconsistent:
-                    print('WARNING: Inconsistency between dihedral descriptions and dihedral type numbers found.')
-                    dih_types = ['']*header['dihedral types']
-
-                del lines[:ndihedrals]
-
+            dih_types = []
+            for dih_type_num in np.unique(opls_struct.dih_list.T[0]):
+                dih_types.append(dih_type_index[dih_type_num])
             opls_struct.dih_types = dih_types
-            opls_struct.dih_list = dih_list
+        else:
+            opls_struct.dih_types = []
 
     return opls_struct
 
