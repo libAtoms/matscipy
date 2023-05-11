@@ -294,7 +294,7 @@ def write_lammps_in(prefix):
             fileobj.write('minimize        1.0e-14 1.0e-5 100000 100000\n')
 
 
-def write_lammps_atoms(prefix, atoms):
+def write_lammps_atoms(prefix, atoms, units='metal'):
     """
     Write atoms input for LAMMPS. Filename will be 'prefix.atoms'.
 
@@ -334,7 +334,9 @@ def write_lammps_atoms(prefix, atoms):
             else:
                 p = ase.calculators.lammpsrun.prism(atoms.get_cell())
 
-            xhi, yhi, zhi, xy, xz, yz = p.get_lammps_prism()
+            xhi, yhi, zhi, xy, xz, yz = ase.calculators.lammpsrun.convert(
+                p.get_lammps_prism(), 'distance', 'ASE', units
+                )
             fileobj.write('\n0.0 %f  xlo xhi\n' % xhi)
             fileobj.write('0.0 %f  ylo yhi\n' % yhi)
             fileobj.write('0.0 %f  zlo zhi\n' % zhi)
@@ -352,15 +354,16 @@ def write_lammps_atoms(prefix, atoms):
             else:
                 molid = [1] * len(atoms)
 
+            pos = ase.calculators.lammpsrun.convert(atoms.get_positions(), 'distance', 'ASE', units)
             if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.17.0'):
-                positions_lammps_str = p.vector_to_lammps(atoms.get_positions()).astype(str)
+                positions_lammps_str = p.vector_to_lammps(pos).astype(str)
             elif distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.13.0'):
-                positions_lammps_str = p.positions_to_lammps_strs(atoms.get_positions())
+                positions_lammps_str = p.positions_to_lammps_strs(pos)
             else:
-                positions_lammps_str = map(p.pos_to_lammps_str, atoms.get_positions())
+                positions_lammps_str = map(p.pos_to_lammps_str, pos)
 
             for i, r in enumerate(positions_lammps_str):
-                q = atoms.atom_data[types[tags[i]]][2]
+                q = ase.calculators.lammpsrun.convert(atoms.atom_data[types[tags[i]]][2], 'charge', 'ASE', units)
                 fileobj.write('%6d %3d %3d %s %s %s %s' % ((i + 1, molid[i],
                                                             tags[i] + 1,
                                                             q)
@@ -368,7 +371,7 @@ def write_lammps_atoms(prefix, atoms):
                 fileobj.write(' # ' + atoms.types[tags[i]] + '\n')
 
             # velocities
-            velocities = atoms.get_velocities()
+            velocities = ase.calculators.lammpsrun.convert(atoms.get_velocities(), 'velocity', 'ASE', units)
             if velocities is not None:
                 fileobj.write('\nVelocities\n\n')
                 for i, v in enumerate(velocities):
@@ -376,7 +379,7 @@ def write_lammps_atoms(prefix, atoms):
                                   (i + 1, v[0], v[1], v[2]))
 
             # masses
-            masses = atoms.get_masses()
+            masses = ase.calculators.lammpsrun.convert(atoms.get_masses(), 'mass', 'ASE', units)
             tags   = atoms.get_tags()
 
             fileobj.write('\nMasses\n\n')

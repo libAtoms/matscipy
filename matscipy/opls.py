@@ -53,6 +53,22 @@ class LJQData(dict):
     parameters, with geometric mixing applied between parameters of
     different types. Parameters for individual pairs of particle types can
     be specified in the 'lj_pairs' dictionary.
+
+    ====== Example ======
+    Set the Lennard-Jones and Coulomb cutoffs to 12 and 8 Angstroms, geometric
+    mixing of the Lennard-Jones parameters for particles 'C1' and 'C2' and
+    between 'C2' and 'C3', custom parameters and cutoff for the interaction
+    between 'C1' and 'C3':
+
+    LJQData.lj_cutoff = 12.0
+    LJQData.c_cutoff  =  8.0
+
+    LJQData['C1'] = [LJ-epsilon (eV), LJ-sigma (A), charge (e)]
+    LJQData['C2'] = [LJ-epsilon (eV), LJ-sigma (A), charge (e)]
+    LJQData['C3'] = [LJ-epsilon (eV), LJ-sigma (A), charge (e)]
+
+    LJQData.lj_pairs['C1-C3'] = [epsilon (eV), sigma (A), cutoff (A)]
+    ====== End of example ======
     """
     def __init__(self, args):
         dict.__init__(self, args)
