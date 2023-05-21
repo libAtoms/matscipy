@@ -1096,8 +1096,8 @@ def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
                               np.eye(3, dtype=float)) > tol):
             raise RuntimeError('Matrix *R* does not describe a rotation.')
     else:
-        u_a = np.array([1, 0, 0])
-        u_b = l/norm(l)  # Normalise directions
+        u_a = l/norm(l)  # Normalise directions
+        u_b = np.array([1, 0, 0])
         R = np.eye(3)
 
         if not np.allclose(l, u_a, rtol=tol, atol=tol):
