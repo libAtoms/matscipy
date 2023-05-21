@@ -1100,7 +1100,7 @@ def elastic_moduli(C, l=np.array([1, 0, 0]), R=None, tol=1e-6):
         u_b = np.array([1, 0, 0])
         R = np.eye(3)
 
-        if not np.allclose(l, u_a, rtol=tol, atol=tol):
+        if not np.allclose(l, u_b, rtol=tol, atol=tol):
             u_v = np.cross(u_a, u_b)
             u_v_mat = np.array([[ 0,      -u_v[2], u_v[1]],
                                 [ u_v[2], 0,      -u_v[0]],
