@@ -492,32 +492,25 @@ def write_lammps_definitions(prefix, atoms):
                           (atoms.atom_data.lj_cutoff, atoms.atom_data.c_cutoff))
             fileobj.write('special_bonds lj/coul 0.0 0.0 0.5\n')
             for ia, atype in enumerate(atoms.types):
-                if len(atype) < 2:
-                    atype = atype + ' '
-                if (atype + '-' + atype) in atoms.atom_data.lj_pairs:
-                    pair = atype + '-' + atype
-                    fileobj.write('pair_coeff ' + str(ia + 1) + ' ' + str(ia + 1))
-                    for value in atoms.atom_data.lj_pairs[pair]:
-                        fileobj.write(' ' + str(value))
-                    fileobj.write(' # ' + pair + '\n')
-                else:
-                    fileobj.write('pair_coeff ' + str(ia + 1) + ' ' + str(ia + 1))
-                    for value in atoms.atom_data[atype][:2]:
-                        fileobj.write(' ' + str(value))
-                    fileobj.write(' # ' + atype + '\n')
-
-            if len(atoms.atom_data.lj_pairs) > 0:
-                for pair in atoms.atom_data.lj_pairs:
-                    atype, btype = pair.split('-')
-                    if atype != btype:
-                        ia = atoms.types.tolist().index(atype)
-                        ib = atoms.types.tolist().index(btype)
-                        if ia > ib:
-                            ia, ib = ib, ia
-                        fileobj.write('pair_coeff ' + str(ia + 1) + ' ' + str(ib + 1))
+                for ib, btype in enumerate(atoms.types):
+                    if len(atype) < 2:
+                        atype = atype + ' '
+                    if len(btype) < 2:
+                        btype = btype + ' '
+                    pair = atype + '-' + btype
+                    if pair in atoms.atom_data.lj_pairs:
+                        if ia < ib:
+                            fileobj.write('pair_coeff %3d %3d' % (ia + 1, ib + 1))
+                        else:
+                            fileobj.write('pair_coeff %3d %3d' % (ib + 1, ia + 1))
                         for value in atoms.atom_data.lj_pairs[pair]:
                             fileobj.write(' ' + str(value))
                         fileobj.write(' # ' + pair + '\n')
+                    elif atype == btype:
+                        fileobj.write('pair_coeff %3d %3d' % (ia + 1, ib + 1))
+                        for value in atoms.atom_data[atype][:2]:
+                            fileobj.write(' ' + str(value))
+                        fileobj.write(' # ' + atype + '\n')
 
             fileobj.write('pair_modify shift yes mix geometric\n')
 
