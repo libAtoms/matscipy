@@ -27,6 +27,7 @@ import ase
 import ase.io
 import matscipy.opls
 import matscipy.io.opls
+import ase.calculators.lammpsrun
 
 
 class TestOPLSIO(matscipytest.MatSciPyTestCase):
@@ -120,7 +121,7 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
 
 
     def test_read_lammps_data(self):
-        test_structure = matscipy.io.opls.read_lammps_data('opls_test.atoms')
+        test_structure = matscipy.io.opls.read_lammps_data('opls_test.atoms', 'opls_test.parameters')
 
         self.assertArrayAlmostEqual(test_structure.cell,
                                     [[10.0, 0.0, 0.0],
@@ -135,7 +136,13 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
                                      [5.5, 5.0, 5.0],
                                      [6.5, 5.0, 5.0]],
                                     tol=0.01)
-        self.assertArrayAlmostEqual(test_structure.get_velocities(),
+        test_velocities = ase.calculators.lammpsrun.convert(
+            test_structure.get_velocities(),
+            'velocity',
+            'ASE',
+            'metal'
+        )
+        self.assertArrayAlmostEqual(test_velocities,
                                     [[0.1, 0.2, 0.3],
                                      [0.0, 0.0, 0.0],
                                      [0.4, 0.5, 0.6],
@@ -219,7 +226,7 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
 
 
         # Read written structure
-        c2h2_written = matscipy.io.opls.read_lammps_data('temp.atoms')
+        c2h2_written = matscipy.io.opls.read_lammps_data('temp.atoms', 'temp.opls')
 
         self.assertArrayAlmostEqual(c2h2_written.cell,
                                     [[10.0, 0.0, 0.0],
