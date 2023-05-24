@@ -223,6 +223,7 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
         opls_c2h2.get_dihedrals(dihedrals)
 
         matscipy.io.opls.write_lammps_atoms('temp', opls_c2h2)
+        matscipy.io.opls.write_lammps_definitions('temp', opls_c2h2)
 
 
         # Read written structure
