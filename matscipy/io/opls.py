@@ -578,18 +578,23 @@ def read_lammps_definitions(filename):
                 ljq_data.lj_cutoff = float(re_lj_cut.groups()[0])
                 ljq_data.c_cutoff  = float(re_lj_cut.groups()[1])
 
-            re_lj     = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
-            re_lj_cut = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(\d+\.?\d*)\s+\#\s+(\S+)$', line)
-            if re_lj_cut:
-                lj_pair_type = re_lj_cut.groups()[5]
-                lj_pair_p1   = float(re_lj_cut.groups()[2])
-                lj_pair_p2   = float(re_lj_cut.groups()[3])
-                lj_pair_p3   = float(re_lj_cut.groups()[4])
+            re_pc     = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
+            re_pc_cut = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(\d+\.?\d*)\s+\#\s+(\S+)$', line)
+            if re_pc_cut:
+                lj_pair_type = re_pc_cut.groups()[5]
+                lj_pair_p1   = float(re_pc_cut.groups()[2])
+                lj_pair_p2   = float(re_pc_cut.groups()[3])
+                lj_pair_p3   = float(re_pc_cut.groups()[4])
                 ljq_data.lj_pairs[lj_pair_type] = [lj_pair_p1, lj_pair_p2, lj_pair_p3]
-            if re_lj:
-                lj_type = re_lj.groups()[4]
-                lj_p1   = float(re_lj.groups()[2])
-                lj_p2   = float(re_lj.groups()[3])
+
+                t1, t2 = lj_pair_type.split('-')
+                if t1 == t2 and t1 not in ljq_data:
+                    ljq_data[t1] = [lj_pair_p1, lj_pair_p2]
+
+            if re_pc:
+                lj_type = re_pc.groups()[4]
+                lj_p1   = float(re_pc.groups()[2])
+                lj_p2   = float(re_pc.groups()[3])
 
                 if not lj_type in ljq_data:
                     ljq_data[lj_type] = [lj_p1, lj_p2]
