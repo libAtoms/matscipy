@@ -47,6 +47,12 @@ from matscipy.surface import MillerDirection, MillerPlane
 
 from matscipy.neighbours import neighbour_list
 
+import matplotlib.pyplot as plt
+from ase.optimize.precon import Exp, PreconLBFGS
+from ase.optimize import LBFGS
+from ase.constraints import FixAtoms
+from ase import Atom
+import ase.io
 
 ###
 
@@ -1796,6 +1802,114 @@ class SinclairCrack:
             frames = range(0, len(x), 100)
 
         return FuncAnimation(fig, frame, frames)
+
+    @counted
+    def write_atoms_to_file(self, fname):
+        alpha_at = Atom('Au')
+        crack_atoms = self.atoms.copy()
+        crack_atoms.calc = self.calc
+        forces = crack_atoms.get_forces()
+        crack_atoms.append(alpha_at)
+        crack_atoms[-1].position = [self.cryst.cell[0, 0] / 2.0 + self.alpha,
+                             self.cryst.cell[1, 1] / 2.0,0]
+        crack_atoms.new_array('fx', np.zeros(len(crack_atoms), dtype=float))
+        crack_atoms.new_array('fy', np.zeros(len(crack_atoms), dtype=float))
+        crack_atoms.new_array('fz', np.zeros(len(crack_atoms), dtype=float))
+        crack_atoms.new_array('ftot', np.zeros(len(crack_atoms), dtype=float))
+        crack_atoms.new_array('logabsftot', np.zeros(len(crack_atoms), dtype=float))
+        crack_atoms.new_array('falphacomponents',np.zeros(len(crack_atoms)),dtype =float)
+        crack_atoms.new_array('logabsfalphacomp',np.zeros(len(crack_atoms)),dtype =float)
+        fx = crack_atoms.arrays['fx']
+        fy = crack_atoms.arrays['fy']
+        fz = crack_atoms.arrays['fz']
+        ftot = crack_atoms.arrays['ftot']
+        logabsftot = crack_atoms.arrays['logabsftot']
+        falphacomponents = crack_atoms.arrays['falphacomponents']
+        logabsfalphacomp = crack_atoms.arrays['logabsfalphacomp']
+
+
+        fx[0:len(crack_atoms)-1] = (forces[:,0])
+        fy[0:len(crack_atoms)-1] = (forces[:,1])
+        fz[0:len(crack_atoms)-1] = (forces[:,2])
+        ftot[0:len(crack_atoms)-1] = (np.linalg.norm(forces,ord=2,axis=1))
+        
+
+        mask = np.append(self.regionII,np.array([False],dtype=bool)) #extra false added as we have added alpha to array
+        crack_tip_force_mask = self.regionII
+        if self.extended_far_field:
+            mask = np.append((self.regionII | self.regionIII),np.array([False],dtype=bool))
+            crack_tip_force_mask = self.regionII | self.regionIII
+        
+        falpha, falphas = self.get_crack_tip_force(mask = crack_tip_force_mask,full_array_output=True)
+        logfalphas = np.log10(np.abs(falphas))
+        falphacomponents[mask] = falphas
+        logabsfalphacomp[mask] = logfalphas
+        fx[len(crack_atoms)-1] = falpha
+        ftot[len(crack_atoms)-1] = falpha
+        logabsftot[:] = np.log10(np.abs(ftot))
+        ase.io.write(fname+'.xyz',crack_atoms)
+    
+    
+    def convergence_line_plot(self,num=0):
+        def gen_mask(r,rval,dx,dr,cx,cy):
+            #for a line going vertically up
+            #so r is essentiall y here
+            rcriteria = (r > rval)&(r<(rval+dr))
+            xcriteria = (x-cx > 0)&(x-cx<dx)
+            return np.logical_and(rcriteria,xcriteria)
+        crack_atoms = self.atoms.copy()
+        crack_atoms.calc = self.calc
+        forces = crack_atoms.get_forces()
+
+        sx, sy, sz = crack_atoms.cell.diagonal()
+        x, y = crack_atoms.positions[:, 0], crack_atoms.positions[:, 1]
+        cx, cy = sx/2, sy/2
+        r = np.sqrt((x - cx)**2 + (y - cy)**2)
+
+        dr = 0.2 #Angstroms
+        dx = 1 #angstroms
+        regionIvals = np.arange(0,self.rI,dr)
+        other_region_vals = np.arange(self.rI,self.rIII,dr)
+        full_list = np.concatenate((regionIvals,other_region_vals))
+        U = np.zeros([len(regionIvals),3])
+        F = np.zeros([len(full_list),3])
+        for i,rval in enumerate(regionIvals):
+            mask = gen_mask(r,rval,dx,dr,cx,cy)
+            if len(forces[mask])==0:
+                U[i,:] = np.zeros([1,3])
+                F[i,:] = np.zeros([1,3])
+            else:
+                print(f'non 0 at r={rval}')
+                print('vals',self.u[mask[self.regionI]])
+                print('mean',np.mean(self.u[mask[self.regionI]],axis=0))
+                U[i,:] = np.mean(self.u[mask[self.regionI]],axis=0)
+                F[i,:] = np.mean(forces[mask],axis=0)
+
+        for i,rval in enumerate(other_region_vals):
+            mask = gen_mask(r,rval,dx,dr,cx,cy)
+            k = i+len(regionIvals)
+            print(forces[mask])
+            if len(forces[mask])==0:
+                F[k,:] = np.zeros([1,3])
+            else:
+                print(f'non 0 at r={rval}')
+                F[k,:] = np.mean(forces[mask],axis=0)
+
+        plt.figure()
+        for i in range(3):
+            plt.plot(regionIvals,U[:,i])
+        plt.xlabel('r')
+        plt.ylabel('atomistic corrector U at r')
+        plt.legend(['Ux','Uy','Uz'])
+        plt.savefig(f'AtomisticCorrector{num}.png')
+        
+        plt.figure()
+        for i in range(3):
+            plt.plot(full_list,F[:,i])
+        plt.xlabel('r')
+        plt.ylabel('Force on atoms at r')
+        plt.legend(['Fx','Fy','Fz'])
+        plt.savefig(f'ForcesOnAtoms{num}.png')
 
 
 
