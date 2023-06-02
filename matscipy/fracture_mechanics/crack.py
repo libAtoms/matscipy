@@ -252,6 +252,13 @@ def ode12r(f, X0, args=None, h=None, verbose=1, fmax=1e-6, maxtol=1e3, steps=100
 
 
 ###
+#wrapper to count function calls for writing
+def counted(f):
+    def wrapped(*args):
+        wrapped.calls += 1
+        return f(*args,str(wrapped.calls))
+    wrapped.calls = 0
+    return wrapped
 
 class RectilinearAnisotropicCrack:
     """
@@ -603,6 +610,11 @@ class CubicCrystalCrack:
                                         S6[0, 5], S6[1, 5], S6[2, 5],
                                         S6[5, 5])
 
+        self.third_dir = third_dir
+        self.crack_surface = crack_surface
+        self.crack_front = crack_front
+        self.RotationMatrix = A
+
 
     def k1g(self, surface_energy):
         """
@@ -953,6 +965,9 @@ class SinclairCrack:
         self.u = np.zeros((self.N1, 3))
         self.alpha = alpha
         self.k = k
+        self.rI = rI
+        self.rIII = rIII
+        self.cutoff = cutoff
 
         # check atoms are sorted by distance from centre so we can use N1,N2,N3
         tip_x = cryst.cell.diagonal()[0] / 2.0
@@ -1033,6 +1048,97 @@ class SinclairCrack:
                                         tip_x, tip_y, 1.0)
         u = np.c_[ux, uy, np.zeros_like(ux)] # convert to 3D field
         return u
+
+
+    #-----------------delete this part from main branch-------------------
+
+    def relax_crack_surface(self):
+        """Relaxes the free surface of the crack in regions II-IV. This is crucial
+        as the unrelaxed surface leads to huge f_{alpha} components which leads to a 
+        strong finite size effect. """
+        self.atoms.set_pbc([False, False, True])
+        self.atoms.calc = self.calc
+
+        self.atoms.info['k'] = self.k
+        self.atoms.info['alpha'] = self.alpha
+        
+        # x = x_cryst + K * u_cle + u
+        self.atoms.positions[:, :] = self.cryst.positions
+        #self.u_cle()[:,1].tofile('uCLEsolution.csv',sep=',')
+        u_cle_solution = self.k * self.u_cle()
+        self.atoms.positions[:, :] += u_cle_solution
+        self.atoms.positions[self.regionI, :] += self.u
+
+        # add vacuum
+        self.atoms.cell = self.cryst.cell
+        self.atoms.cell[0, 0] += self.vacuum
+        self.atoms.cell[1, 1] += self.vacuum
+
+        #clone atoms for relaxing
+        atoms = self.atoms.copy()
+        i = neighbour_list('i', atoms, 12.0) #large cutoff to get the first 2 layers
+        coord = np.bincount(i)
+        np.savetxt('coords.txt',coord)
+        #build a mask for relaxing based on the following criteria:
+        # - the coordination of the atoms must be lower than 0.8*the max coordination
+        # - the atoms x coordinate should lie between rI - cutoff and 
+        #  rI + 2*cutoff (if non extended) and rIII + cutoff if extended.
+        # - the atoms y coordinate should lie between 3x the positive and negative
+        # maximum y Ucle displacement
+        coordination_criteria = (coord<(0.8*np.max(coord)))
+        #get the coords of the centre of the cell.
+        mid_cell_x = self.cryst.cell.diagonal()[0] / 2.0
+        mid_cell_y = self.cryst.cell.diagonal()[1] / 2.0
+        if self.extended_far_field:
+            x_criteria = ((atoms.positions[:,0]-mid_cell_x)<-((self.rI)-(self.cutoff)))&\
+                (((atoms.positions[:,0]-mid_cell_x)>-((self.rIII)+(self.cutoff))))
+        else:
+            x_criteria = ((atoms.positions[:,0]-mid_cell_x)<-((self.rI)-(self.cutoff)))&\
+                (((atoms.positions[:,0]-mid_cell_x)>-((self.rI)+((2*self.cutoff)))))
+        y_criteria = ((atoms.positions[:,1]-mid_cell_y)<(3)*np.max(u_cle_solution[:,1]))&\
+            ((atoms.positions[:,1]-mid_cell_y)>(-(3)*np.max(u_cle_solution[:,1])))
+        
+        
+        relax_mask = np.logical_and(np.logical_and(x_criteria,y_criteria),coordination_criteria)
+
+        #--------output for testing------------
+        atoms.new_array('relax_region', np.zeros(len(atoms), dtype=int))
+        atoms.new_array('coord_criteria', np.zeros(len(atoms), dtype=int))
+        atoms.new_array('x_criteria', np.zeros(len(atoms), dtype=int))
+        atoms.new_array('y_criteria', np.zeros(len(atoms), dtype=int))
+        relax_region = atoms.arrays['relax_region']
+        coord_criteria_arr = atoms.arrays['coord_criteria']
+        x_criteria_arr = atoms.arrays['x_criteria']
+        y_criteria_arr = atoms.arrays['y_criteria']
+        relax_region[relax_mask] = 1
+        coord_criteria_arr[coordination_criteria] = 1
+        x_criteria_arr[x_criteria] = 1
+        y_criteria_arr[y_criteria] = 1
+        print('number of atoms to relax =', len(relax_region[relax_mask]))
+        ase.io.write('relaxed_atom_mask.xyz',atoms)
+        #-----------------------------------------
+
+        print('Relaxing', len(relax_region[relax_mask]),'surface atoms.')
+        #perform relaxation
+        atoms.calc = self.calc
+        atoms.set_constraint(FixAtoms(mask=~relax_mask))
+        opt = PreconLBFGS(atoms)
+        opt.run(fmax=1e-3,steps=25)
+
+        #subtract u_cle and u from the solution
+        atoms.positions -= u_cle_solution
+        atoms.positions[self.regionI, :] -= self.u
+
+        #set the cryst.atom.positions to the solution
+        self.cryst.positions = atoms.positions
+
+        #update the positions of the atoms
+        self.update_atoms()
+
+        #write to file for testing
+        self.write_atoms_to_file()
+
+#------------------------------------------------------------------------
 
     def fit_cle(self, r_fit=20.0, variable_alpha=True, variable_k=True, x0=None,
                 grid=None):
