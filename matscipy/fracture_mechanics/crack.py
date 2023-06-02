@@ -1211,10 +1211,10 @@ class SinclairCrack:
         self.update_atoms()  # now we have same u_cle in atoms and self.atoms
         min_len = min(N1_in, self.N1)
         # FIXME this assumes stable sort order for atoms and self.atoms
-        u = atoms.positions[:min_len] - self.atoms.positions[:min_len]
+        u = atoms.positions - self.atoms.positions
         shift = np.diag(self.atoms.cell)/2 - np.diag(atoms.cell)/2
         u += shift
-        self.u[:min_len] = u
+        self.u = u[self.regionI]
         self.update_atoms()
 
     def get_crack_tip_force(self, forces=None, mask=None):
