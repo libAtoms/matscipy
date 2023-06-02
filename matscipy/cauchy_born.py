@@ -203,7 +203,7 @@ class CubicCauchyBorn:
                 cx, cy = sx/2, sy/2
                 r = np.sqrt((x - cx)**2 + (y - cy)**2)
                 theta = np.arctan2((y-cy),(x-cx))
-                F_2D = F_func(r,theta,*args,**kwargs)
+                F_2D = F_func(r,theta,**kwargs)
                 #pad F into a 3x3 matrix
                 F_3D = (np.zeros([natoms,3,3]))
                 F_3D[:,0:2,0:2] = F_2D[:,:,:]
@@ -335,6 +335,14 @@ class CubicCauchyBorn:
         #return the shift vectors
         return eval_tay_model(self,E_voigt)
 
-    def apply_shifts(self,atoms,shifts):
-        atoms.positions[self.lattice1mask] += -0.5*shifts[self.lattice1mask]
-        atoms.positions[self.lattice2mask] += 0.5*shifts[self.lattice2mask]
+    def apply_shifts(self,atoms,shifts,mask=None):
+
+        #mask covers atoms that we want to be shifted
+        if mask is not None:
+            lattice1mask = np.logical_and(self.lattice1mask,mask)
+            lattice2mask = np.logical_and(self.lattice2mask,mask)
+        else:
+            lattice1mask = self.lattice1mask
+            lattice2mask = self.lattice2mask
+        atoms.positions[lattice1mask] += -0.5*shifts[lattice1mask]
+        atoms.positions[lattice2mask] += 0.5*shifts[lattice2mask]

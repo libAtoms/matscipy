@@ -570,7 +570,8 @@ class CubicCrystalCrack:
     """
 
     def __init__(self, crack_surface, crack_front, C11=None, C12=None,
-                 C44=None, stress_state=PLANE_STRAIN, C=None, Crot=None):
+                 C44=None, stress_state=PLANE_STRAIN, C=None, Crot=None,
+                 cb=None):
         """
         Initialize a crack in a cubic crystal with elastic constants C11, C12
         and C44 (or optionally a full 6x6 elastic constant matrix C).
@@ -620,6 +621,7 @@ class CubicCrystalCrack:
         self.crack_surface = crack_surface
         self.crack_front = crack_front
         self.RotationMatrix = A
+        self.cb = cb
 
 
     def k1g(self, surface_energy):
@@ -931,7 +933,7 @@ class SinclairCrack:
     def __init__(self, crk, cryst, calc, k, alpha=0.0, vacuum=6.0,
                  variable_alpha=True, variable_k=False,
                  alpha_scale=None, k_scale=None,
-                 extended_far_field=False):
+                 extended_far_field=False,rI=0.0,rIII=0.0,cutoff=0.0):
         """
 
         Parameters
@@ -1186,6 +1188,9 @@ class SinclairCrack:
                 raise RuntimeError('CLE fit failed')
         return res
 
+    def get_deformation_gradient(self,r,theta,k):
+        return self.crk.crack.deformation_gradient(r, theta, k)
+
     def update_atoms(self):
         """
         Update self.atoms from degrees of freedom (self.u, self.alpha, self.k)
@@ -1200,6 +1205,16 @@ class SinclairCrack:
         self.atoms.positions[:, :] = self.cryst.positions
         self.atoms.positions[:, :] += self.k * self.u_cle()
         self.atoms.positions[self.regionI, :] += self.u
+        if self.crk.cb is not None: #if the crack has a multilattice cauchy-born object
+            #get rotation matrix 
+            A = np.transpose(self.crk.RotationMatrix)
+            #find shifts
+            shifts = self.crk.cb.predict_shifts(A,self.atoms,\
+                F_func=self.get_deformation_gradient, coordinates='cylind2D',k=self.k)
+            #apply shifts
+            mask = self.r>self.cutoff #only apply shift a little away from crack tip
+            self.crk.cb.apply_shifts(self.atoms,shifts,mask=mask)
+
 
         # add vacuum
         self.atoms.cell = self.cryst.cell
