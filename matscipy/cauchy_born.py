@@ -14,6 +14,49 @@ class CubicCauchyBorn:
         self.calc = calc
         self.lattice = lattice
         self.num_terms = term
+
+    def set_sublattices(self,atoms,A):
+        #currently, the idea for this is to apply a small strain to atoms
+        #measure the force difference, and set all the forces which are positive to sublattice
+        #1, and all those which are negative to sublattice 2. 
+        U_voigt = np.array([1.001, 1.003, 1.002, 0.006, 0.002, 0.004])
+        U = np.zeros([3,3])
+        U[0,0] = U_voigt[0]
+        U[1,1] = U_voigt[1]
+        U[2,2] = U_voigt[2]
+        U[1,2],U[2,1] = U_voigt[3],U_voigt[3]
+        U[0,2],U[2,0] = U_voigt[4],U_voigt[4]
+        U[0,1],U[1,0] = U_voigt[5],U_voigt[5]
+        atoms_copy = atoms.copy()
+
+        atoms_copy.set_calculator(self.calc)
+        f_before = atoms_copy.get_forces()
+        cell = atoms_copy.get_cell()
+        scaled_cell = U@cell
+        atoms_copy.set_cell(scaled_cell,scale_atoms=True)
+        f_after = atoms_copy.get_forces()
+
+        force_diff = f_after-f_before
+
+        #transform force_diff to lattice frame
+        force_diff_lattice = np.zeros_like(force_diff)
+        for i in range(len(atoms)):
+            force_diff_lattice[i,:] = A@force_diff[i,:]
+
+        lattice1mask = force_diff_lattice[:,0]>0
+        lattice2mask = force_diff_lattice[:,0]<0
+        if all(element == lattice1mask[0] for element in lattice1mask): #if they're all false or true, try the y component
+            lattice1mask = force_diff_lattice[:,1]>0
+            lattice2mask = force_diff_lattice[:,1]<0
+            if all(element == lattice1mask[0] for element in lattice1mask): #if they're all false, try the z component
+                lattice1mask = force_diff_lattice[:,2]>0
+                lattice2mask = force_diff_lattice[:,2]<0
+
+        self.lattice1mask = lattice1mask
+        self.lattice2mask = lattice2mask     
+
+        
+
     
 
     def fit_taylor(self,de=1e-4):
@@ -341,3 +384,7 @@ class CubicCauchyBorn:
 
         #return the shift vectors
         return eval_tay_model(self,E_voigt)
+
+    def apply_shifts(self,atoms,shifts):
+        atoms.positions[self.lattice1mask] += -0.5*shifts[self.lattice1mask]
+        atoms.positions[self.lattice2mask] += 0.5*shifts[self.lattice2mask]
