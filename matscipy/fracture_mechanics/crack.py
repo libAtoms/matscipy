@@ -1217,7 +1217,7 @@ class SinclairCrack:
         self.u = u[self.regionI]
         self.update_atoms()
 
-    def get_crack_tip_force(self, forces=None, mask=None):
+    def get_crack_tip_force(self, forces=None, mask=None, full_array_output=False):
         # V_alpha = -\nabla_1 U_CLE(alpha)
         tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
@@ -1251,6 +1251,10 @@ class SinclairCrack:
             mask = self.regionII
             if self.extended_far_field:
                 mask = self.regionII | self.regionIII
+        if full_array_output is True:
+            reduced_forces = forces[mask,:]
+            reduced_V = V[mask,:]
+            return np.tensordot(forces[mask, :], V[mask, :]), np.array([np.dot(reduced_forces[i, :], reduced_V[i, :]) for i in range(np.shape(reduced_forces)[0])])
         return np.tensordot(forces[mask, :], V[mask, :])
 
     def get_xdot(self, x1, x2, ds=None):
