@@ -59,7 +59,7 @@ def set_groups(a, n, skin_x, skin_y, central_x=-1./2, central_y=-1./2,
 
     a.set_array('groups', g)
 
-def set_regions(cryst, r_I, cutoff, r_III):
+def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_region_I=False,exclude_surface=False):
     sx, sy, sz = cryst.cell.diagonal()
     x, y = cryst.positions[:, 0], cryst.positions[:, 1]
     cx, cy = sx/2, sy/2
@@ -67,10 +67,12 @@ def set_regions(cryst, r_I, cutoff, r_III):
 
     # Regions I and III defined by radial distance from center
     regionI = r < r_I
-    regionIII = (r >= r_I) & (r < r_III)
+    regionII = (r >= r_I) & (r < (r_I + cutoff))
+    regionIII = (r >= r_I+cutoff) & (r < r_III)
+    #regionIII = (r >= r_I) & (r < r_III)
     regionIV = (r >= r_III) & (r < (r_III + cutoff))
 
-    regionII = np.zeros(len(cryst), bool)
+    """    regionII = np.zeros(len(cryst), bool)
     i, j = neighbour_list('ij', cryst, cutoff)
     for idx in regionI.nonzero()[0]:
         neighbs = j[i == idx] 
@@ -79,8 +81,35 @@ def set_regions(cryst, r_I, cutoff, r_III):
         # print(f'adding {mask.sum()} neigbours of atom {idx} to regionII')
         mask[regionI] = False # exclude those in region I already
         regionII[mask] = True # add to region I
-        regionIII[mask] = False # remove from region III
+        regionIII[mask] = False # remove from region III"""
 
+    if exclude_surface or extended_region_I:
+        #build a mask of the material surface based on the following criteria:
+        # - the atoms x coordinate should lie between rI and 
+        #  rI + 2*cutoff (if non extended) and rIII + cutoff if extended.
+        # - the atoms y coordinate should lie between +- cutoff
+        if extended_far_field:
+            x_criteria = ((x-cx)<-(r_I-cutoff))&\
+                    (((x-cx)>-((r_III)+(cutoff))))
+        else:
+            x_criteria = ((x-cx)<-((r_I-cutoff)))&\
+                (((x-cx)>-((r_I)+((2*cutoff)))))
+        y_criteria = ((y-cy)>-(cutoff))&\
+                ((y-cy)<(cutoff))
+        surface_mask = np.logical_and(x_criteria,y_criteria)
+    if extended_region_I:
+        #re-do all the region logic so they are correct
+        #(and followed by an xor to exclude new region I atoms.)
+        regionI = regionI|surface_mask
+        regionII = regionII^np.logical_and(regionII,surface_mask)
+        regionIII = regionIII^np.logical_and(regionIII,surface_mask)
+        regionIV = regionIV^np.logical_and(regionIV,surface_mask)
+    
+    elif exclude_surface:
+        regionII = regionII^np.logical_and(regionII,surface_mask)
+        regionIII = regionIII^np.logical_and(regionIII,surface_mask)
+        regionIV = regionIV|surface_mask #add the surface mask to region IV
+    
     cryst.new_array('region', np.zeros(len(cryst), dtype=int))
     region = cryst.arrays['region']
     region[regionI]  = 1
