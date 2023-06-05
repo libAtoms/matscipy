@@ -108,7 +108,7 @@ def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_reg
     elif exclude_surface:
         regionII = regionII^np.logical_and(regionII,surface_mask)
         regionIII = regionIII^np.logical_and(regionIII,surface_mask)
-        regionIV = regionIV|surface_mask #add the surface mask to region IV
+        regionIV = regionIV|(surface_mask^np.logical_and(surface_mask,regionI)) #add the surface mask to region IV
     
     cryst.new_array('region', np.zeros(len(cryst), dtype=int))
     region = cryst.arrays['region']
