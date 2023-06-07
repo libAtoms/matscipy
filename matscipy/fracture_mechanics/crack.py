@@ -976,7 +976,7 @@ class SinclairCrack:
         self.rI = rI
         self.rIII = rIII
         self.cutoff = cutoff
-
+        self.shiftmask = None
         # check atoms are sorted by distance from centre so we can use N1,N2,N3
         tip_x = cryst.cell.diagonal()[0] / 2.0
         tip_y = cryst.cell.diagonal()[1] / 2.0
@@ -1191,6 +1191,9 @@ class SinclairCrack:
     def get_deformation_gradient(self,r,theta,k):
         return self.crk.crack.deformation_gradient(r, theta, k)
 
+    def set_shiftmask(self,radial_dist):
+        self.shiftmask = self.r<self.radial_dist
+    
     def update_atoms(self):
         """
         Update self.atoms from degrees of freedom (self.u, self.alpha, self.k)
@@ -1209,11 +1212,12 @@ class SinclairCrack:
             #get rotation matrix 
             A = np.transpose(self.crk.RotationMatrix)
             #find shifts
+            print('finding shifts.....')
             shifts = self.crk.cb.predict_shifts(A,self.atoms,\
-                F_func=self.get_deformation_gradient, coordinates='cylind2D',k=self.k)
+                F_func=self.get_deformation_gradient, coordinates='cylind2D',method='lasso',k=self.k)
+            print('done!')
             #apply shifts
-            mask = self.r>self.cutoff #only apply shift a little away from crack tip
-            self.crk.cb.apply_shifts(self.atoms,shifts,mask=mask)
+            self.crk.cb.apply_shifts(self.atoms,shifts,mask=self.shiftmask)
 
 
         # add vacuum
@@ -1319,6 +1323,7 @@ class SinclairCrack:
         if self.variable_alpha:
             f_alpha = self.get_crack_tip_force(forces, mask=mask)
             F.append(f_alpha)
+            print('f_alpha',f_alpha)
         if self.variable_k:
             f_k = self.get_k_force(x1, xdot1, ds)
             F.append(f_k)
@@ -1822,6 +1827,13 @@ class SinclairCrack:
     def write_atoms_to_file(self, fname):
         alpha_at = Atom('Au')
         crack_atoms = self.atoms.copy()
+
+        r = crack_atoms.arrays['region']
+        r[self.regionI] = 1
+        r[self.regionII] = 2
+        r[self.regionIII] = 3
+        r[self.regionIV] = 4
+
         crack_atoms.calc = self.calc
         forces = crack_atoms.get_forces()
         crack_atoms.append(alpha_at)
@@ -1834,6 +1846,7 @@ class SinclairCrack:
         crack_atoms.new_array('logabsftot', np.zeros(len(crack_atoms), dtype=float))
         crack_atoms.new_array('falphacomponents',np.zeros(len(crack_atoms)),dtype =float)
         crack_atoms.new_array('logabsfalphacomp',np.zeros(len(crack_atoms)),dtype =float)
+
         fx = crack_atoms.arrays['fx']
         fy = crack_atoms.arrays['fy']
         fz = crack_atoms.arrays['fz']
