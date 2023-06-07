@@ -7,12 +7,17 @@ from scipy.linalg import polar, sqrtm
 
 from itertools import permutations
 
+from sklearn.linear_model import Lasso, LinearRegression
+
+from scipy.stats.qmc import LatinHypercube, scale
+
 class CubicCauchyBorn:
     def __init__(self,el,a0,calc,lattice=Diamond):
         self.el = el
         self.a0 = a0
         self.calc = calc
         self.lattice = lattice
+        self.Lasso_Fitted = False
 
     def set_sublattices(self,atoms,A):
         #currently, the idea for this is to apply a small strain to atoms
@@ -159,10 +164,93 @@ class CubicCauchyBorn:
             print('No files found containing model parameters - make sure to call save_taylor() to save the model.')
         
         
+    def F_3D_from_atoms(self,atoms,F_func,coordinates='cart3D',cell=None,*args,**kwargs):
+        natoms = len(atoms)
+        if cell is None:
+            sx, sy, sz = atoms.cell.diagonal()
+        else:
+            [sx,sy,sz] = cell
+
+        if coordinates=='cylind2D':
+            x, y = atoms.positions[:, 0], atoms.positions[:, 1]
+            cx, cy = sx/2, sy/2
+            r = np.sqrt((x - cx)**2 + (y - cy)**2)
+            theta = np.arctan2((y-cy),(x-cx))
+            F_2D = F_func(r,theta,*args,**kwargs)
+            #pad F into a 3x3 matrix
+            F_3D = (np.zeros([natoms,3,3]))
+            F_3D[:,0:2,0:2] = F_2D[:,:,:]
+            F_3D[:,2,2] = 1
+
+        elif coordinates=='cylind3D':
+            x, y, z = atoms.positions[:,0],atoms.positions[:,1],atoms.positions[:,2]
+            cx, cy, cz = sx/2, sy/2, sz/2
+            r = np.sqrt((x - cx)**2 + (y - cy)**2)
+            theta = np.arctan2((y-cy),(x-cx))
+            F_3D = F_func(r,theta,z,*args,**kwargs)
+
+        elif coordinates=='spherical':
+            raise NotImplementedError
+
+        elif coordinates=='cart2D':
+            x, y = atoms.positions[:, 0], atoms.positions[:, 1]
+            F_2D = F_func(x,y,*args,**kwargs)            
+            F_3D = (np.zeros([natoms,3,3]))
+            F_3D[:,0:2,0:2] = F_2D[:,:,:]
+            F_3D[:,2,2] = 1
         
+        elif coordinates=='cart3D':
+            x, y, z = atoms.positions[:, 0], atoms.positions[:, 1], atoms.positions[:,2]
+            F_3D = F_func(x,y,z,*args,**kwargs)
+            
+        else:
+            print('Coordinate system should be cart, cylind2D, cylind3D, spherical')
+            raise NotImplementedError
+
+        return F_3D
 
     
-    def predict_shifts(self,A,atoms,F_func=None,E_func=None,coordinates='cart3D',*args,**kwargs):
+    def evaluate_F_or_E(self,A,atoms,F_func=None,E_func=None,cell=None,coordinates='cart3D',*args,**kwargs):
+        natoms = len(atoms)
+        if F_func is not None:
+            if E_func is not None:
+                print('Need to only provide one of E or F, not both')
+                raise ValueError
+            F_3D = self.F_3D_from_atoms(atoms,F_func,cell=cell,coordinates=coordinates,*args,**kwargs)
+            
+
+            #transform F from lab frame to lattice frame,
+            #find right handed stretch tensor U and rotation matrix
+            #R via polar decomposition, then use these to find 
+            #green-lagrange strain tensors E.
+
+            Fprime = np.zeros_like(F_3D)
+            R = np.zeros_like(F_3D)
+            U = np.zeros_like(F_3D)
+            E = np.zeros_like(F_3D)
+            for i in range(natoms):
+                Fprime[i,:,:] = A@F_3D[i,:,:]@np.transpose(A)
+                R[i,:,:],U[i,:,:] = polar(Fprime[i,:,:])
+                E[i,:,:] = 0.5*(U[i,:,:]@(np.transpose(U[i,:,:])) - np.eye(3))
+            
+        elif E_func is not None:
+            x, y, z = atoms.positions[:, 0], atoms.positions[:, 1], atoms.positions[:,2]
+            E_3D_lab = E_func(x,y,z,*args,**kwargs)
+            E = np.zeros_like(E_3D_lab)
+            R = np.zeros_like(E_3D_lab)
+            #for a specified strain, R is just I for all atoms
+            for i in range(natoms):
+                E[i,:,:] = A@E_3D_lab[i,:,:]@np.transpose(A)
+                R[i,:,:] = np.eye(3)
+            
+        else:
+            print('Error, please provide one of E or F')
+            raise ValueError
+        
+        return E, R
+
+
+    def predict_shifts(self,A,atoms,F_func=None,E_func=None,coordinates='cart3D',method='taylor',*args,**kwargs):
         '''
         F_func - function to calculate the deformation field tensors at
         a vector of x,y,z, r,theta,(z), or r, theta, phi based on what
@@ -191,83 +279,13 @@ class CubicCauchyBorn:
         
         *args, **kwargs - anything to additionally be passed to F_func or E_func
         '''
+
+        E,R = self.evaluate_F_or_E(A,atoms,F_func=F_func,E_func=E_func,coordinates=coordinates,*args,**kwargs)
         natoms = len(atoms)
-        if F_func is not None:
-            if E_func is not None:
-                print('Need to only provide one of E or F, not both')
-                raise ValueError
-    
-            if coordinates=='cylind2D':
-                sx, sy, sz = atoms.cell.diagonal()
-                x, y = atoms.positions[:, 0], atoms.positions[:, 1]
-                cx, cy = sx/2, sy/2
-                r = np.sqrt((x - cx)**2 + (y - cy)**2)
-                theta = np.arctan2((y-cy),(x-cx))
-                F_2D = F_func(r,theta,**kwargs)
-                #pad F into a 3x3 matrix
-                F_3D = (np.zeros([natoms,3,3]))
-                F_3D[:,0:2,0:2] = F_2D[:,:,:]
-                F_3D[:,2,2] = 1
 
-            elif coordinates=='cylind3D':
-                sx, sy, sz = atoms.cell.diagonal()
-                x, y, z = atoms.positions[:,0],atoms.positions[:,1],atoms.positions[:,2]
-                cx, cy, cz = sx/2, sy/2, sz/2
-                r = np.sqrt((x - cx)**2 + (y - cy)**2)
-                theta = np.arctan2((y-cy),(x-cx))
-                F_3D = F_func(r,theta,z,*args,**kwargs)
-
-            elif coordinates=='spherical':
-                raise NotImplementedError
-
-            elif coordinates=='cart2D':
-                x, y = atoms.positions[:, 0], atoms.positions[:, 1]
-                F_2D = F_func(x,y,*args,**kwargs)            
-                F_3D = (np.zeros([natoms,3,3]))
-                F_3D[:,0:2,0:2] = F_2D[:,:,:]
-                F_3D[:,2,2] = 1
-            
-            elif coordinates=='cart3D':
-                x, y, z = atoms.positions[:, 0], atoms.positions[:, 1], atoms.positions[:,2]
-                F_3D = F_func(x,y,z,*args,**kwargs)
-                
-            else:
-                print('Coordinate system should be cart, cylind2D, cylind3D, spherical')
-                raise NotImplementedError
-
-
-            #transform F from lab frame to lattice frame,
-            #find right handed stretch tensor U and rotation matrix
-            #R via polar decomposition, then use these to find 
-            #green-lagrange strain tensors E.
-
-            Fprime = np.zeros_like(F_3D)
-            R = np.zeros_like(F_3D)
-            U = np.zeros_like(F_3D)
-            E = np.zeros_like(F_3D)
-            for i in range(natoms):
-                Fprime[i,:,:] = A@F_3D[i,:,:]@np.transpose(A)
-                R[i,:,:],U[i,:,:] = polar(Fprime[i,:,:])
-                E[i,:,:] = 0.5*(U[i,:,:]@(np.transpose(U[i,:,:])) - np.eye(3))
-            
-        elif E_func is not None:
-            x, y, z = atoms.positions[:, 0], atoms.positions[:, 1], atoms.positions[:,2]
-            E_3D_lab = E_func(x,y,z,*args,**kwargs)
-            E = np.zeros_like(E_3D_lab)
-            R = np.zeros_like(E_3D_lab)
-            #for a specified strain, R is just I for all atoms
-            for i in range(natoms):
-                E[i,:,:] = A@E_3D_lab[i,:,:]@np.transpose(A)
-                R[i,:,:] = np.eye(3)
-            
-
-        
-        else:
-            print('Error, please provide one of E or F')
-            raise ValueError
 
         #get the cauchy born shifts unrotated
-        shifts_no_rr = self.evaluate_shift_model(E)
+        shifts_no_rr = self.evaluate_shift_model(E,method=method)
 
         shifts = np.zeros_like(shifts_no_rr)
 
@@ -275,18 +293,32 @@ class CubicCauchyBorn:
         #and to get them back into the lab frame
         for i in range(natoms):
             shifts[i,:] = np.transpose(A)@R[i,:,:]@shifts_no_rr[i,:]
-        
-
-        #FUDGE, FIX THIS
-        #shifts[:,1] = -shifts[:,1] #invert the y component ??? WHY
 
 
         return shifts
 
-    def evaluate_shift_model(self,E):
+    def evaluate_shift_model(self,E,method='taylor'):
         #takes E in the form of a list of matrices [natoms, :, :]
-    
         #define function for evaluating model
+
+        def permutation(strain_vec,perm_shift):
+            strain_vec_perm = np.zeros_like(strain_vec)
+            for i in range(3):
+                perm_num = (i-perm_shift)%3
+                strain_vec_perm[:,perm_num] = strain_vec[:,i]
+                strain_vec_perm[:,perm_num+3] = strain_vec[:,i+3]
+            return strain_vec_perm
+        
+        def evaluate_shift_lasso(eps):
+            epsx = eps
+            epsy = permutation(eps,1)
+            epsz = permutation(eps,2)
+            predictions = np.zeros([np.shape(eps)[0],3])
+            predictions[:,0] = self.LM.predict(self.basis_function_evaluation(epsx))
+            predictions[:,1] = self.LM.predict(self.basis_function_evaluation(epsy))
+            predictions[:,2] = self.LM.predict(self.basis_function_evaluation(epsz))
+            return predictions
+
         def eval_tay_model(self,eps):
             grad_f = self.grad_f
             hess_f = self.hess_f
@@ -295,14 +327,8 @@ class CubicCauchyBorn:
             # when transforming the strain matrix by the 120 degree rotation matrices about [111],
             # such that the axis are permuted in the order
             # 1 ---> 2 ---> 3
-            def permutation(strain_vec,perm_shift):
-                strain_vec_perm = np.zeros_like(strain_vec)
-                for i in range(3):
-                    perm_num = (i-perm_shift)%3
-                    strain_vec_perm[:,perm_num] = strain_vec[:,i]
-                    strain_vec_perm[:,perm_num+3] = strain_vec[:,i+3]
-                return strain_vec_perm
 
+            
             def eval_eps(eps_vec,grad_f,hess_f):
                 term_1 = grad_f@eps_vec
                 term_2 = (1/2)*(np.transpose(eps_vec)@hess_f@eps_vec)
@@ -333,7 +359,13 @@ class CubicCauchyBorn:
 
 
         #return the shift vectors
-        return eval_tay_model(self,E_voigt)
+        if method == 'taylor':
+            return eval_tay_model(self,E_voigt)
+        elif method == 'lasso':
+            return evaluate_shift_lasso(E_voigt)
+        else:
+            print('Error! Can only predict cauchy born shift with implemented errors - "taylor" or "lasso"')
+            raise NotImplementedError
 
     def apply_shifts(self,atoms,shifts,mask=None):
 
@@ -346,3 +378,226 @@ class CubicCauchyBorn:
             lattice2mask = self.lattice2mask
         atoms.positions[lattice1mask] += -0.5*shifts[lattice1mask]
         atoms.positions[lattice2mask] += 0.5*shifts[lattice2mask]
+
+
+    def get_cb_error(self,atoms,mask=None,forces=None):
+        atoms.set_calculator = self.calc
+        if forces is None:
+            forces = atoms.get_forces()
+
+        if mask is not None:
+            lattice1mask = np.logical_and(self.lattice1mask,mask)
+            lattice2mask = np.logical_and(self.lattice2mask,mask)
+        else:
+            lattice1mask = self.lattice1mask
+            lattice2mask = self.lattice2mask
+        
+        lattice1_force_vec = forces[lattice1mask]
+        lattice2_force_vec = forces[lattice2mask]
+        lattice1_force = np.sum(lattice1_force_vec)
+        lattice2_force = np.sum(lattice2_force_vec)
+        
+        cb_err = np.abs(lattice1_force-lattice2_force)
+
+        return cb_err #we should be trying to minimise this
+
+
+    
+    def initial_lasso_fit(self,alpha=0.1,initial_samples=10):
+        #if no lasso model has yet been fitted
+        #initialise the Lasso model
+        #self.LM = Lasso(alpha=alpha,warm_start=True,fit_intercept=False)
+        self.LM = LinearRegression(fit_intercept=False)
+        #build the initial simple dataset to begin fitting with
+        sampler = LatinHypercube(d=6)
+        samples = sampler.random(n=initial_samples)
+        lbounds = [-0.01,-0.01,-0.01,-0.01,-0.01,-0.01]
+        ubounds = [0.01,0.01,0.01,0.01,0.01,0.01]
+        samples = scale(samples,lbounds,ubounds)
+        self.lasso_data = samples
+        self.lasso_phi = None
+        E_vecs,shifts = self.get_data_points(samples)
+        #get design matrix
+        phi = self.basis_function_evaluation(E_vecs)
+        self.lasso_phi = phi
+        self.lasso_shifts = shifts
+        print('shifts',np.shape(shifts))
+        print('Performing initial lasso fit for CB corrector.....')
+        self.LM.fit(self.lasso_phi,self.lasso_shifts.flatten())# fit the Lasso model to the given data
+        print('Fit completed')
+
+    def check_for_refit(self,A,atoms,forces,tol=1e-3,mask=None,E_func=None,F_func=None,coordinates='cart3D',refit_points=10,*args,**kwargs):
+        #tolerance is error per atom
+        #multiply by number of atoms to get full tolerance
+        tol = tol*len(atoms)
+        print('tol',tol)
+        
+        cb_err = self.get_cb_error(atoms,forces=forces,mask=mask)
+        print('cb_err',cb_err)
+        if abs(cb_err)<tol: #do not refit in this case
+            return 0, cb_err/len(atoms)
+
+
+        #otherwise, find the lattice 1 and lattice 2 atoms with the highest contribution to the cauchy-born errors,
+        #add these to the training dataset and refit the model.
+        if mask is not None:
+            lattice1mask = np.logical_and(self.lattice1mask,mask)
+            lattice2mask = np.logical_and(self.lattice2mask,mask)
+        else:
+            lattice1mask = self.lattice1mask
+            lattice2mask = self.lattice2mask
+        
+        #get force magnitude vectors
+        force_mag = np.linalg.norm(forces,axis=1)
+        atom_numbers = np.array([i for i in range(len(atoms))])
+        
+        l1points = int(refit_points/2)
+        l2points = refit_points-l1points
+        #get random lattice 1 force 
+        #FIXME at some point, would be great if these could select the 
+        # points that the model is describing worst rather than random points.
+
+        force_mag_lattice1 = force_mag[lattice1mask]
+        atom_nos_lattice1 = atom_numbers[lattice1mask]
+        #top_idx = np.argpartition(force_mag_lattice1,-l1points)[-l1points:]
+        #high_force_atoms1 = atom_nos_lattice1[top_idx]
+        high_force_atoms1 = np.random.choice(atom_nos_lattice1,l1points)
+        #get 5 largest lattice 2 force indices
+        force_mag_lattice2 = force_mag[lattice2mask]
+        atom_nos_lattice2 = atom_numbers[lattice2mask]
+        #top_idx = np.argpartition(force_mag_lattice2,-l2points)[-l2points:]
+        #high_force_atoms2 = atom_nos_lattice2[top_idx]
+        high_force_atoms2 = np.random.choice(atom_nos_lattice2,l2points)
+
+
+        high_force_atoms = np.concatenate((high_force_atoms1,high_force_atoms2))
+        
+        reduced_atoms = atoms[high_force_atoms]
+
+        sx, sy, sz = atoms.cell.diagonal()
+        cell = [sx,sy,sz]
+
+        #evaluate E and R for reduced list of atoms
+        E,R = self.evaluate_F_or_E(A,reduced_atoms,F_func=F_func,E_func=E_func,cell=cell,coordinates=coordinates,*args,**kwargs)
+
+        #we get back the strain vectors in the lattice frame 
+        #turn E into voigt vectors
+        E_voigt = np.zeros([np.shape(E)[0],6])
+        E_voigt[:,0] = E[:,0,0]
+        E_voigt[:,1] = E[:,1,1]
+        E_voigt[:,2] = E[:,2,2]
+        E_voigt[:,3] = E[:,1,2]
+        E_voigt[:,4] = E[:,0,2]
+        E_voigt[:,5] = E[:,0,1]
+        
+        #pass set of Es to evaluate to refit_lasso_regression
+        self.refit_lasso_regression(atoms,E_voigt)
+        return 1, cb_err/len(atoms)
+        
+
+    def refit_lasso_regression(self,atoms,E_voigt):
+        calc = self.calc
+        #take our given E voigt and evaluate the model
+        E_vecs,shifts = self.get_data_points(E_voigt)
+        #get design matrix
+        phi = self.basis_function_evaluation(E_vecs)
+        if self.lasso_phi is None:
+            self.lasso_phi = phi
+            self.lasso_shifts = shifts
+        else:
+            self.lasso_phi = np.concatenate((self.lasso_phi,phi),axis=0)
+            self.lasso_shifts = np.concatenate((self.lasso_shifts,shifts),axis=0)
+
+        print('High error detected, refitting CB corrector.....')
+        self.LM.fit(self.lasso_phi,self.lasso_shifts.flatten())# fit the Lasso model to the given data
+        print('Re-fit completed')
+    
+    def get_data_points(self,E_vec):
+        unitcell = self.lattice(self.el, latticeconstant=self.a0, size=[1, 1, 1])
+        unitcell.set_pbc([True,True,True])
+        def permutation(strain_vec,perm_shift):
+            strain_vec_perm = np.zeros_like(strain_vec)
+            for i in range(3):
+                perm_num = (i-perm_shift)%3
+                strain_vec_perm[:,perm_num] = strain_vec[:,i]
+                strain_vec_perm[:,perm_num+3] = strain_vec[:,i+3]
+            return strain_vec_perm
+        
+        ndp = np.shape(E_vec)[0] #number of data points
+        shift_vals = np.zeros([3*ndp,1])
+        for i,E in enumerate(E_vec):
+            shift_diff = self.eval_shift(E,unitcell)
+            shift_vals[i] = shift_diff[0]
+            shift_vals[i+ndp] = shift_diff[1]
+            shift_vals[i+2*ndp] = shift_diff[2]
+        
+        eps = E_vec
+        epsx = eps
+        epsy = permutation(eps,1)
+        epsz = permutation(eps,2)
+
+        strains = np.zeros([3*ndp,6])
+        strains[0:ndp,:] = epsx
+        strains[ndp:2*ndp,:] = epsy
+        strains[2*ndp:3*ndp,:] = epsz
+
+
+        return strains,shift_vals
+        
+    def eval_shift(self,E_vec,unitcell):
+        #green lagrange version of function
+        #turn E into matrix
+        E = np.zeros([3,3])
+        E[0,0] = E_vec[0]
+        E[1,1] = E_vec[1]
+        E[2,2] = E_vec[2]
+        E[2,1],E[1,2] = E_vec[3],E_vec[3]
+        E[2,0],E[0,2] = E_vec[4],E_vec[4]
+        E[0,1],E[1,0] = E_vec[5],E_vec[5]
+        # get U^2
+        Usqr = 2*E + np.eye(3)
+        #square root matrix
+        U = sqrtm(Usqr,disp=True)
+
+        #this is just the symmetric stretch tensor, exactly what we need.
+        x = U
+
+
+        initial_shift = np.zeros([3])
+        relaxed_shift = np.zeros([3])
+
+        #build cell
+        unitcell_copy = unitcell.copy()
+        unitcell_copy.calc = self.calc
+        cell = unitcell_copy.get_cell()
+        cell_rescale = x[:,:]@cell
+        unitcell_copy.set_cell(cell_rescale,scale_atoms=True)
+        initial_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
+
+        #relax cell
+        opt = LBFGS(unitcell_copy,logfile=None)
+        opt.run(fmax = 1e-10)
+        relaxed_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
+
+        shift_diff = relaxed_shift-initial_shift
+
+        return shift_diff #return all 3 components
+
+
+
+    def basis_function_evaluation(self,E_vecs):
+        #first basis function is just the e vector components evaluated, 2nd is all of the cross terms
+        triu_indices = np.triu_indices(6) #get upper triangle indices
+        phi_2nd_term = np.zeros([np.shape(E_vecs)[0],np.shape(triu_indices)[1]])
+        for i,E in enumerate(E_vecs):
+            e_outer_p = np.outer(E,E)
+            phi_2nd_term[i,:] = e_outer_p[triu_indices]
+        
+        #return the design matrix
+
+        #np.savetxt('design_matrix.txt',np.concatenate((E_vecs,phi_2nd_term),axis=1))
+        return np.concatenate((E_vecs,phi_2nd_term),axis=1)
+        
+        
+            
+
