@@ -28,7 +28,7 @@ import numpy as np
 from numpy.linalg import inv
 
 try:
-    from scipy.optimize import NoConvergence, brentq, leastsq, minimize, root
+    from scipy.optimize import brentq, leastsq, minimize, root
     from scipy.sparse import csc_matrix, spdiags
     from scipy.sparse.linalg import spsolve, spilu, LinearOperator
 except ImportError:
@@ -1199,7 +1199,7 @@ class SinclairCrack:
             self.set_dofs(res.x)
         else:
             self.atoms.write('no_convergence.xyz')
-            raise NoConvergence
+            raise RuntimeError(f"no convergence of scipy optimizer {method}")
 
     def get_potential_energy(self):
         # E1: energy of region I and II atoms
