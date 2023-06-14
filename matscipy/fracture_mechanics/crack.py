@@ -28,8 +28,7 @@ import numpy as np
 from numpy.linalg import inv
 
 try:
-    from scipy.optimize.nonlin import NoConvergence
-    from scipy.optimize import brentq, leastsq, minimize, root
+    from scipy.optimize import NoConvergence, brentq, leastsq, minimize, root
     from scipy.sparse import csc_matrix, spdiags
     from scipy.sparse.linalg import spsolve, spilu, LinearOperator
 except ImportError:
@@ -1877,8 +1876,8 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     a.set_array('above', above)
     a.set_array('below', below)
 
-    bond1 = np.asscalar(above.nonzero()[0][a.positions[above, 0].argmax()])
-    bond2 = np.asscalar(below.nonzero()[0][a.positions[below, 0].argmax()])
+    bond1 = above.nonzero()[0][a.positions[above, 0].argmax()]
+    bond2 = below.nonzero()[0][a.positions[below, 0].argmax()]
 
     # These need to be ints, otherwise they are no JSON serializable.
     a.info['bond1'] = bond1

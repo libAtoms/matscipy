@@ -22,6 +22,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import warnings
+
 from .eam import EAM
 from .pair_potential import PairPotential
 from .supercell_calculator import SupercellCalculator
@@ -33,4 +35,3 @@ try:
     import scipy.sparse as sp
 except ImportError:
     warnings.warn('Warning: no scipy')
-

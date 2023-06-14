@@ -340,6 +340,7 @@ def rattle(request):
 def configuration(distance, rattle, potential, request):
     atoms = request.param(distance, rattle)
     atoms.calc = Manybody(*potential)
+    atoms.calc.atoms = atoms
     return atoms
 
 

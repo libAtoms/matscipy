@@ -24,7 +24,7 @@ import itertools
 import numpy as np
 
 from matscipy.neighbours import neighbour_list
-import _matscipy 
+from .ffi import distances_on_graph, find_sp_rings
 
 ###
 
@@ -49,5 +49,5 @@ def ring_statistics(a, cutoff, maxlength=-1):
         Array with number of shortest path rings.
     """
     i, j, r = neighbour_list('ijD', a, cutoff)
-    d = _matscipy.distances_on_graph(i, j)
-    return _matscipy.find_sp_rings(i, j, r, d, maxlength)
+    d = distances_on_graph(i, j)
+    return find_sp_rings(i, j, r, d, maxlength)

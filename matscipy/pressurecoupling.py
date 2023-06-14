@@ -1,6 +1,6 @@
 #
 # Copyright 2021 Lars Pastewka (U. Freiburg)
-#           2020 Thomas Reichenbach (Fraunhofer IWM)
+#           2020, 2022 Thomas Reichenbach (Fraunhofer IWM)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -21,11 +21,13 @@
 
 """
 
-Classes to be used with ASE in order to perform pressure relaxation and/or sliding simulations under pressure.
+Classes to be used with ASE in order to perform pressure relaxation
+and/or sliding simulations under pressure.
 
 A usage example is found in the example directory.
 
-Some parts are based on L. Pastewka, S. Moser, and M. Moseler, Tribol. Lett. 39, 49 (2010)
+Some parts are based on
+L. Pastewka, S. Moser, and M. Moseler, Tribol. Lett. 39, 49 (2010)
 as indicated again below.
 
 """
@@ -82,7 +84,7 @@ class AutoDamping(object):
         h = h1 - h2
         k = self.C11 * A / h
         M = k * omega_c ** -2 * np.sqrt(self.p_c ** -2 - 1.)
-        # gamma = np.sqrt(2. * M * k)  # <- expression from paper, but this is wrong
+        # gamma = np.sqrt(2. * M * k)  # incorrect expression from paper
         gamma = 2. * np.sqrt(M * k)
         return M, gamma
 
@@ -188,7 +190,8 @@ class SlideWithNormalPressureCuboidCell(object):
     vdir : int
         Index of cell axis (0, 1, 2) along which to slide.
     v : float
-        Constant sliding speed in ASE units (e.g. 100.0 * ase.units.m / ase.units.s).
+        Constant sliding speed in ASE units
+        (e.g. 100.0 * ase.units.m / ase.units.s).
     damping :
         Damping object (e.g. matscipy.pressurecoupling.AutoDamping instance).
     """
@@ -207,8 +210,8 @@ class SlideWithNormalPressureCuboidCell(object):
     def Tdir(self):
         """Direction used for thermostatting.
 
-        Thermostat direction is normal to the sliding direction and the direction of the
-        applied load direction.
+        Thermostat direction is normal to the sliding direction
+        and the direction of the applied load direction.
 
         Returns
         -------
@@ -272,12 +275,14 @@ class SlideWithNormalPressureCuboidCell(object):
         A = self.get_A(atoms)
         M, gamma = self.damping.get_M_gamma(self, atoms)
         Ftop = forces[self.top_mask, self.Pdir].sum()
-        vtop = atoms.get_velocities()[self.top_mask, self.Pdir].sum() / self.Ntop
+        vtop = atoms.get_velocities()[self.top_mask,
+                                      self.Pdir].sum() / self.Ntop
         F = Ftop - self.P * A - gamma * vtop
         a = F / M
         forces[self.bottom_mask, :] = .0
         forces[self.top_mask, :] = .0
-        forces[self.top_mask, self.Pdir] = atoms.get_masses()[self.top_mask] * a
+        forces[self.top_mask,
+               self.Pdir] = atoms.get_masses()[self.top_mask] * a
 
     def adjust_momenta(self, atoms, momenta):
         """Adjust momenta of upper and lower rigid atoms.
@@ -291,7 +296,8 @@ class SlideWithNormalPressureCuboidCell(object):
         if np.abs(atoms.get_cell().sum() - atoms.get_cell().trace()) > 0:
             raise NotImplementedError("Can't do non-orthogonal cell!")
         top_masses = atoms.get_masses()[self.top_mask]
-        vtop = (momenta[self.top_mask, self.Pdir] / top_masses).sum() / self.Ntop
+        vtop = (momenta[self.top_mask,
+                        self.Pdir] / top_masses).sum() / self.Ntop
         momenta[self.bottom_mask, :] = 0.0
         momenta[self.top_mask, :] = 0.0
         momenta[self.top_mask, self.vdir] = self.v * top_masses
@@ -306,10 +312,7 @@ class SlideLogger(object):
     """Logger to be attached to an ASE integrator.
 
     For new files (not restart jobs), the write_header method should
-    be called once in order to write the header to the file. Also note
-    that ASE does not write the time step 0 automatically.
-    You can do so by calling the SlideLogger instance once
-    before starting the integration as in example 1 below.
+    be called once in order to write the header to the file.
 
     Parameters
     ----------
@@ -330,7 +333,6 @@ class SlideLogger(object):
         log_handle = open(logfn, 'w', 1)  # line buffered
         logger = SlideLogger(log_handle, ...)
         logger.write_header()
-        logger()
         integrator.attach(logger)
         integrator.run(steps_integrate)
         log_handle.close()
@@ -354,7 +356,10 @@ class SlideLogger(object):
 
     def write_header(self):
         """Write header of log-file."""
-        self.handle.write('# step | time / fs | T_thermostat / K | P_top / GPa | P_bottom / GPa | h / Ang | v / Ang * fs | a / Ang * fs ** 2 | tau_top / GPa | tau_bottom / GPa\n')
+        self.handle.write('# step | time / fs | T_thermostat / K | P_top / GPa'
+                          ' | P_bottom / GPa | h / Ang | v / Ang * fs '
+                          '| a / Ang * fs ** 2 | tau_top / GPa | '
+                          'tau_bottom / GPa\n')
 
     def __call__(self):
         """Write current status (time, T, P, ...) to log-file."""
@@ -368,7 +373,8 @@ class SlideLogger(object):
         T = 2. * Ekin / (dof * kB)
         step = integrator.nsteps + self.step_offset
         t = step * integrator.dt / fs
-        A = atoms.cell[slider.vdir, slider.vdir] * atoms.cell[slider.Tdir, slider.Tdir]
+        A = atoms.cell[slider.vdir, slider.vdir]\
+            * atoms.cell[slider.Tdir, slider.Tdir]
         F = atoms.get_forces(apply_constraint=False)
         F_top = F[slider.top_mask, slider.Pdir].sum()
         F_bottom = F[slider.bottom_mask, slider.Pdir].sum()
@@ -378,12 +384,16 @@ class SlideLogger(object):
         h2 = atoms.positions[slider.bottom_mask, slider.Pdir].max()
         h = h1 - h2
         v = atoms.get_velocities()[slider.top_mask, slider.Pdir][0] * fs
-        a = atoms.get_forces(md=True)[slider.top_mask, slider.Pdir][0] / atoms.get_masses()[slider.top_mask][0] * fs ** 2
+        a = atoms.get_forces(md=True)[slider.top_mask, slider.Pdir][0]\
+            / atoms.get_masses()[slider.top_mask][0] * fs ** 2
         F_v_top = F[slider.top_mask, slider.vdir].sum()
         tau_top = F_v_top / A / GPa
         F_v_bottom = F[slider.bottom_mask, slider.vdir].sum()
         tau_bottom = F_v_bottom / A / GPa
-        self.handle.write('%d   %r   %r   %r   %r   %r   %r   %r   %r   %r\n' % (step, float(t), float(T), float(P_top), float(P_bottom), float(h), float(v), float(a), float(tau_top), float(tau_bottom)))
+        self.handle.write('%d   %r   %r   %r   %r   %r   %r   %r   %r   %r\n' %
+                          (step, float(t), float(T), float(P_top),
+                           float(P_bottom), float(h), float(v), float(a),
+                           float(tau_top), float(tau_bottom)))
 
 
 class SlideLog(object):
@@ -424,5 +434,7 @@ class SlideLog(object):
 
     def __init__(self, handle):
         self.rows = np.loadtxt(handle)
-        self.step, self.time, self.T_thermostat, self.P_top, self.P_bottom, self.h, self.v, self.a, self.tau_top, self.tau_bottom = self.rows.T
+        (self.step, self.time, self.T_thermostat, self.P_top,
+         self.P_bottom, self.h, self.v, self.a, self.tau_top,
+         self.tau_bottom) = self.rows.T
         self.step = self.step.astype(int)

@@ -1,6 +1,6 @@
 #
 # Copyright 2019, 2021 Lars Pastewka (U. Freiburg)
-#           2018-2021 Petr Grigorev (Warwick U.)
+#           2018-2023 Petr Grigorev (Warwick U.)
 #           2020 James Kermode (Warwick U.)
 #           2019 Arnaud Allera (U. Lyon 1)
 #           2019 Wolfram G. Nöhring (U. Freiburg)
@@ -25,15 +25,14 @@ import numpy as np
 
 from scipy.optimize import minimize
 
-from ase.lattice.cubic import BodyCenteredCubic
+from ase.lattice.cubic import (BodyCenteredCubic, FaceCenteredCubic,
+                               Diamond, SimpleCubicFactory)
 from ase.constraints import FixAtoms, StrainFilter
 from ase.optimize import FIRE
 from ase.build import bulk
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
-from ase.lattice.cubic import SimpleCubicFactory, Diamond
 from ase.io import read
-from ase.geometry import get_distances
 
 from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
@@ -62,7 +61,7 @@ def make_screw_cyl(alat, C11, C12, C44,
         radius of cylinder of unconstrained atoms around the
         dislocation  in angstrom
     cutoff : float
-        Potential cutoff for marinica potentials for FS cutoff = 4.4
+        Potential cutoff for Marinica potentials for FS cutoff = 4.4
     hard_core : bool
         Description of parameter `hard_core`.
     center : type
@@ -208,17 +207,17 @@ def make_edge_cyl(alat, C11, C12, C44,
     cylinder_r - radius of cylinder of unconstrained atoms around the
                  dislocation  in angstrom
 
-    cutoff - potential cutoff for marinica potentials for FS cutoff = 4.4
+    cutoff - potential cutoff for Marinica potentials for FS cutoff = 4.4
 
     symbol : string
-        Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
+        Symbol of the element to pass to ase.lattice.cubic.SimpleCubicFactory
         default is "W" for tungsten
     '''
     from atomman import ElasticConstants
     from atomman.defect import Stroh
-    # Create a Stroh ojbect with junk data
+    # Create a Stroh object with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
-                                   np.array([0, 0, 1]))
+                  np.array([0, 0, 1]))
 
     axes = np.array([[1, 1, 1],
                      [1, -1, 0],
@@ -238,7 +237,7 @@ def make_edge_cyl(alat, C11, C12, C44,
 
     bulk = unit_cell.copy()
 
-    # shift to make the zeros of the cell betweem the atomic planes
+    # shift to make the zeros of the cell between the atomic planes
     # and under the midplane on Y axes
     X_midplane_shift = (1.0/3.0)*alat*np.sqrt(3.0)/2.0
     Y_midplane_shift = 0.25*alat*np.sqrt(2.0)
@@ -254,7 +253,7 @@ def make_edge_cyl(alat, C11, C12, C44,
     Lx = int(round(tot_r/(alat*np.sqrt(3.0)/2.0)))
     Ly = int(round(tot_r/(alat*np.sqrt(2.))))
 
-    # factor 2 to make shure odd number of images is translated
+    # factor 2 to make sure odd number of images is translated
     # it is important for the correct centering of the dislocation core
     bulk = bulk * (2*Lx, 2*Ly, 1)
 
@@ -290,9 +289,8 @@ def make_edge_cyl(alat, C11, C12, C44,
 
     x, y, z = bulk.positions.T
     # move lower left segment
-    bulk.positions[(y < 0.0) & (x < X_midplane_shift)] -= \
-        [alat * np.sqrt(3.0) / 2.0, 0.0, 0.0]
-    # make the doslocation extraplane center
+    bulk.positions[(y < 0.0) & (x < X_midplane_shift)] -= [alat * np.sqrt(3.0) / 2.0, 0.0, 0.0]
+    # make the dislocation extra half plane center
     bulk.positions += [(1.0/3.0)*alat*np.sqrt(3.0)/2.0, 0.0, 0.0]
 
     return ED, bulk
@@ -309,7 +307,7 @@ def plot_vitek(dislo, bulk,
     bulk : ase.Atoms
         Corresponding bulk configuration for calculation of displacements.
     alat : float
-        Lattice parameter for calculation of neghbour list cutoff.
+        Lattice parameter for calculation of neighbour list cutoff.
     plot_axes : matplotlib.Axes.axes object
         Existing axes to plot on, allows to pass existing matplotlib axes
         have full control of the graph outside the function.
@@ -336,8 +334,8 @@ def plot_vitek(dislo, bulk,
 
     neighborListCutoff = 0.95 * alat
 
-    # plot window is +-10 angstroms from center in x,y directions, and one Burgers vector
-    # thickness along z direction
+    # plot window is +-10 angstroms from center in x,y directions,
+    # and one Burgers vector thickness along z direction
     x, y, _ = bulk.positions.T
 
     plot_range = np.array([[x.mean() - xyscale, x.mean() + xyscale],
@@ -348,14 +346,15 @@ def plot_vitek(dislo, bulk,
     # distance between atoms on the plot
     plot_scale = 1.885618083
 
-    fig = differential_displacement(base_system, disl_system,
-                                    burgers,
-                                    cutoff=neighborListCutoff,
-                                    xlim=plot_range[0],
-                                    ylim=plot_range[1],
-                                    zlim=plot_range[2],
-                                    matplotlib_axes=plot_axes,
-                                    plot_scale=plot_scale)
+    _ = differential_displacement(base_system, disl_system,
+                                  burgers,
+                                  cutoff=neighborListCutoff,
+                                  xlim=plot_range[0],
+                                  ylim=plot_range[1],
+                                  zlim=plot_range[2],
+                                  matplotlib_axes=plot_axes,
+                                  plot_scale=plot_scale)
+
 
 def show_NEB_configurations(images, bulk, xyscale=7,
                             show=True, core_positions=None):
@@ -452,11 +451,11 @@ def get_elastic_constants(pot_path=None,
     pot_path - path to the potential
 
     symbol : string
-        Symbol of the element to pass to ase.lattuce.cubic.SimpleCubicFactory
+        Symbol of the element to pass to ase.lattice.cubic.SimpleCubicFactory
         default is "W" for tungsten
     """
 
-    unit_cell = bulk(symbol)
+    unit_cell = bulk(symbol, cubic=True)
 
     if (pot_path is not None) and (calculator is None):
         # create lammps calculator with the potential
@@ -467,15 +466,17 @@ def get_elastic_constants(pot_path=None,
 
     unit_cell.calc = calculator
 
-#   simple calculation to get the lattice constant and cohesive energy
-#    alat0 = W.cell[0][1] - W.cell[0][0]
-    sf = StrainFilter(unit_cell)  # or UnitCellFilter(W) -> to minimise wrt pos, cell
+    #   simple calculation to get the lattice constant and cohesive energy
+    #    alat0 = W.cell[0][1] - W.cell[0][0]
+    sf = StrainFilter(unit_cell)
+    # or UnitCellFilter(W)
+    # -> to minimise wrt pos, cell
     opt = FIRE(sf)
     opt.run(fmax=1e-4)  # max force in eV/A
-    alat = unit_cell.cell[0][1] - unit_cell.cell[0][0]
-#    print("a0 relaxation %.4f --> %.4f" % (a0, a))
-#    e_coh = W.get_potential_energy()
-#    print("Cohesive energy %.4f" % e_coh)
+    alat = unit_cell.cell.lengths()[0]
+    #    print("a0 relaxation %.4f --> %.4f" % (a0, a))
+    #    e_coh = W.get_potential_energy()
+    #    print("Cohesive energy %.4f" % e_coh)
 
     Cij, Cij_err = fit_elastic_constants(unit_cell,
                                          symmetry="cubic",
@@ -591,11 +592,15 @@ def make_barrier_configurations(elastic_param=None,
 
     return disloc_ini, disloc_fin, bulk_ini
 
-def make_screw_cyl_kink(alat, C11, C12, C44,
-                        cylinder_r=40, kink_length=26, kind="double", **kwargs):
-    """Function to create kink configuration based on make_screw_cyl() function.
-        Double kink configuration is in agreement with quadrupoles in terms of formation energy.
-        Single kink configurations provide correct and stable structure, but formation energy is not accessible?
+
+def make_screw_cyl_kink(alat, C11, C12, C44, cylinder_r=40,
+                        kink_length=26, kind="double", **kwargs):
+    """
+    Function to create kink configuration based on make_screw_cyl() function.
+    Double kink configuration is in agreement with
+    quadrupoles in terms of formation energy.
+    Single kink configurations provide correct and stable structure,
+    but formation energy is not accessible?
 
     Parameters
     ----------
@@ -629,8 +634,11 @@ def make_screw_cyl_kink(alat, C11, C12, C44,
     b = np.sqrt(3.0) * alat / 2.0
     cent_x = np.sqrt(6.0) * alat / 3.0
 
-    disloc_ini, disloc_fin, bulk_ini = make_barrier_configurations((alat, C11, C12, C44),
-                                                                    cylinder_r=cylinder_r, **kwargs)
+    (disloc_ini,
+     disloc_fin,
+     bulk_ini) = make_barrier_configurations((alat, C11, C12, C44),
+                                             cylinder_r=cylinder_r,
+                                             **kwargs)
 
     if kind == "double":
 
@@ -688,7 +696,8 @@ def make_screw_cyl_kink(alat, C11, C12, C44,
         cell[2][2] -= 2.0 * b / 3.0
         kink.set_cell(cell, scale_atoms=False)
 
-        # make sure all the atoms are removed and cell is modified for the bulk as well.
+        # make sure all the atoms are removed and cell is modified
+        # for the bulk as well.
         large_bulk.cell[2][0] += cent_x
         large_bulk.cell[2][2] -= 2.0 * b / 3.0
         large_bulk = large_bulk[right_kink_mask]
@@ -725,7 +734,8 @@ def make_screw_cyl_kink(alat, C11, C12, C44,
         cell[2][2] -= 1.0 * b / 3.0
         kink.set_cell(cell, scale_atoms=False)
 
-        # make sure all the atoms are removed and cell is modified for the bulk as well.
+        # make sure all the atoms are removed and cell is modified
+        # for the bulk as well.
         large_bulk.cell[2][0] -= cent_x
         large_bulk.cell[2][2] -= 1.0 * b / 3.0
         large_bulk = large_bulk[left_kink_mask]
@@ -737,8 +747,10 @@ def make_screw_cyl_kink(alat, C11, C12, C44,
 
     return kink, reference_straight_disloc, large_bulk
 
+
 def slice_long_dislo(kink, kink_bulk, b):
-    """Function to slice a long dislocation configuration to perform dislocation structure and core position analysis
+    """Function to slice a long dislocation configuration to perform
+       dislocation structure and core position analysis
 
     Parameters
     ----------
@@ -1282,7 +1294,7 @@ def screw_cyl_octahedral(alat, C11, C12, C44,
 
     # Create a Stroh object with junk data
     stroh = Stroh(ElasticConstants(C11=141, C12=110, C44=98),
-                                   np.array([0, 0, 1]))
+                  np.array([0, 0, 1]))
 
     c = ElasticConstants(C11=C11, C12=C12, C44=C44)
     burgers = alat * np.array([1., 1., 1.])/2.
@@ -1336,8 +1348,6 @@ def dipole_displacement_angle(W_bulk, dislo_coord_left, dislo_coord_right,
         Generates a simple displacement field for two dislocations in a dipole
         configuration uding simple Voltera solution as u = b/2 * angle
     """
-
-
     burgers = W_bulk.cell[2][2]
 
     shifted_positions = W_bulk.positions + shift - dislo_coord_left
@@ -1379,7 +1389,7 @@ def get_u_img(W_bulk,
                 u_img += dipole_displacement_angle(W_bulk,
                                                    dislo_coord_left + shift,
                                                    dislo_coord_right + shift,
-                                                   shift=n2_shift*C2_quadrupole + n1_shift*C1_quadrupole)
+                                                   shift=n2_shift * C2_quadrupole + n1_shift * C1_quadrupole)
 
     return u_img
 
@@ -1519,8 +1529,8 @@ def make_screw_quadrupole(alat,
     """
 
     unit_cell = BodyCenteredCubic(directions=[[1, -2, 1],
-                                      [2, -1, -1],
-                                      [1, 1, 1]],
+                                              [2, -1, -1],
+                                              [1, 1, 1]],
                                   symbol=symbol,
                                   pbc=(True, True, True),
                                   latticeconstant=alat, debug=0)
@@ -1691,10 +1701,12 @@ def make_screw_quadrupole(alat,
     return disloc_quadrupole, bulk, dislo_coord_left, dislo_coord_right
 
 
-def make_screw_quadrupole_kink(alat, kind="double", n1u=5, kink_length=20, symbol="W"):
+def make_screw_quadrupole_kink(alat, kind="double",
+                               n1u=5, kink_length=20, symbol="W"):
     """Generates kink configuration using make_screw_quadrupole() function
        works for BCC structure.
-       The method is based on paper https://doi.org/10.1016/j.jnucmat.2008.12.053
+       The method is based on paper
+       https://doi.org/10.1016/j.jnucmat.2008.12.053
 
     Parameters
     ----------
@@ -1703,7 +1715,8 @@ def make_screw_quadrupole_kink(alat, kind="double", n1u=5, kink_length=20, symbo
     kind : string
         kind of the kink: right, left or double
     n1u : int
-        Number of lattice vectors for the quadrupole cell (make_screw_quadrupole() function)
+        Number of lattice vectors for the quadrupole cell
+        (make_screw_quadrupole() function)
     kink_length : int
         Length of the cell per kink along b in unit of b, must be even.
     symbol : string
@@ -1725,15 +1738,17 @@ def make_screw_quadrupole_kink(alat, kind="double", n1u=5, kink_length=20, symbo
     b = np.sqrt(3.0) * alat / 2.0
     cent_x = np.sqrt(6.0) * alat / 3.0
 
-    ini_disloc_quadrupole, W_bulk, _, _ = make_screw_quadrupole(alat, n1u=n1u,
-                                                                   left_shift=0.0,
-                                                                   right_shift=0.0,
-                                                                   symbol=symbol)
+    (ini_disloc_quadrupole,
+     W_bulk, _, _) = make_screw_quadrupole(alat, n1u=n1u,
+                                           left_shift=0.0,
+                                           right_shift=0.0,
+                                           symbol=symbol)
 
-    fin_disloc_quadrupole, W_bulk, _, _ = make_screw_quadrupole(alat, n1u=n1u,
-                                                                   left_shift=1.0,
-                                                                   right_shift=1.0,
-                                                                   symbol=symbol)
+    (fin_disloc_quadrupole,
+     W_bulk, _, _) = make_screw_quadrupole(alat, n1u=n1u,
+                                           left_shift=1.0,
+                                           right_shift=1.0,
+                                           symbol=symbol)
 
     reference_straight_disloc = ini_disloc_quadrupole * [1, 1, kink_length]
     large_bulk = W_bulk * [1, 1, kink_length]
@@ -1754,7 +1769,8 @@ def make_screw_quadrupole_kink(alat, kind="double", n1u=5, kink_length=20, symbo
         kink.cell[2][2] += upper_kink.cell[2][2]
         kink.extend(upper_kink)
 
-        # left kink is created the kink vector is in negative x direction assuming (x, y, z) is right group of vectors
+        # left kink is created the kink vector is in negative x direction
+        # assuming (x, y, z) is right group of vectors
         kink = kink[left_kink_mask]
         kink.cell[2][0] -= cent_x
         kink.cell[2][2] -= 1.0 * b / 3.0
@@ -1796,7 +1812,8 @@ def make_screw_quadrupole_kink(alat, kind="double", n1u=5, kink_length=20, symbo
 
         kink.cell[2][2] += upper_kink.cell[2][2]
 
-        large_bulk = W_bulk * [1, 1, 2 * kink_length]  # double kink is double length
+        # double kink is double length
+        large_bulk = W_bulk * [1, 1, 2 * kink_length]
 
     else:
         raise ValueError('Kind must be "right", "left" or "double"')
@@ -1902,8 +1919,8 @@ def make_edge_cyl_001_100(a0, C11, C12, C44,
         print('disloc SCF', i, '|d1-d2|_inf =', res)
         i += 1
         if i > 10:
-            raise RuntimeError('Self-consistency did \
-                                not converge in 10 cycles')
+            raise RuntimeError('Self-consistency did ' +
+                               'not converge in 10 cycles')
     disp = disp2
 
     x, y, z = disloc.positions.T
@@ -2115,7 +2132,8 @@ def get_centering_mask(atoms, radius,
 
 def check_duplicates(atoms, distance=0.1):
     """
-    Returns a mask of atoms that have at least one other atom closer than distance
+    Returns a mask of atoms that have at least
+    one other atom closer than distance
     """
     mask = atoms.get_all_distances() < distance
     duplicates = np.full_like(atoms, False)
@@ -2193,12 +2211,10 @@ class CubicCrystalDislocation:
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
         self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
 
-
     def set_burgers(self, burgers):
         self.burgers = burgers
         if self.stroh is None:
             self.init_stroh()
-
 
     def plot_unit_cell(self, ms=250, ax=None):
         import matplotlib.pyplot as plt
@@ -2220,7 +2236,7 @@ class CubicCrystalDislocation:
                 [0.0, y0, y0, 0.0, 0.0], color="black", zorder=0)
 
         bulk_atoms = ax.scatter([], [], color="w", edgecolor="k",
-                             label="lattice atoms")
+                                label="lattice atoms")
         core1 = ax.scatter([], [], marker="x", label="initial core position",
                            c="r")
         core2 = ax.scatter([], [], marker="x", label="glide core position",
@@ -2230,8 +2246,7 @@ class CubicCrystalDislocation:
         ax.set_xlabel(r"$\AA$")
         ax.set_ylabel(r"$\AA$")
 
-
-    def displacements(self, bulk_positions, center, self_consistent=True, 
+    def displacements(self, bulk_positions, center, self_consistent=True,
                       tol=1e-6, max_iter=100, verbose=True):
         if self.stroh is None:
             self.init_stroh()
@@ -2251,7 +2266,8 @@ class CubicCrystalDislocation:
                 print('disloc SCF', i, '|d1-d2|_inf =', res)
             i += 1
             if i > max_iter:
-                raise RuntimeError(f'Self-consistency did not converge in {max_iter} cycles')
+                raise RuntimeError('Self-consistency' +
+                                   f'did not converge in {max_iter} cycles')
         return disp2
 
     def build_cylinder(self, radius,
@@ -2271,7 +2287,7 @@ class CubicCrystalDislocation:
         repeat_extension = np.floor(2.0 * extension /
                                     np.diag(self.unit_cell.cell)).astype(int)
         repeat_core_position = np.floor(2.0 * core_position /
-                                    np.diag(self.unit_cell.cell)).astype(int)
+                                        np.diag(self.unit_cell.cell)).astype(int)
 
         extra_repeat = np.stack((repeat_core_position,
                                  repeat_extension)).max(axis=0)
@@ -2294,7 +2310,8 @@ class CubicCrystalDislocation:
         center = np.diag(bulk.cell) / 2
         shifted_center = center + core_position
 
-        cylinder_mask = get_centering_mask(bulk, radius, core_position, extension)
+        cylinder_mask = get_centering_mask(bulk, radius,
+                                           core_position, extension)
 
         # add square borders for the case of large extension or core position
         x, y, _ = bulk.positions.T
@@ -2406,7 +2423,7 @@ class CubicCrystalDislocation:
         repeat_extension = np.floor(extension /
                                     np.diag(self.unit_cell.cell)).astype(int)
         repeat_core_position = np.floor(core_position /
-                                    np.diag(self.unit_cell.cell)).astype(int)
+                                        np.diag(self.unit_cell.cell)).astype(int)
 
         extra_repeat = np.stack((repeat_core_position,
                                  repeat_extension)).max(axis=0)
@@ -2459,8 +2476,8 @@ class CubicCrystalDislocation:
         non_core_mask = np.logical_not(core_mask)
 
         displacemets = self.displacements(impurities_bulk.positions[non_core_mask],
-                                                          shifted_center,
-                                                          self_consistent=self_consistent)
+                                          shifted_center,
+                                          self_consistent=self_consistent)
 
         impurities_disloc.positions[non_core_mask] += displacemets
 
@@ -2487,6 +2504,7 @@ class CubicCrystalDislocation:
 
         return impurities_disloc
 
+
 class BCCScrew111Dislocation(CubicCrystalDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='W'):
         axes = np.array([[1, 1, -2],
@@ -2505,7 +2523,7 @@ class BCCScrew111Dislocation(CubicCrystalDislocation):
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance)
 
-        
+
 class BCCEdge111Dislocation(CubicCrystalDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='W'):
         axes = np.array([[1, 1, 1],
@@ -2513,7 +2531,7 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
                          [1, 1, -2]])
         burgers = alat * np.array([1, 1, 1]) / 2.0
         unit_cell_core_position = alat * np.array([(1.0/3.0) * np.sqrt(3.0)/2.0,
-                                  0.25 * np.sqrt(2.0), 0])
+                                                  0.25 * np.sqrt(2.0), 0])
         parity = [0, 0]
         unit_cell = BodyCenteredCubic(directions=axes.tolist(),
                                       size=(1, 1, 1), symbol=symbol,
@@ -2666,20 +2684,82 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
 
 
 class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
-    """
-        This class represents a dissociated dislocation in a cubic crystal
-        with b = b_left + b_right.
-        'left_dislocation' and 'right_dislocations' are expected
-        to be instances of classes derived from CubicCrystalDislocation class.
-    """
-    def __init__(self, left_dislocation, right_dislocation,
-                 *args, **kwargs):
+    def __init__(self, left_dislocation, right_dislocation, burgers):
+        """This class represents a dissociated dislocation in a cubic crystal
+        with burgers vercor b = b_left + b_right.
+
+        Args:
+            left_dislocation (CubicCrystalDislocation): dislocation with b_left
+            right_dislocation (CubicCrystalDislocation): dislocation with b_right
+            burgers (ndarray of 3 floats): resulting burgers vector
+
+        Raises:
+            ValueError: If resulting burgers vector
+                        burgers is not a sum of burgers vectors of
+                        left and right dislocations.
+            ValueError: If one of the properties of
+                        left and righ dislocations are not the same.
+        """
+        try:
+            np.testing.assert_almost_equal(left_dislocation.burgers +
+                                           right_dislocation.burgers,
+                                           burgers)
+        except AssertionError as error:
+            print(error)
+            raise ValueError("Burgers vectors of left and right disloctions" +
+                             "do not add up to the desired vector")
+
+        # checking that parameters of
+        # left and right dislocations are the same
+        try:
+            assert left_dislocation.alat == right_dislocation.alat
+            assert left_dislocation.C11 == right_dislocation.C11
+            assert left_dislocation.C12 == right_dislocation.C12
+            assert left_dislocation.C44 == right_dislocation.C44
+
+            np.testing.assert_equal(left_dislocation.unit_cell.get_chemical_symbols(),
+                                    right_dislocation.unit_cell.get_chemical_symbols())
+            np.testing.assert_equal(left_dislocation.unit_cell.cell.cellpar(),
+                                    right_dislocation.unit_cell.cell.cellpar())
+            np.testing.assert_equal(left_dislocation.unit_cell.positions,
+                                    right_dislocation.unit_cell.positions)
+
+            np.testing.assert_equal(left_dislocation.axes,
+                                    right_dislocation.axes)
+
+            np.testing.assert_equal(left_dislocation.unit_cell_core_position,
+                                    right_dislocation.unit_cell_core_position)
+
+            np.testing.assert_equal(left_dislocation.parity,
+                                    right_dislocation.parity)
+
+            np.testing.assert_equal(left_dislocation.glide_distance,
+                                    right_dislocation.glide_distance)
+
+            assert left_dislocation.n_planes == right_dislocation.n_planes
+            assert left_dislocation.self_consistent == right_dislocation.self_consistent
+
+        except AssertionError as error:
+            print("Parameters of left and right partials are not the same!")
+            print(error)
+            raise ValueError("Parameters of left and right" +
+                             "partials must be the same")
 
         self.left_dislocation = left_dislocation
         self.right_dislocation = right_dislocation
 
-        super().__init__(*args, **kwargs)
-
+        super().__init__(left_dislocation.unit_cell,
+                         left_dislocation.alat,
+                         left_dislocation.C11,
+                         left_dislocation.C12,
+                         left_dislocation.C44,
+                         left_dislocation.axes,
+                         burgers,
+                         unit_cell_core_position=left_dislocation.unit_cell_core_position,
+                         parity=left_dislocation.parity,
+                         glide_distance=right_dislocation.glide_distance,
+                         n_planes=left_dislocation.n_planes,
+                         self_consistent=left_dislocation.self_consistent)
 
     def build_cylinder(self, radius, partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
@@ -2707,102 +2787,184 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
             [self.glide_distance * partial_distance, 0.0, 0.0])
 
         bulk, disloc = self.left_dislocation.build_cylinder(radius,
-                                                  extension=extension + partial_distance_Angstrom,
-                                                  core_position=core_position,
-                                                  fix_width=fix_width,
-                                                  self_consistent=self_consistent)
+                                                            extension=extension + partial_distance_Angstrom,
+                                                            core_position=core_position,
+                                                            fix_width=fix_width,
+                                                            self_consistent=self_consistent)
 
         _, disloc_right = self.right_dislocation.build_cylinder(radius,
-                                                      core_position=core_position + partial_distance_Angstrom,
-                                                      extension=extension,
-                                                      fix_width=fix_width,
-                                                      self_consistent=self_consistent)
+                                                                core_position=core_position + partial_distance_Angstrom,
+                                                                extension=extension,
+                                                                fix_width=fix_width,
+                                                                self_consistent=self_consistent)
 
         u_right = disloc_right.positions - bulk.positions
         disloc.positions += u_right
 
         return bulk, disloc
 
+    def displacements(self, bulk_positions, center,
+                      partial_distance=0, **kwargs):
+        """Overloaded function to provide correct displacements
+        for the dissociated dislocation.
+        Partial distance is provided as an integer to define number
+        of glide distances between two partials.
+        """
+
+        partial_distance_Angstrom = np.array(
+            [self.glide_distance * partial_distance, 0.0, 0.0])
+
+        left_u = self.left_dislocation.displacements(bulk_positions, center,
+                                                     **kwargs)
+        right_u = self.right_dislocation.displacements(bulk_positions,
+                                                       center + partial_distance_Angstrom,
+                                                       **kwargs)
+
+        return left_u + right_u
+
 
 class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
 
-        axes = np.array([[1, 1, -2],
-                        [1, 1, 1],
-                        [1, -1, 0]])
-
         # aiming for the resulting burgers vector
         burgers = alat * np.array([1, -1, 0]) / 2.
 
-        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
-        # 1/4 + 1/2 (1/3 - 1/4) - to be in the middle of the glide set
-        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
-
-        unit_cell_core_position = np.array([disloCenterX,
-                                            disloCenterY, 0])
-
-        parity = [0, 0]
-
-        unit_cell = Diamond(symbol, directions=axes.tolist(),
-                            pbc=(False, False, True),
-                            latticeconstant=alat)
-
-        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
-
-        n_planes = 2
-
         # 30 degree
         burgers_left = alat * np.array([2., -1., -1.]) / 6.
-        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
+
+        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44,
+                                             symbol=symbol)
         left30.set_burgers(burgers_left)
         # another 30 degree
-        burgers_right = alat * np.array([1, -2, 1.]) / 6.
-        right30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
-        self_consistent = False
-        super().__init__(left30, right30, unit_cell, alat, C11, C12, C44,
-                         axes, burgers, unit_cell_core_position, parity,
-                         glide_distance, n_planes=n_planes,
-                         self_consistent=self_consistent)
+        # burgers_right = alat * np.array([1, -2, 1.]) / 6. - default value
+        right30 = DiamondGlide30degreePartial(alat, C11, C12, C44,
+                                              symbol=symbol)
+
+        super().__init__(left30, right30, burgers)
 
 
 class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
     def __init__(self, alat, C11, C12, C44, symbol='C'):
-        axes = np.array([[1, 1, -2],
-                         [1, 1, 1],
-                         [1, -1, 0]])
 
         # aiming for the resulting burgers vector
         burgers = alat * np.array([1, 0, -1]) / 2.
 
-        disloCenterX = 0.5 * (alat * np.linalg.norm(axes[0])) / 6.0
-        # 1/4 + 1/2 (1/3 - 1/4) - to be in the middle of the glide set
-        disloCenterY = 7.0 * (alat * np.linalg.norm(axes[1])) / 24.0
+        # 30 degree
+        burgers_left = alat * np.array([2., -1., -1.]) / 6.
+        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44,
+                                             symbol=symbol)
+        left30.set_burgers(burgers_left)
+        # 90 degree
+        # burgers_right = alat * np.array([1, 1, -2.]) / 6. - default value
+        right90 = DiamondGlide90degreePartial(alat, C11, C12, C44,
+                                              symbol=symbol)
+
+        super().__init__(left30, right90, burgers)
+
+
+class FCCScrewShockleyPartial(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='Fe'):
+        axes = np.array([[1, 1, -2],
+                         [1, 1, 1],
+                         [1, -1, 0]])
+
+        burgers = alat * np.array([1, -2, 1.]) / 6.
+
+        parity = [0, 0]
+
+        unit_cell = FaceCenteredCubic(symbol, directions=axes.tolist(),
+                                      pbc=(False, False, True),
+                                      latticeconstant=alat)
+
+        # put the dislocation in the centroid of the first triangle in xy plane
+        # get sorting of the atoms in the distance of atoms in xy plane
+        sorted_indices = np.argsort(np.linalg.norm(unit_cell.positions[:, :2],
+                                                   axis=1))
+        # centroid coordinates are simply
+        # mean of x y coordinates of the trianlge
+        (disloCenterX,
+         disloCenterY,
+         _) = unit_cell.positions[sorted_indices[:3]].mean(axis=0)
 
         unit_cell_core_position = np.array([disloCenterX,
                                             disloCenterY, 0])
 
-        parity = [0, 0]
-
-        unit_cell = Diamond(symbol, directions=axes.tolist(),
-                            pbc=(False, False, True),
-                            latticeconstant=alat)
-
         glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
 
         n_planes = 2
-
-        # 30 degree
-        burgers_left = alat * np.array([2., -1., -1.]) / 6.
-        left30 = DiamondGlide30degreePartial(alat, C11, C12, C44)
-        left30.set_burgers(burgers_left)
-        # 90 degree
-        burgers_right = alat * np.array([1, 1, -2.]) / 6.
-        right90 = DiamondGlide90degreePartial(alat, C11, C12, C44)
-        self_consistent = False
-        super().__init__(left30, right90, unit_cell, alat, C11, C12, C44,
+        self_consistent = True
+        super().__init__(unit_cell, alat, C11, C12, C44,
                          axes, burgers, unit_cell_core_position, parity,
                          glide_distance, n_planes=n_planes,
                          self_consistent=self_consistent)
+
+
+class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='Fe'):
+
+        # aiming for the resulting burgers vector
+        burgers = alat * np.array([1, -1, 0]) / 2.
+
+        # Shockley partial
+        burgers_left = alat * np.array([2., -1., -1.]) / 6.
+        left_shockley = FCCScrewShockleyPartial(alat, C11, C12, C44,
+                                                symbol=symbol)
+        left_shockley.set_burgers(burgers_left)
+        # another Shockley partial
+        # burgers_right = alat * np.array([1, -2, 1.]) / 6. - default value
+        right_shockley = FCCScrewShockleyPartial(alat, C11, C12, C44,
+                                                 symbol=symbol)
+        super().__init__(left_shockley, right_shockley, burgers)
+
+
+class FCCEdgeShockleyPartial(CubicCrystalDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='Fe'):
+        axes = np.array([[1, -1, 0],
+                         [1, 1, 1],
+                         [-1, -1, 2]])
+
+        burgers = alat * np.array([1, -2, 1.]) / 6.
+
+        parity = [0, 0]
+
+        unit_cell = FaceCenteredCubic(symbol, directions=axes.tolist(),
+                                      pbc=(False, False, True),
+                                      latticeconstant=alat)
+
+        disloCenterX = 0.0
+        # middle between two (111) planes
+        disloCenterY = unit_cell.cell[1][1] / 6.0
+
+        unit_cell_core_position = np.array([disloCenterX,
+                                            disloCenterY, 0])
+
+        glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
+
+        n_planes = 6
+        self_consistent = True
+        super().__init__(unit_cell, alat, C11, C12, C44,
+                         axes, burgers, unit_cell_core_position, parity,
+                         glide_distance, n_planes=n_planes,
+                         self_consistent=self_consistent)
+
+
+class FCCEdge110Dislocation(CubicCrystalDissociatedDislocation):
+    def __init__(self, alat, C11, C12, C44, symbol='Fe'):
+
+        # aiming for the resulting burgers vector
+        burgers = alat * np.array([1, -1, 0]) / 2.
+
+        # Shockley partial
+        burgers_left = alat * np.array([2., -1., -1.]) / 6.
+        left_shockley = FCCEdgeShockleyPartial(alat, C11, C12, C44,
+                                               symbol=symbol)
+        left_shockley.set_burgers(burgers_left)
+        # another Shockley partial
+        # burgers_right = alat * np.array([1, -2, 1.]) / 6. - default value
+        right_shockley = FCCEdgeShockleyPartial(alat, C11, C12, C44,
+                                                symbol=symbol)
+
+        super().__init__(left_shockley, right_shockley, burgers)
 
 
 class FixedLineAtoms:
@@ -2910,7 +3072,8 @@ def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
 
         if image.get_forces().max() < fmax:
             raise RuntimeError(
-                "Initial max force is smaller than fmax! Check surface direction")
+                "Initial max force is smaller than fmax!" +
+                "Check surface direction")
 
         if relax:
             opt = LBFGSLineSearch(image)

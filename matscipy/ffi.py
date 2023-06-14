@@ -1,6 +1,5 @@
 #
-# Copyright 2014-2015, 2021 Lars Pastewka (U. Freiburg)
-#           2014 James Kermode (Warwick U.)
+# Copyright 2022 Lucas Frérot (U. Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -17,32 +16,26 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
-import math
+"""Foreign function interface module.
 
-import numpy as np
+Depending on the build-system (particularly pip version), the compiled extension
+_matscipy.<cpython>.so may be installed in site-packages/ or in matscipy/, with
+the latter being the intended destination. This module abstracts away the
+import of symbols from the extension.
 
-###
+Example usage:
+--------------
 
-def radius(N, R, Es, w):
-    """
-    Given normal load, sphere radius and contact modulus compute contact radius
-    and peak pressure.
+>>> from .ffi import first_neighbours  # imports a function from extension
+>>> from . import ffi   # import as module
 
-    Parameters
-    ----------
-    N : float
-        Normal force.
-    R : float
-        Sphere radius.
-    Es : float
-        Contact modulus: Es = E/(1-nu**2) with Young's modulus E and Poisson
-        number nu.
-    w : float
-        Work of adhesion.
-    """
+"""
 
-    return ( 3.*R/(4.*Es)*(N + 6*w*math.pi*R + np.sqrt(12*w*math.pi*R*N + 
-                           (6*w*math.pi*R)**2)) )**(1./3)
+try:
+    from ._matscipy import *  # noqa
+except ModuleNotFoundError:
+    from _matscipy import *  # noqa
+    from warnings import warn as _warn
+    _warn("importing top-level _matscipy")
 
