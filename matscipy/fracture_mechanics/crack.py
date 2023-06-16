@@ -1963,7 +1963,7 @@ def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=N
 
 def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None,
                        sigma=None, avg_sigma=None, avg_decay=0.005, calc=None):
-    """
+    r"""
     Fit and plot atomistic and continuum stress fields
 
     Firstly a fit to the Irwin `K`-field solution is carried out using
