@@ -85,7 +85,7 @@ def loadtbl(fn, usecols=None, types=None, fromfile=False, **kwargs):
     column_labels = None
     while line.startswith('#'):
         line = line[1:].strip()
-        column_labels = [s.strip() for s in re.split('[\s,]+', line)]
+        column_labels = [s.strip() for s in re.split(r'[\s,]+', line)]
         pos = f.tell()
         line = f.readline()
     f.seek(pos)
