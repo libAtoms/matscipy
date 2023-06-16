@@ -145,6 +145,10 @@ class Neighbourhood(ABC):
         """Return triplet types from atom ids."""
         return self.triplet_type(*self.triplet_to_numbers(atoms, i, j, k))
 
+    @staticmethod
+    def lexsort(connectivity: np.ndarray):
+        return np.lexsort(np.flipud(connectivity.T))
+
     @abstractmethod
     def double_neighbourhood(self):
         """Return neighbourhood with double cutoff/connectivity."""
@@ -308,8 +312,8 @@ class MolecularNeighbourhood(Neighbourhood):
             if not self.double_cutoff:
                 self.connectivity["angles"] = \
                     self.double_connectivity(molecules.angles)
-                self.triplet_list = np.vstack([self.triplet_list,
-                                               self.triplet_list[:, (1, 0, 2)]])
+
+                # not doing anything to triplet list
         else:
             self.triplet_list = np.zeros([0, 3], dtype=np.int32)
 
@@ -321,7 +325,12 @@ class MolecularNeighbourhood(Neighbourhood):
     @property
     def triplet_type(self):
         """Map atom types to triplet types."""
-        return lambda ti_p, tj_p, tk_p: self.connectivity["angles"]["type"]
+        def tp(ti_p, tj_p, tk_p):
+            types = self.connectivity["angles"]["type"]
+            if self.double_cutoff:
+                return np.concatenate([types] * 2)
+            return types
+        return tp
 
     @staticmethod
     def double_connectivity(connectivity: np.ndarray) -> np.ndarray:
@@ -363,7 +372,8 @@ class MolecularNeighbourhood(Neighbourhood):
             np.unique(new_bonds, return_inverse=True)
 
         # Need to sort after all the shenanigans
-        idx = np.argsort(self.connectivity["bonds"]["atoms"][:, 0])
+        # Below sorts lexicographically the pairs (first col, then second col)
+        idx = Neighbourhood.lexsort(self.connectivity["bonds"]["atoms"])
         self.connectivity["bonds"][:] = self.connectivity["bonds"][idx]
 
         # To construct triplet references (aka ij_t, ik_t and jk_t):
@@ -376,7 +386,7 @@ class MolecularNeighbourhood(Neighbourhood):
         r_idx[idx] = np.arange(len(idx))  # revert sort
         self.triplet_list = r_idx[indices_r][n:].reshape(e, -1).T
 
-        idx = np.argsort(self.triplet_list[:, 0])  # sort ij_t
+        idx = Neighbourhood.lexsort(self.triplet_list)  # sort ij_t
         self.triplet_list = self.triplet_list[idx]
 
     def get_pairs(self, atoms: ase.Atoms, quantities: str, cutoff=None):
@@ -402,8 +412,26 @@ class MolecularNeighbourhood(Neighbourhood):
 
         # Need to reorder connectivity for distances
         bonds = self.connectivity["bonds"]["atoms"]
-        connectivity = np.array([
-            bonds[self.triplet_list[:, i], j]
+        double_triplets = np.vstack([self.triplet_list,
+                                     self.triplet_list[:, (1, 0, 2)]])
+
+        # Returning triplet references in bonds list
+        connectivity = double_triplets.copy()
+        i_p, j_p = bonds.T
+
+        first_neigh = first_neighbours(len(atoms), i_p)
+        ij_t, ik_t, jk_t = connectivity.T
+        jk_t[:] = -np.ones(len(ij_t), dtype='int32')
+        # This is slow as
+        for t, (ij, ik) in enumerate(zip(ij_t, ik_t)):
+            for i in np.arange(first_neigh[j_p[ij]],
+                               first_neigh[j_p[ij] + 1]):
+                if i_p[i] == j_p[ij] and j_p[i] == j_p[ik]:
+                    jk_t[t] = i
+                    break
+
+        connectivity_in_bounds = np.array([
+            bonds[connectivity[:, i], j]
             for i, j in [(0, 0), (0, 1), (1, 1)]
         ]).T
 
@@ -411,10 +439,9 @@ class MolecularNeighbourhood(Neighbourhood):
         if "d" in quantities or "D" in quantities:
             #           i  j    i  k    j  k
             indices = [(0, 1), (0, 2), (1, 2)]  # defined in Jan's paper
-            D, d = self.compute_distances(atoms, connectivity, indices)
+            D, d = self.compute_distances(atoms,
+                                          connectivity_in_bounds, indices)
 
-        # Returning triplet references in bonds list
-        connectivity = self.triplet_list
         return self.make_result(
             quantities, connectivity, D, d, None, accepted_quantities="ijkdD")
 

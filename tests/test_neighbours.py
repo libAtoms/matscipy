@@ -345,8 +345,12 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
     def test_pairs(self):
         cutoff_d = self.cutoff.get_pairs(self.atoms, "ijdD")
         molecule_d = self.molecule.get_pairs(self.atoms, "ijdD")
-        p = np.array([0, 1, 2, 3, 5, 4])
         mask_extra_bonds = self.molecule.connectivity["bonds"]["type"] >= 0
+
+        # Lexicographic sort of pair indices, as in cutoff neighborhood
+        p = CutoffNeighbourhood.lexsort(
+            np.asarray(molecule_d[0:2]).T[mask_extra_bonds]
+        )
 
         # print("CUTOFF", cutoff_d)
         # print("MOLECULE", molecule_d)
@@ -361,24 +365,29 @@ class TestNeighbourhood(matscipytest.MatSciPyTestCase):
         molecules_pairs = np.array(self.molecule.get_pairs(self.atoms, "ij")).T
         cutoff_d = self.cutoff.get_triplets(self.atoms, "ijk")
         molecule_d = self.molecule.get_triplets(self.atoms, "ijk")
-        p = np.array([0, 1, 3, 2, 4, 5])
 
-        # We compare the refered pairs, not the triplet info directly
+        # We compare:
+        # - i_p[ij_t], j_p[ij_t]
+        # - i_p[ik_t], j_p[ik_t]
+        # - i_p[jk_t], j_p[jk_t]
+        sort_cutoff, sort_molecules = [], []
         for c, m in zip(cutoff_d, molecule_d):
-            print("c =", cutoff_pairs[:][c])
-            print("m =", molecules_pairs[:][m])
-            self.assertArrayAlmostEqual(cutoff_pairs[:, 0][c],
-                                        molecules_pairs[:, 0][m][p], tol=1e-10)
-            self.assertArrayAlmostEqual(cutoff_pairs[:, 1][c],
-                                        molecules_pairs[:, 1][m][p], tol=1e-10)
+            sort_cutoff.append(CutoffNeighbourhood.lexsort(cutoff_pairs[c]))
+            sort_molecules.append(CutoffNeighbourhood.lexsort(molecules_pairs[m]))
+            cpairs = cutoff_pairs[c][sort_cutoff[-1]]
+            mpairs = molecules_pairs[m][sort_molecules[-1]]
+
+            print("c =", cpairs)
+            print("m =", mpairs)
+            self.assertArrayAlmostEqual(cpairs[:, 0], mpairs[:, 0], tol=1e-10)
+            self.assertArrayAlmostEqual(cpairs[:, 1], mpairs[:, 1], tol=1e-10)
 
         # Testing computed distances and vectors
         cutoff_d = self.cutoff.get_triplets(self.atoms, "dD")
         molecule_d = self.molecule.get_triplets(self.atoms, "dD")
 
-        # TODO why no permutation?
-        for c, m in zip(cutoff_d, molecule_d):
-            self.assertArrayAlmostEqual(c, m, tol=1e-10)
+        for c, m, pc, pm in zip(cutoff_d, molecule_d, sort_cutoff, sort_molecules):
+            self.assertArrayAlmostEqual(c[pc], m[pm], tol=1e-10)
 
     def test_pair_types(self):
         pass
