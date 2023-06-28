@@ -624,7 +624,7 @@ class Manybody(MatscipyCalculator):
                 rij_c = r_pc[pair_ij]
                 rsq_ij = np.sum(rij_c**2)
 
-                ddphi_t5 = ddphi_cp[1][pair_ij]  # TODO
+                ddphi_t5 = ddphi_cp[1][pair_ij]
 
                 rim_c = r_pc[pair_im]
                 rin_c = r_pc[pair_in]
@@ -637,9 +637,23 @@ class Manybody(MatscipyCalculator):
                 rsq_jm = np.sum(rjm_c**2)
                 rsq_jn = np.sum(rjn_c**2)
 
-                # TODO: Assumes monoatomic system at the moment
-                dtheta_t5_mm = self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)
-                dtheta_t5_nn = self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)
+                nati, natj, natm, natn = (
+                    atoms.numbers[i_p[pair_ij]],
+                    atoms.numbers[j_p[pair_ij]],
+                    atoms.numbers[j_p[pair_im]],
+                    atoms.numbers[j_p[pair_in]],
+                )
+
+                # Should return 0-d arrays, convert to int
+                ijm_type = int(neigh.triplet_type(nati, natj, natm))
+                ijn_type = int(neigh.triplet_type(nati, natj, natn))
+
+                dtheta_t5_mm = self.theta[ijm_type].gradient(rsq_ij,
+                                                             rsq_im,
+                                                             rsq_jm)
+                dtheta_t5_nn = self.theta[ijn_type].gradient(rsq_ij,
+                                                             rsq_in,
+                                                             rsq_jn)
 
                 H5 = np.outer(dtheta_t5_mm[1] * rim_c, dtheta_t5_nn[1] * rin_c)
                 H5 += np.outer(dtheta_t5_mm[2] * rjm_c, dtheta_t5_nn[2] * rjn_c)
