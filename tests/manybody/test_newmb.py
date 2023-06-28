@@ -224,13 +224,26 @@ def molecule():
     )
 
 
+def carbon_silicon_pair_types(i, j):
+    i, j = np.asarray(i), np.asarray(j)
+    types = np.ones_like(i)
+    types[i != j] = 2
+    return types
+
+def carbon_silicon_triplet_types(i, j, k):
+    i, j, k = np.asarray(i), np.asarray(j), np.asarray(k)
+    types = np.ones_like(i)
+    types[(i != j) | (i != k) | (k != j)] = 2
+    return types
+
+
 # Potentials to be tested
 potentials = {
-    "Zero(Pair+Angle)": (
+    "Zero(Pair+Angle)~molecule": (
         {1: ZeroPair()}, {1: ZeroAngle()}, molecule()
     ),
 
-    "Harmonic(Pair+Angle)": (
+    "Harmonic(Pair+Angle)~molecule": (
         {1: HarmonicPair(1, 1)}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
     ),
 
@@ -238,7 +251,7 @@ potentials = {
         {1: HarmonicPair(1, 1)}, {1: ZeroAngle()}, molecule()
     ),
 
-    "ZeroPair+HarmonicAngle": (
+    "ZeroPair+HarmonicAngle~molecule": (
         {1: ZeroPair()}, {1: HarmonicAngle(1, np.pi / 4)}, molecule()
     ),
 
@@ -254,6 +267,14 @@ potentials = {
         {1: KumagaiPair(Kumagai_Comp_Mat_Sci_39_Si)},
         {1: ZeroAngle()},
         CutoffNeighbourhood(cutoff=Kumagai_Comp_Mat_Sci_39_Si["R_2"]),
+    ),
+
+    "HarmonicPair+HarmonicAngle~cutoff~heterogeneous": (
+        {1: HarmonicPair(1, 1), 2: HarmonicPair(2, 1)},
+        {1: ZeroAngle(), 2: HarmonicAngle(1, np.pi/3)},
+        CutoffNeighbourhood(cutoff=3.0,
+                            pair_types=carbon_silicon_pair_types,
+                            triplet_types=carbon_silicon_triplet_types),
     ),
 
     "LinearPair+HarmonicAngle": (
@@ -339,6 +360,7 @@ def rattle(request):
 @pytest.fixture(params=[diamond])
 def configuration(distance, rattle, potential, request):
     atoms = request.param(distance, rattle)
+    atoms.symbols[0:2] = 'C'  # making a heterogeneous system
     atoms.calc = Manybody(*potential)
     atoms.calc.atoms = atoms
     return atoms
