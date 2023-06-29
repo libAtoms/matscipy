@@ -135,6 +135,7 @@ def numerical_nonaffine_forces(atoms: ase.Atoms, d: float = 1e-5):
         fna_ncc[..., i, i] = (fplus - fminus) / (2 * d)
 
         # Off diagonal
+        x = np.eye(3)
         j = i - 2
         x[i, j] = x[j, i] = d
         atoms.set_cell(np.dot(cell, x), scale_atoms=True)
