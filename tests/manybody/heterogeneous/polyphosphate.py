@@ -21,7 +21,7 @@ from matscipy.calculators.manybody.potentials import \
 NUM_PROPERTIES = {
     "forces": numerical_forces,
     "stress": numerical_stress,
-    "nonaffine_forces": numerical_nonaffine_forces,
+    "nonaffine_forces": lambda a: numerical_nonaffine_forces(a, d=1e-8),
     "hessian": numerical_hessian,
     "birch_coefficients": numerical_birch,
 }
@@ -199,11 +199,7 @@ PROPERTIES = [
 @pytest.mark.parametrize("prop", PROPERTIES)
 def test_properties(polyphosphate, prop):
     atoms, _ = polyphosphate
-    atol, rtol = 3e-7, 1e-7
-
-    if prop in ('nonaffine_forces', 'hessian'):
-        FIRE(atoms, logfile=None).run(fmax=1e-9, steps=500)
-        atol, rtol = 1e-3, 1e-7
+    atol, rtol = 4e-6, 1e-7
 
     data = atoms.calc.get_property(prop, atoms)
     ref = NUM_PROPERTIES[prop](atoms)

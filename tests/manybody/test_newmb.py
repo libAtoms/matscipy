@@ -382,8 +382,6 @@ def test_stresses(configuration):
 
 
 def test_nonaffine_forces(configuration):
-    # TODO: clarify why we need to optimize?
-    FIRE(configuration, logfile=None).run(fmax=1e-8, steps=400)
     naf_ana = configuration.calc.get_property('nonaffine_forces')
     naf_num = numerical_nonaffine_forces(configuration, d=1e-8)
 
@@ -392,9 +390,8 @@ def test_nonaffine_forces(configuration):
 
 
 def test_hessian(configuration):
-    FIRE(configuration, logfile=None).run(fmax=1e-8, steps=400)
     H_ana = configuration.calc.get_property('hessian').todense()
-    H_num = numerical_hessian(configuration, d=1e-6).todense()
+    H_num = numerical_hessian(configuration, d=1e-8).todense()
 
     nt.assert_allclose(H_ana, H_num, atol=1e-5, rtol=1e-6)
 
