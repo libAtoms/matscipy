@@ -10,38 +10,38 @@ authors:
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1" # (Multiple affiliations must be quoted)
-  - name: Thomas Reichenbach
-    orcid: 0000-0001-7477-6248
-    affiliation: 4
+  - name: Lucas Frérot
+    orcid: 0000-0002-4138-1052
+    affiliation: 3
+  - name: Jan Grießer
+    orcid: 0000-0003-2149-6730
+    affiliation: 3
+  - name: Johannes L. Hörmann
+    orcid: 0000-0001-5867-695X
+    affiliation: 3
   - name: Andreas Klemenz
     orcid: 0000-0001-5677-5639
     affiliation: 4
   - name: Gianpietro Moras
     orcid: 0000-0002-4623-2881
     affiliation: 4
-  - name: Jan Grießer
-    orcid: 0000-0003-2149-6730
+  - name: Wolfram G. Nöhring
+    orcid: 0000-0003-4203-755X
     affiliation: 3
   - name: Jonas A. Oldenstaedt
     orcid: 
     affiliation: 3
-  - name: Lucas Frérot
-    orcid: 0000-0002-4138-1052
-    affiliation: 3
-  - name: Wolfram G. Nöhring
-    orcid: 0000-0003-4203-755X
-    affiliation: 3
-  - name: James R. Kermode
-    orcid: 0000-0001-6755-6271
-    #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 2
   - name: Lars Pastewka
     orcid: 0000-0001-8351-7336
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 3
-  - name: Johannes L. Hörmann
-    orcid: 0000-0001-5867-695X
-    affiliation: 3
+  - name: Thomas Reichenbach
+    orcid: 0000-0001-7477-6248
+    affiliation: 4
+  - name: James R. Kermode
+    orcid: 0000-0001-6755-6271
+    #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
+    affiliation: 2
 affiliations:
   - name: Aix-Marseille Universit ́e, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
     index: 1
