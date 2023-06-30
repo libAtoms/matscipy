@@ -32,7 +32,7 @@ from matscipy.molecules import Molecules
 from matscipy.neighbours import MolecularNeighbourhood
 from matscipy.numerical import (
     numerical_forces, numerical_hessian, numerical_stress,
-    numerical_nonaffine_forces
+    numerical_nonaffine_forces_reference
 )
 
 import pytest
@@ -106,11 +106,8 @@ def test_harmonic_bond(co2, molecule):
     s_ref = numerical_stress(co2, d=1e-6)
     nt.assert_allclose(co2.get_stress(), s_ref, rtol=1e-8, atol=1e-7)
 
-    # Following tests need relaxation
-    FIRE(co2, logfile=None).run(fmax=1e-9, steps=500)
-
     # Testing nonaffine forces with finite differences
-    nf_ref = numerical_nonaffine_forces(co2, d=1e-6)
+    nf_ref = numerical_nonaffine_forces_reference(co2, d=1e-8)
     nf = co2.calc.get_property('nonaffine_forces', co2)
     nt.assert_allclose(nf, nf_ref, rtol=1e-8, atol=1e-6)
 
@@ -148,11 +145,8 @@ def test_harmonic_angle(co2, molecule):
     s_ref = numerical_stress(co2, d=1e-6)
     nt.assert_allclose(s, s_ref, rtol=1e-6, atol=2e-9)
 
-    # Following tests need relaxation
-    FIRE(co2, logfile=None).run(fmax=1e-9, steps=500)
-
     # Testing nonaffine forces with finite differences
-    nf_ref = numerical_nonaffine_forces(co2, d=1e-6)
+    nf_ref = numerical_nonaffine_forces_reference(co2, d=1e-6)
     nf = co2.calc.get_property('nonaffine_forces', co2)
     nt.assert_allclose(nf, nf_ref, rtol=1e-8, atol=1e-6)
 
