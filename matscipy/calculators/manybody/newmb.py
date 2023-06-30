@@ -425,11 +425,12 @@ class Manybody(MatscipyCalculator):
             self._masked_compute(atoms, order=[1, 2])
 
         # Term 1 and 2 have the same structure, we assemble @ same time
-        e = np.eye(3)  # I have no idea what e is
+        e = np.eye(3)
         dpdR, ddpddR = dphi_cp[0], ddphi_cp[0]
         term_12_pcab = (
-            ein('p,pa,bg->pgab', dpdR, r_pc, e)  # term 1
-            + ein('p,pb,ag->pgab', dpdR, r_pc, e)  # term 1
+            # VVVVVVVVVVVVVVV TODO why 1/2 factor?
+            0.5 * (ein('p,pa,bg->pgab', dpdR, r_pc, e)  # term 1
+                   + ein('p,pb,ag->pgab', dpdR, r_pc, e))  # term 1
             + 2 * ein('p,pa,pb,pg->pgab', ddpddR, r_pc, r_pc, r_pc)  # term 2
         )
 
@@ -447,7 +448,7 @@ class Manybody(MatscipyCalculator):
 
         term_3_tXcab = 2 * ein('XYt,tYa,tYb,tXc->tXcab', ddtdRXdRY, r_tqc,
                                r_tqc, r_tqc)
-        term_3_tXcab += (
+        term_3_tXcab += 0.5 * ( # <--------------- TODO why 1/2 factor?
             ein('Xt,tXb,ag->tXgab', dtheta_qt, r_tqc, e)
             + ein('Xt,tXa,bg->tXgab', dtheta_qt, r_tqc, e))
 
