@@ -31,8 +31,10 @@ from matscipy.numerical import (
     numerical_stress,
     numerical_hessian,
     numerical_nonaffine_forces,
+    numerical_nonaffine_forces_reference,
 )
 
+from matscipy.calculators.calculator import MatscipyCalculator
 from matscipy.calculators.manybody.newmb import Manybody
 from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut
 from ase.lattice.cubic import Diamond
@@ -383,10 +385,10 @@ def test_stresses(configuration):
 
 def test_nonaffine_forces(configuration):
     naf_ana = configuration.calc.get_property('nonaffine_forces')
-    naf_num = numerical_nonaffine_forces(configuration, d=1e-8)
+    naf_num = numerical_nonaffine_forces_reference(configuration, d=1e-6)
 
     # atol here related to fmax above
-    nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=1e-4)
+    nt.assert_allclose(naf_ana, naf_num, rtol=1e-6, atol=1e-5)
 
 
 def test_hessian(configuration):
@@ -501,6 +503,8 @@ def test_pair_nonaffine():
     )
 
     naf = atoms.calc.get_property('nonaffine_forces', atoms)
-    naf_ref = numerical_nonaffine_forces(atoms, d=1e-8)
-
+    naf_ref = numerical_nonaffine_forces_reference(atoms, d=1e-8)
     nt.assert_allclose(naf, naf_ref, atol=1e-6)
+
+    # naf_ref = MatscipyCalculator.get_nonaffine_forces(atoms.calc, atoms)
+    # nt.assert_allclose(naf, naf_ref, atol=1e-6)

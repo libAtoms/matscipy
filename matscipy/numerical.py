@@ -149,6 +149,25 @@ def numerical_nonaffine_forces(atoms: ase.Atoms, d: float = 1e-5):
 
     return fna_ncc
 
+
+def numerical_nonaffine_forces_reference(atoms: ase.Atoms, d: float = 1e-5):
+    """
+    Compute nonaffine forces in the reference configuration using finite differences.
+    """
+    fna_ncc = np.zeros([len(atoms)] + 3 * [3])
+    pos = atoms.positions
+
+    for i in range(len(atoms)):
+        for dim in range(3):
+            pos[i, dim] += d
+            fna_ncc[i, dim] = atoms.get_stress(voigt=False)
+            pos[i, dim] -= 2 * d
+            fna_ncc[i, dim] -= atoms.get_stress(voigt=False)
+            pos[i, dim] += d  # reset position
+
+    fna_ncc *= -atoms.get_volume() / (2 * d)
+    return fna_ncc
+
 def get_derivative_volume(atoms: ase.Atoms, d: float = 1e-5):
     """
     Calculate the derivative of the volume with respect to strain using central differences.

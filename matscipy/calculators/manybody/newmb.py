@@ -416,7 +416,7 @@ class Manybody(MatscipyCalculator):
         return 2 * C_cccc / atoms.get_volume()
 
     def get_nonaffine_forces(self, atoms):
-        """Compute non-affine forces."""
+        """Compute non-affine forces (derivatives w/r reference positions)."""
         n = len(atoms)
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
         ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
@@ -428,9 +428,8 @@ class Manybody(MatscipyCalculator):
         e = np.eye(3)
         dpdR, ddpddR = dphi_cp[0], ddphi_cp[0]
         term_12_pcab = (
-            # VVVVVVVVVVVVVVV TODO why 1/2 factor?
-            0.5 * (ein('p,pa,bg->pgab', dpdR, r_pc, e)  # term 1
-                   + ein('p,pb,ag->pgab', dpdR, r_pc, e))  # term 1
+            (ein('p,pa,bg->pgab', dpdR, r_pc, e)  # term 1
+             + ein('p,pb,ag->pgab', dpdR, r_pc, e))  # term 1
             + 2 * ein('p,pa,pb,pg->pgab', ddpddR, r_pc, r_pc, r_pc)  # term 2
         )
 
@@ -448,9 +447,10 @@ class Manybody(MatscipyCalculator):
 
         term_3_tXcab = 2 * ein('XYt,tYa,tYb,tXc->tXcab', ddtdRXdRY, r_tqc,
                                r_tqc, r_tqc)
-        term_3_tXcab += 0.5 * ( # <--------------- TODO why 1/2 factor?
+        term_3_tXcab += (
             ein('Xt,tXb,ag->tXgab', dtheta_qt, r_tqc, e)
-            + ein('Xt,tXa,bg->tXgab', dtheta_qt, r_tqc, e))
+            + ein('Xt,tXa,bg->tXgab', dtheta_qt, r_tqc, e)
+        )
 
         term_3_tXcab *= dpdxi[_cccc]
 
@@ -666,6 +666,9 @@ class Manybody(MatscipyCalculator):
 
         # Symmetrization with H_nm
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
+
+        if format == 'neighbour-list':
+            return H_pcc, i_p, j_p, r_pc, r_p
 
         # Compute the diagonal elements by bincount the off-diagonal elements
         H_acc = -self._assemble_pair_to_atom(i_p, H_pcc, n)
