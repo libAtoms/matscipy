@@ -198,14 +198,19 @@ try:
         LennardJones,
         ZeroPair,
         BornMayerCut,
+        TersoffBrennerPair,
+        TersoffBrennerAngle,
     )
 
-    from sympy import symbols, acos, sqrt, pi, exp
+    from sympy import symbols, acos, sqrt, pi, exp, cos
     from sympy.abc import R, xi
+    from sympy import Piecewise
 
     has_sympy = True
 
     R1, R2, R3 = symbols("R_{1:4}")
+
+    cos_angle = (R1 + R2 - R3) / (2 * sqrt(R1 * R2))
 
     _analytical_pair_potentials = [
         (HarmonicPair(1, 1), SymPhi(0.5 * (sqrt(R) - 1)**2 + xi, (R, xi))),
@@ -214,13 +219,32 @@ try:
          SymPhi(4 * ((1 / sqrt(R))**12 - (1 / sqrt(R))**6) + xi, (R, xi))),
         (BornMayerCut(),
          SymPhi(exp((1-sqrt(R))) - 1/R**3 + 1/R**4 + xi, (R, xi))),
+        (TersoffBrennerPair(_default_arguments[potentials.TersoffBrennerAngle][0]),
+         SymPhi((
+             # fc
+             Piecewise(
+                 (1, sqrt(R) < 2.7),
+                 (0.5 * (1 + cos(pi * (sqrt(R) - 2.7) / (3 - 2.7))),
+                  (sqrt(R) >= 2.7) | (sqrt(R) < 3)),
+                 (0, sqrt(R) >= 3)
+             ) * (
+                 exp(- sqrt(R)) - 1 / sqrt(1 + xi) * exp(- sqrt(R))
+         )), (R, xi))),
     ]
 
     _analytical_triplet_potentials = [
         (HarmonicAngle(1, np.pi / 2),
          SymTheta(
-             0.5 * (acos((R1 + R2 - R3) / (2 * sqrt(R1 * R2))) - pi / 2)**2,
-             (R1, R2, R3)))
+             0.5 * (acos(cos_angle) - pi / 2)**2,
+             (R1, R2, R3))),
+        (TersoffBrennerAngle(_default_arguments[potentials.TersoffBrennerAngle][0]),
+         SymTheta(
+             (2 - 1 / (1 + (1 - cos_angle)**2)) * Piecewise(
+                 (1, sqrt(R2) < 2.7),
+                 (0.5 * (1 + cos(pi * (sqrt(R2) - 2.7) / (3 - 2.7))),
+                  (sqrt(R2) >= 2.7) | (sqrt(R2) < 3)),
+                 (0, sqrt(R2) >= 3)
+             ), (R1, R2, R3))),
     ]
 
     def _pot_names(potlist):
