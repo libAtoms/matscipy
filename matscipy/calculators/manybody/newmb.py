@@ -508,8 +508,7 @@ class Manybody(MatscipyCalculator):
             atoms, 'ijdD', cutoff=double_cutoff
         )
 
-        mask = r_p > pairwise_cutoff  # TODO: make generic for pair cutoffs
-
+        mask = neigh.mask(r_p, pairwise_cutoff)
         tr_p = neigh.reverse_pair_indices(i_p, j_p, r_p)
 
         ij_t, ik_t, jk_t, r_tq, r_tqc = neigh.get_triplets(

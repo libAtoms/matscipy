@@ -60,6 +60,12 @@ class Neighbourhood(ABC):
         """Return requested data on triplets."""
 
     @staticmethod
+    def mask(pair_distances, cutoff):
+        if not isinstance(cutoff, dict):
+            return pair_distances > cutoff
+        raise NotImplementedError("heterogeneous cutoffs not implemented")
+
+    @staticmethod
     def make_result(quantities, connectivity, D, d, S,
                     accepted_quantities) -> ts.List:
         """Construct result list."""
