@@ -485,3 +485,22 @@ def test_energy_cutoff(cutoff):
         )
 
     assert np.abs(e - newmb_e) / e < 1e-10
+
+
+def test_pair_nonaffine():
+    atoms = Atoms(
+        "H" * 2,
+        positions=[(0, 0, 0), (1, 0, 0)],
+        cell=[10, 10, 10],
+    )
+
+    atoms.calc = Manybody(
+        {1: HarmonicPair(1, 0.1)},
+        {1: ZeroAngle()},
+        CutoffNeighbourhood(cutoff=2.)
+    )
+
+    naf = atoms.calc.get_property('nonaffine_forces', atoms)
+    naf_ref = numerical_nonaffine_forces(atoms, d=1e-8)
+
+    nt.assert_allclose(naf, naf_ref, atol=1e-6)
