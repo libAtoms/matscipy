@@ -13,6 +13,128 @@
 	abstract = {The atomic simulation environment (ASE) is a software package written in the Python programming language with the aim of setting up, steering, and analyzing atomistic simulations. In ASE, tasks are fully scripted in Python. The powerful syntax of Python combined with the NumPy array library make it possible to perform very complex simulation tasks. For example, a sequence of calculations may be performed with the use of a simple ‘for-loop’ construction. Calculations of energy, forces, stresses and other quantities are performed through interfaces to many external electronic structure codes or force fields using a uniform interface. On top of this calculator interface, ASE provides modules for performing many standard simulation tasks such as structure optimization, molecular dynamics, handling of constraints and performing nudged elastic band calculations.}
 }
 
+@ARTICLE{Bernstein2009,
+  title    = "Hybrid atomistic simulation methods for materials systems",
+  author   = "Bernstein, Noam and Kermode, J R and Cs{\'a}nyi, G",
+  abstract = "N 1 , JR 2,3 and G Csanyi CB2 1PZ, UK E-mail: noam. @nrl. navy
+              review recent progress in the methodology of /classical (QM",
+  journal  = "Rep. Prog. Phys.",
+  volume   =  72,
+  number   =  2,
+  pages    = "026501",
+  year     =  2009,
+  issn     = "0034-4885",
+  doi      = "10.1088/0034-4885/72/2/026501"
+}
+
+@ARTICLE{Musil2019,
+  title    = "Fast and Accurate Uncertainty Estimation in Chemical Machine
+              Learning",
+  author   = "Musil, F{\'e}lix and Willatt, Michael J and Langovoy, Mikhail A
+              and Ceriotti, Michele",
+  abstract = "We present a scheme to obtain an inexpensive and reliable
+              estimate of the uncertainty associated with the predictions of a
+              machine-learning model of atomic and molecular properties. The
+              scheme is based on resampling, with multiple models being
+              generated based on subsampling of the same training data. The
+              accuracy of the uncertainty prediction can be benchmarked by
+              maximum likelihood estimation, which can also be used to correct
+              for correlations between resampled models and to improve the
+              performance of the uncertainty estimation by a cross-validation
+              procedure. In the case of sparse Gaussian Process Regression
+              models, this resampled estimator can be evaluated at negligible
+              cost. We demonstrate the reliability of these estimates for the
+              prediction of molecular and materials energetics and for the
+              estimation of nuclear chemical shieldings in molecular crystals.
+              Extension to estimate the uncertainty in energy differences,
+              forces, or other correlated predictions is straightforward. This
+              method can be easily applied to other machine-learning schemes
+              and will be beneficial to make data-driven predictions more
+              reliable and to facilitate training-set optimization and
+              active-learning strategies.",
+  journal  = "J. Chem. Theory Comput.",
+  volume   =  15,
+  number   =  2,
+  pages    = "906--915",
+  month    =  feb,
+  year     =  2019,
+  language = "en",
+  issn     = "1549-9618, 1549-9626",
+  pmid     = "30605342",
+  doi      = "10.1021/acs.jctc.8b00959"
+}
+
+
+@ARTICLE{Golebiowski2018,
+  title     = "Multiscale simulations of critical interfacial failure in carbon
+               nanotube-polymer composites",
+  author    = "Go{\l}{\k e}biowski, Jacek R and Kermode, James R and Mostofi,
+               Arash A and Haynes, Peter D",
+  abstract  = "Computational investigation of interfacial failure in composite
+               materials is challenging because it is inherently multi-scale:
+               the bond-breaking processes that occur at the covalently bonded
+               interface and initiate failure involve quantum mechanical
+               phenomena, yet the mechanisms by which external stresses are
+               transferred through the matrix occur on length and time scales
+               far in excess of anything that can be simulated quantum
+               mechanically. In this work, we demonstrate and validate an
+               adaptive quantum mechanics (QM)/molecular mechanics simulation
+               method that can be used to address these issues and apply it to
+               study critical failure at a covalently bonded carbon nanotube
+               (CNT)-polymer interface. In this hybrid approach, the majority
+               of the system is simulated with a classical forcefield, while
+               areas of particular interest are identified on-the-fly and
+               atomic forces in those regions are updated based on QM
+               calculations. We demonstrate that the hybrid method results are
+               in excellent agreement with fully QM benchmark simulations and
+               offers qualitative insights missing from classical simulations.
+               We use the hybrid approach to show how the chemical structure at
+               the CNT-polymer interface determines its strength, and we
+               propose candidate chemistries to guide further experimental work
+               in this area.",
+  journal   = "J. Chem. Phys.",
+  publisher = "American Institute of Physics",
+  volume    =  149,
+  number    =  22,
+  pages     = "224102",
+  month     =  dec,
+  year      =  2018,
+  issn      = "0021-9606",
+  doi       = "10.1063/1.5035508"
+}
+
+
+@ARTICLE{Golebiowski2020,
+  title    = "Atomistic {QM/MM} simulations of the strength of covalent
+              interfaces in carbon nanotube-polymer composites",
+  author   = "Go{\l}{\k e}biowski, Jacek R and Kermode, James R and Haynes,
+              Peter D and Mostofi, Arash A",
+  abstract = "We investigate the failure of carbon-nanotube/polymer composites
+              by using a recently-developed hybrid
+              quantum-mechanical/molecular-mechanical (QM/MM) approach to
+              simulate nanotube pull-out from a cross-linked polyethene matrix.
+              Our study focuses on the strength and failure modes of
+              covalently-bonded nanotube-polymer interfaces based on amine,
+              carbene and carboxyl functional groups and a [2+1] cycloaddition.
+              We find that the choice of the functional group linking the
+              polymer matrix to the nanotube determines the effective strength
+              of the interface, which can be increased by up to 50\% (up to the
+              limit dictated by the strength of the polymer backbone itself) by
+              choosing groups with higher interfacial binding energy. We rank
+              the functional groups presented in this work based on the
+              strength of the resulting interface and suggest broad guidelines
+              for the rational design of nanotube functionalisation for
+              nanotube-polymer composites.",
+  journal  = "Phys. Chem. Chem. Phys.",
+  month    =  may,
+  year     =  2020,
+  language = "en",
+  issn     = "1463-9076, 1463-9084",
+  pmid     = "32421117",
+  doi      = "10.1039/d0cp01841d"
+}
+
+
 @article{Grigorev2020,
   title = {Hybrid quantum/classical study of hydrogen-decorated screw dislocations in tungsten: Ultrafast pipe diffusion, core reconstruction, and effects on glide mechanism},
   author = {Grigorev, Petr and Swinburne, Thomas D. and Kermode, James R.},
