@@ -69,7 +69,7 @@ Behaviour of materials is governed by physical phenomena happening at an extreme
 
 - LP: I don't understand what `matscipy.opls` actually does (except for IO), this should be explained
 
-- LP: Text for `committee` and `mcfm` calculators
+- LP: Text for `committee` and `mcfm` calculators [Drafts added by JRK]
 
 # Statement of need
 
@@ -111,11 +111,11 @@ As well as these domain-specific tools, `matscipy` contains general utility func
   where two arrays contain the indices of the neighbouring atoms and further arrays store
   distance vectors, absolute distances, and other properties associated with an atomic pair.
   This allows compact code for evaluating properties that depend on pairs, such as pair-distribution function or interatomic potential energies and forces. Most of the tools described in the following rely on this neighbour list format.
-  The neighbour list is becoming widely used for post-processing and structural analysis of the trajectories resulting from molecular dynamics simulations.  <!-- LF,LP: Do we need a reference for this or some evidence how widely used? -->
+  The neighbour list is becoming widely used for post-processing and structural analysis of the trajectories resulting from molecular dynamics simulations.  <!-- LF,LP: Do we need a reference for this or some evidence how widely used? JRK: now being used by MACE (https://github.com/ACEsuit/mace) and other neural network MLIPs too, could cite or link -->
 
 ![Neighbor list computation time comparison between ASE and Matscipy implementations.\label{fig:nl_time}](nl_time.svg)
 
-- **Atomic strain.** Continuum mechanics is formulated in terms of strains, which characterizes the fractional shape changes of small volumes. Strains are typically only well defined if averaged over sufficiently large volumes, and extracting strain fields from atomic-scale calculations is notoriously difficult. `matscipy` implements calculations of strain by observing changes in local atomic neighbourhoods across trajectories. It fits a per-atom displacement gradient that minimizes the error in displacement between two configurations as described by @Falk1998. The error resulting from this fit quantifies the non-affine contribution ot the overall displacement and is known as $D^2_\text{min}$. We used this analysis to quantify local strain in the deformation of crystals [@Gola2019;@Gola2020] and glasses [@Jana2019]. <!-- LP: James, is fitting to local tetrahedral environments in matscipy? -->
+- **Atomic strain.** Continuum mechanics is formulated in terms of strains, which characterizes the fractional shape changes of small volumes. Strains are typically only well defined if averaged over sufficiently large volumes, and extracting strain fields from atomic-scale calculations is notoriously difficult. `matscipy` implements calculations of strain by observing changes in local atomic neighbourhoods across trajectories. It fits a per-atom displacement gradient that minimizes the error in displacement between two configurations as described by @Falk1998. The error resulting from this fit quantifies the non-affine contribution ot the overall displacement and is known as $D^2_\text{min}$. We used this analysis to quantify local strain in the deformation of crystals [@Gola2019;@Gola2020] and glasses [@Jana2019]. <!-- LP: James, is fitting to local tetrahedral environments in matscipy? JRK: no, this was never ported out of QUIP -->
 
 - **Radial, spatial and angular correlation functions.** Topological order in atomic-scale systems is often characterized by statistical measures of the local atomic-environment. The simplest one is the pair-distribution or radial-distribution function, that gives the probability $g_2(r)$ of finding an atom at distance $r$. For three atoms, we can define a probability of finding a specific angle, yielding the angular correlation functions. `matscipy` has utility function for computing these correlation functions to large distances, including the correlation of arbitrary additional per-atom properties such as per-atom strains.
 
