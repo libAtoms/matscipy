@@ -4,9 +4,10 @@
    :maxdepth: 2
    :caption: Table of Contents:
 
+   self
    ./applications/index
    ./tools/index
-   ./calculators
+   ./calculators/index
    ./api_reference
 
 
