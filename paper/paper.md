@@ -11,11 +11,11 @@ authors:
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1" # (Multiple affiliations must be quoted)
-  - name: Fraser Birks
-    affiliation: 2
   - name: Lucas Frérot
     orcid: 0000-0002-4138-1052
     affiliation: 3
+  - name: Fraser Birks
+    affiliation: 2
   - name: Adrien Gola
     orcid: 0000-0002-5102-1931
     affiliation: "3,7"
@@ -51,6 +51,9 @@ authors:
   - name: Till Junge
     orcid: 0000-0001-8188-9363
     affiliation: 7
+  - name: Michael Walter
+    orcid: 0000-0001-6679-2491
+    affiliation: FIT Freiburg Centre for Interactive Materials and Bioinspired Technologies, Georges-Köhler-Allee 105, 79110 Freiburg, German
   - name: Simon Wengert
     orcid: 0000-0002-8008-1482
     affiliation: 6
@@ -69,7 +72,7 @@ affiliations:
     index: 2
   - name: Department of Microsystems Engineering, University of Freiburg, 79110 Freiburg, Germany
     index: 3
-  - name: Fraunhofer IWM, MicroTribology Center $\mu$TC, Wöhlerstr. 11, 79108, Freiburg, Germany
+  - name: Fraunhofer IWM, MikroTribologie Centrum $\mu$TC, Wöhlerstr. 11, 79108, Freiburg, Germany
     index: 4
   - name: Department of Materials, Imperial College London, London SW7 2AZ, UK
     index: 5
@@ -91,11 +94,13 @@ Behaviour of materials is governed by physical phenomena that occur at an extrem
 
 # Statement of need
 
-The Python package `matscipy` contains a set of tools for researchers using atomic-scale models in materials science. In atomic-scale modelling, the primary numerical object is a discrete point in three-dimensional space that represents the position of an individual atom. Simulations are often dynamical, where configurations change over time and each atom carries a velocity. Complexity emerges from the interactions of many atoms, and numerical tools are required for generating initial atomic configurations and for analyzing output of such dynamical simulations, most commonly to connect local geometric arrangements of atoms to physical processes. An example, also found below, is the detection of the tip of a crack that moves through a solid body.
+The Python package `matscipy` contains a set of tools for researchers using atomic-scale models in materials science. In atomic-scale modelling, the primary numerical object is a discrete point in three-dimensional space that represents the position of an individual atom. Simulations are often dynamical, where configurations change over time and each atom carries a velocity. Complexity emerges from the interactions of many atoms, and numerical tools are required for generating initial atomic configurations and for analyzing output of such dynamical simulations, most commonly to connect local geometric arrangements of atoms to physical processes. An example, described in more detail below, is the detection of the tip of a crack that moves through a solid body.
 
 We never see individual atoms at macroscopic scales. To understand the behaviour of everyday objects, atomic-scale information needs to be transferred to the continuum scale. This is the primary objective of multi-scale modelling. `matscipy` focuses on atomic representations of materials, but implements tools for connecting to continuum description in mechanics and transport theory. Each of the application domains described in the following therefore relies on the computation of continuum fields, that is realized through analytic or numerical solutions.
 
-There is no other package that we are aware of, which fills the particular niche of the application domains in the next section. The package addresses the boundary between atomic-scale and continuum modelling in materials with particular emphasis on plasticity, fracture and tribology. We target interoperability with the widely used Atomic Simulation Environment (ASE) [@Larsen2017], which offers great flexibility and interoperability by providing a Python interface to tens of simulation codes implementing different physical models. While ASE's policy is to remain pure Python, we augment some of ASE's functionality with more efficient implementations in C, such as the neighbour list.
+There is no other package that we are aware of, which fills the particular niche of the application domains in the next section. The package addresses the boundary between atomic-scale and continuum modelling in materials with particular emphasis on plasticity, fracture and tribology. The `atomman` atomistic manipulation toolkit [@AtomMan] has some overlapping objectives but is restricted to a narrower class of materials systems, principally point defects, stacking faults and dislocations. We target interoperability with the widely used Atomic Simulation Environment (ASE) [@Larsen2017], which offers great flexibility and interoperability by providing a Python interface to tens of simulation codes implementing different physical models. While ASE's policy is to remain pure Python, we augment some of ASE's functionality with more efficient implementations in C, such as the neighbour list. 
+
+Large scale molecular dynamics (MD) simulations are most efficiently performed with optimized codes such as LAMMPS [@Thompson2022], with `matscipy`'s main contribution being to setup input structures and to post-process output trajectories.
 
 The central class in ASE is the `Atoms` class, which is a container that stores atomic positions, velocities and other properties. `Calculator`s describe relationships between atoms, such as computing energies and forces, and can be attached to `Atoms` objects. All other `matscipy` functionality is implemented as functions acting on `Atoms` objects. This is comparable to the design of `numpy` [@Harris2020-it] or `scipy` [@Virtanen2020-tq], that are collections of mathematical functions operating on core `array` container objects. In our experience, separting code into functions and containers lowers the barrier to entry for new users and eases testability of the underyling code base.
 
@@ -107,7 +112,7 @@ Within materials science, the package has different application domains:
 
 - **Elasticity.** Solids respond to small external loads with reversible deformation, known as elasticity. The strength of the response is characterized by the elastic moduli. `matscipy.elasticity` implements functions for computing elastic moduli from small deformation of atomistic systems that consider potential symmetries of the underlying atomic system, in particular for crystals. `matscipy` also implements analytic calculation of elastic moduli for some interatomic potentials, described in more detail below. The computation of elastic moduli is a basic prerequisite for multi-scale modelling of materials, as they are the most basic parameters of continuum material models. `matscipy` was used to study finite-pressure elastic constants and structural stability in crystals [@Griesser2023crystal] and glasses [@Griesser2023glass].
 
-- **Plasticity.** For large loads, solids can respond with irreversible deformation. One form of irreversibility is plasticity, that is carried by extended defects, the dislocations, in crystals. The module `matscipy.dislocation` implements tools for studying structure and movement of dislocations. Construction and analysis of model atomic systems is implemented for compact and dissociated screw, as well as edge dislocations in cubic crystals. The implementation supports ideal straight as well as kinked dislocations. The module was employed in a study of interaction of impurities with screw dislocations in tungsten [@Grigorev2020;@Grigorev2023].
+- **Plasticity.** For large loads, solids can respond with irreversible deformation. One form of irreversibility is plasticity, that is carried by extended defects, the dislocations, in crystals. The module `matscipy.dislocation` implements tools for studying structure and movement of dislocations. Construction and analysis of model atomic systems is implemented for compact and dissociated screw, as well as edge dislocations in cubic crystals. The implementation supports ideal straight as well as kinked dislocations. Some of the dislocation functionality requires the `atomman` and/or `OVITO` packages as optional dependencies [@AtomMan,@Stukowski2009]. The module was employed in a study of interaction of impurities with screw dislocations in tungsten [@Grigorev2020;@Grigorev2023]. 
 
 - **Fracture mechanics.** Cracking is the process of generating new surface area by splitting the material apart. The module `matscipy.fracture_mechanics` provides functionality for calculating continuum linear elastic displacement fields near crack tips, including support for anisotropy in the elastic response [@Sih1965]. The module also implements generation of atomic structures that are deformed according to this near-tip field. This functionality has been used to quantify lattice trapping, which is the pinning of cracks due to the discreteness of the atomic lattice, and to compare simulations with experimental measurements of crack speeds in silicon [@Kermode2015]. There is also support for flexible boundary conditions in fracture simulations using the formalism proposed by Sinclair [@Sinclair1975] where the finite atomistic domain is coupled to an infinite elastic continuum. Finally, we provide an extension of this approach to give a flexible boundary scheme that uses numerical continuation to obtain full solution paths for cracks [@Buze2021].
 
@@ -122,11 +127,11 @@ As well as these domain-specific tools, `matscipy` contains general utility func
 - **Neighbour list.** An efficient linear-scaling neighbour list implemented in
   C delivers orders-of-magnitude faster performance for large systems than
   the pure Python implementation in ASE [@Larsen2017], see \autoref{fig:nl_time}.
-  The neighbour list stored in a data structure comparable to coordinate (`COO`) sparse matrix storage format [@Saad1990],
+  The neighbour list is stored in a data structure comparable to coordinate (`COO`) sparse matrix storage format [@Saad1990],
   where two arrays contain the indices of the neighbouring atoms and further arrays store
   distance vectors, absolute distances, and other properties associated with an atomic pair.
   This allows compact code for evaluating properties that depend on pairs, such as pair-distribution function or interatomic potential energies and forces. Most of the tools described in the following rely on this neighbour list format.
-  The neighbour list is becoming widely used for post-processing and structural analysis of the trajectories resulting from molecular dynamics simulations [@Batatia2022mace;@Batatia2022Design].
+  The neighbour list is becoming widely used for post-processing and structural analysis of the trajectories resulting from molecular dynamics simulations, and even to accelerate next-generation message passing neural networks such as MACE [@Batatia2022mace;@Batatia2022Design].
 
 ![Neighbor list computation time comparison between ASE and Matscipy implementations.\label{fig:nl_time}](nl_time.svg)
 
@@ -150,7 +155,7 @@ The module `matscipy.numerical` additionally provides routines for the numerical
 
 - **Non-reactive force fields.** Non-reactive force fields for molecular dynamics simulations consist of non-bonded and bonded interaction terms [@Jorgensen1996]. The latter describe the structure of molecules and solids through lists of bonds, angles, and dihedrals. The construction of these force fields is mathematically simple but requires a considerable bookkeeping effort. The module `matscipy.opls` provides efficient tools for this purpose. Input and output routines for reading and writing the corresponding control files for LAMMPS [@Thompson2022] are implemented in the module `matscipy.io.opls`. We have used this approach in various studies on tribology, wetting and nanoscale rheology [@Mayrhofer2016;@Falk2020;@Reichenbach2020;@vonGoeldel2021;@Falk2022].
 
-- **Quantum mechanics/molecular mechanics.** (QM/MM) The module `matscipy.calculators.mcfm` implements a generalised force-mixing potential [@Bernstein2009] with support for multiple concurrent QM clusters, named MultiClusterForceMixing (MCFM). It has been applied to model failure of graphene-nanotube composites [@Golebiowski2018;@Golebiowski2020].
+- **Quantum mechanics/molecular mechanics.** The module `matscipy.calculators.mcfm` implements a generalised force-mixing potential [@Bernstein2009] with support for multiple concurrent QM clusters, named MultiClusterForceMixing (MCFM). It has been applied to model failure of graphene-nanotube composites [@Golebiowski2018;@Golebiowski2020].
 
 - **Committee models.**. The module `matscipy.calculators.committee` provides support for committees of interatomic potentials with the same functional form but differing parameters, in order to allow the effect of the uncertainty in parameters on model predictions to be estimated. This is typically used with machine learning interatomic potentials (MLIPs). The implementation follows the approach of [@Musil2019] where the ensemble of models is generated by training models on different subsets of a common overall training database.
 
