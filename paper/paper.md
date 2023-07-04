@@ -142,7 +142,7 @@ As well as these domain-specific tools, `matscipy` contains general utility func
 
 Besides generating and analysing atomic-scale configurations, `matscipy` implements specific interatomic potentials [@Muser2023]. The goal here is not to provide the most efficient implementation of computing interatomic forces. We rather aim to provide simple implementations for testing new functional forms, or testing new features such as the computation of derivatives of order $2$ or higher.
 
-- **Interatomic potentials.** The module `matscipy.calculators` has implementations of classical pair-potentials, Coulomb interactions, the embedded-atom method and other many-body potentials [@Tersoff1989;@StillingerWeber1985;and others].
+- **Interatomic potentials.** The module `matscipy.calculators` has implementations of classical pair-potentials, Coulomb interactions, the embedded-atom method and other many-body potentials [e.g. @StillingerWeber1985;@Tersoff1989].
 
 - **Second-order derivatives.** The thermodynamic and elastic properties of solid materials are closely connected to the Hessian of the overall system, that contains the second derivatives of the total energy with respect to position and macroscopic strains. `matscipy` implements analytic second-order potential derivatives for pair-potentials [@Lennard1931], bond-order potentials [@Kumagai2007;@Tersoff1989;@Brenner1990], cluster potentials [@StillingerWeber1985] and electrostatic interaction [@BKS1990].
 This is achieved throuhg a generic mathematical formulation of the manybody total energy [@Griesser2023b] in `matscipy.calculators.manybody`.
