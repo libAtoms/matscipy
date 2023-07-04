@@ -1,5 +1,5 @@
-Tools
-=====
+Analysis tools
+==============
 
 `matscipy` contains general utility functionality which is widely applicable.
 
