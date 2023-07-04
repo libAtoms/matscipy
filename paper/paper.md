@@ -8,79 +8,81 @@ tags:
 authors:
   - name: Petr Grigorev
     orcid: 0000-0002-6409-9092
-    #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    corresponding: true # (This is how to denote the corresponding author)
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: "1" # (Multiple affiliations must be quoted)
   - name: Lucas Frérot
     orcid: 0000-0002-4138-1052
-    affiliation: 3
-  - name: Fraser Birks
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 2
+  - name: Fraser Birks
+    affiliation: 3
   - name: Adrien Gola
     orcid: 0000-0002-5102-1931
-    affiliation: "3,7"
+    affiliation: "2,4"
   - name: Jacek Golebiowski
     orcid: 0000-0001-8053-8318
     affiliation: 
   - name: Jan Grießer
     orcid: 0000-0003-2149-6730
-    affiliation: 3
+    affiliation: 2
   - name: Johannes L. Hörmann
     orcid: 0000-0001-5867-695X
-    affiliation: 3
+    affiliation: 2
   - name: Andreas Klemenz
     orcid: 0000-0001-5677-5639
-    affiliation: 4
+    affiliation: 5
   - name: Gianpietro Moras
     orcid: 0000-0002-4623-2881
-    affiliation: 4
+    affiliation: 5
   - name: Wolfram G. Nöhring
     orcid: 0000-0003-4203-755X
-    affiliation: 3
+    affiliation: 2
   - name: Jonas A. Oldenstaedt
     orcid: 0000-0002-7475-3019
-    affiliation: 3
+    affiliation: 2
   - name: Punit Patel
     orcid: 
-    affiliation: 2
+    affiliation: 3
   - name: Thomas Reichenbach
     orcid: 0000-0001-7477-6248
-    affiliation: 4
+    affiliation: 5
   - name: Lakshmi Shenoy
     affiliation: 3
   - name: Till Junge
     orcid: 0000-0001-8188-9363
-    affiliation: 7
+    affiliation: 4
   - name: Michael Walter
     orcid: 0000-0001-6679-2491
     affiliation: 8
   - name: Simon Wengert
     orcid: 0000-0002-8008-1482
-    affiliation: 6
+    affiliation: 7
   - name: Lars Pastewka
     orcid: 0000-0001-8351-7336
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 3
+    corresponding: true # (This is how to denote the corresponding author)
+    affiliation: "2,8"
   - name: James R. Kermode
     orcid: 0000-0001-6755-6271
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 2
+    corresponding: true # (This is how to denote the corresponding author)
+    affiliation: 3
 affiliations:
   - name: Aix-Marseille Université, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
     index: 1
-  - name: Warwick Centre for Predictive Modelling, School of Engineering, University of Warwick, Coventry CV4 7AL, United Kingdom
-    index: 2
   - name: Department of Microsystems Engineering, University of Freiburg, 79110 Freiburg, Germany
+    index: 2
+  - name: Warwick Centre for Predictive Modelling, School of Engineering, University of Warwick, Coventry CV4 7AL, United Kingdom
     index: 3
-  - name: Fraunhofer IWM, MikroTribologie Centrum $\mu$TC, Wöhlerstr. 11, 79108, Freiburg, Germany
-    index: 4
-  - name: Department of Materials, Imperial College London, London SW7 2AZ, UK
-    index: 5
-  - name: Fritz Haber Institute of the Max Planck Society, Faradayweg 4-6, D-14195, Berlin, Germany
-    index: 6
   - name: Institute for Applied Materials, Karlsruhe Institute of Technology, Engelbert-Arnold-Straße 4, 76131 Karlsruhe, Germany
+    index: 4
+  - name: Fraunhofer IWM, MikroTribologie Centrum $\mu$TC, Wöhlerstraße 11, 79108, Freiburg, Germany
+    index: 5
+  - name: Department of Materials, Imperial College London, London SW7 2AZ, UK
+    index: 6
+  - name: Fritz Haber Institute of the Max Planck Society, Faradayweg 4-6, D-14195, Berlin, Germany
     index: 7
-  - name: FIT Freiburg Centre for Interactive Materials and Bioinspired Technologies, Georges-Köhler-Allee 105, 79110 Freiburg, German
+  - name: Cluster of Excellence livMatS, Freiburg Center for Interactive Materials and Bioinspired Technologies, University of Freiburg, Georges-Köhler-Allee 105, 79110, Freiburg, Germany
     index: 8
 date: 04 July 2023
 bibliography: paper.bib

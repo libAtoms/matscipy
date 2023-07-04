@@ -7,3 +7,4 @@ Analysis tools
 
    neighbour_list
    pair_distribution
+   ring_analysis
