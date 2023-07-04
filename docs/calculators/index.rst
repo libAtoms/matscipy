@@ -1,5 +1,8 @@
 Interatomic potentials
 ======================
 
-Here's a description of the calculators available in `matscipy` and how they can
-be composed.
+`matscipy` implements a select set of interatomic potentials as ASE calculators.
+
+.. toctree::
+
+   manybody
