@@ -53,17 +53,17 @@ authors:
     affiliation: 7
   - name: Michael Walter
     orcid: 0000-0001-6679-2491
-    affiliation: FIT Freiburg Centre for Interactive Materials and Bioinspired Technologies, Georges-Köhler-Allee 105, 79110 Freiburg, German
+    affiliation: 8
   - name: Simon Wengert
     orcid: 0000-0002-8008-1482
     affiliation: 6
   - name: Lars Pastewka
     orcid: 0000-0001-8351-7336
-    #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 3
   - name: James R. Kermode
     orcid: 0000-0001-6755-6271
-    #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 2
 affiliations:
   - name: Aix-Marseille Université, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
@@ -80,6 +80,8 @@ affiliations:
     index: 6
   - name: Institute for Applied Materials, Karlsruhe Institute of Technology, Engelbert-Arnold-Straße 4, 76131 Karlsruhe, Germany
     index: 7
+  - name: FIT Freiburg Centre for Interactive Materials and Bioinspired Technologies, Georges-Köhler-Allee 105, 79110 Freiburg, German
+    index: 8
 date: 04 July 2023
 bibliography: paper.bib
 ---
@@ -161,6 +163,6 @@ The module `matscipy.numerical` additionally provides routines for the numerical
 
 # Acknowledgements
 
-We thank Arnaud Allera, Manuel Aldegunde, Kristof Bal, James Brixey, Alexander Held, Jan Jansen, Henry Lambert, Michael Walter and Zhilin Zheng for contributions and bug fixes. `matscipy` was partially funded by the Deutsche Forschungsgemeinschaft (projects 258153560, 390951807 and 461911253), the European Research Council (ERC StG 757343), the Engineering and Physical Sciences Research Council (grants EP/P002188/1, EP/R012474/1 and EP/R043612/1) and the Leverhulme Trust under grant RPG-2017-191.
+We thank Arnaud Allera, Manuel Aldegunde, Kristof Bal, James Brixey, Alexander Held, Jan Jansen, Henry Lambert and Zhilin Zheng for contributions and bug fixes. `matscipy` was partially funded by the Deutsche Forschungsgemeinschaft (projects 258153560, 390951807 and 461911253), the European Research Council (ERC StG 757343), the Engineering and Physical Sciences Research Council (grants EP/P002188/1, EP/R012474/1 and EP/R043612/1) and the Leverhulme Trust under grant RPG-2017-191.
 
 # References
