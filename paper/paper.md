@@ -10,9 +10,14 @@ authors:
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "1" # (Multiple affiliations must be quoted)
+  - name: Fraser Birks
+    affiliation: 2
   - name: Lucas Frérot
     orcid: 0000-0002-4138-1052
     affiliation: 3
+  - name: Jacek Golebiowski
+    orcid: 0000-0001-8053-8318
+    affiliation: 
   - name: Jan Grießer
     orcid: 0000-0003-2149-6730
     affiliation: 3
@@ -31,19 +36,24 @@ authors:
   - name: Jonas A. Oldenstaedt
     orcid: 
     affiliation: 3
+  - name: Thomas Reichenbach
+    orcid: 0000-0001-7477-6248
+    affiliation: 4
+  - name: Lakshmi Shenoy
+    affiliation: 3
+  - name: Simon Wengert
+    orcid: 0000-0002-8008-1482
+    affiliation: 6
   - name: Lars Pastewka
     orcid: 0000-0001-8351-7336
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 3
-  - name: Thomas Reichenbach
-    orcid: 0000-0001-7477-6248
-    affiliation: 4
   - name: James R. Kermode
     orcid: 0000-0001-6755-6271
     #equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 2
 affiliations:
-  - name: Aix-Marseille Universit ́e, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
+  - name: Aix-Marseille Université, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
     index: 1
   - name: Warwick Centre for Predictive Modelling, School of Engineering, University of Warwick, Coventry CV4 7AL, United Kingdom
     index: 2
@@ -51,6 +61,10 @@ affiliations:
     index: 3
   - name: Fraunhofer IWM, MicroTribology Center $\mu$TC, Wöhlerstr. 11, 79108, Freiburg, Germany
     index: 4
+  - name: Department of Materials, Imperial College London, London SW7 2AZ, UK
+    index: 5
+  - name: Fritz Haber Institute of the Max Planck Society, Faradayweg 4-6, D-14195, Berlin, Germany
+    index: 6
 date: 27 October 2022
 bibliography: paper.bib
 ---
@@ -146,6 +160,6 @@ The central class in ASE is the `Atoms` class that stores atomic positions, velo
 
 # Acknowledgements
 
-We thank Alexander Held for initial contributions to the `pressurecoupling.py` module and Michael Walter for initial contributions to the `opls.py` module. `matscipy` was partially funded by the Deutsche Forschungsgemeinschaft (projects 258153560, 390951807 and 461911253), the European Research Council (ERC StG 757343), the Engineering and Physical Sciences Research Council (grants EP/P002188/1, EP/R012474/1 and EP/R043612/1) and the Leverhulme Trust under grant RPG-2017-191.
+We thank Alexander Held for initial contributions to the `pressurecoupling.py` module and Michael Walter for initial contributions to the `opls.py` module. We thank Arnaud Allera, Manuel Aldegunde, Kristof Bal, James Brixey, Jan Jansen, Henry Lambert and Zhilin Zheng for bug fixes. `matscipy` was partially funded by the Deutsche Forschungsgemeinschaft (projects 258153560, 390951807 and 461911253), the European Research Council (ERC StG 757343), the Engineering and Physical Sciences Research Council (grants EP/P002188/1, EP/R012474/1 and EP/R043612/1) and the Leverhulme Trust under grant RPG-2017-191.
 
 # References
