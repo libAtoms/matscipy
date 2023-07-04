@@ -5,6 +5,6 @@ Application domains
 
 .. toctree::
 
-   elasticity
+   elastic_constants
    plasticity
    fracture_mechanics

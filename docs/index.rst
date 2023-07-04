@@ -8,7 +8,7 @@
    ./applications/index
    ./tools/index
    ./calculators/index
-   ./api_reference
+   ./api
 
 
 Indices and tables
