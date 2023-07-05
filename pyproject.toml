@@ -31,7 +31,8 @@ test = [
 docs = [
     "sphinx",
     "sphinx-rtd-theme",
-    "myst_nb"
+    "myst_nb",
+    "nglview"
 ]
 
 [project.urls]
