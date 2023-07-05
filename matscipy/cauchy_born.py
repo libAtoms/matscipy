@@ -12,17 +12,51 @@ from sklearn.linear_model import Lasso, LinearRegression
 from scipy.stats.qmc import LatinHypercube, scale
 
 class CubicCauchyBorn:
+    '''Corrector for the cauchy-born prediction of atomistic positions in multi-lattices subject to continuum strain
+        This model exploits the symmetry triad down the 111 axis that all cubic crystals posess by making models that 
+        only fit a single component of the shift-correction vector. The other 2 components can be obtained by calling the same model
+        with strain states that are rotated about the 111 axis.'''
     def __init__(self,el,a0,calc,lattice=Diamond):
+        """Parameters
+        ----------
+        el : string
+            ASE chemical element that constitutes lattice
+        a0 : float
+            Lattice constant for cubic lattice
+        calc : ASE calculator object
+            ASE calculator.
+        lattice : ASE lattice builder function
+            ASE function from ase.lattice.cubic
+        """
         self.el = el
         self.a0 = a0
         self.calc = calc
         self.lattice = lattice
-        self.Lasso_Fitted = False
+        self.Lasso_Fitted = False #status of model fit
+        self.lattice1mask = None #mask for the lattice 1 atoms
+        self.lattice2mask = None #mask for the lattice 2 atoms
+
 
     def set_sublattices(self,atoms,A):
+        '''Apply a small strain to all atoms in the supplied atoms structure and determine which atoms belong to which sublattice using forces.
+        NOTE as this method is based on forces, it does not work in cases where atom forces are high already, 
+        This means it should be applied to an unstrained version of the atoms structure and any sublattices
+        assigned adjacent to free surfaces cannot be trusted. This function updates self.lattice1mask and self.lattice2mask with the
+        measured sublattices.
+        Parameters
+        ----------
+        atoms : ASE atoms object
+            atoms structure with atoms on seperate sublattices that need assigning
+        A : 3x3 numpy array, floats
+            rotation matrix of the form [x^T,y^T,z^T], where x^T,y^T,z^T are normalised column vectors of the lab frame directions expressed
+            in terms of the crystal lattice directions.
+        '''
+
         #currently, the idea for this is to apply a small strain to atoms
         #measure the force difference, and set all the forces which are positive to sublattice
         #1, and all those which are negative to sublattice 2. 
+
+        #generate U (right hand stretch tensor) to apply
         U_voigt = np.array([1.001, 1.003, 1.002, 0.006, 0.002, 0.004])
         U = np.zeros([3,3])
         U[0,0] = U_voigt[0]
@@ -33,6 +67,8 @@ class CubicCauchyBorn:
         U[0,1],U[1,0] = U_voigt[5],U_voigt[5]
         atoms_copy = atoms.copy()
 
+        #generate a copy of the atoms and stretch the cell, scaling atoms.
+        #get forces before and after and compare these
         atoms_copy.set_calculator(self.calc)
         f_before = atoms_copy.get_forces()
         cell = atoms_copy.get_cell()
@@ -47,6 +83,8 @@ class CubicCauchyBorn:
         for i in range(len(atoms)):
             force_diff_lattice[i,:] = A@force_diff[i,:]
 
+        #generate the lattice masks, checking to ensure that if by chance no shift occurs in one direction due to the applied strains 
+        #that the other directions are used instead and things don't break
         lattice1mask = force_diff_lattice[:,0]>0
         lattice2mask = force_diff_lattice[:,0]<0
         if all(element == lattice1mask[0] for element in lattice1mask): #if they're all false or true, try the y component
@@ -55,7 +93,9 @@ class CubicCauchyBorn:
             if all(element == lattice1mask[0] for element in lattice1mask): #if they're all false, try the z component
                 lattice1mask = force_diff_lattice[:,2]>0
                 lattice2mask = force_diff_lattice[:,2]<0
+        
 
+        #set the masks for which atoms are in each of the sublattices
         self.lattice1mask = lattice1mask
         self.lattice2mask = lattice2mask     
 
@@ -64,8 +104,32 @@ class CubicCauchyBorn:
     
 
     def fit_taylor(self,de=1e-4):
+        '''fit a simple taylor-expansion type model to predict the cauchy-born shift corrector at a given applied strain
+            using finite differences. Sets self.grad_f to the vector of first derivatives of the first shift component 
+            with each of the 6 strain components and self.hess_f to the hessian of the first shift component with the strain components.
+            NOTE this model is generally worse than the model provided later in initial_lasso_fit.
+        Parameters
+        ----------
+        de : float
+            tolerance for finite difference gradient calculations
+        '''
         calc = self.calc
         def f_gl(E_vec,calc,unitcell):
+            '''Function that calculates the first component of the cauchy-born shift corrector for a given green-lagrange strain tensor.
+            Parameters
+            ----------
+            E_vec : array_like
+                green-lagrange strain state to apply in voigt notation
+            calc : ASE calculator object
+                ASE calculator to use to find shift
+            unitcell : ASE atoms object
+                Single unit cell of crystal to apply strain vector to and to find shift
+
+            Returns
+            -------
+            shift_diff[0] : float
+                first component of cauchy-born shift correction for applied strain state
+            '''
             #green lagrange version of function
             #turn E into matrix
             E = np.zeros([3,3])
@@ -77,7 +141,7 @@ class CubicCauchyBorn:
             E[0,1],E[1,0] = E_vec[5],E_vec[5]
             # get U^2
             Usqr = 2*E + np.eye(3)
-            #square root matrix
+            #square root matrix to get U
             U = sqrtm(Usqr,disp=True)
 
             #this is just the symmetric stretch tensor, exactly what we need.
@@ -99,7 +163,8 @@ class CubicCauchyBorn:
             opt = LBFGS(unitcell_copy,logfile=None)
             opt.run(fmax = 1e-10)
             relaxed_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
-
+            
+            #get shift
             shift_diff = relaxed_shift-initial_shift
             #print(shift_diff)
             # THIS CAN BE SPED UP
@@ -150,6 +215,7 @@ class CubicCauchyBorn:
 
 
     def save_taylor(self):
+        '''Save the results of the taylor expansion in to numpy readable files rather than re-calculating each time'''
         try:
             np.save('grad_f.npy',self.grad_f)
             np.save('hess_f.npy',self.hess_f)
@@ -157,6 +223,7 @@ class CubicCauchyBorn:
             print('Need to fit a model with fit taylor before it can be saved!')
 
     def load_taylor(self):
+        '''Read the results of the taylor expansion rather than re-calculating each time'''
         try:
             self.grad_f = np.load('grad_f.npy')
             self.hess_f = np.load('hess_f.npy')
@@ -165,6 +232,27 @@ class CubicCauchyBorn:
         
         
     def F_3D_from_atoms(self,atoms,F_func,coordinates='cart3D',cell=None,*args,**kwargs):
+        '''Generate the 3D deformation gradient tensor field (F) for an atoms object in a given coordinate system.
+        Parameters
+        ----------
+        atoms : ASE atoms object
+            Atoms object where atoms sit at the coordinates needed to generate the deformation gradient tensor field
+            from F_func.
+        F_func : Function
+            Function to calculate the deformation gradient tensor field from a set of coordinates. The system of coordinates
+            that the function accepts is given by 'coordinates' and the function also accepts anything extra specified in *args and
+            **kwargs. Function must return the deformation gradient field for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+            where F is specified in cartesian coordinates.
+        coordinates: string
+            The coordinates system that F_func accepts. Must be 'cylind2D', 'cylind3D', 'spherical', 'cart2D', 'cart3D'
+        cell : array_like, optional
+            An optional argument allowing the user to specify the cell parameters used to define the coordinate system.
+
+        Returns
+        -------
+        F3D : array_like
+            The 3D deformation gradient tensor field for all the atoms in the system, expressed in the lab frame.
+        '''
         natoms = len(atoms)
         if cell is None:
             sx, sy, sz = atoms.cell.diagonal()
@@ -211,7 +299,41 @@ class CubicCauchyBorn:
 
     
     def evaluate_F_or_E(self,A,atoms,F_func=None,E_func=None,cell=None,coordinates='cart3D',*args,**kwargs):
+        '''Get the deformation gradient tensor field or Green-Lagrange strain tensor field for a system of atoms in the lab frame,
+           depending on which function is provided. From these, find the Green-Lagrange strain tensor field in the lattice frame.
+        ----------
+        A : 3x3 numpy array, floats
+            rotation matrix of the form [x^T,y^T,z^T], where x^T,y^T,z^T are normalised column vectors of the lab frame directions expressed
+            in terms of the crystal lattice directions.
+        atoms : ASE atoms object
+            Atoms object where atoms sit at the coordinates needed to generate the deformation gradient tensor field
+            from F_func.
+        F_func : Function
+            Function to calculate the deformation gradient tensor field from a set of atomic coordinates. The system of coordinates
+            that the function accepts is given by 'coordinates' and the function also accepts anything extra specified in *args and
+            **kwargs. Function must return the deformation gradient field for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+            where F is specified in cartesian coordinates. The returned tensor field must be in the lab frame
+            Optional, but one of F_func or E_func must be provided.
+        E_func : Function
+            Function to calculate the Green-Lagrange tensor field from a set of atomic coordinates. The system of coordinates
+            that the function accepts is given by 'coordinates' and the function also accepts anything extra specified in *args and
+            **kwargs. Function must return the Green-Lagrange tensor field for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+            where E is specified in cartesian coordinates, and the returned tensor field is in the lab frame.
+            Optional, but one of F_func or E_func must be provided.
+        cell : array_like, optional
+            An optional argument allowing the user to specify the cell parameters used to define the coordinate system.
+
+        Returns
+        -------
+        E : array_like
+            The 3D Green-Lagrange tensor field for all the atoms in the system, expressed in the lattice frame.
+        R : array_like
+            The rotation tensor component of the deformation gradient tensor field applied to the system, according to the 
+            polar decomposition F = RU. See https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor.
+        '''
         natoms = len(atoms)
+
+        #in the case that only the F function is provided
         if F_func is not None:
             if E_func is not None:
                 print('Need to only provide one of E or F, not both')
@@ -233,6 +355,7 @@ class CubicCauchyBorn:
                 R[i,:,:],U[i,:,:] = polar(Fprime[i,:,:])
                 E[i,:,:] = 0.5*(U[i,:,:]@(np.transpose(U[i,:,:])) - np.eye(3))
             
+        #in the case that only the E function is provided, find and rotate the Green-Lagrange strain tensor field directly
         elif E_func is not None:
             x, y, z = atoms.positions[:, 0], atoms.positions[:, 1], atoms.positions[:,2]
             E_3D_lab = E_func(x,y,z,*args,**kwargs)
@@ -292,7 +415,9 @@ class CubicCauchyBorn:
         #rotate the cauchy shifts both by the rotation induced by F
         #and to get them back into the lab frame
         for i in range(natoms):
+            #might have to transpose R here? seems to greatly reduce errors - no idea why though.
             shifts[i,:] = np.transpose(A)@R[i,:,:]@shifts_no_rr[i,:]
+            #shifts[i,:] = np.transpose(A)@shifts_no_rr[i,:]
 
 
         return shifts
@@ -421,15 +546,17 @@ class CubicCauchyBorn:
         phi = self.basis_function_evaluation(E_vecs)
         self.lasso_phi = phi
         self.lasso_shifts = shifts
-        print('shifts',np.shape(shifts))
+        #print('shifts',np.shape(shifts))
         print('Performing initial lasso fit for CB corrector.....')
         self.LM.fit(self.lasso_phi,self.lasso_shifts.flatten())# fit the Lasso model to the given data
         print('Fit completed')
 
-    def check_for_refit(self,A,atoms,forces,tol=1e-3,mask=None,E_func=None,F_func=None,coordinates='cart3D',refit_points=10,*args,**kwargs):
+    def check_for_refit(self,A,atoms,forces,tol=1e-3,mask=None,E_func=None,F_func=None,\
+        coordinates='cart3D',refit_points=10,err_vec=None,*args,**kwargs):
         #tolerance is error per atom
         #multiply by number of atoms to get full tolerance
-        tol = tol*len(atoms)
+
+        tol = tol*len(atoms[mask])
         print('tol',tol)
         
         cb_err = self.get_cb_error(atoms,forces=forces,mask=mask)
@@ -447,8 +574,12 @@ class CubicCauchyBorn:
             lattice1mask = self.lattice1mask
             lattice2mask = self.lattice2mask
         
-        #get force magnitude vectors
-        force_mag = np.linalg.norm(forces,axis=1)
+        if err_vec is None:
+            #get force magnitude vectors, only do this when no vector of errors is provided
+            force_mag = np.linalg.norm(forces,axis=1)
+        else:
+            force_mag = err_vec
+        
         atom_numbers = np.array([i for i in range(len(atoms))])
         
         l1points = int(refit_points/2)
@@ -459,19 +590,20 @@ class CubicCauchyBorn:
 
         force_mag_lattice1 = force_mag[lattice1mask]
         atom_nos_lattice1 = atom_numbers[lattice1mask]
-        #top_idx = np.argpartition(force_mag_lattice1,-l1points)[-l1points:]
-        #high_force_atoms1 = atom_nos_lattice1[top_idx]
-        high_force_atoms1 = np.random.choice(atom_nos_lattice1,l1points)
+        top_idx = np.argpartition(force_mag_lattice1,-l1points)[-l1points:]
+        high_force_atoms1 = atom_nos_lattice1[top_idx]
+        #high_force_atoms1 = np.random.choice(atom_nos_lattice1,l1points)
         #get 5 largest lattice 2 force indices
         force_mag_lattice2 = force_mag[lattice2mask]
         atom_nos_lattice2 = atom_numbers[lattice2mask]
-        #top_idx = np.argpartition(force_mag_lattice2,-l2points)[-l2points:]
-        #high_force_atoms2 = atom_nos_lattice2[top_idx]
-        high_force_atoms2 = np.random.choice(atom_nos_lattice2,l2points)
+        top_idx = np.argpartition(force_mag_lattice2,-l2points)[-l2points:]
+        high_force_atoms2 = atom_nos_lattice2[top_idx]
+        #high_force_atoms2 = np.random.choice(atom_nos_lattice2,l2points)
 
 
         high_force_atoms = np.concatenate((high_force_atoms1,high_force_atoms2))
-        
+        #print('atoms selected:', high_force_atoms)
+        #print('forces on atoms:', err_vec[high_force_atoms])
         reduced_atoms = atoms[high_force_atoms]
 
         sx, sy, sz = atoms.cell.diagonal()
@@ -479,7 +611,7 @@ class CubicCauchyBorn:
 
         #evaluate E and R for reduced list of atoms
         E,R = self.evaluate_F_or_E(A,reduced_atoms,F_func=F_func,E_func=E_func,cell=cell,coordinates=coordinates,*args,**kwargs)
-
+        #print('Es',E)
         #we get back the strain vectors in the lattice frame 
         #turn E into voigt vectors
         E_voigt = np.zeros([np.shape(E)[0],6])
@@ -499,8 +631,12 @@ class CubicCauchyBorn:
         calc = self.calc
         #take our given E voigt and evaluate the model
         E_vecs,shifts = self.get_data_points(E_voigt)
+        #print('evecs,shifts',E_vecs,shifts)
         #get design matrix
         phi = self.basis_function_evaluation(E_vecs)
+        temp_predict = self.LM.predict(phi)
+        #print('predicted shifts', temp_predict)
+        #print('predicted shifts - true shifts', shifts.flatten()-temp_predict)
         if self.lasso_phi is None:
             self.lasso_phi = phi
             self.lasso_shifts = shifts
@@ -580,7 +716,10 @@ class CubicCauchyBorn:
         relaxed_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
 
         shift_diff = relaxed_shift-initial_shift
-
+        #TRANSFER SHIFT_DIFF BACK INTO THE LATTICE FRAME, OUT OF THE DEFORMED FRAME
+        #back_transform = np.transpose(cell_rescale)
+        #shift_diff_transform = back_transform@shift_diff
+        #print('shift_diff',shift_diff,'shift_diff_transform',shift_diff_transform)
         return shift_diff #return all 3 components
 
 
