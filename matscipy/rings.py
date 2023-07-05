@@ -50,4 +50,12 @@ def ring_statistics(a, cutoff, maxlength=-1):
     """
     i, j, r = neighbour_list('ijD', a, cutoff)
     d = distances_on_graph(i, j)
+
+    if maxlength > 0:
+        ringstat = np.zeros(maxlength)
+        rs = find_sp_rings(i, j, r, d, maxlength)
+        ringstat[:len(rs)] += rs
+    else:
+        ringstat = find_sp_rings(i, j, r, d, maxlength)
+
     return find_sp_rings(i, j, r, d, maxlength)

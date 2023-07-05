@@ -44,7 +44,6 @@ python.install_sources(
 )
 
 subdir('calculators')
-subdir('contact_mechanics')
 subdir('electrochemistry')
 subdir('fracture_mechanics')
 subdir('io')

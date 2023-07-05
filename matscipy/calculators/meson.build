@@ -17,6 +17,7 @@ python.install_sources(
 
 subdir('eam')
 subdir('ewald')
+subdir('committee')
 subdir('manybody')
 subdir('mcfm')
 subdir('pair_potential')

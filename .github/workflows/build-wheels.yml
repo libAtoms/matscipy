@@ -25,7 +25,7 @@ jobs:
       matrix:
         buildplat:
         - [ubuntu-20.04, manylinux, x86_64]
-        - [macos-10.15, macosx, x86_64]
+        - [macos-12, macosx, x86_64]
         - [windows-2019, win, AMD64]
 
         python: ["cp38", "cp39", "cp310", "cp311"]
@@ -67,17 +67,30 @@ jobs:
       - name: Check tag
         id: check-tag
         run: |
-          if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo ::set-output name=match::true
+          if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              echo "match=true" >> $GITHUB_OUTPUT              
           fi
         shell: bash
 
-      - name: Deploy to PyPI
+      - name: Deploy wheels to PyPI
         if: steps.check-tag.outputs.match == 'true'
         run: |
           pip install twine
-          twine upload wheelhouse/*.whl
+          twine upload wheelhouse/*.whl          
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         shell: bash
+        
+      - name: Deploy sdist to PyPI
+        if: ${{ steps.check-tag.outputs.match == 'true' && startsWith(matrix.buildplat[0], 'ubuntu') && matrix.python == 'cp311' }}
+        run: |
+          pip install build
+          python -m build
+          twine upload dist/matscipy-*.tar.gz
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        shell: bash
+         
+         
