@@ -998,6 +998,8 @@ class SinclairCrack:
 
         self.precon = None
         self.precon_count = 0
+        self.f_alpha_correction = 0
+        self.alpha0 = alpha
 
     def pack(self, u, alpha, k):
         dofs = list(u.reshape(-1))
@@ -1031,6 +1033,10 @@ class SinclairCrack:
 
     def set_dofs(self, x):
         self.u[:], self.alpha, self.k = self.unpack(x, reshape=True)
+        print('alpha',self.alpha)
+        if self.variable_k:
+            print('k',self.k)
+        #self.k = self.k-(np.abs(self.alpha-self.alpha0)*self.k1g)
         self.update_atoms()
 
     def __len__(self):
@@ -1090,24 +1096,25 @@ class SinclairCrack:
         #build a mask for relaxing based on the following criteria:
         # - the coordination of the atoms must be lower than 0.8*the max coordination
         # - the atoms x coordinate should lie between rI - cutoff and 
-        #  rI + 2*cutoff (if non extended) and rIII + cutoff if extended.
-        # - the atoms y coordinate should lie between 3x the positive and negative
-        # maximum y Ucle displacement
+        #  rI + 2*cutoff (if non extended) and rIII + cutoff/2 if extended.
+        # - the atoms y coordinate should lie between the positive and negative
+        # maximum y Ucle displacement + cutoff
         coordination_criteria = (coord<(0.8*np.max(coord)))
         #get the coords of the centre of the cell.
         mid_cell_x = self.cryst.cell.diagonal()[0] / 2.0
         mid_cell_y = self.cryst.cell.diagonal()[1] / 2.0
         if self.extended_far_field:
-            x_criteria = ((atoms.positions[:,0]-mid_cell_x)<-((self.rI)-(self.cutoff)))&\
-                (((atoms.positions[:,0]-mid_cell_x)>-((self.rIII)+(self.cutoff))))
+            x_criteria = ((atoms.positions[:,0]-mid_cell_x)<-((self.rI)-(2*self.cutoff)))&\
+                (((atoms.positions[:,0]-mid_cell_x)>-((self.rIII)+(self.cutoff/2))))
         else:
-            x_criteria = ((atoms.positions[:,0]-mid_cell_x)<-((self.rI)-(self.cutoff)))&\
+            x_criteria = ((atoms.positions[:,0]-mid_cell_x)<-((self.rI)-(2*self.cutoff)))&\
                 (((atoms.positions[:,0]-mid_cell_x)>-((self.rI)+((2*self.cutoff)))))
-        y_criteria = ((atoms.positions[:,1]-mid_cell_y)<(3)*np.max(u_cle_solution[:,1]))&\
-            ((atoms.positions[:,1]-mid_cell_y)>(-(3)*np.max(u_cle_solution[:,1])))
+        y_criteria = ((atoms.positions[:,1]-mid_cell_y)<(np.max(u_cle_solution[:,1])+(2*self.cutoff)))&\
+            ((atoms.positions[:,1]-mid_cell_y)>(-(np.max(u_cle_solution[:,1])+(2*self.cutoff))))
         
         
-        relax_mask = np.logical_and(np.logical_and(x_criteria,y_criteria),coordination_criteria)
+        #relax_mask = np.logical_and(np.logical_and(x_criteria,y_criteria),coordination_criteria)
+        relax_mask = (np.logical_and(x_criteria,y_criteria))
 
         #--------output for testing------------
         atoms.new_array('relax_region', np.zeros(len(atoms), dtype=int))
@@ -1192,7 +1199,7 @@ class SinclairCrack:
         return self.crk.crack.deformation_gradient(r, theta, k)
 
     def set_shiftmask(self,radial_dist):
-        self.shiftmask = self.r<self.radial_dist
+        self.shiftmask = self.r>radial_dist
     
     def update_atoms(self):
         """
@@ -1213,7 +1220,9 @@ class SinclairCrack:
             A = np.transpose(self.crk.RotationMatrix)
             #find shifts
             print('finding shifts.....')
-            shifts = self.crk.cb.predict_shifts(A,self.atoms,\
+            # very important to pass cryst rather than atoms here as the displacement gradient field
+            # is found from the positions of the original atoms, not the deformed atoms
+            shifts = self.crk.cb.predict_shifts(A,self.cryst,\
                 F_func=self.get_deformation_gradient, coordinates='cylind2D',method='lasso',k=self.k)
             print('done!')
             #apply shifts
@@ -1224,6 +1233,38 @@ class SinclairCrack:
         self.atoms.cell = self.cryst.cell
         self.atoms.cell[0, 0] += self.vacuum
         self.atoms.cell[1, 1] += self.vacuum
+
+    def get_f_alpha_correction(self):
+        #function which gets the f_alpha contribution from regions II and III without u being applied
+        #'update atoms' but don't add u
+        self.atoms.set_pbc([False, False, True])
+        self.atoms.calc = self.calc
+
+        self.atoms.info['k'] = self.k
+        self.atoms.info['alpha'] = self.alpha
+
+        # x = x_cryst + K * u_cle + u
+        self.atoms.positions[:, :] = self.cryst.positions
+        self.atoms.positions[:, :] += self.k * self.u_cle()
+        if self.crk.cb is not None: #if the crack has a multilattice cauchy-born object
+            #get rotation matrix 
+            A = np.transpose(self.crk.RotationMatrix)
+            #find shifts
+            print('finding shifts.....')
+            # very important to pass cryst rather than atoms here as the displacement gradient field
+            # is found from the positions of the original atoms, not the deformed atoms
+            shifts = self.crk.cb.predict_shifts(A,self.cryst,\
+                F_func=self.get_deformation_gradient, coordinates='cylind2D',method='lasso',k=self.k)
+            print('done!')
+            #apply shifts
+            self.crk.cb.apply_shifts(self.atoms,shifts,mask=self.shiftmask)
+        if self.extended_far_field:
+            mask = self.regionII|self.regionIII
+        else:
+            mask = self.regionII
+        f_alpha = self.get_crack_tip_force(mask=mask)
+        self.update_atoms()
+        return f_alpha
 
     def set_atoms(self, atoms):
         N1_in = (atoms.arrays['region'] == 1).sum()
@@ -1322,11 +1363,18 @@ class SinclairCrack:
         F = list(forces[self.regionI, :].reshape(-1))
         if self.variable_alpha:
             f_alpha = self.get_crack_tip_force(forces, mask=mask)
-            F.append(f_alpha)
+            self.f_alpha_correction = 0.0 #self.get_f_alpha_correction()
+            F.append((f_alpha-self.f_alpha_correction)) #ninsert some kind of botched preconditioning.
             print('f_alpha',f_alpha)
+            print('corrected f_alpha',(f_alpha-self.f_alpha_correction))
         if self.variable_k:
             f_k = self.get_k_force(x1, xdot1, ds)
             F.append(f_k)
+            print('f_k', f_k)
+
+        #self.norm_F_vals.append(np.linalg.norm(F,np.inf))
+        #self.F_alpha_vals.append(f_alpha)
+        #self.alpha_vals.append(self.alpha)
         return np.array(F)
 
     def update_precon(self, x, F=None):
@@ -1421,6 +1469,11 @@ class SinclairCrack:
 
         def residuals(x, *args):
             self.set_dofs(x)
+            #self.write_atoms_to_file() #comment out at some point
+            #if self.extended_far_field:
+            #    mask = self.regionII|self.regionIII
+            #else:
+            #    mask = self.regionII
             return self.get_forces(*args)
 
         def cg_objective(x):
@@ -1650,9 +1703,9 @@ class SinclairCrack:
             self.set_dofs(x2)
             try:
                 if opt_method == 'krylov':
-                    num_steps = self.optimize(ftol, max_steps, args=(x1, xdot1, ds), precon=precon, method=opt_method)
+                    num_steps = self.optimize(ftol, max_steps, args=(x1, xdot1, ds), precon=precon, method=opt_method,verbose=2)
                 elif opt_method == 'ode12r':
-                    num_steps = self.optimize(ftol, max_steps, args=[x1, xdot1, ds], precon=precon, method=opt_method)
+                    num_steps = self.optimize(ftol, max_steps, args=[x1, xdot1, ds], precon=precon, method=opt_method,verbose=2)
                 print(f'Corrector converged in {num_steps}/{max_steps} steps')
             except NoConvergence:
                 if ds < ds_min:
@@ -1846,21 +1899,57 @@ class SinclairCrack:
         crack_atoms.new_array('logabsftot', np.zeros(len(crack_atoms), dtype=float))
         crack_atoms.new_array('falphacomponents',np.zeros(len(crack_atoms)),dtype =float)
         crack_atoms.new_array('logabsfalphacomp',np.zeros(len(crack_atoms)),dtype =float)
+        crack_atoms.new_array('exx', np.zeros(len(crack_atoms),dtype=float))
+        crack_atoms.new_array('eyy',np.zeros(len(crack_atoms)),dtype =float)
+        crack_atoms.new_array('ezz',np.zeros(len(crack_atoms)),dtype =float)
+        crack_atoms.new_array('eyz',np.zeros(len(crack_atoms)),dtype =float)
+        crack_atoms.new_array('exz',np.zeros(len(crack_atoms)),dtype =float)
+        crack_atoms.new_array('exy',np.zeros(len(crack_atoms)),dtype =float)
+
+        crack_atoms.new_array('ux', np.zeros(len(crack_atoms), dtype=float))
+        crack_atoms.new_array('uy', np.zeros(len(crack_atoms), dtype=float))
+        crack_atoms.new_array('uz', np.zeros(len(crack_atoms), dtype=float))
+        
 
         fx = crack_atoms.arrays['fx']
         fy = crack_atoms.arrays['fy']
         fz = crack_atoms.arrays['fz']
+        ux = crack_atoms.arrays['ux']
+        uy = crack_atoms.arrays['uy']
+        uz = crack_atoms.arrays['uz']
         ftot = crack_atoms.arrays['ftot']
         logabsftot = crack_atoms.arrays['logabsftot']
         falphacomponents = crack_atoms.arrays['falphacomponents']
         logabsfalphacomp = crack_atoms.arrays['logabsfalphacomp']
+        store_strain=False
+        if store_strain:
+            exx = crack_atoms.arrays['exx']
+            eyy = crack_atoms.arrays['eyy']
+            ezz = crack_atoms.arrays['ezz']
+            eyz = crack_atoms.arrays['eyz']
+            exz = crack_atoms.arrays['exz']
+            exy = crack_atoms.arrays['exy']
 
-
+            #get strains applied
+            A = np.transpose(self.crk.RotationMatrix)
+            E,R = self.crk.cb.evaluate_F_or_E(A,self.cryst,F_func=self.get_deformation_gradient, coordinates='cylind2D',k=self.k)
+            for i in range(len(crack_atoms)-1):
+                E[i,:,:] = np.transpose(A)@E[i,:,:]@A #transform back to lab frame
+            #store values of E
+            exx[0:len(crack_atoms)-1] = E[:,0,0]
+            eyy[0:len(crack_atoms)-1] = E[:,1,1]
+            ezz[0:len(crack_atoms)-1] = E[:,2,2]
+            eyz[0:len(crack_atoms)-1] = E[:,1,2]
+            exz[0:len(crack_atoms)-1] = E[:,0,2]
+            exy[0:len(crack_atoms)-1] = E[:,0,1]
+        #store other things
         fx[0:len(crack_atoms)-1] = (forces[:,0])
         fy[0:len(crack_atoms)-1] = (forces[:,1])
         fz[0:len(crack_atoms)-1] = (forces[:,2])
         ftot[0:len(crack_atoms)-1] = (np.linalg.norm(forces,ord=2,axis=1))
-        
+        ux[0:len(crack_atoms)-1][self.regionI] = (self.u[:,0])
+        uy[0:len(crack_atoms)-1][self.regionI] = (self.u[:,1])
+        uz[0:len(crack_atoms)-1][self.regionI] = (self.u[:,2])
 
         mask = np.append(self.regionII,np.array([False],dtype=bool)) #extra false added as we have added alpha to array
         crack_tip_force_mask = self.regionII
@@ -1877,7 +1966,50 @@ class SinclairCrack:
         logabsftot[:] = np.log10(np.abs(ftot))
         ase.io.write(fname+'.xyz',crack_atoms)
     
-    
+    def strain_err(self,cutoff,seperate_surface=False):
+        '''Function that returns the atomistic corrector strain error Dv for each atom using the norm of the difference
+        between the corrector on each atom and all those around it within some cutoff. Also has an option to return states
+        adjacent to the free surface of the crack seperately for comparison.
+
+        Parameters
+        ----------
+        cutoff : float
+            cutoff around each atom to use to find the strain error norm.
+        seperate_surface : bool
+            whether or not to return the surface atoms in a seperate array.
+
+        Returns
+        -------
+        r : array of atom radial distance from the centre of the crack system
+
+        dv : norm strain error for each atom in r.
+        """
+        
+        '''
+        #want to get all neighbours in region I
+        I, J = neighbour_list('ij', self.atoms[self.regionI], cutoff)
+        #print(I)
+        #print(J)
+        v = self.u
+        dv = np.linalg.norm(v[I, :] - v[J, :], axis=1)
+        r = self.r[self.regionI][I]
+        mask = r<(self.rI-cutoff)
+        if seperate_surface:
+            mid_cell_x = self.cryst.cell.diagonal()[0] / 2.0
+            mid_cell_y = self.cryst.cell.diagonal()[1] / 2.0
+            I_positions = self.cryst.get_positions()[I]
+            x_criteria = ((I_positions[:,0]-mid_cell_x)<0.5)
+            y_criteria = ((I_positions[:,1]-mid_cell_y)<((1.5*self.cutoff)))&\
+            ((I_positions[:,1]-mid_cell_y)>(-1.5*self.cutoff))
+            surface_mask_full = np.logical_and(x_criteria,y_criteria)
+            bulk_mask_full = np.logical_not(surface_mask_full)
+            surface_mask = np.logical_and(surface_mask_full,mask)
+            bulk_mask = np.logical_and(bulk_mask_full,mask)
+            return r[surface_mask],dv[surface_mask],r[bulk_mask],dv[bulk_mask]
+        else:
+            return r[mask],dv[mask]
+
+        
     def convergence_line_plot(self,num=0):
         def gen_mask(r,rval,dx,dr,cx,cy):
             #for a line going vertically up
