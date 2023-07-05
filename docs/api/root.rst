@@ -1,0 +1,4 @@
+Matscipy root
+-------------
+
+.. automodule:: matscipy

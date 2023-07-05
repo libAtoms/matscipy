@@ -83,6 +83,24 @@ def test_rotation():
             np.testing.assert_array_almost_equal(G, EM[i]['G'], decimal=9)
 
 
+def test_monoclinic():
+    C = np.array([
+            [5,2,2,0,1,0],
+            [2,5,2,0,1,0],
+            [2,2,5,0,1,0],
+            [0,0,0,2,0,1],
+            [1,1,1,0,2,0],
+            [0,0,0,1,0,2]
+        ])
+    l = [np.array([1, 0, 1]), np.array([1, 0, -1])]
+    EM = np.array([5.4545,3.1579])
+
+    for i, directions in enumerate(l):
+        directions = directions / np.linalg.norm(directions)
+        E, nu, Gm, B, K = elastic_moduli(C, l=directions)
+        np.testing.assert_almost_equal(E[0], EM[i], decimal=1)
+
+
 ###
 
 if __name__ == '__main__':
