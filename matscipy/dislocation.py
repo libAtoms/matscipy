@@ -28,7 +28,7 @@ from scipy.optimize import minimize
 from ase.lattice.cubic import (BodyCenteredCubic, FaceCenteredCubic,
                                Diamond, SimpleCubicFactory)
 from ase.constraints import FixAtoms, StrainFilter
-#from ase.optimize import FIRE
+from ase.optimize import FIRE
 from ase.optimize.precon import PreconLBFGS
 from ase.build import bulk
 from ase.calculators.lammpslib import LAMMPSlib
