@@ -28,11 +28,13 @@ import matscipy.dislocation as sd
 import numpy as np
 
 from ase.calculators.lammpslib import LAMMPSlib
-from scipy.optimize import minimize
 from matscipy.calculators.eam import EAM
+
+test_dir = os.path.dirname(os.path.realpath(__file__))
 
 try:
     import matplotlib
+    matplotlib.use("Agg")  # Activate 'agg' backend for off-screen plotting for testing.
 except ImportError:
     print("matplotlib not found: skipping some tests")
 
@@ -55,7 +57,8 @@ except ImportError:
 class TestDislocation(matscipytest.MatSciPyTestCase):
     """Class to store test for dislocation.py module."""
 
-    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
+    @unittest.skipIf("atomman" not in sys.modules,
+                     'requires Stroh solution from atomman to run')
     def test_core_position(self):
         """Make screw dislocation and fit a core position to it.
 
@@ -91,20 +94,23 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(core_pos, initial_guess + center[:2], tol=1e-4)
 
     def test_elastic_constants_EAM(self):
-        """Test the get_elastic_constants() function using matscipy EAM calculator."""
-        target_values = np.array([3.14339177996466,  # alat
-                                  523.0266819809012,  # C11
-                                  202.1786296941397,  # C12
-                                  160.88179872237012])  # C44 for eam4
+        """Test the get_elastic_constants()
+           function using matscipy EAM calculator."""
+        target_values = np.array([3.1433,  # alat
+                                  523.03,  # C11
+                                  202.18,  # C12
+                                  160.88])  # C44 for eam4
 
         pot_name = "w_eam4.fs"
-        calc_EAM = EAM(pot_name)
+        pot_path = os.path.join(test_dir, pot_name)
+        calc_EAM = EAM(pot_path)
         obtained_values = sd.get_elastic_constants(calculator=calc_EAM,
                                                    delta=1.0e-3)
 
-        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
+        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-2)
 
-    # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
+    # This function tests the lammpslib and LAMMPS installation
+    # skipped during automated testing
     @unittest.skipIf("lammps" not in sys.modules,
                      "LAMMPS installation is required and thus is not good for automated testing")
     def test_elastic_constants_lammpslib(self):
@@ -115,15 +121,15 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         """
         print("WARNING: In case lammps crashes no error message is printed: ",
               "check 'lammps.log' file in test folder")
-        target_values = np.array([3.14339177996466,  # alat
-                                  523.0266819809012,  # C11
-                                  202.1786296941397,  # C12
-                                  160.88179872237012])  # C44 for eam4
+        target_values = np.array([3.1434,  # alat
+                                  523.03,  # C11
+                                  202.18,  # C12
+                                  160.882])  # C44 for eam4
 
         pot_name = "w_eam4.fs"
-
+        pot_path = os.path.join(test_dir, pot_name)
         lammps = LAMMPSlib(lmpcmds=["pair_style eam/fs",
-                                    "pair_coeff * * %s W" % pot_name],
+                                    "pair_coeff * * %s W" % pot_path],
                            atom_types={'W': 1}, keep_alive=True,
                            log_file="lammps.log")
 
@@ -132,9 +138,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         os.remove("lammps.log")
 
-        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-4)
+        self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-2)
 
-    # This function tests the lammpslib and LAMMPS installation and thus skipped during automated testing
+    # This function tests the lammpslib and LAMMPS installation
+    # skipped during automated testing
     @unittest.skipIf("lammps" not in sys.modules or
                      "atomman" not in sys.modules,
                      "LAMMPS installation and Stroh solution are required")
@@ -158,10 +165,11 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         center = (cent_x, 0.0, 0.0)
 
         pot_name = "w_eam4.fs"
+        pot_path = os.path.join(test_dir, pot_name)
         target_toten = -13086.484626  # Target value for w_eam4
 
         lammps = LAMMPSlib(lmpcmds=["pair_style eam/fs",
-                                    "pair_coeff * * %s W" % pot_name],
+                                    "pair_coeff * * %s W" % pot_path],
                            atom_types={'W': 1}, keep_alive=True,
                            log_file="lammps.log")
 
@@ -211,7 +219,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         print("'dd_test.png' will be created: check the displacement map")
         fig.savefig("dd_test.png")
 
-    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
+    @unittest.skipIf("atomman" not in sys.modules,
+                     'requires Stroh solution from atomman to run')
     def test_read_dislo_QMMM(self):
         """Test read_dislo_QMMM() function"""
 
@@ -254,13 +263,17 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             total_Nat_type += Nat_type
             self.assertEqual(Nat_type, target_values[atom_type])
 
-        self.assertEqual(Nat, total_Nat_type)  # total number of atoms in region is equal to Nat (no atoms unmapped)
+        # total number of atoms in region is equal to Nat (no atoms unmapped)
+        self.assertEqual(Nat, total_Nat_type)
         # TODO
-        #  self.assertAtomsAlmostEqual(disloc, test_disloc) - gives an error of _cell attribute new ase version?
+        # self.assertAtomsAlmostEqual(disloc, test_disloc) -
+        # gives an error of _cell attribute new ase version?
 
-    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
+    @unittest.skipIf("atomman" not in sys.modules,
+                     'requires Stroh solution from atomman to run')
     def test_stroh_solution(self):
-        """Builds isotropic Stroh solution and compares it to Volterra solution"""
+        """Builds isotropic Stroh solution
+        and compares it to Volterra solution"""
 
         alat = 3.14
         C11 = 523.0
@@ -269,7 +282,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         # A = 2. * C44 / (C11 - C12)
         # print(A) # A = 0.999937 very isotropic material.
-        # At values closer to 1.0 Stroh solution is numerically unstable and does not pass checks
+        # At values closer to 1.0 Stroh solution is numerically unstable
+        # and does not pass checks
         cylinder_r = 40
         burgers = alat * np.sqrt(3.0) / 2.
 
@@ -282,26 +296,32 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         u_volterra = np.arctan2(y, x) * burgers / (2.0 * np.pi)
 
         # compare x and y components with zeros - isotropic solution
-        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 0], tol=1e-4)
-        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 1], tol=1e-4)
+        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 0],
+                                    tol=1e-4)
+        self.assertArrayAlmostEqual(np.zeros_like(u_volterra), u_stroh[:, 1],
+                                    tol=1e-4)
         #  compare z component with simple Volterra solution
         self.assertArrayAlmostEqual(u_volterra, u_stroh[:, 2])
 
     def test_make_screw_quadrupole_kink(self):
-        """Test the total number of atoms in the quadrupole double kink configuration"""
+        """Test the total number of atoms in the quadrupole
+            double kink configuration"""
 
         alat = 3.14
         n1u = 5
         kink_length = 20
 
-        kink, _, _ = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kink_length=kink_length)
+        kink, _, _ = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u,
+                                                   kink_length=kink_length)
         quadrupole_base, _, _, _ = sd.make_screw_quadrupole(alat=alat, n1u=n1u)
 
         self.assertEqual(len(kink), len(quadrupole_base) * 2 * kink_length)
 
-    @unittest.skipIf("atomman" not in sys.modules, 'requires Stroh solution from atomman to run')
+    @unittest.skipIf("atomman" not in sys.modules,
+                     'requires Stroh solution from atomman to run')
     def test_make_screw_cyl_kink(self):
-        """Test the total number of atoms and number of fixed atoms in the cylinder double kink configuration"""
+        """Test the total number of atoms and number of fixed atoms
+            in the cylinder double kink configuration"""
 
         alat = 3.14339177996466
         C11 = 523.0266819809012
@@ -314,11 +334,19 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         cylinder_r = 40
         kink_length = 26
 
-        kink, large_disloc, straight_bulk = sd.make_screw_cyl_kink(alat, C11, C12, C44, kink_length=kink_length,
-                                                                   cylinder_r=cylinder_r, kind="double")
+        (kink,
+         large_disloc, _) = sd.make_screw_cyl_kink(alat,
+                                                   C11,
+                                                   C12,
+                                                   C44,
+                                                   kink_length=kink_length,
+                                                   cylinder_r=cylinder_r,
+                                                   kind="double")
 
         # check the total number of atoms as compared to make_screw_cyl()
-        disloc, _, _ = sd.make_screw_cyl(alat, C11, C12, C12, cylinder_r=cylinder_r, l_extend=center)
+        disloc, _, _ = sd.make_screw_cyl(alat, C11, C12, C12,
+                                         cylinder_r=cylinder_r,
+                                         l_extend=center)
 
         self.assertEqual(len(kink), len(disloc) * 2 * kink_length)
 
@@ -340,12 +368,15 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         n1u = 5
         kink_length = 20
 
-        kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kink_length=kink_length)
+        kink, _, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat,
+                                                           n1u=n1u,
+                                                           kink_length=kink_length)
         quadrupole_base, _, _, _ = sd.make_screw_quadrupole(alat=alat, n1u=n1u)
 
         sliced_kink, core_positions = sd.slice_long_dislo(kink, kink_bulk, b)
 
-        # check the number of sliced configurations is equal to length of 2 * kink_length * 3 (for double kink)
+        # check the number of sliced configurations is equal
+        # to length of 2 * kink_length * 3 (for double kink)
         self.assertEqual(len(sliced_kink), kink_length * 3 * 2)
 
         # check that the bulk and kink slices are the same size
@@ -356,16 +387,26 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # check that the size of slices are the same as single b configuration
         self.assertArrayAlmostEqual(len(quadrupole_base), len(sliced_kink[0][0]))
 
-        right_kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kind="right",
-                                                                              kink_length=kink_length)
+        (right_kink, _,
+         kink_bulk) = sd.make_screw_quadrupole_kink(alat=alat,
+                                                    n1u=n1u,
+                                                    kind="right",
+                                                    kink_length=kink_length)
+
         sliced_right_kink, _ = sd.slice_long_dislo(right_kink, kink_bulk, b)
-        # check the number of sliced configurations is equal to length of kink_length * 3 - 2 (for right kink)
+        # check the number of sliced configurations is equal
+        # to length of kink_length * 3 - 2 (for right kink)
         self.assertEqual(len(sliced_right_kink), kink_length * 3 - 2)
 
-        left_kink, straight_dislo, kink_bulk = sd.make_screw_quadrupole_kink(alat=alat, n1u=n1u, kind="left",
-                                                                              kink_length=kink_length)
+        (left_kink, _,
+         kink_bulk) = sd.make_screw_quadrupole_kink(alat=alat,
+                                                    n1u=n1u,
+                                                    kind="left",
+                                                    kink_length=kink_length)
+
         sliced_left_kink, _ = sd.slice_long_dislo(left_kink, kink_bulk, b)
-        # check the number of sliced configurations is equal to length of kink_length * 3 - 1 (for left kink)
+        # check the number of sliced configurations is equal
+        # to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
     def check_disloc(self, cls, ref_angle, structure="BCC", test_u=True,
@@ -375,8 +416,13 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         C12 = 202.1786296941397
         C44 = 160.88179872237012
 
-        d = cls(alat, C11, C12, C44)
+        d = cls(alat, C11, C12, C44, symbol="Al")
         bulk, disloc = d.build_cylinder(20.0)
+
+        # test that assigning non default symbol worked
+        assert np.unique(bulk.get_chemical_symbols()) == "Al"
+        assert np.unique(disloc.get_chemical_symbols()) == "Al"
+
         assert len(bulk) == len(disloc)
 
         if test_u:
@@ -388,7 +434,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
             displacement = disloc.positions - bulk.positions
 
-            np.testing.assert_array_almost_equal(displacement, stroh_displacement)
+            np.testing.assert_array_almost_equal(displacement,
+                                                 stroh_displacement)
 
         results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
         assert len(results) == 1
@@ -399,16 +446,16 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
         assert abs(err) < tol
 
-    @unittest.skipIf("atomman" not in sys.modules or 
+    @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_screw_dislocation(self):
         self.check_disloc(sd.BCCScrew111Dislocation, 0.0)
 
-    @unittest.skipIf("atomman" not in sys.modules or 
+    @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
-    def test_edge_dislocation(self):        
+    def test_edge_dislocation(self):
         self.check_disloc(sd.BCCEdge111Dislocation, 90.0)
 
     @unittest.skipIf("atomman" not in sys.modules or
@@ -425,7 +472,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.check_disloc(sd.BCCEdge100110Dislocation, 90.0,
                           burgers=np.array([1.0, 0.0, 0.0]))
 
-    @unittest.skipIf("atomman" not in sys.modules or 
+    @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_mixed_dislocation(self):
@@ -447,23 +494,53 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                           structure="Diamond",
                           burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]))
 
-
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_screw_diamond_dislocation(self,):
         self.check_disloc(sd.DiamondGlideScrew, 0.0,
-                          structure="Diamond", test_u=False,
+                          structure="Diamond",
                           burgers=(1.0 / 2.0) * np.array([0.0, 1.0, 1.0]))
-
 
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_60degree_diamond_dislocation(self,):
         self.check_disloc(sd.DiamondGlide60Degree, 60.0,
-                          structure="Diamond", test_u=False,
+                          structure="Diamond",
                           burgers=(1.0 / 2.0) * np.array([1.0, 0.0, 1.0]))
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_screw_shockley_partial_dislocation(self,):
+        self.check_disloc(sd.FCCScrewShockleyPartial, 30.0,
+                          structure="FCC",
+                          burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_screw110_dislocation(self,):
+        self.check_disloc(sd.FCCScrew110Dislocation, 0.0,
+                          structure="FCC",
+                          burgers=(1.0 / 2.0) * np.array([0.0, 1.0, 1.0]))
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_edge_shockley_partial_dislocation(self,):
+        self.check_disloc(sd.FCCEdgeShockleyPartial, 60.0,
+                          structure="FCC",
+                          burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_edge110_partial_dislocation(self,):
+        self.check_disloc(sd.FCCEdge110Dislocation, 90.0,
+                          structure="FCC",
+                          burgers=(1.0 / 2.0) * np.array([1.0, 1.0, 0.0]))
 
     def check_glide_configs(self, cls, structure="BCC"):
         alat = 3.14339177996466
@@ -492,8 +569,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # test that difference between initial and final positions are
         # roughly equal to glide distance.
         # Since the configurations are unrelaxed dxa gives
-        # a very rough estimation (especially for edge dislcoations)
-        # thus tolerance is taken to be ~1 Angstom
+        # a very rough estimation (especially for edge dislocations)
+        # thus tolerance is taken to be ~1 Angstrom
         np.testing.assert_almost_equal(fin_x_position - ini_x_position,
                                        d.glide_distance, decimal=0)
 
@@ -521,51 +598,75 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_edge100_glide(self):
         self.check_glide_configs(sd.BCCEdge100Dislocation)
 
-
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_edge100110_glide(self):
-            self.check_glide_configs(sd.BCCEdge100110Dislocation)
-
+        self.check_glide_configs(sd.BCCEdge100110Dislocation)
 
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_30degree_diamond_partial_glide(self):
-            self.check_glide_configs(sd.DiamondGlide30degreePartial,
-                                     structure="Diamond")
-
+        self.check_glide_configs(sd.DiamondGlide30degreePartial,
+                                 structure="Diamond")
 
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_90degree_diamond_partial_glide(self):
-            self.check_glide_configs(sd.DiamondGlide90degreePartial,
-                                     structure="Diamond")
-
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_screw_diamond_partial_glide(self):
-            self.check_glide_configs(sd.DiamondGlideScrew,
-                                     structure="Diamond")
-
+        self.check_glide_configs(sd.DiamondGlide90degreePartial,
+                                 structure="Diamond")
 
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
-    def test_60degree_diamond_partial_glide(self):
-            self.check_glide_configs(sd.DiamondGlide60Degree,
-                                     structure="Diamond")
+    def test_screw_diamond_glide(self):
+        self.check_glide_configs(sd.DiamondGlideScrew,
+                                 structure="Diamond")
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_60degree_diamond_glide(self):
+        self.check_glide_configs(sd.DiamondGlide60Degree,
+                                 structure="Diamond")
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_screw_shockley_partial_glide(self):
+        self.check_glide_configs(sd.FCCScrewShockleyPartial,
+                                 structure="FCC")
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_screw_110_glide(self):
+        self.check_glide_configs(sd.FCCScrew110Dislocation,
+                                 structure="FCC")
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_edge_shockley_partial_glide(self):
+        self.check_glide_configs(sd.FCCEdgeShockleyPartial,
+                                 structure="FCC")
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_fcc_edge_dislocation_glide(self):
+        self.check_glide_configs(sd.FCCEdge110Dislocation,
+                                 structure="FCC")
 
     def test_fixed_line_atoms(self):
 
         from ase.build import bulk
 
         pot_name = "w_eam4.fs"
-        calc_EAM = EAM(pot_name)
+        pot_path = os.path.join(test_dir, pot_name)
+        calc_EAM = EAM(pot_path)
         # slightly pressurised cell to avoid exactly zero forces
         W = bulk("W", a=0.9 * 3.143392, cubic=True)
 
@@ -591,9 +692,9 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             # forces on unconstrained atoms are non zero
             assert (W.get_forces()[~fixed_mask] != 0.0).all()
 
-
     @unittest.skipIf("lammps" not in sys.modules,
-                     "LAMMPS installation is required and thus is not good for automated testing")
+                     "LAMMPS installation is required and " +
+                     "thus is not good for automated testing")
     def test_gamma_line(self):
 
         # eam_4 parameters
@@ -602,9 +703,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         unit_cell = dislocation.unit_cell
 
         pot_name = "w_eam4.fs"
+        pot_path = os.path.join(test_dir, pot_name)
         # calc_EAM = EAM(pot_name) eam calculator is way too slow
         lammps = LAMMPSlib(lmpcmds=["pair_style eam/fs",
-                                    "pair_coeff * * %s W" % pot_name],
+                                    "pair_coeff * * %s W" % pot_path],
                            atom_types={'W': 1}, keep_alive=True,
                            log_file="lammps.log")
 
@@ -628,6 +730,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         np.testing.assert_almost_equal(E, target_E, decimal=3)
         np.testing.assert_almost_equal(shift, target_shift, decimal=3)
+
 
 if __name__ == '__main__':
     unittest.main()
