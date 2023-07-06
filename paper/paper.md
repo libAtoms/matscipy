@@ -15,6 +15,7 @@ authors:
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 2
   - name: Fraser Birks
+    orcid: 0009-0008-9117-0393
     affiliation: 3
   - name: Adrien Gola
     orcid: 0000-0002-5102-1931
@@ -58,16 +59,16 @@ authors:
   - name: Simon Wengert
     orcid: 0000-0002-8008-1482
     affiliation: 7
-  - name: Lars Pastewka
-    orcid: 0000-0001-8351-7336
-    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    corresponding: true # (This is how to denote the corresponding author)
-    affiliation: "2,8"
   - name: James R. Kermode
     orcid: 0000-0001-6755-6271
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: 3
+  - name: Lars Pastewka
+    orcid: 0000-0001-8351-7336
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
+    corresponding: true # (This is how to denote the corresponding author)
+    affiliation: "2,8"
 affiliations:
   - name: Aix-Marseille Université, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
     index: 1
