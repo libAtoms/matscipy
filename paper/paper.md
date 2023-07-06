@@ -1,5 +1,5 @@
 ---
-# Waiting for response from Adrien Gola, Till Junge, Punit Patel, Jonas Oldenstaedt and Wolfram Nöhring
+# Waiting for response from Till Junge, Punit Patel
 title: 'matscipy: materials science at the atomic-scale with Python'
 tags:
   - Python
@@ -115,7 +115,7 @@ We point out that other generic multi-scale coupling packages exist. Examples of
 
 Within materials science, the package has different application domains:
 
-- **Elasticity.** Solids respond to small external loads through a reversible elastic response. The strength of the response is characterized by the elastic moduli. `matscipy.elasticity` implements functions for computing elastic moduli from small deformation of atomistic systems that consider potential symmetries of the underlying atomic system, in particular for crystals. `matscipy` also implements analytic calculation of elastic moduli for some interatomic potentials, described in more detail below. The computation of elastic moduli is a basic prerequisite for multi-scale modelling of materials, as they are the most basic parameters of continuum material models. `matscipy` was used to study finite-pressure elastic constants and structural stability in crystals [@Griesser2023crystal] and glasses [@Griesser2023glass].
+- **Elasticity.** Solids respond to small external loads through a reversible elastic response. The strength of the response is characterized by the elastic moduli. `matscipy.elasticity` implements functions for computing elastic moduli from small deformation that consider potential symmetries of the underlying atomic system, in particular for crystals. `matscipy` also implements analytic calculation of elastic moduli for some interatomic potentials, described in more detail below. The computation of elastic moduli is a basic prerequisite for multi-scale modelling of materials, as they are the most basic parameters of continuum material models. `matscipy` was used to study finite-pressure elastic constants and structural stability in crystals [@Griesser2023crystal] and glasses [@Griesser2023glass].
 
 - **Plasticity.** For large loads, solids can respond with irreversible deformation. One form of irreversibility is plasticity, that is carried by extended defects, the dislocations, in crystals. The module `matscipy.dislocation` implements tools for studying structure and movement of dislocations. Construction and analysis of model atomic systems is implemented for compact and dissociated screw, as well as edge dislocations in cubic crystals. The implementation supports ideal straight as well as kinked dislocations. Some of the dislocation functionality requires the `atomman` and/or `OVITO` packages as optional dependencies [@AtomMan,@Stukowski2009]. The module was employed in a study of interaction of impurities with screw dislocations in tungsten [@Grigorev2020;@Grigorev2023]. 
 
@@ -157,7 +157,7 @@ Besides generating and analysing atomic-scale configurations, `matscipy` impleme
 - **Interatomic potentials.** The module `matscipy.calculators` has implementations of classical pair-potentials, Coulomb interactions, the embedded-atom method and other many-body potentials [e.g. @StillingerWeber1985;@Tersoff1989].
 
 - **Second-order derivatives.** The thermodynamic and elastic properties of solid materials are closely connected to the Hessian of the overall system, that contains the second derivatives of the total energy with respect to position and macroscopic strains. `matscipy` implements analytic second-order potential derivatives for pair-potentials [@Lennard1931], bond-order potentials [@Kumagai2007;@Tersoff1989;@Brenner1990], cluster potentials [@StillingerWeber1985] and electrostatic interaction [@BKS1990].
-This is achieved throuhg a generic mathematical formulation of the manybody total energy [@Griesser2023b] in `matscipy.calculators.manybody`.
+This is achieved through a generic mathematical formulation of the manybody total energy [@Griesser2023b] in `matscipy.calculators.manybody`.
 The module `matscipy.numerical` additionally provides routines for the numerical (finite-differences) evaluation of these properties. These analytic second-order derivatives allow a fast and accurate computation of the aforementioned properties in crystals, polymers and amorphous solids, even for unstable configurations where numerical methods are not applicable.
 
 - **Quantum mechanics/molecular mechanics.** The module `matscipy.calculators.mcfm` implements a generalised force-mixing potential [@Bernstein2009] with support for multiple concurrent QM clusters, named MultiClusterForceMixing (MCFM). It has been applied to model failure of graphene-nanotube composites [@Golebiowski2018;@Golebiowski2020].
