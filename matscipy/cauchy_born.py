@@ -7,9 +7,39 @@ from scipy.linalg import polar, sqrtm
 
 from itertools import permutations
 
-from sklearn.linear_model import Lasso, LinearRegression
+#from sklearn.linear_model import regression, LinearRegression
 
 from scipy.stats.qmc import LatinHypercube, scale
+
+class RegressionModel:
+    """Simple regression model object wrapper for np.linalg.lstsq for predicting shifts"""
+    def fit(self,phi,values):
+        """Fit a simple least-squares regression model to data. Saves output vector to self.model
+        Parameters
+        ----------
+        phi : array_like, 2D
+            Design matrix of shape [number of data points, number of basis functions].
+            Contains each basis function evaluated at each data point.
+        values : array_like
+            value of function to be fitted evaluated at each data point
+        """
+        self.model = np.linalg.lstsq(phi,values)[0]
+    
+    def predict(self,phi):
+        """Evaluate the simple least-squares regression model.
+        Parameters
+        ----------
+        phi : array_like, 2D
+            Design matrix of shape [number of data points, number of basis functions].
+            Contains each basis function evaluated at each data point.
+        
+        Returns
+        -------
+        predictions : array_like
+            1D vector of least squares model predictions for simple model.
+        """
+
+        return phi@self.model
 
 class CubicCauchyBorn:
     '''Corrector for the cauchy-born prediction of atomistic positions in multi-lattices subject to continuum strain
@@ -32,7 +62,7 @@ class CubicCauchyBorn:
         self.a0 = a0
         self.calc = calc
         self.lattice = lattice
-        self.Lasso_Fitted = False #status of model fit
+        self.regression_Fitted = False #status of model fit
         self.lattice1mask = None #mask for the lattice 1 atoms
         self.lattice2mask = None #mask for the lattice 2 atoms
 
@@ -107,7 +137,7 @@ class CubicCauchyBorn:
         '''fit a simple taylor-expansion type model to predict the cauchy-born shift corrector at a given applied strain
             using finite differences. Sets self.grad_f to the vector of first derivatives of the first shift component 
             with each of the 6 strain components and self.hess_f to the hessian of the first shift component with the strain components.
-            NOTE this model is generally worse than the model provided later in initial_lasso_fit.
+            NOTE this model is generally worse than the model provided later in initial_regression_fit.
         Parameters
         ----------
         de : float
@@ -434,14 +464,14 @@ class CubicCauchyBorn:
                 strain_vec_perm[:,perm_num+3] = strain_vec[:,i+3]
             return strain_vec_perm
         
-        def evaluate_shift_lasso(eps):
+        def evaluate_shift_regression(eps):
             epsx = eps
             epsy = permutation(eps,1)
             epsz = permutation(eps,2)
             predictions = np.zeros([np.shape(eps)[0],3])
-            predictions[:,0] = self.LM.predict(self.basis_function_evaluation(epsx))
-            predictions[:,1] = self.LM.predict(self.basis_function_evaluation(epsy))
-            predictions[:,2] = self.LM.predict(self.basis_function_evaluation(epsz))
+            predictions[:,0] = self.RM.predict(self.basis_function_evaluation(epsx))
+            predictions[:,1] = self.RM.predict(self.basis_function_evaluation(epsy))
+            predictions[:,2] = self.RM.predict(self.basis_function_evaluation(epsz))
             return predictions
 
         def eval_tay_model(self,eps):
@@ -486,10 +516,10 @@ class CubicCauchyBorn:
         #return the shift vectors
         if method == 'taylor':
             return eval_tay_model(self,E_voigt)
-        elif method == 'lasso':
-            return evaluate_shift_lasso(E_voigt)
+        elif method == 'regression':
+            return evaluate_shift_regression(E_voigt)
         else:
-            print('Error! Can only predict cauchy born shift with implemented errors - "taylor" or "lasso"')
+            print('Error! Can only predict cauchy born shift with implemented errors - "taylor" or "regression"')
             raise NotImplementedError
 
     def apply_shifts(self,atoms,shifts,mask=None):
@@ -528,35 +558,36 @@ class CubicCauchyBorn:
 
 
     
-    def initial_lasso_fit(self,alpha=0.1,initial_samples=10):
-        #if no lasso model has yet been fitted
-        #initialise the Lasso model
-        #self.LM = Lasso(alpha=alpha,warm_start=True,fit_intercept=False)
-        self.LM = LinearRegression(fit_intercept=False)
+    def initial_regression_fit(self,initial_samples=10):
+        #if no regression model has yet been fitted
+        #initialise the regression model
+        self.RM = RegressionModel()
         #build the initial simple dataset to begin fitting with
         sampler = LatinHypercube(d=6)
         samples = sampler.random(n=initial_samples)
         lbounds = [-0.01,-0.01,-0.01,-0.01,-0.01,-0.01]
         ubounds = [0.01,0.01,0.01,0.01,0.01,0.01]
         samples = scale(samples,lbounds,ubounds)
-        self.lasso_data = samples
-        self.lasso_phi = None
+        self.regression_data = samples
+        self.regression_phi = None
         E_vecs,shifts = self.get_data_points(samples)
         #get design matrix
         phi = self.basis_function_evaluation(E_vecs)
-        self.lasso_phi = phi
-        self.lasso_shifts = shifts
+        self.regression_phi = phi
+        self.regression_shifts = shifts
         #print('shifts',np.shape(shifts))
-        print('Performing initial lasso fit for CB corrector.....')
-        self.LM.fit(self.lasso_phi,self.lasso_shifts.flatten())# fit the Lasso model to the given data
+        print('Performing initial regression fit for CB corrector.....')
+        self.RM.fit(self.regression_phi,self.regression_shifts.flatten())# fit the regression model to the given data
         print('Fit completed')
 
     def check_for_refit(self,A,atoms,forces,tol=1e-3,mask=None,E_func=None,F_func=None,\
         coordinates='cart3D',refit_points=10,err_vec=None,*args,**kwargs):
         #tolerance is error per atom
         #multiply by number of atoms to get full tolerance
-
-        tol = tol*len(atoms[mask])
+        if mask is not None:
+            tol = tol*len(atoms[mask])
+        else:
+            tol = tol*len(atoms)
         print('tol',tol)
         
         cb_err = self.get_cb_error(atoms,forces=forces,mask=mask)
@@ -622,30 +653,30 @@ class CubicCauchyBorn:
         E_voigt[:,4] = E[:,0,2]
         E_voigt[:,5] = E[:,0,1]
         
-        #pass set of Es to evaluate to refit_lasso_regression
-        self.refit_lasso_regression(atoms,E_voigt)
+        #pass set of Es to evaluate to refit_regression
+        self.refit_regression(atoms,E_voigt)
         return 1, cb_err/len(atoms)
         
 
-    def refit_lasso_regression(self,atoms,E_voigt):
+    def refit_regression(self,atoms,E_voigt):
         calc = self.calc
         #take our given E voigt and evaluate the model
         E_vecs,shifts = self.get_data_points(E_voigt)
         #print('evecs,shifts',E_vecs,shifts)
         #get design matrix
         phi = self.basis_function_evaluation(E_vecs)
-        temp_predict = self.LM.predict(phi)
+        temp_predict = self.RM.predict(phi)
         #print('predicted shifts', temp_predict)
         #print('predicted shifts - true shifts', shifts.flatten()-temp_predict)
-        if self.lasso_phi is None:
-            self.lasso_phi = phi
-            self.lasso_shifts = shifts
+        if self.regression_phi is None:
+            self.regression_phi = phi
+            self.regression_shifts = shifts
         else:
-            self.lasso_phi = np.concatenate((self.lasso_phi,phi),axis=0)
-            self.lasso_shifts = np.concatenate((self.lasso_shifts,shifts),axis=0)
+            self.regression_phi = np.concatenate((self.regression_phi,phi),axis=0)
+            self.regression_shifts = np.concatenate((self.regression_shifts,shifts),axis=0)
 
         print('High error detected, refitting CB corrector.....')
-        self.LM.fit(self.lasso_phi,self.lasso_shifts.flatten())# fit the Lasso model to the given data
+        self.RM.fit(self.regression_phi,self.regression_shifts.flatten())# fit the regression model to the given data
         print('Re-fit completed')
     
     def get_data_points(self,E_vec):
