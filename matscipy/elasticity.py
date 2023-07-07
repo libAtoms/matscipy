@@ -22,6 +22,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+"""
+Computing elastic moduli of atomistic systems under small deformations.
+"""
+
 import itertools
 import warnings
 
