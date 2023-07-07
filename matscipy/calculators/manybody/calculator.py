@@ -78,6 +78,7 @@ class Manybody(MatscipyCalculator):
         'stress',
         'forces',
         'hessian',
+        'born_constants',
         'nonaffine_forces',
         'birch_coefficients',
         'dynamical_matrix',
