@@ -86,17 +86,13 @@ affiliations:
     index: 7
   - name: Cluster of Excellence livMatS, Freiburg Center for Interactive Materials and Bioinspired Technologies, University of Freiburg, Georges-Köhler-Allee 105, 79110, Freiburg, Germany
     index: 8
-date: 04 July 2023
+date: 07 July 2023
 bibliography: paper.bib
 ---
 
 # Summary
 
 Behaviour of materials is governed by physical phenomena that occur at an extreme range of length and time scales. Computational modelling requires multiscale approaches. Simulation techniques operating on the atomic scale serve as a foundation for such approaches, providing necessary parameters for upper scale models. The physical models employed for atomic simulations can vary from electronic structure calculations to empirical force fields. However, construction, manipulation and analysis of atomic systems are independent of the given physical model but dependent on the specific application. `matscipy` implement such tools for applications in materials science, including fracture, plasticity, tribology and electrochemistry. 
-
-# TODOs
-
-- LP: I don't understand what `matscipy.opls` actually does (except for IO), this should be explained
 
 # Statement of need
 
@@ -146,13 +142,11 @@ As well as these domain-specific tools, `matscipy` contains general utility func
 
 - **Ring analysis.** Topological order in network glasses can be characterized by statistics of shortest-path rings [@Franzblau1991]. `matscipy` implements calculations of these rings using a backtracking algorithm in C. We regularly use `matscipy` to charactize shortest-path rings in amorphous carbon [@Pastewka2008;@Jana2019].
 
-- **Topology building for non-reactive MD simulations.** 
-
-Non-reactive force fields for MD simulations consist of non-bonded and bonded interaction terms [@Jorgensen1996]. The latter require an explicit specification of the interatomic bonding topology, i.e.  which atoms are involved in bond, angle and dihedral interactions. The module `matscipy.opls` provides efficient tools to generate this topology for an atomic structure based on matscipy’s neighbour list, and then assign the relevant force field parameters to each interaction term. Input and output routines for reading and writing the corresponding control files for LAMMPS [@Thompson2022] are implemented in the module `matscipy.io.opls`. We used this functionality in various studies on tribology, wetting and nanoscale rheology [@Mayrhofer2016;@Falk2020;@Reichenbach2020;@vonGoeldel2021;@Falk2022].
+- **Topology building for non-reactive MD simulations.** Non-reactive force fields for MD simulations consist of non-bonded and bonded interaction terms [@Jorgensen1996]. The latter require an explicit specification of the interatomic bonding topology, i.e.  which atoms are involved in bond, angle and dihedral interactions. The module `matscipy.opls` provides efficient tools to generate this topology for an atomic structure based on matscipy’s neighbour list, and then assign the relevant force field parameters to each interaction term. Input and output routines for reading and writing the corresponding control files for LAMMPS [@Thompson2022] are implemented in the module `matscipy.io.opls`. We used this functionality in various studies on tribology, wetting and nanoscale rheology [@Mayrhofer2016;@Falk2020;@Reichenbach2020;@vonGoeldel2021;@Falk2022]
 
 # Interatomic potentials and other calculators
 
-Besides generating and analysing atomic-scale configurations, `matscipy` implements specific interatomic potentials [@Muser2023]. The goal here is not to provide the most efficient implementation of computing interatomic forces. We rather aim to provide simple implementations for testing new functional forms, or testing new features such as the computation of derivatives of order $2$ or higher.
+Besides generating and analysing atomic-scale configurations, `matscipy` implements specific interatomic potentials [@Muser2023]. The goal here is not to provide the most efficient implementation of computing interatomic forces. We rather aim to provide simple implementations for testing new functional forms, or testing new features such as the computation of derivatives of second order.
 
 - **Interatomic potentials.** The module `matscipy.calculators` has implementations of classical pair-potentials, Coulomb interactions, the embedded-atom method and other many-body potentials [e.g. @StillingerWeber1985;@Tersoff1989].
 
