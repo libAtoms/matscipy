@@ -2,10 +2,11 @@ name: Build and publish documentation
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
     tags:
       - '*'
+  pull_request:
+    branches: [ master ]
 
 jobs:
   build:
@@ -50,6 +51,7 @@ jobs:
           # that.
 
       - name: Push changes
+        if: github.ref == 'refs/heads/master'
         uses: ad-m/github-push-action@master
         with:
           branch: gh-pages
