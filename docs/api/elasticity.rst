@@ -1,4 +1,0 @@
-Elasticity
-----------
-
-.. automodule:: matscipy.elasticity

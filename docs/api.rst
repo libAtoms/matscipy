@@ -1,20 +1,51 @@
 API Reference
 =============
 
-Application domains API
------------------------
+Application domains
+-------------------
 
 .. autosummary::
    :toctree: generated
    :recursive:
 
-   matscipy.elasticity
    matscipy.dislocation
+   matscipy.elasticity
+   matscipy.electrochemistry
    matscipy.fracture_mechanics
+   matscipy.pressurecoupling
 
 
-Calculators
------------
+Structure and topology generation
+---------------------------------
+
+.. autosummary::
+   :toctree: generated
+   :recursive:
+
+   matscipy.hydrogenate
+   matscipy.opls
+
+
+Analysis tools
+--------------
+
+.. autosummary::
+   :toctree: generated
+   :recursive:
+
+   matscipy.angle_distribution
+   matscipy.atomic_strain
+   matscipy.deformation
+   matscipy.drift
+   matscipy.hessian_finite_differences
+   matscipy.neighbours
+   matscipy.numerical
+   matscipy.rings
+   matscipy.spatial_correlation_functions
+
+
+Interatomic potentials
+----------------------
 
 .. autosummary::
    :toctree: generated
@@ -28,12 +59,14 @@ Calculators
    matscipy.calculators.ewald.Ewald
    matscipy.calculators.manybody.Manybody
 
-Analysis tools
---------------
+
+Utility functions
+-----------------
 
 .. autosummary::
    :toctree: generated
    :recursive:
 
-   matscipy.neighbours
-   matscipy.numerical
+   matscipy.io
+   matscipy.numpy_tricks
+   matscipy.logger
