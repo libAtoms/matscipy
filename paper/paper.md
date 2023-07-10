@@ -1,5 +1,4 @@
 ---
-# Waiting for response from Till Junge, Punit Patel
 title: 'matscipy: materials science at the atomic-scale with Python'
 tags:
   - Python
