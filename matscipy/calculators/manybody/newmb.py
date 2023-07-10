@@ -8,18 +8,18 @@ from itertools import combinations_with_replacement
 from typing import Mapping
 from scipy.sparse import bsr_matrix
 from ...calculators.calculator import MatscipyCalculator
+from ...neighbours import (
+    Neighbourhood, first_neighbours, find_indices_of_reversed_pairs,
+    MolecularNeighbourhood
+)
 from ...numpy_tricks import mabincount
 from ...elasticity import full_3x3_to_Voigt_6_stress
-from ...neighbours import (
-    Neighbourhood,
-    first_neighbours,
-    find_indices_of_reversed_pairs,
-)
+from copy import deepcopy
 
 
 __all__ = ["Manybody"]
 
-# Broacast slices
+# Broadcast slices
 _c = np.s_[..., np.newaxis]
 _cc = np.s_[..., np.newaxis, np.newaxis]
 _ccc = np.s_[..., np.newaxis, np.newaxis, np.newaxis]
@@ -64,7 +64,7 @@ class Manybody(MatscipyCalculator):
         def hessian(self, rsq_p, xi_p):
             """Return [∂₁₁ɸ(rᵢⱼ², ξᵢⱼ), ∂₂₂ɸ(rᵢⱼ², ξᵢⱼ), ∂₁₂ɸ(rᵢⱼ², ξᵢⱼ)]."""
 
-    class Theta:
+    class Theta(ABC):
         """Define the three-body term Θ(rᵢⱼ², rᵢₖ², rⱼₖ²)."""
 
         @abstractmethod
@@ -239,24 +239,28 @@ class Manybody(MatscipyCalculator):
             for x, X in enumerate(X_indices[1:])
         )
 
-    def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None):
+    def _masked_compute(self, atoms, order, list_ij=None, list_ijk=None,
+                        neighbourhood=None):
         """Compute requested derivatives of phi and theta."""
         if not isinstance(order, list):
             order = [order]
 
+        if neighbourhood is None:
+            neighbourhood = self.neighbourhood
+
         if list_ijk is None and list_ij is None:
-            i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
-            ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
+            i_p, j_p, r_pc = neighbourhood.get_pairs(atoms, 'ijD')
+            ij_t, ik_t, r_tqc = neighbourhood.get_triplets(atoms, 'ijD')
         else:
             i_p, j_p, r_pc = list_ij
             ij_t, ik_t, r_tqc = list_ijk
 
         # Pair and triplet types
-        t_p = self.neighbourhood.pair_type(*(atoms.numbers[i]
-                                             for i in (i_p, j_p)))
-        t_t = self.neighbourhood.triplet_type(*(atoms.numbers[i]
-                                                for i in (i_p[ij_t], j_p[ij_t],
-                                                          j_p[ik_t])))
+        t_p = neighbourhood.pair_type(*(atoms.numbers[i]
+                                        for i in (i_p, j_p)))
+        t_t = neighbourhood.triplet_type(*(atoms.numbers[i]
+                                           for i in (i_p[ij_t], j_p[ij_t],
+                                                     j_p[ik_t])))
 
         derivatives = np.array([
             ('__call__', 1, 1),
@@ -412,7 +416,7 @@ class Manybody(MatscipyCalculator):
         return 2 * C_cccc / atoms.get_volume()
 
     def get_nonaffine_forces(self, atoms):
-        """Compute non-affine forces."""
+        """Compute non-affine forces (derivatives w/r reference positions)."""
         n = len(atoms)
         i_p, j_p, r_pc = self.neighbourhood.get_pairs(atoms, 'ijD')
         ij_t, ik_t, r_tqc = self.neighbourhood.get_triplets(atoms, 'ijD')
@@ -421,11 +425,11 @@ class Manybody(MatscipyCalculator):
             self._masked_compute(atoms, order=[1, 2])
 
         # Term 1 and 2 have the same structure, we assemble @ same time
-        e = np.eye(3)  # I have no idea what e is
+        e = np.eye(3)
         dpdR, ddpddR = dphi_cp[0], ddphi_cp[0]
         term_12_pcab = (
-            ein('p,pa,bg->pgab', dpdR, r_pc, e)  # term 1
-            + ein('p,pb,ag->pgab', dpdR, r_pc, e)  # term 1
+            (ein('p,pa,bg->pgab', dpdR, r_pc, e)  # term 1
+             + ein('p,pb,ag->pgab', dpdR, r_pc, e))  # term 1
             + 2 * ein('p,pa,pb,pg->pgab', ddpddR, r_pc, r_pc, r_pc)  # term 2
         )
 
@@ -445,7 +449,8 @@ class Manybody(MatscipyCalculator):
                                r_tqc, r_tqc)
         term_3_tXcab += (
             ein('Xt,tXb,ag->tXgab', dtheta_qt, r_tqc, e)
-            + ein('Xt,tXa,bg->tXgab', dtheta_qt, r_tqc, e))
+            + ein('Xt,tXa,bg->tXgab', dtheta_qt, r_tqc, e)
+        )
 
         term_3_tXcab *= dpdxi[_cccc]
 
@@ -453,7 +458,7 @@ class Manybody(MatscipyCalculator):
                                              term_3_tXcab)
 
         # Term 4
-        # Here we have to sub-terms:
+        # Here we have two sub-terms:
         #  - one sums over X in the inner loop and has pi_{ij|n}
         #    => sub-term 1 (defined on pairs)
         #  - one has pi_{X|n}
@@ -495,19 +500,19 @@ class Manybody(MatscipyCalculator):
 
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
         """Compute hessian."""
-        cutoff = self.neighbourhood.cutoff
 
-        # We nned twice the cutoff to get jk
-        i_p, j_p, r_p, r_pc = self.neighbourhood.get_pairs(
-            atoms, 'ijdD', cutoff=2*cutoff
+        double_cutoff, pairwise_cutoff, neigh = \
+            self.neighbourhood.double_neighbourhood()
+
+        # We need twice the cutoff to get jk
+        i_p, j_p, r_p, r_pc = neigh.get_pairs(
+            atoms, 'ijdD', cutoff=double_cutoff
         )
 
-        # TODO: make sure this works with different atom types
-        mask = r_p > cutoff
+        mask = neigh.mask(r_p, pairwise_cutoff)
+        tr_p = neigh.reverse_pair_indices(i_p, j_p, r_p)
 
-        tr_p = find_indices_of_reversed_pairs(i_p, j_p, r_p)
-
-        ij_t, ik_t, jk_t, r_tq, r_tqc = self.neighbourhood.get_triplets(
+        ij_t, ik_t, jk_t, r_tq, r_tqc = neigh.get_triplets(
             atoms, 'ijkdD', neighbours=[i_p, j_p, r_p, r_pc]
         )
 
@@ -515,17 +520,15 @@ class Manybody(MatscipyCalculator):
         nb_pairs = len(i_p)
         nb_triplets = len(ij_t)
 
-        # Otherwise we get a segmentation fault because ij_t is empty
-        if nb_triplets == 0:
-            raise RuntimeError("No triplet in hessian computation!")
-
         first_n = first_neighbours(n, i_p)
-        first_p = first_neighbours(nb_pairs, ij_t)
+        first_p = first_neighbours(nb_pairs, ij_t) \
+            if nb_triplets != 0 else [0, 0]
 
         (dphi_cp, ddphi_cp), (dtheta_qt, ddtheta_qt) = \
             self._masked_compute(atoms, order=[1, 2],
                                  list_ij=[i_p, j_p, r_pc],
-                                 list_ijk=[ij_t, ik_t, r_tqc])
+                                 list_ijk=[ij_t, ik_t, r_tqc],
+                                 neighbourhood=neigh)
 
         # Masking extraneous pair contributions
         dphi_cp[:, mask] = 0
@@ -566,7 +569,8 @@ class Manybody(MatscipyCalculator):
         H_pcc += self.sum_X_sum_ijk_tau_ijX_mn(nb_pairs, (ij_t, ik_t, jk_t),
                                                tr_p, ddp_dt_rij_rX)
 
-        H_pcc -= self._assemble_triplet_to_pair(tr_p[ij_t], ddp_dt_rij_rX[:, 0], nb_pairs)
+        H_pcc -= self._assemble_triplet_to_pair(tr_p[ij_t], ddp_dt_rij_rX[:, 0],
+                                                nb_pairs)
 
         # Term 5
         ddpddxi = ddphi_cp[1]
@@ -574,17 +578,23 @@ class Manybody(MatscipyCalculator):
         dtdRX = dtheta_qt
 
         # Pair
-        H_pcc += ein('p,p,p,pa,pb->pab', -2 * ddphi_cp[1],
-                                        self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs),
-                                        self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs),
-                                        r_pc, r_pc)
+        dtdRp = self._assemble_triplet_to_pair(ij_t, dtdRX[0], nb_pairs)
+        H_pcc += ein('p,p,p,pa,pb->pab',
+                     -2 * ddphi_cp[1], dtdRp, dtdRp, r_pc, r_pc)
 
         # Triplet
         dtdRx_rx = ein('Xt,tXa->tXa', dtdRX, r_tqc)
-        ddp_dtdRx_rx_dtdRy_ry = ein('t,tXa,tYb->tXYab', 2 * ddpddxi, self._assemble_triplet_to_pair(ij_t, dtdRx_rx, nb_pairs)[ij_t], dtdRx_rx)
+        ddp_dtdRx_rx_dtdRy_ry = ein(
+            't,tXa,tYb->tXYab',
+            2 * ddpddxi,
+            self._assemble_triplet_to_pair(ij_t, dtdRx_rx, nb_pairs)[ij_t],
+            dtdRx_rx
+        )
 
-        H_pcc += self.sum_X_sum_ijk_tau_ij_XOR_X_mn(nb_pairs, (ij_t, ik_t, jk_t),
-                                               tr_p, ddp_dtdRx_rx_dtdRy_ry[:, 0])
+        H_pcc += self.sum_X_sum_ijk_tau_ij_XOR_X_mn(
+            nb_pairs, (ij_t, ik_t, jk_t),
+            tr_p, ddp_dtdRx_rx_dtdRy_ry[:, 0]
+        )
 
         # Quadruplets
         H_pcc -= self._assemble_triplet_to_pair(ik_t, ddp_dtdRx_rx_dtdRy_ry[:, 1, 1], nb_pairs)
@@ -592,8 +602,12 @@ class Manybody(MatscipyCalculator):
         H_pcc -= self._assemble_triplet_to_pair(ik_t, ddp_dtdRx_rx_dtdRy_ry[:, 1, 2], nb_pairs)
         H_pcc -= self._assemble_triplet_to_pair(tr_p[jk_t], ddp_dtdRx_rx_dtdRy_ry[:, 2, 1], nb_pairs)
 
-        H_pcc += ein('p,pa,pb->pab', 2 * ddphi_cp[1], self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs),
-                                                      self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs))
+        H_pcc += ein(
+            'p,pa,pb->pab',
+            2 * ddphi_cp[1],
+            self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 1], nb_pairs),
+            self._assemble_triplet_to_pair(ij_t, dtdRx_rx[:, 2], nb_pairs)
+        )
 
         # Deal with ij_im / ij_in expression
         for im_in in range(nb_triplets):
@@ -602,33 +616,59 @@ class Manybody(MatscipyCalculator):
             pair_mn = jk_t[im_in]
 
             for t in range(first_p[pair_im], first_p[pair_im + 1]):
-
                 pair_ij = ik_t[t]
 
-                if pair_ij != pair_im and pair_ij != pair_in:
-                    rim_c = r_pc[pair_im]
-                    rin_c = r_pc[pair_in]
-                    rsq_im = np.sum(r_pc[pair_im]**2)
-                    rsq_in = np.sum(r_pc[pair_in]**2)
-                    rsq_ij = np.sum(r_pc[pair_ij]**2)
+                if pair_ij == pair_im or pair_ij == pair_in:
+                    continue
 
-                    # Distances jm and jn
-                    rjn_c = r_pc[pair_in] - r_pc[pair_ij]
-                    rjm_c = r_pc[pair_im] - r_pc[pair_ij]
-                    rsq_jm = np.sum(rjm_c**2)
-                    rsq_jn = np.sum(rjn_c**2)
+                rij_c = r_pc[pair_ij]
+                rsq_ij = np.sum(rij_c**2)
 
-                    # TODO: Assumes monoatomic system at the moment
-                    H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[1] * rim_c,
-                                                                      self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[1] * rin_c)
+                ddphi_t5 = ddphi_cp[1][pair_ij]
 
-                    H_pcc[pair_mn] += ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[2] * rjm_c,
-                                                                      self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[2] * rjn_c)
+                rim_c = r_pc[pair_im]
+                rin_c = r_pc[pair_in]
+                rsq_im = np.sum(rim_c**2)
+                rsq_in = np.sum(rin_c**2)
 
-                    H_pcc[pair_mn] += 2 * ddphi_cp[1][pair_ij] * np.outer(self.theta[1].gradient(rsq_ij, rsq_im, rsq_jm)[1] * rim_c,
-                                                                          self.theta[1].gradient(rsq_ij, rsq_in, rsq_jn)[2] * rjn_c)
+                # Distances jm and jn
+                rjn_c = rin_c - rij_c
+                rjm_c = rim_c - rij_c
+                rsq_jm = np.sum(rjm_c**2)
+                rsq_jn = np.sum(rjn_c**2)
+
+                nati, natj, natm, natn = (
+                    atoms.numbers[i_p[pair_ij]],
+                    atoms.numbers[j_p[pair_ij]],
+                    atoms.numbers[j_p[pair_im]],
+                    atoms.numbers[j_p[pair_in]],
+                )
+
+                # Should return 0-d arrays, convert to int
+                ijm_type = int(neigh.triplet_type(nati, natj, natm))
+                ijn_type = int(neigh.triplet_type(nati, natj, natn))
+
+                dtheta_t5_mm = self.theta[ijm_type].gradient(rsq_ij,
+                                                             rsq_im,
+                                                             rsq_jm)
+                dtheta_t5_nn = self.theta[ijn_type].gradient(rsq_ij,
+                                                             rsq_in,
+                                                             rsq_jn)
+
+                H5 = np.outer(dtheta_t5_mm[1] * rim_c, dtheta_t5_nn[1] * rin_c)
+                H5 += np.outer(dtheta_t5_mm[2] * rjm_c, dtheta_t5_nn[2] * rjn_c)
+                H5 += 2 * np.outer(dtheta_t5_mm[1] * rim_c,
+                                   dtheta_t5_nn[2] * rjn_c)
+                H5 *= ddphi_t5
+
+                H_pcc[pair_mn] += H5
+
+
         # Symmetrization with H_nm
         H_pcc += H_pcc.transpose(0, 2, 1)[tr_p]
+
+        if format == 'neighbour-list':
+            return H_pcc, i_p, j_p, r_pc, r_p
 
         # Compute the diagonal elements by bincount the off-diagonal elements
         H_acc = -self._assemble_pair_to_atom(i_p, H_pcc, n)

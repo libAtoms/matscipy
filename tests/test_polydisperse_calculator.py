@@ -152,7 +152,7 @@ def test_hessian_random_structure():
     atoms.calc = calc
     FIRE(atoms, logfile=None).run(fmax=1e-5)
     H_analytical = atoms.calc.get_property('hessian', atoms).todense()
-    H_numerical = numerical_hessian(atoms, dx=1e-5, indices=None).todense()
+    H_numerical = numerical_hessian(atoms, d=1e-5, indices=None).todense()
     np.testing.assert_allclose(H_analytical, H_numerical, atol=1e-4, rtol=1e-6)
 
 def test_hessian_divide_by_masses():

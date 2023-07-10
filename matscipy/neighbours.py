@@ -28,6 +28,7 @@ import itertools as it
 import typing as ts
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from copy import deepcopy
 
 import numpy as np
 import ase
@@ -59,6 +60,12 @@ class Neighbourhood(ABC):
                      cutoff=None,
                      full_connectivity=False):
         """Return requested data on triplets."""
+
+    @staticmethod
+    def mask(pair_distances, cutoff):
+        if not isinstance(cutoff, dict):
+            return pair_distances > cutoff
+        raise NotImplementedError("heterogeneous cutoffs not implemented")
 
     @staticmethod
     def make_result(quantities, connectivity, D, d, S,
@@ -100,12 +107,11 @@ class Neighbourhood(ABC):
                 D[:, i, :], d[:, i] = \
                     find_mic(positions[idx[1]] - positions[idx[0]],
                              atoms.cell, atoms.pbc)
-
-            if connectivity.shape[1] == 3:
-                for i, idx in enumerate(indices):
-                    D[:, i, :] = \
-                        (positions[idx[1]] - positions[idx[0]])
-                    d[:, i] = np.linalg.norm(D[:, i], axis=-1)
+        # if connectivity.shape[1] == 3:
+        #     for i, idx in enumerate(indices):
+        #         D[:, i, :] = \
+        #             (positions[idx[1]] - positions[idx[0]])
+        #         d[:, i] = np.linalg.norm(D[:, i], axis=-1)
         return D.squeeze(), d.squeeze()
 
     def connected_triplets(self, atoms: ase.Atoms, pair_list, triplet_list,
@@ -146,6 +152,21 @@ class Neighbourhood(ABC):
     def find_triplet_types(self, atoms: ase.Atoms, i, j, k):
         """Return triplet types from atom ids."""
         return self.triplet_type(*self.triplet_to_numbers(atoms, i, j, k))
+
+    @staticmethod
+    def lexsort(connectivity: np.ndarray):
+        return np.lexsort(np.flipud(connectivity.T))
+
+    @abstractmethod
+    def double_neighbourhood(self):
+        """Return neighbourhood with double cutoff/connectivity."""
+
+    @abstractmethod
+    def reverse_pair_indices(self,
+                             i_p: np.ndarray,
+                             j_p: np.ndarray,
+                             r_p: np.ndarray):
+        """Return indices of reverse pairs."""
 
 
 class CutoffNeighbourhood(Neighbourhood):
@@ -228,15 +249,47 @@ class CutoffNeighbourhood(Neighbourhood):
         return self.make_result(
             quantities, connectivity, D, d, None, accepted_quantities="ijkdD")
 
+    def double_neighbourhood(self):
+        double_cutoff = deepcopy(self.cutoff)
+
+        if isinstance(self.cutoff, defaultdict):
+            double_cutoff.default_factory = \
+                lambda: 2 * self.cutoff.default_factory()
+
+        if isinstance(double_cutoff, dict):
+            for k in double_cutoff:
+                double_cutoff[k] *= 2
+        else:
+            double_cutoff *= 2
+
+        return double_cutoff, self.cutoff, self
+
+    def reverse_pair_indices(self,
+                             i_p: np.ndarray,
+                             j_p: np.ndarray,
+                             r_p: np.ndarray):
+        return find_indices_of_reversed_pairs(i_p, j_p, r_p)
+
 
 class MolecularNeighbourhood(Neighbourhood):
     """Class defining neighbourhood based on molecular connectivity."""
 
-    def __init__(self, molecules: Molecules, atom_types=None):
+    def __init__(self,
+                 molecules: Molecules,
+                 atom_types=None,
+                 double_cutoff=False):
         """Initialze with atoms and molecules."""
         super().__init__(atom_types)
-        self.molecules = molecules
+        self.double_cutoff = double_cutoff
         self.cutoff = np.inf
+        self.molecules = molecules
+
+    def double_neighbourhood(self):
+        if not self.double_cutoff:
+            return np.inf, np.inf, MolecularNeighbourhood(self.molecules,
+                                                          self.atom_type,
+                                                          True)
+        return np.inf, np.inf, self
 
     @property
     def molecules(self):
@@ -251,14 +304,24 @@ class MolecularNeighbourhood(Neighbourhood):
         # Get ij + ji pairs and ijk + kji angles to mimic the cutoff behavior
         self.connectivity = {
             "bonds": self.double_connectivity(molecules.bonds),
-            "angles": self.double_connectivity(molecules.angles),
         }
+
+        self.connectivity["angles"] = \
+            self.double_connectivity(molecules.angles) if self.double_cutoff \
+            else molecules.angles
 
         # Add pairs from the angle connectivity with negative types
         # This way they should be ignored for the pair potentials
         if molecules.angles.size > 0:
             self.complete_connectivity(
                 typeoffset=-(np.max(molecules.angles["type"]) + 1))
+
+            # Double angles connectivity after completing bonds
+            if not self.double_cutoff:
+                self.connectivity["angles"] = \
+                    self.double_connectivity(molecules.angles)
+
+                # not doing anything to triplet list
         else:
             self.triplet_list = np.zeros([0, 3], dtype=np.int32)
 
@@ -270,7 +333,12 @@ class MolecularNeighbourhood(Neighbourhood):
     @property
     def triplet_type(self):
         """Map atom types to triplet types."""
-        return lambda ti_p, tj_p, tk_p: self.connectivity["angles"]["type"]
+        def tp(ti_p, tj_p, tk_p):
+            types = self.connectivity["angles"]["type"]
+            if self.double_cutoff:
+                return np.concatenate([types] * 2)
+            return types
+        return tp
 
     @staticmethod
     def double_connectivity(connectivity: np.ndarray) -> np.ndarray:
@@ -279,7 +347,10 @@ class MolecularNeighbourhood(Neighbourhood):
         c["type"].reshape(2, -1)[:] = connectivity["type"]
         c_fwd, c_bwd = np.split(c["atoms"], 2)
         c_fwd[:] = connectivity["atoms"]
-        c_bwd[:] = connectivity["atoms"][:, ::-1]
+        if connectivity["atoms"].shape[1] != 3:
+            c_bwd[:] = connectivity["atoms"][:, ::-1]
+        else:
+            c_bwd[:] = connectivity["atoms"][:, (0, 2, 1)]
         return c
 
     def complete_connectivity(self, typeoffset: int = 0):
@@ -288,6 +359,8 @@ class MolecularNeighbourhood(Neighbourhood):
 
         permutations = list(
             it.combinations(range(angles["atoms"].shape[1]), 2))
+
+        # permutations = [(1, 2)]
         e = len(permutations)
         n, nn = len(bonds), e * len(angles)
 
@@ -307,7 +380,8 @@ class MolecularNeighbourhood(Neighbourhood):
             np.unique(new_bonds, return_inverse=True)
 
         # Need to sort after all the shenanigans
-        idx = np.argsort(self.connectivity["bonds"]["atoms"][:, 0])
+        # Below sorts lexicographically the pairs (first col, then second col)
+        idx = Neighbourhood.lexsort(self.connectivity["bonds"]["atoms"])
         self.connectivity["bonds"][:] = self.connectivity["bonds"][idx]
 
         # To construct triplet references (aka ij_t, ik_t and jk_t):
@@ -320,7 +394,7 @@ class MolecularNeighbourhood(Neighbourhood):
         r_idx[idx] = np.arange(len(idx))  # revert sort
         self.triplet_list = r_idx[indices_r][n:].reshape(e, -1).T
 
-        idx = np.argsort(self.triplet_list[:, 0])  # sort ij_t
+        idx = Neighbourhood.lexsort(self.triplet_list)  # sort ij_t
         self.triplet_list = self.triplet_list[idx]
 
     def get_pairs(self, atoms: ase.Atoms, quantities: str, cutoff=None):
@@ -346,8 +420,26 @@ class MolecularNeighbourhood(Neighbourhood):
 
         # Need to reorder connectivity for distances
         bonds = self.connectivity["bonds"]["atoms"]
-        connectivity = np.array([
-            bonds[self.triplet_list[:, i], j]
+        double_triplets = np.vstack([self.triplet_list,
+                                     self.triplet_list[:, (1, 0, 2)]])
+
+        # Returning triplet references in bonds list
+        connectivity = double_triplets.copy()
+        i_p, j_p = bonds.T
+
+        first_neigh = first_neighbours(len(atoms), i_p)
+        ij_t, ik_t, jk_t = connectivity.T
+        jk_t[:] = -np.ones(len(ij_t), dtype='int32')
+        # This is slow as
+        for t, (ij, ik) in enumerate(zip(ij_t, ik_t)):
+            for i in np.arange(first_neigh[j_p[ij]],
+                               first_neigh[j_p[ij] + 1]):
+                if i_p[i] == j_p[ij] and j_p[i] == j_p[ik]:
+                    jk_t[t] = i
+                    break
+
+        connectivity_in_bounds = np.array([
+            bonds[connectivity[:, i], j]
             for i, j in [(0, 0), (0, 1), (1, 1)]
         ]).T
 
@@ -355,17 +447,16 @@ class MolecularNeighbourhood(Neighbourhood):
         if "d" in quantities or "D" in quantities:
             #           i  j    i  k    j  k
             indices = [(0, 1), (0, 2), (1, 2)]  # defined in Jan's paper
-            D, d = self.compute_distances(atoms, connectivity, indices)
+            D, d = self.compute_distances(atoms,
+                                          connectivity_in_bounds, indices)
 
-        # Returning triplet references in bonds list
-        connectivity = self.triplet_list
         return self.make_result(
             quantities, connectivity, D, d, None, accepted_quantities="ijkdD")
 
     def find_triplet_types(self, atoms: ase.Atoms, i, j, k):
         triplet_numbers = self.triplet_to_numbers(atoms, i, j, k)
-        connectivity_numbers = atoms.numbers[self.connectivity["angles"]
-                                             ["atoms"]]
+        connectivity_numbers = \
+            atoms.numbers[self.connectivity["angles"]["atoms"]]
         unique_numbers, indices = np.unique(
             connectivity_numbers, return_index=True, axis=0)
         unique_types = self.connectivity["angles"]["type"][indices]
@@ -379,6 +470,20 @@ class MolecularNeighbourhood(Neighbourhood):
             ]
 
         return all_types
+
+    def reverse_pair_indices(self,
+                             i_p: np.ndarray,
+                             j_p: np.ndarray,
+                             r_p: np.ndarray):
+        inverse = np.zeros_like(self.connectivity["bonds"]["type"])
+        idx = np.arange(inverse.size)
+
+        for t in np.unique(self.connectivity["bonds"]["type"]):
+            mask = self.connectivity["bonds"]["type"] == t
+            inverse[mask] = idx[mask][find_indices_of_reversed_pairs(i_p[mask],
+                                                                     j_p[mask],
+                                                                     r_p[mask])]
+        return inverse
 
 
 def mic(dr, cell, pbc=None):

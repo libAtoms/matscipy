@@ -371,7 +371,7 @@ def compute_forces_and_hessian(a, par):
     # Hessian
     ana_hessian = np.array(calculator.get_hessian(a).todense())
     num_hessian = np.array(
-        numerical_hessian(a, dx=1e-5, indices=None).todense())
+        numerical_hessian(a, d=1e-5, indices=None).todense())
     # print('ana\n', ana_hessian)
     # print('num\n', num_hessian)
     # print('ana - num\n', (np.abs(ana_hessian - num_hessian) > 1e-6).astype(int))

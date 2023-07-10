@@ -85,7 +85,7 @@ def analytical_evaluated_three_body(analytical_triplet):
     Compute derivatives and finite differences.
     """
     N = 10
-    L1, L2 = 1.0, 1.15
+    L1, L2 = 1.0, 3.1
     rij, rik, rjk = (
         np.linspace(L1, L2, N),
         np.linspace(L1, L2, N),
