@@ -1,4 +1,0 @@
-Calculators
------------
-
-.. automodule:: matscipy.calculators
