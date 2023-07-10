@@ -127,7 +127,7 @@ As well as these domain-specific tools, `matscipy` contains general utility func
   This allows compact code for evaluating properties that depend on pairs, such as pair-distribution function or interatomic potential energies and forces. Most of the tools described in the following rely on this neighbour list format.
   The neighbour list is becoming widely used for post-processing and structural analysis of the trajectories resulting from molecular dynamics simulations, and even to accelerate next-generation message passing neural networks such as MACE [@Batatia2022mace;@Batatia2022Design].
 
-![Neighbor list computation time comparison between ASE and Matscipy implementations.\label{fig:nl_time}](nl_time.svg)
+![Neighbour list computation time comparison between ASE and Matscipy implementations.\label{fig:nl_time}](nl_time.svg)
 
 - **Atomic strain.** Continuum mechanics is formulated in terms of strains, which characterizes the fractional shape changes of small volumes. Strains are typically only well defined if averaged over sufficiently large volumes, and extracting strain fields from atomic-scale calculations is notoriously difficult. `matscipy` implements calculations of strain by observing changes in local atomic neighbourhoods across trajectories. It fits a per-atom displacement gradient that minimizes the error in displacement between two configurations as described by @Falk1998. The error resulting from this fit quantifies the non-affine contribution ot the overall displacement and is known as $D^2_\text{min}$. We used this analysis to quantify local strain in the deformation of crystals [@Gola2019;@Gola2020] and glasses [@Jana2019].
 
