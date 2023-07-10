@@ -257,7 +257,7 @@ def test_hessian_alpha_quartz(alpha_quartz_bks):
     Test the computation of the Hessian matrix
     """
     atoms = alpha_quartz_bks
-    H_num = numerical_hessian(atoms, dx=1e-5, indices=None)
+    H_num = numerical_hessian(atoms, d=1e-5, indices=None)
     H_ana = atoms.calc.get_property("hessian", atoms)
 
     print("H_num: \n", H_num.todense()[:6, :6])
@@ -380,7 +380,7 @@ def test_hessian_beta_cristobalite(beta_cristobalite_bks):
     Test the computation of the Hessian matrix
     """
     atoms = beta_cristobalite_bks
-    H_num = numerical_hessian(atoms, dx=1e-5, indices=None)
+    H_num = numerical_hessian(atoms, d=1e-5, indices=None)
     H_ana = atoms.calc.get_property("hessian")
 
     np.testing.assert_allclose(H_num.todense(), H_ana, atol=1e-3)

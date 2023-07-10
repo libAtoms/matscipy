@@ -176,7 +176,7 @@ def test_hessian():
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(atoms, logfile=None).run(fmax=1e-5)
-    H_numerical = numerical_hessian(atoms, dx=1e-5, indices=None).todense()
+    H_numerical = numerical_hessian(atoms, d=1e-5, indices=None).todense()
     H_analytical = b.get_property('hessian', atoms).todense()
     np.testing.assert_allclose(H_analytical, H_numerical, atol=1e-4, rtol=1e-4)
 
