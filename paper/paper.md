@@ -43,6 +43,8 @@ authors:
   - name: Thomas Reichenbach
     orcid: 0000-0001-7477-6248
     affiliation: 5
+  - name: Punit Patel
+    affiliation: 3
   - name: Lakshmi Shenoy
     orcid: 0000-0001-5760-3345
     affiliation: 3
@@ -153,6 +155,6 @@ The module `matscipy.numerical` additionally provides routines for the numerical
 
 # Acknowledgements
 
-We thank Arnaud Allera, Manuel Aldegunde, Kristof Bal, James Brixey, Alexander Held, Jan Jansen, Till Junge, Henry Lambert, Punit Patel and Zhilin Zheng for contributions and bug fixes. `matscipy` was partially funded by the Deutsche Forschungsgemeinschaft (projects 258153560, 390951807 and 461911253), the European Research Council (ERC StG 757343), the Engineering and Physical Sciences Research Council (grants EP/P002188/1, EP/R012474/1 and EP/R043612/1) and the Leverhulme Trust (grant RPG-2017-191).
+We thank Arnaud Allera, Manuel Aldegunde, Kristof Bal, James Brixey, Alexander Held, Jan Jansen, Till Junge, Henry Lambert and Zhilin Zheng for contributions and bug fixes. `matscipy` was partially funded by the Deutsche Forschungsgemeinschaft (projects 258153560, 390951807 and 461911253), the European Research Council (ERC StG 757343), the Engineering and Physical Sciences Research Council (grants EP/P002188/1, EP/R012474/1, EP/R043612/1 and EP/S022848/1) and the Leverhulme Trust (grant RPG-2017-191).
 
 # References
