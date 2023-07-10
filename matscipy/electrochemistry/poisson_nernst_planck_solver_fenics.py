@@ -71,7 +71,7 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
 
         # in the weak form, u and v are the trial and test functions associated
         # with the Poisson part, p and q the trial and test functions associated
-        # with the Nernst-Planck part. lam and mu are trial and test fuctions
+        # with the Nernst-Planck part. lam and mu are trial and test functions
         # associated to constraints introduced via Lagrange multipliers.
         # w is the whole set of trial functions [u,p,lam]
         # W is the space all w live in.
@@ -325,7 +325,7 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         # Real                              R
 
         # construct test and trial function space from elements
-        # spanned by Lagrange polynomials for the pyhsical variables of
+        # spanned by Lagrange polynomials for the physical variables of
         # potential and concentration and global elements with a single degree
         # of freedom ('Real') for constraints.
         # For an example of this approach, refer to

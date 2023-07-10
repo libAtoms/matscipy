@@ -27,7 +27,7 @@ authors:
     affiliation: 2
   - name: Johannes L. Hörmann
     orcid: 0000-0001-5867-695X
-    affiliation: 2
+    affiliation: "2,8"
   - name: Andreas Klemenz
     orcid: 0000-0001-5677-5639
     affiliation: 5
