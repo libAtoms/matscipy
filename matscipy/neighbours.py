@@ -22,6 +22,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+"""Tools for computing and working with local topology of atomic structures."""
+
 import itertools as it
 import typing as ts
 from abc import ABC, abstractmethod
@@ -541,14 +543,14 @@ def neighbour_list(quantities,
         Quantities to compute by the neighbor list algorithm. Each character
         in this string defines a quantity. They are returned in a tuple of
         the same order. Possible quantities are
-            'i' : first atom index
-            'j' : second atom index
-            'd' : absolute distance
-            'D' : distance vector
-            'S' : shift vector (number of cell boundaries crossed by the bond
-                  between atom i and j). With the shift vector S, the
-                  distances D between atoms can be computed from:
-                  D = a.positions[j]-a.positions[i]+S.dot(a.cell)
+            - ``i`` : first atom index
+            - ``j`` : second atom index
+            - ``d`` : absolute distance
+            - ``D`` : distance vector
+            - ``S`` : shift vector (number of cell boundaries crossed by the
+            bond between atom i and j). With the shift vector S, the
+            distances D between atoms can be computed from:
+            ``D = a.positions[j]-a.positions[i]+S.dot(a.cell)``
     atoms : ase.Atoms
         Atomic configuration. (Default: None)
     cutoff : float or dict
@@ -580,21 +582,26 @@ def neighbour_list(quantities,
     Examples
     --------
     Examples assume Atoms object *a* and numpy imported as *np*.
-    1. Coordination counting:
+
+    1. Coordination counting::
+
         i = neighbor_list('i', a, 1.85)
         coord = np.bincount(i)
 
-    2. Coordination counting with different cutoffs for each pair of species
+    2. Coordination counting with different cutoffs for each pair of species::
+
         i = neighbor_list('i', a,
                           {('H', 'H'): 1.1, ('C', 'H'): 1.3, ('C', 'C'): 1.85})
         coord = np.bincount(i)
 
-    3. Pair distribution function:
+    3. Pair distribution function::
+
         d = neighbor_list('d', a, 10.00)
         h, bin_edges = np.histogram(d, bins=100)
         pdf = h/(4*np.pi/3*(bin_edges[1:]**3 - bin_edges[:-1]**3)) * a.get_volume()/len(a)
 
-    4. Pair potential:
+    4. Pair potential::
+
         i, j, d, D = neighbor_list('ijdD', a, 5.0)
         energy = (-C/d**6).sum()
         pair_forces = (6*C/d**5  * (D/d).T).T
@@ -605,7 +612,8 @@ def neighbour_list(quantities,
         forces_z = np.bincount(j, weights=pair_forces[:, 2], minlength=len(a)) - \
                    np.bincount(i, weights=pair_forces[:, 2], minlength=len(a))
 
-    5. Dynamical matrix for a pair potential stored in a block sparse format:
+    5. Dynamical matrix for a pair potential stored in a block sparse format::
+
         from scipy.sparse import bsr_matrix
         i, j, dr, abs_dr = neighbor_list('ijDd', atoms)
         energy = (dr.T / abs_dr).T
@@ -624,21 +632,21 @@ def neighbour_list(quantities,
                                  shape=(3 * len(a), 3 * len(a)))
 
 
-  i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
-e_nc = (dr_nc.T/abs_dr_n).T
-    D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
-    D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', atoms, dict)
+        e_nc = (dr_nc.T/abs_dr_n).T
+        D_ncc = -(dde_n * (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3)).T).T
+        D_ncc += -(de_n/abs_dr_n * (np.eye(3, dtype=e_nc.dtype) - (e_nc.reshape(-1,3,1) * e_nc.reshape(-1,1,3))).T).T
 
-    D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat,3*nat))
+        D = bsr_matrix((D_ncc, j_n, first_i), shape=(3*nat,3*nat))
 
-    Ddiag_icc = np.empty((nat,3,3))
-    for x in range(3):
-        for y in range(3):
-            Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
+        Ddiag_icc = np.empty((nat,3,3))
+        for x in range(3):
+            for y in range(3):
+                Ddiag_icc[:,x,y] = -np.bincount(i_n, weights = D_ncc[:,x,y])
 
-    D += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
+        D += bsr_matrix((Ddiag_icc,np.arange(nat),np.arange(nat+1)), shape=(3*nat,3*nat))
 
-    return D
+        return D
     """
 
     if cutoff is None:

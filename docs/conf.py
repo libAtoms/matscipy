@@ -42,6 +42,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
+    'sphinx.ext.mathjax',
+    'myst_nb'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
