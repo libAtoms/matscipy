@@ -21,7 +21,7 @@ authors:
     affiliation: "2,4"
   - name: Jacek Golebiowski
     orcid: 0000-0001-8053-8318
-    affiliation: 
+    affiliation: 6
   - name: Jan Grießer
     orcid: 0000-0003-2149-6730
     affiliation: 2
