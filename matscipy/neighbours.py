@@ -585,26 +585,26 @@ def neighbour_list(quantities,
 
     1. Coordination counting::
 
-        i = neighbor_list('i', a, 1.85)
+        i = neighbour_list('i', a, 1.85)
         coord = np.bincount(i)
 
     2. Coordination counting with different cutoffs for each pair of species::
 
-        i = neighbor_list('i', a,
+        i = neighbour_list('i', a,
                           {('H', 'H'): 1.1, ('C', 'H'): 1.3, ('C', 'C'): 1.85})
         coord = np.bincount(i)
 
     3. Pair distribution function::
 
-        d = neighbor_list('d', a, 10.00)
+        d = neighbour_list('d', a, 10.00)
         h, bin_edges = np.histogram(d, bins=100)
         pdf = h/(4*np.pi/3*(bin_edges[1:]**3 - bin_edges[:-1]**3)) * a.get_volume()/len(a)
 
     4. Pair potential::
 
-        i, j, d, D = neighbor_list('ijdD', a, 5.0)
+        i, j, d, D = neighbour_list('ijdD', a, 5.0)
         energy = (-C/d**6).sum()
-        pair_forces = (6*C/d**5  * (D/d).T).T
+        pair_forces = (6*C/d**5  * D.T/d).T
         forces_x = np.bincount(j, weights=pair_forces[:, 0], minlength=len(a)) - \
                    np.bincount(i, weights=pair_forces[:, 0], minlength=len(a))
         forces_y = np.bincount(j, weights=pair_forces[:, 1], minlength=len(a)) - \
@@ -615,7 +615,7 @@ def neighbour_list(quantities,
     5. Dynamical matrix for a pair potential stored in a block sparse format::
 
         from scipy.sparse import bsr_matrix
-        i, j, dr, abs_dr = neighbor_list('ijDd', atoms)
+        i, j, dr, abs_dr = neighbour_list('ijDd', atoms)
         energy = (dr.T / abs_dr).T
         dynmat = -(dde * (energy.reshape(-1, 3, 1) * energy.reshape(-1, 1, 3)).T).T \
                  -(de / abs_dr * (np.eye(3, dtype=energy.dtype) - \
