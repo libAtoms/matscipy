@@ -40,11 +40,11 @@ authors:
   - name: Jonas A. Oldenstaedt
     orcid: 0000-0002-7475-3019
     affiliation: 2
+  - name: Punit Patel
+    affiliation: 3
   - name: Thomas Reichenbach
     orcid: 0000-0001-7477-6248
     affiliation: 5
-  - name: Punit Patel
-    affiliation: 3
   - name: Lakshmi Shenoy
     orcid: 0000-0001-5760-3345
     affiliation: 3
