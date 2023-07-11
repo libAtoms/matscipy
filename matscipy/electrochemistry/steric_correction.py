@@ -62,7 +62,7 @@ Benchmark different scipy optimizers for the steric correction problem:
     >>> n = x.shape[0]
     >>> dim = x.shape[1]
     >>>
-    >>> # benchmakr methods
+    >>> # benchmark methods
     >>> mindsq, (p1,p2) = scipy_distance_based_closest_pair(x)
     >>> pmin = np.min(x,axis=0)
     >>> pmax = np.max(x,axis=0)
@@ -265,7 +265,7 @@ def brute_force_closest_pair(x):
 
     t1 = time.perf_counter()-t0
     logger.debug("""Found minimum distance squared {:10.5e} for pair
-        ({:d},{:d}) with coodinates {} and {} within {:10.5e} s.""".format(
+        ({:d},{:d}) with coordinates {} and {} within {:10.5e} s.""".format(
         mindsq, imin, jmin, x[imin,:], x[jmin,:], t1))
     return mindsq, (x[imin,:], x[jmin,:])
 
@@ -283,7 +283,7 @@ def recursive_closest_pair(x, y):
 
     Returns
     -------
-    float, (ndarray, ndarray): minimum distance squared and coodinate pair
+    float, (ndarray, ndarray): minimum distance squared and coordinate pair
     """
     # t0 = time.perf_counter()
 
@@ -348,7 +348,7 @@ def planar_closest_pair(x):
 
     Returns
     -------
-    float, (ndarray, ndarray): minimum distance squared and coodinates pair
+    float, (ndarray, ndarray): minimum distance squared and coordinates pair
     """
     logger = logging.getLogger(__name__)
     assert isinstance(x, np.ndarray), "np.ndarray expected for x"
@@ -365,7 +365,7 @@ def planar_closest_pair(x):
     # mind = np.sqrt(mindsq)
     t1 = time.perf_counter()-t0
     logger.debug("""Found minimum distance squared {:10.5e} for pair with
-        coodinates {} and {} within {:10.5e} s.""".format(mindsq,pim,pjm,t1))
+        coordinates {} and {} within {:10.5e} s.""".format(mindsq,pim,pjm,t1))
     return mindsq, (pim, pjm)
 
 
@@ -423,7 +423,7 @@ def scipy_distance_based_closest_pair(x):
 
     t1 = time.perf_counter()-t0
     logger.debug("""Found minimum distance squared {:10.5e} for pair
-        ({:d},{:d}) with coodinates {} and {} within {:10.5e} s.""".format(
+        ({:d},{:d}) with coordinates {} and {} within {:10.5e} s.""".format(
             mindsq,imin,jmin,x[imin,:],x[jmin,:],t1))
     return mindsq, (x[imin,:], x[jmin,:])
 
@@ -697,7 +697,7 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
     #                          np.linalg.inv(cell.T), pbc, positions,
     #                          cutoff, numbers)
     # If thhe parameter 'cutoff' is a per-atom value, then it must be a
-    # diamater, not a radius (as wrongly stated within the function's
+    # diameter, not a radius (as wrongly stated within the function's
     # docstring)
     i, j, dxijnorm, dxijvec = ffi.neighbour_list(
         'ijdD', cell_origin, cell, np.linalg.inv(cell.T), [0,0,0],
@@ -705,7 +705,7 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
     # i, j are coordinate point indices, dxijnorm is pairwise distance,
     #   dxvijvec is distance vector
 
-    # nl contains redundnancies, i.e. ij AND ji
+    # nl contains redundancies, i.e. ij AND ji
     # pairs = list(zip(i,j))
     logger.debug("Number of pairs within minimum allowed distance: {:d}"
                  .format(len(i)))
@@ -1081,6 +1081,6 @@ def apply_steric_correction(
     logger.info("    normalized by L = {:.2g}.".format(L))
 
     dT = time.perf_counter() - t0
-    logger.info("Ellapsed time: {:10.5} s.".format(dT))
+    logger.info("Elapsed time: {:10.5} s.".format(dT))
 
     return x1, res

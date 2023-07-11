@@ -58,7 +58,7 @@ def read_molecules_from_lammps_data(fd: FileDescriptor, style="full"):
     return Molecules(
         bonds_connectivity=data["bonds"]["atoms"] - 1,
         bonds_types=data["bonds"]["type"],
-        angles_connectivity=data["angles"]["atoms"] - 1,
+        angles_connectivity=data["angles"]["atoms"][:, (1, 0, 2)] - 1,
         angles_types=data["angles"]["type"],
         dihedrals_connectivity=data["dihedrals"]["atoms"] - 1,
         dihedrals_types=data["dihedrals"]["type"],

@@ -12,6 +12,8 @@ v0.8.0 (not yet released)
 - Removed `contact_mechanics` submodule. Stable alternatives:
   [ContactMechanics](https://github.com/ContactEngineering/ContactMechanics) or
   [Tamaas](https://gitlab.com/tamaas/tamaas)
+- New interface for `ManybodyCalculator`, which simplifies definition of
+  manybody potential and derivatives
 
 v0.7.0 (29Jul21)
 ----------------

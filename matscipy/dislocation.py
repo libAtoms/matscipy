@@ -301,7 +301,8 @@ def make_edge_cyl(alat, C11, C12, C44,
 
 def plot_vitek(dislo, bulk,
                alat=3.16, plot_axes=None, xyscale=10):
-    """Plots vitek map from ase configurations.
+    """
+    Plots vitek map from ase configurations.
 
     Parameters
     ----------
@@ -324,7 +325,6 @@ def plot_vitek(dislo, bulk,
     Returns
     -------
     None
-
     """
     from atomman import load
     from atomman.defect import differential_displacement
@@ -361,8 +361,9 @@ def plot_vitek(dislo, bulk,
 
 def show_NEB_configurations(images, bulk, xyscale=7,
                             show=True, core_positions=None):
-    """Plots Vitek differential displacement maps for the list of images
-       for example along the NEB path.
+    """
+    Plots Vitek differential displacement maps for the list of images
+    for example along the NEB path.
 
     Parameters
     ----------
@@ -381,7 +382,6 @@ def show_NEB_configurations(images, bulk, xyscale=7,
     -------
     figure
         If the show is False else returns None
-
     """
     import matplotlib.pyplot as plt
 
