@@ -33,7 +33,8 @@ docs = [
     "sphinx-rtd-theme",
     "myst_nb",
     "nglview",
-    "numpydoc"
+    "numpydoc",
+    "atomman"
 ]
 
 [project.urls]
