@@ -284,3 +284,6 @@ autodoc_default_options = {
     'inherited-members': True,
     'special-members': '__init__',
 }
+
+myst_enable_extensions = [
+    "dollarmath"]
