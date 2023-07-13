@@ -1,11 +1,7 @@
 ### Content
-* `c2d.py`: Command line interface to `continuous2discrete.py`
 * `pnp.py`: Command line interface to `poisson_boltzmann_distribution.py`
+* `c2d.py`: Command line interface to `continuous2discrete.py`
 * `stericify.py`: Command line interface to `steric_correction.py`
-
-The following assumes you have made these scripts available for execution,
-i.e. by adding this directory to your `PATH`
-or creating suitable symbolic links somewhere else.
 
 ### Usage
 `pnp.py` (Poisson-Nernst-Planck), `c2d.py` (continuous2discrete) and

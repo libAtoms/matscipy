@@ -1,0 +1,40 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+
+jobs:
+  tests:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: install_python
+        run: |
+          sudo apt-get update -qy
+          sudo apt-get install -y python3-dev python3-pip python3-venv libxml2-dev libxslt-dev zlib1g-dev
+          # Upgrade to latest meson and ninja
+          sudo pip install --upgrade meson ninja
+
+      - name: build_c
+        run: |
+          sudo pip install .[test]
+
+      - name: pytest
+        run: |
+          cd tests
+          pytest -v --junitxml=report.xml --durations=20
+
+      - name: report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: "**/report.xml"

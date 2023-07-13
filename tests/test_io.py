@@ -159,6 +159,7 @@ def mols_from_atoms(lammps_data):
 
 def test_read_molecules_from_lammps_data(mols_from_lammps_data):
     data, mols = mols_from_lammps_data
+    data["angles"]["atoms"] = data["angles"]["atoms"][:, (1, 0, 2)]
     assert np.all(data["bonds"] == mols.bonds)
     assert np.all(data["angles"] == mols.angles)
     assert np.all(data["dihedrals"] == mols.dihedrals)
@@ -166,6 +167,7 @@ def test_read_molecules_from_lammps_data(mols_from_lammps_data):
 
 def test_read_molecules_from_atoms(mols_from_atoms):
     data, mols = mols_from_atoms
+    data["angles"]["atoms"] = data["angles"]["atoms"][:, (1, 0, 2)]
     assert np.all(data["bonds"] == mols.bonds)
     assert np.all(data["angles"] == mols.angles)
     assert np.all(data["dihedrals"] == mols.dihedrals)

@@ -105,6 +105,8 @@ else:
 # else:
 from test_dislocation import *
 from test_pressurecoupling import *
+from test_opls import *
+from test_opls_io import *
 
 ###
 

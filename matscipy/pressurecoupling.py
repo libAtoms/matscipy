@@ -1,6 +1,6 @@
 #
 # Copyright 2021 Lars Pastewka (U. Freiburg)
-#           2020, 2022 Thomas Reichenbach (Fraunhofer IWM)
+#           2020, 2022, 2023 Thomas Reichenbach (Fraunhofer IWM)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -24,7 +24,7 @@
 Classes to be used with ASE in order to perform pressure relaxation
 and/or sliding simulations under pressure.
 
-A usage example is found in the example directory.
+A usage example can be found in docs/applications/tribology.ipynb.
 
 Some parts are based on
 L. Pastewka, S. Moser, and M. Moseler, Tribol. Lett. 39, 49 (2010)
@@ -330,20 +330,20 @@ class SlideLogger(object):
     Examples
     --------
     1. For new runs:
-        log_handle = open(logfn, 'w', 1)  # line buffered
-        logger = SlideLogger(log_handle, ...)
-        logger.write_header()
-        integrator.attach(logger)
-        integrator.run(steps_integrate)
+        log_handle = open(logfn, 'w', 1)  # line buffered\n
+        logger = SlideLogger(log_handle, ...)\n
+        logger.write_header()\n
+        integrator.attach(logger)\n
+        integrator.run(steps_integrate)\n
         log_handle.close()
 
     2. For restarts:
-        with open(logfn, 'r') as log_handle:
-            step_offset = SlideLog(log_handle).step[-1]
-        log_handle = open(logfn, 'a', 1)  # line buffered append
-        logger = SlideLogger(log_handle, ..., step_offset=step_offset)
-        integrator.attach(logger)
-        integrator.run(steps_integrate)
+        with open(logfn, 'r') as log_handle:\n
+            step_offset = SlideLog(log_handle).step[-1]\n
+        log_handle = open(logfn, 'a', 1)  # line buffered append\n
+        logger = SlideLogger(log_handle, ..., step_offset=step_offset)\n
+        integrator.attach(logger)\n
+        integrator.run(steps_integrate)\n
         log_handle.close()
     """
 

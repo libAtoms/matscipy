@@ -5,7 +5,6 @@ python_sources = [
     '__init__.py',
     'calculator.py',
     'fitting.py',
-    'molecular_calculator.py',
     'supercell_calculator.py'
 ]
 

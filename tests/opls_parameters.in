@@ -1,0 +1,32 @@
+# the blocks are separated by empty lines
+# comments are allowed
+#
+# Lennard-Jones and Charges
+# Cutoffs-LJ-Coulomb Global cutoffs (A)
+LJ 12.0
+C  15.0
+
+# Element Epsilon(eV) Sigma(A) Charge(e) Reference
+C1 0.001 3.500 -0.010
+H1 0.001 2.500  0.010
+
+# Overide the geometric mixing of Lennard-Jones parameters for
+# specific pairs of particles and optionally the global cutoff
+# LJ-pairs Epsilon(eV) Sigma(A) [Cutoff(A)]
+C1-H1 0.001 3.4 11.0
+
+# Bonds (style harmonic)
+C1-C1 10.0 1.0
+C1-H1 10.0 1.0
+
+# Angles (style harmonic)
+H1-C1-C1 1.0 100.0
+H1-C1-H1 1.0 100.0
+
+# Dihedrals 
+H1-C1-C1-H1 0.00 0.00 0.01 0.00
+
+# Cutoffs 
+C1-C1 1.85
+C1-H1 1.15
+H1-H1 0.0

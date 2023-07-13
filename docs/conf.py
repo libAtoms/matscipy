@@ -42,6 +42,9 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
+    'sphinx.ext.mathjax',
+    'myst_nb',
+    'numpydoc'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -281,3 +284,6 @@ autodoc_default_options = {
     'inherited-members': True,
     'special-members': '__init__',
 }
+
+myst_enable_extensions = [
+    "dollarmath"]
