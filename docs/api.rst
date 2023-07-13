@@ -41,7 +41,7 @@ Analysis tools
    matscipy.neighbours
    matscipy.numerical
    matscipy.rings
-   matscipy.spatial_correlation_functions
+   matscipy.spatial_correlation_function
 
 
 Interatomic potentials
@@ -52,12 +52,15 @@ Interatomic potentials
    :recursive:
 
    matscipy.calculators.calculator
-   matscipy.calculators.pair_potential.PairPotential
-   matscipy.calculators.polydisperse.Polydisperse
-   matscipy.calculators.mcfm.MultiClusterForceMixingPotential
-   matscipy.calculators.eam.EAM
-   matscipy.calculators.ewald.Ewald
-   matscipy.calculators.manybody.Manybody
+   matscipy.calculators.committee
+   matscipy.calculators.eam
+   matscipy.calculators.ewald
+   matscipy.calculators.fitting
+   matscipy.calculators.manybody
+   matscipy.calculators.mcfm
+   matscipy.calculators.pair_potential
+   matscipy.calculators.polydisperse
+   matscipy.calculators.supercell_calculator
 
 
 Utility functions
