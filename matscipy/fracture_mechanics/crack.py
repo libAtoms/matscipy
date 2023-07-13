@@ -570,7 +570,7 @@ class CubicCrystalCrack:
 
     def __init__(self, crack_surface, crack_front, C11=None, C12=None,
                  C44=None, stress_state=PLANE_STRAIN, C=None, Crot=None,
-                 cb=None):
+                 cauchy_born=None):
         """
         Initialize a crack in a cubic crystal with elastic constants C11, C12
         and C44 (or optionally a full 6x6 elastic constant matrix C).
@@ -620,7 +620,7 @@ class CubicCrystalCrack:
         self.crack_surface = crack_surface
         self.crack_front = crack_front
         self.RotationMatrix = A
-        self.cb = cb
+        self.cauchy_born = cauchy_born
 
 
     def k1g(self, surface_energy):
@@ -1063,97 +1063,6 @@ class SinclairCrack:
         return u
 
 
-    #-----------------delete this part from main branch-------------------
-
-    def relax_crack_surface(self):
-        """Relaxes the free surface of the crack in regions II-IV. This is crucial
-        as the unrelaxed surface leads to huge f_{alpha} components which leads to a 
-        strong finite size effect. """
-        self.atoms.set_pbc([False, False, True])
-        self.atoms.calc = self.calc
-
-        self.atoms.info['k'] = self.k
-        self.atoms.info['alpha'] = self.alpha
-        
-        # x = x_cryst + K * u_cle + u
-        self.atoms.positions[:, :] = self.cryst.positions
-        #self.u_cle()[:,1].tofile('uCLEsolution.csv',sep=',')
-        u_cle_solution = self.k * self.u_cle()
-        self.atoms.positions[:, :] += u_cle_solution
-        self.atoms.positions[self.regionI, :] += self.u
-
-        # add vacuum
-        self.atoms.cell = self.cryst.cell
-        self.atoms.cell[0, 0] += self.vacuum
-        self.atoms.cell[1, 1] += self.vacuum
-
-        #clone atoms for relaxing
-        atoms = self.atoms.copy()
-        i = neighbour_list('i', atoms, 12.0) #large cutoff to get the first 2 layers
-        coord = np.bincount(i)
-        np.savetxt('coords.txt',coord)
-        #build a mask for relaxing based on the following criteria:
-        # - the coordination of the atoms must be lower than 0.8*the max coordination
-        # - the atoms x coordinate should lie between rI - cutoff and 
-        #  rI + 2*cutoff (if non extended) and rIII + cutoff/2 if extended.
-        # - the atoms y coordinate should lie between the positive and negative
-        # maximum y Ucle displacement + cutoff
-        coordination_criteria = (coord<(0.8*np.max(coord)))
-        #get the coords of the centre of the cell.
-        mid_cell_x = self.cryst.cell.diagonal()[0] / 2.0
-        mid_cell_y = self.cryst.cell.diagonal()[1] / 2.0
-        if self.extended_far_field:
-            x_criteria = ((atoms.positions[:,0]-mid_cell_x)<-((self.rI)-(2*self.cutoff)))&\
-                (((atoms.positions[:,0]-mid_cell_x)>-((self.rIII)+(self.cutoff/2))))
-        else:
-            x_criteria = ((atoms.positions[:,0]-mid_cell_x)<-((self.rI)-(2*self.cutoff)))&\
-                (((atoms.positions[:,0]-mid_cell_x)>-((self.rI)+((2*self.cutoff)))))
-        y_criteria = ((atoms.positions[:,1]-mid_cell_y)<(np.max(u_cle_solution[:,1])+(2*self.cutoff)))&\
-            ((atoms.positions[:,1]-mid_cell_y)>(-(np.max(u_cle_solution[:,1])+(2*self.cutoff))))
-        
-        
-        #relax_mask = np.logical_and(np.logical_and(x_criteria,y_criteria),coordination_criteria)
-        relax_mask = (np.logical_and(x_criteria,y_criteria))
-
-        #--------output for testing------------
-        atoms.new_array('relax_region', np.zeros(len(atoms), dtype=int))
-        atoms.new_array('coord_criteria', np.zeros(len(atoms), dtype=int))
-        atoms.new_array('x_criteria', np.zeros(len(atoms), dtype=int))
-        atoms.new_array('y_criteria', np.zeros(len(atoms), dtype=int))
-        relax_region = atoms.arrays['relax_region']
-        coord_criteria_arr = atoms.arrays['coord_criteria']
-        x_criteria_arr = atoms.arrays['x_criteria']
-        y_criteria_arr = atoms.arrays['y_criteria']
-        relax_region[relax_mask] = 1
-        coord_criteria_arr[coordination_criteria] = 1
-        x_criteria_arr[x_criteria] = 1
-        y_criteria_arr[y_criteria] = 1
-        print('number of atoms to relax =', len(relax_region[relax_mask]))
-        ase.io.write('relaxed_atom_mask.xyz',atoms)
-        #-----------------------------------------
-
-        print('Relaxing', len(relax_region[relax_mask]),'surface atoms.')
-        #perform relaxation
-        atoms.calc = self.calc
-        atoms.set_constraint(FixAtoms(mask=~relax_mask))
-        opt = PreconLBFGS(atoms)
-        opt.run(fmax=1e-3,steps=25)
-
-        #subtract u_cle and u from the solution
-        atoms.positions -= u_cle_solution
-        atoms.positions[self.regionI, :] -= self.u
-
-        #set the cryst.atom.positions to the solution
-        self.cryst.positions = atoms.positions
-
-        #update the positions of the atoms
-        self.update_atoms()
-
-        #write to file for testing
-        self.write_atoms_to_file()
-
-#------------------------------------------------------------------------
-
     def fit_cle(self, r_fit=20.0, variable_alpha=True, variable_k=True, x0=None,
                 grid=None):
         def residuals(x, mask):
@@ -1214,18 +1123,18 @@ class SinclairCrack:
         self.atoms.positions[:, :] = self.cryst.positions
         self.atoms.positions[:, :] += self.k * self.u_cle()
         self.atoms.positions[self.regionI, :] += self.u
-        if self.crk.cb is not None: #if the crack has a multilattice cauchy-born object
+        if self.crk.cauchy_born is not None: #if the crack has a multilattice cauchy-born object
             #get rotation matrix 
             A = np.transpose(self.crk.RotationMatrix)
             #find shifts
             print('finding shifts.....')
             # very important to pass cryst rather than atoms here as the displacement gradient field
             # is found from the positions of the original atoms, not the deformed atoms
-            shifts = self.crk.cb.predict_shifts(A,self.cryst,\
-                F_func=self.get_deformation_gradient, coordinates='cylind2D',method='lasso',k=self.k)
+            shifts = self.crk.cauchy_born.predict_shifts(A,self.cryst,\
+                F_func=self.get_deformation_gradient, coordinates='cylind2D',method='regression',k=self.k)
             print('done!')
             #apply shifts
-            self.crk.cb.apply_shifts(self.atoms,shifts,mask=self.shiftmask)
+            self.crk.cauchy_born.apply_shifts(self.atoms,shifts,mask=self.shiftmask)
 
 
         # add vacuum
@@ -1245,18 +1154,18 @@ class SinclairCrack:
         # x = x_cryst + K * u_cle + u
         self.atoms.positions[:, :] = self.cryst.positions
         self.atoms.positions[:, :] += self.k * self.u_cle()
-        if self.crk.cb is not None: #if the crack has a multilattice cauchy-born object
+        if self.crk.cauchy_born is not None: #if the crack has a multilattice cauchy-born object
             #get rotation matrix 
             A = np.transpose(self.crk.RotationMatrix)
             #find shifts
             print('finding shifts.....')
             # very important to pass cryst rather than atoms here as the displacement gradient field
             # is found from the positions of the original atoms, not the deformed atoms
-            shifts = self.crk.cb.predict_shifts(A,self.cryst,\
-                F_func=self.get_deformation_gradient, coordinates='cylind2D',method='lasso',k=self.k)
+            shifts = self.crk.cauchy_born.predict_shifts(A,self.cryst,\
+                F_func=self.get_deformation_gradient, coordinates='cylind2D',method='regression',k=self.k)
             print('done!')
             #apply shifts
-            self.crk.cb.apply_shifts(self.atoms,shifts,mask=self.shiftmask)
+            self.crk.cauchy_born.apply_shifts(self.atoms,shifts,mask=self.shiftmask)
         if self.extended_far_field:
             mask = self.regionII|self.regionIII
         else:
@@ -1363,17 +1272,12 @@ class SinclairCrack:
         if self.variable_alpha:
             f_alpha = self.get_crack_tip_force(forces, mask=mask)
             self.f_alpha_correction = 0.0 #self.get_f_alpha_correction()
-            F.append((f_alpha-self.f_alpha_correction)) #ninsert some kind of botched preconditioning.
+            F.append((f_alpha-self.f_alpha_correction))
             print('f_alpha',f_alpha)
-            print('corrected f_alpha',(f_alpha-self.f_alpha_correction))
         if self.variable_k:
             f_k = self.get_k_force(x1, xdot1, ds)
             F.append(f_k)
-            print('f_k', f_k)
 
-        #self.norm_F_vals.append(np.linalg.norm(F,np.inf))
-        #self.F_alpha_vals.append(f_alpha)
-        #self.alpha_vals.append(self.alpha)
         return np.array(F)
 
     def update_precon(self, x, F=None):
@@ -1468,11 +1372,6 @@ class SinclairCrack:
 
         def residuals(x, *args):
             self.set_dofs(x)
-            #self.write_atoms_to_file() #comment out at some point
-            #if self.extended_far_field:
-            #    mask = self.regionII|self.regionIII
-            #else:
-            #    mask = self.regionII
             return self.get_forces(*args)
 
         def cg_objective(x):
@@ -1931,7 +1830,7 @@ class SinclairCrack:
 
             #get strains applied
             A = np.transpose(self.crk.RotationMatrix)
-            E,R = self.crk.cb.evaluate_F_or_E(A,self.cryst,F_func=self.get_deformation_gradient, coordinates='cylind2D',k=self.k)
+            E,R = self.crk.cauchy_born.evaluate_F_or_E(A,self.cryst,F_func=self.get_deformation_gradient, coordinates='cylind2D',k=self.k)
             for i in range(len(crack_atoms)-1):
                 E[i,:,:] = np.transpose(A)@E[i,:,:]@A #transform back to lab frame
             #store values of E
