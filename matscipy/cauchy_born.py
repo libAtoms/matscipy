@@ -323,34 +323,33 @@ class CubicCauchyBorn:
         except FileNotFoundError:
             print('No files found containing model parameters - make sure to call save_taylor() to save the model.')
 
-    def F_3D_from_atoms(
+    def tensor_field_3D_from_atoms(
             self,
             atoms,
-            F_func,
+            func,
             coordinates='cart3D',
             cell=None,
             *args,
             **kwargs):
-        """Generate the 3D deformation gradient tensor field (F) for an atoms
-        object in a given coordinate system.
+        """Generate a 3D tensor field (F or E) for an atoms
+        object in a given coordinate system, using a provided
+        function
 
         Parameters
         ----------
         atoms : ASE atoms object
             Atoms object where atoms sit at the coordinates needed
-            to generate the deformation gradient tensor field
-            from F_func.
-        F_func : Function
-            Function to calculate the deformation gradient tensor field
+            to generate the tensor field from func.
+        func : Function
+            Function to calculate the tensor field
             from a set of coordinates. The system of coordinates that
             the function accepts is given by 'coordinates' and the
             function also accepts anything extra specified in *args
-            and **kwargs. Function must return the deformation
-            gradient field for the atoms in form of a numpy array
-            shape [natoms,ndims,ndims], where F is specified in
-            cartesian coordinates.
+            and **kwargs. Function must return the field for the atoms 
+            in form of a numpy array shape [natoms,ndims,ndims], 
+            where output is specified in cartesian coordinates.
         coordinates: string
-            The coordinates system that F_func accepts. Must
+            The coordinates system that func accepts. Must
             be 'cylind2D', 'cylind3D', 'spherical', 'cart2D', 'cart3D'
         cell : array_like, optional
             An optional argument allowing the user to specify
@@ -358,8 +357,8 @@ class CubicCauchyBorn:
 
         Returns
         -------
-        F3D : array_like
-            The 3D deformation gradient tensor field for all
+        field3D : array_like
+            The 3D tensor field for all
             the atoms in the system, expressed in the lab frame.
         """
         natoms = len(atoms)
@@ -373,11 +372,11 @@ class CubicCauchyBorn:
             cx, cy = sx / 2, sy / 2
             r = np.sqrt((x - cx)**2 + (y - cy)**2)
             theta = np.arctan2((y - cy), (x - cx))
-            F_2D = F_func(r, theta, *args, **kwargs)
+            TF_2D = func(r, theta, *args, **kwargs)
             # pad F into a 3x3 matrix
-            F_3D = (np.zeros([natoms, 3, 3]))
-            F_3D[:, 0:2, 0:2] = F_2D[:, :, :]
-            F_3D[:, 2, 2] = 1
+            TF_3D = (np.zeros([natoms, 3, 3]))
+            TF_3D[:, 0:2, 0:2] = TF_2D[:, :, :]
+            TF_3D[:, 2, 2] = 1
 
         elif coordinates == 'cylind3D':
             x, y, z = atoms.positions[:,
@@ -385,29 +384,29 @@ class CubicCauchyBorn:
             cx, cy, cz = sx / 2, sy / 2, sz / 2
             r = np.sqrt((x - cx)**2 + (y - cy)**2)
             theta = np.arctan2((y - cy), (x - cx))
-            F_3D = F_func(r, theta, z, *args, **kwargs)
+            TF_3D = func(r, theta, z, *args, **kwargs)
 
         elif coordinates == 'spherical':
             raise NotImplementedError
 
         elif coordinates == 'cart2D':
             x, y = atoms.positions[:, 0], atoms.positions[:, 1]
-            F_2D = F_func(x, y, *args, **kwargs)
-            F_3D = (np.zeros([natoms, 3, 3]))
-            F_3D[:, 0:2, 0:2] = F_2D[:, :, :]
-            F_3D[:, 2, 2] = 1
+            TF_2D = func(x, y, *args, **kwargs)
+            TF_3D = (np.zeros([natoms, 3, 3]))
+            TF_3D[:, 0:2, 0:2] = TF_2D[:, :, :]
+            TF_3D[:, 2, 2] = 1
 
         elif coordinates == 'cart3D':
             x, y, z = atoms.positions[:,
                                       0], atoms.positions[:, 1], atoms.positions[:, 2]
-            F_3D = F_func(x, y, z, *args, **kwargs)
+            TF_3D = func(x, y, z, *args, **kwargs)
 
         else:
             print(
                 'Coordinate system should be cart2D, cart3D, cylind2D, cylind3D, spherical')
             raise NotImplementedError
 
-        return F_3D
+        return TF_3D
 
     def evaluate_F_or_E(
             self,
@@ -483,54 +482,173 @@ class CubicCauchyBorn:
             See
             https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor.
         """
-        natoms = len(atoms)
-
-        # in the case that only the F function is provided
         if F_func is not None:
             if E_func is not None:
                 print('Need to only provide one of E or F, not both')
                 raise ValueError
-            F_3D = self.F_3D_from_atoms(
-                atoms,
-                F_func,
-                cell=cell,
-                coordinates=coordinates,
-                *args,
-                **kwargs)
-
-            # transform F from lab frame to lattice frame,
-            # find right handed stretch tensor U and rotation matrix
-            # R via polar decomposition, then use these to find
-            # green-lagrange strain tensors E.
-
-            Fprime = np.zeros_like(F_3D)
-            R = np.zeros_like(F_3D)
-            U = np.zeros_like(F_3D)
-            E = np.zeros_like(F_3D)
-            for i in range(natoms):
-                Fprime[i, :, :] = A @ F_3D[i, :, :] @ np.transpose(A)
-                R[i, :, :], U[i, :, :] = polar(Fprime[i, :, :])
-                E[i, :, :] = 0.5 * \
-                    (U[i, :, :] @ (np.transpose(U[i, :, :])) - np.eye(3))
-
-        # in the case that only the E function is provided, find and rotate the
-        # Green-Lagrange strain tensor field directly
+            return self.evaluate_F(A,atoms,F_func,cell=cell,coordinates=coordinates,*args,**kwargs)
         elif E_func is not None:
-            x, y, z = atoms.positions[:,
-                                      0], atoms.positions[:, 1], atoms.positions[:, 2]
-            E_3D_lab = E_func(x, y, z, *args, **kwargs)
-            E = np.zeros_like(E_3D_lab)
-            R = np.zeros_like(E_3D_lab)
-            # for a specified strain, R is just I for all atoms
-            for i in range(natoms):
-                E[i, :, :] = A @ E_3D_lab[i, :, :] @ np.transpose(A)
-                R[i, :, :] = np.eye(3)
-
+            return self.evaluate_E(A,atoms,E_func,cell=cell,coordiantes=coordinates,*args,**kwargs)
         else:
             print('Error, please provide one of E or F')
             raise ValueError
+    
+    def evaluate_F(
+            self,
+            A,
+            atoms,
+            F_func,
+            cell=None,
+            coordinates='cart3D',
+            *args,
+            **kwargs):
+        """Get the deformation gradient tensor field for a system of atoms in the lab frame.
+        From this, find the Green-Lagrange strain tensor field in the lattice frame.
 
-        return E, R
+        Parameters
+        ----------
+        A : 3x3 numpy array, floats
+            rotation matrix of the form [x^T,y^T,z^T],
+            where x^T,y^T,z^T are normalised column vectors
+            of the lab frame directions expressed
+            in terms of the crystal lattice directions.
+        atoms : ASE atoms object
+            Atoms object where atoms sit at the coordinates needed to
+            generate the deformation gradient tensor field from F_func.
+        F_func : Function
+            Function to calculate the deformation gradient tensor field
+            from a set of atomic coordinates. The system of coordinates
+            that the function accepts is given by 'coordinates' and the
+            function also accepts anything extra specified in *args and
+            **kwargs. Function must return the deformation gradient field
+            for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+            where F is specified in cartesian coordinates. The returned
+            tensor field must be in the lab frame.
+        cell : array_like, optional
+            An optional argument allowing the user to specify
+            the cell dimensions which will be used to find the
+            centre of the cell. If not provided, the centre
+            of the cell will be found from the atoms object provided.
+        coordinates: string
+            Specifies the coordinate system that the function
+            (F_func or E_func) provided accepts. The coordinates
+            of the atoms in atoms will be converted to this
+            coordinate system before being passed to the function
+            as a vector. Default is 3D cartesian coordinates.
+            Other options are cart2D, cart3D, cylind2D, cylind3D,
+            spherical
+        Returns
+        -------
+        E : array_like
+            The 3D Green-Lagrange tensor field for all the
+            atoms in the system, expressed in the lattice frame.
+        R : array_like
+            The rotation tensor component of the deformation
+            gradient tensor field applied to the system,
+            according to the polar decomposition F = RU.
+            See
+            https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor.
+        """
+        
+        natoms = len(atoms)
+        F_3D = self.tensor_field_3D_from_atoms(
+            atoms,
+            func=F_func,
+            cell=cell,
+            coordinates=coordinates,
+            *args,
+            **kwargs)
+
+        # transform F from lab frame to lattice frame,
+        # find right handed stretch tensor U and rotation matrix
+        # R via polar decomposition, then use these to find
+        # green-lagrange strain tensors E.
+
+        Fprime = np.zeros_like(F_3D)
+        R = np.zeros_like(F_3D)
+        U = np.zeros_like(F_3D)
+        E = np.zeros_like(F_3D)
+        for i in range(natoms):
+            Fprime[i, :, :] = A @ F_3D[i, :, :] @ np.transpose(A)
+            R[i, :, :], U[i, :, :] = polar(Fprime[i, :, :])
+            E[i, :, :] = 0.5 * \
+                (U[i, :, :] @ (np.transpose(U[i, :, :])) - np.eye(3))
+        return E,R
+
+    def evaluate_E(
+            self,
+            A,
+            atoms,
+            E_func,
+            cell=None,
+            coordinates='cart3D',
+            *args,
+            **kwargs):
+        """Get the Green-Lagrange strain tensor field for a system of atoms in the lab frame
+        directly from a provided function.
+
+        Parameters
+        ----------
+        A : 3x3 numpy array, floats
+            rotation matrix of the form [x^T,y^T,z^T],
+            where x^T,y^T,z^T are normalised column vectors
+            of the lab frame directions expressed
+            in terms of the crystal lattice directions.
+        atoms : ASE atoms object
+            Atoms object where atoms sit at the coordinates needed to
+            generate the deformation gradient tensor field from F_func.
+        E_func : Function
+            Function to calculate the Green-Lagrange tensor field
+            from a set of atomic coordinates. The system of coordinates
+            that the function accepts is given by 'coordinates'
+            and the function also accepts anything extra specified
+            in *args and **kwargs. Function must return the
+            Green-Lagrange tensor field for the atoms in form of a
+            numpy array shape [natoms,ndims,ndims], where E is
+            specified in cartesian coordinates, and the returned
+            tensor field is in the lab frame.
+        cell : array_like, optional
+            An optional argument allowing the user to specify
+            the cell dimensions which will be used to find the
+            centre of the cell. If not provided, the centre
+            of the cell will be found from the atoms object provided.
+        coordinates: string
+            Specifies the coordinate system that the function
+            (F_func or E_func) provided accepts. The coordinates
+            of the atoms in atoms will be converted to this
+            coordinate system before being passed to the function
+            as a vector. Default is 3D cartesian coordinates.
+            Other options are cart2D, cart3D, cylind2D, cylind3D,
+            spherical
+        Returns
+        -------
+        E : array_like
+            The 3D Green-Lagrange tensor field for all the
+            atoms in the system, expressed in the lattice frame.
+        R : array_like
+            The rotation tensor component of the deformation
+            gradient tensor field applied to the system,
+            according to the polar decomposition F = RU.
+            See
+            https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor.
+        """
+
+        # in the case that only the E function is provided, find and rotate the
+        # Green-Lagrange strain tensor field directly
+        E_3D_lab = self.tensor_field_3D_from_atoms(
+            atoms,
+            func=E_func,
+            cell=cell,
+            coordinates=coordinates,
+            *args,
+            **kwargs)
+        E = np.zeros_like(E_3D_lab)
+        R = np.zeros_like(E_3D_lab)
+        # for a specified strain, R is just I for all atoms
+        for i in range(natoms):
+            E[i, :, :] = A @ E_3D_lab[i, :, :] @ np.transpose(A)
+            R[i, :, :] = np.eye(3)
+        return E,R
 
     def predict_shifts(
             self,
