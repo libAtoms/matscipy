@@ -34,7 +34,9 @@ python_sources = [
     'socketcalc.py',
     'spatial_correlation_function.py',
     'surface.py',
-    'visualise.py'
+    'visualise.py',
+    'cauchy_born.py',
+    'surface_reconstruction.py'
 ]
 
 # Install pure Python
