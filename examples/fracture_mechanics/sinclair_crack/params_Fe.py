@@ -25,7 +25,8 @@ crack_surface = [1, 0, 0]
 crack_front = [0, 0, 1]
 
 # crack surface energy
-from matscipy.fracture_mechanics.clusters import find_surface_energy
+#from matscipy.fracture_mechanics.clusters import find_surface_energy
+from matscipy.surface import find_surface_energy
 surface_energy = find_surface_energy(el,calc,a0,'bcc100',unit='0.1J/m^2')[0]
 
 # simulation control
