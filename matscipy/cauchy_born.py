@@ -345,8 +345,8 @@ class CubicCauchyBorn:
             from a set of coordinates. The system of coordinates that
             the function accepts is given by 'coordinates' and the
             function also accepts anything extra specified in *args
-            and **kwargs. Function must return the field for the atoms 
-            in form of a numpy array shape [natoms,ndims,ndims], 
+            and **kwargs. Function must return the field for the atoms
+            in form of a numpy array shape [natoms,ndims,ndims],
             where output is specified in cartesian coordinates.
         coordinates: string
             The coordinates system that func accepts. Must
@@ -486,13 +486,27 @@ class CubicCauchyBorn:
             if E_func is not None:
                 print('Need to only provide one of E or F, not both')
                 raise ValueError
-            return self.evaluate_F(A,atoms,F_func,cell=cell,coordinates=coordinates,*args,**kwargs)
+            return self.evaluate_F(
+                A,
+                atoms,
+                F_func,
+                cell=cell,
+                coordinates=coordinates,
+                *args,
+                **kwargs)
         elif E_func is not None:
-            return self.evaluate_E(A,atoms,E_func,cell=cell,coordiantes=coordinates,*args,**kwargs)
+            return self.evaluate_E(
+                A,
+                atoms,
+                E_func,
+                cell=cell,
+                coordiantes=coordinates,
+                *args,
+                **kwargs)
         else:
             print('Error, please provide one of E or F')
             raise ValueError
-    
+
     def evaluate_F(
             self,
             A,
@@ -549,7 +563,7 @@ class CubicCauchyBorn:
             See
             https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor.
         """
-        
+
         natoms = len(atoms)
         F_3D = self.tensor_field_3D_from_atoms(
             atoms,
@@ -573,7 +587,7 @@ class CubicCauchyBorn:
             R[i, :, :], U[i, :, :] = polar(Fprime[i, :, :])
             E[i, :, :] = 0.5 * \
                 (U[i, :, :] @ (np.transpose(U[i, :, :])) - np.eye(3))
-        return E,R
+        return E, R
 
     def evaluate_E(
             self,
@@ -648,7 +662,7 @@ class CubicCauchyBorn:
         for i in range(natoms):
             E[i, :, :] = A @ E_3D_lab[i, :, :] @ np.transpose(A)
             R[i, :, :] = np.eye(3)
-        return E,R
+        return E, R
 
     def predict_shifts(
             self,
