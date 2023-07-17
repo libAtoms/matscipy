@@ -9,7 +9,7 @@ from itertools import permutations
 
 from scipy.stats.qmc import LatinHypercube, scale
 
-
+import ase
 class RegressionModel:
     """Simple regression model object wrapper for np.linalg.lstsq for
     predicting shifts."""
@@ -27,7 +27,7 @@ class RegressionModel:
         values : array_like
             value of function to be fitted evaluated at each data point
         """
-        self.model = np.linalg.lstsq(phi, values)[0]
+        self.model = np.linalg.lstsq(phi, values,rcond=None)[0]
 
     def predict(self, phi):
         """Evaluate the simple least-squares regression model.
@@ -117,7 +117,7 @@ class CubicCauchyBorn:
 
         # generate a copy of the atoms and stretch the cell, scaling atoms.
         # get forces before and after and compare these
-        atoms_copy.set_calculator(self.calc)
+        atoms_copy.calc = self.calc
         f_before = atoms_copy.get_forces()
         cell = atoms_copy.get_cell()
         scaled_cell = U @ cell
@@ -210,16 +210,14 @@ class CubicCauchyBorn:
             unitcell_copy = unitcell.copy()
             unitcell_copy.calc = self.calc
             cell = unitcell_copy.get_cell()
-            cell_rescale = x[:, :] @ cell
+            cell_rescale = np.transpose(x[:, :] @ cell)
             unitcell_copy.set_cell(cell_rescale, scale_atoms=True)
-            initial_shift[:] = unitcell_copy.get_positions(
-            )[1] - unitcell_copy.get_positions()[0]
+            initial_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
 
             # relax cell
             opt = LBFGS(unitcell_copy, logfile=None)
             opt.run(fmax=1e-10)
-            relaxed_shift[:] = unitcell_copy.get_positions(
-            )[1] - unitcell_copy.get_positions()[0]
+            relaxed_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
 
             # get shift
             shift_diff = relaxed_shift - initial_shift
@@ -500,7 +498,7 @@ class CubicCauchyBorn:
                 atoms,
                 E_func,
                 cell=cell,
-                coordiantes=coordinates,
+                coordinates=coordinates,
                 *args,
                 **kwargs)
         else:
@@ -646,7 +644,7 @@ class CubicCauchyBorn:
             See
             https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor.
         """
-
+        natoms = len(atoms)
         # in the case that only the E function is provided, find and rotate the
         # Green-Lagrange strain tensor field directly
         E_3D_lab = self.tensor_field_3D_from_atoms(
@@ -729,10 +727,8 @@ class CubicCauchyBorn:
             A, atoms, F_func=F_func, E_func=E_func,
             coordinates=coordinates, *args, **kwargs)
         natoms = len(atoms)
-
         # get the cauchy born shifts unrotated
         shifts_no_rr = self.evaluate_shift_model(E, method=method)
-
         shifts = np.zeros_like(shifts_no_rr)
 
         # rotate the cauchy shifts both by the rotation induced by F
@@ -1319,7 +1315,6 @@ class CubicCauchyBorn:
 
         # this is just the symmetric stretch tensor, exactly what we need.
         x = U
-
         initial_shift = np.zeros([3])
         relaxed_shift = np.zeros([3])
 
@@ -1327,11 +1322,10 @@ class CubicCauchyBorn:
         unitcell_copy = unitcell.copy()
         unitcell_copy.calc = self.calc
         cell = unitcell_copy.get_cell()
-        cell_rescale = x[:, :] @ cell
+        cell_rescale = np.transpose(x[:, :] @ cell)
         unitcell_copy.set_cell(cell_rescale, scale_atoms=True)
         initial_shift[:] = unitcell_copy.get_positions()[1] - \
             unitcell_copy.get_positions()[0]
-
         # relax cell
         opt = LBFGS(unitcell_copy, logfile=None)
         opt.run(fmax=1e-10)
