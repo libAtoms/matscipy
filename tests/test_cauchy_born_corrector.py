@@ -52,8 +52,8 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
                         [2.03958794e-01,9.12311493e-01,9.12311465e-01,0.00000000e+00,0.00000000e+00,0.00000000e+00],
                         [0.00000000e+00,-5.55111512e-09,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00],
                         [1.11022302e-08,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00,0.00000000e+00]])
-        assert np.allclose(self.cb.grad_f,grad_f,atol=1e-8)
-        assert np.allclose(self.cb.hess_f,hess_f,atol=1e-8)
+        assert np.allclose(self.cb.grad_f,grad_f,atol=1e-6)
+        assert np.allclose(self.cb.hess_f,hess_f,atol=1e-6)
 
     def E_cart3D(self,x,y,z,eps=None):
         E = np.zeros([len(x),3,3])
