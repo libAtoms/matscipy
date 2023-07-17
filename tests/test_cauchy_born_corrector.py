@@ -92,7 +92,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
         U = np.zeros_like(E)
         for i in range(np.shape(E)[0]):
-            U[i,:,:] = sqrtm((2*E[i, :, :])+np.eye(3))
+            U[i, :, :] = sqrtm((2*E[i, :, :])+np.eye(3))
         return U  # with no rigid rotation, U is F
 
     def F_cylind3D(self, r, theta, z, eps=None):
@@ -105,7 +105,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
         U = np.zeros_like(E)
         for i in range(np.shape(E)[0]):
-            U[i,:,:] = sqrtm((2*E[i, :, :])+np.eye(3))
+            U[i, :, :] = sqrtm((2*E[i, :, :])+np.eye(3))
         return U  # with no rigid rotation, U is F
 
     def model_prediction(self, dirs, eps, method, E_func=None, F_func=None, coordinates='cart3D', atol=1.5e-5, returnvals=False):
@@ -175,7 +175,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         for i in range(len(funcs)):
             self.model_prediction(
                 dir_vals[i], eps_vals[i], method='taylor', F_func=funcs[i], coordinates=coords[i], atol=1e-7)
-    
+
     def test_fit_regression_model(self):
         self.cb.initial_regression_fit()
 
@@ -196,7 +196,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         for i in range(len(funcs)):
             self.model_prediction(
                 dir_vals[i], eps_vals[i], method='regression', E_func=funcs[i], coordinates=coords[i], atol=1e-6)
-    
+
     def test_regression_model_F(self):
         self.cb.initial_regression_fit()
         eps_vals = [np.array([0, 0, 0, 0.0001, 0, 0]),
