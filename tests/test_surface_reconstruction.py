@@ -15,7 +15,7 @@ from matscipy.calculators.eam import EAM
 import matscipytest
 
 
-class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
+class TestSurfaceReconstructionMap(matscipytest.MatSciPyTestCase):
     """
     Tests of Cauchy-Born shift prediction in the case of multilattices.
 
