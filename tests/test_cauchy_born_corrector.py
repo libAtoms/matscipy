@@ -1,6 +1,5 @@
 import unittest
 import numpy as np
-from matscipy.cauchy_born import CubicCauchyBorn
 from ase.build import bulk
 from ase.lattice.cubic import Diamond
 from ase.optimize.precon import PreconLBFGS
