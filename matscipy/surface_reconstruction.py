@@ -7,8 +7,7 @@ from ase.constraints import FixAtoms
 
 from matscipy.cauchy_born import CubicCauchyBorn
 from ase.optimize.precon import PreconLBFGS
-import ase.io
-
+import ase
 
 class SurfaceReconstruction:
     """Object for mapping and applying a surface reconstruction in simple and multi-lattices.
@@ -19,7 +18,7 @@ class SurfaceReconstruction:
     can be mapped to the internal crack surfaces of an atoms object.
     """
 
-    def __init__(self, el, a0, calc, directions, surf_dir, lattice='diamond'):
+    def __init__(self, el, a0, calc, directions, surf_dir, lattice='diamond',multilattice=False):
         """Parameters
         ----------
         el : string
@@ -34,8 +33,8 @@ class SurfaceReconstruction:
         surf_dir : int
             Direction which is normal to the free surface. Can be 0, 1 or 2 for
             lab x, lab y or lab z (as defined by directions).
-        lattice : string
-            Crystal lattice type.
+        lattice : ASE ase.lattice.cubic function
+            Callable function which can be used to generate the crystal.
         """
         # directions is a list of 3 vectors specifiying the surface of interest
         # in the orientation specified by the problem. surf_dir says which axis is free surface
@@ -45,7 +44,7 @@ class SurfaceReconstruction:
         self.calc = calc
         self.directions = directions
         self.surf_dir = surf_dir
-
+        self.inter_planar_dist = a0/np.linalg.norm(directions[surf_dir])
         # build the rotation matrix from the directions
         A = np.zeros([3, 3])
         for i, direction in enumerate(directions):
@@ -53,12 +52,13 @@ class SurfaceReconstruction:
             A[:, i] = direction / np.linalg.norm(direction)
         self.A = A  # rotation matrix
         self.eval_cb = None
-        if lattice == 'diamond':
-            self.lattice = Diamond
+        self.lattice = lattice
+        self.cb = None
+        if multilattice:
             self.cb = CubicCauchyBorn(
-                self.el, self.a0, self.calc, lattice=Diamond)
+                self.el, self.a0, self.calc, lattice=self.lattice)
 
-    def map_surface(self, fmax=0.0001, layers=6):
+    def map_surface(self, fmax=0.0001, layers=6, cutoff=10, shift=0):
         """Map the relaxation of the crystal surface a certain number of layers deep.
         Parameters
         ----------
@@ -66,9 +66,40 @@ class SurfaceReconstruction:
             Force tolerance for relaxation
         layers : int
             Number of layers deep to map the free surface
+        shift : float
+            Amount to shift the bulk structure before the surface is mapped
+            such that the top layer of surface is physically meaningful. One
+            use case of this would be to adjust the top layer of atoms being mapped
+            in diamond such that it matches the top layer of atoms seen on the cleavage
+            plane.
         """
-        # set the number of atomic layers to model
-        height = 30
+        #build a single cell to determine how many atomic surface
+        #layers there are in a single unit cell made by ASE
+        single_cell = self.lattice(
+            directions=self.directions,
+            size=[1,1,1],
+            symbol=self.el,
+            latticeconstant=self.a0,
+            pbc=(1, 1, 1))
+        #ase.io.write(f'{self.directions[self.surf_dir]}_unitcell.xyz',single_cell)
+
+        if self.cb is not None:
+            # for a multilattice, get number of layers by just looking
+            # at one of the sublattices
+            self.cb.set_sublattices(single_cell, self.A)
+            n_layer_per_cell = len(np.unique(single_cell.get_positions()[self.cb.lattice1mask][:,self.surf_dir].round(decimals=6)))
+        else:
+            #otherwise, just look at all the layers directly
+            n_layer_per_cell = len(np.unique(single_cell.get_positions()[:,self.surf_dir].round(decimals=6)))
+
+
+        #print('nlayer per cell', n_layer_per_cell)
+        #ase.io.write('single_surface_cell.xyz',single_cell)
+ 
+        # set the number of atomic unit cells to map
+        # as twice the number of layers to map + a number of layers
+        # equal to the potential cutoff for fixing
+        height = 2*int(layers/n_layer_per_cell) + int(np.round(cutoff/self.inter_planar_dist))
         size = [1, 1, 1]
         size[self.surf_dir] *= height
         self.layers = layers
@@ -81,6 +112,14 @@ class SurfaceReconstruction:
             symbol=self.el,
             latticeconstant=self.a0,
             pbc=(1, 1, 1))
+        
+        #shift the cell slightly and wrap to stop dodgy surfaces when vacuum added
+        #as well as to add on any user-defined shift
+        shift_vec = np.zeros([3])
+        shift_vec[self.surf_dir] += 0.01 + shift
+        bulk.positions += shift_vec
+        bulk.wrap()
+
         cell = bulk.get_cell()
         # vacuum along self.surf_dir axis (surface normal)
         cell[self.surf_dir, :] *= 2
@@ -90,20 +129,22 @@ class SurfaceReconstruction:
         # get the mask for the bottom surface and fix it
         pos_before = slab.get_positions()
         # fix bottom atoms to stop lower surface reconstruction
-        mask = pos_before[:, self.surf_dir] < 30
+        mask = pos_before[:, self.surf_dir] < cutoff
         slab.set_constraint(FixAtoms(mask=mask))
-        ase.io.write('initial_slab.xyz', slab)
         slab.calc = self.calc
+        #print('fbefore',slab.get_forces())
+        #ase.io.write('0_slab.xyz',slab)
 
         # run an optimisation to relax the surface
         opt_slab = PreconLBFGS(slab)
         opt_slab.run(fmax=fmax)
-
+        #ase.io.write('1_slab.xyz',slab)
         pos_after = slab.get_positions()
 
         # measure the shift between the final position and the intial position
         pos_shift = pos_after - pos_before
-
+        #print('fafter',slab.get_forces())
+        
         # for a multi-lattice:
         if self.cb is not None:
             # if this is a multi-lattice
@@ -112,9 +153,9 @@ class SurfaceReconstruction:
             # different relaxations happen for each multilattice atom in each
             # atomic layer near the surface
             self.cb.set_sublattices(bulk, self.A)
-            # in a multilattice, there are 2 atomic layers per unit cell, so
-            # set the height to double the atomic layers
-            total_layers = 2 * height
+
+            #split the full lattice into the two multilattices
+            total_layers = n_layer_per_cell*height
             n_atoms_per_layer = int(len(slab) / total_layers)
 
             # get the indices of the atoms based on how close they are to the
@@ -158,22 +199,33 @@ class SurfaceReconstruction:
                 self.relaxation_array_lattice2[layer,
                                                :] = pos_shifts_lattice2[0, :]
 
+
         else:
-            # for a non-multilattice #need to look at this ngl
-            total_layers = height
-            n_atoms_per_layer = int(len(slab) / height)
+            # for a non-multilattice
+            # get the total number of in the surface from the number of layers per cell
+            total_layers = n_layer_per_cell*height
+            n_atoms_per_layer = int(len(slab) / total_layers)
+            #print(n_atoms_per_layer)
+            #print(len(slab))
+            #print(pos_shift)
+            # get the indices of the atoms sorted in height order 
             sorted_surf_indices = np.argsort(pos_before[:, self.surf_dir])
-            surf_layer_list = np.zeros([height, n_atoms_per_layer], dtype=int)
-            for i in range(height):
+
+            # split these into layers and save them to an array.
+            # each layer holds the indices of the atoms it contains [note - these are the indices of the array
+            # pos_shift[] - not pos_shift]
+            surf_layer_list = np.zeros([total_layers, n_atoms_per_layer], dtype=int)
+            for i in range(total_layers):
                 surf_layer_list[i, :] = sorted_surf_indices[i *
                                                             n_atoms_per_layer:((i + 1) * n_atoms_per_layer)]
-
+            #print(surf_layer_list)
             self.inter_surf_dist = np.abs(
-                pos_before[surf_layer_list[1, :]][0, surf_dir] - pos_before[surf_layer_list[0, :]][0, surf_dir])
+                pos_before[surf_layer_list[1, :]][0, self.surf_dir] - pos_before[surf_layer_list[0, :]][0, self.surf_dir])
             self.relaxation_array = np.zeros([layers, 3])
             for layer in range(layers):
-                pos_shifts_by_layer = pos_shift[surf_layer_list[layer, :]]
+                pos_shifts_by_layer = pos_shift[surf_layer_list[total_layers - layer - 1, :]]
                 self.relaxation_array[layer, :] = pos_shifts_by_layer[0, :]
+            #print(self.relaxation_array)
 
     def identify_layers(
             self,
@@ -316,6 +368,7 @@ class SurfaceReconstruction:
         # This finds the layers of atoms that need shifting and applies the
         # surface shift accordingly.
         self.eval_cb = cb
+        #print(self.eval_cb)
         if self.eval_cb is not None:
             layer_mask_set_lattice1, layer_mask_set_lattice2 = self.identify_layers(
                 atoms, surface_coords, xlim=xlim, ylim=ylim, zlim=zlim, search_dir=search_dir, atoms_for_cb=atoms_for_cb)
@@ -351,4 +404,4 @@ class SurfaceReconstruction:
                 shift = self.relaxation_array[layer, :]
                 shift[self.surf_dir] = (-search_dir) * shift[self.surf_dir]
                 atoms.positions[:, :][layer_mask_set[:, layer]
-                                      ] += (-search_dir) * self.relaxation_array
+                                      ] += shift
