@@ -26,12 +26,12 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
     def setupmultilattice(self):
         el = 'Si'  # chemical element
         unitcell = Diamond(el, latticeconstant=5.43, size=[1, 1, 1],
-                        directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        #model = "c_v3.yace"
-        #d2_table = "d2.table"
-        #cmds = ['pair_style hybrid/overlay pace table linear 10000',
-        #'pair_coeff * * pace c_v3.yace C', 'pair_coeff * * table d2.table D2 9.0']
-        #calc = LAMMPSlib(amendments=["mass 1 12.101"],lmpcmds = cmds,log_file='test.log',keep_alive=True)
+                           directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        # model = "c_v3.yace"
+        # d2_table = "d2.table"
+        # cmds = ['pair_style hybrid/overlay pace table linear 10000',
+        # 'pair_coeff * * pace c_v3.yace C', 'pair_coeff * * table d2.table D2 9.0']
+        # calc = LAMMPSlib(amendments=["mass 1 12.101"],lmpcmds = cmds,log_file='test.log',keep_alive=True)
         calc = Manybody(**TersoffBrenner(Erhart_PRB_71_035211_Si))
         unitcell.calc = calc
         ecf = ExpCellFilter(unitcell)
@@ -45,18 +45,20 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
 
     def test_surface_mapping_multilattice(self):
         self.setupmultilattice()
-        dir_vals = [[[1, 1, 0], [-1, 1, 0],[0,0,1]],
-                    [[1, 1, 1], [-2, 1, 1],[0,-1,1]]]
-        surf_dirs = [0,1,2]
+        dir_vals = [[[1, 1, 0], [-1, 1, 0], [0, 0, 1]],
+                    [[1, 1, 1], [-2, 1, 1], [0, -1, 1]]]
+        surf_dirs = [0, 1, 2]
         for dirs in dir_vals:
             for surf_dir in surf_dirs:
-                #print(f'testing relaxation of {dirs[surf_dir]} surface')
-                sr = SurfaceReconstruction(self.el,self.a0,self.calc,dirs,surf_dir,lattice=Diamond,multilattice=True)
-                sr.map_surface(fmax=0.0005,shift=0)
-                self.check_surface_mapping_multilattice(sr,dirs,Diamond,surf_dir)
-    
-    def check_surface_mapping_multilattice(self,sr,directions,lattice,surf_dir,shift=0):
-        cb = CubicCauchyBorn(self.el,self.a0,self.calc,lattice=lattice)
+                # print(f'testing relaxation of {dirs[surf_dir]} surface')
+                sr = SurfaceReconstruction(
+                    self.el, self.a0, self.calc, dirs, surf_dir, lattice=Diamond, multilattice=True)
+                sr.map_surface(fmax=0.0005, shift=0)
+                self.check_surface_mapping_multilattice(
+                    sr, dirs, Diamond, surf_dir)
+
+    def check_surface_mapping_multilattice(self, sr, directions, lattice, surf_dir, shift=0):
+        cb = CubicCauchyBorn(self.el, self.a0, self.calc, lattice=lattice)
 
         size = [1, 1, 1]
         size[surf_dir] *= 20
@@ -64,43 +66,47 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         shift_vec = np.zeros([3])
         shift_vec[surf_dir] += 0.01 + shift
 
-        bulk = lattice(directions=directions, size=size, symbol=self.el, latticeconstant=self.a0, pbc=(1,1,1))
+        bulk = lattice(directions=directions, size=size,
+                       symbol=self.el, latticeconstant=self.a0, pbc=(1, 1, 1))
         calc = self.calc
         bulk.positions += 0.01+shift
         bulk.wrap()
 
         cell = bulk.get_cell()
-        cell[surf_dir,:] *=2 # vacuum along surface axis (surface normal)
+        cell[surf_dir, :] *= 2  # vacuum along surface axis (surface normal)
         slab = bulk.copy()
-        slab.set_cell(cell,scale_atoms=False)
+        slab.set_cell(cell, scale_atoms=False)
         pos = slab.get_positions()
 
         sorted_surf_indices = np.argsort(pos[:, surf_dir])
-         
-        #apply the surface reconstruction to the top surface only
-        surface_atom = np.argmax(pos[:,surf_dir])
-        surface_coords = pos[surface_atom,:]+np.array([0.01,0.01,0.01])
-        
+
+        # apply the surface reconstruction to the top surface only
+        surface_atom = np.argmax(pos[:, surf_dir])
+        surface_coords = pos[surface_atom, :]+np.array([0.01, 0.01, 0.01])
+
         slab.set_calculator(calc)
         initial_force = slab.get_forces()
-        #ase.io.write(f'{directions[surf_dir]}_before.xyz',slab)
-        sr.apply_surface_shift(slab,surface_coords,cb=cb,xlim=None,ylim=None,zlim=None,search_dir=-1,atoms_for_cb=bulk)
+        # ase.io.write(f'{directions[surf_dir]}_before.xyz',slab)
+        sr.apply_surface_shift(slab, surface_coords, cb=cb, xlim=None,
+                               ylim=None, zlim=None, search_dir=-1, atoms_for_cb=bulk)
         final_force = slab.get_forces()
-        #ase.io.write(f'{directions[surf_dir]}_after.xyz',slab)
+        # ase.io.write(f'{directions[surf_dir]}_after.xyz',slab)
 
-        #get the atoms nearest to the top surface
-        #apply the surface reconstruction to the bottom surface
+        # get the atoms nearest to the top surface
+        # apply the surface reconstruction to the bottom surface
         natoms = len(slab)
-        maxfbefore = np.max(np.abs(initial_force[sorted_surf_indices[int(natoms/2):natoms]]))
-        #print('max force before:',maxfbefore)
-        maxfafter = np.max(np.abs(final_force[sorted_surf_indices[int(natoms/2):natoms]]))
-        #print('max force after:',maxfafter)
-        assert maxfafter<(maxfbefore/10)
+        maxfbefore = np.max(
+            np.abs(initial_force[sorted_surf_indices[int(natoms/2):natoms]]))
+        # print('max force before:',maxfbefore)
+        maxfafter = np.max(
+            np.abs(final_force[sorted_surf_indices[int(natoms/2):natoms]]))
+        # print('max force after:',maxfafter)
+        assert maxfafter < (maxfbefore/10)
 
     def setupsinglelattice(self):
         el = 'Au'  # chemical element
         unitcell = FaceCenteredCubic(el, latticeconstant=4.07, size=[1, 1, 1],
-                        directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+                                     directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         calc = EAM('Au-Grochola-JCP05.eam.alloy')
         unitcell.calc = calc
         ecf = ExpCellFilter(unitcell)
@@ -113,56 +119,62 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
 
     def test_surface_mapping_single_lattice(self):
         self.setupsinglelattice()
-        dir_vals = [[[1, 1, 0], [-1, 1, 0],[0,0,1]],
-                    [[1, 1, 1], [-2, 1, 1],[0,-1,1]]]
-        surf_dirs = [0,1,2]
+        dir_vals = [[[1, 1, 0], [-1, 1, 0], [0, 0, 1]],
+                    [[1, 1, 1], [-2, 1, 1], [0, -1, 1]]]
+        surf_dirs = [0, 1, 2]
         for dirs in dir_vals:
             for surf_dir in surf_dirs:
                 print(f'testing relaxation of {dirs[surf_dir]} surface')
-                sr = SurfaceReconstruction(self.el,self.a0,self.calc,dirs,surf_dir,lattice=FaceCenteredCubic)
-                sr.map_surface(fmax=0.0005,shift=0,layers=20)
-                self.check_surface_mapping_single_lattice(sr,dirs,FaceCenteredCubic,surf_dir)
-    
-    def check_surface_mapping_single_lattice(self,sr,directions,lattice,surf_dir,shift=0):
+                sr = SurfaceReconstruction(
+                    self.el, self.a0, self.calc, dirs, surf_dir, lattice=FaceCenteredCubic)
+                sr.map_surface(fmax=0.0005, shift=0, layers=20)
+                self.check_surface_mapping_single_lattice(
+                    sr, dirs, FaceCenteredCubic, surf_dir)
+
+    def check_surface_mapping_single_lattice(self, sr, directions, lattice, surf_dir, shift=0):
         size = [1, 1, 1]
         size[surf_dir] *= 20
 
         shift_vec = np.zeros([3])
         shift_vec[surf_dir] += 0.01 + shift
 
-        bulk = lattice(directions=directions, size=size, symbol=self.el, latticeconstant=self.a0, pbc=(1,1,1))
+        bulk = lattice(directions=directions, size=size,
+                       symbol=self.el, latticeconstant=self.a0, pbc=(1, 1, 1))
         calc = self.calc
         bulk.positions += 0.01+shift
         bulk.wrap()
 
         cell = bulk.get_cell()
-        cell[surf_dir,:] *=2 # vacuum along surface axis (surface normal)
+        cell[surf_dir, :] *= 2  # vacuum along surface axis (surface normal)
         slab = bulk.copy()
-        slab.set_cell(cell,scale_atoms=False)
+        slab.set_cell(cell, scale_atoms=False)
         pos = slab.get_positions()
 
         sorted_surf_indices = np.argsort(pos[:, surf_dir])
-         
-        #apply the surface reconstruction to the top surface only
-        surface_atom = np.argmax(pos[:,surf_dir])
-        surface_coords = pos[surface_atom,:]+np.array([0.01,0.01,0.01])
-        
+
+        # apply the surface reconstruction to the top surface only
+        surface_atom = np.argmax(pos[:, surf_dir])
+        surface_coords = pos[surface_atom, :]+np.array([0.01, 0.01, 0.01])
+
         slab.set_calculator(calc)
         initial_force = slab.get_forces()
-        #ase.io.write(f'{directions[surf_dir]}0.xyz',slab)
-        sr.apply_surface_shift(slab,surface_coords,xlim=None,ylim=None,zlim=None,search_dir=-1)
+        # ase.io.write(f'{directions[surf_dir]}0.xyz',slab)
+        sr.apply_surface_shift(slab, surface_coords,
+                               xlim=None, ylim=None, zlim=None, search_dir=-1)
         final_force = slab.get_forces()
-        #ase.io.write(f'{directions[surf_dir]}1.xyz',slab)
+        # ase.io.write(f'{directions[surf_dir]}1.xyz',slab)
 
-        #get the atoms nearest to the top surface
-        #apply the surface reconstruction to the bottom surface
+        # get the atoms nearest to the top surface
+        # apply the surface reconstruction to the bottom surface
         natoms = len(slab)
-        maxfbefore = np.max(np.abs(initial_force[sorted_surf_indices[int(natoms/2):natoms]]))
-        print('max force before:',maxfbefore)
-        maxfafter = np.max(np.abs(final_force[sorted_surf_indices[int(natoms/2):natoms]]))
-        print('max force after:',maxfafter)
-        assert maxfafter<(maxfbefore/10)
-        
-        
+        maxfbefore = np.max(
+            np.abs(initial_force[sorted_surf_indices[int(natoms/2):natoms]]))
+        print('max force before:', maxfbefore)
+        maxfafter = np.max(
+            np.abs(final_force[sorted_surf_indices[int(natoms/2):natoms]]))
+        print('max force after:', maxfafter)
+        assert maxfafter < (maxfbefore/10)
+
+
 if __name__ == '__main__':
     unittest.main()
