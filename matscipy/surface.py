@@ -26,6 +26,7 @@ import functools
 
 import numpy as np
 from numpy.linalg import norm, inv
+from ase import units
 
 def gcd(a, b):
     """Calculate the greatest common divisor of a and b"""
@@ -327,11 +328,10 @@ def find_surface_energy(symbol,calc,a0,surface,size=(8,1,1),vacuum=10,fmax=0.000
     if unit == 'ASE':
         return [gamma_ase,'ase_units']
     else:
-        from ase import units
         gamma_SI = (gamma_ase / units.J ) * (units.m)**2
         if unit =='J/m^2':
-            return [gamma_SI,'J/m^2']
+            return gamma_SI
         elif unit == '0.1J/m^2':
-            return [10*gamma_SI,'0.1J/m^2'] # units required for the fracture code
+            return 10*gamma_SI # units required for the fracture code
         else:
             print('Error: Unsupported unit of surface energy.')
