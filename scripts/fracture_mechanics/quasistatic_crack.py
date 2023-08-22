@@ -76,6 +76,7 @@ from matscipy import parameter
 from matscipy.logger import screen
 
 from setup_crack import setup_crack
+from ase.optimize.precon import PreconLBFGS
 
 ###
 
@@ -167,7 +168,7 @@ for i, ( k1, tip_dx, tip_dy ) in enumerate(zip(k1_list, tip_dx_list,
         # Optimize atoms in center
         a.set_constraint(ase.constraints.FixAtoms(mask=boundary_mask))
         logger.pr('Optimizing positions...')
-        opt = ase.optimize.FIRE(a)
+        opt = PreconLBFGS(a)
         opt.run(fmax=fmax)
         logger.pr('...done. Converged within {0} steps.' \
                   .format(opt.get_number_of_steps()))
