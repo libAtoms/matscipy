@@ -48,10 +48,14 @@ class CommitteeUncertainty(Calculator):
     def calculate(self, atoms=None, properties=['energy', 'forces', 'stress'], system_changes=all_changes):
         """Calculates committee (mean) values and variances."""
 
+        # ACEHAL compatibility: Ignore ACEHAL explicit requests for committee_energy etc
+        properties = [p for p in properties if "committee" not in p]
+
         logger.info(f'Calculating properties {properties} with committee')
         super().calculate(atoms, properties, system_changes)
 
         property_committee = {k_i: [] for k_i in properties}
+        self.results_extra = {}
 
         for cm_i in self.committee.members:
             cm_i.calculator.calculate(atoms=atoms, properties=properties, system_changes=system_changes)
@@ -62,6 +66,12 @@ class CommitteeUncertainty(Calculator):
         for p_i in properties:
             self.results[p_i] = np.mean(property_committee[p_i], axis=0)
             self.results[f'{p_i}_uncertainty'] = np.sqrt(np.var(property_committee[p_i], ddof=1, axis=0))
+
+            # Compatibility with ACEHAL Bias Calculator
+            # https://github.com/ACEsuit/ACEHAL/blob/main/ACEHAL/bias_calc.py
+            self.results_extra[f'{p_i}_committee'] = property_committee[p_i]
+            self.results_extra[f'err_{p_i}'] = self.results[f'{p_i}_uncertainty']
+            self.results_extra[f'err_{p_i}_MAE'] = np.average([np.abs(comm - self.results[p_i]) for comm in property_committee[p_i]])
 
             if self.committee.is_calibrated_for(p_i):
                 self.results[f'{p_i}_uncertainty'] = self.committee.scale_uncertainty(self.results[f'{p_i}_uncertainty'], p_i)
