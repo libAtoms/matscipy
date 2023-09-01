@@ -290,7 +290,7 @@ class GammaSurface():
 
     def plot_gamma_surface(self, ax=None):
         '''
-        Produce a matplotlib plot of the gamma surface energy, from the data gathered in self.generate_images and self.get_gamma_surface_energy
+        Produce a matplotlib plot of the gamma surface energy, from the data gathered in self.generate_images and self.get_surface_energioes
 
         Returns a matplotlib fig and ax object
         '''
@@ -311,4 +311,42 @@ class GammaSurface():
 
         my_ax.set_title("(" + " ".join(self.surf_directions["z"].astype(str)) + ") Gamma Surface\nSurface Separation = {:0.2f} A".format(self.surface_separation))
 
+        return fig, my_ax
+
+class StackingFault(GammaSurface):
+    '''
+    Class for stacking fault-specific generation & plotting
+    '''
+
+    def generate_images(self, n, z_replications=1, vert_strain=0):
+        '''
+        Generate gamma surface images on an (n) line
+        n: int
+            Number of images
+        z_replications: int
+            Number of supercell copies in z (increases separation between periodic surfaces)
+        vert_strain: float
+            Percentage strain to apply in z direction (0.1 = +10% strain)
+        '''
+        return super().generate_images(1, n, z_replications, vert_strain)
+    
+    def plot_gamma_surface(self, ax=None):
+        '''
+        Produce a matplotlib plot of the stacking fault energy, from the data gathered in self.generate_images and self.get_surface_energy
+
+        Returns a matplotlib fig and ax object
+        '''
+        if ax is None:
+
+            fig, my_ax = plt.subplots()
+
+        else:
+            my_ax = ax
+            fig = my_ax.get_figure()
+
+        my_ax.plot(np.arange(self.ny)/self.ny, self.Es[0, :])
+        my_ax.set_xlabel("Position along path")
+        my_ax.set_ylabel("Energy Density (eV/A**2)")
+        title = f"({' '.join(self.surf_directions["z"].astype(str))}) Stacking Fault\n" + "Surface Separation = {:0.2f} A".format(self..surface_separation)
+        my_ax.set_title(title)
         return fig, my_ax
