@@ -170,7 +170,8 @@ class GammaSurface():
                 d4 = d4 / gcd  # Collapse euivalence of EG [1, 1, 1], [2, 2, 2] as basis vectors
                 vecs.append(d4)
 
-        vec = np.unique(vecs)
+        vecs = np.array(vecs)
+        vec = np.unique(vecs, axis=0)
         return vec
 
     def generate_images(self, nx, ny, z_replications=1, vert_strain=0.0):
@@ -347,6 +348,6 @@ class StackingFault(GammaSurface):
         my_ax.plot(np.arange(self.ny)/self.ny, self.Es[0, :])
         my_ax.set_xlabel("Position along path")
         my_ax.set_ylabel("Energy Density (eV/A**2)")
-        title = f"({' '.join(self.surf_directions["z"].astype(str))}) Stacking Fault\n" + "Surface Separation = {:0.2f} A".format(self..surface_separation)
+        title = "(" + ' '.join(self.surf_directions["z"].astype(str)) + ") Stacking Fault\n" + "Surface Separation = {:0.2f} A".format(self.surface_separation)
         my_ax.set_title(title)
         return fig, my_ax
