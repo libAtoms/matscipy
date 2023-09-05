@@ -64,6 +64,9 @@ authors:
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "2,8"
+  - name: Thomas Rocke
+    orcid: 0000-0002-4612-9112
+    affiliation: 3
 affiliations:
   - name: Aix-Marseille Université, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
     index: 1
@@ -106,7 +109,7 @@ We point out that other generic multi-scale coupling packages exist. Examples of
 
 Within materials science, the package has different application domains:
 
-- **Elasticity.** Solids respond to small external loads through a reversible elastic response. The strength of the response is characterized by the elastic moduli. `matscipy.elasticity` implements functions for computing elastic moduli from small deformation that consider potential symmetries of the underlying atomic system, in particular for crystals. `matscipy` also implements analytic calculation of elastic moduli for some interatomic potentials, described in more detail below. The computation of elastic moduli is a prerequisite for multi-scale modelling of materials, as they are the most basic parameters of continuum material models. `matscipy` was used to study finite-pressure elastic constants and structural stability in crystals [@Griesser2023crystal] and glasses [@Griesser2023glass].
+- **Elasticity.** Solids respond to small external loads through a reversible elastic response. The strength of the response is characterized by the elastic moduli. `matscipy.elasticity` implements functions for computing elastic moduli from small deformation that consider potential symmetries of the underlying atomic system, in particular for crystals. The implementation also includes estimates of uncertainty on elastic moduli - either from a least-squares error, or from a Bayesian treatment if stress uncertainty is supplied. `matscipy` also implements analytic calculation of elastic moduli for some interatomic potentials, described in more detail below. The computation of elastic moduli is a prerequisite for multi-scale modelling of materials, as they are the most basic parameters of continuum material models. `matscipy` was used to study finite-pressure elastic constants and structural stability in crystals [@Griesser2023crystal] and glasses [@Griesser2023glass].
 
 - **Plasticity.** For large loads, solids can respond with irreversible deformation. One form of irreversibility is plasticity, that is carried by extended defects, the dislocations, in crystals. The module `matscipy.dislocation` implements tools for studying structure and movement of dislocations. Construction and analysis of model atomic systems is implemented for compact and dissociated screw, as well as edge dislocations in cubic crystals. The implementation supports ideal straight as well as kinked dislocations. Some of the dislocation functionality requires the `atomman` and/or `OVITO` packages as optional dependencies [@AtomMan;@Stukowski2009]. The module was employed in a study of interaction of impurities with screw dislocations in tungsten [@Grigorev2020;@Grigorev2023]. 
 
