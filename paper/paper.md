@@ -45,6 +45,9 @@ authors:
   - name: Thomas Reichenbach
     orcid: 0000-0001-7477-6248
     affiliation: 5
+  - name: Thomas Rocke
+    orcid: 0000-0002-4612-9112
+    affiliation: 3
   - name: Lakshmi Shenoy
     orcid: 0000-0001-5760-3345
     affiliation: 3
@@ -64,9 +67,6 @@ authors:
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: "2,8"
-  - name: Thomas Rocke
-    orcid: 0000-0002-4612-9112
-    affiliation: 3
 affiliations:
   - name: Aix-Marseille Université, CNRS, CINaM UMR 7325, Campus de Luminy, 13288 Marseille, France
     index: 1
