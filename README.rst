@@ -12,7 +12,7 @@ useful routines for:
 - Elastic properties
 
 In addition to domain-specific routines, it also implements a set of
-general-purpose, low-level utilies:
+general-purpose, low-level utilities:
 
 - Efficient neighbour lists
 - Atomic strain
