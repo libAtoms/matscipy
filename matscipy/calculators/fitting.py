@@ -40,20 +40,21 @@ import ase.optimize
 from ase.units import GPa,J,m
 
 import scipy
-scipy_v = scipy.__version__
 
-if int(scipy_v.split('.')[1]) <= 14 : 
-    from scipy.optimize import minimize, leastsq, anneal, brute
-else :
-    # scipy.optimize.anneal decprecated from version 0.14.0, documentation advise to use scipy.optimize.basinhopping instead
-    from scipy.optimize import minimize, leastsq, brute
-    from scipy.signal import argrelextrema
-    
+from scipy.optimize import minimize, leastsq, brute
+from scipy.signal import argrelextrema
+
+try:
+    from scipy.optimize import anneal
+except ImportError:
+    # FIXME! scipy.optimize.anneal decprecated from version 0.14.0, documentation advise to use scipy.optimize.basinhopping instead
+    pass
+
 
 try:
     from openopt import GLP
     have_openopt = True
-except:
+except ImportError:
     have_openopt = False
 
 ###

@@ -203,6 +203,12 @@ if quippy is not None:
                                              verbose=False, graphics=False)
             self.assertArrayAlmostEqual(C/units.GPa, self.C_ref_relaxed, tol=0.2)
 
+        def testtriclinic_relaxed_assumed_err(self):
+            C, C_err = fit_elastic_constants(self.at0, 'triclinic',
+                                             optimizer=FIRE, fmax=self.fmax,
+                                             verbose=False, graphics=False, stress_err=0.05/self.at0.get_volume())
+            self.assertArrayAlmostEqual(C/units.GPa, self.C_ref_relaxed, tol=0.2)
+
 if __name__ == '__main__':
     unittest.main()
 

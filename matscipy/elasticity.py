@@ -725,7 +725,7 @@ def generate_strained_configs(at0, symmetry='triclinic', N_steps=5, delta=1e-2):
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimizer=None,
-                          verbose=True, graphics=False, logfile=None, **kwargs):
+                          verbose=True, graphics=False, logfile=None, stress_err=None, grad_scale=100.0*units.GPa, intercept_scale=5.0*units.GPa, **kwargs):
     """
     Compute elastic constants by linear regression of stress vs. strain
 
@@ -760,6 +760,12 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
     logfile : bool
         Log file to write optimizer output to. Default None (i.e. suppress
         output).
+    stress_err : float
+        Assumed error on each stress measurement, in eV/A**2
+    grad_scale : float
+        Prior assumption of scale of elastic constants in eV/A**2 (default 100GPa)
+    intercept_scale : float
+        Prior assumption of scale of intercept in eV/A**2 (default 5GPa)
     **kwargs : dict
         Additional arguments to pass to `optimizer.run()` method e.g. `fmax`.
 
@@ -793,13 +799,54 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
     if graphics:
         import matplotlib.pyplot as plt
 
-    def do_fit(index1, index2, stress, strain, patt):
+    def do_fit(index1, index2, stress, strain, patt, stress_err, grad_scale, intercept_scale):
+        def blr_linregress(x, y, y_sig, sigma_m, sigma_c):
+            '''
+            Use analytical blr to solve y = m * x + c given x, y, and assumed errors
+
+            y_sig : float | array
+                Assumed variance of each observation.
+            sigma_m : float
+                Prior variance of the gradient
+            sigma_c : float
+                Prior variance of the intercept
+            '''
+            # Design Matrix
+            X = np.array([x, np.ones(x.shape)]).T
+
+            # Prior Precision Matrix
+            Gamma = np.diag([1/sigma_m**2, 1/sigma_c**2])
+
+            # Likelihood Precision
+            if type(y_sig == float):
+                Lambda = np.eye(y.shape[0]) / y_sig**2
+            else:
+                Lambda = np.diag(1/y_sig ** 2)
+
+            # Solve for posterior
+            posterior_variance= X.T @ Lambda @ X + Gamma
+            
+            # 2x2, so direct inverse not unstable 
+            posterior_precision = np.linalg.inv(posterior_variance)
+
+            grad, intercept = posterior_precision @ X.T @ Lambda @ y
+
+            stderr = posterior_precision[0, 0] # Only care about gradient variance
+
+            r = np.corrcoef(x, y)[0, 1] # Correlation Coefficient
+
+            return grad, intercept, r, stderr
+
         if verbose:
             print('Fitting C_%d%d' % (index1+1, index2+1))
             print('Strain %r' % strain[:,index2])
             print('Stress %r GPa' % (stress[:,index1]/units.GPa))
 
-        if scipy_stats is not None:
+
+        if stress_err is not None:
+            cijFitted, intercept, r, stderr = blr_linregress(strain[:,index2],stress[:,index1], stress_err, grad_scale, intercept_scale)
+            tt = None
+        elif scipy_stats is not None:
             cijFitted, intercept,r,tt,stderr = scipy_stats.linregress(strain[:,index2],stress[:,index1])
         else:
             cijFitted, intercept = np.polyfit(strain[:,index2],stress[:,index1], 1)
@@ -808,7 +855,7 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
         if verbose:
             # print info about the fit
             print('Cij (gradient) / GPa    :    ',cijFitted/units.GPa)
-            if scipy_stats is not None:
+            if scipy_stats is not None or stress_err is not None:
                 print('Error in Cij / GPa      :    ', stderr/units.GPa)
                 if abs(r) > 0.9:
                     print('Correlation coefficient :    ',r)
@@ -899,7 +946,8 @@ def fit_elastic_constants(a, symmetry='triclinic', N_steps=5, delta=1e-2, optimi
             fitted, err = do_fit(index1, index2,
                                  stress[pattern_index,:,:],
                                  strain[pattern_index,:,:],
-                                 pattern_index)
+                                 pattern_index, 
+                                 stress_err, grad_scale, intercept_scale)
 
             index = abs(Cij_map_sym[(index1, index2)])
 
