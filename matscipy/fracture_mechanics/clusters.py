@@ -126,18 +126,26 @@ def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_reg
     return cryst
 
 def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
-            lattice=None, shift=None):
+            cb=None, lattice=None, shift=None,switch_sublattices=False):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
     directions = [ third_dir, crack_surface, crack_front ]
     if np.linalg.det(directions) < 0:
         third_dir = -third_dir
     directions = [ third_dir, crack_surface, crack_front ]
+    A = np.zeros([3,3])
+    for i, direc in enumerate(directions):
+        A[:,i] = direc/np.linalg.norm(direc)
+    #print('FINAL DIRECTIONS', directions)
     unitcell = lattice(el, latticeconstant=a0, size=[1, 1, 1], 
-                       directions=directions  )
+                       directions=directions)
+    print('cell',unitcell.get_cell())
     if shift is not None:
         unitcell.translate(np.dot(shift, unitcell.cell))
-
+    if cb is not None:
+        cb.set_sublattices(unitcell,A)
+        if switch_sublattices:
+            cb.switch_sublattices(unitcell)
     # Center cluster in unit cell
     x, y, z = (unitcell.get_scaled_positions()%1.0).T
     x += (1.0-x.max()+x.min())/2 - x.min()
