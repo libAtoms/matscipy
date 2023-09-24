@@ -1491,7 +1491,8 @@ class SinclairCrack:
                                 ds_aggressiveness=2,
                                 opt_method='krylov',
                                 cos_alpha_min=0.9,parallel=False,
-                                pipe_output=None,data_queue=None):
+                                pipe_output=None,data_queue=None,
+                                kill_confirm_queue=None):
         import h5py
         assert self.variable_k  # only makes sense if K can vary
 
@@ -1606,6 +1607,7 @@ class SinclairCrack:
                     if kill == 1:
                         #kill the process
                         i = N
+                        kill_confirm_queue.put(os.getpid())
                 else:
                     #put data on queue
                     data_queue.put([os.getpid(),x2,direction],block=False)
