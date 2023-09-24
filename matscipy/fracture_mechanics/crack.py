@@ -44,7 +44,7 @@ from matscipy.elasticity import (rotate_elastic_constants,
                                  Voigt_6_to_full_3x3_stress)
 from matscipy.surface import MillerDirection, MillerPlane
 from matscipy.neighbours import neighbour_list
-from matscipy.fracture_mechanics.solvers import ode12r
+from matscipy.optimize import ode12r
 
 import matplotlib.pyplot as plt
 from ase.optimize.precon import Exp, PreconLBFGS
@@ -736,7 +736,7 @@ class SinclairCrack:
     def __init__(self, crk, cryst, calc, k, alpha=0.0, vacuum=6.0,
                  variable_alpha=True, variable_k=False,
                  alpha_scale=None, k_scale=None,
-                 extended_far_field=False,rI=0.0,rIII=0.0,cutoff=0.0):
+                 extended_far_field=False, rI=0.0, rIII=0.0, cutoff=0.0):
         """
 
         Parameters
@@ -1700,9 +1700,9 @@ class SinclairCrack:
             mid_cell_x = self.cryst.cell.diagonal()[0] / 2.0
             mid_cell_y = self.cryst.cell.diagonal()[1] / 2.0
             I_positions = self.cryst.get_positions()[I]
-            x_criteria = ((I_positions[:,0]-mid_cell_x)<0.5)
-            y_criteria = ((I_positions[:,1]-mid_cell_y)<((1.5*self.cutoff)))&\
-            ((I_positions[:,1]-mid_cell_y)>(-1.5*self.cutoff))
+            x_criteria = ((I_positions[:,0] - mid_cell_x) < 0.5)
+            y_criteria = ((I_positions[:,1] - mid_cell_y) < ((1.5 * self.cutoff)))&\
+            ((I_positions[:,1] - mid_cell_y) > (-1.5 * self.cutoff))
             surface_mask_full = np.logical_and(x_criteria,y_criteria)
             bulk_mask_full = np.logical_not(surface_mask_full)
             surface_mask = np.logical_and(surface_mask_full,mask)
