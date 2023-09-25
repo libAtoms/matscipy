@@ -28,13 +28,16 @@ python_sources = [
     'numerical.py',
     'numpy_tricks.py',
     'opls.py',
+    'optimize.py',
     'precon.py',
     'pressurecoupling.py',
     'rings.py',
     'socketcalc.py',
     'spatial_correlation_function.py',
     'surface.py',
-    'visualise.py'
+    'visualise.py',
+    'cauchy_born.py',
+    'surface_reconstruction.py'
 ]
 
 # Install pure Python
