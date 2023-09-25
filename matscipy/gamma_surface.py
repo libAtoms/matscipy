@@ -53,8 +53,7 @@ class GammaSurface():
         def _cut_and_rotate(ats, surface_direction, y_dir):
             # Cut such that surface_direction lies in z
             at = cut(ats.copy(), a=surface_direction, b=y_dir)
-            rotate(at, [1, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 0])
-            rotate(at, at.cell[0, :], [1, 0, 0], at.cell[1, :], [0, 1, 0])
+            rotate(at, at.cell[2, :].copy(), np.array([0, 0, 1]), at.cell[1, :].copy(), np.array([0, 1, 0]))
             return at
 
         self._base_ats = ats.copy()
@@ -106,6 +105,16 @@ class GammaSurface():
                 "x": np.linalg.solve(np.array([_cell_x_dir, _cell_y_dir, surface_direction]).T, _x_dir),
                 "y": np.linalg.solve(np.array([_cell_x_dir, _cell_y_dir, surface_direction]).T, _y_dir)
             }
+
+            x_sgn = np.sign(self.mapping["x"])[0]
+            y_sgn = np.sign(self.mapping["y"])[0]
+
+            if x_sgn < 0:
+                self.mapping["x"] *= x_sgn
+
+            if y_sgn < 0:
+                self.mapping["y"] *= y_sgn
+                
             self.cut_at = cand_ats
         
         self.surf_directions = {
@@ -167,7 +176,7 @@ class GammaSurface():
             for j in range(-depth, depth):
                 d4 = i * d2 + j * d3
                 gcd = np.gcd.reduce(np.abs(d4))
-                d4 = d4 / gcd  # Collapse euivalence of EG [1, 1, 1], [2, 2, 2] as basis vectors
+                d4 = d4 / gcd  # Collapse equivalence of EG [1, 1, 1], [2, 2, 2] as basis vectors
                 vecs.append(d4)
 
         vecs = np.array(vecs)
@@ -194,10 +203,10 @@ class GammaSurface():
 
         cell = base_struct.cell[:, :]
 
-        self.x_disp = self.mapping["x"] @ cell[0, :] * self.mapping["x"]
-        self.y_disp = self.mapping["y"] @ cell[1, :] * self.mapping["y"]
+        self.x_disp = cell[:, :] @ self.mapping["x"]
+        self.y_disp = cell[:, :] @ self.mapping["y"]
 
-        self.surface_area = np.linalg.norm(np.cross(self.x_disp, self.y_disp))
+        self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
         self.surface_separation = np.abs(cell[2, 2])
                 
         dx = self.x_disp / nx
@@ -205,9 +214,12 @@ class GammaSurface():
 
         images = []
 
+        self.offsets = []
+
         for i in range(nx):
             for j in range(ny):
                 offset = i * dx + j * dy
+                self.offsets.append(offset)
             
                 new_cell = cell.copy()
                 new_cell[2, 2] *= (1.0 + vert_strain)
