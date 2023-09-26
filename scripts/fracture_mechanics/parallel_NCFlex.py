@@ -665,12 +665,15 @@ if __name__ == '__main__':
     ds_min = parameter('ds_min', 1e-6)
     ds_aggressiveness=parameter('ds_aggressiveness', 1.25)
     opt_method=parameter('opt_method', 'krylov')
-    cb = parameter('cb', None)
+    cb = parameter('cb', 'None')
     rI = parameter('r_I')
     rIII = parameter('r_III')
     cutoff = parameter('cutoff')
     dk = parameter('dk', 1e-4)
     dalpha = parameter('dalpha', 1e-1)
+
+    if cb == 'None':
+        cb = None
     
     cryst = params.cryst.copy()
 
