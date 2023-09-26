@@ -201,6 +201,13 @@ def get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids):
     print('alpha not covered',alpha_not_covered)
     random_alph_start = np.random.uniform(0,alpha_not_covered)
     print('random alpha start', random_alph_start)
+
+    if len(starts) == 0:
+        #if nothing has been started yet, just guess alpha as random_alph_start
+        alpha=random_alph_start
+        K = np.random.uniform(K_range[0],K_range[1])
+        return [K,alpha]
+
     #now sort the starts
     si = np.argsort(starts)
     alpha_assigned = False
@@ -404,8 +411,6 @@ def main(K_range,alpha_range):
         if num_new_searches>0:
             for i in range(num_new_searches):
                 print('LAUNCHING A NEW SEARCH')
-                #FIXME: In the case that num_new_searches>1 (will barely ever happen)
-                #this will start two searches in identical places.
                 new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids)
                 print('INITIAL K, ALPHA OF NEW SEARCH:',new_K,new_alpha)
                 worker_pool.apply_async(search, args=(new_K,new_alpha,sc_dict))
