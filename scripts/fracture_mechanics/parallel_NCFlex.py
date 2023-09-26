@@ -692,13 +692,13 @@ if __name__ == '__main__':
     closest_x = xpos[closest_y_mask&xmask]
 
     #sort these atoms and find the largest x gap
-
+    print('closest_x', closest_x)
     sorted_x = np.sort(closest_x)
-
+    print('sorted_x', sorted_x)
     diffs = np.diff(sorted_x)
-
+    print('diffs',diffs)
     alpha_period = np.sum(np.unique(np.round(np.diff(sorted_x),decimals=4)))
-
+    print('alpha_period',alpha_period)
     # setup the crack
     crk = CubicCrystalCrack(parameter('crack_surface'),
                     parameter('crack_front'),
