@@ -11,7 +11,7 @@ class GammaSurface():
     '''
     A class for generating gamma surface/generalised stacking fault images & plots
     '''
-    def __init__(self, ats, surface_direction, y_dir=None, compress=True):
+    def __init__(self, ats, surface_direction, y_dir=None):
         '''
         Initialise by cutting and rotating the input structure.
 
@@ -23,9 +23,6 @@ class GammaSurface():
         y_dir: np.array | None
             Basis vector (in miller indeces) to form "y" axis, which should be orthogonal to surface_direction
             If None, a suitable y_dir will be found automatically
-        compress: bool
-            Search for "compressed" representation of surface where number of atoms
-            is minimised
 
         Useful attributes:
         self.cut_at
@@ -71,52 +68,16 @@ class GammaSurface():
 
         _x_dir = np.cross(_y_dir, surface_direction)
 
-        if not compress:
-            _cell_y_dir = _y_dir
-            _cell_x_dir = _x_dir
+    
+        _cell_y_dir = _y_dir
+        _cell_x_dir = _x_dir
 
-            self.mapping = {
-                "x" : np.array([1, 0, 0]),
-                "y" : np.array([0, 1, 0])
-            }
-            self.cut_at = _cut_and_rotate(self._base_ats, surface_direction, _y_dir)
-        
-        else:
-            # Find linear combinations of _x_dir and _y_dir
-            d4_vecs = self._find_new_axes(_y_dir, _x_dir)
-
-            # Test each comb to find smallest representation
-            at_len = np.inf
-            for vec in d4_vecs:
-                test_cut = _cut_and_rotate(self._base_ats, surface_direction, vec)
-                if len(test_cut) < at_len:
-                    at_len = len(test_cut)
-                    cand_ats = test_cut.copy()
-                    _cell_y_dir = vec
-
-            _cell_x_dir = np.cross(_cell_y_dir, surface_direction)
-
-            if y_dir is None:  # No user specified y_dir, use most compressed direction instead
-                _y_dir = _cell_y_dir
-                _x_dir = _cell_x_dir
-
-            # Define mapping between cell coord system andngamma surface coord system
-            self.mapping = {
-                "x": np.linalg.solve(np.array([_cell_x_dir, _cell_y_dir, surface_direction]).T, _x_dir),
-                "y": np.linalg.solve(np.array([_cell_x_dir, _cell_y_dir, surface_direction]).T, _y_dir)
-            }
-
-            x_sgn = np.sign(self.mapping["x"])[0]
-            y_sgn = np.sign(self.mapping["y"])[0]
-
-            if x_sgn < 0:
-                self.mapping["x"] *= x_sgn
-
-            if y_sgn < 0:
-                self.mapping["y"] *= y_sgn
-                
-            self.cut_at = cand_ats
-        
+        self.mapping = {
+            "x" : np.array([1, 0, 0]),
+            "y" : np.array([0, 1, 0])
+        }
+        self.cut_at = _cut_and_rotate(self._base_ats, surface_direction, _y_dir)
+    
         self.surf_directions = {
             "x": _x_dir,
             "y": _y_dir,
@@ -156,32 +117,6 @@ class GammaSurface():
         
         # No nice integer vector found!
         raise RuntimeError(f"Could not automatically find an integer basis from basis vector {d1}")
-
-    def _find_new_axes(self, d2, d3, depth=3):
-        '''
-        Search for new orthogonal vectors d4, d5 via:
-
-        d4 = a_1 * d2 + a_2 * d3
-        d5 = cross(d4, d1)
-
-        depth controls the maximum allowed magnitudes of a_1, a_2
-
-        '''
-
-        vecs = []
-
-        for i in range(-depth, depth):
-            if i==0:
-                continue
-            for j in range(-depth, depth):
-                d4 = i * d2 + j * d3
-                gcd = np.gcd.reduce(np.abs(d4))
-                d4 = d4 / gcd  # Collapse equivalence of EG [1, 1, 1], [2, 2, 2] as basis vectors
-                vecs.append(d4)
-
-        vecs = np.array(vecs)
-        vec = np.unique(vecs, axis=0)
-        return vec
 
     def generate_images(self, nx, ny, z_replications=1, vert_strain=0.0):
         '''
@@ -233,7 +168,7 @@ class GammaSurface():
         self.images = images
 
     def relax_images(self, calculator, ftol=1E-3, optimiser=BFGSLineSearch, constrain_atoms=True,
-                     cell_relax=True, **kwargs):
+                     cell_relax=True, logfile=None, **kwargs):
         '''
         Utility function to relax gamma surface images using calculator
 
@@ -265,7 +200,7 @@ class GammaSurface():
 
             cell_filter = UnitCellFilter(image, mask=cell_constraint_mask)
             image.calc = calculator
-            opt = optimiser(cell_filter)
+            opt = optimiser(cell_filter, logfile=logfile)
             opt.run(ftol, **kwargs)
 
     def get_surface_energies(self, calculator, relax=False, **relax_kwargs):
@@ -281,6 +216,12 @@ class GammaSurface():
 
         Returns (nx, ny) array of energy densities (energy per unit surface area) for the gamma surface, in eV/A**2
         '''
+
+        cell = self.images[0].cell[:, :]
+        self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
+        self.surface_separation = np.abs(cell[2, 2])
+
+
         Es = np.zeros((self.nx, self.ny))
 
         if relax:
