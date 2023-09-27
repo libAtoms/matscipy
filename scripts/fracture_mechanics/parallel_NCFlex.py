@@ -358,11 +358,14 @@ def main(K_range,alpha_range):
 
     #launch searches
     for i, alpha in enumerate(init_alpha_vals):
-        K_step = (K_range[1]-K_range[0])/num_K_val_array[i]
-        initial_K_step = np.random.uniform(0,K_step)
-        init_K_vals = np.array([K_range[0] + initial_K_step + K_step*p for p in range(num_K_val_array[i])])
-        for K in init_K_vals:
-            worker_pool.apply_async(search, args=(K,alpha,sc_dict))
+        if num_K_val_array[i] == 0:
+            continue
+        else:
+            K_step = (K_range[1]-K_range[0])/num_K_val_array[i]
+            initial_K_step = np.random.uniform(0,K_step)
+            init_K_vals = np.array([K_range[0] + initial_K_step + K_step*p for p in range(num_K_val_array[i])])
+            for K in init_K_vals:
+                worker_pool.apply_async(search, args=(K,alpha,sc_dict))
 
     it_num = 0
     killed_num = 0
