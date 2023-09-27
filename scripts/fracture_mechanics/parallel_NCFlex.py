@@ -688,10 +688,10 @@ if __name__ == '__main__':
     ypos = pos[:,1] - sy/2
 
     #find the closest y atoms by finding which atoms lie within 1e-2 of the min
-    closest_y_mask = np.abs(ypos)<(np.min(np.abs(ypos[xmask]))+(1e-2))
-
     #filter out all atoms with x less than 0
     xmask = xpos>0
+    closest_y_mask = np.abs(ypos)<(np.min(np.abs(ypos[xmask]))+(1e-2))
+
 
     #find the x positions of these atoms
     closest_x = xpos[closest_y_mask&xmask]
