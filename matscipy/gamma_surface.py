@@ -118,7 +118,7 @@ class GammaSurface():
         # No nice integer vector found!
         raise RuntimeError(f"Could not automatically find an integer basis from basis vector {d1}")
 
-    def generate_images(self, nx, ny, z_replications=1, atom_offset=0.0, cell_strain=0.0, vacuum=0.0, vacuum_offset=0.0, path_limsx=[0.0, 1.0], path_limsy=None):
+    def generate_images(self, nx, ny, z_replications=1, atom_offset=0.0, cell_strain=0.0, vacuum=0.0, vacuum_offset=0.0, path_xlims=[0.0, 1.0], path_ylims=None):
         '''
         Generate gamma surface images on an (nx, ny) grid
 
@@ -138,19 +138,19 @@ class GammaSurface():
             Offset (in A) applied to the position of the vacuum layer in the cell
             The position of the vacuum layer is given by:
             vac_pos = self.cut_at.cell[2, 2] * (1 + cell_strain) / 2 + vacuum_offset
-        path_limsx: list|array of floats
+        path_xlims: list|array of floats
             Limits (in fractional coordinates) of the stacking fault path in the x direction
-        path_limsy: list|array of floats
+        path_ylims: list|array of floats
             Limits (in fractional coordinates) of the stacking fault path in the x direction
-            If not supplied, will be set to path_limsx
+            If not supplied, will be set to path_xlims
         '''
 
-        if path_limsy is None:
-            y_lims = path_limsx
+        if path_ylims is None:
+            y_lims = path_xlims
         else:
-            y_lims = path_limsy
+            y_lims = path_ylims
         
-        x_lims = path_limsx
+        x_lims = path_xlims
 
         self.nx = nx
         self.ny = ny
