@@ -58,7 +58,7 @@ class GammaSurface():
         if y_dir is None:
             _y_dir = self._y_dir_search(surface_direction)
         else:
-            _y_dir = y_dir
+            _y_dir = np.array(y_dir)
 
             if np.abs(np.dot(surface_direction, _y_dir)) >= 1E-3:
                 # Vector basis is not orthogonal
@@ -79,14 +79,14 @@ class GammaSurface():
         self.cut_at = _cut_and_rotate(self._base_ats, surface_direction, _y_dir)
     
         self.surf_directions = {
-            "x": _x_dir,
-            "y": _y_dir,
-            "z": surface_direction
+            "x": np.array(_x_dir),
+            "y": np.array(_y_dir),
+            "z": np.array(surface_direction)
             }
         self.cell_directions = {
-            "x": _cell_x_dir,
-            "y": _cell_y_dir,
-            "z": surface_direction
+            "x": np.array(_cell_x_dir),
+            "y": np.array(_cell_y_dir),
+            "z": np.array(surface_direction)
         }
 
     def _y_dir_search(self, d1):
@@ -118,7 +118,7 @@ class GammaSurface():
         # No nice integer vector found!
         raise RuntimeError(f"Could not automatically find an integer basis from basis vector {d1}")
 
-    def generate_images(self, nx, ny, z_replications=1, vert_strain=0.0):
+    def generate_images(self, nx, ny, z_replications=1, atom_offset=0.0, cell_strain=0.0, vacuum=0.0, vacuum_offset=0.0, path_limsx=[0.0, 1.0], path_limsy=None):
         '''
         Generate gamma surface images on an (nx, ny) grid
 
@@ -128,36 +128,81 @@ class GammaSurface():
             Number of points in the y direction
         z_replications: int
             Number of supercell copies in z (increases separation between periodic surfaces)
-        vert_strain: float
-            Percentage strain to apply in z direction (0.1 = +10% strain)
+        atom_offset: float
+            Offset in the z direction (in A) to apply to all atoms
+        cell_strain: float
+            Fractional strain to apply in z direction to cell only (0.1 = +10% strain)
+        vacuum: float
+            Additional vacuum layer (in A) to add between periodic images of the gamma surface
+        vacuum_offset: float
+            Offset (in A) applied to the position of the vacuum layer in the cell
+            The position of the vacuum layer is given by:
+            vac_pos = self.cut_at.cell[2, 2] * (1 + cell_strain) / 2 + vacuum_offset
+        path_limsx: list|array of floats
+            Limits (in fractional coordinates) of the stacking fault path in the x direction
+        path_limsy: list|array of floats
+            Limits (in fractional coordinates) of the stacking fault path in the x direction
+            If not supplied, will be set to path_limsx
         '''
+
+        if path_limsy is None:
+            y_lims = path_limsx
+        else:
+            y_lims = path_limsy
+        
+        x_lims = path_limsx
+
         self.nx = nx
         self.ny = ny
 
         base_struct = self.cut_at * (1, 1, z_replications)
 
-        cell = base_struct.cell[:, :]
+        # Atom offset
+        pos = base_struct.get_positions()
+        pos[:, 2] += atom_offset
+        base_struct.set_positions(pos)
+        base_struct.wrap()
+        
+        # Apply cell strain
+        new_cell = base_struct.cell[:, :].copy()
+        new_cell[2, 2] += cell_strain
+        base_struct.set_cell(new_cell, scale_atoms=False)
 
+        # Add vacuum
+        half_dist = new_cell[2, 2] / 2 + vacuum_offset
+
+        atom_mask = base_struct.get_positions()[:, 2] > half_dist
+        
+        cell = base_struct.cell[:, :].copy()
+        cell[2, 2] += vacuum
+        pos = base_struct.get_positions()
+        pos[atom_mask, 2] += vacuum
+        base_struct.set_positions(pos)
+
+        # Surface Size
         self.x_disp = cell[:, :] @ self.mapping["x"]
         self.y_disp = cell[:, :] @ self.mapping["y"]
 
         self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
         self.surface_separation = np.abs(cell[2, 2])
                 
-        dx = self.x_disp / nx
-        dy = self.y_disp / ny
+        dx = self.x_disp
+        dy = self.y_disp
 
         images = []
 
         self.offsets = []
 
+        x_points = np.linspace(*x_lims, nx)
+        y_points = np.linspace(*y_lims, ny)
+
+        # Gen images
         for i in range(nx):
             for j in range(ny):
-                offset = i * dx + j * dy
+                offset = x_points[i] * dx + y_points[j] * dy
                 self.offsets.append(offset)
             
                 new_cell = cell.copy()
-                new_cell[2, 2] *= (1.0 + vert_strain)
                 new_cell[2, :] += offset
 
                 ats = base_struct.copy()
@@ -242,12 +287,26 @@ class GammaSurface():
         self.Es = Es
         return Es
 
-    def plot_gamma_surface(self, ax=None):
+    def plot_gamma_surface(self, ax=None, si=True):
         '''
         Produce a matplotlib plot of the gamma surface energy, from the data gathered in self.generate_images and self.get_surface_energioes
 
         Returns a matplotlib fig and ax object
+
+        ax: matplotlib axis object
+            Axis to draw plot
+        si: bool
+            Use SI units (J/m^2) if True, else atomic units (eV/A^2)
         '''
+
+        from ase.units import _e
+
+        if si:
+            mul = _e * 10E20
+            units = "J/m^2"
+        else:
+            mul = 1
+            units = "eV/A^2"
 
         if ax is None:
 
@@ -257,8 +316,8 @@ class GammaSurface():
             my_ax = ax
             fig = my_ax.get_figure()
 
-        im = my_ax.imshow(self.Es.T, origin="lower", extent=[0, np.linalg.norm(self.x_disp), 0, np.linalg.norm(self.y_disp)], interpolation="bicubic")
-        fig.colorbar(im, ax=ax, label="Energy Density (eV/A**2)")
+        im = my_ax.imshow(self.Es.T * mul, origin="lower", extent=[0, np.linalg.norm(self.x_disp), 0, np.linalg.norm(self.y_disp)], interpolation="bicubic")
+        fig.colorbar(im, ax=ax, label=f"Energy Density ({units})")
 
         my_ax.set_xlabel("(" + " ".join(self.surf_directions["x"].astype(str)) + ")")
         my_ax.set_ylabel("(" + " ".join(self.surf_directions["y"].astype(str)) + ")")
@@ -272,24 +331,34 @@ class StackingFault(GammaSurface):
     Class for stacking fault-specific generation & plotting
     '''
 
-    def generate_images(self, n, z_replications=1, vert_strain=0):
+    def generate_images(self, n, *args, **kwargs):
         '''
         Generate gamma surface images on an (n) line
         n: int
             Number of images
-        z_replications: int
-            Number of supercell copies in z (increases separation between periodic surfaces)
-        vert_strain: float
-            Percentage strain to apply in z direction (0.1 = +10% strain)
         '''
-        return super().generate_images(1, n, z_replications, vert_strain)
+        return super().generate_images(1, n, *args, **kwargs)
     
-    def plot_gamma_surface(self, ax=None):
+    def plot_gamma_surface(self, ax=None, si=False):
         '''
         Produce a matplotlib plot of the stacking fault energy, from the data gathered in self.generate_images and self.get_surface_energy
 
         Returns a matplotlib fig and ax object
+
+        ax: matplotlib axis object
+            Axis to draw plot
+        si: bool
+            Use SI units (J/m^2) if True, else atomic units (eV/A^2)
         '''
+        from ase.units import _e
+
+        if si:
+            mul = _e * 10E20
+            units = "J/m$^2$"
+        else:
+            mul = 1
+            units = "eV/${\AA}^2$"
+        
         if ax is None:
 
             fig, my_ax = plt.subplots()
@@ -298,9 +367,9 @@ class StackingFault(GammaSurface):
             my_ax = ax
             fig = my_ax.get_figure()
 
-        my_ax.plot(np.arange(self.ny)/self.ny, self.Es[0, :])
-        my_ax.set_xlabel("Position along path")
-        my_ax.set_ylabel("Energy Density (eV/A**2)")
-        title = "(" + ' '.join(self.surf_directions["z"].astype(str)) + ") Stacking Fault\n" + "Surface Separation = {:0.2f} A".format(self.surface_separation)
+        my_ax.plot(np.arange(self.ny)/(self.ny-1), self.Es[0, :] * mul)
+        my_ax.set_xlabel("Position along ("+ ' '.join(self.surf_directions["y"].astype(str)) + ") path")
+        my_ax.set_ylabel(f"Energy Density ({units})")
+        title = "(" + ' '.join(self.surf_directions["z"].astype(str)) + ") Stacking Fault\n" + "Surface Separation = {:0.2f}".format(self.surface_separation) + "${\AA}$"
         my_ax.set_title(title)
         return fig, my_ax
