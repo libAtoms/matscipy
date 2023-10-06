@@ -335,16 +335,23 @@ def main(K_range,alpha_range):
         sc_dict[pid] = sc
     print(sc_dict)
 
-    #launch half of the workers on a non-blocking initial search
+    #launch workers on a non-blocking initial search
+    #depending on search direction
     #generate the grid of initial points for exploration
+    print('explore direction',explore_direction)
+    if (explore_direction == 1) or (explore_direction ==-1):
+        launch_num = num_processors
+    elif (explore_direction == 0):
+        launch_num = int(num_processors/2)
+
     num_branches = int(np.floor((2*(alpha_range[1]-alpha_range[0]))/alpha_period))
     if num_branches == 0:
-        num_K_vals = int(num_processors/2)
+        num_K_vals = launch_num
     else:
-        num_K_vals = int(np.floor((num_processors/2)/num_branches))
+        num_K_vals = int(np.floor(launch_num/num_branches))
     
     num_K_val_array = [num_K_vals for i in range(num_branches)]
-    sum_diff = int(num_processors/2) - np.sum(num_K_val_array)
+    sum_diff = launch_num - np.sum(num_K_val_array)
     for i in range(sum_diff):
         num_K_val_array[i] += 1
     
@@ -410,7 +417,10 @@ def main(K_range,alpha_range):
         
         #print('checking to launch new searches')
         #if there's unnaccounted for idle processes, launch new searches
-        num_new_searches = int(np.floor(idle_num-search_num))
+        if explore_direction == 0:
+            num_new_searches = int(np.floor(idle_num-search_num))
+        elif (explore_direction == 1) or (explore_direction ==-1):
+            num_new_searches = idle_num
         if num_new_searches>0:
             for i in range(num_new_searches):
                 print('LAUNCHING A NEW SEARCH')
@@ -477,30 +487,53 @@ def main(K_range,alpha_range):
 
                 if search_restarted:
                     continue
+                
+                if explore_direction == 0:
+                    #create two new pipes
+                    pipes = []
+                    pipes.append(multiprocessing.Pipe())
+                    pipes.append(multiprocessing.Pipe())
 
-                #create two new pipes
-                pipes = []
-                pipes.append(multiprocessing.Pipe())
-                pipes.append(multiprocessing.Pipe())
+                    #start walk jobs
+                    worker_pool.apply_async(walk,args=(x0,x1,-1,pipes[0][0],sc_dict))
+                    worker_pool.apply_async(walk,args=(x0,x1,1,pipes[1][0],sc_dict))
 
-                #start walk jobs
-                worker_pool.apply_async(walk,args=(x0,x1,-1,pipes[0][0],sc_dict))
-                worker_pool.apply_async(walk,args=(x0,x1,1,pipes[1][0],sc_dict))
+                    #send pipeIDs down pipes
+                    pipes[0][1].send(0)
+                    pipes[1][1].send(1)
 
-                #send pipeIDs down pipes
-                pipes[0][1].send(0)
-                pipes[1][1].send(1)
+                    #assign resulting pipe communication to correct pid
+                    queue_empty = False
+                    while not queue_empty:
+                        try:
+                            [pipe_id,pid] = pipe_setup_queue.get(block=True,timeout=3)
+                            pipe_dict[pid] = pipes[pipe_id][1]
+                            #add initial positions as trails to dict
+                            trail_positions[pid] = [x0[-1],x0[-2]] #[K,alpha]
+                        except Empty:
+                            queue_empty = True
+                elif (explore_direction == 1) or (explore_direction ==-1):
+                    #create new pipe
+                    pipes = []
+                    pipes.append(multiprocessing.Pipe())
 
-                #assign resulting pipe communication to correct pid
-                queue_empty = False
-                while not queue_empty:
-                    try:
-                        [pipe_id,pid] = pipe_setup_queue.get(block=True,timeout=3)
-                        pipe_dict[pid] = pipes[pipe_id][1]
-                        #add initial positions as trails to dict
-                        trail_positions[pid] = [x0[-1],x0[-2]] #[K,alpha]
-                    except Empty:
-                        queue_empty = True
+                    #start walk job
+                    worker_pool.apply_async(walk,args=(x0,x1,explore_direction,pipes[0][0],sc_dict))
+
+                    #send pipeID down pipe
+                    pipes[0][1].send(0)
+
+                    #assign resulting pipe communication to correct pid
+                    queue_empty = False
+                    while not queue_empty:
+                        try:
+                            [pipe_id,pid] = pipe_setup_queue.get(block=True,timeout=3)
+                            pipe_dict[pid] = pipes[pipe_id][1]
+                            #add initial positions as trails to dict
+                            trail_positions[pid] = [x0[-1],x0[-2]] #[K,alpha]
+                        except Empty:
+                            queue_empty = True
+
 
                 
 
@@ -679,6 +712,7 @@ if __name__ == '__main__':
     cutoff = parameter('cutoff')
     dk = parameter('dk', 1e-4)
     dalpha = parameter('dalpha', 1e-1)
+    explore_direction = parameter('explore_direction', 0)
 
     if cb == 'None':
         cb = None
@@ -711,7 +745,7 @@ if __name__ == '__main__':
     
     #get k1g
     k1g = crk.k1g(parameter('surface_energy'))
-
+    print('griffthk1,',k1g)
     cluster = params.cluster.copy() 
     if crk.cauchy_born is not None:
         crk.cauchy_born.set_sublattices(cluster,np.transpose(crk.RotationMatrix),read_from_atoms=True)
