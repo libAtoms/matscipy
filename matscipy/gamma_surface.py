@@ -49,7 +49,8 @@ class GammaSurface():
 
         def _cut_and_rotate(ats, surface_direction, y_dir):
             # Cut such that surface_direction lies in z
-            at = cut(ats.copy(), a=surface_direction, b=y_dir)
+            eps = 1E-3
+            at = cut(ats.copy(), a=surface_direction, b=y_dir, origo=[-eps]*3)
             rotate(at, at.cell[2, :].copy(), np.array([0, 0, 1]), at.cell[1, :].copy(), np.array([0, 1, 0]))
             return at
 
@@ -64,7 +65,7 @@ class GammaSurface():
                 # Vector basis is not orthogonal
                 msg = f"y_dir vector {_y_dir} is not orthogonal to surface_direction vector {surface_direction}; dot(surface_direction, y_dir) = {float(np.dot(surface_direction, _y_dir))}\n" + \
                     "Gamma Surface plot may not show the correct directions"
-                warnings.warn(msg, RuntimeWarning)
+                warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
         _x_dir = np.cross(_y_dir, surface_direction)
 

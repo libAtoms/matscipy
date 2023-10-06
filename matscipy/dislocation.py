@@ -3038,6 +3038,11 @@ def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
             images along the gamma surface. Returned if return_images is True
     """
 
+    import warnings
+
+    msg = f"gamma_line is depreciated. Use of matscipy.gamma_surface.StackingFault is preferred"
+    warnings.warn(msg, DeprecationWarning, stacklevel=2)
+
     from ase.optimize import LBFGSLineSearch
 
     if unit_cell.calc is None:
