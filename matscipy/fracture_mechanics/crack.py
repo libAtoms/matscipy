@@ -739,7 +739,7 @@ class SinclairCrack:
                  variable_alpha=True, variable_k=False,
                  alpha_scale=None, k_scale=None,
                  extended_far_field=False,rI=0.0,rIII=0.0,cutoff=0.0,
-                 incl_rI_f_alpha=False):
+                 incl_rI_f_alpha=False,is_3D=False,theta_3D=0.0):
         """
 
         Parameters
@@ -780,8 +780,17 @@ class SinclairCrack:
         self.k_scale = k_scale
         self.extended_far_field = extended_far_field
 
+
+
         self.u = np.zeros((self.N1, 3))
         self.alpha = alpha
+
+        self.is_3D = is_3D
+        if is_3D:
+            self.theta_3D = theta_3D
+            self.beta = self.alpha/np.sin(theta_3D)
+
+
         self.k = k
         self.rI = rI
         self.rIII = rIII
@@ -846,11 +855,20 @@ class SinclairCrack:
         return u, alpha, k
 
     def get_dofs(self):
-        return self.pack(self.u, self.alpha, self.k)
+        if self.is_3D:
+            return self.pack(self.u,self.beta,self.k)
+        else:
+            return self.pack(self.u, self.alpha, self.k)
 
     def set_dofs(self, x):
-        self.u[:], self.alpha, self.k = self.unpack(x, reshape=True)
-        print('alpha',self.alpha)
+        if self.is_3D:
+            self.u[:], self.beta, self.k = self.unpack(x, reshape=True)
+            self.alpha = self.beta*np.sin(self.theta_3D)
+            print('beta',self.beta)
+            print('alpha',self.alpha)
+        else:
+            self.u[:], self.alpha, self.k = self.unpack(x, reshape=True)
+            print('alpha',self.alpha)
         if self.variable_k:
             print('k',self.k)
         #self.k = self.k-(np.abs(self.alpha-self.alpha0)*self.k1g)
@@ -933,10 +951,13 @@ class SinclairCrack:
     def set_shiftmask(self,radial_dist):
         self.shiftmask = self.r>radial_dist
     
-    def update_atoms(self):
+    def update_atoms(self,use_alpha_3D=False):
         """
         Update self.atoms from degrees of freedom (self.u, self.alpha, self.k)
         """
+        if self.is_3D and (not use_alpha_3D):
+            #set self.alpha according to self.beta
+            self.alpha = self.beta*np.sin(self.theta_3D)
         self.atoms.set_pbc([False, False, True])
         self.atoms.calc = self.calc
 
@@ -1114,9 +1135,14 @@ class SinclairCrack:
         if self.variable_alpha:
             f_alpha = self.get_crack_tip_force(forces, mask=mask)
             self.f_alpha_correction = 0#self.get_f_alpha_correction()
-            F.append((f_alpha-self.f_alpha_correction))
-            print('f_alpha',f_alpha)
-            #print('f_alpha_corrected',f_alpha-self.f_alpha_correction)
+            if self.is_3D:
+                f_beta = f_alpha*np.sin(self.theta_3D)
+                F.append(f_beta)
+                print('f_beta',f_beta)
+            else:
+                F.append((f_alpha-self.f_alpha_correction))
+                print('f_alpha',f_alpha)
+                #print('f_alpha_corrected',f_alpha-self.f_alpha_correction)
         if self.variable_k:
             f_k = self.get_k_force(x1, xdot1, ds)
             F.append(f_k)
@@ -1169,16 +1195,19 @@ class SinclairCrack:
         Fu, Falpha, Fk = self.unpack(F)
         Pf_1 = spilu(P_1).solve(Fu)
         
+        #fix this for 3D
         if self.variable_alpha:
             dalpha = 0.001
             alph_before = self.alpha
             self.alpha += dalpha
-            self.update_atoms()
+            self.update_atoms(use_alpha_3D=True)
             F_after = self.get_forces(*self.precon_args)
             dF_dalpha = (F_after-F)/dalpha
+            if self.is_3D:
+                dF_dalpha *= np.sin(self.theta_3D)
             print('df_dalpha,',dF_dalpha)
             self.alpha = alph_before
-            self.update_atoms()
+            self.update_atoms(use_alpha_3D=True)
 
         print(self.variable_k)
         if self.variable_k:
@@ -1216,7 +1245,10 @@ class SinclairCrack:
             I = np.append(I,offset)
             J = np.append(J,offset)
             Z = np.append(Z,-dF_dalpha[offset])
-            print('-dfdalpha',-dF_dalpha[offset])
+            if self.is_3D:
+                print('-dfdbeta',-dF_dalpha[offset])
+            else:
+                print('-dfdalpha',-dF_dalpha[offset])
             offset += 1
 
         if self.variable_k:

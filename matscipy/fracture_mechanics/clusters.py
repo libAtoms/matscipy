@@ -83,7 +83,7 @@ def generate_3D_structure(cryst_2D,nzlayer,el,a0,lattice,crack_surface,crack_fro
 
     # Set the new cell of big_cryst
     big_cryst.set_cell(rotated_cell,scale_atoms=True)
-    return big_cryst
+    return big_cryst, theta
 
 def generate_3D_cubic_111(cryst_2D, nzlayer, el, a0, lattice, crack_surface, crack_front, shift=np.array([0.0,0.0,0.0]), cb=None, switch_sublattices=False):
     """
@@ -179,7 +179,7 @@ def generate_3D_cubic_111(cryst_2D, nzlayer, el, a0, lattice, crack_surface, cra
 
     # Set the new cell of big_cryst
     big_cryst.set_cell(rotated_cell,scale_atoms=True)
-    return big_cryst
+    return big_cryst, theta
 
 
 def set_groups(a, n, skin_x, skin_y, central_x=-1./2, central_y=-1./2,
