@@ -491,14 +491,14 @@ class SurfaceReconstruction:
                     directions=self.pandey_dirs
                     )
 
-
         self.cb.set_sublattices(a,self.U)
         if switch:
             self.cb.switch_sublattices(a)
         sorted_z_vals = np.sort(a.get_positions()[self.cb.lattice1mask][:,2])
         self.inter_surf_dist = sorted_z_vals[2] - sorted_z_vals[0]
-        a.translate([0,0,-shift*self.inter_surf_dist])
-
+        #a.translate([0,+0.001,-shift*self.inter_surf_dist]) #REMOVE SHIFT FROM HERE
+        a.translate([0.01,0.01,0]) 
+        a.wrap()
         print('INTER SURF DIST',self.inter_surf_dist)
         #seed the 2x1 reconstruction on the top plane
         sx, sy, sz = a.get_cell().diagonal()
@@ -517,14 +517,16 @@ class SurfaceReconstruction:
                                                     np.logical_not(mask))]
         a.set_distance(top1, top2, bondlen)
         a.set_distance(topA, topB, bondlen)
-
+        #ase.io.write('intermediate_atoms.xyz',a)
         x, y, z = a.positions.T
         y1 = (y[top1]+y[top2])/2
         yA = (y[topA]+y[topB])/2
         y[top1] += yA-y1+a.cell[1,1]/2
         y[top2] += yA-y1+a.cell[1,1]/2
+        #x[top1] += a.cell[0,0]/2
+        #x[topB] -= a.cell[0,0]/2
         a.set_positions(np.transpose([x, y, z]))
-        a.wrap()
+        #a.wrap()
 
         ase.io.write('0_bulk.xyz',bulk)
         ase.io.write('1_bulk.xyz',a)
@@ -547,6 +549,20 @@ class SurfaceReconstruction:
         opt_a.run(fmax=fmax)
         ase.io.write('2_bulk.xyz',a)
         pos_after_unrotated = a.get_positions()
+        print(pos_after_unrotated[:,1]<0)
+        print(len(pos_after_unrotated[:,1]<0))
+        print(pos_after_unrotated[:,1]>a.cell[1,1])
+        print(len(pos_after_unrotated[:,1]>a.cell[1,1]))
+        atoms_outside_mask = (pos_after_unrotated[:,1]<0) | (pos_after_unrotated[:,1]>a.cell[1,1])
+        pushed_out_atoms = a[atoms_outside_mask]
+        wrapped=False
+        if len(pushed_out_atoms)>0:
+            print('detected atoms to be wrapped')
+            wrapped=True
+            a.wrap()
+            pos_after_unrotated = a.get_positions()
+            ase.io.write('3_bulk.xyz',a)
+        
         pos_diff_unrotated = pos_after_unrotated-pos_initial_unrotated
         #print('pos diff unrotated',pos_diff_unrotated)
         #map out the layers in the original structure
@@ -556,6 +572,69 @@ class SurfaceReconstruction:
         layer_mask_set_lattice1_atom1, layer_mask_set_lattice1_atom2,layer_mask_set_lattice2_atom1, layer_mask_set_lattice2_atom2 = \
             self.identify_pandey_layers(bulk,surface_coords,read_from_atoms=True,frame_dirs=self.pandey_dirs)
         self.surf_dir = tmp
+
+        """
+        #The following is code written in order to minimise the amount that atoms
+        move during the relaxation- this is not necessary when there is no chance 
+        that the position of xlim always lies at the edge of a pandey unit cell
+        #also, i think actually that the atoms do end up in positions that minimise the travel
+        distance anyway
+
+        a.new_array('atomno',np.zeros(len(a),dtype=int))
+        a_atomno = a.arrays['atomno']
+        a_atomno[layer_mask_set_lattice1_atom1[:,0]] = 1
+        a_atomno[layer_mask_set_lattice1_atom2[:,0]] = 2
+        a_atomno[layer_mask_set_lattice2_atom1[:,0]] = 3
+        a_atomno[layer_mask_set_lattice2_atom2[:,0]] = 4
+        ase.io.write('4_bulk.xyz',a)
+
+        if wrapped:
+            print('DETECTED WRAPPED AS TRUE')
+            sublattice1_layer1_atom1_index = np.where(layer_mask_set_lattice1_atom1[:,0])[0]
+            sublattice1_layer1_atom2_index = np.where(layer_mask_set_lattice1_atom2[:,0])[0]
+            sublattice2_layer1_atom1_index = np.where(layer_mask_set_lattice2_atom1[:,0])[0]
+            sublattice2_layer1_atom2_index = np.where(layer_mask_set_lattice2_atom2[:,0])[0]
+            print('sublattice1_layer1_atom1_index',sublattice1_layer1_atom1_index)
+            print('sublattice1_layer1_atom2_index',sublattice1_layer1_atom2_index)
+            print('sublattice2_layer1_atom1_index',sublattice2_layer1_atom1_index)
+            print('sublattice2_layer1_atom2_index',sublattice2_layer1_atom2_index)
+
+
+            comparison_sublattice_1_list = [sublattice1_layer1_atom1_index,sublattice1_layer1_atom2_index]
+            comparison_sublattice_2_list = [sublattice2_layer1_atom1_index,sublattice2_layer1_atom2_index]
+            print('comparison sublattice 1 list',comparison_sublattice_1_list)
+            print('comparison sublattice 2 list',comparison_sublattice_2_list)
+
+            index_switch_list = []
+            for i in range(2):
+                print(i)
+                dist_sublattice1 = []
+                dist_sublattice2 = []
+                #this picks a single atom on each sublattice in the wrapped relaxed structure and compares it to each of the two
+                #atoms of the same sublattice in the initial structure.
+                for j in range(2):
+                    dist_sublattice1.append(np.abs(pos_after_unrotated[comparison_sublattice_1_list[i],1]-pos_initial_unrotated[comparison_sublattice_1_list[j],1]))
+                    dist_sublattice2.append(np.abs(pos_after_unrotated[comparison_sublattice_2_list[i],1]-pos_initial_unrotated[comparison_sublattice_2_list[j],1]))
+                print('dist sublattice 1',dist_sublattice1)
+                print('dist sublattice 2',dist_sublattice2)
+                #the next step is to check which of the two distances is smaller.
+                #if it is the one where i=j, then there is no problem and nothing needs to change
+                #if it is the one where i!=j, then the atom index needs to be switched - such that
+                #the atom in the RELAXED structure that was indexed by i is now indexed by j
+                min_ind_sublattice1 = np.argmin(np.abs(dist_sublattice1))
+                min_ind_sublattice2 = np.argmin(np.abs(dist_sublattice2))
+                if min_ind_sublattice1 != i:
+                    index_switch_list.append([comparison_sublattice_1_list[i],comparison_sublattice_1_list[min_ind_sublattice1]])
+
+            a_before = a.copy()
+            atomno_copy = a_atomno.copy()
+            print(a)
+            print('index swtich list',index_switch_list)
+            for i_list in index_switch_list:
+                a[i_list[0][0]].position = a_before[i_list[1][0]].position.copy()
+                a[i_list[1][0]].position = a_before[i_list[0][0]].position.copy()
+            ase.io.write('5_bulk.xyz',a)
+        """
 
         #relaxation array lattice 1 atom 1
         self.ral1a1 = np.zeros([layers,3])
@@ -582,13 +661,14 @@ class SurfaceReconstruction:
         #print('with no rotation',np.transpose(self.A)@self.U)
         #print('with rotation',R)
         for layer in range(layers):
+            print(layer)
+            print(len(pos_diff_unrotated[layer_mask_set_lattice2_atom2[:,layer]]))
+
             self.ral1a1[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice1_atom1[:,layer]][0,:]
             self.ral1a2[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice1_atom2[:,layer]][0,:]
             self.ral2a1[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice2_atom1[:,layer]][0,:]
             self.ral2a2[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice2_atom2[:,layer]][0,:]
-        
         print(self.ral1a1,self.ral1a2,self.ral2a1,self.ral2a2)
-
 
 
     def identify_pandey_layers(self,
@@ -677,7 +757,8 @@ class SurfaceReconstruction:
         OR[1,1] = np.cos(2*(np.pi/3)*orientation)
         OR[2,2] = 1
         
-        #T - lab frame to lattice fram
+        #OR - Orientation rotation tensor
+        #T - lab frame to lattice frame
         #U - pandey map frame to lattice frame
         R = OR@np.transpose(self.U)@T
         print(self.U,T,R)
@@ -687,29 +768,33 @@ class SurfaceReconstruction:
         layer_mask_set_lattice2_atom1 = np.zeros_like(layer_mask_set_lattice1,dtype=bool)
         layer_mask_set_lattice2_atom2 = np.zeros_like(layer_mask_set_lattice1,dtype=bool)
         
-        #get the first layer 1 atom in the direction we need
-        layer1 = atoms[layer_mask_set_lattice1[:,0]]
-        layer1pos = layer1.get_positions()
+        #find an exclusion zone using the position of the leftmost lattice1
+        #atom in the third layer (this is where we cut the cell in map_pandey)
+        layer3 = atoms[layer_mask_set_lattice1[:,2]]
+        layer3pos = layer3.get_positions()
         #rotate
-        rotated_layer1 = np.zeros_like(layer1pos)
-        for j in range(np.shape(layer1pos)[0]):
-            rotated_layer1[j,:] = R@layer1pos[j,:]
+        rotated_layer3 = np.zeros_like(layer3pos)
+        for j in range(np.shape(layer3pos)[0]):
+            rotated_layer3[j,:] = R@layer3pos[j,:]
         
-        leftpos = np.min(rotated_layer1[:,1])
-        print('LEFTPOS',leftpos)
-        print('R',R)
-        shiftvec = np.transpose(R)@np.array([0,-leftpos,0])
-        #shift all positions left, add any negative ones back to the end
-        #(to make sure that labelling is consistent with mapping)
-        ase.io.write('1_atoms_shift.xyz',atoms)
-        #atoms.translate(shiftvec)
-        #atoms.wrap()
-        ase.io.write('2_atoms_shift.xyz',atoms)
-        #print('SHIFTVEC',shiftvec)
-
-        #we need to shift the whole unitcell so the left most 
+        #find the leftmost point of layer 3
+        leftpos = np.min(rotated_layer3[:,1])
+        pos = atoms.get_positions()
+        rotated_pos = np.zeros_like(pos)
+        for j in range(np.shape(pos)[0]):
+            rotated_pos[j,:] = R@pos[j,:]
+        
+        mask = rotated_pos[:,1]<leftpos-0.01
+        print(np.where(mask))
+        for i in range(np.shape(layer_mask_set_lattice1)[1]):
+            print(np.where(layer_mask_set_lattice1[:,i]))
+            print(np.where(layer_mask_set_lattice1[:,i]^(mask&layer_mask_set_lattice1[:,i])))
+            print('lattice2')
+            print(np.where(layer_mask_set_lattice2[:,i]))
+            print(np.where(layer_mask_set_lattice2[:,i]^(mask&layer_mask_set_lattice2[:,i])))
+            #layer_mask_set_lattice1[:,i] = layer_mask_set_lattice1[:,i]^(mask&layer_mask_set_lattice1[:,i])
+            #layer_mask_set_lattice2[:,i] = layer_mask_set_lattice2[:,i]^(mask&layer_mask_set_lattice2[:,i])
         print('SEARCH DIR,',search_dir)
-
         for i in range(np.shape(layer_mask_set_lattice1)[1]):
             #print(np.shape(layer_mask_set_lattice1))
             lattice1atoms = atoms[layer_mask_set_lattice1[:,i]]
