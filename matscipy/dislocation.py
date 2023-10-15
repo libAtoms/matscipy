@@ -40,6 +40,8 @@ from ase.io import read
 
 from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
+from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
+from matscipy.elasticity import cubic_to_Voigt_6x6
 
 
 def make_screw_cyl(alat, C11, C12, C44,
@@ -2147,6 +2149,195 @@ def check_duplicates(atoms, distance=0.1):
     # print(f"found {duplicates.sum()} duplicates")
     return duplicates.astype(np.bool)
 
+class CubicCrystalDislocationGrad:
+    """
+    Displacement and displacement gradient field of straight 
+    dislocation in anisotropic elastic media.
+    Ref: pp. 467 in J.P. Hirth and J. Lothe, Theory of Dislocations, 2nd ed.
+    The function is similar as class `CubicCrystalDislocation`.
+    """
+
+    def __init__(self, a0, crystal_surface, crack_front, n, xi, Burgers, C11=None, C12=None,
+                 C44=None):
+        """
+        Insert a dislocation in a cubic crystal containing a crack. 
+        Elastic constants are C11, C12 and C44 (or optionally a full 6x6 elastic constant matrix C).
+        The dislocation is defined by m (dislocation glide direction), n (the slip plane normal), 
+        and xi (dislocation line direction).
+        """
+
+        # x (third_dir) - direction in which the crack is running
+        # y (crack_surface) - free surface that forms due to the crack
+        # z (crack_front) - direction of the crack front
+        # normalize axis of crack coordinates 
+        third_dir = np.cross(crack_surface, crack_front)
+        third_dir = np.array(third_dir) / np.sqrt(np.dot(third_dir,
+                                                         third_dir))
+        crack_surface = np.array(crack_surface) / \
+            np.sqrt(np.dot(crack_surface, crack_surface))
+        crack_front = np.array(crack_front) / \
+            np.sqrt(np.dot(crack_front, crack_front))
+        
+        # define rotation matrix from dislocation system to crack system
+        A = np.array([third_dir, crack_surface, crack_front])
+        if np.linalg.det(A) < 0:
+            third_dir = -third_dir
+        A = np.array([third_dir, crack_surface, crack_front])
+        m = np.cross(n, xi)
+
+        # normalize m, n and xi
+        m = np.array(m) / np.sqrt(np.dot(m, m))
+        n = np.array(n) / np.sqrt(np.dot(n, n))
+        xi = np.array(xi) / np.sqrt(np.dot(xi, xi))
+        disloc_sys = np.array([m, n, xi])
+        if np.linalg.det(disloc_sys) < 0:
+            m = -m        
+        
+        # Rotate vectors from dislocation system to crack coordinates
+        self.m = np.einsum('ij,j', A, m)
+        self.n = np.einsum('ij,j', A, n)
+        self.xi = np.einsum('ij,j', A, xi)
+        self.b = np.einsum('ij,j', A, Burgers)
+        
+        # define elastic constant in Voigt notation
+        C_v = cubic_to_Voigt_6x6(C11, C12, C44)
+        # convert Voigt to tensor
+        C = Voigt_6x6_to_full_3x3x3x3(C_v)
+        # rotate elastic matrix
+        cijkl = np.einsum('ig,jh,ghmn,km,ln', \
+            A, A, C, A, A)
+    
+        # solve the Stroh sextic formalism: the same as Stroh.py from atomman
+        # this part can also be replaced by calling Stroh.py from atomman
+        mm = np.einsum('i,ijkl,l', m, cijkl, m)
+        mn = np.einsum('i,ijkl,l', m, cijkl, n)
+        nm = np.einsum('i,ijkl,l', n, cijkl, m)
+        nn = np.einsum('i,ijkl,l', n, cijkl, n)
+
+        nninv = np.linalg.inv(nn)
+        mn_nninv = np.dot(mn, nninv)
+
+        N = np.zeros((6,6), dtype=float)
+        N[0:3,0:3] = -np.dot(nninv, nm)
+        N[0:3,3:6] = -nninv
+        N[3:6,0:3] = -(np.dot(mn_nninv, nm) - mm)
+        N[3:6,3:6] = -mn_nninv
+
+        # slove the eigenvalue problem
+        Np, Nv = np.linalg.eig(N)
+
+        # The eigenvector Nv contains the vectors A and L.
+        # Normalize A and L, such that 2*A*L=1 
+        for i in range(0,6):
+            norm = 2.0 * np.dot(Nv[0:3, i], Nv[3:6, i])
+            Nv[0:3, i] /= np.sqrt(norm)
+            Nv[3:6, i] /= np.sqrt(norm)
+
+        self.Np = Np
+        self.Nv = Nv
+
+    def displacements(self, r, theta):
+        """
+        Displacement field of a straight dislocation. 
+        Positions are passed in cylinder coordinates.
+        Currently only for 2D, can be extended.
+        Parameters
+        ----------
+        r : array_like
+            Distances from the dislocation center.
+        theta : array_like
+            Angles with respect to the plane of the crack.
+        Returns
+        -------
+        u, v: array
+            Displacements along the crack running direction and crack plane normal.
+        """
+        
+        # Cylinder coordinates to Cartesian  
+        x = r * np.cos(theta)
+        y = r * np.sin(theta) 
+        coordinates = np.zeros((np.size(x),3), dtype=float)
+        coordinates[:,0] = x
+        coordinates[:,1] = y
+        
+        # calculation
+        signs = np.sign(np.imag(self.Np))
+        signs[np.where(signs==0.0)] = 1.0
+        A = self.Nv[0:3,:]
+        L = self.Nv[3:6,:]
+        D = np.einsum('i,ij', self.b, L)
+        constant_factor = signs * A * D
+
+        eta = (np.expand_dims(np.einsum('i,ji', self.m, coordinates), axis=1)
+            + np.outer(np.einsum('i,ji', self.n, coordinates), self.Np))
+
+        # get the displacements
+        disp = ((1.0/(2.0 * np.pi * 1.0j))
+            * np.einsum('ij,kj', np.log(eta), constant_factor))
+        
+        u = np.real(disp)[:,0]
+        v = np.real(disp)[:,1]
+
+        return u, v
+
+    def displacement_gradient(self, r, theta):
+        """
+        Displacement gradient tensor of the dislocation. 
+        Positions are passed in cylinder coordinates.
+
+        Parameters
+        ----------
+        r : array_like
+            Distances from the dislocation center.
+        theta : array_like
+            Angles with respect to the plane of the crack.
+
+        Returns
+        -------
+        du_dx, du_dy, dv_dx, dv_dy : array
+            Displacement gradients:
+            du and dv: displacements along crack running direction/crack plane.
+            dx and dy: the corresponding direction of the derivative.
+        """
+        # Cylinder coordinates to Cartesian 
+        # Currently only for 2D, can be extended 
+        x = r * np.cos(theta) 
+        y = r * np.sin(theta)
+        coordinates = np.zeros((np.size(x),3), dtype=float)
+        coordinates[:,0] = x
+        coordinates[:,1] = y
+
+        signs = np.sign(np.imag(self.Np))
+        signs[np.where(signs==0.0)] = 1.0
+        
+        A = self.Nv[0:3,:]
+        A1 = self.Nv[0,:]
+        A2 = self.Nv[1,:]
+        A3 = self.Nv[2,:]
+        L = self.Nv[3:6,:]
+        D = signs * np.einsum('i,ij', self.b, L)
+
+        eta = (np.expand_dims(np.einsum('i,ji', self.m, coordinates), axis=1)
+            + np.outer(np.einsum('i,ji', self.n, coordinates), self.Np))
+
+        # get the displacement gradient
+        pref = (1.0/(2.0 * np.pi * 1.0j))
+        du_dx = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[0]+self.Np*self.n[0])*A1*D)))
+        du_dy = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[1]+self.Np*self.n[1])*A1*D)))   
+        du_dz = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[2]+self.Np*self.n[2])*A1*D)))
+        dv_dx = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[0]+self.Np*self.n[0])*A2*D)))
+        dv_dy = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[1]+self.Np*self.n[1])*A2*D)))   
+        dv_dz = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[2]+self.Np*self.n[2])*A2*D)))
+        dw_dx = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[0]+self.Np*self.n[0])*A3*D)))
+        dw_dy = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[1]+self.Np*self.n[1])*A3*D)))    
+        dw_dz = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[2]+self.Np*self.n[2])*A3*D)))
+        
+        # add unity matrix to turn this into the deformation gradient tensor.
+        du_dx += np.ones_like(du_dx)
+        dv_dy += np.ones_like(dv_dy)
+        dw_dz += np.ones_like(dw_dz)
+
+        return np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
 
 class CubicCrystalDislocation:
     def __init__(self, unit_cell, alat, C11, C12, C44, axes, burgers,
