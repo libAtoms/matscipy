@@ -19,7 +19,7 @@ for file in ${infiles}; do
     jupytext --to notebook "$file"
 
     echo "Run ${BASENAME}.ipynb"
-    jupyter nbconvert --to notebook --execute "{BASENAME}.ipynb"
+    jupyter nbconvert --to notebook --execute "${BASENAME}.ipynb"
 
     echo "${BASENAME}.ipynb to ${BASENAME}.html"
     python to_html.py "${BASENAME}.ipynb"
