@@ -41,8 +41,9 @@ jobs:
 
       - name: run examples
         run: |
-          source /usr/share/dolfin/dolfin.conf
           cd examples/electrochemistry
+          
+          python samples_pnp_by_fenics_fem.py
           
           # check that all sample html files are produced successfully
           html_files=(./*.html)
