@@ -29,22 +29,16 @@ jobs:
           sudo apt-get install -y --no-install-recommends software-properties-common
           sudo add-apt-repository -y ppa:fenics-packages/fenics
           sudo apt-get update -qy
-          
-          # show available fenics versions
-          apt-cache madison fenics
-          
           sudo apt-get install -y fenics python3-dolfin python3-mshr
 
       - name: install matscipy
         run: |
           sudo pip install .
 
-      - name: run examples
+      - name: build sample ipynb and html
         run: |
           cd examples/electrochemistry
-          
-          python samples_pnp_by_fenics_fem.py
-          
+                    
           # check that all sample html files are produced successfully
           html_files=(./*.html)
           rm *.html
@@ -57,6 +51,16 @@ jobs:
               exit 1
             fi
           done
-          
-          # check that parametric sweep sample runs succesfully 
-          # bash pcs_pipeline.sh
+
+    # use tar here, see https://github.com/actions/upload-artifact/issues/38
+      - name: Pack build assets
+        run: |
+          bash -c "tar -cvf electrochemistry-sample-ipynb.tar examples/electrochemistry/*.ipynb examples/electrochemistry/*.html"
+  
+
+      - name: Upload sample ipynb artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: electrochemistry-sample-ipynb
+          path: electrochemistry-sample-ipynb.tar
+          if-no-files-found: error
