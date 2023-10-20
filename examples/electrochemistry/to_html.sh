@@ -4,6 +4,7 @@
 # Call with
 #   ls -1 *.py | grep -v to_html.py | bash to_html.sh
 #
+set -euxo pipefail
 infiles="$@"
 if [ "${infiles}" = "" ]; then
     while IFS= read -r line; do

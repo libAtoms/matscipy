@@ -141,7 +141,7 @@ import numpy as np
 import scipy.optimize
 import scipy.spatial.distance
 
-from . import ffi
+from matscipy import ffi
 
 
 # https://stackoverflow.com/questions/21377020/python-how-to-do-lazy-debug-logging
