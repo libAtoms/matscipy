@@ -95,7 +95,7 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         # constraints set up elsewhere
         F = poisson + nernst_planck + self.constraints
 
-        fn.solve(F == 0, self.w, self.boundary_conditions)
+        fn.solve(F == 0, self.w, self.boundary_conditions, tol=1.e-6)
 
         # store results:
 
