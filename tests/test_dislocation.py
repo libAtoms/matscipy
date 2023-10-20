@@ -30,6 +30,8 @@ import numpy as np
 from ase.calculators.lammpslib import LAMMPSlib
 from matscipy.calculators.eam import EAM
 
+from ase.build import bulk as Bulk
+
 test_dir = os.path.dirname(os.path.realpath(__file__))
 
 try:
@@ -410,13 +412,18 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
     def check_disloc(self, cls, ref_angle, structure="BCC", test_u=True,
-                     burgers=0.5 * np.array([1.0, 1.0, 1.0]), tol=10.0):
+                     burgers=0.5 * np.array([1.0, 1.0, 1.0]), tol=10.0, gen_bulk=False):
         alat = 3.14339177996466
         C11 = 523.0266819809012
         C12 = 202.1786296941397
         C44 = 160.88179872237012
 
-        d = cls(alat, C11, C12, C44, symbol="Al")
+        if gen_bulk:
+            a = Bulk("Al", structure.lower(), alat, cubic=True)
+        else:
+            a = alat
+
+        d = cls(a, C11, C12, C44, symbol="Al")
         bulk, disloc = d.build_cylinder(20.0)
 
         # test that assigning non default symbol worked
@@ -493,6 +500,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.check_disloc(sd.DiamondGlide90degreePartial, 90.0,
                           structure="Diamond",
                           burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]))
+        self.check_disloc(sd.DiamondGlide90degreePartial, 90.0,
+                          structure="Diamond",
+                          burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]),
+                          gen_bulk=True)
 
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
@@ -802,6 +813,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         nacl = build_bulk("NaCl", crystalstructure="zincblende", a=5.8, cubic=True)
 
         sd._validate_disloc_inputs(nacl, symbol="Cu", axes=axes, crystalstructure="diamond")
+
+        warnings.simplefilter("default")
 
 if __name__ == '__main__':
     unittest.main()

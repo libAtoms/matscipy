@@ -2651,10 +2651,12 @@ class DiamondGlide30degreePartial(CubicCrystalDislocation):
 
 
 class DiamondGlide90degreePartial(CubicCrystalDislocation):
-    def __init__(self, alat, C11, C12, C44, symbol='C'):
+    def __init__(self, a, C11, C12, C44, symbol='C'):
         axes = np.array([[1, 1, -2],
                          [1, 1, 1],
                          [1, -1, 0]])
+
+        alat, unit_cell = _validate_disloc_inputs(a, symbol, axes, "diamond", pbc=(False, False, True))
 
         burgers = alat * np.array([1., 1., -2.]) / 6.
 
@@ -2667,9 +2669,10 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
 
         parity = [0, 0]
 
-        unit_cell = Diamond(symbol, directions=axes.tolist(),
-                            pbc=(False, False, True),
-                            latticeconstant=alat)
+
+        # unit_cell = Diamond(symbol, directions=axes.tolist(),
+        #                     pbc=(False, False, True),
+        #                     latticeconstant=alat)
 
         glide_distance = alat * np.linalg.norm(axes[0]) / 4.0
 
@@ -3015,8 +3018,8 @@ def _validate_disloc_inputs(a, symbol="w", axes=None, crystalstructure="fcc", pb
         alat = a
             
         unit_cell = cell_builder(symbol, directions=axes.tolist(),
-                                      pbc=pbc,
-                                      latticeconstant=alat)
+                                 pbc=pbc,
+                                 latticeconstant=alat)
     elif type(a) == Atoms:
         # New behaviour for arbitrary cubic unit cells (Zincblende, L12, ...)
         alat = a.cell[0, 0]
@@ -3024,20 +3027,23 @@ def _validate_disloc_inputs(a, symbol="w", axes=None, crystalstructure="fcc", pb
         ats = a.copy()
 
         # Try to validate that "a" matches expected structure given by crystalstructure
-
-        tol = 1E-3
+        tol = 1e-3
         ref_ats = cell_builder("C", directions=np.eye(3).astype(int).tolist(),
-                                      latticeconstant=alat)
+                               latticeconstant=alat)
 
-        # Check that number of atoms in ats is a factor of ref_ats
+        # Check that number of atoms in ats is an integer multiple of ref_ats
         # (ats has to be the cubic primitive, or a supercell of the cubic primitive)
         # Also check that the structure is cubic
         rel_size = len(ats) / len(ref_ats)
         skip_fractional_check = False
         try:
-            diag = np.diag(ats.cell[:, :])
-            assert abs(rel_size - np.floor(rel_size)) < tol and np.all(np.isclose(diag, diag[0], atol=tol))
+            # Integer multiple of ats test
+            assert abs(rel_size - np.floor(rel_size)) < tol
+
+            # Cubic cell test: cell = a*I_3x3
+            assert np.allclose(ats.cell[:, :], np.eye(3) * ats.cell[0, 0], atol=tol)
         except AssertionError:
+            # Test failed, skip next test + warn user
             skip_fractional_check = True
             
         # Check fractional coords match expectation
@@ -3047,12 +3053,12 @@ def _validate_disloc_inputs(a, symbol="w", axes=None, crystalstructure="fcc", pb
             ref_supercell = ref_ats * (sup_size, sup_size, sup_size)
 
             try:
-
                 apos = np.sort(ats.get_scaled_positions(), axis=0)
                 rpos = np.sort(ref_supercell.get_scaled_positions(), axis=0)
                 assert np.allclose(apos, rpos, atol=tol)
             except:
                 frac_match = False
+
         if not frac_match or skip_fractional_check:
             warn(f"Input bulk does not appear to match bulk {crystalstructure}.", stacklevel=2)
 
