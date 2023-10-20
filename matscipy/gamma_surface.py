@@ -49,7 +49,7 @@ class GammaSurface():
 
         def _cut_and_rotate(ats, surface_direction, y_dir):
             # Cut such that surface_direction lies in z
-            eps = 1E-3
+            eps = 1e-3
             at = cut(ats.copy(), a=surface_direction, b=y_dir, origo=[-eps]*3)
             rotate(at, at.cell[2, :].copy(), np.array([0, 0, 1]), at.cell[1, :].copy(), np.array([0, 1, 0]))
             return at
@@ -61,7 +61,7 @@ class GammaSurface():
         else:
             _y_dir = np.array(y_dir)
 
-            if np.abs(np.dot(surface_direction, _y_dir)) >= 1E-3:
+            if np.abs(np.dot(surface_direction, _y_dir)) >= 1e-3:
                 # Vector basis is not orthogonal
                 msg = f"y_dir vector {_y_dir} is not orthogonal to surface_direction vector {surface_direction}; dot(surface_direction, y_dir) = {float(np.dot(surface_direction, _y_dir))}\n" + \
                     "Gamma Surface plot may not show the correct directions"
@@ -93,7 +93,7 @@ class GammaSurface():
     def _y_dir_search(self, d1):
         # Search for integer x, y, z components for vectors perpendicular to d1
         nmax = 5
-        tol = 1E-6
+        tol = 1e-6
         for i in range(nmax):
             for j in range(-i-1, i+1):
                 for k in range(-j-1, j+1):
@@ -181,6 +181,7 @@ class GammaSurface():
         base_struct.set_positions(pos)
 
         # Surface Size
+        # TODO: This assumes cell is cuboidal - is this always true?
         self.x_disp = cell[:, :] @ self.mapping["x"]
         self.y_disp = cell[:, :] @ self.mapping["y"]
 
@@ -213,7 +214,7 @@ class GammaSurface():
                 images.append(ats)
         self.images = images
 
-    def relax_images(self, calculator, ftol=1E-3, optimiser=BFGSLineSearch, constrain_atoms=True,
+    def relax_images(self, calculator, ftol=1e-3, optimiser=BFGSLineSearch, constrain_atoms=True,
                      cell_relax=True, logfile=None, **kwargs):
         '''
         Utility function to relax gamma surface images using calculator
@@ -303,11 +304,11 @@ class GammaSurface():
         from ase.units import _e
 
         if si:
-            mul = _e * 10E20
-            units = "J/m^2"
+            mul = _e * 1e20
+            units = "J/m$^2$"
         else:
             mul = 1
-            units = "eV/A^2"
+            units = "eV/${\AA}^2$"
 
         if ax is None:
 
@@ -354,7 +355,7 @@ class StackingFault(GammaSurface):
         from ase.units import _e
 
         if si:
-            mul = _e * 10E20
+            mul = _e * 1e20
             units = "J/m$^2$"
         else:
             mul = 1
