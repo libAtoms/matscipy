@@ -29,43 +29,11 @@ jobs:
           sudo apt-get install -y --no-install-recommends software-properties-common
           sudo add-apt-repository -y ppa:fenics-packages/fenics
           sudo apt-get update -qy
-          sudo apt-get install -y fenics=1:2019.1.0.3
           
-          sudo pip install fenics==2019.1.0
+          # show available fenics versions
+          apt-cache madison fenics
           
-          PYBIND11_VERSION=2.2.4
-          wget -nc --quiet https://github.com/pybind/pybind11/archive/v${PYBIND11_VERSION}.tar.gz
-          tar -xf v${PYBIND11_VERSION}.tar.gz \\
-            && cd pybind11-${PYBIND11_VERSION}
-          mkdir build \\
-            && cd build \\
-            && cmake -DPYBIND11_TEST=off -DCMAKE_INSTALL_PREFIX=/usr -DPYTHON_EXECUTABLE=$(which python) .. \\ 
-            && sudo make install
-    
-          FENICS_VERSION=$(python -c"import ffc; print(ffc.__version__)")
-          MSHR_VERSION=$(echo $FENICS_VERSION | sed 's/.post[0-9]$//')
-          git clone --branch=${FENICS_VERSION} https://bitbucket.org/fenics-project/dolfin
-          git clone --branch=${MSHR_VERSION} https://bitbucket.org/fenics-project/mshr
-          mkdir dolfin/build \\
-            && cd dolfin/build \\ 
-            && cmake -DPYTHON_EXECUTABLE=$(which python) .. \\
-            && sudo make install \\ 
-            && cd ../..
-          mkdir mshr/build \\
-            && cd mshr/build \\
-            && cmake -DPYTHON_EXECUTABLE=$(which python) .. \\
-            && sudo make install \\
-            && cd ../..
-          cd dolfin/python \\
-            && sudo pip install . \\
-            && cd ../..
-          cd mshr/python && mkdir build \\
-            && cd build \\
-            && cmake -DCMAKE_INSTALL_PREFIX=/usr -DPYTHON_EXECUTABLE=$(which python) .. \\
-            && cd .. \\
-            && sudo pip install . \\
-            && cd ../..
-          cat /usr/share/dolfin/dolfin.conf
+          sudo apt-get install -y fenics python3-dolfin python3-mshr
 
       - name: install matscipy
         run: |
