@@ -2565,11 +2565,11 @@ class BCCMixed111Dislocation(CubicCrystalDislocation):
     axes = np.array([[1, -1, -2],
                      [1, 1, 0],
                      [1, -1, 1]])
-    burgers = np.array([1, -1, -1]) / 2.0
+    burgers_unscaled = np.array([1, -1, -1]) / 2.0
     glide_distance_unscaled = np.sqrt(6) / 3.0
     # middle of the right edge of the first upward triangle
     # half way between (1/6, 1/2, 0) and (1/3, 0, 0) in fractional coords
-    unit_cell_core_position_unscaled = np.array([1/4, 1/4, 0])
+    unit_cell_core_position_unscaled = np.array([1/6, 1/6, 0])
 
 class BCCEdge100Dislocation(CubicCrystalDislocation):
     crystalstructure = "bcc"
@@ -2577,7 +2577,7 @@ class BCCEdge100Dislocation(CubicCrystalDislocation):
                      [0, 0, -1],
                      [0, 1, 0]])
     burgers_unscaled = np.array([1, 0, 0])
-    unit_cell_core_position_unscaled = np.array([0.25, 0.25, 0])
+    unit_cell_core_position_unscaled = np.array([1/4, 1/4, 0])
     glide_distance_unscaled = 1.0
     n_planes = 2
 
