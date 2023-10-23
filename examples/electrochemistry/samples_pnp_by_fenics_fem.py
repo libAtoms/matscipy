@@ -550,6 +550,13 @@ uij, nij, lamj = pnp['fenics_cell_low_potential'].solve()
 # %%
 pnp['fenics_cell_c_ref'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u, N = 300,
+    solver_parameters={
+        "newton_solver": {
+            "absolute_tolerance": 1e-7,
+            "relative_tolerance": 1e-4,
+            "maximum_iterations": 50
+        }
+    },
     potential0=pnp['fenics_cell_low_potential'].potential,
     concentration0=pnp['fenics_cell_low_potential'].concentration)
 pnp['fenics_cell_c_ref'].useCentralReferenceConcentrationBasedCellBC()
@@ -643,6 +650,13 @@ delta_u=0.4
 # %%
 pnp['fenics_cell_c_ref_u_0.4'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u, N=2000,
+    solver_parameters={
+        "newton_solver": {
+            "absolute_tolerance": 1e-7,
+            "relative_tolerance": 1e-4,
+            "maximum_iterations": 50
+        }
+    },
     potential0=pnp['fenics_cell_c_ref'].potential,
     concentration0=pnp['fenics_cell_c_ref'].concentration)
 pnp['fenics_cell_c_ref_u_0.4'].useCentralReferenceConcentrationBasedCellBC()
