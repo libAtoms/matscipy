@@ -2153,8 +2153,8 @@ class CubicCrystalDislocation:
     # Mandatory Attributes of CubicCrystalDislocation with no defaults
     # These should be set by the child dislocation class, or by CubicCrystalDislocation.__init__
     # (see https://stackoverflow.com/questions/472000/usage-of-slots for more details on __slots__)
-    __slots__ = ("__dict__", "burgers_unscaled", "unit_cell_core_position_unscaled",
-                 "glide_distance_unscaled", "crystalstructure", "axes",
+    __slots__ = ("__dict__", "burgers_dimensionless", "unit_cell_core_position_dimensionless",
+                 "glide_distance_dimensionless", "crystalstructure", "axes",
                  "C11", "C12", "C44", "alat", "unit_cell")
     
     # Attributes with defaults
@@ -2184,12 +2184,14 @@ class CubicCrystalDislocation:
 
         Useful Dislocation Properties
         ------------------------------
-        alat : lattice parameter (in A)
-        unit_cell : bulk cell used to generate dislocations
+        alat : float
+            lattice parameter (in A)
+        unit_cell : ase.atoms.Atoms object
+            bulk cell used to generate dislocations
         axes : np.array of float
             unit cell axes (b is normally along z direction)
-        burgers_unscaled : np.array of float
-            burgers vector of the dislocation class, in an abstract alat=1 system
+        burgers_dimensionless : np.array of float
+            burgers vector of the dislocation class, in a dimensionless alat=1 system
         burgers : np.array of float
             burgers vector of the atomistic dislocation
         unit_cell_core_position : np.array of float
@@ -2212,7 +2214,7 @@ class CubicCrystalDislocation:
         
         self.alat, self.unit_cell = _validate_disloc_inputs(a, symbol, self.axes, self.crystalstructure, self.pbc)
 
-        self.glide_distance = self.alat * self.glide_distance_unscaled
+        self.glide_distance = self.alat * self.glide_distance_dimensionless
 
     def init_stroh(self):
         from atomman import ElasticConstants
@@ -2220,14 +2222,14 @@ class CubicCrystalDislocation:
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
         self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
 
-    # @property & @var.setter decorators used to ensure var and var_unscaled don't get out of sync
+    # @property & @var.setter decorators used to ensure var and var_dimensionless don't get out of sync
     @property
     def burgers(self):
-        return self.burgers_unscaled  * self.alat
+        return self.burgers_dimensionless  * self.alat
     
     @burgers.setter
     def burgers(self, burgers):
-        self.burgers_unscaled = burgers / self.alat
+        self.burgers_dimensionless = burgers / self.alat
         if self.stroh is None:
             self.init_stroh()
 
@@ -2236,19 +2238,19 @@ class CubicCrystalDislocation:
 
     @property
     def unit_cell_core_position(self):
-        return self.unit_cell_core_position_unscaled * self.alat
+        return self.unit_cell_core_position_dimensionless * self.alat
     
     @unit_cell_core_position.setter
     def unit_cell_core_position(self, position):
-        self.unit_cell_core_position_unscaled = position / self.alat
+        self.unit_cell_core_position_dimensionless = position / self.alat
 
     @property
     def glide_distance(self):
-        return self.glide_distance_unscaled * self.alat
+        return self.glide_distance_dimensionless * self.alat
     
     @glide_distance.setter
     def glide_distance(self, distance):
-        self.glide_distance_unscaled = distance / self.alat
+        self.glide_distance_dimensionless = distance / self.alat
 
     def plot_unit_cell(self, ms=250, ax=None):
         import matplotlib.pyplot as plt
@@ -2539,102 +2541,11 @@ class CubicCrystalDislocation:
         return impurities_disloc
 
 
-class BCCScrew111Dislocation(CubicCrystalDislocation):
-    crystalstructure="bcc"
-    axes = np.array([[1, 1, -2],
-                     [-1, 1, 0],
-                     [1, 1, 1]])
-    burgers_unscaled = np.array([1, 1, 1]) / 2.0
-    unit_cell_core_position_unscaled = np.array([np.sqrt(6.)/6.0, np.sqrt(2.)/6.0, 0])
-    glide_distance_unscaled = np.sqrt(6) / 3.0
-
-
-class BCCEdge111Dislocation(CubicCrystalDislocation):
-    crystalstructure = "bcc"
-    axes = np.array([[1, 1, 1],
-                     [1, -1, 0],
-                     [1, 1, -2]])
-    burgers_unscaled = np.array([1, 1, 1]) / 2.0
-    unit_cell_core_position_unscaled =  np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 0.25 * np.sqrt(2.0), 0])
-    glide_distance_unscaled = np.sqrt(3) / 3.0
-    n_planes = 6
-
-
-class BCCMixed111Dislocation(CubicCrystalDislocation):
-    crystalstructure = "bcc"
-    axes = np.array([[1, -1, -2],
-                     [1, 1, 0],
-                     [1, -1, 1]])
-    burgers_unscaled = np.array([1, -1, -1]) / 2.0
-    glide_distance_unscaled = np.sqrt(6) / 3.0
-    # middle of the right edge of the first upward triangle
-    # half way between (1/6, 1/2, 0) and (1/3, 0, 0) in fractional coords
-    unit_cell_core_position_unscaled = np.array([1/6, 1/6, 0])
-
-class BCCEdge100Dislocation(CubicCrystalDislocation):
-    crystalstructure = "bcc"
-    axes = np.array([[1, 0, 0],
-                     [0, 0, -1],
-                     [0, 1, 0]])
-    burgers_unscaled = np.array([1, 0, 0])
-    unit_cell_core_position_unscaled = np.array([1/4, 1/4, 0])
-    glide_distance_unscaled = 1.0
-    n_planes = 2
-
-
-class BCCEdge100110Dislocation(CubicCrystalDislocation):
-    crystalstructure = "bcc"
-    axes = np.array([[1, 0, 0],
-                     [0, 1, 1],
-                     [0, -1, 1]])
-    burgers_unscaled = np.array([1, 0, 0])
-    unit_cell_core_position = np.array([0.5, np.sqrt(2) / 4.0, 0])
-    glide_distance_unscaled = 0.5
-    n_planes = 2
-
-
-class DiamondGlide30degreePartial(CubicCrystalDislocation):
-    crystalstructure="diamond"
-    axes = np.array([[1, 1, -2],
-                     [1, 1, 1],
-                     [1, -1, 0]])
-    burgers_unscaled = np.array([1, -2, 1.]) / 6.
-    glide_distance_unscaled = np.sqrt(6) / 4.0
-    # 1/4 + 1/2 * (1/3 - 1/4) - to be in the middle of the glide set
-    unit_cell_core_position_unscaled = np.array([np.sqrt(6)/12, 7*np.sqrt(3)/24, 0])
-    n_planes = 2
-    # There is very small distance between
-    # atomic planes in glide configuration.
-    # Due to significant anisotropy application of the self consistent
-    # displacement field leads to deformation of the atomic planes.
-    # This leads to the cut plane crossing one of the atomic planes and
-    # thus breaking the stacking fault.
-    self_consistent = False
-
-class DiamondGlide90degreePartial(CubicCrystalDislocation):
-    crystalstructure = "diamond"
-    axes = np.array([[1, 1, -2],
-                     [1, 1, 1],
-                     [1, -1, 0]])
-    # 1/4 + 1/2 * (1/3 - 1/4) - to be in the middle of the glide set
-    unit_cell_core_position_unscaled = np.array([np.sqrt(6)/12, 7 * np.sqrt(3) / 24, 0])
-    burgers_unscaled = np.array([1., 1., -2.]) / 6.
-    glide_distance_unscaled = np.sqrt(6)/4
-    n_planes = 2
-    # There is very small distance between
-    # atomic planes in glide configuration.
-    # Due to significant anisotropy application of the self consistent
-    # displacement field leads to deformation of the atomic planes.
-    # This leads to the cut plane crossing one of the atomic planes and
-    # thus breaking the stacking fault.
-    self_consistent = False
-
-
 class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
     # Inherits all slots from CubicCrystalDislocation as well
     __slots__ = ("left_dislocation", "right_dislocation")
 
-    # Space for overriding the burgers vectors from cls.left_dislocation.burgers_unscaled
+    # Space for overriding the burgers vectors from cls.left_dislocation.burgers_dimensionless
     new_left_burgers = None
     new_right_burgers = None
     def __init__(self, a, C11, C12, C44, symbol="W"):
@@ -2657,18 +2568,18 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
 
         # Change disloc burgers vectors, if requested
         if self.new_left_burgers is not None:
-            self.left_dislocation.burgers_unscaled = self.new_left_burgers
+            self.left_dislocation.burgers_dimensionless = self.new_left_burgers
         if self.new_right_burgers is not None:
-            self.right_dislocation.burgers_unscaled = self.new_right_burgers
+            self.right_dislocation.burgers_dimensionless = self.new_right_burgers
         
         # Set self.attrs based on left disloc attrs
         left_dislocation = self.left_dislocation
         right_dislocation = self.right_dislocation
         self.crystalstructure = left_dislocation.crystalstructure
         self.axes = left_dislocation.axes
-        self.unit_cell_core_position_unscaled = left_dislocation.unit_cell_core_position_unscaled
+        self.unit_cell_core_position_dimensionless = left_dislocation.unit_cell_core_position_dimensionless
         self.parity = left_dislocation.parity
-        self.glide_distance_unscaled = right_dislocation.glide_distance_unscaled
+        self.glide_distance_dimensionless = right_dislocation.glide_distance_dimensionless
         self.n_planes = left_dislocation.n_planes
         self.self_consistent = left_dislocation.self_consistent
 
@@ -2783,15 +2694,108 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
         return left_u + right_u
 
 
+class BCCScrew111Dislocation(CubicCrystalDislocation):
+    crystalstructure="bcc"
+    axes = np.array([[1, 1, -2],
+                     [-1, 1, 0],
+                     [1, 1, 1]])
+    burgers_dimensionless = np.array([1, 1, 1]) / 2.0
+    unit_cell_core_position_dimensionless = np.array([np.sqrt(6.)/6.0, np.sqrt(2.)/6.0, 0])
+    glide_distance_dimensionless = np.sqrt(6) / 3.0
+
+
+class BCCEdge111Dislocation(CubicCrystalDislocation):
+    crystalstructure = "bcc"
+    axes = np.array([[1, 1, 1],
+                     [1, -1, 0],
+                     [1, 1, -2]])
+    burgers_dimensionless = np.array([1, 1, 1]) / 2.0
+    unit_cell_core_position_dimensionless =  np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 0.25 * np.sqrt(2.0), 0])
+    glide_distance_dimensionless = np.sqrt(3) / 3.0
+    n_planes = 6
+
+
+class BCCMixed111Dislocation(CubicCrystalDislocation):
+    crystalstructure = "bcc"
+    axes = np.array([[1, -1, -2],
+                     [1, 1, 0],
+                     [1, -1, 1]])
+    burgers_dimensionless = np.array([1, -1, -1]) / 2.0
+    glide_distance_dimensionless = np.sqrt(6) / 3.0
+    # middle of the right edge of the first upward triangle
+    # half way between (1/6, 1/2, 0) and (1/3, 0, 0) in fractional coords
+    unit_cell_core_position_dimensionless = np.array([1/6, 1/6, 0])
+
+
+class BCCEdge100Dislocation(CubicCrystalDislocation):
+    crystalstructure = "bcc"
+    axes = np.array([[1, 0, 0],
+                     [0, 0, -1],
+                     [0, 1, 0]])
+    burgers_dimensionless = np.array([1, 0, 0])
+    unit_cell_core_position_dimensionless = np.array([1/4, 1/4, 0])
+    glide_distance_dimensionless = 1.0
+    n_planes = 2
+
+
+class BCCEdge100110Dislocation(CubicCrystalDislocation):
+    crystalstructure = "bcc"
+    axes = np.array([[1, 0, 0],
+                     [0, 1, 1],
+                     [0, -1, 1]])
+    burgers_dimensionless = np.array([1, 0, 0])
+    unit_cell_core_position = np.array([0.5, np.sqrt(2) / 4.0, 0])
+    glide_distance_dimensionless = 0.5
+    n_planes = 2
+
+
+class DiamondGlide30degreePartial(CubicCrystalDislocation):
+    crystalstructure="diamond"
+    axes = np.array([[1, 1, -2],
+                     [1, 1, 1],
+                     [1, -1, 0]])
+    burgers_dimensionless = np.array([1, -2, 1.]) / 6.
+    glide_distance_dimensionless = np.sqrt(6) / 4.0
+    # 1/4 + 1/2 * (1/3 - 1/4) - to be in the middle of the glide set
+    unit_cell_core_position_dimensionless = np.array([np.sqrt(6)/12, 7*np.sqrt(3)/24, 0])
+    n_planes = 2
+    # There is very small distance between
+    # atomic planes in glide configuration.
+    # Due to significant anisotropy application of the self consistent
+    # displacement field leads to deformation of the atomic planes.
+    # This leads to the cut plane crossing one of the atomic planes and
+    # thus breaking the stacking fault.
+    self_consistent = False
+
+
+class DiamondGlide90degreePartial(CubicCrystalDislocation):
+    crystalstructure = "diamond"
+    axes = np.array([[1, 1, -2],
+                     [1, 1, 1],
+                     [1, -1, 0]])
+    # 1/4 + 1/2 * (1/3 - 1/4) - to be in the middle of the glide set
+    unit_cell_core_position_dimensionless = np.array([np.sqrt(6)/12, 7 * np.sqrt(3) / 24, 0])
+    burgers_dimensionless = np.array([1., 1., -2.]) / 6.
+    glide_distance_dimensionless = np.sqrt(6)/4
+    n_planes = 2
+    # There is very small distance between
+    # atomic planes in glide configuration.
+    # Due to significant anisotropy application of the self consistent
+    # displacement field leads to deformation of the atomic planes.
+    # This leads to the cut plane crossing one of the atomic planes and
+    # thus breaking the stacking fault.
+    self_consistent = False
+
+
 class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
-    burgers_unscaled = np.array([1, -1, 0]) / 2
+    burgers_dimensionless = np.array([1, -1, 0]) / 2
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = DiamondGlide30degreePartial
     right_dislocation = DiamondGlide30degreePartial
 
 
 class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
-    burgers_unscaled = np.array([1, 0, -1]) / 2
+    burgers_dimensionless = np.array([1, 0, -1]) / 2
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = DiamondGlide30degreePartial
     right_dislocation = DiamondGlide90degreePartial
@@ -2802,17 +2806,10 @@ class FCCScrewShockleyPartial(CubicCrystalDislocation):
     axes = np.array([[1, 1, -2],
                      [1, 1, 1],
                      [1, -1, 0]])
-    burgers_unscaled = np.array([1, -2, 1.]) / 6.
-    glide_distance_unscaled = np.sqrt(6) / 4.0
+    burgers_dimensionless = np.array([1, -2, 1.]) / 6.
+    glide_distance_dimensionless = np.sqrt(6) / 4.0
     n_planes = 2
-    unit_cell_core_position_unscaled = np.array([5/6, 1/9, 0])
-
-
-class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
-    burgers_unscaled = np.array([1, -1, 0]) / 2
-    new_left_burgers = np.array([2., -1., -1.]) / 6
-    left_dislocation = FCCScrewShockleyPartial
-    right_dislocation = FCCScrewShockleyPartial
+    unit_cell_core_position_dimensionless = np.array([5/6, 1/9, 0])
 
 
 class FCCEdgeShockleyPartial(CubicCrystalDislocation):
@@ -2820,15 +2817,22 @@ class FCCEdgeShockleyPartial(CubicCrystalDislocation):
     axes = np.array([[1, -1, 0],
                      [1, 1, 1],
                      [-1, -1, 2]])
-    burgers_unscaled = np.array([1, -2, 1.]) / 6
-    unit_cell_core_position_unscaled = np.array([0, 1/6 , 0])
-    glide_distance_unscaled = np.sqrt(2)/4
+    burgers_dimensionless = np.array([1, -2, 1.]) / 6
+    unit_cell_core_position_dimensionless = np.array([0, 1/6 , 0])
+    glide_distance_dimensionless = np.sqrt(2)/4
     n_planes = 6
+
+
+class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
+    burgers_dimensionless = np.array([1, -1, 0]) / 2
+    new_left_burgers = np.array([2., -1., -1.]) / 6
+    left_dislocation = FCCScrewShockleyPartial
+    right_dislocation = FCCScrewShockleyPartial
 
 
 class FCCEdge110Dislocation(CubicCrystalDissociatedDislocation):
     crystalstructure = "fcc"
-    burgers_unscaled = np.array([1, -1, 0]) / 2
+    burgers_dimensionless = np.array([1, -1, 0]) / 2
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = FCCEdgeShockleyPartial
     right_dislocation = FCCEdgeShockleyPartial
