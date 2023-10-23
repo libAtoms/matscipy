@@ -57,7 +57,6 @@ jobs:
       - name: Pack build assets
         run: |
           bash -c "tar -cvf electrochemistry-sample-ipynb.tar examples/electrochemistry/*.ipynb examples/electrochemistry/*.html"
-  
 
       - name: Upload sample ipynb artifact
         uses: actions/upload-artifact@v3
