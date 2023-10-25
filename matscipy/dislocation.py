@@ -2208,6 +2208,15 @@ class CubicCrystalDislocation:
             Name of basic structure defining atomic geometry ("fcc", "bcc", "diamond")
         """
 
+        # Create copies of immutable class attributes
+        # Prevents side effects when E.G. changing burgers vector of an instance
+        # Also makes changing cls.var and instance.var work as expected for these variables
+        self.axes = self.axes.copy()
+        self.burgers_dimensionless = self.burgers_dimensionless.copy()
+        self.unit_cell_core_position_dimensionless = self.unit_cell_core_position_dimensionless.copy()
+        self.glide_distance_dimensionless = self.glide_distance_dimensionless.copy()
+        self.parity = self.parity.copy()
+
         self.C11 = C11
         self.C12 = C12
         self.C44 = C44
@@ -2568,9 +2577,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
 
         # Change disloc burgers vectors, if requested
         if self.new_left_burgers is not None:
-            self.left_dislocation.burgers_dimensionless = self.new_left_burgers
+            self.left_dislocation.burgers_dimensionless = self.new_left_burgers.copy()
         if self.new_right_burgers is not None:
-            self.right_dislocation.burgers_dimensionless = self.new_right_burgers
+            self.right_dislocation.burgers_dimensionless = self.new_right_burgers.copy()
         
         # Set self.attrs based on left disloc attrs
         left_dislocation = self.left_dislocation
