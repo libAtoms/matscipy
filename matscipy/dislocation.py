@@ -2921,8 +2921,8 @@ def _validate_disloc_inputs(a, symbol="w", axes=None, crystalstructure="fcc", pb
             
         # Check fractional coords match expectation
         frac_match = True
+        sup_size = int(rel_size**(1/3))
         if not skip_fractional_check:
-            sup_size = int(rel_size**(1/3))
             ref_supercell = ref_ats * (sup_size, sup_size, sup_size)
 
             try:
@@ -2934,6 +2934,8 @@ def _validate_disloc_inputs(a, symbol="w", axes=None, crystalstructure="fcc", pb
 
         if not frac_match or skip_fractional_check:
             warn(f"Input bulk does not appear to match bulk {crystalstructure}.", stacklevel=2)
+
+        alat /= sup_size # Account for larger supercells having multiple internal core sites
 
         ats = cut(ats, a=axes[0, :], b=axes[1, :], c=axes[2, :])
         rotate(ats, ats.cell[0, :].copy(), [1, 0, 0], ats.cell[1, :].copy(), [0, 1, 0])
