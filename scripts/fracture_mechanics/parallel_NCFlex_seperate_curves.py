@@ -135,7 +135,8 @@ def walk(x0,x1,direction,sc_dict):
                             continuation=continuation,
                             traj_file=traj_file_name,
                             traj_interval=traj_interval,
-                            precon=precon,opt_method='krylov',parallel=False)
+                            precon=precon,opt_method='krylov',parallel=False,
+                            allow_alpha_backtracking=allow_alpha_backtracking)
 
     #time.sleep(10)
     #go idle
@@ -381,6 +382,7 @@ if __name__ == '__main__':
     dk = parameter('dk', 1e-4)
     dalpha = parameter('dalpha', 1e-1)
     explore_direction = parameter('explore_direction', 0)
+    allow_alpha_backtracking = parameter('allow_alpha_backtracking',False)
 
     if cb == 'None':
         cb = None
