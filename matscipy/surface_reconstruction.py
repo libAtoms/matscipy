@@ -62,7 +62,7 @@ class SurfaceReconstruction:
                 self.el, self.a0, self.calc, lattice=self.lattice)
             self.multilattice = True
 
-    def map_surface(self, fmax=0.0001, layers=6, cutoff=10, shift=0, switch=False):
+    def map_surface(self, fmax=0.0001, layers=6, cutoff=10, shift=0, switch=False,invert_dirs=[False,False,False]):
         """Map the relaxation of the crystal surface a certain number of layers deep.
         Parameters
         ----------
@@ -82,6 +82,11 @@ class SurfaceReconstruction:
         switch : bool
             Whether or not to switch the sublattices around in the mapped structure.
             (Essentially, the correct surface can always be found from some combination of shift and switch)
+        invert_dirs : bool array
+            Whether to invert the components of the mapped shifts. This is useful in the case where a surface which originally has mirror
+            symmetry in a certain plane can break this symmetry during reconstruction. This is the case for the 110 silicon reconstructed surface,
+            where the surface breaks mirror symmetry in the {001} type plane during reconstruction. Two possible surfaces can form, related through
+            diad symmetry. To map the other surface, one has to switch sublattices and invert the mapped displacements along the <001> type direction.
         """
         # build a single cell to determine how many atomic surface
         # layers there are in a single unit cell made by ASE
@@ -102,10 +107,10 @@ class SurfaceReconstruction:
             #check if multilattice atoms are coplanar
             diff = single_cell.get_positions()[self.cb.lattice1mask][0, self.surf_dir] - single_cell.get_positions()[self.cb.lattice2mask][0, self.surf_dir]
             print(diff)
-            if np.abs(diff)<0.001:
-                self.split_cb_pair = False
-            else:
-                self.split_cb_pair = True
+            #if np.abs(diff)<0.001:
+            #    self.split_cb_pair = False
+            #else:
+            #    self.split_cb_pair = True
         else:
             # otherwise, just look at all the layers directly
             n_layer_per_cell = len(np.unique(single_cell.get_positions()[
@@ -165,6 +170,11 @@ class SurfaceReconstruction:
         print('POS SHIFT',pos_shift)
         # print('fafter',slab.get_forces())
 
+        #invert measured shifts if required
+        for direc in range(len(invert_dirs)):
+            if invert_dirs[direc]:
+                pos_shift[:,direc] *= -1
+        
         # for a multi-lattice:
         if self.multilattice:
             # if this is a multi-lattice
@@ -472,7 +482,7 @@ class SurfaceReconstruction:
         # map out the pandey reconstruction on a diamond structure 111 surface
         # can then apply it later (this requires a seperate function as the unit cell of 2x1 reconstruction
         # breaks the symmetry of the surface)
-        self.split_cb_pair = True
+        #self.split_cb_pair = True
         #111 type surface always splits a cb pair
         ny = 1
         nx = 1
@@ -792,8 +802,11 @@ class SurfaceReconstruction:
             print('lattice2')
             print(np.where(layer_mask_set_lattice2[:,i]))
             print(np.where(layer_mask_set_lattice2[:,i]^(mask&layer_mask_set_lattice2[:,i])))
+
+            #TODO uncomment these lines? why did I even comment them? this really needs testing
             #layer_mask_set_lattice1[:,i] = layer_mask_set_lattice1[:,i]^(mask&layer_mask_set_lattice1[:,i])
             #layer_mask_set_lattice2[:,i] = layer_mask_set_lattice2[:,i]^(mask&layer_mask_set_lattice2[:,i])
+
         print('SEARCH DIR,',search_dir)
         for i in range(np.shape(layer_mask_set_lattice1)[1]):
             #print(np.shape(layer_mask_set_lattice1))
@@ -875,7 +888,7 @@ class SurfaceReconstruction:
         #print(layer_mask_set_lattice1_atom1[:,layer])
         try:
             atoms.new_array('atomno',np.zeros(len(atoms),dtype=int))
-        except:
+        except: #TODO add correct exception here (for the case where the array already exists)
             pass
         atomno = atoms.arrays['atomno']
         for layer in range(self.layers):
@@ -983,4 +996,494 @@ class SurfaceReconstruction:
 
         atoms.wrap()
 
+    def map_si_110_3x1(self, fmax=0.0001, layers=6, cutoff=10,switch=False,orientation=0,shift=0,permute=False):
+        """Map the silicon 110 3x1 relaxation of the crystal.
+        ------------------------------
+        fmax : float
+            Force tolerance for relaxation
+        layers : int
+            Number of layers deep to map the free surface
+        cutoff : float
+            Cutoff of the potential being used - used to decide the number of
+            atoms beneath the mapped layers that need to be modelled 
+        shift : float
+            Amount to shift the bulk structure before the surface is mapped
+            such that the top layer of surface is physically meaningful. One
+            use case of this would be to adjust the top layer of atoms being mapped
+            in diamond such that it matches the top layer of atoms seen on the cleavage
+            plane.
+        switch : bool
+            Whether or not to switch the sublattices around in the mapped structure.
+            (Essentially, the correct surface can always be found from some combination of shift and switch)
+        orientation : int, 1 or 0
+            Whether to flip the reconstruction by 180 degrees. This is necessary for the lower surface.
+        """
+        # map out the pandey reconstruction on a diamond structure 111 surface
+        # can then apply it later (this requires a seperate function as the unit cell of 3x1 reconstruction
+        # breaks the symmetry of the surface)
+        #self.split_cb_pair = True
+        #111 type surface always splits a cb pair
+        ny = 3
+        nx = 1
+        nz = 3*int(layers)
+        self.layers = layers
+        self.si_110_3x1_dirs = [ [0,0,1], [1,-1,0], [1,1,0] ]
+        #build the reconstruction frame rotation matrix
+        U = np.zeros([3, 3])
+        for i, direction in enumerate(self.si_110_3x1_dirs):
+            direction = np.array(direction)
+            U[:, i] = direction / np.linalg.norm(direction)
+        self.U = U  # reconstruction frame rotation matrix
+        a = Diamond(self.el,
+                    size             = [1, ny, nz],
+                    latticeconstant  = self.a0,
+                    directions=self.si_110_3x1_dirs
+                    )
 
+        self.cb.set_sublattices(a,self.U)
+        if switch:
+            self.cb.switch_sublattices(a)
+        sorted_z_vals = np.sort(a.get_positions()[self.cb.lattice1mask][:,2])
+        self.inter_surf_dist = sorted_z_vals[3] - sorted_z_vals[0]
+        a.translate([-0.01,0.0,-shift*self.inter_surf_dist]) #REMOVE SHIFT FROM HERE
+        #a.translate([0.01,0.01,-1]) 
+        a.wrap()
+        print('INTER SURF DIST',self.inter_surf_dist)
+        #seed the 3x1 reconstruction on the top plane
+        pos_initial_unrotated = a.get_positions()
+
+        bulk = a.copy()
+        top_atom_mask = a.positions[:,2]>(np.max(a.positions[:,2])-self.inter_surf_dist)
+        top_atom_indices = np.where(top_atom_mask)[0]
+        sorted_indices = top_atom_indices[np.argsort(a.positions[top_atom_indices,1])]
+        
+        if permute:
+            a.positions[sorted_indices[2],2] += -1
+            a.positions[sorted_indices[3],2] += -1
+            a.positions[sorted_indices[5],2] += -1
+            a.positions[sorted_indices[0],2] += -1
+        else:
+            a.positions[sorted_indices[1],2] += -1
+            a.positions[sorted_indices[2],2] += -1
+            a.positions[sorted_indices[4],2] += -1
+            a.positions[sorted_indices[5],2] += -1
+
+
+
+
+        ase.io.write('0_bulk.xyz',bulk)
+        ase.io.write('1_bulk.xyz',a)
+        #relax the structure to get the 3x1 111 reconstruction
+        # run an optimisation to relax the surface
+
+        #add some vacuum
+        cell = a.get_cell()
+        # vacuum along self.surf_dir axis (surface normal)
+        cell[2, :] *= 2
+        a.set_cell(cell, scale_atoms=False)
+        a.calc = self.calc
+
+        # fix bottom atoms to stop lower surface reconstruction
+        #print('POS INITIAL UNROTATED',pos_initial_unrotated)
+        mask = pos_initial_unrotated[:,2] < cutoff
+        #print(pos_initial_unrotated[:,2])
+        a.set_constraint(FixAtoms(mask=mask))
+        opt_a = PreconLBFGS(a)
+        opt_a.run(fmax=fmax)
+        ase.io.write('2_bulk.xyz',a)
+        pos_after_unrotated = a.get_positions()
+        print(pos_after_unrotated[:,1]<0)
+        print(len(pos_after_unrotated[:,1]<0))
+        print(pos_after_unrotated[:,1]>a.cell[1,1])
+        print(len(pos_after_unrotated[:,1]>a.cell[1,1]))
+        atoms_outside_mask = (pos_after_unrotated[:,1]<0) | (pos_after_unrotated[:,1]>a.cell[1,1])
+        pushed_out_atoms = a[atoms_outside_mask]
+        wrapped=False
+        if len(pushed_out_atoms)>0:
+            print('detected atoms to be wrapped')
+            wrapped=True
+            #a.wrap()
+            pos_after_unrotated = a.get_positions()
+            ase.io.write('3_bulk.xyz',a)
+        
+        pos_diff_unrotated = pos_after_unrotated-pos_initial_unrotated
+        #print('pos diff unrotated',pos_diff_unrotated)
+        #map out the layers in the original structure
+        surface_coords = pos_initial_unrotated[np.argmax(pos_initial_unrotated[:,2]),:]+[0,0,0.01]
+        tmp = self.surf_dir
+        self.surf_dir = 2
+        layer_mask_set_lattice1_atom1, layer_mask_set_lattice1_atom2, layer_mask_set_lattice1_atom3, layer_mask_set_lattice2_atom1, layer_mask_set_lattice2_atom2,\
+            layer_mask_set_lattice2_atom3 = self.identify_si_110_layers(bulk,surface_coords,read_from_atoms=True,frame_dirs=self.si_110_3x1_dirs,switch=switch)
+        self.surf_dir = tmp
+
+        #relaxation array lattice 1 atom 1
+        self.ral1a1 = np.zeros([layers,3])
+        #relaxation array lattice 1 atom 2
+        self.ral1a2 = np.zeros([layers,3])
+        #relaxation array lattice 1 atom 3
+        self.ral1a3 = np.zeros([layers,3])
+        #relaxation array lattice 2 atom 1
+        self.ral2a1 = np.zeros([layers,3])
+        #relaxation array lattice 2 atom 2
+        self.ral2a2 = np.zeros([layers,3])
+        #relaxation array lattice 2 atom 3
+        self.ral2a3 = np.zeros([layers,3])
+
+        #print(np.shape(pos_diff_unrotated))
+        #print(np.shape(layer_mask_set_lattice1_atom1))
+        #generate rotation matrix to get from pandey frame to lab frame 
+        #orientation rotation tensor
+        OR = np.zeros([3,3])
+        OR[0,0] = np.cos((np.pi)*orientation)
+        OR[0,1] = -np.sin((np.pi)*orientation)
+        OR[1,0] = np.sin((np.pi)*orientation)
+        OR[1,1] = np.cos((np.pi)*orientation)
+        OR[2,2] = 1
+        #print('OR',OR)
+
+        R = np.transpose(self.A)@self.U@np.transpose(OR)
+        #print('with no rotation',np.transpose(self.A)@self.U)
+        #print('with rotation',R)
+        for layer in range(layers):
+            print(layer)
+            print(len(pos_diff_unrotated[layer_mask_set_lattice2_atom2[:,layer]]))
+
+            self.ral1a1[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice1_atom1[:,layer]][0,:]
+            self.ral1a2[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice1_atom2[:,layer]][0,:]
+            self.ral1a3[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice1_atom3[:,layer]][0,:]
+            self.ral2a1[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice2_atom1[:,layer]][0,:]
+            self.ral2a2[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice2_atom2[:,layer]][0,:]
+            self.ral2a3[layer,:] = R@pos_diff_unrotated[layer_mask_set_lattice2_atom3[:,layer]][0,:]
+        print(self.ral1a1,self.ral1a2,self.ral2a1,self.ral2a2)
+
+
+    def identify_si_110_layers(self,
+            atoms,
+            surface_coords,
+            xlim=None,
+            ylim=None,
+            zlim=None,
+            search_dir=-1,
+            atoms_for_cb=None,
+            read_from_atoms=False,
+            frame_dirs=None,
+            orientation=0,
+            switch=False):
+        """Function for identifying the layers adjacent to a surface, in a supplied atoms structure.
+        This allows a mapped relaxation to be easily applied to a surface. This implementation is specific
+        to the 111 Pandey reconstruction, as more atoms need to be identified due to the breaking of surface
+        symmetry.
+
+        Parameters
+        ----------
+        atoms : ASE atoms object
+            Atoms object which contains surface to relax
+        surface_coords : array_like
+            Coordinates of a point that lies on the free surface (or within one layer distance above it)
+        xlim : array_like
+            [x lower, x upper], x range to apply relaxation
+        ylim : array_like
+            [y lower, y upper], y range to apply relaxation
+        zlim : array_like
+            [z lower, z upper], z range to apply relaxation
+        search_dir : int
+            -1: surface is below point provided, 1: surface is above point provided
+        atoms_for_cb : ASE atoms object
+            atoms object which allows the easy identification of sub-lattices in a multi-lattice
+            crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may
+            be periodic boundary conditions, for example.
+        read_from_atoms : bool
+            Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the
+            atoms object contains arrays called lattice1mask and lattice2mask
+        frame_dirs : 
+            The frame in which the Pandey reconstruction was mapped out - the atoms in the supplied frame will need to
+            be rotated to this frame before the reconstruction can be applied
+        orientation : 0,1 or 2
+            Which of the three different orientations of the Pandey reconstructions are being applied to the surface
+
+
+        Returns
+        -------
+        layer_mask_set : array_like, bool
+            A 2D array dimensions [nlayers,natoms] where a row i is a mask for
+            'atoms' corresponding to a layer i deep from the surface. In the case of
+            a multi-lattice, two masks are returned, one for each of the sublattices on each layer.
+        """
+        # this function needs to identify the 4 sets of atoms per layer
+        # that reconstruct (breaking symmetry)
+        # it does this by taking an atoms structure, reading the sublattices
+        # identifying the layers down from a point and then in each layer
+        # identifying the 4 unique types of atom
+        # to do this, it takes the positions of all the atoms of one sublattice
+        # rotates these position vectors from the supplied frame to the mapped reconstruction frame
+        # and then goes from left to right, shifting th
+        
+        #get the layer masks
+
+        layer_mask_set_lattice1, layer_mask_set_lattice2 = \
+            self.identify_layers(atoms,surface_coords,read_from_atoms=read_from_atoms,xlim=xlim,ylim=ylim,zlim=zlim,atoms_for_cb=atoms_for_cb,search_dir=search_dir)
+
+        #rotate the lattice structure to match the pandey directions
+        #build the rotation matrix
+        #this is equivalent to transforming from the coordinate system
+        #given by 'dirs' (the lab frame) to the lattice frame, and then from there
+        #to the frame where the pandey reconstruction is defined.
+
+        if frame_dirs is not None:
+            T = np.zeros([3, 3])
+            for i, direction in enumerate(frame_dirs):
+                direction = np.array(direction)
+                T[:, i] = direction / np.linalg.norm(direction)
+        else:
+            T = self.A
+
+        OR = np.zeros([3,3])
+        OR[0,0] = np.cos((np.pi)*orientation)
+        OR[0,1] = -np.sin((np.pi)*orientation)
+        OR[1,0] = np.sin((np.pi)*orientation)
+        OR[1,1] = np.cos((np.pi)*orientation)
+        OR[2,2] = 1
+        
+        #OR - Orientation rotation tensor
+        #T - lab frame to lattice frame
+        #U - lattice map frame to lattice frame
+        R = OR@np.transpose(self.U)@T
+        print(self.U,T,R)
+
+        layer_mask_set_lattice1_atom1 = np.zeros_like(layer_mask_set_lattice1,dtype=bool)
+        layer_mask_set_lattice1_atom2 = np.zeros_like(layer_mask_set_lattice1,dtype=bool)
+        layer_mask_set_lattice1_atom3 = np.zeros_like(layer_mask_set_lattice1,dtype=bool)
+        layer_mask_set_lattice2_atom1 = np.zeros_like(layer_mask_set_lattice1,dtype=bool)
+        layer_mask_set_lattice2_atom2 = np.zeros_like(layer_mask_set_lattice1,dtype=bool)
+        layer_mask_set_lattice2_atom3 = np.zeros_like(layer_mask_set_lattice1,dtype=bool)
+        
+        #find an exclusion zone using the position of the leftmost lattice1
+        #atom in the first layer (this is where we cut the cell in map_pandey)
+        if switch:
+            layer1 = atoms[layer_mask_set_lattice2[:,0]]
+        else:
+            layer1 = atoms[layer_mask_set_lattice1[:,0]]
+        
+        layer1pos = layer1.get_positions()
+        #rotate
+        rotated_layer1 = np.zeros_like(layer1pos)
+        for j in range(np.shape(layer1pos)[0]):
+            rotated_layer1[j,:] = R@layer1pos[j,:]
+        
+        #find the leftmost point of layer 1
+        leftpos = np.min(rotated_layer1[:,1])
+        pos = atoms.get_positions()
+        rotated_pos = np.zeros_like(pos)
+        for j in range(np.shape(pos)[0]):
+            rotated_pos[j,:] = R@pos[j,:]
+        
+        mask = rotated_pos[:,1]<leftpos-0.01
+        print(np.where(mask))
+        for i in range(np.shape(layer_mask_set_lattice1)[1]):
+            print(np.where(layer_mask_set_lattice1[:,i]))
+            print(np.where(layer_mask_set_lattice1[:,i]^(mask&layer_mask_set_lattice1[:,i])))
+            print('lattice2')
+            print(np.where(layer_mask_set_lattice2[:,i]))
+            print(np.where(layer_mask_set_lattice2[:,i]^(mask&layer_mask_set_lattice2[:,i])))
+            #layer_mask_set_lattice1[:,i] = layer_mask_set_lattice1[:,i]^(mask&layer_mask_set_lattice1[:,i])
+            #layer_mask_set_lattice2[:,i] = layer_mask_set_lattice2[:,i]^(mask&layer_mask_set_lattice2[:,i])
+        print('SEARCH DIR,',search_dir)
+        for i in range(np.shape(layer_mask_set_lattice1)[1]):
+            #print(np.shape(layer_mask_set_lattice1))
+            lattice1atoms = atoms[layer_mask_set_lattice1[:,i]]
+            pos_lattice_1_atoms = lattice1atoms.get_positions()
+            #rotate
+            rotated_pos_lattice1 = np.zeros_like(pos_lattice_1_atoms)
+            for j in range(np.shape(pos_lattice_1_atoms)[0]):
+                rotated_pos_lattice1[j,:] = R@pos_lattice_1_atoms[j,:]
+
+            #sort by the y position of the atoms in the rotated frame
+            #that is used to map the pandey reconstruction
+            #print('LAYER MASK LATTICE 1',layer_mask_set_lattice1[:,i])
+            atom_indices = np.where(layer_mask_set_lattice1[:,i] == True)[0]
+            pos_indices = np.argsort(rotated_pos_lattice1[:,1])
+            n_unique = 0
+            #if the search direction is 1 (looking at a lower surface), run this backwards
+            if search_dir == 1:
+                k = len(pos_indices)-1
+            else:
+                k = 0
+            compare_pos = rotated_pos_lattice1[:,1][pos_indices[k]]
+            for j in range(len(pos_indices)):
+                if search_dir == 1:
+                    k = len(pos_indices)-j-1
+                else:
+                    print('here')
+                    k = j
+                #build masks which hold the different types of atoms in
+                #the symmetry broken reconstruction (using the y axis in the rotated
+                # frame to differentiate them from eachother)
+                print(k,search_dir)
+                print(-search_dir*rotated_pos_lattice1[:,1][pos_indices[k]],(-search_dir*(compare_pos-(search_dir*0.01))))
+                if (-search_dir*rotated_pos_lattice1[:,1][pos_indices[k]])>(-search_dir*(compare_pos-(search_dir*0.01))):
+                #if rotated_pos_lattice1[:,1][pos_indices[k]]<(compare_pos-0.01):
+                    n_unique += 1
+                    compare_pos = rotated_pos_lattice1[:,1][pos_indices[k]]
+                if n_unique%3 == 0:
+                    layer_mask_set_lattice1_atom1[:,i][atom_indices[pos_indices[k]]] = True
+                elif n_unique%3 == 1:
+                    layer_mask_set_lattice1_atom2[:,i][atom_indices[pos_indices[k]]] = True
+                elif n_unique%3 == 2:
+                    layer_mask_set_lattice1_atom3[:,i][atom_indices[pos_indices[k]]] = True
+            
+            #repeat for lattice 2
+            lattice2atoms = atoms[layer_mask_set_lattice2[:,i]]
+            pos_lattice_2_atoms = lattice2atoms.get_positions()
+
+            #rotate
+            rotated_pos_lattice2 = np.zeros_like(pos_lattice_2_atoms)
+            for j in range(np.shape(pos_lattice_2_atoms)[0]):
+                rotated_pos_lattice2[j,:] = R@pos_lattice_2_atoms[j,:]
+            #sort by the y position of the atoms in the rotated frame
+            #that is used to map the pandey reconstruction
+            atom_indices = np.where(layer_mask_set_lattice2[:,i] == True)[0]
+            #print(atom_indices)
+            pos_indices = np.argsort(rotated_pos_lattice2[:,1])
+            n_unique = 0
+            if search_dir == 1:
+                k = len(pos_indices)-1
+            else:
+                k = 0
+            compare_pos = rotated_pos_lattice2[:,1][pos_indices[k]]
+            for j in range(len(pos_indices)):
+                if search_dir == 1:
+                    k = len(pos_indices)-j-1
+                else:
+                    k = j
+                #build masks which hold the different types of atoms in
+                #the symmetry broken reconstruction (using the y axis in the rotated
+                # frame to differentiate them from eachother)
+                if (-search_dir*rotated_pos_lattice2[:,1][pos_indices[k]])>(-search_dir*(compare_pos-(search_dir*0.01))):
+                    n_unique += 1
+                    compare_pos = rotated_pos_lattice2[:,1][pos_indices[k]]
+                if n_unique%3 == 0:
+                    layer_mask_set_lattice2_atom1[:,i][atom_indices[pos_indices[k]]] = True
+                elif n_unique%3 == 1:
+                    layer_mask_set_lattice2_atom2[:,i][atom_indices[pos_indices[k]]] = True
+                elif n_unique%3 == 2:
+                    layer_mask_set_lattice2_atom3[:,i][atom_indices[pos_indices[k]]] = True
+
+        
+        #print(layer_mask_set_lattice1_atom1[:,layer])
+        try:
+            atoms.new_array('atomno',np.zeros(len(atoms),dtype=int))
+        except: #TODO add correct exception here (for the case where the array already exists)
+            pass
+        atomno = atoms.arrays['atomno']
+        for layer in range(self.layers):
+            atomno[layer_mask_set_lattice1_atom1[:,layer]] = 1
+            atomno[layer_mask_set_lattice1_atom2[:,layer]] = 2
+            atomno[layer_mask_set_lattice2_atom1[:,layer]] = 3
+            atomno[layer_mask_set_lattice2_atom2[:,layer]] = 4
+        return layer_mask_set_lattice1_atom1, layer_mask_set_lattice1_atom2, layer_mask_set_lattice1_atom3, layer_mask_set_lattice2_atom1, layer_mask_set_lattice2_atom2, layer_mask_set_lattice2_atom3
+
+
+    def apply_si_110(self,
+            atoms,
+            surface_coords,
+            cb=None,
+            xlim=None,
+            ylim=None,
+            zlim=None,
+            search_dir=-1,
+            atoms_for_cb=None,
+            read_from_atoms=False,
+            orientation=0,
+            switch=False):
+        """Function which applies the mapped out Si deformation to the surface layers
+        in a supplied atoms structure.
+        Parameters
+        ----------
+        atoms : ASE atoms object
+            Atoms object which contains surface to relax
+        surface_coords : array_like
+            Coordinates of a point that lies on the free surface (or within one layer distance above it)
+        xlim : array_like
+            [x lower, x upper], x range to apply relaxation
+        ylim : array_like
+            [y lower, y upper], y range to apply relaxation
+        zlim : array_like
+            [z lower, z upper], z range to apply relaxation
+        search_dir : int
+            -1: surface is below point provided, 1: surface is above point provided
+        atoms_for_cb : ASE atoms object
+            atoms object which allows the easy identification of sub-lattices in a multi-lattice
+            crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may
+            be periodic boundary conditions, for example.
+        read_from_atoms : bool
+            Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the
+            atoms object contains arrays called lattice1mask and lattice2mask
+        orientation : 0,1 or 2
+            Which of the three different orientations of the Pandey reconstructions are being applied to the surface
+        """
+        self.eval_cb = cb
+
+        #apply the reconstruction on a diamond structure 110 surface within some set of layers
+        #get masks for atoms
+        layer_mask_set_lattice1_atom1, layer_mask_set_lattice1_atom2, layer_mask_set_lattice1_atom3, layer_mask_set_lattice2_atom1, layer_mask_set_lattice2_atom2,\
+            layer_mask_set_lattice2_atom3 = \
+        self.identify_si_110_layers(atoms,surface_coords,read_from_atoms=read_from_atoms,
+                                    xlim=xlim,ylim=ylim,zlim=zlim,search_dir=search_dir,
+                                    atoms_for_cb=atoms_for_cb,orientation=orientation,switch=switch)
+        ase.io.write(f'{self.directions[self.surf_dir]}1.xyz',atoms)
+
+        for layer in range(self.layers):
+            lattice_1_atom_1shift = self.ral1a1[layer, :]
+            lattice_1_atom_2shift = self.ral1a2[layer, :]
+            lattice_1_atom_3shift = self.ral1a3[layer, :]
+            lattice_2_atom_1shift = self.ral2a1[layer, :]
+            lattice_2_atom_2shift = self.ral2a2[layer, :]
+            lattice_2_atom_3shift = self.ral2a3[layer, :]
+            print(f'atom 1, layer{layer}',lattice_1_atom_1shift)
+            print(f'atom 2, layer{layer}',lattice_1_atom_2shift)
+            print(f'atom 3, layer{layer}',lattice_1_atom_3shift)
+            print(f'atom 4, layer{layer}',lattice_2_atom_1shift)
+            print(f'atom 5, layer{layer}',lattice_2_atom_2shift)
+            print(f'atom 6, layer{layer}',lattice_2_atom_3shift)
+            print(self.surf_dir)
+            #invert component based on surf_dir if necessary
+            
+            if search_dir == 1:
+                #TODO does this rotation matrix make this non-general? what was I thinking? this needs testing
+                R = np.array([[-1,0,0],
+                            [0,-1,0],
+                            [0,0,1]])
+                lattice_1_atom_1shift = R@ \
+                    lattice_1_atom_1shift
+                lattice_1_atom_2shift = R@ \
+                    lattice_1_atom_2shift
+                lattice_1_atom_3shift = R@ \
+                    lattice_1_atom_3shift
+                lattice_2_atom_1shift = R@ \
+                    lattice_2_atom_1shift
+                lattice_2_atom_2shift = R@ \
+                    lattice_2_atom_2shift
+                lattice_2_atom_3shift = R@ \
+                    lattice_2_atom_3shift
+            
+            #apply shifts to different atom types
+            atoms.positions[:,
+                            :][layer_mask_set_lattice1_atom1[:,
+                                                        layer]] += lattice_1_atom_1shift
+            atoms.positions[:,
+                            :][layer_mask_set_lattice1_atom2[:,
+                                                        layer]] += lattice_1_atom_2shift
+            atoms.positions[:,
+                            :][layer_mask_set_lattice1_atom3[:,
+                                                        layer]] += lattice_1_atom_3shift
+            atoms.positions[:,
+                            :][layer_mask_set_lattice2_atom1[:,
+                                                        layer]] += lattice_2_atom_1shift
+            atoms.positions[:,
+                            :][layer_mask_set_lattice2_atom2[:,
+                                                        layer]] += lattice_2_atom_2shift
+            atoms.positions[:,
+                            :][layer_mask_set_lattice2_atom3[:,
+                                                        layer]] += lattice_2_atom_3shift
+
+        atoms.wrap()
