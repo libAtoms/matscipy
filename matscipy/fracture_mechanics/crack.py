@@ -1524,7 +1524,8 @@ class SinclairCrack:
                                 opt_method='krylov',
                                 cos_alpha_min=0.9,parallel=False,
                                 pipe_output=None,data_queue=None,
-                                kill_confirm_queue=None):
+                                kill_confirm_queue=None,
+                                allow_alpha_backtracking=False):
         import h5py
         assert self.variable_k  # only makes sense if K can vary
 
@@ -1535,6 +1536,9 @@ class SinclairCrack:
         # ensure we start moving in the correct direction
         if self.variable_alpha:
             _, alphadot1, _ = self.unpack(xdot1)
+            #print(np.sign(alphadot1))
+            #print(direction)
+            #print(direction*np.sign(alphadot1))
             if direction * np.sign(alphadot1) < 0:
                 xdot1 = -xdot1
         row = 0
@@ -1581,13 +1585,13 @@ class SinclairCrack:
 
             x2 = self.get_dofs()
             xdot2 = self.get_xdot(x1, x2, ds)
-
-            if self.variable_alpha:
-                # monitor sign of \dot{alpha} and flip if necessary
-                #udot1, alphadot1, kdot1 = self.unpack(xdot1)
-                udot2, alphadot2, kdot2 = self.unpack(xdot2)
-                if direction * np.sign(alphadot2) < 0:
-                    xdot2 = -xdot2  
+            if not allow_alpha_backtracking:
+                if self.variable_alpha:
+                    # monitor sign of \dot{alpha} and flip if necessary
+                    #udot1, alphadot1, kdot1 = self.unpack(xdot1)
+                    udot2, alphadot2, kdot2 = self.unpack(xdot2)
+                    if direction * np.sign(alphadot2) < 0:
+                        xdot2 = -xdot2  
 
             # cos_alpha = np.dot(xdot1, xdot2) / np.linalg.norm(xdot1) / np.linalg.norm(xdot2)
             # print(f'cos_alpha = {cos_alpha}')
@@ -1636,10 +1640,9 @@ class SinclairCrack:
                 if pipe_output.poll():
                     kill = pipe_output.recv()
                     print(f'KILLING PROCESS,{os.getpid()}')
-                    if kill == 1:
-                        #kill the process
-                        i = N
-                        kill_confirm_queue.put(os.getpid())
+                    #kill the process
+                    kill_confirm_queue.put(os.getpid())
+                    break
                 else:
                     #put data on queue
                     data_queue.put([os.getpid(),x2,direction],block=False)
