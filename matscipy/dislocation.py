@@ -2214,7 +2214,6 @@ class CubicCrystalDislocation:
         self.axes = self.axes.copy()
         self.burgers_dimensionless = self.burgers_dimensionless.copy()
         self.unit_cell_core_position_dimensionless = self.unit_cell_core_position_dimensionless.copy()
-        self.glide_distance_dimensionless = self.glide_distance_dimensionless.copy()
         self.parity = self.parity.copy()
 
         self.C11 = C11
