@@ -222,11 +222,11 @@ class RectilinearAnisotropicCrack:
 
         f_II = kII / np.sqrt(2*math.pi*r)
         h4 = self.inv_mu1_mu2
-        du_dx_II = f_I*( self.inv_mu1_mu2*( self.p2/h2 - self.p1/h3 ) ).real
-        du_dy_II = f_I*( h4*( (self.mu2*self.p2)/h2 - (self.mu1*self.p1)/h3 ) ).real
+        du_dx_II = f_II*( self.inv_mu1_mu2*( self.p2/h2 - self.p1/h3 ) ).real
+        du_dy_II = f_II*( h4*( (self.mu2*self.p2)/h2 - (self.mu1*self.p1)/h3 ) ).real
 
-        dv_dx_II = f_I*( self.inv_mu1_mu2*( self.q2/h2 - self.q1/h3 ) ).real
-        dv_dy_II = f_I*( h4*( (self.mu2*self.q2)/h2 - (self.mu1*self.q1)/h3 ) ).real
+        dv_dx_II = f_II*( self.inv_mu1_mu2*( self.q2/h2 - self.q1/h3 ) ).real
+        dv_dy_II = f_II*( h4*( (self.mu2*self.q2)/h2 - (self.mu1*self.q1)/h3 ) ).real
 
         du_dx = du_dx_I + du_dx_II
         du_dy = du_dy_I + du_dy_II
@@ -493,7 +493,7 @@ class CubicCrystalCrack:
         """
         abs_dr = np.sqrt(dx*dx+dy*dy)
         theta = np.arctan2(dy, dx)
-        return self.displacements_from_cylinder_coordinates(abs_dr, theta, kI, kII=0)
+        return self.displacements_from_cylinder_coordinates(abs_dr, theta, kI, kII=kII)
 
 
     def displacements(self, ref_x, ref_y, x0, y0, kI, kII=0):
@@ -1689,7 +1689,7 @@ class SinclairCrack:
                             with h5py.File(traj_file, 'a') as hf:
                                 x_traj = hf['x']
                                 x_traj.resize((x_traj.shape[0] + 1, x_traj.shape[1]))
-                                x_traj[-1, :] = x2
+                                x_traj[-1, :] = np.append(x2[:-1],[self.kI,self.kII])
                                 row += 1
                                 break
                         except:
