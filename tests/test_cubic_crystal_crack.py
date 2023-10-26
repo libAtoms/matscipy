@@ -62,7 +62,7 @@ from matscipy.elasticity import measure_triclinic_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_cubic
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack
 from matscipy.fracture_mechanics.crack import \
-    isotropic_modeI_crack_tip_displacement_field
+    isotropic_modeI_crack_tip_displacement_field, isotropic_modeII_crack_tip_displacement_field
 from matscipy.fracture_mechanics.idealbrittlesolid import IdealBrittleSolid
 
 ###
@@ -112,9 +112,30 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
 
         k = crack.crack.k1g(1.0)
 
+        #test mode 1
         u, v = crack.crack.displacements(r, theta, k)
         ref_u, ref_v = isotropic_modeI_crack_tip_displacement_field(k, C44, nu,
                                                                     r, theta)
+
+        self.assertArrayAlmostEqual(u, ref_u)
+        self.assertArrayAlmostEqual(v, ref_v)
+
+        #test mode 2
+        u, v = crack.crack.displacements(r, theta, kI=0,kII=k)
+        ref_u, ref_v = isotropic_modeII_crack_tip_displacement_field(k, C44, nu,
+                                                                    r, theta)
+
+        self.assertArrayAlmostEqual(u, ref_u)
+        self.assertArrayAlmostEqual(v, ref_v)
+
+        #test mixed mode
+        u, v = crack.crack.displacements(r, theta, kI=k/2,kII=k/2)
+        ref_u_I, ref_v_I = isotropic_modeI_crack_tip_displacement_field(k/2, C44, nu,
+                                                                    r, theta)
+        ref_u_II, ref_v_II = isotropic_modeII_crack_tip_displacement_field(k/2, C44, nu,
+                                                                    r, theta)
+        ref_u = ref_u_I + ref_u_II
+        ref_v = ref_v_I + ref_v_II
 
         self.assertArrayAlmostEqual(u, ref_u)
         self.assertArrayAlmostEqual(v, ref_v)
