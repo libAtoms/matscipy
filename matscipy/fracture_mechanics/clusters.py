@@ -59,11 +59,18 @@ def set_groups(a, n, skin_x, skin_y, central_x=-1./2, central_y=-1./2,
 
     a.set_array('groups', g)
 
-def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_region_I=False,exclude_surface=False):
+def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_region_I=False,exclude_surface=False,radial_sort=True):
     sx, sy, sz = cryst.cell.diagonal()
     x, y = cryst.positions[:, 0], cryst.positions[:, 1]
     cx, cy = sx/2, sy/2
     r = np.sqrt((x - cx)**2 + (y - cy)**2)
+
+    # Check region radii values do not lie on atoms
+    #r_II = r_I +cutoff ; r_IV = r_III+cutoff
+    #for num, rad in enumerate([r_I, r_II, r_III, r_IV]):
+    #    if rad in r:
+    #        reg_num = num + 1
+    #        print(f'Radius r_{reg_num:} from cracktip overlaps with atleast one atom.')
 
     # Regions I and III defined by radial distance from center
     regionI = r < r_I
@@ -120,10 +127,24 @@ def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_reg
     # keep only cylinder defined by regions I - IV
     cryst = cryst[regionI | regionII | regionIII | regionIV]
 
-    # order by radial distance from tip
-    order = r[regionI | regionII | regionIII | regionIV ].argsort()
+    if radial_sort:
+
+        print('Warning: Using old method of sorting by radial distance from tip in x-y plane.')
+
+        # order by radial distance from tip
+        order = r[regionI | regionII | regionIII | regionIV ].argsort()
+    
+    else:
+
+        # sort by regions, retaining original bulk order within each region
+        region = cryst.arrays['region']
+        region_numbers = np.unique(region) # returns sorted region numbers
+        order = np.array([ index for n in region_numbers for index in np.where(region==n)[0] ])
+
     cryst = cryst[order]
     return cryst
+
+
 
 def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
             cb=None, lattice=None, shift=None,switch_sublattices=False):

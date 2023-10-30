@@ -704,6 +704,7 @@ if __name__ == '__main__':
     diffs = np.diff(sorted_x)
     alpha_period = np.sum(np.unique(np.round(np.diff(sorted_x),decimals=4)))
     print('alpha_period',alpha_period)
+
     # setup the crack
     crk = CubicCrystalCrack(parameter('crack_surface'),
                     parameter('crack_front'),
@@ -713,6 +714,9 @@ if __name__ == '__main__':
     k1g = crk.k1g(parameter('surface_energy'))
 
     cluster = params.cluster.copy() 
+    # save the cluster used for NCFlex, to avoid sort-index inconsistencies
+    ase.io.write('ncflex_cluster.xyz',cluster) 
+
     if crk.cauchy_born is not None:
         crk.cauchy_born.set_sublattices(cluster,np.transpose(crk.RotationMatrix),read_from_atoms=True)
 

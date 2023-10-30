@@ -2157,7 +2157,7 @@ class CubicCrystalDislocationGrad:
     The function is similar as class `CubicCrystalDislocation`.
     """
 
-    def __init__(self, a0, crystal_surface, crack_front, n, xi, Burgers, C11=None, C12=None,
+    def __init__(self, a0, crack_surface, crack_front, n, xi, Burgers, C11=None, C12=None,
                  C44=None):
         """
         Insert a dislocation in a cubic crystal containing a crack. 
