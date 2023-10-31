@@ -1599,3 +1599,9 @@ class CubicCauchyBorn:
         """Loads the regression model from file: CB_model.npy"""
         self.RM = RegressionModel()
         self.RM.load()
+
+    def get_model(self):
+        return self.RM.model
+    
+    def set_model(self, model):
+        self.RM.model = model

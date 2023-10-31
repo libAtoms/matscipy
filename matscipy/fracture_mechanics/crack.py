@@ -822,8 +822,13 @@ class SinclairCrack:
             self.theta_3D = theta_3D
             self.beta = self.alpha/np.sin(theta_3D)
 
-
-        self.kI = k
+        if kI is not None:
+            self.kI = kI
+        else:
+            self.kI = k
+        
+        self.kII = kII
+        
         self.rI = rI
         self.rIII = rIII
         self.cutoff = cutoff
@@ -847,7 +852,7 @@ class SinclairCrack:
 
         a0 = self.atoms.copy()
         self.x0 = a0.get_positions()
-        #self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
+        self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
         a0_II_III = a0[self.regionII | self.regionIII]
         f0bar = self.calc.get_forces(a0_II_III)
         self.f0bar = f0bar[a0_II_III.arrays['region'] == 2]
@@ -858,11 +863,17 @@ class SinclairCrack:
         self.alpha0 = alpha
         self.force_calls = 0
         self.cont_k = cont_k
+        self.follow_G_contour = False
 
-    #alias self.k to return self.kI such as not to break old code
+
+    #alias self.k to self.kI such as not to break old code
     @property
     def k(self):
         return self.kI
+    
+    @k.setter
+    def k(self, value):
+        self.kI = value
 
     def pack(self, u, alpha, k):
         dofs = list(u.reshape(-1))
@@ -911,7 +922,7 @@ class SinclairCrack:
             if self.cont_k == 'k1':
                 self.u[:], self.beta, self.kI = self.unpack(x, reshape=True)
             elif self.cont_k == 'k2':
-                self.u[:], self.alpha, self.kII = self.unpack(x, reshape=True)
+                self.u[:], self.beta, self.kII = self.unpack(x, reshape=True)
             self.alpha = self.beta*np.sin(self.theta_3D)
             print('beta',self.beta)
             print('alpha',self.alpha)
@@ -919,11 +930,20 @@ class SinclairCrack:
             if self.cont_k == 'k1':
                 self.u[:], self.alpha, self.kI = self.unpack(x, reshape=True)
             elif self.cont_k == 'k2':
+                print('here')
                 self.u[:], self.alpha, self.kII = self.unpack(x, reshape=True)
             print('alpha',self.alpha)
         if self.variable_k:
             print('kI',self.kI)
             print('kII',self.kII)
+        
+        #adjust non-continuation K to follow constant G contour
+        
+        if self.follow_G_contour:
+            if self.cont_k == 'k2':
+                self.kI = np.sqrt(self.kI0**2 + self.kII0**2 - self.kII**2)
+            elif self.cont_k == 'k1':
+                self.kII = np.sqrt(self.kI0**2 + self.kII0**2 - self.kI**2)
         #self.k = self.k-(np.abs(self.alpha-self.alpha0)*self.k1g)
         self.update_atoms()
 
@@ -1118,7 +1138,7 @@ class SinclairCrack:
         V[:, 1] = -(dg[:, 0, 1])
         if self.crk.cauchy_born is not None:
             A = np.transpose(self.crk.RotationMatrix)
-            nu_grad = self.crk.cauchy_born.get_shift_gradients(A,self.cryst,F_func=self.get_deformation_gradient, coordinates='cart2D',k=self.kI,kII=self.kII)
+            nu_grad = self.crk.cauchy_born.get_shift_gradients(A,self.cryst,F_func=self.get_deformation_gradient, coordinates='cart2D',kI=self.kI,kII=self.kII)
             if self.shiftmask is not None:
                 V[self.shiftmask]+=nu_grad[self.shiftmask]
             else:
@@ -1599,10 +1619,23 @@ class SinclairCrack:
                                 cos_alpha_min=0.9,parallel=False,
                                 pipe_output=None,data_queue=None,
                                 kill_confirm_queue=None,
-                                allow_alpha_backtracking=False):
+                                allow_alpha_backtracking=False,
+                                follow_G_contour=False):
         import h5py
         assert self.variable_k  # only makes sense if K can vary
 
+        #if following G contour, get the initial values of kI and kII
+        self.follow_G_contour = follow_G_contour
+        if self.follow_G_contour:
+            if self.cont_k == 'k1':
+                self.kI0 = x0[-1]
+                self.kII0 = self.kII
+            elif self.cont_k == 'k2':
+                self.kII0 = x0[-1]
+                self.kI0 = self.kI
+            print('og vals', self.kI0, self.kII0)
+            time.sleep(5)
+        
         if continuation:
             xdot1 = self.get_xdot(x0, x1, ds)
         else:
@@ -1667,7 +1700,7 @@ class SinclairCrack:
                 if self.variable_alpha:
                     # monitor sign of \dot{alpha} and flip if necessary
                     #udot1, alphadot1, kdot1 = self.unpack(xdot1)
-                    udot2, alphadot2, kIdot2, kIIdot2 = self.unpack(xdot2)
+                    udot2, alphadot2, kdot2 = self.unpack(xdot2)
                     if direction * np.sign(alphadot2) < 0:
                         xdot2 = -xdot2  
 
@@ -1689,6 +1722,8 @@ class SinclairCrack:
                             with h5py.File(traj_file, 'a') as hf:
                                 x_traj = hf['x']
                                 x_traj.resize((x_traj.shape[0] + 1, x_traj.shape[1]))
+                                print(f'writing k1 {self.kI}, k2 {self.kII}')
+                                #print(np.append(x2[:-1],[self.kI,self.kII]))
                                 x_traj[-1, :] = np.append(x2[:-1],[self.kI,self.kII])
                                 row += 1
                                 break
