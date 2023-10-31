@@ -3,7 +3,6 @@ from ase.build import rotate, cut
 from matscipy.dislocation import FixedLineAtoms
 from ase.optimize import BFGSLineSearch
 import warnings
-import matplotlib.pyplot as plt
 from ase.constraints import UnitCellFilter
 
 
@@ -302,6 +301,7 @@ class GammaSurface():
         '''
 
         from ase.units import _e
+        import matplotlib.pyplot as plt
 
         if si:
             mul = _e * 1e20
@@ -353,6 +353,7 @@ class StackingFault(GammaSurface):
             Use SI units (J/m^2) if True, else atomic units (eV/A^2)
         '''
         from ase.units import _e
+        import matplotlib.pyplot as plt
 
         if si:
             mul = _e * 1e20
