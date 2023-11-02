@@ -117,3 +117,7 @@ class TestStableSortCluster(matscipytest.MatSciPyTestCase):
         crack_surface = np.array([1,1,0])
         crack_front = np.array([1,-1,0])
         self.stable_sort_test(bcc,el,a0,crack_surface,crack_front)
+
+        crack_surface = np.array([1,0,0])
+        crack_front = np.array([0,1,1])
+        self.stable_sort_test(bcc,el,a0,crack_surface,crack_front)
