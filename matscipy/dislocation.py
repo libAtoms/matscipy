@@ -2150,6 +2150,9 @@ def check_duplicates(atoms, distance=0.1):
 
 
 class CubicCrystalDislocation:
+    '''
+    Abstract base class for modelling a single dislocation
+    '''
 
     # Mandatory Attributes of CubicCrystalDislocation with no defaults
     # These should be set by the child dislocation class, or by CubicCrystalDislocation.__init__
@@ -2157,7 +2160,7 @@ class CubicCrystalDislocation:
     __slots__ = ("__dict__", "burgers_dimensionless", "unit_cell_core_position_dimensionless",
                  "glide_distance_dimensionless", "crystalstructure", "axes",
                  "C11", "C12", "C44", "alat", "unit_cell")
-    
+
     # Attributes with defaults
     # These may be overridden by child classes
     parity = np.zeros(2)
@@ -2551,6 +2554,9 @@ class CubicCrystalDislocation:
 
 
 class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
+    '''
+    Abstract base class for modelling dissociated dislocation systems
+    '''
     # Inherits all slots from CubicCrystalDislocation as well
     __slots__ = ("left_dislocation", "right_dislocation")
 
@@ -2704,7 +2710,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
 
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
-    crystalstructure="bcc"
+    crystalstructure = "bcc"
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
                      [1, 1, 1]])
