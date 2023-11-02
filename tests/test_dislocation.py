@@ -30,7 +30,7 @@ import numpy as np
 from ase.calculators.lammpslib import LAMMPSlib
 from matscipy.calculators.eam import EAM
 
-from ase.build import bulk as Bulk
+from ase.build import bulk as ase_bulk
 
 test_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -419,7 +419,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         C44 = 160.88179872237012
 
         if gen_bulk:
-            a = Bulk("Al", structure.lower(), alat, cubic=True)
+            a = ase_bulk("Al", structure.lower(), alat, cubic=True)
         else:
             a = alat
 
