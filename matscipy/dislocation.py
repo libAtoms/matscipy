@@ -2585,10 +2585,10 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
         left_dislocation = self.left_dislocation
         right_dislocation = self.right_dislocation
         self.crystalstructure = left_dislocation.crystalstructure
-        self.axes = left_dislocation.axes
-        self.unit_cell_core_position_dimensionless = left_dislocation.unit_cell_core_position_dimensionless
+        self.axes = left_dislocation.axes.copy()
+        self.unit_cell_core_position_dimensionless = left_dislocation.unit_cell_core_position_dimensionless.copy()
         self.parity = left_dislocation.parity
-        self.glide_distance_dimensionless = right_dislocation.glide_distance_dimensionless
+        self.glide_distance_dimensionless = left_dislocation.glide_distance_dimensionless
         self.n_planes = left_dislocation.n_planes
         self.self_consistent = left_dislocation.self_consistent
 
