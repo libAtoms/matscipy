@@ -37,7 +37,8 @@ python_sources = [
     'surface.py',
     'visualise.py',
     'cauchy_born.py',
-    'surface_reconstruction.py'
+    'surface_reconstruction.py',
+    'utils.py'
 ]
 
 # Install pure Python
