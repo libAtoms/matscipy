@@ -214,7 +214,7 @@ def set_groups(a, n, skin_x, skin_y, central_x=-1./2, central_y=-1./2,
 
     a.set_array('groups', g)
 
-def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_region_I=False,exclude_surface=False):
+def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_region_I=False,exclude_surface=False,sort_type='r_theta_z'):
     sx, sy, sz = cryst.cell.diagonal()
     x, y = cryst.positions[:, 0], cryst.positions[:, 1]
     cx, cy = sx/2, sy/2
@@ -275,8 +275,41 @@ def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_reg
     # keep only cylinder defined by regions I - IV
     cryst = cryst[regionI | regionII | regionIII | regionIV]
 
-    # order by radial distance from tip
-    order = r[regionI | regionII | regionIII | regionIV ].argsort()
+    if sort_type =='radial':
+
+        print('Warning: Using old method of sorting by radial distance from tip in x-y plane.')
+
+        # order by radial distance from tip
+        order = r[regionI | regionII | regionIII | regionIV ].argsort()
+    
+    elif sort_type == 'region':
+
+        # sort by regions, retaining original bulk order within each region
+        region = cryst.arrays['region']
+        region_numbers = np.unique(region) # returns sorted region numbers
+        order = np.array([ index for n in region_numbers for index in np.where(region==n)[0] ])
+
+    elif sort_type == 'r_theta_z':
+            # sort by r, theta, z
+            sx, sy, sz = cryst.cell.diagonal()
+            x, y, z = cryst.positions[:, 0], cryst.positions[:, 1], cryst.positions[:, 2]
+            cx, cy = sx/2, sy/2
+            r = np.sqrt((x - cx)**2 + (y - cy)**2)
+            # get r from the centre of the cell
+            theta = np.arctan2(y-cy, x-cx)
+            #first, discretely bin r
+            r_sorted = np.sort(r)
+            r_sorted_index = np.argsort(r)
+            r_diff = np.diff(r_sorted)
+            for i,r_diff_val in enumerate(r_diff):
+                if r_diff_val<1e-3:
+                    r[r_sorted_index[i+1]] = r[r_sorted_index[i]]
+        
+            order = np.lexsort((z, theta, r))
+
+    else:
+        raise ValueError('sort_type must be one of "radial", "region", or "r_theta_z"')
+    
     cryst = cryst[order]
     return cryst
 
