@@ -26,6 +26,8 @@
 
 import numpy as np
 
+from abc import ABCMeta
+
 from scipy.optimize import minimize
 
 from ase.lattice.cubic import (BodyCenteredCubic, FaceCenteredCubic,
@@ -2149,7 +2151,7 @@ def check_duplicates(atoms, distance=0.1):
     return duplicates.astype(np.bool)
 
 
-class CubicCrystalDislocation:
+class CubicCrystalDislocation(metaclass=ABCMeta):
     '''
     Abstract base class for modelling a single dislocation
     '''
@@ -2553,7 +2555,7 @@ class CubicCrystalDislocation:
         return impurities_disloc
 
 
-class CubicCrystalDissociatedDislocation(CubicCrystalDislocation):
+class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCMeta):
     '''
     Abstract base class for modelling dissociated dislocation systems
     '''
