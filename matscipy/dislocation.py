@@ -2753,7 +2753,7 @@ class BCCEdge100110Dislocation(CubicCrystalDislocation):
                      [0, 1, 1],
                      [0, -1, 1]])
     burgers_dimensionless = np.array([1, 0, 0])
-    unit_cell_core_position = np.array([0.5, np.sqrt(2) / 4.0, 0])
+    unit_cell_core_position_dimensionless = np.array([0.5, np.sqrt(2) / 4.0, 0])
     glide_distance_dimensionless = 0.5
     n_planes = 2
 
