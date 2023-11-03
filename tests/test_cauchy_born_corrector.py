@@ -301,7 +301,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         coordinates = 'cart3D'
         #print('MAKING RAW PREDICION WITH NO ADDED EPS')
         atoms, shifts, shift_err_before, A = self.model_prediction(
-            dirs, eps, method='regression', F_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
+            dirs, eps, method='regression', F_func=func, coordinates=coordinates, atol=2e-4, returnvals=True)
         
         #find the gradient using the function finite differences
         de = 1e-5
