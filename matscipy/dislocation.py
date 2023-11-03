@@ -2239,7 +2239,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     # @property & @var.setter decorators used to ensure var and var_dimensionless don't get out of sync
     @property
     def burgers(self):
-        return self.burgers_dimensionless  * self.alat
+        return self.burgers_dimensionless * self.alat
     
     @burgers.setter
     def burgers(self, burgers):

@@ -77,7 +77,6 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
             
             # Test w/ supercells of bulk
-            print()
             utils_mod.validate_cubic_cell(bulk_fcc * (2, 2, 2), symbol="Cu", axes=axes, crystalstructure="fcc")
 
             # Test w/ more complex crystal
