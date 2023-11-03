@@ -62,7 +62,7 @@ from matscipy.elasticity import measure_triclinic_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_cubic
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack
 from matscipy.fracture_mechanics.crack import \
-    isotropic_modeI_crack_tip_displacement_field
+    isotropic_modeI_crack_tip_displacement_field, isotropic_modeII_crack_tip_displacement_field
 from matscipy.fracture_mechanics.idealbrittlesolid import IdealBrittleSolid
 
 ###
@@ -112,9 +112,30 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
 
         k = crack.crack.k1g(1.0)
 
+        #test mode 1
         u, v = crack.crack.displacements(r, theta, k)
         ref_u, ref_v = isotropic_modeI_crack_tip_displacement_field(k, C44, nu,
                                                                     r, theta)
+
+        self.assertArrayAlmostEqual(u, ref_u)
+        self.assertArrayAlmostEqual(v, ref_v)
+
+        #test mode 2
+        u, v = crack.crack.displacements(r, theta, kI=0,kII=k)
+        ref_u, ref_v = isotropic_modeII_crack_tip_displacement_field(k, C44, nu,
+                                                                    r, theta)
+
+        self.assertArrayAlmostEqual(u, ref_u)
+        self.assertArrayAlmostEqual(v, ref_v)
+
+        #test mixed mode
+        u, v = crack.crack.displacements(r, theta, kI=k/2,kII=k/2)
+        ref_u_I, ref_v_I = isotropic_modeI_crack_tip_displacement_field(k/2, C44, nu,
+                                                                    r, theta)
+        ref_u_II, ref_v_II = isotropic_modeII_crack_tip_displacement_field(k/2, C44, nu,
+                                                                    r, theta)
+        ref_u = ref_u_I + ref_u_II
+        ref_v = ref_v_I + ref_v_II
 
         self.assertArrayAlmostEqual(u, ref_u)
         self.assertArrayAlmostEqual(v, ref_v)
@@ -180,6 +201,7 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 self.assertTrue(np.max(residual[mask]) < 0.2)
 
     def test_consistency_of_deformation_gradient_and_stress(self):
+        #test pure mode 1 first
         for C11, C12, C44, surface_energy, k1 in self.materials:
             crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
             k = crack.k1g(surface_energy)*k1
@@ -203,8 +225,60 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 self.assertAlmostEqual(eps[0, 0], eps_xx)
                 self.assertAlmostEqual(eps[1, 1], eps_yy)
                 self.assertAlmostEqual(eps[0, 1], eps_xy)
+        
+        #now test mode 2
+        for C11, C12, C44, surface_energy, k1 in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)*k1
+            for i in range(10):
+                x = np.random.uniform(-10, 10)
+                y = np.random.uniform(-10, 10)
+                F = crack.deformation_gradient(x, y, 0, 0, 0, kII=k)
+                eps = (F+F.T)/2-np.eye(2)
+                sig_x, sig_y, sig_xy = crack.stresses(x, y, 0, 0, 0,kII=k)
+                eps_xx = crack.crack.a11*sig_x + \
+                         crack.crack.a12*sig_y + \
+                         crack.crack.a16*sig_xy
+                eps_yy = crack.crack.a12*sig_x + \
+                         crack.crack.a22*sig_y + \
+                         crack.crack.a26*sig_xy
+                # Factor 1/2 because elastic constants and matrix product are
+                # expressed in Voigt notation.
+                eps_xy = (crack.crack.a16*sig_x + \
+                          crack.crack.a26*sig_y + \
+                          crack.crack.a66*sig_xy)/2
+                self.assertAlmostEqual(eps[0, 0], eps_xx)
+                self.assertAlmostEqual(eps[1, 1], eps_yy)
+                self.assertAlmostEqual(eps[0, 1], eps_xy)
+        
+        #now test mixed mode
+        for C11, C12, C44, surface_energy, k1 in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)*k1
+            for i in range(10):
+                x = np.random.uniform(-10, 10)
+                y = np.random.uniform(-10, 10)
+                F = crack.deformation_gradient(x, y, 0, 0, k/2, k/2)
+                eps = (F+F.T)/2-np.eye(2)
+                sig_x, sig_y, sig_xy = crack.stresses(x, y, 0, 0, k/2, k/2)
+                eps_xx = crack.crack.a11*sig_x + \
+                         crack.crack.a12*sig_y + \
+                         crack.crack.a16*sig_xy
+                eps_yy = crack.crack.a12*sig_x + \
+                         crack.crack.a22*sig_y + \
+                         crack.crack.a26*sig_xy
+                # Factor 1/2 because elastic constants and matrix product are
+                # expressed in Voigt notation.
+                eps_xy = (crack.crack.a16*sig_x + \
+                          crack.crack.a26*sig_y + \
+                          crack.crack.a66*sig_xy)/2
+                self.assertAlmostEqual(eps[0, 0], eps_xx)
+                self.assertAlmostEqual(eps[1, 1], eps_yy)
+                self.assertAlmostEqual(eps[0, 1], eps_xy)
+
 
     def test_consistency_of_deformation_gradient_and_displacement(self):
+        #test mode 1 first
         eps = 1e-3
         for C11, C12, C44, surface_energy, k1 in self.materials:
             crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
@@ -228,7 +302,54 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 F_num = np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
                 self.assertArrayAlmostEqual(F, F_num, tol=1e-4)
 
+        #now test mode 2 
+        for C11, C12, C44, surface_energy, k1 in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)*k1
+            for i in range(10):
+                x = i+1
+                y = i+1
+                F = crack.deformation_gradient(x, y, 0, 0, 0, k)
+                # Finite difference approximation of deformation gradient
+                u, v = crack.displacements(x, y, 0, 0, 0, k)
+                ux0, vx0 = crack.displacements(x-eps, y, 0, 0, 0, k)
+                uy0, vy0 = crack.displacements(x, y-eps, 0, 0, 0, k)
+                ux1, vx1 = crack.displacements(x+eps, y, 0, 0, 0, k)
+                uy1, vy1 = crack.displacements(x, y+eps, 0, 0, 0, k)
+                du_dx = (ux1-ux0)/(2*eps)
+                du_dy = (uy1-uy0)/(2*eps)
+                dv_dx = (vx1-vx0)/(2*eps)
+                dv_dy = (vy1-vy0)/(2*eps)
+                du_dx += np.ones_like(du_dx)
+                dv_dy += np.ones_like(dv_dy)
+                F_num = np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
+                self.assertArrayAlmostEqual(F, F_num, tol=1e-4)
+        
+        #now test mixed mode
+        for C11, C12, C44, surface_energy, k1 in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)*k1
+            for i in range(10):
+                x = i+1
+                y = i+1
+                F = crack.deformation_gradient(x, y, 0, 0, k/2, k/2)
+                # Finite difference approximation of deformation gradient
+                u, v = crack.displacements(x, y, 0, 0, k/2, k/2)
+                ux0, vx0 = crack.displacements(x-eps, y, 0, 0, k/2, k/2)
+                uy0, vy0 = crack.displacements(x, y-eps, 0, 0, k/2, k/2)
+                ux1, vx1 = crack.displacements(x+eps, y, 0, 0, k/2, k/2)
+                uy1, vy1 = crack.displacements(x, y+eps, 0, 0, k/2, k/2)
+                du_dx = (ux1-ux0)/(2*eps)
+                du_dy = (uy1-uy0)/(2*eps)
+                dv_dx = (vx1-vx0)/(2*eps)
+                dv_dy = (vy1-vy0)/(2*eps)
+                du_dx += np.ones_like(du_dx)
+                dv_dy += np.ones_like(dv_dy)
+                F_num = np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
+                self.assertArrayAlmostEqual(F, F_num, tol=1e-4)
+
     def test_elastostatics(self):
+        #check for pure mode I
         eps = 1e-3
         for C11, C12, C44, surface_energy, k1 in self.materials:
             crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
@@ -241,6 +362,26 @@ class TestCubicCrystalCrack(matscipytest.MatSciPyTestCase):
                 sxx0y, syy0y, sxy0y = crack.stresses(x, y-eps, 0, 0, k)
                 sxx1x, syy1x, sxy1x = crack.stresses(x+eps, y, 0, 0, k)
                 sxx1y, syy1y, sxy1y = crack.stresses(x, y+eps, 0, 0, k)
+                divsx = (sxx1x-sxx0x)/(2*eps) + (sxy1y-sxy0y)/(2*eps)
+                divsy = (sxy1x-sxy0x)/(2*eps) + (syy1y-syy0y)/(2*eps)
+                # Check that divergence of stress is zero (elastostatic
+                # equilibrium)
+                self.assertAlmostEqual(divsx, 0.0, places=3)
+                self.assertAlmostEqual(divsy, 0.0, places=3)
+                eps = 1e-3
+
+        #also check for mixed mode
+        for C11, C12, C44, surface_energy, k1 in self.materials:
+            crack = CubicCrystalCrack([1,0,0], [0,1,0], C11, C12, C44)
+            k = crack.k1g(surface_energy)*k1
+            for i in range(10):
+                x = i+1
+                y = i+1
+                # Finite difference approximation of the stress divergence
+                sxx0x, syy0x, sxy0x = crack.stresses(x-eps, y, 0, 0, k/3,(2*k)/3)
+                sxx0y, syy0y, sxy0y = crack.stresses(x, y-eps, 0, 0, k/3,(2*k)/3)
+                sxx1x, syy1x, sxy1x = crack.stresses(x+eps, y, 0, 0, k/3,(2*k)/3)
+                sxx1y, syy1y, sxy1y = crack.stresses(x, y+eps, 0, 0, k/3,(2*k)/3)
                 divsx = (sxx1x-sxx0x)/(2*eps) + (sxy1y-sxy0y)/(2*eps)
                 divsy = (sxy1x-sxy0x)/(2*eps) + (syy1y-syy0y)/(2*eps)
                 # Check that divergence of stress is zero (elastostatic

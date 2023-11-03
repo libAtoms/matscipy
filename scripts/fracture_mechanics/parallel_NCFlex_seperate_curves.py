@@ -260,7 +260,8 @@ def main(K_range,alpha_range):
                 search_num += 1
             elif worker_status[pid] == 'walking':
                 walk_num += 1
-        print(f'idle: {idle_num}, search, {search_num}, walk {walk_num}')
+        if it_num % 100 == 0:
+            print(f'idle: {idle_num}, search, {search_num}, walk {walk_num}')
         
         #print('checking to launch new searches')
         #if there's unnaccounted for idle processes, launch new searches
