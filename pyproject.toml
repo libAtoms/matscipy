@@ -35,7 +35,8 @@ docs = [
     "nglview",
     "numpydoc",
     "atomman",
-    "ovito"
+    "ovito",
+    "sphinx_copybutton"
 ]
 
 [project.urls]
