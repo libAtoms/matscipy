@@ -62,7 +62,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'matscipy'
-copyright = u'2015, James Kermode, Lars Pastewka'
+copyright = u'2023, James Kermode, Lars Pastewka, et al'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
