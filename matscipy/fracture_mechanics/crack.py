@@ -918,6 +918,28 @@ class SinclairCrack:
                 return self.pack(self.u, self.alpha,self.kII)
 
     def set_dofs(self, x):
+        #if set_dofs gets passed an array that contains k1 and k2, it should
+        #set the one that isn't being used for continuation, and remove it from x
+        #before passing it forwards
+        #get the total number of dofs one would expect
+        prev_v_k = self.variable_k
+        prev_v_alph = self.variable_alpha
+        self.variable_k = True
+        self.variable_alpha = True
+        ndof = len(self)
+        self.variable_k = prev_v_k
+        self.variable_alpha = prev_v_alph
+        if len(x) == ndof+1: #array contains k1 and k2
+            if self.cont_k == 'k1':
+                #set kII and delete it from x
+                idx = -1
+                self.kII = x[idx]
+            elif self.cont_k == 'k2':
+                #set kI and delete it from x
+                idx = -2
+                self.kI = x[idx]
+            x = np.delete(x,idx)
+        
         if self.is_3D:
             if self.cont_k == 'k1':
                 self.u[:], self.beta, self.kI = self.unpack(x, reshape=True)
@@ -930,7 +952,6 @@ class SinclairCrack:
             if self.cont_k == 'k1':
                 self.u[:], self.alpha, self.kI = self.unpack(x, reshape=True)
             elif self.cont_k == 'k2':
-                print('here')
                 self.u[:], self.alpha, self.kII = self.unpack(x, reshape=True)
             print('alpha',self.alpha)
         if self.variable_k:
@@ -1624,6 +1645,26 @@ class SinclairCrack:
         import h5py
         assert self.variable_k  # only makes sense if K can vary
 
+        #check to see if x0 and x1 contain kI and kII, if they do
+        #then remove whichever one isn't being used for continuation
+        if len(self)+1 == len(x0):
+            if self.cont_k == 'k1':
+                idx = -1
+                self.kII = x0[idx]
+            elif self.cont_k == 'k2':
+                idx = -2
+                self.kI = x0[idx]
+            x0 = np.delete(x0,idx)
+
+        if len(self)+1 == len(x1):
+            if self.cont_k == 'k1':
+                idx = -1
+                self.kII = x1[idx]
+            elif self.cont_k == 'k2':
+                idx = -2
+                self.kI = x1[idx]
+            x1 = np.delete(x1,idx)
+                
         #if following G contour, get the initial values of kI and kII
         self.follow_G_contour = follow_G_contour
         if self.follow_G_contour:
@@ -1634,8 +1675,7 @@ class SinclairCrack:
                 self.kII0 = x0[-1]
                 self.kI0 = self.kI
             print('og vals', self.kI0, self.kII0)
-            time.sleep(5)
-        
+
         if continuation:
             xdot1 = self.get_xdot(x0, x1, ds)
         else:
@@ -1668,6 +1708,7 @@ class SinclairCrack:
                             x_traj.attrs['direction'] = direction
                             x_traj.attrs['traj_interval'] = traj_interval
                             #row = x_traj.shape[0]
+                    break
                 except:
                     print('failed to access file 1')
                     time.sleep(1)
