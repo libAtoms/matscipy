@@ -1,6 +1,34 @@
 import numpy as np
 
 
+def interactive_view(system, scale=0.5):
+    '''
+    Requires nglview.
+    
+    Pre-parameterised interactive nglview viewer
+    Used in dislocations documentation (cylinder_configurations.ipynb and multispecies_dislocations.ipynb in matscipy/docs/applications)
+
+    system: ase.atoms
+        System to view
+    scale: float
+        Fed to radiusScale arg of NGLWidget.update_spacefill (using radiusType="covalent")
+    
+    '''
+    from nglview import show_ase
+    view = show_ase(system)
+    view._remove_representation()
+    view.add_unitcell()
+    view.add_spacefill()
+    view.update_spacefill(radiusType='covalent',
+                          radiusScale=scale)
+
+    view.camera = 'orthographic'
+    view.parameters = {"clipDist": 0}
+
+    view.center()
+    view._remote_call("setSize", target="Widget", args=["300px", "300px"])
+    return view
+
 
 def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
     '''
