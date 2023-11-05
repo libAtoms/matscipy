@@ -1,5 +1,5 @@
 import numpy as np
-
+from nglview import show_ase
 from ovito.io.ase import ase_to_ovito
 from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
 from ovito.pipeline import StaticSource, Pipeline
@@ -127,4 +127,20 @@ def show_dislocation(system, scale=0.5, diamond_structure=False, add_bonds=False
                     });
                  """
     view._js(tooltip_js)
+    return view
+
+
+def interactive_view(system, scale=0.5):
+    view = show_ase(system)
+    view._remove_representation()
+    view.add_unitcell()
+    view.add_spacefill()
+    view.update_spacefill(radiusType='covalent',
+                          radiusScale=scale)
+
+    view.camera = 'orthographic'
+    view.parameters = {"clipDist": 0}
+
+    view.center()
+    view._remote_call("setSize", target="Widget", args=["300px", "300px"])
     return view
