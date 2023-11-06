@@ -123,28 +123,28 @@ def generate_3D_cubic_111(cryst_2D, nzlayer, el, a0, lattice, crack_surface, cra
     alpha_period = get_alpha_period(cryst_2D)
     #make a single layer of cell 
     single_cell = lattice(el,a0,[1,1,1],crack_surface,crack_front,cb=cb,shift=shift,switch_sublattices=switch_sublattices)
-    ase.io.write('single_cell.xyz',single_cell)
+    #ase.io.write('single_cell.xyz',single_cell)
     cell_x_period = single_cell.get_cell()[0,0]
-    nkink_per_cell = int(cell_x_period/alpha_period)
-    print('NUM KINK PER CELL,', cell_x_period/alpha_period)
+    nkink_per_cell = int(np.round((cell_x_period/alpha_period)))
+    print('NUM KINK PER CELL,', nkink_per_cell)
     #original x,y dimensions
     
     if nkink_per_cell == 2:
         big_cryst = cryst_2D*[1,1,nzlayer+1]
-        ase.io.write('big_cryst_larger.xyz',big_cryst)
+        #ase.io.write('big_cryst_larger.xyz',big_cryst)
         big_cryst.translate([0,0,-0.01])
         big_cryst.wrap()
-        ase.io.write('big_cryst_translated.xyz',big_cryst)
+        #ase.io.write('big_cryst_translated.xyz',big_cryst)
         cell_x_period = cell_x_period/2
         # remove the extra half layer in z
         extended_cell = big_cryst.get_cell()
         extended_cell[2,2] -= (single_cell.get_cell()[2,2]/2)
         big_cryst.set_cell(extended_cell)
-        ase.io.write('big_cryst_smaller_cell.xyz',big_cryst)
+        #ase.io.write('big_cryst_smaller_cell.xyz',big_cryst)
         pos = big_cryst.get_positions()
         mask = pos[:,2]>extended_cell[2,2]
         del big_cryst[mask]
-        ase.io.write('big_cryst_atoms_removed.xyz',big_cryst)
+        #ase.io.write('big_cryst_atoms_removed.xyz',big_cryst)
         #big_cryst.wrap()
     else:
         big_cryst = cryst_2D*[1,1,nzlayer]
@@ -162,9 +162,9 @@ def generate_3D_cubic_111(cryst_2D, nzlayer, el, a0, lattice, crack_surface, cra
     big_cryst.set_positions(pos)
     new_cell = og_cell.copy()
     new_cell[2,0] = -cell_x_period
-    ase.io.write('big_cryst_pre_rotation.xyz',big_cryst)
+    #ase.io.write('big_cryst_pre_rotation.xyz',big_cryst)
     big_cryst.set_cell(new_cell)
-    ase.io.write('big_cryst.xyz',big_cryst)
+    #ase.io.write('big_cryst.xyz',big_cryst)
 
     # Define the rotation matrix
     R = np.array([[np.cos(theta), 0, np.sin(theta)],
