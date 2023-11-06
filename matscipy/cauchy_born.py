@@ -10,6 +10,8 @@ from itertools import permutations
 from scipy.stats.qmc import LatinHypercube, scale
 
 import ase
+
+
 class RegressionModel:
     """Simple regression model object wrapper for np.linalg.lstsq for
     predicting shifts."""
@@ -27,7 +29,7 @@ class RegressionModel:
         values : array_like
             value of function to be fitted evaluated at each data point
         """
-        self.model = np.linalg.lstsq(phi, values,rcond=None)[0]
+        self.model = np.linalg.lstsq(phi, values, rcond=None)[0]
 
     def predict(self, phi):
         """Evaluate the simple least-squares regression model.
@@ -46,8 +48,8 @@ class RegressionModel:
         """
 
         return phi @ self.model
-    
-    def predict_gradient(self,grad_phi):
+
+    def predict_gradient(self, grad_phi):
         """Evaluate the simple least-squares regression model using
         the derivative of the basis functions to get the gradient.
 
@@ -64,11 +66,11 @@ class RegressionModel:
             1D vector of least squares model gradient predictions for simple model.
         """
         return grad_phi @ self.model
-    
+
     def save(self):
         """Saves the regression model to file: CB_model.npy"""
-        np.save('CB_model.npy',self.model)
-        
+        np.save('CB_model.npy', self.model)
+
     def load(self):
         """Loads the regression model from file: CB_model.npy"""
         self.model = np.load('CB_model.npy')
@@ -104,7 +106,7 @@ class CubicCauchyBorn:
         self.lattice1mask = None  # mask for the lattice 1 atoms
         self.lattice2mask = None  # mask for the lattice 2 atoms
 
-    def set_sublattices(self, atoms, A,read_from_atoms=False):
+    def set_sublattices(self, atoms, A, read_from_atoms=False):
         """Apply a small strain to all atoms in the supplied atoms structure
         and determine which atoms belong to which sublattice using forces. NOTE
         as this method is based on forces, it does not work in cases where atom
@@ -181,11 +183,13 @@ class CubicCauchyBorn:
                 if all(element == lattice1mask[0] for element in lattice1mask):
                     lattice1mask = force_diff_lattice[:, 2] > 0
                     lattice2mask = force_diff_lattice[:, 2] < 0
-            
-            #set new array in atoms
-            try: #make new arrays if they didn't already exist
-                atoms.new_array('lattice1mask',np.zeros(len(atoms),dtype=bool))
-                atoms.new_array('lattice2mask',np.zeros(len(atoms),dtype=bool))
+
+            # set new array in atoms
+            try:  # make new arrays if they didn't already exist
+                atoms.new_array('lattice1mask', np.zeros(
+                    len(atoms), dtype=bool))
+                atoms.new_array('lattice2mask', np.zeros(
+                    len(atoms), dtype=bool))
             except RuntimeError:
                 pass
             lattice1maskatoms = atoms.arrays['lattice1mask']
@@ -197,7 +201,7 @@ class CubicCauchyBorn:
         self.lattice1mask = lattice1mask
         self.lattice2mask = lattice2mask
 
-    def switch_sublattices(self,atoms):
+    def switch_sublattices(self, atoms):
         """Switch the sublattice masks on a set of atoms around
         such that lattice1mask = lattice2mask and vice versa
 
@@ -276,12 +280,14 @@ class CubicCauchyBorn:
             cell = unitcell_copy.get_cell()
             cell_rescale = np.transpose(x[:, :] @ cell)
             unitcell_copy.set_cell(cell_rescale, scale_atoms=True)
-            initial_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
+            initial_shift[:] = unitcell_copy.get_positions(
+            )[1] - unitcell_copy.get_positions()[0]
 
             # relax cell
             opt = LBFGS(unitcell_copy, logfile=None)
             opt.run(fmax=1e-10)
-            relaxed_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
+            relaxed_shift[:] = unitcell_copy.get_positions(
+            )[1] - unitcell_copy.get_positions()[0]
 
             # get shift
             shift_diff = relaxed_shift - initial_shift
@@ -800,9 +806,8 @@ class CubicCauchyBorn:
         for i in range(natoms):
             shifts[i, :] = np.transpose(A) @ R[i, :, :] @ shifts_no_rr[i, :]
         return shifts
-        
-    
-    def permutation(self,strain_vec, perm_shift):
+
+    def permutation(self, strain_vec, perm_shift):
         """Rotate a Green-Lagrange strain tensor in Voigt notation about
         the 111 axis a number of times given by perm_shift. This
         corresponds to permuting the top three components and bottom three
@@ -858,8 +863,6 @@ class CubicCauchyBorn:
         """
         # takes E in the form of a list of matrices [natoms, :, :]
         # define function for evaluating model
-
-
 
         def evaluate_shift_regression(eps):
             """Evaluate the regression model a given set of Green-Lagrange
@@ -1399,11 +1402,10 @@ class CubicCauchyBorn:
 
         # return the design matrix
 
-        #print('design matrix size',np.shape(np.concatenate((E_vecs, phi_2nd_term), axis=1)))
+        # print('design matrix size',np.shape(np.concatenate((E_vecs, phi_2nd_term), axis=1)))
         return np.concatenate((E_vecs, phi_2nd_term), axis=1)
 
-
-    def grad_basis_function_evaluation(self,E_vecs,dE_vecs):
+    def grad_basis_function_evaluation(self, E_vecs, dE_vecs):
         """Function that evaluates the derivative of the polynomial
         basis functions used in the regression model on a set of 
         strain vectors to build the gradient design matrix grad_phi.
@@ -1422,25 +1424,23 @@ class CubicCauchyBorn:
             Design matrix composed of all of the gradient basis functions evaluated at
             every data point given in E_vecs.
         """
-        #take a list of component wise gradients strain with respect
-        #to some other variable (for example, crack tip position, alpha)
-        #and propagate this through the regression model to get a set of
-        #derivatives of the shift with respect to the external variable
+        # take a list of component wise gradients strain with respect
+        # to some other variable (for example, crack tip position, alpha)
+        # and propagate this through the regression model to get a set of
+        # derivatives of the shift with respect to the external variable
 
-        #take dE_vecs in the form of [natoms,6]
+        # take dE_vecs in the form of [natoms,6]
         triu_indices = np.triu_indices(6)
         grad_phi_2nd_term = np.zeros(
             [np.shape(E_vecs)[0], np.shape(triu_indices)[1]])
         for i, dE in enumerate(dE_vecs):
-            e_de_outer_p = np.outer(E_vecs[i,:],dE)
+            e_de_outer_p = np.outer(E_vecs[i, :], dE)
             de_dalpha = e_de_outer_p + np.transpose(e_de_outer_p)
-            grad_phi_2nd_term[i,:] = de_dalpha[triu_indices]
-        
-        return np.concatenate((dE_vecs, grad_phi_2nd_term),axis=1)
+            grad_phi_2nd_term[i, :] = de_dalpha[triu_indices]
 
+        return np.concatenate((dE_vecs, grad_phi_2nd_term), axis=1)
 
-
-    def evaluate_shift_gradient_regression(self,E,dE):
+    def evaluate_shift_gradient_regression(self, E, dE):
         """Evaluate the gradient of the regression model a given set of Green-Lagrange
         strain tensors and their gradients.
 
@@ -1449,7 +1449,7 @@ class CubicCauchyBorn:
         E : array_like
             2D array of size [natoms,6], where each row is a Green-Lagrange
             strain tensor written in Voigt notation.
-        
+
         dE : array_like
             2D array of size [natoms, 6], where each row is the derivative of the
             corresponding row in E with respect to some parameter
@@ -1460,7 +1460,7 @@ class CubicCauchyBorn:
             prediction of gradient of the Cauchy-Born shift corrector model
             at each of the given E points. 
         """
-        
+
         # turn E and dE into voigt vectors
         E_voigt = np.zeros([np.shape(E)[0], 6])
         E_voigt[:, 0] = E[:, 0, 0]
@@ -1469,7 +1469,7 @@ class CubicCauchyBorn:
         E_voigt[:, 3] = E[:, 1, 2]
         E_voigt[:, 4] = E[:, 0, 2]
         E_voigt[:, 5] = E[:, 0, 1]
-        
+
         dE_voigt = np.zeros([np.shape(dE)[0], 6])
         dE_voigt[:, 0] = dE[:, 0, 0]
         dE_voigt[:, 1] = dE[:, 1, 1]
@@ -1490,13 +1490,12 @@ class CubicCauchyBorn:
 
         # Predict the shift gradients using the fitted regression model
         predictions[:, 0] = self.RM.predict_gradient(
-            self.grad_basis_function_evaluation(epsx,depsx))
+            self.grad_basis_function_evaluation(epsx, depsx))
         predictions[:, 1] = self.RM.predict_gradient(
-            self.grad_basis_function_evaluation(epsy,depsy))
+            self.grad_basis_function_evaluation(epsy, depsy))
         predictions[:, 2] = self.RM.predict_gradient(
-            self.grad_basis_function_evaluation(epsz,depsz))
+            self.grad_basis_function_evaluation(epsz, depsz))
         return predictions
-
 
     def get_shift_gradients(
             self,
@@ -1570,9 +1569,9 @@ class CubicCauchyBorn:
             A, atoms, F_func=F_func, E_func=E_func,
             coordinates=coordinates, de=de, *args, **kwargs)
 
-        #print(E_higher,E_lower)
+        # print(E_higher,E_lower)
         dE = (E_higher-E_lower)/(2*de)
-        #print(dE)
+        # print(dE)
         natoms = len(atoms)
         # get the cauchy born shifts unrotated
         dshifts_no_rr = self.evaluate_shift_gradient_regression(E, dE)
@@ -1582,14 +1581,13 @@ class CubicCauchyBorn:
         # and to get them back into the lab frame
         for i in range(natoms):
             dshifts[i, :] = np.transpose(A) @ dshifts_no_rr[i, :]
-            #dshift_2[i, :] = np.transpose(A) @ dshift_2_no_rr[i, :]
+            # dshift_2[i, :] = np.transpose(A) @ dshift_2_no_rr[i, :]
 
         # need to adjust gradients for different lattices
         dshifts[self.lattice1mask] = -0.5*(dshifts[self.lattice1mask])
         dshifts[self.lattice2mask] = 0.5*(dshifts[self.lattice2mask])
-        
-        return dshifts
 
+        return dshifts
 
     def save_regression_model(self):
         """Saves the regression model to file: CB_model.npy"""
@@ -1602,6 +1600,6 @@ class CubicCauchyBorn:
 
     def get_model(self):
         return self.RM.model
-    
+
     def set_model(self, model):
         self.RM.model = model
