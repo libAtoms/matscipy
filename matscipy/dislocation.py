@@ -2149,55 +2149,40 @@ def check_duplicates(atoms, distance=0.1):
     # print(f"found {duplicates.sum()} duplicates")
     return duplicates.astype(np.bool)
 
-class CubicCrystalDislocationGrad:
+class AnisotropicDislocation:
     """
-    Displacement and displacement gradient field of straight 
-    dislocation in anisotropic elastic media.
-    Ref: pp. 467 in J.P. Hirth and J. Lothe, Theory of Dislocations, 2nd ed.
-    The function is similar as class `CubicCrystalDislocation`.
+    Displacement and displacement gradient field of straight dislocation 
+    in anisotropic elastic media. Ref: pp. 467 in J.P. Hirth and J. Lothe, 
+    Theory of Dislocations, 2nd ed. Similar to class `CubicCrystalDislocation`.
     """
 
-    def __init__(self, a0, crack_surface, crack_front, n, xi, Burgers, C11=None, C12=None,
-                 C44=None):
+    def __init__(self, C11, C12, C44, axes,
+                 slip_plane, disloc_line, burgers):
         """
-        Insert a dislocation in a cubic crystal containing a crack. 
-        Elastic constants are C11, C12 and C44 (or optionally a full 6x6 elastic constant matrix C).
-        The dislocation is defined by m (dislocation glide direction), n (the slip plane normal), 
-        and xi (dislocation line direction).
+        Setup a dislocation in a cubic crystal. 
+        C11, C12 and C44 are the elastic constants in the Catersian geometry.
+        The arg 'axes' is a 3x3 array containing axes of frame of reference (eg.crack system).
+        The dislocation parameters required are the slip plane normal ('slip_plane'), the 
+        dislocation line direction ('disloc_line') and the Burgers vector ('burgers').
         """
 
-        # x (third_dir) - direction in which the crack is running
-        # y (crack_surface) - free surface that forms due to the crack
-        # z (crack_front) - direction of the crack front
-        # normalize axis of crack coordinates 
-        third_dir = np.cross(crack_surface, crack_front)
-        third_dir = np.array(third_dir) / np.sqrt(np.dot(third_dir,
-                                                         third_dir))
-        crack_surface = np.array(crack_surface) / \
-            np.sqrt(np.dot(crack_surface, crack_surface))
-        crack_front = np.array(crack_front) / \
-            np.sqrt(np.dot(crack_front, crack_front))
-        
-        # define rotation matrix from dislocation system to crack system
-        A = np.array([third_dir, crack_surface, crack_front])
-        if np.linalg.det(A) < 0:
-            third_dir = -third_dir
-        A = np.array([third_dir, crack_surface, crack_front])
-        m = np.cross(n, xi)
+        # normalize axes of the cell (for NCFlex: crack system coordinates) 
+        A = np.array([ np.array(v)/np.sqrt(np.dot(v,v)) for v in axes ])
 
-        # normalize m, n and xi
+        # normalize axis of dislocation coordinates
+        n = slip_plane ; n = np.array(n) / np.sqrt(np.dot(n, n))
+        xi = disloc_line ; xi = np.array(xi) / np.sqrt(np.dot(xi, xi))
+        m = np.cross(n, xi) # dislocation glide direction
         m = np.array(m) / np.sqrt(np.dot(m, m))
-        n = np.array(n) / np.sqrt(np.dot(n, n))
-        xi = np.array(xi) / np.sqrt(np.dot(xi, xi))
-        disloc_sys = np.array([m, n, xi])
-        if np.linalg.det(disloc_sys) < 0:
-            m = -m        
+        #disloc_sys = np.array([m, n, xi])
+        #if np.linalg.det(disloc_sys) < 0:
+        #    disloc_sys *= -1        
         
         # Rotate vectors from dislocation system to crack coordinates
         self.m = np.einsum('ij,j', A, m)
         self.n = np.einsum('ij,j', A, n)
         self.xi = np.einsum('ij,j', A, xi)
-        self.b = np.einsum('ij,j', A, Burgers)
+        self.b = np.einsum('ij,j', A, burgers)
         
         # define elastic constant in Voigt notation
         C_v = cubic_to_Voigt_6x6(C11, C12, C44)
@@ -2236,29 +2221,25 @@ class CubicCrystalDislocationGrad:
         self.Np = Np
         self.Nv = Nv
 
-    def displacements(self, r, theta):
+    def displacements(self, bulk, center=None): 
         """
-        Displacement field of a straight dislocation. 
-        Positions are passed in cylinder coordinates.
-        Currently only for 2D, can be extended.
+        Displacement field of a straight dislocation. Currently only for 2D, can be extended.
         Parameters
         ----------
-        r : array_like
-            Distances from the dislocation center.
-        theta : array_like
-            Angles with respect to the plane of the crack.
+        bulk : ASE atoms object
+            Bulk cell whose axes are aligned with self.axes
+        center : 3x1 array
+            Position of the dislocation core within the cell
         Returns
         -------
         u, v: array
-            Displacements along the crack running direction and crack plane normal.
+            Displacements along the crack running direction (axes[0]) and crack plane normal (axes[1]).
         """
         
-        # Cylinder coordinates to Cartesian  
-        x = r * np.cos(theta)
-        y = r * np.sin(theta) 
-        coordinates = np.zeros((np.size(x),3), dtype=float)
-        coordinates[:,0] = x
-        coordinates[:,1] = y
+        # Get atomic positions wrt dislocation core in Cartesian coordinates
+        if center is None:
+            center = np.diagonal(bulk.get_cell())/2
+        coordinates = [ vec-center for vec in bulk.get_positions()]
         
         # calculation
         signs = np.sign(np.imag(self.Np))
@@ -2280,32 +2261,29 @@ class CubicCrystalDislocationGrad:
 
         return u, v
 
-    def displacement_gradient(self, r, theta):
+    def deformation_gradient(self, bulk, center=None):
         """
-        Displacement gradient tensor of the dislocation. 
-        Positions are passed in cylinder coordinates.
+        Displacement gradient tensor of the dislocation. Currently only for 2D, can be extended.
 
         Parameters
         ----------
-        r : array_like
-            Distances from the dislocation center.
-        theta : array_like
-            Angles with respect to the plane of the crack.
+        bulk : ASE atoms object
+            ASE bulk cell whose axes are aligned with self.axes
+        center : 3x1 array
+            Position of the dislocation core within the cell
 
         Returns
         -------
         du_dx, du_dy, dv_dx, dv_dy : array
             Displacement gradients:
-            du and dv: displacements along crack running direction/crack plane.
+            du and dv: displacements along crack running direction (axes[0])  & crack plane SS(axes[1]) respectively.
             dx and dy: the corresponding direction of the derivative.
         """
-        # Cylinder coordinates to Cartesian 
-        # Currently only for 2D, can be extended 
-        x = r * np.cos(theta) 
-        y = r * np.sin(theta)
-        coordinates = np.zeros((np.size(x),3), dtype=float)
-        coordinates[:,0] = x
-        coordinates[:,1] = y
+
+        # Get atomic positions wrt dislocation core in Cartesian coordinates
+        if center is None:
+            center = np.diagonal(bulk.get_cell())/2
+        coordinates = [ vec-center for vec in bulk.get_positions()]
 
         signs = np.sign(np.imag(self.Np))
         signs[np.where(signs==0.0)] = 1.0
