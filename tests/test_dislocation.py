@@ -461,6 +461,12 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
+    def test_edge111bar_dislocation(self):
+        self.check_disloc(sd.BCCEdge111barDislocation, 90.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_edge100_dislocation(self,):
         self.check_disloc(sd.BCCEdge100Dislocation, 90.0,
                           burgers=np.array([1.0, 0.0, 0.0]))
