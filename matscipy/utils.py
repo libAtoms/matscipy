@@ -1,7 +1,5 @@
 import numpy as np
 
-
-
 def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
     '''
     Provide uniform interface for generating rotated atoms objects through two main methods:

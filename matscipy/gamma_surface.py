@@ -4,38 +4,47 @@ from matscipy.dislocation import FixedLineAtoms
 from ase.optimize import BFGSLineSearch
 import warnings
 from ase.constraints import UnitCellFilter
-
+from matscipy.utils import validate_cubic_cell
 
 class GammaSurface():
     '''
     A class for generating gamma surface/generalised stacking fault images & plots
     '''
-    def __init__(self, ats, surface_direction, y_dir=None):
+    def __init__(self, a, surface_direction, y_dir=None, crystalstructure=None, symbol="C"):
         '''
         Initialise by cutting and rotating the input structure.
 
-        ats: ase.Atoms
-            Starting structure to generate gamma surface from
-        surface_direction: np.array
+        Parameters
+        ----------
+        a: float or ase.Atoms
+            Lattice Constant or Starting structure to generate gamma surface from
+            (Operates similarly to CubicCrystalDislocation)
+            If lattice constant is provided, crystalstructure must also be set
+        surface_direction: np.array of int
             Vector direction of gamma surface, in miller index notation
             EG: np.array([0, 0, 1]), np.array([-1, 1, 0]), np.array([1, 1, 1])
-        y_dir: np.array | None
+        y_dir: np.array of int or None
             Basis vector (in miller indeces) to form "y" axis, which should be orthogonal to surface_direction
             If None, a suitable y_dir will be found automatically
-
-        Useful attributes:
-        self.cut_at
+        crystalstructure: str
+            Crystal Structure to use in building a base cubic cell
+            Required when a is a lattice constant
+            Current accepted values: "fcc", "bcc", "diamond"
+        symbol:str
+            Chemical symbol to feed to ase.lattice.cubic cell builders
+            Required when a is a lattice constant
+            
+        Attributes
+        ------------
+        self.cut_at : ase.atoms.Atoms object
             Cut Atoms object used as base for gamma surface image generation
-        self.surf_directions
+        self.surf_directions : dict
             Dict giving miller indeces for "x", "y" and "z" directions of gamma surface plot
             -   self.surf_directions["z"] = surface_direction
             -   self.surf_directions["y"] = y_dir, if y_dir was specified
-        self.cell_directions
-            Dict giving miller indeces for "x", "y" and "z" axes of self.cut_at, relative to the initial structure
-            Will differ from self.surf_directions if compress=True, and a smaller representation was found
-        self.nx, self.ny
+        self.nx, self.ny : int
             Dimensions of the (nx, ny) gamma surface grid
-        self.images
+        self.images : list of ase.atoms.Atoms objects
             Generated gamma surface images (populated after self.generate_images is called)
         '''
 
@@ -52,8 +61,6 @@ class GammaSurface():
             at = cut(ats.copy(), a=surface_direction, b=y_dir, origo=[-eps]*3)
             rotate(at, at.cell[2, :].copy(), np.array([0, 0, 1]), at.cell[1, :].copy(), np.array([0, 1, 0]))
             return at
-
-        self._base_ats = ats.copy()
 
         if y_dir is None:
             _y_dir = self._y_dir_search(surface_direction)
@@ -76,7 +83,8 @@ class GammaSurface():
             "x" : np.array([1, 0, 0]),
             "y" : np.array([0, 1, 0])
         }
-        self.cut_at = _cut_and_rotate(self._base_ats, surface_direction, _y_dir)
+
+        alat, self.cut_at = validate_cubic_cell(a)
     
         self.surf_directions = {
             "x": np.array(_x_dir),
@@ -90,7 +98,9 @@ class GammaSurface():
         }
 
     def _y_dir_search(self, d1):
-        # Search for integer x, y, z components for vectors perpendicular to d1
+        '''
+        Search for integer x, y, z components for vectors perpendicular to d1
+        '''
         nmax = 5
         tol = 1e-6
         for i in range(nmax):
@@ -122,6 +132,8 @@ class GammaSurface():
         '''
         Generate gamma surface images on an (nx, ny) grid
 
+        Parameters
+        ----------
         nx: int
             Number of points in the x direction
         ny: int
@@ -138,11 +150,16 @@ class GammaSurface():
             Offset (in A) applied to the position of the vacuum layer in the cell
             The position of the vacuum layer is given by:
             vac_pos = self.cut_at.cell[2, 2] * (1 + cell_strain) / 2 + vacuum_offset
-        path_xlims: list|array of floats
+        path_xlims: list or array of floats
             Limits (in fractional coordinates) of the stacking fault path in the x direction
-        path_ylims: list|array of floats
+        path_ylims: list or array of floats
             Limits (in fractional coordinates) of the stacking fault path in the x direction
             If not supplied, will be set to path_xlims
+
+        Returns
+        --------
+        images: list of ase.atoms.Atoms
+            nx*ny length list of gamma surface images
         '''
 
         if path_ylims is None:
@@ -218,6 +235,8 @@ class GammaSurface():
         '''
         Utility function to relax gamma surface images using calculator
 
+        Parameters
+        ----------
         calculator: ase calculator instance
             Calculator to give forces for relaxation
         ftol: float
@@ -253,14 +272,19 @@ class GammaSurface():
         '''
         Get (self.nx, self.ny) grid of gamma surface energies from self.images
 
-        calculator: ase calculator
+        Parameters
+        ----------
+        calculator : ase calculator
             Calculator to use for finding surface energies (and optionally in the relaxation)
-        relax: bool
+        relax : bool
             Whether to additionally relax the images (through a call to self.relax_images) before finding energies
-        **relax_kwargs: keyword args
+        **relax_kwargs : keyword args
             Extra kwargs to be passed to self.relax_images if relax=True
 
-        Returns (nx, ny) array of energy densities (energy per unit surface area) for the gamma surface, in eV/A**2
+        Returns 
+        -------
+        Es : np.array
+        (nx, ny) array of energy densities (energy per unit surface area) for the gamma surface, in eV/A**2
         '''
 
         cell = self.images[0].cell[:, :]
