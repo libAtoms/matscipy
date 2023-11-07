@@ -13,7 +13,7 @@ Installation and tests
 The majority of the tests (~70 %) are used during the development and adding new dislocations to the module. The idea is to check if `Dislocation analysis (DXA) <https://www.ovito.org/manual/reference/pipelines/modifiers/dislocation_analysis.html>`_ algorithm detects the same dislocation as we intend to create. These tests require `OVITO python interface <https://www.ovito.org/manual/python/index.html>`_ to be installed and are skipped if it is not detected. If you do not plan to add new structures to the module, you can safely ignore these tests.
 
 Tutorials:
----------
+----------
 
 .. toctree::
 
