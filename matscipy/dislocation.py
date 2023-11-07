@@ -2221,25 +2221,18 @@ class AnisotropicDislocation:
         self.Np = Np
         self.Nv = Nv
 
-    def displacements(self, bulk, center=None): 
+    def stroh_solve(self, coordinates): 
         """
         Displacement field of a straight dislocation. Currently only for 2D, can be extended.
         Parameters
         ----------
-        bulk : ASE atoms object
-            Bulk cell whose axes are aligned with self.axes
-        center : 3x1 array
-            Position of the dislocation core within the cell
+        coordindates : array
+            Cartesian atomic coordinates with respect to the dislocation core.
         Returns
         -------
         u, v: array
-            Displacements along the crack running direction (axes[0]) and crack plane normal (axes[1]).
+            Stroh displacements along the crack running direction (axes[0]) and crack plane normal (axes[1]).
         """
-        
-        # Get atomic positions wrt dislocation core in Cartesian coordinates
-        if center is None:
-            center = np.diagonal(bulk.get_cell())/2
-        coordinates = [ vec-center for vec in bulk.get_positions()]
         
         # calculation
         signs = np.sign(np.imag(self.Np))
@@ -2260,6 +2253,54 @@ class AnisotropicDislocation:
         v = np.real(disp)[:,1]
 
         return u, v
+    
+    def displacements(self, bulk, center=None, self_consistent=False,
+                      tol=1e-6, max_iter=100, verbose=True):
+
+        """
+        Displacement field of a straight dislocation. Currently only for 2D, can be extended.
+        Parameters
+        ----------
+        bulk : ASE atoms object
+            Bulk cell whose axes are aligned with self.axes
+        center : 3x1 array
+            Position of the dislocation core within the cell
+        Returns
+        -------
+        u, v: array
+            Stroh displacements (optionally solved self-consistently) along the 
+            crack running direction (axes[0]) and crack plane normal (axes[1]).
+        """
+
+        # Get atomic positions wrt dislocation core in Cartesian coordinates
+        if center is None:
+            center = np.diagonal(bulk.get_cell())/2
+        coordinates = [ vec-center for vec in bulk.get_positions()]
+
+        # Find initial Stroh displacements
+        u1, v1 = self.stroh_solve(coordinates) 
+        if not self_consistent:
+            return u1, v1
+
+        # Find self-consistent displacements
+        res = np.inf
+        i = 0
+        while res > tol:
+            coordinates[:,0] += u1
+            coordinates[:,1] += v1
+            u2, v2 = self.stroh_solve(coordinates)
+            res = np.abs( np.array([ u1-u2 , v1-v2 ]) ).max()
+            if verbose:
+                print('disloc SCF', i, '|d1-d2|_inf =', res)
+            u1 = u2.copy()
+            v1 = v2.copy()
+            i += 1
+            if i > max_iter:
+                raise RuntimeError('Self-consistency' +
+                                   f'did not converge in {max_iter} cycles')
+
+        return u1, v1
+        
 
     def deformation_gradient(self, bulk, center=None):
         """
