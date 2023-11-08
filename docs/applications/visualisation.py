@@ -1,5 +1,6 @@
 import numpy as np
-
+# interactive visualisation  inside the notebook with nglview
+from nglview import show_ase, ASEStructure
 from ovito.io.ase import ase_to_ovito
 from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
 from ovito.pipeline import StaticSource, Pipeline
@@ -42,8 +43,30 @@ def get_structure_types(structure, diamond_structure=False):
 
     return atom_labels, structure_names, hex_colors
 
-# interactive visualisation  inside the notebook with nglview
-from nglview import show_ase, ASEStructure
+# custom tooltip for nglview to avoid showing molecule and residue names
+# that are not relevant for our type of structures
+tooltip_js = """
+                this.stage.mouseControls.add('hoverPick', (stage, pickingProxy) => {
+                    let tooltip = this.stage.tooltip;
+                    if(pickingProxy && pickingProxy.atom && !pickingProxy.bond){
+                        let atom = pickingProxy.atom;
+                        if (atom.structure.name.length > 0){
+                            tooltip.innerText = atom.atomname + " atom: " + atom.structure.name;
+                        } else {
+                            tooltip.innerText = atom.atomname + " atom";
+                        }
+                    } else if (pickingProxy && pickingProxy.bond){
+                        let bond = pickingProxy.bond;
+                        if (bond.structure.name.length > 0){
+                        tooltip.innerText = bond.atom1.atomname + "-" + bond.atom2.atomname + " bond: " + bond.structure.name;
+                        } else {
+                            tooltip.innerText = bond.atom1.atomname + "-" + bond.atom2.atomname + " bond";
+                        }
+                    } else if (pickingProxy && pickingProxy.unitcell){
+                        tooltip.innerText = "Unit cell";
+                    }
+                });
+                """
 
 def add_dislocation(view, system, name, color=[0, 1, 0], x_shift=0.0):
     '''Add dislocation line to the view as a cylinder and two cones.
@@ -71,7 +94,7 @@ def add_dislocation(view, system, name, color=[0, 1, 0], x_shift=0.0):
                         name)
     
 
-def show_dislocation(system, scale=0.5, diamond_structure=False, add_bonds=False,
+def show_dislocation(system, scale=0.5, CNA_color=True, diamond_structure=False, add_bonds=False,
                      d_name='', d_color=[0, 1, 0], partial_distance=None):
 
     atom_labels, structure_names, colors = get_structure_types(system, 
@@ -89,11 +112,17 @@ def show_dislocation(system, scale=0.5, diamond_structure=False, add_bonds=False
         mask = atom_labels == structure_type
         component = view.add_component(ASEStructure(system[mask]), 
                                        default_representation=False, name=str(structure_names[structure_type]))
-        if add_bonds:
-            component.add_ball_and_stick(color=colors[structure_type], radiusType='covalent', radiusScale=scale)
+        if CNA_color:
+            if add_bonds:
+                component.add_ball_and_stick(color=colors[structure_type], radiusType='covalent', radiusScale=scale)
+            else:
+                component.add_spacefill(color=colors[structure_type], radiusType='covalent', radiusScale=scale)
         else:
-            component.add_spacefill(color=colors[structure_type], radiusType='covalent', radiusScale=scale)
-        
+            if add_bonds:
+                component.add_ball_and_stick(radiusType='covalent', radiusScale=scale)
+            else:
+                component.add_spacefill(radiusType='covalent', radiusScale=scale)
+                    
     component.add_unitcell()
 
     if partial_distance is None:
@@ -111,20 +140,25 @@ def show_dislocation(system, scale=0.5, diamond_structure=False, add_bonds=False
 
     view._remote_call("setSize", target="Widget", args=["700px", "400px"])
     view.center()
-    
-    tooltip_js = """
-                 this.stage.mouseControls.add('hoverPick', (stage, pickingProxy) => {
-                        let tooltip = this.stage.tooltip;
-                        if(pickingProxy && pickingProxy.atom && !pickingProxy.bond){
-                            let atom = pickingProxy.atom;
-                            tooltip.innerText = atom.atomname + " atom: " + atom.structure.name;
-                        } else if (pickingProxy && pickingProxy.bond){
-                            let bond = pickingProxy.bond;
-                            tooltip.innerText = bond.atom1.atomname + "-" + bond.atom2.atomname + " bond: " + bond.structure.name;
-                        } else if (pickingProxy && pickingProxy.unitcell){
-                            tooltip.innerText = "Unit cell";
-                        }
-                    });
-                 """
+
+    view._js(tooltip_js)
+    return view
+
+
+def interactive_view(system, scale=0.5, name=""):
+    view = show_ase(system)
+    view._remove_representation()
+    component = view.add_component(ASEStructure(system), 
+                                   default_representation=False, name=name)
+    component.add_spacefill(radiusType='covalent', radiusScale=scale)
+    view.add_unitcell()
+    view.update_spacefill(radiusType='covalent',
+                          radiusScale=scale)
+
+    view.camera = 'orthographic'
+    view.parameters = {"clipDist": 0}
+
+    view.center()
+    view._remote_call("setSize", target="Widget", args=["300px", "300px"])
     view._js(tooltip_js)
     return view

@@ -18,3 +18,4 @@ Tutorials:
 .. toctree::
 
     cylinder_configurations.ipynb
+    multispecies_dislocations.ipynb
