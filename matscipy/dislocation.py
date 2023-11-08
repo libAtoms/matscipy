@@ -2159,7 +2159,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     # Mandatory Attributes of CubicCrystalDislocation with no defaults
     # These should be set by the child dislocation class, or by CubicCrystalDislocation.__init__
     # (see https://stackoverflow.com/questions/472000/usage-of-slots for more details on __slots__)
-    __slots__ = ("__dict__", "burgers_dimensionless", "unit_cell_core_position_dimensionless",
+    __slots__ = ("burgers_dimensionless", "unit_cell_core_position_dimensionless",
                  "glide_distance_dimensionless", "crystalstructure", "axes",
                  "C11", "C12", "C44", "alat", "unit_cell")
 
@@ -2181,14 +2181,18 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         Parameters
         ----------
-        a : lattice constant OR cubic bulk atoms object to build the dislocation configuration
-        C11 : elastic constants
+        a : lattice constant OR cubic ase.atoms.Atoms object
+            Lattice constant passed to ase.lattice.cubic constructor or
+            Atoms object used by ase.build.cut to get unit cell in correct orientation
+        C11 : float
+            Elastic Constants
         C12
         C44
-        symbol : Chemical symbol used to construct
+        symbol : str
+            Chemical symbol used to construct unit cell (if "a" is a lattice constant)
 
 
-        Useful Dislocation Properties
+        Attributes
         ------------------------------
         alat : float
             lattice parameter (in A)
@@ -2204,8 +2208,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             dislocation core position in the unit cell used to shift atomic positions to
             make the dislocation core the center of the cell
         parity : np.array
-        glide_distance : distance to the next equivalent
-                         core position in the glide direction
+        glide_distance : float
+            distance (in A) to the next equivalent core position in the glide direction
         n_planes : int
             number of non equivalent planes in z direction
         self_consistent : float
@@ -2566,8 +2570,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
     new_left_burgers = None
     new_right_burgers = None
     def __init__(self, a, C11, C12, C44, symbol="W"):
-        """This class represents a dissociated dislocation in a cubic crystal
-        with burgers vercor b = b_left + b_right.
+        """
+        This class represents a dissociated dislocation in a cubic crystal
+        with burgers vector b = b_left + b_right.
 
         Args:
             identical to CubicCrystalDislocation
