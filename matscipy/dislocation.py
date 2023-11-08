@@ -2159,7 +2159,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     # Mandatory Attributes of CubicCrystalDislocation with no defaults
     # These should be set by the child dislocation class, or by CubicCrystalDislocation.__init__
     # (see https://stackoverflow.com/questions/472000/usage-of-slots for more details on __slots__)
-    __slots__ = ("__dict__", "burgers_dimensionless", "unit_cell_core_position_dimensionless",
+    __slots__ = ("burgers_dimensionless", "unit_cell_core_position_dimensionless",
                  "glide_distance_dimensionless", "crystalstructure", "axes",
                  "C11", "C12", "C44", "alat", "unit_cell")
 
