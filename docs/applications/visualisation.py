@@ -1,5 +1,6 @@
 import numpy as np
-from nglview import show_ase
+# interactive visualisation  inside the notebook with nglview
+from nglview import show_ase, ASEStructure
 from ovito.io.ase import ase_to_ovito
 from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
 from ovito.pipeline import StaticSource, Pipeline
@@ -41,9 +42,6 @@ def get_structure_types(structure, diamond_structure=False):
     hex_colors = ['#{:02x}{:02x}{:02x}'.format(int(r*255), int(g*255), int(b*255)) for r, g, b in colors] 
 
     return atom_labels, structure_names, hex_colors
-
-# interactive visualisation  inside the notebook with nglview
-from nglview import show_ase, ASEStructure
 
 # custom tooltip for nglview to avoid showing molecule and residue names
 # that are not relevant for our type of structures
