@@ -56,23 +56,27 @@ class GammaSurface():
         self.y_disp = 0
         self.surface_area = 0
         self.offset = 0
+        self.crystalstructure = None
 
         import inspect
         from matscipy.dislocation import CubicCrystalDissociatedDislocation
 
         axes = None
+        disloc = False
         if inspect.isclass(surface_direction):
             if issubclass(surface_direction, CubicCrystalDissociatedDislocation):
                 # Passed a class which inherits from CubicCrystalDissociatedDislocation
-                axes = surface_direction.left_dislocation.axes.copy()
-                self.offset = -surface_direction.left_dislocation.unit_cell_core_position_dimensionless[1]
+                disloc = True
         elif isinstance(surface_direction, CubicCrystalDissociatedDislocation):
             # Passed an instance of a class which inherits from CubicCrystalDissociatedDislocation
+            disloc = True
+        
+        if disloc:
+            # Dislocation object was found
             axes = surface_direction.left_dislocation.axes.copy()
             self.offset = -surface_direction.left_dislocation.unit_cell_core_position_dimensionless[1]
-        
-        if axes is not None:
-            # Dislocation object was found
+            crystalstructure = surface_direction.left_dislocation.crystalstructure
+
             self.surf_directions = {
             "x": axes[2, :],
             "y": axes[0, :],
@@ -103,7 +107,8 @@ class GammaSurface():
                 "z": np.array(surface_direction)
                 }
             axes = np.array([_x_dir, _y_dir, surface_direction])
-        alat, self.cut_at = validate_cubic_cell(a, axes=axes)
+        
+        alat, self.cut_at = validate_cubic_cell(a, axes=axes, crystalstructure=crystalstructure, symbol=symbol)
         self.offset *= alat
 
     def _y_dir_search(self, d1):
