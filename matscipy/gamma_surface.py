@@ -20,11 +20,12 @@ class GammaSurface():
             Lattice Constant or Starting structure to generate gamma surface from
             (Operates similarly to CubicCrystalDislocation)
             If lattice constant is provided, crystalstructure must also be set
-        surface_direction: np.array of int
+        surface_direction: np.array of int or subclass of matscipy.dislocation.CubicCrystalDissociatedDislocation
             Vector direction of gamma surface, in miller index notation
             EG: np.array([0, 0, 1]), np.array([-1, 1, 0]), np.array([1, 1, 1])
+            A subclass of matscipy.dislocation.CubicCrystalDissociatedDislocation (EG: DiamondGlideScrew or FCCEdge110Dislocation)
         y_dir: np.array of int or None
-            Basis vector (in miller indeces) to form "y" axis, which should be orthogonal to surface_direction
+            Basis vector (in miller indices) to form "y" axis, which should be orthogonal to surface_direction
             If None, a suitable y_dir will be found automatically
         crystalstructure: str
             Crystal Structure to use in building a base cubic cell
@@ -54,48 +55,56 @@ class GammaSurface():
         self.x_disp = 0
         self.y_disp = 0
         self.surface_area = 0
+        self.offset = 0
 
-        def _cut_and_rotate(ats, surface_direction, y_dir):
-            # Cut such that surface_direction lies in z
-            eps = 1e-3
-            at = cut(ats.copy(), a=surface_direction, b=y_dir, origo=[-eps]*3)
-            rotate(at, at.cell[2, :].copy(), np.array([0, 0, 1]), at.cell[1, :].copy(), np.array([0, 1, 0]))
-            return at
+        import inspect
+        from matscipy.dislocation import CubicCrystalDissociatedDislocation
 
-        if y_dir is None:
-            _y_dir = self._y_dir_search(surface_direction)
-        else:
-            _y_dir = np.array(y_dir)
-
-            if np.abs(np.dot(surface_direction, _y_dir)) >= 1e-3:
-                # Vector basis is not orthogonal
-                msg = f"y_dir vector {_y_dir} is not orthogonal to surface_direction vector {surface_direction}; dot(surface_direction, y_dir) = {float(np.dot(surface_direction, _y_dir))}\n" + \
-                    "Gamma Surface plot may not show the correct directions"
-                warnings.warn(msg, RuntimeWarning, stacklevel=2)
-
-        _x_dir = np.cross(_y_dir, surface_direction)
-
-    
-        _cell_y_dir = _y_dir
-        _cell_x_dir = _x_dir
-
-        self.mapping = {
-            "x" : np.array([1, 0, 0]),
-            "y" : np.array([0, 1, 0])
-        }
-
-        alat, self.cut_at = validate_cubic_cell(a)
-    
-        self.surf_directions = {
-            "x": np.array(_x_dir),
-            "y": np.array(_y_dir),
-            "z": np.array(surface_direction)
+        axes = None
+        if inspect.isclass(surface_direction):
+            if issubclass(surface_direction, CubicCrystalDissociatedDislocation):
+                # Passed a class which inherits from CubicCrystalDissociatedDislocation
+                axes = surface_direction.left_dislocation.axes.copy()
+                self.offset = -surface_direction.left_dislocation.unit_cell_core_position_dimensionless[1]
+        elif isinstance(surface_direction, CubicCrystalDissociatedDislocation):
+            # Passed an instance of a class which inherits from CubicCrystalDissociatedDislocation
+            axes = surface_direction.left_dislocation.axes.copy()
+            self.offset = -surface_direction.left_dislocation.unit_cell_core_position_dimensionless[1]
+        
+        if axes is not None:
+            # Dislocation object was found
+            self.surf_directions = {
+            "x": axes[2, :],
+            "y": axes[0, :],
+            "z": axes[1, :]
             }
-        self.cell_directions = {
-            "x": np.array(_cell_x_dir),
-            "y": np.array(_cell_y_dir),
-            "z": np.array(surface_direction)
-        }
+            ax = axes.copy()
+            ax[0, :] = self.surf_directions["x"]
+            ax[1, :] = self.surf_directions["y"]
+            ax[2, :] = self.surf_directions["z"]
+            axes = ax
+        else:
+            if y_dir is None:
+                _y_dir = self._y_dir_search(surface_direction)
+            else:
+                _y_dir = np.array(y_dir)
+
+                if np.abs(np.dot(surface_direction, _y_dir)) >= 1e-3:
+                    # Vector basis is not orthogonal
+                    msg = f"y_dir vector {_y_dir} is not orthogonal to surface_direction vector {surface_direction}; dot(surface_direction, y_dir) = {float(np.dot(surface_direction, _y_dir))}\n" + \
+                        "Gamma Surface plot may not show the correct directions"
+                    warnings.warn(msg, RuntimeWarning, stacklevel=2)
+
+            _x_dir = np.cross(_y_dir, surface_direction)
+        
+            self.surf_directions = {
+                "x": np.array(_x_dir),
+                "y": np.array(_y_dir),
+                "z": np.array(surface_direction)
+                }
+            axes = np.array([_x_dir, _y_dir, surface_direction])
+        alat, self.cut_at = validate_cubic_cell(a, axes=axes)
+        self.offset *= alat
 
     def _y_dir_search(self, d1):
         '''
@@ -128,7 +137,7 @@ class GammaSurface():
         # No nice integer vector found!
         raise RuntimeError(f"Could not automatically find an integer basis from basis vector {d1}")
 
-    def generate_images(self, nx, ny, z_replications=1, atom_offset=0.0, cell_strain=0.0, vacuum=0.0, vacuum_offset=0.0, path_xlims=[0.0, 1.0], path_ylims=None):
+    def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, vacuum_offset=0.0, path_xlims=[0.0, 1.0], path_ylims=None):
         '''
         Generate gamma surface images on an (nx, ny) grid
 
@@ -175,8 +184,12 @@ class GammaSurface():
         base_struct = self.cut_at * (1, 1, z_replications)
 
         # Atom offset
+        if atom_offset is not None:
+            offset = atom_offset
+        else:
+            offset = self.offset
         pos = base_struct.get_positions()
-        pos[:, 2] += atom_offset
+        pos[:, 2] += offset
         base_struct.set_positions(pos)
         base_struct.wrap()
         
@@ -197,9 +210,8 @@ class GammaSurface():
         base_struct.set_positions(pos)
 
         # Surface Size
-        # TODO: This assumes cell is cuboidal - is this always true?
-        self.x_disp = cell[:, :] @ self.mapping["x"]
-        self.y_disp = cell[:, :] @ self.mapping["y"]
+        self.x_disp = cell[0, 0] * np.array([1, 0, 0])
+        self.y_disp = cell[1, 1] * np.array([0, 1, 0])
 
         self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
         self.surface_separation = np.abs(cell[2, 2])

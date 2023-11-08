@@ -32,7 +32,10 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
 
     # Choose correct ase.lattice.cubic constructor given crystalstructure
     try:
-        cell_builder = constructors[crystalstructure.lower()]
+        if crystalstructure is not None:
+            cell_builder = constructors[crystalstructure.lower()]
+        else:
+            cell_builder = None
     except (KeyError, AttributeError) as e:
         if type(e) == KeyError:
             # KeyError when crystalstructure not a key in constructors
@@ -41,15 +44,17 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
             # AttributeError when type(crystalstructure) doesn't support .lower() (not a valid input type)
             raise TypeError(f"crystalstructure should be one of {constructors.keys()}")
 
-
     if np.issubdtype(type(a), np.floating) or np.issubdtype(type(a), np.integer):
         # Reproduce legacy behaviour with a==alat
         alat = a
+
+        if cell_builder is None:
+            raise AssertionError("crystalstructure must be given when 'a' argument is a lattice parameter")
             
         unit_cell = cell_builder(symbol, directions=axes.tolist(),
                                  pbc=pbc,
                                  latticeconstant=alat)
-    elif type(a) == Atoms:
+    elif isinstance(a, Atoms):
         # New behaviour for arbitrary cubic unit cells (Zincblende, L12, ...)
         alat = a.cell[0, 0]
 
