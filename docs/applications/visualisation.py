@@ -4,6 +4,7 @@ from nglview import show_ase, ASEStructure
 from ovito.io.ase import ase_to_ovito
 from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
 from ovito.pipeline import StaticSource, Pipeline
+from ase.visualize import view
 
 # Get the results of Ovito Common Neighbor Analysis 
 # https://www.ovito.org/docs/current/reference/pipelines/modifiers/common_neighbor_analysis.html
@@ -162,3 +163,13 @@ def interactive_view(system, scale=0.5, name=""):
     view._remote_call("setSize", target="Widget", args=["300px", "300px"])
     view._js(tooltip_js)
     return view
+
+def show_stacking_fault(images):
+    # TODO: Nice NGL representation of these!
+    images = [image.copy() for image in images]
+    cell = images[0].cell[:, :]
+    for image in images:
+        image.set_cell(cell)
+        image.wrap()
+    v = view(images, viewer="ngl")
+    return v
