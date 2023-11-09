@@ -2228,6 +2228,7 @@ class AnisotropicDislocation:
         self.Np = Np
         self.Nv = Nv
 
+
     def stroh_solve(self, coordinates): 
         """
         Displacement field of a straight dislocation. Currently only for 2D, can be extended.
@@ -2258,6 +2259,7 @@ class AnisotropicDislocation:
 
         return np.real(disp)
     
+
     def displacements(self, bulk, center=None, self_consistent=False,
                       tol=1e-6, max_iter=100, verbose=True):
 
@@ -2302,8 +2304,8 @@ class AnisotropicDislocation:
                                    f'did not converge in {max_iter} cycles')
 
         return disp1  
-        
 
+    
     def deformation_gradient(self, bulk, center=None):
         """
         3D displacement gradient tensor of the dislocation. 
@@ -2332,34 +2334,31 @@ class AnisotropicDislocation:
         signs[np.where(signs==0.0)] = 1.0
         
         A = self.Nv[0:3,:]
-        A1 = self.Nv[0,:]
-        A2 = self.Nv[1,:]
-        A3 = self.Nv[2,:]
         L = self.Nv[3:6,:]
         D = signs * np.einsum('i,ij', self.b, L)
 
         eta = (np.expand_dims(np.einsum('i,ji', self.m, coordinates), axis=1)
             + np.outer(np.einsum('i,ji', self.n, coordinates), self.Np))
-
-        # get the displacement gradient
+        
         pref = (1.0/(2.0 * np.pi * 1.0j))
-        du_dx = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[0]+self.Np*self.n[0])*A1*D)))
-        du_dy = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[1]+self.Np*self.n[1])*A1*D)))   
-        du_dz = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[2]+self.Np*self.n[2])*A1*D)))
-        dv_dx = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[0]+self.Np*self.n[0])*A2*D)))
-        dv_dy = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[1]+self.Np*self.n[1])*A2*D)))   
-        dv_dz = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[2]+self.Np*self.n[2])*A2*D)))
-        dw_dx = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[0]+self.Np*self.n[0])*A3*D)))
-        dw_dy = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[1]+self.Np*self.n[1])*A3*D)))    
-        dw_dz = np.real((pref * np.einsum('ij,j', 1/eta, (self.m[2]+self.Np*self.n[2])*A3*D)))
-        
-        # add unity matrix to turn this into the deformation gradient tensor.
-        du_dx += np.ones_like(du_dx)
-        dv_dy += np.ones_like(dv_dy)
-        dw_dz += np.ones_like(dw_dz)
 
-        return np.transpose([[du_dx, du_dy, du_dz], [dv_dx, dv_dy, dv_dz], [dw_dx, dw_dy, dw_dz]])
+        # Compute the displacement gradient components
+        nat = len(coordinates)
+        grad3D_T = np.zeros((3,3,nat))
+        for i in range(3):
+            for j in range(3):
+                grad3D_T[i,j,:] = np.real(( pref * np.einsum('ij,j', 1/eta, (self.m[j] + self.Np * self.n[j]) * A[i,:] * D) ))
+
+        # Add unity matrix along the diagonal block, to turn this into the deformation gradient tensor.
+        for i in range(3):
+            grad3D_T[i,i,:] += np.ones(nat)
         
+        # Transpose to get the correct shape
+        grad3D = np.transpose(grad3D_T)
+
+        return grad3D
+        
+
     def deformation_gradient_2D(self, bulk, center=None):
         """
         2D displacement gradient tensor of the dislocation. 
@@ -2379,13 +2378,14 @@ class AnisotropicDislocation:
             du, dv: changes in displacements of atoms along self.axes[0] and self.axes[1], in response to changes in dislocation core position
         """
         # Compute the 3D deformation tensor
+        # Form: np.transpose([[du_dx, du_dy, du_dz], [dv_dx, dv_dy, dv_dz], [dw_dx, dw_dy, dw_dz]])
         grad3D = self.deformation_gradient(bulk, center)
 
-        # Extract the transposed 2D deformation tensor
-        grad3D_T = np.transpose(grad3D) # Form: [[du_dx, du_dy, du_dz], [dv_dx, dv_dy, dv_dz], [dw_dx, dw_dy, dw_dz]]
-        grad2D_T = grad3D_T[0:2,0:2] # Form: [[du_dx, du_dy], [dv_dx, dv_dy]]
+        # Extract the 2D deformation tensor
+        # Form: np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
+        grad2D = grad3D[:, 0:2, 0:2]
 
-        return np.transpose(grad2D_T)
+        return grad2D
 
 
 class CubicCrystalDislocation(metaclass=ABCMeta):
