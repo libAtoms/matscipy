@@ -479,8 +479,12 @@ def get_elastic_constants(pot_path=None,
     sf = StrainFilter(unit_cell)
     # or UnitCellFilter(W)
     # -> to minimise wrt pos, cell
-    opt = FIRE(sf)
+    if verbose:
+        opt = FIRE(sf)
+    else:
+        opt = FIRE(sf, logfile=None)
     opt.run(fmax=1e-4)  # max force in eV/A
+    
     alat = unit_cell.cell.lengths()[0]
     #    print("a0 relaxation %.4f --> %.4f" % (a0, a))
     #    e_coh = W.get_potential_energy()
