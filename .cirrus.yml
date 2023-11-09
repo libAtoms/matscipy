@@ -19,28 +19,28 @@ build_and_store_wheels: &BUILD_AND_STORE_WHEELS
 # Build linux_aarch64 natively
 ######################################################################
 
-cirrus_wheels_linux_aarch64_task:
-  compute_engine_instance:
-    image_project: cirrus-images
-    image: family/docker-builder-arm64
-    architecture: arm64
-    platform: linux
-    cpu: 4
-    memory: 8G
-  matrix:
-    - env:
-        CIBW_BUILD: cp38-* cp39-*
-    - env:
-        CIBW_BUILD: cp310-* cp311-*
-  build_script: |
-    apt install -y python3-venv python-is-python3
-    which python
-    echo $CIRRUS_CHANGE_MESSAGE
-    # needed for discover_version.py
-    git fetch --all
-    # needed for submodules
-    git submodule update --init
-  <<: *BUILD_AND_STORE_WHEELS
+# cirrus_wheels_linux_aarch64_task:
+#   compute_engine_instance:
+#     image_project: cirrus-images
+#     image: family/docker-builder-arm64
+#     architecture: arm64
+#     platform: linux
+#     cpu: 4
+#     memory: 8G
+#   matrix:
+#     - env:
+#         CIBW_BUILD: cp38-* cp39-*
+#     - env:
+#         CIBW_BUILD: cp310-* cp311-*
+#   build_script: |
+#     apt install -y python3-venv python-is-python3
+#     which python
+#     echo $CIRRUS_CHANGE_MESSAGE
+#     # needed for discover_version.py
+#     git fetch --all
+#     # needed for submodules
+#     git submodule update --init
+#   <<: *BUILD_AND_STORE_WHEELS
 
 
 ######################################################################
