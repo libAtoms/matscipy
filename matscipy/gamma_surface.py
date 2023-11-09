@@ -57,6 +57,7 @@ class GammaSurface():
         self.surface_area = 0
         self.offset = 0
         self.crystalstructure = None
+        self.ylims = [0, 1]
 
         import inspect
         from matscipy.dislocation import CubicCrystalDissociatedDislocation
@@ -76,6 +77,8 @@ class GammaSurface():
             axes = surface_direction.left_dislocation.axes.copy()
             self.offset = -surface_direction.left_dislocation.unit_cell_core_position_dimensionless[1]
             crystalstructure = surface_direction.left_dislocation.crystalstructure
+
+            self.ylims = [0, surface_direction.left_dislocation.glide_distance_dimensionless / 2]
 
             self.surf_directions = {
             "x": axes[2, :],
@@ -142,7 +145,7 @@ class GammaSurface():
         # No nice integer vector found!
         raise RuntimeError(f"Could not automatically find an integer basis from basis vector {d1}")
 
-    def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, vacuum_offset=0.0, path_xlims=[0.0, 1.0], path_ylims=None):
+    def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, vacuum_offset=0.0, path_xlims=[0, 1], path_ylims=None):
         '''
         Generate gamma surface images on an (nx, ny) grid
 
@@ -168,7 +171,7 @@ class GammaSurface():
             Limits (in fractional coordinates) of the stacking fault path in the x direction
         path_ylims: list or array of floats
             Limits (in fractional coordinates) of the stacking fault path in the x direction
-            If not supplied, will be set to path_xlims
+            If not supplied, will be set to either [0, 1], or will be set based on the glide distance of the supplied dislocation
 
         Returns
         --------
@@ -177,7 +180,7 @@ class GammaSurface():
         '''
 
         if path_ylims is None:
-            y_lims = path_xlims
+            y_lims = self.ylims
         else:
             y_lims = path_ylims
         
