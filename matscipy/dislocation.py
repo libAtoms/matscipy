@@ -451,7 +451,8 @@ def show_configuration(disloc, bulk, u, fixed_mask=None):
 def get_elastic_constants(pot_path=None,
                           calculator=None,
                           delta=1e-2,
-                          symbol="W"):
+                          symbol="W",
+                          verbose=True):
     """
     return lattice parameter, and cubic elastic constants: C11, C12, 44
     using matscipy function
@@ -487,7 +488,8 @@ def get_elastic_constants(pot_path=None,
 
     Cij, Cij_err = fit_elastic_constants(unit_cell,
                                          symmetry="cubic",
-                                         delta=delta)
+                                         delta=delta,
+                                         verbose=verbose)
 
     Cij = Cij/GPa  # unit conversion to GPa
 
