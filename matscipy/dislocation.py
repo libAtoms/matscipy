@@ -2176,16 +2176,13 @@ class AnisotropicDislocation:
         n = slip_plane ; n = np.array(n) / np.sqrt(np.dot(n, n))
         xi = disloc_line ; xi = np.array(xi) / np.sqrt(np.dot(xi, xi))
         m = np.cross(n, xi) # dislocation glide direction
-        m = np.array(m) / np.sqrt(np.dot(m, m))
-        #disloc_sys = np.array([m, n, xi])
-        #if np.linalg.det(disloc_sys) < 0:
-        #    disloc_sys *= -1        
+        m = np.array(m) / np.sqrt(np.dot(m, m))      
         
         # Rotate vectors from dislocation system to crack coordinates
-        self.m = np.einsum('ij,j', A, m)
-        self.n = np.einsum('ij,j', A, n)
-        self.xi = np.einsum('ij,j', A, xi)
-        self.b = np.einsum('ij,j', A, burgers)
+        m = np.einsum('ij,j', A, m)
+        n = np.einsum('ij,j', A, n)
+        xi = np.einsum('ij,j', A, xi)
+        b = np.einsum('ij,j', A, burgers)
         
         # define elastic constant in Voigt notation
         C_v = cubic_to_Voigt_6x6(C11, C12, C44)
@@ -2202,9 +2199,11 @@ class AnisotropicDislocation:
         nm = np.einsum('i,ijkl,l', n, cijkl, m)
         nn = np.einsum('i,ijkl,l', n, cijkl, n)
 
+        # TODO: Replace with np.linalg.solve
         nninv = np.linalg.inv(nn)
         mn_nninv = np.dot(mn, nninv)
 
+        # TODO: Replace with Cholesky decomposition or QR decomposition to get the inverse 
         N = np.zeros((6,6), dtype=float)
         N[0:3,0:3] = -np.dot(nninv, nm)
         N[0:3,3:6] = -nninv
@@ -2221,6 +2220,11 @@ class AnisotropicDislocation:
             Nv[0:3, i] /= np.sqrt(norm)
             Nv[3:6, i] /= np.sqrt(norm)
 
+        # Store key variables
+        self.m = m
+        self.n = n
+        self.xi = xi
+        self.b = b
         self.Np = Np
         self.Nv = Nv
 
@@ -2233,7 +2237,7 @@ class AnisotropicDislocation:
             Cartesian atomic coordinates with respect to the dislocation core.
         Returns
         -------
-        u, v: array
+        disp : array
             Stroh displacements along the crack running direction (axes[0]) and crack plane normal (axes[1]).
         """
         
@@ -2251,11 +2255,8 @@ class AnisotropicDislocation:
         # get the displacements
         disp = ((1.0/(2.0 * np.pi * 1.0j))
             * np.einsum('ij,kj', np.log(eta), constant_factor))
-        
-        u = np.real(disp)[:,0]
-        v = np.real(disp)[:,1]
 
-        return u, v
+        return np.real(disp)
     
     def displacements(self, bulk, center=None, self_consistent=False,
                       tol=1e-6, max_iter=100, verbose=True):
@@ -2270,7 +2271,7 @@ class AnisotropicDislocation:
             Position of the dislocation core within the cell
         Returns
         -------
-        u, v: array
+        disp : array
             Stroh displacements (optionally solved self-consistently) along the 
             crack running direction (axes[0]) and crack plane normal (axes[1]).
         """
@@ -2281,33 +2282,31 @@ class AnisotropicDislocation:
         coordinates = [ vec-center for vec in bulk.get_positions()]
 
         # Find initial Stroh displacements
-        u1, v1 = self.stroh_solve(coordinates) 
+        disp1 = self.stroh_solve(coordinates) 
         if not self_consistent:
-            return u1, v1
+            return disp1 
 
         # Find self-consistent displacements
         res = np.inf
         i = 0
         while res > tol:
-            coordinates[:,0] += u1
-            coordinates[:,1] += v1
-            u2, v2 = self.stroh_solve(coordinates)
-            res = np.abs( np.array([ u1-u2 , v1-v2 ]) ).max()
+            coordinates += disp1
+            disp2 = self.stroh_solve(coordinates)
+            res = np.abs( disp1 - disp2 ).max()
             if verbose:
                 print('disloc SCF', i, '|d1-d2|_inf =', res)
-            u1 = u2.copy()
-            v1 = v2.copy()
+            disp1 = disp2.copy()
             i += 1
             if i > max_iter:
                 raise RuntimeError('Self-consistency' +
                                    f'did not converge in {max_iter} cycles')
 
-        return u1, v1
+        return disp1  
         
 
     def deformation_gradient(self, bulk, center=None):
         """
-        Displacement gradient tensor of the dislocation. Currently only for 2D, can be extended.
+        3D displacement gradient tensor of the dislocation. 
 
         Parameters
         ----------
@@ -2318,10 +2317,10 @@ class AnisotropicDislocation:
 
         Returns
         -------
-        du_dx, du_dy, dv_dx, dv_dy : array
+        du_dx, du_dy, du/dz, dv_dx, dv_dy, dv/dz, dw/dx, dw/dy, dw/dz : 1D arrays
             Displacement gradients:
-            du and dv: displacements along crack running direction (axes[0])  & crack plane SS(axes[1]) respectively.
-            dx and dy: the corresponding direction of the derivative.
+            dx, dy, dz: changes in dislocation core position along the three axes of self.axes
+            du, dv, dw: changes in displacements of atoms along the three axes of self.axes, in response to changes in dislocation core position
         """
 
         # Get atomic positions wrt dislocation core in Cartesian coordinates
@@ -2359,7 +2358,35 @@ class AnisotropicDislocation:
         dv_dy += np.ones_like(dv_dy)
         dw_dz += np.ones_like(dw_dz)
 
-        return np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
+        return np.transpose([[du_dx, du_dy, du_dz], [dv_dx, dv_dy, dv_dz], [dw_dx, dw_dy, dw_dz]])
+        
+    def deformation_gradient_2D(self, bulk, center=None):
+        """
+        2D displacement gradient tensor of the dislocation. 
+
+        Parameters
+        ----------
+        bulk : ASE atoms object
+            ASE bulk cell whose axes are aligned with self.axes
+        center : 3x1 array
+            Position of the dislocation core within the cell
+
+        Returns
+        -------
+        du_dx, du_dy, dv_dx, dv_dy : 1D arrays
+            Displacement gradients:
+            dx, dy: changes in dislocation core position along self.axes[0] and self.axes[1]
+            du, dv: changes in displacements of atoms along self.axes[0] and self.axes[1], in response to changes in dislocation core position
+        """
+        # Compute the 3D deformation tensor
+        grad3D = self.deformation_gradient(bulk, center)
+
+        # Extract the transposed 2D deformation tensor
+        grad3D_T = np.transpose(grad3D) # Form: [[du_dx, du_dy, du_dz], [dv_dx, dv_dy, dv_dz], [dw_dx, dw_dy, dw_dz]]
+        grad2D_T = grad3D_T[0:2,0:2] # Form: [[du_dx, du_dy], [dv_dx, dv_dy]]
+
+        return np.transpose(grad2D_T)
+
 
 class CubicCrystalDislocation(metaclass=ABCMeta):
     '''
