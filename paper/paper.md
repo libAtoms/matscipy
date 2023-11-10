@@ -57,6 +57,9 @@ authors:
   - name: Simon Wengert
     orcid: 0000-0002-8008-1482
     affiliation: 7
+  - name : Lei Zhang
+    orcid:
+    affiliation: 9
   - name: James R. Kermode
     orcid: 0000-0001-6755-6271
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
@@ -84,6 +87,8 @@ affiliations:
     index: 7
   - name: Cluster of Excellence livMatS, Freiburg Center for Interactive Materials and Bioinspired Technologies, University of Freiburg, Georges-Köhler-Allee 105, 79110, Freiburg, Germany
     index: 8
+  - name : Engineering and Technology Institute, Faculty of Science and Engineering, University of Groningen, Nijenborgh 4, 9747 AG Groningen, The Netherlands
+    index: 9
 date: 07 July 2023
 bibliography: paper.bib
 ---
