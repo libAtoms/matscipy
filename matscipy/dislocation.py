@@ -2199,11 +2199,12 @@ class AnisotropicDislocation:
         nm = np.einsum('i,ijkl,l', n, cijkl, m)
         nn = np.einsum('i,ijkl,l', n, cijkl, n)
 
-        # TODO: Replace with np.linalg.solve
+        # TODO: Replace with np.linalg.solve as it is more stable than np.linalg.inv
         nninv = np.linalg.inv(nn)
-        mn_nninv = np.dot(mn, nninv)
+        mn_nninv = np.dot(mn, nninv)      
+        #mn_nninv_2 = np.linalg.solve(nn.T, mn.T).T # works, consistent with mn_nninv
+        #nninv_2 = np.linalg.solve(mn, mn_nninv_2) # TODO: Resolve LinAlgError: Singular matrix
 
-        # TODO: Replace with Cholesky decomposition or QR decomposition to get the inverse 
         N = np.zeros((6,6), dtype=float)
         N[0:3,0:3] = -np.dot(nninv, nm)
         N[0:3,3:6] = -nninv

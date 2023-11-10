@@ -809,7 +809,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             # Put them together to form the transposed 2D gradient tensor. Form: [[du_dx, du_dy], [dv_dx, dv_dy]]
             grad2D_stroh_T = np.array([ [grad[x][:,u] for x in dims] for u in dims ])
 
-            # TODO: Check sign in anisotropic dislocation code !!! Temporary fix for consistent signs.
+            # Flip sign, as moving the dislocation core in the positive axis direction corresponds to a compressive strain 
+            # along that axis, whereas the deformation gradient tensor is defined with respect to extensional strain.
             grad2D_stroh_T *= -1
 
             # Add unity matrix along the diagonal block, to turn this into the deformation gradient tensor.
