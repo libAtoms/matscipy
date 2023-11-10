@@ -2170,13 +2170,13 @@ class AnisotropicDislocation:
         """
 
         # normalize axes of the cell (for NCFlex: crack system coordinates) 
-        A = np.array([ np.array(v)/np.sqrt(np.dot(v,v)) for v in axes ])
+        A = np.array([ np.array(v)/np.linalg.norm(v) for v in axes ])
 
         # normalize axis of dislocation coordinates
-        n = slip_plane ; n = np.array(n) / np.sqrt(np.dot(n, n))
-        xi = disloc_line ; xi = np.array(xi) / np.sqrt(np.dot(xi, xi))
+        n = np.array(slip_plane) ; n =  n / np.linalg.norm(n) 
+        xi = np.array(disloc_line) ; xi = xi / np.linalg.norm(xi) 
         m = np.cross(n, xi) # dislocation glide direction
-        m = np.array(m) / np.sqrt(np.dot(m, m))      
+        m = m / np.linalg.norm(m)    
         
         # Rotate vectors from dislocation system to crack coordinates
         m = np.einsum('ij,j', A, m)
@@ -2305,7 +2305,7 @@ class AnisotropicDislocation:
 
         return disp1  
 
-    
+
     def deformation_gradient(self, bulk, center=None):
         """
         3D displacement gradient tensor of the dislocation. 
@@ -2338,7 +2338,7 @@ class AnisotropicDislocation:
         D = signs * np.einsum('i,ij', self.b, L)
 
         eta = (np.expand_dims(np.einsum('i,ji', self.m, coordinates), axis=1)
-            + np.outer(np.einsum('i,ji', self.n, coordinates), self.Np))
+               + np.outer(np.einsum('i,ji', self.n, coordinates), self.Np))
         
         pref = (1.0/(2.0 * np.pi * 1.0j))
 
