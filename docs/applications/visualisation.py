@@ -165,37 +165,57 @@ def interactive_view(system, scale=0.5, name=""):
     view._js(tooltip_js)
     return view
 
-def show_stacking_fault(images, scale=0.5, CNA_color=True, diamond_structure=False):
-    center = images[0].cell[:, :]
-    # atom_labels, structure_names, colors = get_structure_types(system, 
-    #                                                            diamond_structure=diamond_structure)
+
+def show_stacking_fault(images, ax=None, CNA_color=True, **kwargs):
+    from IPython.display import HTML
+    from ase.visualize.plot import plot_atoms
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    from visualisation import get_structure_types
+    
     images = [image.copy() * (2, 2, 2) for image in images]
-
-    display = NGLDisplay(images, 700, 300)
-    view = display.view
-    view.add_unitcell()
-    view.add_spacefill(radiusType='covalent', radiusScale=scale)
     
-    #view.hide([0])
-    
-    # for structure_type in np.unique(atom_labels):
-    #     # every structure type is a different component
-    #     mask = atom_labels == structure_type
-    #     component = view.add_component(ASEStructure(system[mask]), 
-    #                                    default_representation=False, name=str(structure_names[structure_type]))
-    #     if CNA_color:
-    #         component.add_spacefill(color=colors[structure_type], radiusType='covalent', radiusScale=scale)
-    #     else:
-    #         component.add_spacefill(radiusType='covalent', radiusScale=scale)
-    
-    # Quaternion rotation
-    angle = 4 * np.pi/6
-    axis = np.array([1, 1, -1])
-    q1 = [np.cos(angle/2), *(np.sin(angle/2)*axis / np.linalg.norm(axis))]
-    view.control.rotate(q1)
+    if CNA_color:
+        for system in images:
+            atom_labels, structure_names, colors = get_structure_types(system, 
+                                                                       diamond_structure=True)
+            atom_colors = [colors[atom_label] for atom_label in atom_labels]
 
-    view.camera = 'orthographic'
-    view.parameters = {"clipDist": 0}
-    view.center(center)
+            system.set_array("colors", np.array(atom_colors))
+    
+    ax = plot_atoms(images[-1], **kwargs)
 
-    return view
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    if ax is None:
+        ax = plt.gca()
+
+    fig = ax.get_figure()
+    
+    def drawimage(atoms):
+        ax.clear()
+        ax.axis('off')
+        if CNA_color:
+            plot_atoms(atoms, ax=ax, colors=atoms.get_array("colors"), 
+            **kwargs)
+        else: # default color are jmol (same is nglview)
+            plot_atoms(atoms, ax=ax, **kwargs)
+        # avoid changing the size of the plot during animation
+        ax.set_xlim(xlim) 
+        ax.set_ylim(ylim)
+    animation = FuncAnimation(fig, drawimage, frames=images,
+                              init_func=lambda: None,
+                              interval=200)
+    
+    
+    html = animation.to_jshtml()
+    # center the animation according to the width of the page
+    # does not affect the size of the figure
+    output_html = f'''
+        <div style="display: flex; justify-content: center;">
+        {html}
+        </div>
+        '''
+    plt.close(fig=fig)
+    return HTML(output_html)
