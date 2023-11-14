@@ -762,17 +762,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         ccd = cls(a0, C11, C12, C44, symbol="Fe")
         bulk, sc_disloc1 = ccd.build_cylinder(20.0)
         center = np.diag(bulk.cell) / 2
-        stroh_disp = ccd.displacements(bulk.positions, center, self_consistent=False)
+        stroh_disp = ccd.displacements(bulk.positions, center, use_atomman=True, self_consistent=False)
 
-        # Extract consistent parameters
-        axes = ccd.axes
-        slip_plane = axes[1].copy() 
-        disloc_line = axes[2].copy() 
-        burgers = ccd.burgers
-
-        # Setup AnistoropicDislocation object, and get displacements
-        adsl = sd.AnisotropicDislocation(C11, C12, C44, axes, slip_plane, disloc_line, burgers)
-        adsl_disp = adsl.displacements(bulk, center, self_consistent=False)
+        # Get displacements using AnistoropicDislocation class
+        adsl_disp = ccd.displacements(bulk.positions, center, use_atomman=False, self_consistent=False)
 
         # Setup the dislcation from the AnistoropicDislocation object
         disloc = bulk.copy()
@@ -783,7 +776,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         assert len(results) == 1
         position, b, line, angle = results[0]
         b = np.abs( np.array(b) / np.linalg.norm(b) ) 
-        b_ref = np.abs( burgers / np.linalg.norm(burgers) ) 
+        b_ref = np.abs( ccd.burgers / np.linalg.norm(ccd.burgers) ) 
         self.assertArrayAlmostEqual(b, b_ref)  
     
         # Check its angle
@@ -821,7 +814,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             grad2D_stroh = np.transpose(grad2D_stroh_T)
 
             # Find 2D gradient tensor from AnistoropicDislocation object
-            grad2D_adsl = adsl.deformation_gradient(bulk, center)
+            grad2D_adsl = ccd.ADstroh.deformation_gradient(bulk, center)
 
             # Check gradients
             np.testing.assert_array_almost_equal(grad2D_adsl, grad2D_stroh)
