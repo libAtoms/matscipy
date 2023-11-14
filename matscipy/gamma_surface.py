@@ -50,6 +50,7 @@ class GammaSurface():
         '''
 
         self.images = []
+        self.calc = None
         self.nx = 0
         self.ny = 0
         self.x_disp = 0
@@ -250,7 +251,7 @@ class GammaSurface():
                 images.append(ats)
         self.images = images
 
-    def relax_images(self, calculator, ftol=1e-3, optimiser=BFGSLineSearch, constrain_atoms=True,
+    def relax_images(self, calculator=None, ftol=1e-3, optimiser=BFGSLineSearch, constrain_atoms=True,
                      cell_relax=True, logfile=None, **kwargs):
         '''
         Utility function to relax gamma surface images using calculator
@@ -272,6 +273,13 @@ class GammaSurface():
         **kwargs: Other keyword args
             Extra arguments passed to the optimiser.run() method
         '''
+        if calculator is not None:
+            calc = calculator
+        else:
+            calc = self.calc
+
+        if calc is None:
+            raise RuntimeError("No calculator supplied for relaxation")        
 
         cell_constraint_mask = np.zeros((3, 3))
         if cell_relax:
@@ -284,11 +292,11 @@ class GammaSurface():
                 image.set_constraint(FixedLineAtoms(select_all, (0, 0, 1)))
 
             cell_filter = UnitCellFilter(image, mask=cell_constraint_mask)
-            image.calc = calculator
+            image.calc = calc
             opt = optimiser(cell_filter, logfile=logfile)
             opt.run(ftol, **kwargs)
 
-    def get_surface_energies(self, calculator, relax=False, **relax_kwargs):
+    def get_surface_energies(self, calculator=None, relax=False, **relax_kwargs):
         '''
         Get (self.nx, self.ny) grid of gamma surface energies from self.images
 
@@ -307,6 +315,15 @@ class GammaSurface():
         (nx, ny) array of energy densities (energy per unit surface area) for the gamma surface, in eV/A**2
         '''
 
+
+        if calculator is not None:
+            calc = calculator
+        else:
+            calc = self.calc
+
+        if calc is None:
+            raise RuntimeError("No calculator supplied for energy evaluation")
+
         cell = self.images[0].cell[:, :]
         self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
         self.surface_separation = np.abs(cell[2, 2])
@@ -315,14 +332,14 @@ class GammaSurface():
         Es = np.zeros((self.nx, self.ny))
 
         if relax:
-            self.relax_images(calculator, **relax_kwargs)
+            self.relax_images(calc, **relax_kwargs)
         
         idx = 0
 
         for i in range(self.nx):
             for j in range(self.ny):
                 image = self.images[idx]
-                image.calc = calculator
+                image.calc = calc
                 Es[i, j] = image.get_potential_energy()
                 idx += 1
 
