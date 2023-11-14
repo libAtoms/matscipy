@@ -59,7 +59,7 @@ def set_groups(a, n, skin_x, skin_y, central_x=-1./2, central_y=-1./2,
 
     a.set_array('groups', g)
 
-def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_region_I=False,exclude_surface=False,radial_sort=True):
+def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False, extended_region_I=False, exclude_surface=False, radial_sort=True):
     sx, sy, sz = cryst.cell.diagonal()
     x, y = cryst.positions[:, 0], cryst.positions[:, 1]
     cx, cy = sx/2, sy/2
@@ -147,7 +147,7 @@ def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,extended_reg
 
 
 def cluster(el, a0, n, crack_surface=[1,1,0], crack_front=[0,0,1],
-            cb=None, lattice=None, shift=None,switch_sublattices=False):
+            cb=None, lattice=None, shift=None, switch_sublattices=False):
     nx, ny, nz = n
     third_dir = np.cross(crack_surface, crack_front)
     directions = [ third_dir, crack_surface, crack_front ]
