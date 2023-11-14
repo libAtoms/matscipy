@@ -2228,21 +2228,27 @@ class AnisotropicDislocation:
         self.b = b
         self.Np = Np
         self.Nv = Nv
+    
 
+    def displacement(self, bulk_positions, center=np.array([0.0,0.0,0.0])):
 
-    def stroh_solve(self, coordinates): 
         """
         Displacement field of a straight dislocation. Currently only for 2D, can be extended.
         Parameters
         ----------
-        coordindates : array
-            Cartesian atomic coordinates with respect to the dislocation core.
+        bulk_positions : array
+            Positions of atoms in the bulk cell (with axes == self.axes)
+        center : 3x1 array
+            Position of the dislocation core within the cell
         Returns
         -------
         disp : array
             Stroh displacements along the crack running direction (axes[0]) and crack plane normal (axes[1]).
         """
-        
+
+        # Get atomic positions wrt dislocation core in Cartesian coordinates
+        coordinates = [ vec-center for vec in bulk_positions]
+
         # calculation
         signs = np.sign(np.imag(self.Np))
         signs[np.where(signs==0.0)] = 1.0
@@ -2258,63 +2264,17 @@ class AnisotropicDislocation:
         disp = ((1.0/(2.0 * np.pi * 1.0j))
             * np.einsum('ij,kj', np.log(eta), constant_factor))
 
-        return np.real(disp)
-    
-
-    def displacements(self, bulk, center=None, self_consistent=False,
-                      tol=1e-6, max_iter=100, verbose=True):
-
-        """
-        Displacement field of a straight dislocation. Currently only for 2D, can be extended.
-        Parameters
-        ----------
-        bulk : ASE atoms object
-            Bulk cell whose axes are aligned with self.axes
-        center : 3x1 array
-            Position of the dislocation core within the cell
-        Returns
-        -------
-        disp : array
-            Stroh displacements (optionally solved self-consistently) along the 
-            crack running direction (axes[0]) and crack plane normal (axes[1]).
-        """
-
-        # Get atomic positions wrt dislocation core in Cartesian coordinates
-        if center is None:
-            center = np.diagonal(bulk.get_cell())/2
-        coordinates = [ vec-center for vec in bulk.get_positions()]
-
-        # Find initial Stroh displacements
-        disp1 = self.stroh_solve(coordinates) 
-        if not self_consistent:
-            return disp1 
-
-        # Find self-consistent displacements
-        res = np.inf
-        i = 0
-        while res > tol:
-            coordinates += disp1
-            disp2 = self.stroh_solve(coordinates)
-            res = np.abs( disp1 - disp2 ).max()
-            if verbose:
-                print('disloc SCF', i, '|d1-d2|_inf =', res)
-            disp1 = disp2.copy()
-            i += 1
-            if i > max_iter:
-                raise RuntimeError('Self-consistency' +
-                                   f'did not converge in {max_iter} cycles')
-
-        return disp1  
+        return np.real(disp) 
 
 
-    def deformation_gradient(self, bulk, center=None, return_2D=False):
+    def deformation_gradient(self, bulk_positions, center=np.array([0.0,0.0,0.0]), return_2D=False):
         """
         3D displacement gradient tensor of the dislocation. 
 
         Parameters
         ----------
-        bulk : ASE atoms object
-            ASE bulk cell whose axes are aligned with self.axes
+        bulk_positions : array
+            Positions of atoms in the bulk cell (with axes == self.axes)
         center : 3x1 array
             Position of the dislocation core within the cell
 
@@ -2327,9 +2287,7 @@ class AnisotropicDislocation:
         """
 
         # Get atomic positions wrt dislocation core in Cartesian coordinates
-        if center is None:
-            center = np.diagonal(bulk.get_cell())/2
-        coordinates = [ vec-center for vec in bulk.get_positions()]
+        coordinates = [ vec-center for vec in bulk_positions]
 
         signs = np.sign(np.imag(self.Np))
         signs[np.where(signs==0.0)] = 1.0
@@ -2385,6 +2343,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     self_consistent = True
     pbc = [True, True, True]
     stroh = None
+    ADstroh = None
 
     def __init__(self, a, C11, C12, C44, symbol="W"):
         """
@@ -2455,6 +2414,19 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
         self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
 
+    def init_anisotropic_dislocation(self):
+
+        # Extract consistent parameters
+        axes = self.axes
+        slip_plane = axes[1].copy() 
+        disloc_line = axes[2].copy() 
+
+        # Setup AnistoropicDislocation object
+        self.ADstroh = AnisotropicDislocation(self.C11, self.C12, self.C44, 
+                                           axes, slip_plane, disloc_line, 
+                                           self.burgers)
+
+
     # @property & @var.setter decorators used to ensure var and var_dimensionless don't get out of sync
     @property
     def burgers(self):
@@ -2515,20 +2487,19 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ax.set_xlabel(r"$\AA$")
         ax.set_ylabel(r"$\AA$")
 
-    def displacements(self, bulk_positions, center, self_consistent=True,
-                      tol=1e-6, max_iter=100, verbose=True):
-        if self.stroh is None:
-            self.init_stroh()
-
-        disp1 = np.real(self.stroh.displacement(bulk_positions - center))
-        if not self_consistent:
+    def self_consistent_displacements(self, solver, bulk_positions, center, 
+                                      tol=1e-6, max_iter=100, verbose=True):
+        
+        disp1 = np.real(solver(bulk_positions - center))
+        if max_iter == 0:
             return disp1
-
+        
+        # Self-consistent calculation
         res = np.inf
         i = 0
         while res > tol:
             disloc_positions = bulk_positions + disp1
-            disp2 = np.real(self.stroh.displacement(disloc_positions - center))
+            disp2 = np.real(solver(disloc_positions - center))
             res = np.abs(disp1 - disp2).max()
             disp1 = disp2
             if verbose:
@@ -2538,6 +2509,30 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 raise RuntimeError('Self-consistency' +
                                    f'did not converge in {max_iter} cycles')
         return disp2
+
+    def displacements(self, bulk_positions, center, use_atomman=True,
+                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
+        
+        if use_atomman:
+            # Use stroh solver from atomman package
+            if self.stroh is None:
+                self.init_stroh()
+            solver = self.stroh.displacement
+
+        else:
+            # Use AnistoropicDislocation class from matscipy.dislocation
+            if self.ADstroh is None:
+                self.init_anisotropic_dislocation()
+            solver = self.ADstroh.displacement
+
+        if not self_consistent:
+            max_iter = 0
+
+        disp = self.self_consistent_displacements(solver, bulk_positions, center, 
+                                                  tol, max_iter, verbose)
+
+        return disp
+    
 
     def build_cylinder(self, radius,
                        core_position=np.array([0., 0., 0.]),
