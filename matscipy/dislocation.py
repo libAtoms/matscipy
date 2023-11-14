@@ -2307,7 +2307,7 @@ class AnisotropicDislocation:
         return disp1  
 
 
-    def deformation_gradient(self, bulk, center=None):
+    def deformation_gradient(self, bulk, center=None, return_2D=False):
         """
         3D displacement gradient tensor of the dislocation. 
 
@@ -2355,38 +2355,15 @@ class AnisotropicDislocation:
             grad3D_T[i,i,:] += np.ones(nat)
         
         # Transpose to get the correct shape
+        # Form: np.transpose([[du_dx, du_dy, du_dz], [dv_dx, dv_dy, dv_dz], [dw_dx, dw_dy, dw_dz]])
         grad3D = np.transpose(grad3D_T)
+        
+        if return_2D:
+            # Form: np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
+            grad2D = grad3D[:, 0:2, 0:2]
+            return grad2D
 
         return grad3D
-        
-
-    def deformation_gradient_2D(self, bulk, center=None):
-        """
-        2D displacement gradient tensor of the dislocation. 
-
-        Parameters
-        ----------
-        bulk : ASE atoms object
-            ASE bulk cell whose axes are aligned with self.axes
-        center : 3x1 array
-            Position of the dislocation core within the cell
-
-        Returns
-        -------
-        du_dx, du_dy, dv_dx, dv_dy : 1D arrays
-            Displacement gradients:
-            dx, dy: changes in dislocation core position along self.axes[0] and self.axes[1]
-            du, dv: changes in displacements of atoms along self.axes[0] and self.axes[1], in response to changes in dislocation core position
-        """
-        # Compute the 3D deformation tensor
-        # Form: np.transpose([[du_dx, du_dy, du_dz], [dv_dx, dv_dy, dv_dz], [dw_dx, dw_dy, dw_dz]])
-        grad3D = self.deformation_gradient(bulk, center)
-
-        # Extract the 2D deformation tensor
-        # Form: np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
-        grad2D = grad3D[:, 0:2, 0:2]
-
-        return grad2D
 
 
 class CubicCrystalDislocation(metaclass=ABCMeta):
