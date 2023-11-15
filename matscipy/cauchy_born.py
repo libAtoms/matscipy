@@ -8,7 +8,7 @@ from scipy.linalg import polar, sqrtm
 from itertools import permutations
 
 from scipy.stats.qmc import LatinHypercube, scale
-
+from matscipy.elasticity import full_3x3_to_Voigt_6_strain, Voigt_6_to_full_3x3_strain
 import ase
 
 
@@ -68,12 +68,12 @@ class RegressionModel:
         return grad_phi @ self.model
 
     def save(self):
-        """Saves the regression model to file: CB_model.npy"""
-        np.save('CB_model.npy', self.model)
+        """Saves the regression model to file: CB_model.txt"""
+        np.savetxt('CB_model.txt', self.model)
 
     def load(self):
-        """Loads the regression model from file: CB_model.npy"""
-        self.model = np.load('CB_model.npy')
+        """Loads the regression model from file: CB_model.txt"""
+        self.model = np.loadtxt('CB_model.txt')
 
 
 class CubicCauchyBorn:
@@ -140,6 +140,8 @@ class CubicCauchyBorn:
 
         # generate U (right hand stretch tensor) to apply
         if read_from_atoms:
+            if ('lattice1mask' not in atoms.arrays) or ('lattice2mask' not in atoms.arrays):
+                raise KeyError('Lattice masks not found in atoms object')
             lattice1mask = atoms.arrays['lattice1mask']
             lattice2mask = atoms.arrays['lattice2mask']
         else:
@@ -183,6 +185,8 @@ class CubicCauchyBorn:
                 if all(element == lattice1mask[0] for element in lattice1mask):
                     lattice1mask = force_diff_lattice[:, 2] > 0
                     lattice2mask = force_diff_lattice[:, 2] < 0
+                    if all(element == lattice1mask[0] for element in lattice1mask):
+                        raise RuntimeError('No forces detected in any direction when shift applied - cannot assign sublattices')             
 
             # set new array in atoms
             try:  # make new arrays if they didn't already exist
@@ -209,10 +213,11 @@ class CubicCauchyBorn:
         ----------
         atoms : ASE atoms object with defined sublattices
         """
-        tmpl1 = self.lattice1mask.copy()
-        tmpl2 = self.lattice2mask.copy()
-        self.lattice1mask = tmpl2.copy()
-        self.lattice2mask = tmpl1.copy()
+        self.lattice1mask, self.lattice2mask = self.lattice2mask.copy(), self.lattice1mask.copy()
+        #tmpl1 = self.lattice1mask.copy()
+        #tmpl2 = self.lattice2mask.copy()
+        #self.lattice1mask = tmpl2.copy()
+        #self.lattice2mask = tmpl1.copy()
         lattice1maskatoms = atoms.arrays['lattice1mask']
         lattice2maskatoms = atoms.arrays['lattice2mask']
         lattice1maskatoms[:] = self.lattice1mask
@@ -256,13 +261,7 @@ class CubicCauchyBorn:
             """
             # green lagrange version of function
             # turn E into matrix
-            E = np.zeros([3, 3])
-            E[0, 0] = E_vec[0]
-            E[1, 1] = E_vec[1]
-            E[2, 2] = E_vec[2]
-            E[2, 1], E[1, 2] = E_vec[3], E_vec[3]
-            E[2, 0], E[0, 2] = E_vec[4], E_vec[4]
-            E[0, 1], E[1, 0] = E_vec[5], E_vec[5]
+            E = Voigt_6_to_full_3x3_strain(E_vec)
             # get U^2
             Usqr = 2 * E + np.eye(3)
             # square root matrix to get U
@@ -286,8 +285,7 @@ class CubicCauchyBorn:
             # relax cell
             opt = LBFGS(unitcell_copy, logfile=None)
             opt.run(fmax=1e-10)
-            relaxed_shift[:] = unitcell_copy.get_positions(
-            )[1] - unitcell_copy.get_positions()[0]
+            relaxed_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
 
             # get shift
             shift_diff = relaxed_shift - initial_shift
@@ -954,13 +952,7 @@ class CubicCauchyBorn:
             return predictions
 
         # turn E into voigt vector
-        E_voigt = np.zeros([np.shape(E)[0], 6])
-        E_voigt[:, 0] = E[:, 0, 0]
-        E_voigt[:, 1] = E[:, 1, 1]
-        E_voigt[:, 2] = E[:, 2, 2]
-        E_voigt[:, 3] = E[:, 1, 2]
-        E_voigt[:, 4] = E[:, 0, 2]
-        E_voigt[:, 5] = E[:, 0, 1]
+        E_voigt = full_3x3_to_Voigt_6_strain(E)
 
         # return the shift vectors
         if method == 'taylor':
@@ -1219,13 +1211,7 @@ class CubicCauchyBorn:
         # print('Es',E)
         # we get back the strain vectors in the lattice frame
         # turn E into voigt vectors
-        E_voigt = np.zeros([np.shape(E)[0], 6])
-        E_voigt[:, 0] = E[:, 0, 0]
-        E_voigt[:, 1] = E[:, 1, 1]
-        E_voigt[:, 2] = E[:, 2, 2]
-        E_voigt[:, 3] = E[:, 1, 2]
-        E_voigt[:, 4] = E[:, 0, 2]
-        E_voigt[:, 5] = E[:, 0, 1]
+        E_voigt = full_3x3_to_Voigt_6_strain(E)
 
         # pass set of Es to evaluate to refit_regression
         self.refit_regression(atoms, E_voigt)
@@ -1336,13 +1322,7 @@ class CubicCauchyBorn:
         """
         # green lagrange version of function
         # turn E into matrix
-        E = np.zeros([3, 3])
-        E[0, 0] = E_vec[0]
-        E[1, 1] = E_vec[1]
-        E[2, 2] = E_vec[2]
-        E[2, 1], E[1, 2] = E_vec[3], E_vec[3]
-        E[2, 0], E[0, 2] = E_vec[4], E_vec[4]
-        E[0, 1], E[1, 0] = E_vec[5], E_vec[5]
+        E = Voigt_6_to_full_3x3_strain(E_vec)
         # get U^2
         Usqr = 2 * E + np.eye(3)
         # square root matrix
@@ -1462,39 +1442,19 @@ class CubicCauchyBorn:
         """
 
         # turn E and dE into voigt vectors
-        E_voigt = np.zeros([np.shape(E)[0], 6])
-        E_voigt[:, 0] = E[:, 0, 0]
-        E_voigt[:, 1] = E[:, 1, 1]
-        E_voigt[:, 2] = E[:, 2, 2]
-        E_voigt[:, 3] = E[:, 1, 2]
-        E_voigt[:, 4] = E[:, 0, 2]
-        E_voigt[:, 5] = E[:, 0, 1]
-
-        dE_voigt = np.zeros([np.shape(dE)[0], 6])
-        dE_voigt[:, 0] = dE[:, 0, 0]
-        dE_voigt[:, 1] = dE[:, 1, 1]
-        dE_voigt[:, 2] = dE[:, 2, 2]
-        dE_voigt[:, 3] = dE[:, 1, 2]
-        dE_voigt[:, 4] = dE[:, 0, 2]
-        dE_voigt[:, 5] = dE[:, 0, 1]
+        E_voigt = full_3x3_to_Voigt_6_strain(E)
+        dE_voigt = full_3x3_to_Voigt_6_strain(dE)
 
         # Get the rotated versions of the strain and strain deriv tensors
-        epsx = E_voigt
-        epsy = self.permutation(E_voigt, 1)
-        epsz = self.permutation(E_voigt, 2)
+        eps = [E_voigt, self.permutation(E_voigt, 1), self.permutation(E_voigt, 2)]
 
-        depsx = dE_voigt
-        depsy = self.permutation(dE_voigt, 1)
-        depsz = self.permutation(dE_voigt, 2)
-        predictions = np.zeros([np.shape(epsx)[0], 3])
+        deps = [dE_voigt, self.permutation(dE_voigt, 1), self.permutation(dE_voigt, 2)]
+        predictions = np.zeros([np.shape(eps[0])[0], 3])
 
-        # Predict the shift gradients using the fitted regression model
-        predictions[:, 0] = self.RM.predict_gradient(
-            self.grad_basis_function_evaluation(epsx, depsx))
-        predictions[:, 1] = self.RM.predict_gradient(
-            self.grad_basis_function_evaluation(epsy, depsy))
-        predictions[:, 2] = self.RM.predict_gradient(
-            self.grad_basis_function_evaluation(epsz, depsz))
+        for i in range(3):
+            # Predict the shift gradients using the fitted regression model
+            predictions[:, i] = self.RM.predict_gradient(
+                self.grad_basis_function_evaluation(eps[i], deps[i]))
         return predictions
 
     def get_shift_gradients(
@@ -1590,11 +1550,11 @@ class CubicCauchyBorn:
         return dshifts
 
     def save_regression_model(self):
-        """Saves the regression model to file: CB_model.npy"""
+        """Saves the regression model to file: CB_model.txt"""
         self.RM.save()
 
     def load_regression_model(self):
-        """Loads the regression model from file: CB_model.npy"""
+        """Loads the regression model from file: CB_model.txt"""
         self.RM = RegressionModel()
         self.RM.load()
 

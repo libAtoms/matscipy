@@ -10,6 +10,7 @@ from matscipy.calculators.manybody import Manybody
 from scipy.linalg import sqrtm
 import ase.io
 import matscipytest
+from matscipy.elasticity import Voigt_6_to_full_3x3_strain
 
 
 class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
@@ -44,64 +45,49 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
 
     def test_fit_taylor_model(self):
         self.cb.fit_taylor()
-        # print(self.cb.grad_f)
-        # print(self.cb.hess_f)
-        grad_f = np.array([0.00000000e+00, 0.00000000e+00, 0.00000000e+00, -
-                          1.09995082e+00, -2.22044605e-12, -3.33066907e-12])
-        hess_f = np.array([[0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 2.03958794e-01, 0.00000000e+00, 1.11022302e-08],
+        print(self.cb.grad_f)
+        print(self.cb.hess_f)
+        grad_f = np.array([0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+                          -5.49975395e-01, 0.00000000e+00, -2.22044605e-12])
+        hess_f = np.array([[0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+                               1.01979464e-01, 1.66533454e-08, 1.66533454e-08],
                            [0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
-                               9.12311482e-01, -5.55111512e-09, 0.00000000e+00],
+                               4.56155597e-01, -1.66533454e-08, 0.00000000e+00],
                            [0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
-                               9.12311465e-01, 0.00000000e+00, 0.00000000e+00],
-                           [2.03958794e-01, 9.12311493e-01, 9.12311465e-01,
-                            0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
-                           [0.00000000e+00, -5.55111512e-09, 0.00000000e+00,
-                            0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
-                           [1.11022302e-08, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00]])
+                               4.56155608e-01, 0.00000000e+00, 0.00000000e+00],
+                           [1.01979464e-01, 4.56155597e-01, 4.56155608e-01,
+                               0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
+                           [1.66533454e-08, -1.66533454e-08, 0.00000000e+00,
+                               0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
+                           [1.66533454e-08, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00]])
         assert np.allclose(self.cb.grad_f, grad_f, atol=1e-6)
         assert np.allclose(self.cb.hess_f, hess_f, atol=1e-6)
 
     def E_cart3D(self, x, y, z, eps=None):
-        E = np.zeros([len(x), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps = np.reshape(eps,[1,6])
+        eps_vec = np.repeat(eps,len(x),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         return E
 
     def E_cylind3D(self, r, theta, z, eps=None):
-        E = np.zeros([len(r), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps = np.reshape(eps,[1,6])
+        eps_vec = np.repeat(eps,len(r),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         return E
 
     def F_cart3D(self, x, y, z, eps=None):
-        E = np.zeros([len(x), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps = np.reshape(eps,[1,6])
+        eps_vec = np.repeat(eps,len(x),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         U = np.zeros_like(E)
         for i in range(np.shape(E)[0]):
             U[i, :, :] = sqrtm((2*E[i, :, :])+np.eye(3))
         return U  # with no rigid rotation, U is F
 
     def F_cylind3D(self, r, theta, z, eps=None):
-        E = np.zeros([len(r), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps = np.reshape(eps,[1,6])
+        eps_vec = np.repeat(eps,len(r),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         U = np.zeros_like(E)
         for i in range(np.shape(E)[0]):
             U[i, :, :] = sqrtm((2*E[i, :, :])+np.eye(3))
@@ -234,13 +220,13 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         # print(shift_err_before,shift_err_after)
 
     def E_cart3D_with_de(self, x, y, z, eps=None, de=0):
-        E = np.zeros([len(x), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]+de
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps_arr = eps.copy()
+        eps_arr[1] += de
+        eps_arr = np.reshape(eps_arr,[1,6])
+        eps_vec = np.repeat(eps_arr,len(x),axis=0)
+        print('eps_vec', eps_vec[0,:])
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
+        print('E out', E[0,:,:])
         return E
 
     def test_regression_model_gradient_E(self):
@@ -282,13 +268,11 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         assert np.allclose(nu_grad_fd, nu_grad, 1e-8)
 
     def F_cart3D_with_de(self, x, y, z, eps=None, de=0):
-        E = np.zeros([len(x), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]+de
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps_arr = eps.copy()
+        eps_arr[1] += de
+        eps_arr = np.reshape(eps_arr,[1,6])
+        eps_vec = np.repeat(eps_arr,len(x),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         U = np.zeros_like(E)
         for i in range(np.shape(E)[0]):
             U[i, :, :] = sqrtm((2*E[i, :, :])+np.eye(3))
