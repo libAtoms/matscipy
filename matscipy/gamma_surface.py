@@ -144,7 +144,36 @@ class GammaSurface():
         # No nice integer vector found!
         raise RuntimeError(f"Could not automatically find an integer basis from basis vector {d1}")
 
-    def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, vacuum_offset=0.0, path_xlims=[0, 1], path_ylims=None):
+    def _gen_compressed_images(self, base_struct, nx, ny, x_points, y_points, vacuum=0.0):
+        # Add vacuum
+        half_dist = base_struct.cell[2, 2] / 2
+
+        atom_mask = base_struct.get_positions()[:, 2] > half_dist
+        
+        cell = base_struct.cell[:, :].copy()
+        cell[2, 2] += vacuum
+        pos = base_struct.get_positions()
+        pos[atom_mask, 2] += vacuum
+        base_struct.set_positions(pos)
+        
+        # Gen images
+        images = []
+        for i in range(nx):
+            for j in range(ny):
+                offset = x_points[i] + y_points[j]
+                self.offsets.append(offset)
+            
+                new_cell = cell.copy()
+                new_cell[2, :] += offset
+
+                ats = base_struct.copy()
+
+                ats.set_cell(new_cell, scale_atoms=False)
+
+                images.append(ats)
+        return images
+
+    def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, path_xlims=[0, 1], path_ylims=None, compressed=True):
         '''
         Generate gamma surface images on an (nx, ny) grid
 
@@ -205,18 +234,8 @@ class GammaSurface():
         new_cell[2, 2] += cell_strain
         base_struct.set_cell(new_cell, scale_atoms=False)
 
-        # Add vacuum
-        half_dist = new_cell[2, 2] / 2 + vacuum_offset
-
-        atom_mask = base_struct.get_positions()[:, 2] > half_dist
-        
-        cell = base_struct.cell[:, :].copy()
-        cell[2, 2] += vacuum
-        pos = base_struct.get_positions()
-        pos[atom_mask, 2] += vacuum
-        base_struct.set_positions(pos)
-
         # Surface Size
+        cell = base_struct.cell[:, :]
         self.x_disp = cell[0, 0] * np.array([1, 0, 0])
         self.y_disp = cell[1, 1] * np.array([0, 1, 0])
 
@@ -230,24 +249,15 @@ class GammaSurface():
 
         self.offsets = []
 
-        x_points = np.linspace(*x_lims, nx)
-        y_points = np.linspace(*y_lims, ny)
+        x_points = np.linspace(*x_lims, nx) * dx
+        y_points = np.linspace(*y_lims, ny) * dy
 
-        # Gen images
-        for i in range(nx):
-            for j in range(ny):
-                offset = x_points[i] * dx + y_points[j] * dy
-                self.offsets.append(offset)
-            
-                new_cell = cell.copy()
-                new_cell[2, :] += offset
+        if compressed is True:
+            self.images = self._gen_compressed_images(base_struct, nx, ny, x_points, y_points, vacuum)
+        else:
+            pass
+        return self.images
 
-                ats = base_struct.copy()
-
-                ats.set_cell(new_cell, scale_atoms=False)
-
-                images.append(ats)
-        self.images = images
 
     def relax_images(self, calculator=None, ftol=1e-3, optimiser=BFGSLineSearch, constrain_atoms=True,
                      cell_relax=True, logfile=None, **kwargs):
