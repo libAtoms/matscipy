@@ -27,11 +27,7 @@ class TestSurfaceReconstructionMap(matscipytest.MatSciPyTestCase):
         el = 'Si'  # chemical element
         unitcell = Diamond(el, latticeconstant=5.43, size=[1, 1, 1],
                            directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        # model = "c_v3.yace"
-        # d2_table = "d2.table"
-        # cmds = ['pair_style hybrid/overlay pace table linear 10000',
-        # 'pair_coeff * * pace c_v3.yace C', 'pair_coeff * * table d2.table D2 9.0']
-        # calc = LAMMPSlib(amendments=["mass 1 12.101"],lmpcmds = cmds,log_file='test.log',keep_alive=True)
+
         calc = Manybody(**TersoffBrenner(Erhart_PRB_71_035211_Si))
         unitcell.calc = calc
         ecf = ExpCellFilter(unitcell)
