@@ -1,5 +1,5 @@
 import numpy as np
-from ase.build import rotate, cut
+from ase.build import stack
 from matscipy.dislocation import FixedLineAtoms
 from ase.optimize import BFGSLineSearch
 import warnings
@@ -172,6 +172,28 @@ class GammaSurface():
 
                 images.append(ats)
         return images
+    
+    def _gen_uncompressed_images(self, base_struct, nx, ny, x_points, y_points):
+        slab = stack(base_struct, base_struct.copy())
+        z_cut = base_struct.cell[2, 2]
+        base_pos = slab.get_positions()
+        top_mask = base_pos[:, 2] > z_cut + np.min(base_pos[:, 2])
+
+        slab.set_pbc([True, True, False])
+        
+        images = []
+        for i in range(nx):
+            for j in range(ny):
+                offset = x_points[i] + y_points[j]
+                self.offsets.append(offset)
+                ats = slab.copy()
+                pos = base_pos.copy()
+                pos[top_mask, :] += offset
+                ats.set_positions(pos)
+
+                images.append(ats)
+        return images
+
 
     def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, path_xlims=[0, 1], path_ylims=None, compressed=True):
         '''
@@ -242,20 +264,25 @@ class GammaSurface():
         self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
         self.surface_separation = np.abs(cell[2, 2])
                 
-        dx = self.x_disp
-        dy = self.y_disp
+        dx = self.x_disp / nx
+        dy = self.y_disp / ny
 
         images = []
 
         self.offsets = []
 
-        x_points = np.linspace(*x_lims, nx) * dx
-        y_points = np.linspace(*y_lims, ny) * dy
+        x_points = np.zeros((nx, 3))
+        y_points = np.zeros((ny, 3))
+
+        for i in range(nx):
+            x_points[i, :] = dx * i
+        for j in range(ny):
+            y_points[j, :] = dy * j
 
         if compressed is True:
             self.images = self._gen_compressed_images(base_struct, nx, ny, x_points, y_points, vacuum)
         else:
-            pass
+            self.images = self._gen_uncompressed_images(base_struct, nx, ny, x_points, y_points)
         return self.images
 
 
