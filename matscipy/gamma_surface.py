@@ -5,6 +5,8 @@ from ase.optimize import BFGSLineSearch
 import warnings
 from ase.constraints import UnitCellFilter
 from matscipy.utils import validate_cubic_cell
+import inspect
+from matscipy.dislocation import CubicCrystalDissociatedDislocation
 
 class GammaSurface():
     '''
@@ -60,9 +62,6 @@ class GammaSurface():
         self.crystalstructure = None
         self.ylims = [0, 1]
 
-        import inspect
-        from matscipy.dislocation import CubicCrystalDissociatedDislocation
-
         axes = None
         disloc = False
         if inspect.isclass(surface_direction):
@@ -79,18 +78,17 @@ class GammaSurface():
             self.offset = -surface_direction.left_dislocation.unit_cell_core_position_dimensionless[1]
             crystalstructure = surface_direction.left_dislocation.crystalstructure
 
-            self.ylims = [0, surface_direction.left_dislocation.glide_distance_dimensionless / 2]
+            self.ylims = [0, surface_direction.left_dislocation.glide_distance_dimensionless]
 
             self.surf_directions = {
-            "x": axes[2, :],
-            "y": axes[0, :],
-            "z": axes[1, :]
+                "x": axes[2, :],
+                "y": axes[0, :],
+                "z": axes[1, :]
             }
             ax = axes.copy()
             ax[0, :] = self.surf_directions["x"]
             ax[1, :] = self.surf_directions["y"]
             ax[2, :] = self.surf_directions["z"]
-            axes = ax
         else:
             if y_dir is None:
                 _y_dir = self._y_dir_search(surface_direction)
@@ -110,9 +108,9 @@ class GammaSurface():
                 "y": np.array(_y_dir),
                 "z": np.array(surface_direction)
                 }
-            axes = np.array([_x_dir, _y_dir, surface_direction])
+            ax = np.array([_x_dir, _y_dir, surface_direction])
         
-        alat, self.cut_at = validate_cubic_cell(a, axes=axes, crystalstructure=crystalstructure, symbol=symbol)
+        alat, self.cut_at = validate_cubic_cell(a, axes=ax, crystalstructure=crystalstructure, symbol=symbol)
         self.offset *= alat
 
     def _y_dir_search(self, d1):
