@@ -78,11 +78,11 @@ if rank == 0:
     sum_diff = np.shape(x)[0] - np.sum(num_data_point_array)
     for i in range(sum_diff):
         num_data_point_array[i] += 1
-    print(num_data_point_array)
+    # print(num_data_point_array)
     time.sleep(3)
     #now communicate over all data
     for proc_num in range(1,num_processors):
-        print(proc_num)
+        # print(proc_num)
         comm.send(num_data_point_array[proc_num], dest=proc_num, tag=12)
         comm.send(x[sum(num_data_point_array[:proc_num]):sum(num_data_point_array[:proc_num+1]),:], dest=proc_num, tag=10)
         comm.send(os.getpid(),dest=proc_num,tag=13)
@@ -111,7 +111,7 @@ for dp in range(num_data_points):
     #create file
     hf = h5py.File(file_name,'w')
     for i, curr_cluster in enumerate(clusters):
-        print(r_I_vals[i],r_III_vals[i])
+        # print(r_I_vals[i],r_III_vals[i])
         cluster = curr_cluster.copy()
         if crk.cauchy_born is not None:
             crk.cauchy_born.set_sublattices(cluster,np.transpose(crk.RotationMatrix),read_from_atoms=True)

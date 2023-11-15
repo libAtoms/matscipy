@@ -64,7 +64,7 @@ def search(K0,alpha0,sc_dict):
     sc = sc_dict[os.getpid()]
     assign_calc(sc)
 
-    print(f'pid {os.getpid()} sc is {sc} sc calc is {sc.calc}')
+    # print(f'pid {os.getpid()} sc is {sc} sc calc is {sc.calc}')
     sc.variable_k = False
     k1g = sc.k1g
     sc.k = K0*k1g
@@ -90,7 +90,7 @@ def search(K0,alpha0,sc_dict):
 
         print(f'Rescaling K_I from {sc.k} to {sc.k + dk * k1g}')
         k_x1 = k_x0 + dk
-        print(k0)
+        # print(k0)
         sc.k = k_x1*k1g
         sc.update_atoms()
         sc.optimize(ftol=0.0001, steps=100,method='krylov')
@@ -119,8 +119,8 @@ def walk(x0,x1,direction,sc_dict):
     sc = sc_dict[os.getpid()]
     assign_calc(sc)
     #set status as 'walking'
-    print('here1')
-    print(f'pid {os.getpid()} sc is {sc} sc calc is {sc.calc}')
+    # print('here1')
+    # print(f'pid {os.getpid()} sc is {sc} sc calc is {sc.calc}')
 
     #start NCFlex, passing the data queue and the pipe output
     # data queue sends back data to main
@@ -128,7 +128,7 @@ def walk(x0,x1,direction,sc_dict):
     print('starting ncflex...')
     sc.variable_k = True
     precon = False
-    print('lammps lib process',os.getpid(),sc.calc)
+    # print('lammps lib process',os.getpid(),sc.calc)
     traj_file_name = f'curve_alph_{np.round(x0[-2],decimals=3)}_K_{np.round(x0[-1]/sc.k1g,decimals=3)}_dir_{direction}.h5'
     sc.arc_length_continuation(x0, x1, N=nsteps,
                             ds=ds, ds_max=0.05, ftol=fmax, max_steps=10,
@@ -157,7 +157,7 @@ def main(K_range,alpha_range):
 
     #create copies of sc for each process
     sc_array = [deepcopy(sc) for i in range(num_processors)]
-    print(sc_array)
+    # print(sc_array)
 
     #now, start worker pool
     worker_pool = multiprocessing.Pool(num_processors,initializer=init_worker)
@@ -178,18 +178,18 @@ def main(K_range,alpha_range):
             queue_empty = True
 
     #assign scs
-    print('assigning SCs')
+    # print('assigning SCs')
     for i in range(num_processors):
         #make a new calculator instance
         calc = params.new_calculator_instance()
         [pid,sc] = worker_pool.apply(assign_sc, args=(tuple([sc_array[i]])))
         sc_dict[pid] = sc
-    print(sc_dict)
+    # print(sc_dict)
 
     #launch workers on a non-blocking initial search
     #depending on search direction
     #generate the grid of initial points for exploration
-    print('explore direction',explore_direction)
+    # print('explore direction',explore_direction)
     if (explore_direction == 1) or (explore_direction ==-1):
         launch_num = num_processors
     elif (explore_direction == 0):
@@ -272,7 +272,7 @@ def main(K_range,alpha_range):
             num_new_searches = idle_num
         if num_new_searches>0:
             for i in range(num_new_searches):
-                print('LAUNCHING A NEW SEARCH')
+                # print('LAUNCHING A NEW SEARCH')
                 new_K = np.random.uniform(K_range[0],K_range[1])
                 new_alpha = np.random.uniform(alpha_range[0],alpha_range[1])
                 print('INITIAL K, ALPHA OF NEW SEARCH:',new_K,new_alpha)
@@ -295,7 +295,7 @@ def main(K_range,alpha_range):
 
         if len(search_results)>0:
             print('found finished search!')
-            print(search_results)
+            # print(search_results)
             for res in search_results:
                 [pid,[x0,x1]] = res
 
@@ -409,7 +409,7 @@ if __name__ == '__main__':
     sorted_x = np.sort(closest_x)
     diffs = np.diff(sorted_x)
     alpha_period = np.sum(np.unique(np.round(np.diff(sorted_x),decimals=4)))
-    print('alpha_period',alpha_period)
+    # print('alpha_period',alpha_period)
     # setup the crack
     crk = CubicCrystalCrack(parameter('crack_surface'),
                     parameter('crack_front'),

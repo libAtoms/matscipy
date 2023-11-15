@@ -88,7 +88,7 @@ def search(K0,alpha0,sc_dict):
     sc = sc_dict[os.getpid()]
     assign_calc(sc)
 
-    print(f'pid {os.getpid()} sc is {sc} sc calc is {sc.calc}')
+    # print(f'pid {os.getpid()} sc is {sc} sc calc is {sc.calc}')
     sc.variable_k = False
     k1g = sc.k1g
     sc.k = K0*k1g
@@ -114,7 +114,7 @@ def search(K0,alpha0,sc_dict):
 
         print(f'Rescaling K_I from {sc.k} to {sc.k + dk * k1g}')
         k_x1 = k_x0 + dk
-        print(k0)
+        # print(k0)
         sc.k = k_x1*k1g
         sc.update_atoms()
         sc.optimize(ftol=0.0001, steps=100,method='krylov')
@@ -157,7 +157,7 @@ def walk(x0,x1,direction,pipe_output,sc_dict):
     print('starting ncflex...')
     sc.variable_k = True
     precon = False
-    print('lammps lib process',os.getpid(),sc.calc)
+    # print('lammps lib process',os.getpid(),sc.calc)
     sc.arc_length_continuation(x0, x1, N=nsteps,
                             ds=ds, ds_max=0.05, ftol=fmax, max_steps=10,
                             direction=direction,
@@ -197,11 +197,11 @@ def get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids):
                 starts.append(alpha_lead)
                 ends.append(alpha_trail)
 
-    print('alpha covered',alpha_covered)
+    # print('alpha covered',alpha_covered)
     alpha_not_covered = (alpha_range[1]-alpha_range[0])-alpha_covered
-    print('alpha not covered',alpha_not_covered)
+    # print('alpha not covered',alpha_not_covered)
     random_alph_start = np.random.uniform(0,alpha_not_covered)
-    print('random alpha start', random_alph_start)
+    # print('random alpha start', random_alph_start)
 
     if len(starts) == 0:
         #if nothing has been started yet, just guess alpha as random_alph_start
@@ -214,11 +214,11 @@ def get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids):
     alpha_assigned = False
     i = 0
     #first gap
-    print('first start:', starts[si[0]])
+    # print('first start:', starts[si[0]])
     if alpha_range[0] < np.min(starts):
         random_alph_start -= (starts[si[0]]-alpha_range[0])
-        print(f'subtract_amount{i}:', (starts[si[0]]-alpha_range[0]))
-        print(f'random_alph_start_subtract_{i}:', random_alph_start)
+        # print(f'subtract_amount{i}:', (starts[si[0]]-alpha_range[0]))
+        # print(f'random_alph_start_subtract_{i}:', random_alph_start)
         if random_alph_start < 0:
             alpha = starts[si[0]] + random_alph_start
             alpha_assigned = True
@@ -227,28 +227,28 @@ def get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids):
         i += 1
         #if at the end:
         if i == (len(si)):
-            print('at the end')
-            print(f'final end is:{ends[si[i-1]]}')
-            print(f'remaining alpha to spend is',{random_alph_start})
+            # print('at the end')
+            # print(f'final end is:{ends[si[i-1]]}')
+            # print(f'remaining alpha to spend is',{random_alph_start})
             alpha = ends[si[i-1]] + random_alph_start
-            print(f'alpha is{alpha}')
+            # print(f'alpha is{alpha}')
             alpha_assigned = True
             break
         gap = starts[si[i]]-ends[si[i-1]]
-        print(f'next start{i}:',starts[si[i]])
-        print(f'next end{i}',ends[si[i-1]])
-        print(f'subtract_amount{i}:', (starts[si[i]]-ends[si[i-1]]))
+        # print(f'next start{i}:',starts[si[i]])
+        # print(f'next end{i}',ends[si[i-1]])
+        # print(f'subtract_amount{i}:', (starts[si[i]]-ends[si[i-1]]))
         if gap<0:
-            print('gap zeroed')
+            # print('gap zeroed')
             gap = 0
         random_alph_start -= gap
-        print(f'random_alph_start_subtract_{i}:', random_alph_start)
+        # print(f'random_alph_start_subtract_{i}:', random_alph_start)
         if random_alph_start < 0:
-            print('found right gap')
-            print(f'right hand edge of gap, {starts[si[i]]}')
-            print(f'subtraction amount {random_alph_start}')
+            # print('found right gap')
+            # print(f'right hand edge of gap, {starts[si[i]]}')
+            # print(f'subtraction amount {random_alph_start}')
             alpha = starts[si[i]] + random_alph_start
-            print(f'alpha assigned as {alpha}')
+            # print(f'alpha assigned as {alpha}')
             alpha_assigned = True
     
     opt_alpha = alpha
@@ -298,7 +298,7 @@ def main(K_range,alpha_range):
 
     #create copies of sc for each process
     sc_array = [deepcopy(sc) for i in range(num_processors)]
-    print(sc_array)
+    # print(sc_array)
 
     #now, start worker pool
     worker_pool = multiprocessing.Pool(num_processors,initializer=init_worker)
@@ -328,18 +328,18 @@ def main(K_range,alpha_range):
             queue_empty = True
 
     #assign scs
-    print('assigning SCs')
+    # print('assigning SCs')
     for i in range(num_processors):
         #make a new calculator instance
         calc = params.new_calculator_instance()
         [pid,sc] = worker_pool.apply(assign_sc, args=(tuple([sc_array[i]])))
         sc_dict[pid] = sc
-    print(sc_dict)
+    # print(sc_dict)
 
     #launch workers on a non-blocking initial search
     #depending on search direction
     #generate the grid of initial points for exploration
-    print('explore direction',explore_direction)
+    # print('explore direction',explore_direction)
     if (explore_direction == 1) or (explore_direction ==-1):
         launch_num = num_processors
     elif (explore_direction == 0):
@@ -382,7 +382,7 @@ def main(K_range,alpha_range):
     percentage_covered = 0
     time.sleep(5)
     while not curve_explored:
-        print(f'currently walking pids, {currently_walking_pids}')
+        # print(f'currently walking pids, {currently_walking_pids}')
         it_num += 1
         #first, check the status queue to update any worker statuses. 
         #get PID list
@@ -414,7 +414,7 @@ def main(K_range,alpha_range):
                 search_num += 1
             elif worker_status[pid] == 'walking':
                 walk_num += 1
-        print(f'idle: {idle_num}, search, {search_num}, walk {walk_num}')
+        # print(f'idle: {idle_num}, search, {search_num}, walk {walk_num}')
         
         #print('checking to launch new searches')
         #if there's unnaccounted for idle processes, launch new searches
@@ -446,7 +446,7 @@ def main(K_range,alpha_range):
 
         if len(search_results)>0:
             print('found finished search!')
-            print(search_results)
+            # print(search_results)
             for res in search_results:
                 [pid,[x0,x1]] = res
 
@@ -551,7 +551,7 @@ def main(K_range,alpha_range):
             try:
                 item = data_queue.get(block=True,timeout=0.2)
                 items.append(item)
-                print('got data,', item)
+                # print('got data,', item)
             except Empty:
                 queue_empty = True
         if it_num%100 == 0:
@@ -570,14 +570,14 @@ def main(K_range,alpha_range):
                     #ignore the message
                     continue
                 # write x to h5 traj file
-                print('writing to file!')
+                # print('writing to file!')
                 for nattempt in range(1000):
                     try:
                         with h5py.File(traj_file, 'a') as hf:
                             x_traj = hf['x']
                             x_traj.resize((x_traj.shape[0] + 1, x_traj.shape[1]))
                             x_traj[-1, :] = x
-                            print('written')
+                            # print('written')
                             break
                     except OSError:
                         print('hdf5 file not accessible, trying again in 1s')
@@ -591,8 +591,8 @@ def main(K_range,alpha_range):
                 alpha_lead = x[-2]
                 walk_positions[pid] = [[k_lead, alpha_lead], direction]
                 #check for encroachment
-                print('LEAD POSITIONS:', walk_positions)
-                print('TRAIL POSITIONS:',trail_positions)
+                # print('LEAD POSITIONS:', walk_positions)
+                # print('TRAIL POSITIONS:',trail_positions)
                 for other_pid in walk_positions:
                     if other_pid != pid:
                         [[comp_k_lead,comp_alpha_lead],comp_direction] = walk_positions[other_pid]
@@ -604,23 +604,23 @@ def main(K_range,alpha_range):
                             #if the alpha lies within the comparison range, and the comparision range
                             #is at least 0.1 big. 
                             if (alpha_lead>comp_alpha_range[0]) and (alpha_lead<comp_alpha_range[1]) and ((comp_alpha_range[1]-comp_alpha_range[0])>1e-2):
-                                print('alpha detected in range!')
+                                # print('alpha detected in range!')
                                 #if it's more than 1e-3 away from one of the ends (some serious overlap)
                                 if (abs(alpha_lead-comp_alpha_lead)>1e-3) and (abs(alpha_lead-comp_alpha_trail)>1e-3):
-                                    print('encroachment detected!')
+                                    # print('encroachment detected!')
                                     if pid not in kill_pids:
                                         kill_pids.append(pid)
                             
                 if alpha_lead > alpha_range[1]:
-                    print('alpha detected out of upper range')
+                    # print('alpha detected out of upper range')
                     if pid not in kill_pids:
                         kill_pids.append(pid)
                 elif alpha_lead < alpha_range[0]:
-                    print('alpha detected out of lower range')
+                    # print('alpha detected out of lower range')
                     if pid not in kill_pids:
                         kill_pids.append(pid)
             
-            print('kill_pids:,', kill_pids)
+            # print('kill_pids:,', kill_pids)
             #kill any pids that need killing
             if len(kill_pids)>0:
                 for pid in kill_pids:
@@ -631,7 +631,7 @@ def main(K_range,alpha_range):
                     walk_positions[f'killed{killed_num}'] = walk_positions[pid]
                     #walk_positions[pid] = [[0,0],0]
                     #trail_positions[pid] = [[0,0]]
-                print(kill_pids)
+                # print(kill_pids)
                 #worker_pool.close()
                 #exit()
         
@@ -655,7 +655,7 @@ def main(K_range,alpha_range):
             [k_trail,alpha_trail] = trail_positions[pid]
             contribution = (alpha_lead-alpha_trail)*direction
             total_alpha_covered += contribution
-            print('CONTRIBUTION:',pid,contribution)
+            # print('CONTRIBUTION:',pid,contribution)
         percentage_covered = total_alpha_covered/(alpha_range[1]-alpha_range[0])
         if percentage_covered > 1:
             curve_explored=True
@@ -739,7 +739,7 @@ if __name__ == '__main__':
     sorted_x = np.sort(closest_x)
     diffs = np.diff(sorted_x)
     alpha_period = np.sum(np.unique(np.round(np.diff(sorted_x),decimals=4)))
-    print('alpha_period',alpha_period)
+    # print('alpha_period',alpha_period)
     # setup the crack
     crk = CubicCrystalCrack(parameter('crack_surface'),
                     parameter('crack_front'),

@@ -120,11 +120,11 @@ if rank == 0:
     sum_diff = np.shape(x)[0] - np.sum(num_data_point_array)
     for i in range(sum_diff):
         num_data_point_array[i] += 1
-    print(num_data_point_array)
+    # print(num_data_point_array)
     time.sleep(3)
     #now communicate over all data
     for proc_num in range(1,num_processors):
-        print(proc_num)
+        # print(proc_num)
         comm.send(num_data_point_array[proc_num], dest=proc_num, tag=12)
         comm.send(x[sum(num_data_point_array[:proc_num]):sum(num_data_point_array[:proc_num+1]),:], dest=proc_num, tag=10)
         comm.send(os.getpid(),dest=proc_num,tag=13)
@@ -157,9 +157,9 @@ for i in range(num_data_points):
         k_x1 = k_x0 + dkcurr
         sc.kII = k_x1*sc.k1g
         if follow_G_contour:
-            print('before',sc.kI)
+            # print('before',sc.kI)
             sc.kI = np.sqrt(((k_x0*sc.k1g)**2 + sc.kI**2) - (k_x1*sc.k1g)**2)
-            print('after',sc.kI)
+            # print('after',sc.kI)
             time.sleep(5)
         
         sc.update_atoms()

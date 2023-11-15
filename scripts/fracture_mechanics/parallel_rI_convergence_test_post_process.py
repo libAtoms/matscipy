@@ -21,7 +21,7 @@ for file in traj_files:
             data_sets[key] = []
         data_sets[key].append(hf[key][:])
     hf.close()
-print(data_sets)
+# print(data_sets)
 
 #now save each data set to new h5 files in the folder
 #set keys to data_sets.keys()
