@@ -24,6 +24,7 @@ sys.path.insert(0, '.')
 import multiprocessing
 import params
 import time
+from ase.optimize.sciopt import OptimizerConvergenceError
 
 from queue import Empty
 from copy import deepcopy
@@ -73,13 +74,13 @@ def search(K0,alpha0,sc_dict):
     converged = False
     try:
         sc.optimize(ftol=0.0005, steps=1000,method='ode12r',precon=True)
-    except:
+    except OptimizerConvergenceError:
         print('did not converge fully in ode12r section, proceeding with krylov')
 
     try:
         sc.optimize(ftol=fmax, steps=100,method='krylov')
         converged = True
-    except:
+    except RuntimeError:
         print('No convergence')
 
     if converged:

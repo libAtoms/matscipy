@@ -31,7 +31,7 @@ try:
     from scipy.optimize import brentq, leastsq, minimize, root
     from scipy.sparse import csc_matrix, spdiags
     from scipy.sparse.linalg import spsolve, spilu, LinearOperator
-    from scipy.optimize.nonlin import NoConvergence
+    # from scipy.optimize.nonlin import NoConvergence
 except ImportError:
     warnings.warn('Warning: no scipy')
 
@@ -61,7 +61,7 @@ import os
 PLANE_STRAIN = 'plane strain'
 PLANE_STRESS = 'plane stress'
 
-MPa_sqrt_m = 1e6*units.Pascal*np.sqrt(units.m)
+MPa_sqrt_m = 1e6 * units.Pascal * np.sqrt(units.m)
 
 # wrapper to count function calls for writing
 
@@ -101,11 +101,11 @@ class RectilinearAnisotropicCrack:
 
     def set_plane_strain(self, b11, b22, b33, b12, b13, b23, b16, b26, b36,
                          b66):
-        self.a11 = b11 - (b13*b13)/b33
-        self.a22 = b22 - (b23*b23)/b33
-        self.a12 = b12 - (b13*b23)/b33
-        self.a16 = b16 - (b13*b36)/b33
-        self.a26 = b26 - (b23*b36)/b33
+        self.a11 = b11 - (b13 * b13) / b33
+        self.a22 = b22 - (b23 * b23) / b33
+        self.a12 = b12 - (b13 * b23) / b33
+        self.a16 = b16 - (b13 * b36) / b33
+        self.a26 = b26 - (b23 * b36) / b33
         self.a66 = b66
 
         self._init_crack()
@@ -114,8 +114,8 @@ class RectilinearAnisotropicCrack:
         """
         Initialize dependent parameters.
         """
-        p = np.poly1d([self.a11, -2*self.a16, 2*self.a12+self.a66,
-                       -2*self.a26, self.a22])
+        p = np.poly1d([self.a11, -2 * self.a16, 2 * self.a12 + self.a66,
+                       -2 * self.a26, self.a22])
 
         mu1, mu2, mu3, mu4 = p.r
 
@@ -128,13 +128,13 @@ class RectilinearAnisotropicCrack:
         self.mu1 = mu1
         self.mu2 = mu3
 
-        self.p1 = self.a11*(self.mu1**2) + self.a12 - self.a16*self.mu1
-        self.p2 = self.a11*(self.mu2**2) + self.a12 - self.a16*self.mu2
+        self.p1 = self.a11 * (self.mu1**2) + self.a12 - self.a16 * self.mu1
+        self.p2 = self.a11 * (self.mu2**2) + self.a12 - self.a16 * self.mu2
 
-        self.q1 = self.a12*self.mu1 + self.a22/self.mu1 - self.a26
-        self.q2 = self.a12*self.mu2 + self.a22/self.mu2 - self.a26
+        self.q1 = self.a12 * self.mu1 + self.a22 / self.mu1 - self.a26
+        self.q2 = self.a12 * self.mu2 + self.a22 / self.mu2 - self.a26
 
-        self.inv_mu1_mu2 = 1/(self.mu1 - self.mu2)
+        self.inv_mu1_mu2 = 1 / (self.mu1 - self.mu2)
         self.mu1_p2 = self.mu1 * self.p2
         self.mu2_p1 = self.mu2 * self.p1
         self.mu1_q2 = self.mu1 * self.q2
@@ -162,17 +162,19 @@ class RectilinearAnisotropicCrack:
             Displacements normal to the plane of the crack.
         """
 
-        h1 = kI * np.sqrt(2.0*r/math.pi)
+        h1 = kI * np.sqrt(2.0 * r / math.pi)
 
-        h2 = np.sqrt(np.cos(theta) + self.mu2*np.sin(theta))
-        h3 = np.sqrt(np.cos(theta) + self.mu1*np.sin(theta))
+        h2 = np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta))
+        h3 = np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta))
 
-        u_I = h1*(self.inv_mu1_mu2*(self.mu1_p2*h2 - self.mu2_p1*h3)).real
-        v_I = h1*(self.inv_mu1_mu2*(self.mu1_q2*h2 - self.mu2_q1*h3)).real
+        u_I = h1 * (self.inv_mu1_mu2 *
+                    (self.mu1_p2 * h2 - self.mu2_p1 * h3)).real
+        v_I = h1 * (self.inv_mu1_mu2 *
+                    (self.mu1_q2 * h2 - self.mu2_q1 * h3)).real
 
-        h4 = kII*np.sqrt(2.0*r/math.pi)
-        u_II = h4*(self.inv_mu1_mu2*(self.p2*h2 - self.p1*h3)).real
-        v_II = h4*(self.inv_mu1_mu2*(self.q2*h2 - self.q1*h3)).real
+        h4 = kII * np.sqrt(2.0 * r / math.pi)
+        u_II = h4 * (self.inv_mu1_mu2 * (self.p2 * h2 - self.p1 * h3)).real
+        v_II = h4 * (self.inv_mu1_mu2 * (self.q2 * h2 - self.q1 * h3)).real
 
         u = u_I + u_II
         v = v_I + v_II
@@ -207,27 +209,31 @@ class RectilinearAnisotropicCrack:
             perpendicular to the plane.
         """
 
-        f_I = kI / np.sqrt(2*math.pi*r)
+        f_I = kI / np.sqrt(2 * math.pi * r)
 
-        h1 = (self.mu1*self.mu2)*self.inv_mu1_mu2
-        h2 = np.sqrt(np.cos(theta) + self.mu2*np.sin(theta))
-        h3 = np.sqrt(np.cos(theta) + self.mu1*np.sin(theta))
+        h1 = (self.mu1 * self.mu2) * self.inv_mu1_mu2
+        h2 = np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta))
+        h3 = np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta))
 
-        du_dx_I = f_I*(self.inv_mu1_mu2*(self.mu1_p2/h2 - self.mu2_p1/h3)).real
-        du_dy_I = f_I*(h1*(self.p2/h2 - self.p1/h3)).real
+        du_dx_I = f_I * (self.inv_mu1_mu2 *
+                         (self.mu1_p2 / h2 - self.mu2_p1 / h3)).real
+        du_dy_I = f_I * (h1 * (self.p2 / h2 - self.p1 / h3)).real
 
-        dv_dx_I = f_I*(self.inv_mu1_mu2*(self.mu1_q2/h2 - self.mu2_q1/h3)).real
-        dv_dy_I = f_I*(h1*(self.q2/h2 - self.q1/h3)).real
+        dv_dx_I = f_I * (self.inv_mu1_mu2 *
+                         (self.mu1_q2 / h2 - self.mu2_q1 / h3)).real
+        dv_dy_I = f_I * (h1 * (self.q2 / h2 - self.q1 / h3)).real
 
-        f_II = kII / np.sqrt(2*math.pi*r)
+        f_II = kII / np.sqrt(2 * math.pi * r)
         h4 = self.inv_mu1_mu2
-        du_dx_II = f_II*(self.inv_mu1_mu2*(self.p2/h2 - self.p1/h3)).real
-        du_dy_II = f_II*(h4*((self.mu2*self.p2)/h2 -
-                         (self.mu1*self.p1)/h3)).real
+        du_dx_II = f_II * (self.inv_mu1_mu2 *
+                           (self.p2 / h2 - self.p1 / h3)).real
+        du_dy_II = f_II * (h4 * ((self.mu2 * self.p2) / h2 -
+                                 (self.mu1 * self.p1) / h3)).real
 
-        dv_dx_II = f_II*(self.inv_mu1_mu2*(self.q2/h2 - self.q1/h3)).real
-        dv_dy_II = f_II*(h4*((self.mu2*self.q2)/h2 -
-                         (self.mu1*self.q1)/h3)).real
+        dv_dx_II = f_II * (self.inv_mu1_mu2 *
+                           (self.q2 / h2 - self.q1 / h3)).real
+        dv_dy_II = f_II * (h4 * ((self.mu2 * self.q2) / h2 -
+                                 (self.mu1 * self.q1) / h3)).real
 
         du_dx = du_dx_I + du_dx_II
         du_dy = du_dy_I + du_dy_II
@@ -267,22 +273,23 @@ class RectilinearAnisotropicCrack:
             Off-diagonal component of the stress tensor.
         """
 
-        f_I = kI / np.sqrt(2.0*math.pi*r)
+        f_I = kI / np.sqrt(2.0 * math.pi * r)
 
-        h1 = (self.mu1*self.mu2)*self.inv_mu1_mu2
-        h2 = np.sqrt(np.cos(theta) + self.mu2*np.sin(theta))
-        h3 = np.sqrt(np.cos(theta) + self.mu1*np.sin(theta))
+        h1 = (self.mu1 * self.mu2) * self.inv_mu1_mu2
+        h2 = np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta))
+        h3 = np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta))
 
-        sig_x_I = f_I*(h1*(self.mu2/h2 - self.mu1/h3)).real
-        sig_y_I = f_I*(self.inv_mu1_mu2*(self.mu1/h2 - self.mu2/h3)).real
-        sig_xy_I = f_I*(h1*(1/h3 - 1/h2)).real
+        sig_x_I = f_I * (h1 * (self.mu2 / h2 - self.mu1 / h3)).real
+        sig_y_I = f_I * (self.inv_mu1_mu2 *
+                         (self.mu1 / h2 - self.mu2 / h3)).real
+        sig_xy_I = f_I * (h1 * (1 / h3 - 1 / h2)).real
 
-        f_II = kII / np.sqrt(2.0*math.pi*r)
+        f_II = kII / np.sqrt(2.0 * math.pi * r)
         h4 = self.inv_mu1_mu2
 
-        sig_x_II = f_II*(h4*((self.mu2**2)/h2 - (self.mu1**2)/h3)).real
-        sig_y_II = f_II*(h4*((1)/h2 - (1)/h3)).real
-        sig_xy_II = f_II*(h4*((self.mu1)/h3 - (self.mu2)/h2)).real
+        sig_x_II = f_II * (h4 * ((self.mu2**2) / h2 - (self.mu1**2) / h3)).real
+        sig_y_II = f_II * (h4 * ((1) / h2 - (1) / h3)).real
+        sig_xy_II = f_II * (h4 * ((self.mu1) / h3 - (self.mu2) / h2)).real
 
         sig_x = sig_x_I + sig_x_II
         sig_y = sig_y_I + sig_y_II
@@ -291,8 +298,8 @@ class RectilinearAnisotropicCrack:
         return sig_x, sig_y, sig_xy
 
     def _f(self, theta, v):
-        h2 = (cos(theta) + self.mu2*sin(theta))**0.5
-        h3 = (cos(theta) + self.mu1*sin(theta))**0.5
+        h2 = (cos(theta) + self.mu2 * sin(theta))**0.5
+        h3 = (cos(theta) + self.mu1 * sin(theta))**0.5
 
         return v - (self.mu1_p2 * h2 - self.mu2_p1 * h3).real / \
             (self.mu1_q2 * h2 - self.mu2_q1 * h3).real
@@ -303,34 +310,36 @@ class RectilinearAnisotropicCrack:
         from displacements.
         """
 
-        # u/v = (self.mu1_p2*h2 - self.mu2_p1*h3)/(self.mu1_q2*h2-self.mu2_q1*h3)
-        theta = brentq(self._f, -pi, pi, args=(u/v))
+        # u/v = (self.mu1_p2*h2 -
+        # self.mu2_p1*h3)/(self.mu1_q2*h2-self.mu2_q1*h3)
+        theta = brentq(self._f, -pi, pi, args=(u / v))
 
-        h1 = k * sqrt(2.0*r/math.pi)
+        h1 = k * sqrt(2.0 * r / math.pi)
 
-        h2 = (cos(theta) + self.mu2*sin(theta))**0.5
-        h3 = (cos(theta) + self.mu1*sin(theta))**0.5
+        h2 = (cos(theta) + self.mu2 * sin(theta))**0.5
+        h3 = (cos(theta) + self.mu1 * sin(theta))**0.5
 
         sqrt_2_r = (self.inv_mu1_mu2 * (self.mu1_p2 *
-                    h2 - self.mu2_p1 * h3)).real/k
-        r1 = sqrt_2_r**2/2
+                    h2 - self.mu2_p1 * h3)).real / k
+        r1 = sqrt_2_r**2 / 2
         sqrt_2_r = (self.inv_mu1_mu2 * (self.mu1_q2 *
-                    h2 - self.mu2_q1 * h3)).real/k
-        r2 = sqrt_2_r**2/2
+                    h2 - self.mu2_q1 * h3)).real / k
+        r2 = sqrt_2_r**2 / 2
 
-        return ((r1+r2)/2, theta)
+        return ((r1 + r2) / 2, theta)
 
     def k1g(self, surface_energy):
         """
         K1G, Griffith critical stress intensity in mode I fracture
         """
 
-        return math.sqrt(-4*surface_energy /
+        return math.sqrt(-4 * surface_energy /
                          (self.a22 *
-                          ((self.mu1+self.mu2)/(self.mu1*self.mu2)).imag))
+                          ((self.mu1 + self.mu2) / (self.mu1 * self.mu2)).imag))
 
     def k1gsqG(self):
-        return -2/(self.a22*((self.mu1+self.mu2)/(self.mu1*self.mu2)).imag)
+        return -2 / (self.a22 * ((self.mu1 + self.mu2) /
+                     (self.mu1 * self.mu2)).imag)
 
 ###
 
@@ -345,7 +354,7 @@ def displacement_residuals(r0, crack, x, y, ref_x, ref_y, kI, kII=0, power=1):
     u1y = y - ref_y
     dx = ref_x - x0
     dy = ref_y - y0
-    abs_dr = np.sqrt(dx*dx+dy*dy)
+    abs_dr = np.sqrt(dx * dx + dy * dy)
     theta = np.arctan2(dy, dx)
     u2x, u2y = crack.displacements_from_cylinder_coordinates(
         abs_dr, theta, kI, kII=kII)
@@ -353,10 +362,11 @@ def displacement_residuals(r0, crack, x, y, ref_x, ref_y, kI, kII=0, power=1):
         power_of_abs_dr = 1.0
     else:
         power_of_abs_dr = abs_dr**power
-    return (u1x - u2x)/power_of_abs_dr, (u1y - u2y)/power_of_abs_dr
+    return (u1x - u2x) / power_of_abs_dr, (u1y - u2y) / power_of_abs_dr
 
 
-def displacement_residual(r0, crack, x, y, ref_x, ref_y, kI, kII=0, mask=None, power=1):
+def displacement_residual(r0, crack, x, y, ref_x, ref_y,
+                          kI, kII=0, mask=None, power=1):
     dux, duy = displacement_residuals(r0, crack, x, y, ref_x, ref_y, kI, kII=kII,
                                       power=power)
     if mask is None:
@@ -365,7 +375,8 @@ def displacement_residual(r0, crack, x, y, ref_x, ref_y, kI, kII=0, mask=None, p
         return np.transpose([dux[mask], duy[mask]]).flatten()
 
 
-def deformation_gradient_residuals(r0, crack, x, y, cur, ref_x, ref_y, ref, kI, cutoff, kII=0):
+def deformation_gradient_residuals(
+        r0, crack, x, y, cur, ref_x, ref_y, ref, kI, cutoff, kII=0):
     """
     Return actual displacement field minus ideal displacement field.
     """
@@ -384,7 +395,7 @@ def deformation_gradient_residuals(r0, crack, x, y, cur, ref_x, ref_y, ref, kI, 
     F2 = crack.deformation_gradient(ref.positions[:, 0], ref.positions[:, 1],
                                     x0, y0, kI, kII=kII)
 
-    return F1-F2
+    return F1 - F2
 
 
 def deformation_gradient_residual(r0, crack, x, y, cur, ref_x, ref_y, ref, kI,
@@ -488,9 +499,10 @@ class CubicCrystalCrack:
         """
         Displacement field in mode I/II fracture from cartesian coordinates.
         """
-        abs_dr = np.sqrt(dx*dx+dy*dy)
+        abs_dr = np.sqrt(dx * dx + dy * dy)
         theta = np.arctan2(dy, dx)
-        return self.displacements_from_cylinder_coordinates(abs_dr, theta, kI, kII=kII)
+        return self.displacements_from_cylinder_coordinates(
+            abs_dr, theta, kI, kII=kII)
 
     def displacements(self, ref_x, ref_y, x0, y0, kI, kII=0):
         """
@@ -518,21 +530,25 @@ class CubicCrystalCrack:
         """
         dx = ref_x - x0
         dy = ref_y - y0
-        return self.displacements_from_cartesian_coordinates(dx, dy, kI, kII=kII)
+        return self.displacements_from_cartesian_coordinates(
+            dx, dy, kI, kII=kII)
 
-    def deformation_gradient_from_cylinder_coordinates(self, r, theta, kI, kII=0):
+    def deformation_gradient_from_cylinder_coordinates(
+            self, r, theta, kI, kII=0):
         """
         Displacement field in mode I fracture from cylindrical coordinates.
         """
         return self.crack.deformation_gradient(r, theta, kI, kII=kII)
 
-    def deformation_gradient_from_cartesian_coordinates(self, dx, dy, kI, kII=0):
+    def deformation_gradient_from_cartesian_coordinates(
+            self, dx, dy, kI, kII=0):
         """
         Displacement field in mode I fracture from cartesian coordinates.
         """
-        abs_dr = np.sqrt(dx*dx+dy*dy)
+        abs_dr = np.sqrt(dx * dx + dy * dy)
         theta = np.arctan2(dy, dx)
-        return self.deformation_gradient_from_cylinder_coordinates(abs_dr, theta, kI, kII=kII)
+        return self.deformation_gradient_from_cylinder_coordinates(
+            abs_dr, theta, kI, kII=kII)
 
     def deformation_gradient(self, ref_x, ref_y, x0, y0, kI, kII=0):
         """
@@ -560,7 +576,8 @@ class CubicCrystalCrack:
         """
         dx = ref_x - x0
         dy = ref_y - y0
-        return self.deformation_gradient_from_cartesian_coordinates(dx, dy, kI, kII=kII)
+        return self.deformation_gradient_from_cartesian_coordinates(
+            dx, dy, kI, kII=kII)
 
     def crack_tip_position(self, x, y, ref_x, ref_y, x0, y0, kI, kII=0, mask=None,
                            residual_func=displacement_residual,
@@ -623,16 +640,18 @@ class CubicCrystalCrack:
                                    .format(opt.message))
             x1, y1 = opt.x
         if return_residuals:
-            return x1, y1, residual_func((x0, y0), self, x, y, ref_x, ref_y, kI, kII=kII)
+            return x1, y1, residual_func(
+                (x0, y0), self, x, y, ref_x, ref_y, kI, kII=kII)
         else:
             return x1, y1
 
     def _residual_y(self, y0, x0, x, y, ref_x, ref_y, kI, mask, kII=0):
         dux, duy = self.displacement_residuals(
             x, y, ref_x, ref_y, x0, y0, kI, kII=kII)
-        return dux[mask]*dux[mask]+duy[mask]*duy[mask]
+        return dux[mask] * dux[mask] + duy[mask] * duy[mask]
 
-    def crack_tip_position_y(self, x, y, ref_x, ref_y, x0, y0, kI, kII=0, mask=None):
+    def crack_tip_position_y(self, x, y, ref_x, ref_y,
+                             x0, y0, kI, kII=0, mask=None):
         """
         Return an estimate of the y-coordinate of the real crack tip position
         assuming the stress intensity factor is k.
@@ -697,7 +716,8 @@ class CubicCrystalCrack:
         y : array_like
             New y-positions of the atomic system containing the crack.
         """
-        return ref_x + new_k/old_k*(x-ref_x), ref_y + new_k/old_k*(y-ref_y)
+        return ref_x + new_k / old_k * \
+            (x - ref_x), ref_y + new_k / old_k * (y - ref_y)
 
     def stresses_from_cylinder_coordinates(self, r, theta, kI, kII=0):
         """
@@ -709,9 +729,10 @@ class CubicCrystalCrack:
         """
         Stress field in mode I fracture from cartesian coordinates
         """
-        abs_dr = np.sqrt(dx*dx+dy*dy)
+        abs_dr = np.sqrt(dx * dx + dy * dy)
         theta = np.arctan2(dy, dx)
-        return self.stresses_from_cylinder_coordinates(abs_dr, theta, kI, kII=kII)
+        return self.stresses_from_cylinder_coordinates(
+            abs_dr, theta, kI, kII=kII)
 
     def stresses(self, ref_x, ref_y, x0, y0, kI, kII=0):
         """
@@ -760,7 +781,8 @@ class SinclairCrack:
                  variable_alpha=True, variable_k=False,
                  alpha_scale=None, k_scale=None,
                  extended_far_field=False, rI=0.0, rIII=0.0, cutoff=0.0,
-                 incl_rI_f_alpha=False, is_3D=False, theta_3D=0.0, cont_k='k1'):
+                 incl_rI_f_alpha=False, is_3D=False, theta_3D=0.0, cont_k='k1',
+                 precon_recompute_interval=10):
         """
 
         Parameters
@@ -781,6 +803,7 @@ class SinclairCrack:
         rIII - Size of region III
         cutoff - Potential cutoff
         incl_rI_f_alpha - Whether to include region I when calculating the f_alpha forces
+        precon_recompute_interval - How many preconditioned steps between re-computing the preconditioner
         """
         self.crk = crk  # instance of CubicCrystalCrack
         self.cryst = cryst  # Atoms object representing crystal
@@ -809,7 +832,7 @@ class SinclairCrack:
         self.is_3D = is_3D
         if is_3D:
             self.theta_3D = theta_3D
-            self.beta = self.alpha/np.sin(theta_3D)
+            self.beta = self.alpha / np.sin(theta_3D)
 
         if kI is not None:
             self.kI = kI
@@ -848,6 +871,7 @@ class SinclairCrack:
 
         self.precon = None
         self.precon_count = 0
+        self.precon_recompute_interval = precon_recompute_interval
         self.f_alpha_correction = 0
         self.alpha0 = alpha
         self.force_calls = 0
@@ -899,7 +923,7 @@ class SinclairCrack:
             if self.cont_k == 'k1':
                 return self.pack(self.u, self.beta, self.kI)
             elif self.cont_k == 'k2':
-                return self.pack(self.u, self.alpha, self.kII)
+                return self.pack(self.u, self.beta, self.kII)
         else:
             if self.cont_k == 'k1':
                 return self.pack(self.u, self.alpha, self.kI)
@@ -918,7 +942,7 @@ class SinclairCrack:
         ndof = len(self)
         self.variable_k = prev_v_k
         self.variable_alpha = prev_v_alph
-        if len(x) == ndof+1:  # array contains k1 and k2
+        if len(x) == ndof + 1:  # array contains k1 and k2
             if self.cont_k == 'k1':
                 # set kII and delete it from x
                 idx = -1
@@ -934,21 +958,17 @@ class SinclairCrack:
                 self.u[:], self.beta, self.kI = self.unpack(x, reshape=True)
             elif self.cont_k == 'k2':
                 self.u[:], self.beta, self.kII = self.unpack(x, reshape=True)
-            self.alpha = self.beta*np.sin(self.theta_3D)
-            print('beta', self.beta)
-            print('alpha', self.alpha)
+            self.alpha = self.beta * np.sin(self.theta_3D)
+            # print('beta', self.beta)
+            # print('alpha', self.alpha)
         else:
             if self.cont_k == 'k1':
                 self.u[:], self.alpha, self.kI = self.unpack(x, reshape=True)
             elif self.cont_k == 'k2':
                 self.u[:], self.alpha, self.kII = self.unpack(x, reshape=True)
-            print('alpha', self.alpha)
-        if self.variable_k:
-            print('kI', self.kI)
-            print('kII', self.kII)
+            # print('alpha', self.alpha)
 
         # adjust non-continuation K to follow constant G contour
-
         if self.follow_G_contour:
             if self.cont_k == 'k2':
                 self.kI = np.sqrt(self.kI0**2 + self.kII0**2 - self.kII**2)
@@ -988,7 +1008,11 @@ class SinclairCrack:
 
     def fit_cle(self, r_fit=20.0, variable_alpha=True, variable_k=True, x0=None,
                 grid=None):
-        # Fit the CLE field - note that this only works for pure mode I fracture
+        # Fit the CLE field - note that this only works for pure mode I
+        # fracture
+        if self.kII != 0.0:
+            raise RuntimeError('CLE fit only works for pure mode I fracture')
+
         def residuals(x, mask):
             idx = 0
             if variable_alpha:
@@ -1048,7 +1072,7 @@ class SinclairCrack:
         """
         if self.is_3D and (not use_alpha_3D):
             # set self.alpha according to self.beta
-            self.alpha = self.beta*np.sin(self.theta_3D)
+            self.alpha = self.beta * np.sin(self.theta_3D)
         self.atoms.set_pbc([False, False, True])
         self.atoms.calc = self.calc
 
@@ -1066,7 +1090,8 @@ class SinclairCrack:
             # find shifts
             print('finding shifts.....')
             # very important to pass cryst rather than atoms here as the displacement gradient field
-            # is found from the positions of the original atoms, not the deformed atoms
+            # is found from the positions of the original atoms, not the
+            # deformed atoms
             shifts = self.crk.cauchy_born.predict_shifts(A, self.cryst,
                                                          F_func=self.get_deformation_gradient, coordinates='cart2D', method='regression', kI=self.kI, kII=self.kII)
             print('done!')
@@ -1085,40 +1110,6 @@ class SinclairCrack:
     def load_cb_model(self):
         self.crk.cauchy_born.load_regression_model()
 
-    def get_f_alpha_correction(self):
-        # function which gets the f_alpha contribution from regions II and III without u being applied
-        # 'update atoms' but don't add u
-        self.atoms.set_pbc([False, False, True])
-        self.atoms.calc = self.calc
-
-        self.atoms.info['kI'] = self.kI
-        self.atoms.info['kII'] = self.kII
-        self.atoms.info['alpha'] = self.alpha
-
-        # x = x_cryst + K * u_cle + u
-        self.atoms.positions[:, :] = self.cryst.positions
-        self.atoms.positions[:, :] += self.u_cle()
-        if self.crk.cauchy_born is not None:  # if the crack has a multilattice cauchy-born object
-            # get rotation matrix
-            A = np.transpose(self.crk.RotationMatrix)
-            # find shifts
-            print('finding shifts.....')
-            # very important to pass cryst rather than atoms here as the displacement gradient field
-            # is found from the positions of the original atoms, not the deformed atoms
-            shifts = self.crk.cauchy_born.predict_shifts(A, self.cryst,
-                                                         F_func=self.get_deformation_gradient, coordinates='cart2D', method='regression', kI=self.kI, kII=self.kII)
-            print('done!')
-            # apply shifts
-            self.crk.cauchy_born.apply_shifts(
-                self.atoms, shifts, mask=self.shiftmask)
-        if self.extended_far_field:
-            mask = self.regionII | self.regionIII
-        else:
-            mask = self.regionII
-        f_alpha = self.get_crack_tip_force(mask=mask)
-        self.update_atoms()
-        return f_alpha
-
     def set_atoms(self, atoms):
         N1_in = (atoms.arrays['region'] == 1).sum()
         if 'alpha' in atoms.info:
@@ -1132,12 +1123,13 @@ class SinclairCrack:
         min_len = min(N1_in, self.N1)
         # FIXME this assumes stable sort order for atoms and self.atoms
         u = atoms.positions - self.atoms.positions
-        shift = np.diag(self.atoms.cell)/2 - np.diag(atoms.cell)/2
+        shift = np.diag(self.atoms.cell) / 2 - np.diag(atoms.cell) / 2
         u += shift
         self.u = u[self.regionI]
         self.update_atoms()
 
-    def get_crack_tip_force(self, forces=None, mask=None, full_array_output=False):
+    def get_crack_tip_force(self, forces=None, mask=None,
+                            full_array_output=False):
         # V_alpha = -\nabla_1 U_CLE(alpha)
         tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
@@ -1187,7 +1179,8 @@ class SinclairCrack:
         if full_array_output is True:
             reduced_forces = forces[mask, :]
             reduced_V = V[mask, :]
-            return np.tensordot(forces[mask, :], V[mask, :]), np.array([np.dot(reduced_forces[i, :], reduced_V[i, :]) for i in range(np.shape(reduced_forces)[0])])
+            return np.tensordot(forces[mask, :], V[mask, :]), np.array([np.dot(
+                reduced_forces[i, :], reduced_V[i, :]) for i in range(np.shape(reduced_forces)[0])])
         return np.tensordot(forces[mask, :], V[mask, :])
 
     def get_xdot(self, x1, x2, ds=None):
@@ -1230,15 +1223,13 @@ class SinclairCrack:
         F = list(forces[self.regionI, :].reshape(-1))
         if self.variable_alpha:
             f_alpha = self.get_crack_tip_force(forces, mask=mask)
-            self.f_alpha_correction = 0  # self.get_f_alpha_correction()
             if self.is_3D:
-                f_beta = f_alpha*np.sin(self.theta_3D)
+                f_beta = f_alpha * np.sin(self.theta_3D)
                 F.append(f_beta)
                 print('f_beta', f_beta)
             else:
-                F.append((f_alpha-self.f_alpha_correction))
+                F.append(f_alpha)
                 print('f_alpha', f_alpha)
-                # print('f_alpha_corrected',f_alpha-self.f_alpha_correction)
         if self.variable_k:
             f_k = self.get_k_force(x1, xdot1, ds)
             F.append(f_k)
@@ -1247,11 +1238,12 @@ class SinclairCrack:
 
     def dfk_dk_approx(self, xdot1):
         udot1, alphadot1, kdot1 = self.unpack(xdot1)
-        return ((1/kdot1)*np.dot(udot1, udot1) + (1/kdot1)*(alphadot1**2) + kdot1)
+        return ((1 / kdot1) * np.dot(udot1, udot1) +
+                (1 / kdot1) * (alphadot1**2) + kdot1)
 
     def update_precon(self, x, F=None):
         self.precon_count += 1
-        if self.precon is not None and self.precon_count % 10 != 0:
+        if self.precon is not None and self.precon_count % self.precon_recompute_interval != 0:
             return
         if not self.variable_k:
             self.precon_args = []
@@ -1280,8 +1272,8 @@ class SinclairCrack:
         Ibasic = I  # currently just works for falpha
         Jbasic = J
         Zbasic = Z
-        Ibasic.append(3*self.N1)
-        Jbasic.append(3*self.N1)
+        Ibasic.append(3 * self.N1)
+        Jbasic.append(3 * self.N1)
         Zbasic.append(1)
         N_dof = len(self)
         # P_ext_basic = csc_matrix((Zbasic, (Ibasic, Jbasic)), shape=(N_dof, N_dof))
@@ -1297,34 +1289,16 @@ class SinclairCrack:
             self.alpha += dalpha
             self.update_atoms(use_alpha_3D=True)
             F_after = self.get_forces(*self.precon_args)
-            dF_dalpha = (F_after-F)/dalpha
+            dF_dalpha = (F_after - F) / dalpha
             if self.is_3D:
                 dF_dalpha *= np.sin(self.theta_3D)
-            print('df_dalpha,', dF_dalpha)
+            # print('df_dalpha,', dF_dalpha)
             self.alpha = alph_before
             self.update_atoms(use_alpha_3D=True)
 
-        print(self.variable_k)
         if self.variable_k:
-            # currently this part isn't used and also doesn't really work
-            dk = 0.0001
-            if self.cont_k == 'k1':
-                k_before = self.kI
-                self.kI += dk*self.k1g
-            elif self.cont_k == 'k2':
-                k_before = self.kII
-                self.kII += dk*self.k2g
-            self.update_atoms()
-            F_after = self.get_forces(*self.precon_args)
-            dF_dk = (F_after-F)/(dk*self.k1g)
-            dF_dk[-1] = -self.dfk_dk_approx(self.precon_args[1])
-            print(F_after[-1], F[-1], F_after[-1]-F[-1], dk*self.k1g)
-            print('df_dk', dF_dk)
-            if self.cont_k == 'k1':
-                self.kI = k_before
-            elif self.cont_k == 'k2':
-                self.kII = k_before
-            self.update_atoms()
+            raise NotImplementedError(
+                'Preconditioning currently not implemented with variable K')
 
         # extend diagonal of preconditioner for additional DoFs
         N_dof = len(self)
@@ -1333,7 +1307,7 @@ class SinclairCrack:
         J = np.array(J)
         Z = np.array(Z)
         if self.variable_alpha:
-            print(offset)
+            # print(offset)
             # add bottom edge of hessian, i = offset, j = 0:offset-1
             I = np.append(I, [offset for i in range(offset)])
             J = np.append(J, [i for i in range(offset)])
@@ -1347,26 +1321,16 @@ class SinclairCrack:
             I = np.append(I, offset)
             J = np.append(J, offset)
             Z = np.append(Z, -dF_dalpha[offset])
-            if self.is_3D:
-                print('-dfdbeta', -dF_dalpha[offset])
-            else:
-                print('-dfdalpha', -dF_dalpha[offset])
+            # if self.is_3D:
+            #    print('-dfdbeta', -dF_dalpha[offset])
+            # else:
+            #    print('-dfdalpha', -dF_dalpha[offset])
             offset += 1
 
-        # TODO EITHER DELETE OR FIX THIS
         if self.variable_k:
-            # add bottom edge of hessian, i = offset, j = 0:offset-1
-            I = np.append(I, [offset for i in range(offset)])
-            J = np.append(J, [i for i in range(offset)])
-            Z = np.append(Z, -dF_dk[0:offset])
-            # add right edge of hessian, i = 0:offset-1, j = offset
-            I = np.append(I, [i for i in range(offset)])
-            J = np.append(J, [offset for i in range(offset)])
-            Z = np.append(Z, -dF_dk[0:offset])
-            # add corner of hessian, i =offset, j=offset
-            I = np.append(I, offset)
-            J = np.append(J, offset)
-            Z = np.append(Z, dF_dk[offset])
+            raise NotImplementedError(
+                'Preconditioning currently not implemented with variable K')
+
         # print(Z[-offset:])
         I = list(I)
         J = list(J)
@@ -1537,6 +1501,10 @@ class SinclairCrack:
                 return np.linalg.norm(f, np.inf)
 
             if precon:
+                if self.variable_k:
+                    raise NotImplementedError(
+                        'Preconditioning currently not implemented with variable K')
+
                 def odeprecon(f, x):
                     Rp = oderes(f, x)
                     if abs(abs(f[-1]) - Rp) < 1e-5:
@@ -1544,20 +1512,9 @@ class SinclairCrack:
                         # is the largest force
                         print('taking full precon step')
                         M = self.get_precon(x, f)
-                        Fp = M@f
+                        Fp = M @ f
                     else:
-                        if self.variable_k:
-                            # this doesn't work very well right now, only precondition when K isn't variable
-                            if abs(f[-2] - Rp) < 1e-5:
-                                M = self.get_precon(x, f)
-                                # if f_alpha is the dominant force
-                                # in the variable_k case
-                                Fp = M@f
-                            else:
-                                Fp = f  # if f_alpha and f_k are not the dominant forces
-                        else:
-                            Fp = f  # if variable_k is false and f_alpha was not dominant
-
+                        Fp = f  # if variable_k is false and f_alpha was not dominant
                         # M = self.get_precon(x,f) <--full precon lines
                         # Fp = M@f
                     return Fp, Rp  # returns preconditioned forces and residual
@@ -1642,7 +1599,7 @@ class SinclairCrack:
 
         # check to see if x0 and x1 contain kI and kII, if they do
         # then remove whichever one isn't being used for continuation
-        if len(self)+1 == len(x0):
+        if len(self) + 1 == len(x0):
             if self.cont_k == 'k1':
                 idx = -1
                 self.kII = x0[idx]
@@ -1651,7 +1608,7 @@ class SinclairCrack:
                 self.kI = x0[idx]
             x0 = np.delete(x0, idx)
 
-        if len(self)+1 == len(x1):
+        if len(self) + 1 == len(x1):
             if self.cont_k == 'k1':
                 idx = -1
                 self.kII = x1[idx]
@@ -1669,7 +1626,6 @@ class SinclairCrack:
             elif self.cont_k == 'k2':
                 self.kII0 = x0[-1]
                 self.kI0 = self.kI
-            print('og vals', self.kI0, self.kII0)
 
         if continuation:
             xdot1 = self.get_xdot(x0, x1, ds)
@@ -1706,7 +1662,7 @@ class SinclairCrack:
                             x_traj.attrs['traj_interval'] = traj_interval
                             # row = x_traj.shape[0]
                     break
-                except:
+                except OSError:
                     print('failed to access file 1')
                     time.sleep(1)
                     continue
@@ -1725,7 +1681,7 @@ class SinclairCrack:
                     num_steps = self.optimize(ftol, max_steps, args=[
                                               x1, xdot1, ds], precon=precon, method=opt_method, verbose=2)
                 print(f'Corrector converged in {num_steps}/{max_steps} steps')
-            except RuntimeError:  # OptimizerConvergenceError:
+            except (RuntimeError, OptimizerConvergenceError):
                 if ds < ds_min:
                     print(
                         f'Corrector failed to converge even with ds={ds}<{ds_min}. Aborting job.')
@@ -1764,15 +1720,15 @@ class SinclairCrack:
                                 x_traj = hf['x']
                                 x_traj.resize(
                                     (x_traj.shape[0] + 1, x_traj.shape[1]))
-                                print(f'writing k1 {self.kI}, k2 {self.kII}')
+                                # print(f'writing k1 {self.kI}, k2 {self.kII}')
                                 # print(np.append(x2[:-1],[self.kI,self.kII]))
                                 x_traj[-1,
                                        :] = np.append(x2[:-1], [self.kI, self.kII])
                                 row += 1
                                 break
-                        except:
+                        except OSError:
                             print('hdf5 file not accessible, trying again in 1s')
-                            print('failed to access file 2')
+                            # print('failed to access file 2')
                             time.sleep(1.0)
                             continue
                     else:
@@ -1980,24 +1936,24 @@ class SinclairCrack:
             A = np.transpose(self.crk.RotationMatrix)
             E, R = self.crk.cauchy_born.evaluate_F_or_E(
                 A, self.cryst, F_func=self.get_deformation_gradient, coordinates='cart2D', k=self.kI)
-            for i in range(len(crack_atoms)-1):
+            for i in range(len(crack_atoms) - 1):
                 # transform back to lab frame
-                E[i, :, :] = np.transpose(A)@E[i, :, :]@A
+                E[i, :, :] = np.transpose(A) @ E[i, :, :] @ A
             # store values of E
-            exx[0:len(crack_atoms)-1] = E[:, 0, 0]
-            eyy[0:len(crack_atoms)-1] = E[:, 1, 1]
-            ezz[0:len(crack_atoms)-1] = E[:, 2, 2]
-            eyz[0:len(crack_atoms)-1] = E[:, 1, 2]
-            exz[0:len(crack_atoms)-1] = E[:, 0, 2]
-            exy[0:len(crack_atoms)-1] = E[:, 0, 1]
+            exx[0:len(crack_atoms) - 1] = E[:, 0, 0]
+            eyy[0:len(crack_atoms) - 1] = E[:, 1, 1]
+            ezz[0:len(crack_atoms) - 1] = E[:, 2, 2]
+            eyz[0:len(crack_atoms) - 1] = E[:, 1, 2]
+            exz[0:len(crack_atoms) - 1] = E[:, 0, 2]
+            exy[0:len(crack_atoms) - 1] = E[:, 0, 1]
         # store other things
-        fx[0:len(crack_atoms)-1] = (forces[:, 0])
-        fy[0:len(crack_atoms)-1] = (forces[:, 1])
-        fz[0:len(crack_atoms)-1] = (forces[:, 2])
-        ftot[0:len(crack_atoms)-1] = (np.linalg.norm(forces, ord=2, axis=1))
-        ux[0:len(crack_atoms)-1][self.regionI] = (self.u[:, 0])
-        uy[0:len(crack_atoms)-1][self.regionI] = (self.u[:, 1])
-        uz[0:len(crack_atoms)-1][self.regionI] = (self.u[:, 2])
+        fx[0:len(crack_atoms) - 1] = (forces[:, 0])
+        fy[0:len(crack_atoms) - 1] = (forces[:, 1])
+        fz[0:len(crack_atoms) - 1] = (forces[:, 2])
+        ftot[0:len(crack_atoms) - 1] = (np.linalg.norm(forces, ord=2, axis=1))
+        ux[0:len(crack_atoms) - 1][self.regionI] = (self.u[:, 0])
+        uy[0:len(crack_atoms) - 1][self.regionI] = (self.u[:, 1])
+        uz[0:len(crack_atoms) - 1][self.regionI] = (self.u[:, 2])
 
         # extra false added as we have added alpha to array
         mask = np.append(self.regionI | self.regionII,
@@ -2013,11 +1969,13 @@ class SinclairCrack:
         logfalphas = np.log10(np.abs(falphas))
         falphacomponents[mask] = falphas
         logabsfalphacomp[mask] = logfalphas
-        fx[len(crack_atoms)-1] = falpha
-        ftot[len(crack_atoms)-1] = falpha
+        fx[len(crack_atoms) - 1] = falpha
+        ftot[len(crack_atoms) - 1] = falpha
         logabsftot[:] = np.log10(np.abs(ftot))
-        ase.io.write(fname+'.xyz', crack_atoms)
+        ase.io.write(fname + '.xyz', crack_atoms)
 
+    ##### ----------------PLOTTING SCRIPTS-------------######
+    # Potentially consider moving these to seperate class in future
     def strain_err(self, cutoff, seperate_surface=False):
         '''Function that returns the atomistic corrector strain error Dv for each atom using the norm of the difference
         between the corrector on each atom and all those around it within some cutoff. Also has an option to return states
@@ -2045,7 +2003,7 @@ class SinclairCrack:
         v = self.u
         dv = np.linalg.norm(v[I, :] - v[J, :], axis=1)
         r = self.r[self.regionI][I]
-        mask = r < (self.rI-cutoff)
+        mask = r < (self.rI - cutoff)
         if seperate_surface:
             mid_cell_x = self.cryst.cell.diagonal()[0] / 2.0
             mid_cell_y = self.cryst.cell.diagonal()[1] / 2.0
@@ -2065,8 +2023,8 @@ class SinclairCrack:
         def gen_mask(r, rval, dx, dr, cx, cy):
             # for a line going vertically up
             # so r is essentiall y here
-            rcriteria = (r > rval) & (r < (rval+dr))
-            xcriteria = (x-cx > 0) & (x-cx < dx)
+            rcriteria = (r > rval) & (r < (rval + dr))
+            xcriteria = (x - cx > 0) & (x - cx < dx)
             return np.logical_and(rcriteria, xcriteria)
         crack_atoms = self.atoms.copy()
         crack_atoms.calc = self.calc
@@ -2074,7 +2032,7 @@ class SinclairCrack:
 
         sx, sy, sz = crack_atoms.cell.diagonal()
         x, y = crack_atoms.positions[:, 0], crack_atoms.positions[:, 1]
-        cx, cy = sx/2, sy/2
+        cx, cy = sx / 2, sy / 2
         r = np.sqrt((x - cx)**2 + (y - cy)**2)
 
         dr = 0.2  # Angstroms
@@ -2098,7 +2056,7 @@ class SinclairCrack:
 
         for i, rval in enumerate(other_region_vals):
             mask = gen_mask(r, rval, dx, dr, cx, cy)
-            k = i+len(regionIvals)
+            k = i + len(regionIvals)
             print(forces[mask])
             if len(forces[mask]) == 0:
                 F[k, :] = np.zeros([1, 3])
@@ -2160,14 +2118,14 @@ def isotropic_modeI_crack_tip_stress_field(K, r, t, xy_only=True,
                          .format(PLANE_STRAIN, PLANE_STRESS))
 
     sigma = np.zeros(r.shape + (3, 3))
-    radial = K/np.sqrt(2*math.pi*r)
+    radial = K / np.sqrt(2 * math.pi * r)
 
     sigma[..., 0, 0] = radial * \
-        np.cos(t/2.0)*(1.0 - np.sin(t/2.0)*np.sin(3.0*t/2.0))  # xx
+        np.cos(t / 2.0) * (1.0 - np.sin(t / 2.0) * np.sin(3.0 * t / 2.0))  # xx
     sigma[..., 1, 1] = radial * \
-        np.cos(t/2.0)*(1.0 + np.sin(t/2.0)*np.sin(3.0*t/2.0))  # yy
+        np.cos(t / 2.0) * (1.0 + np.sin(t / 2.0) * np.sin(3.0 * t / 2.0))  # yy
     sigma[..., 0, 1] = radial * \
-        np.sin(t/2.0)*np.cos(t/2.0)*np.cos(3.0*t/2.0)         # xy
+        np.sin(t / 2.0) * np.cos(t / 2.0) * np.cos(3.0 * t / 2.0)         # xy
     # yx=xy
     sigma[..., 1, 0] = sigma[..., 0, 1]
 
@@ -2213,16 +2171,16 @@ def isotropic_modeI_crack_tip_displacement_field(K, G, nu, r, t,
                          'must match.')
 
     if stress_state == PLANE_STRAIN:
-        kappa = 3-4*nu
+        kappa = 3 - 4 * nu
     elif stress_state == PLANE_STRESS:
-        kappa = (3.-nu)/(1.+nu)
+        kappa = (3. - nu) / (1. + nu)
     else:
         raise ValueError('"stress_state" should be either "{0}" or "{1}".'
                          .format(PLANE_STRAIN, PLANE_STRESS))
 
-    radial = K*np.sqrt(r/(2.*math.pi))/(2.*G)
-    u = radial*np.cos(t/2)*(kappa-1+2*np.sin(t/2)**2)
-    v = radial*np.sin(t/2)*(kappa+1-2*np.cos(t/2)**2)
+    radial = K * np.sqrt(r / (2. * math.pi)) / (2. * G)
+    u = radial * np.cos(t / 2) * (kappa - 1 + 2 * np.sin(t / 2)**2)
+    v = radial * np.sin(t / 2) * (kappa + 1 - 2 * np.cos(t / 2)**2)
 
     # Form in Lawn book is equivalent:
     # radial = K/(4*G)*np.sqrt(r/(2.*math.pi))
@@ -2267,18 +2225,18 @@ def isotropic_modeII_crack_tip_displacement_field(K, G, nu, r, t,
                          'must match.')
 
     if stress_state == PLANE_STRAIN:
-        kappa = 3-4*nu
+        kappa = 3 - 4 * nu
     elif stress_state == PLANE_STRESS:
-        kappa = (3.-nu)/(1.+nu)
+        kappa = (3. - nu) / (1. + nu)
     else:
         raise ValueError('"stress_state" should be either "{0}" or "{1}".'
                          .format(PLANE_STRAIN, PLANE_STRESS))
 
     # use the lawn book form for now, as I do not have the form for mode II that matches above to hand
     # Form in Lawn book is equivalent:
-    radial = (K/(4*G))*np.sqrt(r/(2.*math.pi))
-    u = radial*((2*kappa + 3)*np.sin(t/2) + np.sin(3*t/2))
-    v = -radial*((2*kappa - 3)*np.cos(t/2) + np.cos(3*t/2))
+    radial = (K / (4 * G)) * np.sqrt(r / (2. * math.pi))
+    u = radial * ((2 * kappa + 3) * np.sin(t / 2) + np.sin(3 * t / 2))
+    v = -radial * ((2 * kappa - 3) * np.cos(t / 2) + np.cos(3 * t / 2))
 
     return u, v
 
@@ -2426,14 +2384,14 @@ def get_stress_intensity_factor(atoms, stress_state=PLANE_STRAIN):
     nu = atoms.info['PoissonRatio_yx']
 
     if stress_state == PLANE_STRAIN:
-        Ep = E/(1-nu**2)
+        Ep = E / (1 - nu**2)
     elif stress_state == PLANE_STRESS:
         Ep = E
     else:
         raise ValueError('"stress_state" should be either "{0}" or "{1}".'
                          .format(PLANE_STRAIN, PLANE_STRESS))
 
-    K = np.sqrt(G*Ep)
+    K = np.sqrt(G * Ep)
     atoms.info['K'] = K
     return K
 
@@ -2526,7 +2484,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
             try:
                 params['K'] = get_stress_intensity_factor(atoms)
             except KeyError:
-                params['K'] = 1.0*MPa_sqrt_m
+                params['K'] = 1.0 * MPa_sqrt_m
 
     if 'sxx0' not in params or 'syy0' not in params or 'sxy0' not in params:
         # Guess for far-field stress
@@ -2536,9 +2494,9 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
             try:
                 E = atoms.info['YoungsModulus']
                 nu = atoms.info['PoissonRatio_yx']
-                Ep = E/(1-nu**2)
-                params['syy0'] = Ep*atoms.info['strain']
-                params['sxx0'] = nu*params['syy0']
+                Ep = E / (1 - nu**2)
+                params['syy0'] = Ep * atoms.info['strain']
+                params['sxx0'] = nu * params['syy0']
                 params['sxy0'] = 0.0
             except KeyError:
                 params['syy0'] = 0.0
@@ -2551,7 +2509,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
             params['x0'], params['y0'], _ = atoms.info['CrackPos']
         except KeyError:
             params['x0'] = (atoms.positions[:, 0].min() +
-                            (atoms.positions[:, 0].max() - atoms.positions[:, 0].min())/3.0)
+                            (atoms.positions[:, 0].max() - atoms.positions[:, 0].min()) / 3.0)
             params['y0'] = 0.0
 
     # Override any fixed parameters
@@ -2574,8 +2532,8 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
 
     # Update avg_sigma in place
     if avg_sigma is not None:
-        avg_sigma[...] = np.exp(-avg_decay)*avg_sigma + \
-            (1.0 - np.exp(-avg_decay))*sigma
+        avg_sigma[...] = np.exp(-avg_decay) * avg_sigma + \
+            (1.0 - np.exp(-avg_decay)) * sigma
         sigma = avg_sigma.copy()
 
     # Zero components out of the xy plane
@@ -2619,25 +2577,25 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
     # estimate variance in parameter estimates
     if cov is None:
         # singular covariance matrix
-        err = dict(zip(var_params, [0.]*len(fitted_params)))
+        err = dict(zip(var_params, [0.] * len(fitted_params)))
     else:
         s_sq = (objective_function(fitted_params, x, y, sigma,
-                var_params)**2).sum()/(sigma.size-len(fitted_params))
+                var_params)**2).sum() / (sigma.size - len(fitted_params))
         cov = cov * s_sq
         err = dict(zip(var_params, np.sqrt(np.diag(cov))))
 
     if verbose:
-        print('K = %.3f MPa sqrt(m)' % (params['K']/MPA_SQRT_M))
-        print('sigma^0_{xx,yy,xy} = (%.1f, %.1f, %.1f) GPa' % (params['sxx0']*GPA,
-                                                               params['syy0']*GPA,
-                                                               params['sxy0']*GPA))
+        print('K = %.3f MPa sqrt(m)' % (params['K'] / MPA_SQRT_M))
+        print('sigma^0_{xx,yy,xy} = (%.1f, %.1f, %.1f) GPa' % (params['sxx0'] * GPA,
+                                                               params['syy0'] * GPA,
+                                                               params['sxy0'] * GPA))
         print('Crack position (x0, y0) = (%.1f, %.1f) A' %
               (params['x0'], params['y0']))
 
     atoms.info['K'] = params['K']
     atoms.info['sigma0'] = (params['sxx0'], params['syy0'], params['sxy0'])
     atoms.info['CrackPos'] = np.array(
-        (params['x0'], params['y0'], atoms.cell[2, 2]/2.0))
+        (params['x0'], params['y0'], atoms.cell[2, 2] / 2.0))
 
     return params, err
 
@@ -2653,8 +2611,8 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):
     g = a.get_array('groups')
 
     y = a.positions[:, 1]
-    above = (nn < bulk_nn) & (g != 0) & (y > a.cell[1, 1]/2.0)
-    below = (nn < bulk_nn) & (g != 0) & (y < a.cell[1, 1]/2.0)
+    above = (nn < bulk_nn) & (g != 0) & (y > a.cell[1, 1] / 2.0)
+    below = (nn < bulk_nn) & (g != 0) & (y < a.cell[1, 1] / 2.0)
 
     a.set_array('above', above)
     a.set_array('below', below)
@@ -2712,7 +2670,7 @@ def find_tip_broken_bonds(atoms, cutoff, bulk_nn=4, boundary_thickness=None):
     coordination_list = np.bincount(i, minlength=len(atoms))
 
     # list of atom numbers with at least one broken bond
-    broken_bonds_array = np.where(coordination_list <= bulk_nn-1)
+    broken_bonds_array = np.where(coordination_list <= bulk_nn - 1)
 
     # finds the atom number with the most positive x-valued position with a broken bond(s)
     # within the bounded section
@@ -2726,7 +2684,7 @@ def find_tip_broken_bonds(atoms, cutoff, bulk_nn=4, boundary_thickness=None):
 
     tip_position = atoms.positions[broken_bonds_array[0][atom_number]]
 
-    return np.array((tip_position[0], tip_position[1], atoms.cell[2, 2]/2.0))
+    return np.array((tip_position[0], tip_position[1], atoms.cell[2, 2] / 2.0))
 
 
 def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=None,
@@ -2745,7 +2703,7 @@ def find_tip_stress_field(atoms, r_range=None, initial_params=None, fix_params=N
     params, err = fit_crack_stress_field(atoms, r_range, initial_params, fix_params, sigma,
                                          avg_sigma, avg_decay, calc)
 
-    return np.array((params['x0'], params['y0'], atoms.cell[2, 2]/2.0))
+    return np.array((params['x0'], params['y0'], atoms.cell[2, 2] / 2.0))
 
 
 def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None,
@@ -2772,11 +2730,11 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
     x = atoms.positions[:, 0]
     y = atoms.positions[:, 1]
 
-    X = np.linspace((x-x0).min(), (x-x0).max(), 500)
-    Y = np.linspace((y-y0).min(), (y-y0).max(), 500)
+    X = np.linspace((x - x0).min(), (x - x0).max(), 500)
+    Y = np.linspace((y - y0).min(), (y - y0).max(), 500)
 
-    t = np.arctan2(y-y0, x-x0)
-    r = np.sqrt((x-x0)**2 + (y-y0)**2)
+    t = np.arctan2(y - y0, x - x0)
+    r = np.sqrt((x - x0)**2 + (y - y0)**2)
 
     if r_range is not None:
         rmin, rmax = r_range
@@ -2788,13 +2746,13 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
     if atom_sigma is None:
         atom_sigma = atoms.get_stresses()
 
-    grid_sigma = np.dstack([griddata(x[mask]-x0, y[mask]-y0, atom_sigma[mask, 0, 0], X, Y),
-                            griddata(x[mask]-x0, y[mask]-y0,
+    grid_sigma = np.dstack([griddata(x[mask] - x0, y[mask] - y0, atom_sigma[mask, 0, 0], X, Y),
+                            griddata(x[mask] - x0, y[mask] - y0,
                                      atom_sigma[mask, 1, 1], X, Y),
-                            griddata(x[mask]-x0, y[mask]-y0, atom_sigma[mask, 0, 1], X, Y)])
+                            griddata(x[mask] - x0, y[mask] - y0, atom_sigma[mask, 0, 1], X, Y)])
 
     X, Y = meshgrid(X, Y)
-    R = np.sqrt(X**2+Y**2)
+    R = np.sqrt(X**2 + Y**2)
     T = np.arctan2(Y, X)
 
     # mask outside fitting region
@@ -2822,24 +2780,24 @@ def plot_stress_fields(atoms, r_range=None, initial_params=None, fix_params=None
     for i, (ii, jj), label in zip(range(3),
                                   [(0, 0), (1, 1), (0, 1)],
                                   [r'\sigma_{xx}', r'\sigma_{yy}', r'\sigma_{xy}']):
-        subplot(3, 3, i+1)
+        subplot(3, 3, i + 1)
         gca().set_aspect('equal')
-        contourf(X, Y, grid_sigma[..., i]*GPA, contours[i])
+        contourf(X, Y, grid_sigma[..., i] * GPA, contours[i])
         colorbar()
         title(r'$%s^\mathrm{atom}$' % label)
         draw()
 
-        subplot(3, 3, i+4)
+        subplot(3, 3, i + 4)
         gca().set_aspect('equal')
-        contourf(X, Y, isotropic_sigma[..., ii, jj]*GPA, contours[i])
+        contourf(X, Y, isotropic_sigma[..., ii, jj] * GPA, contours[i])
         colorbar()
         title(r'$%s^\mathrm{Isotropic}$' % label)
         draw()
 
-        subplot(3, 3, i+7)
+        subplot(3, 3, i + 7)
         gca().set_aspect('equal')
         contourf(X, Y, abs(grid_sigma[..., i] -
-                           isotropic_sigma[..., ii, jj])*GPA, dcontours[i])
+                           isotropic_sigma[..., ii, jj]) * GPA, dcontours[i])
         colorbar()
         title(r'$|%s^\mathrm{atom} - %s^\mathrm{isotropic}|$' % (label, label))
         draw()
@@ -2951,7 +2909,7 @@ class ConstantStrainRate(object):
         current_strain = current_height / self.orig_height - 1.0
         new_strain = current_strain + self.delta_strain
         alpha = (1.0 + new_strain) / (1.0 + current_strain)
-        newpos[self.mask, 1] = newpos[self.mask, 1]*alpha
+        newpos[self.mask, 1] = newpos[self.mask, 1] * alpha
 
     def copy(self):
         return ConstantStrainRate(self.orig_height,

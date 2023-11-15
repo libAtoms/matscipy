@@ -28,6 +28,8 @@ import time
 from queue import Empty
 from copy import deepcopy
 
+from ase.optimize.sciopt import OptimizerConvergenceError
+
 
 class RegressionModel:
     def fit(self,alphas,Ks):
@@ -96,13 +98,13 @@ def search(K0,alpha0,sc_dict):
     converged = False
     try:
         sc.optimize(ftol=0.0005, steps=1000,method='ode12r',precon=True)
-    except:
+    except OptimizerConvergenceError:
         print('did not converge fully in ode12r section, proceeding with krylov')
 
     try:
         sc.optimize(ftol=fmax, steps=100,method='krylov')
         converged = True
-    except:
+    except RuntimeError:
         print('No convergence')
 
     if converged:
@@ -260,7 +262,7 @@ def get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids):
             hf.close()
             K_vals_reduced = K_vals/sc.k1g
             break
-        except:
+        except OSError:
             print('hdf5 file not accessible, trying again in 1s')
             print('failed to access file')
             time.sleep(1.0)
@@ -577,7 +579,7 @@ def main(K_range,alpha_range):
                             x_traj[-1, :] = x
                             print('written')
                             break
-                    except:
+                    except OSError:
                         print('hdf5 file not accessible, trying again in 1s')
                         print('failed to access file')
                         time.sleep(1.0)

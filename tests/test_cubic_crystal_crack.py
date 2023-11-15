@@ -47,7 +47,7 @@ import unittest
 import numpy as np
 try:
     from scipy.integrate import quadrature
-except:
+except ImportError:
     quadrature = None
 
 import ase.io

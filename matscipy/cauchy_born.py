@@ -129,7 +129,7 @@ class CubicCauchyBorn:
             whether or not to read the sublattices directly
             from the atoms object provided, rather than working them
             out by applying a small strain and measuring forces.
-            The user will have to set the sublattices themselves 
+            The user will have to set the sublattices themselves
             when building the atoms structure
         """
 
@@ -140,7 +140,8 @@ class CubicCauchyBorn:
 
         # generate U (right hand stretch tensor) to apply
         if read_from_atoms:
-            if ('lattice1mask' not in atoms.arrays) or ('lattice2mask' not in atoms.arrays):
+            if ('lattice1mask' not in atoms.arrays) or (
+                    'lattice2mask' not in atoms.arrays):
                 raise KeyError('Lattice masks not found in atoms object')
             lattice1mask = atoms.arrays['lattice1mask']
             lattice2mask = atoms.arrays['lattice2mask']
@@ -185,8 +186,10 @@ class CubicCauchyBorn:
                 if all(element == lattice1mask[0] for element in lattice1mask):
                     lattice1mask = force_diff_lattice[:, 2] > 0
                     lattice2mask = force_diff_lattice[:, 2] < 0
-                    if all(element == lattice1mask[0] for element in lattice1mask):
-                        raise RuntimeError('No forces detected in any direction when shift applied - cannot assign sublattices')             
+                    if all(element == lattice1mask[0]
+                           for element in lattice1mask):
+                        raise RuntimeError(
+                            'No forces detected in any direction when shift applied - cannot assign sublattices')
 
             # set new array in atoms
             try:  # make new arrays if they didn't already exist
@@ -214,10 +217,10 @@ class CubicCauchyBorn:
         atoms : ASE atoms object with defined sublattices
         """
         self.lattice1mask, self.lattice2mask = self.lattice2mask.copy(), self.lattice1mask.copy()
-        #tmpl1 = self.lattice1mask.copy()
-        #tmpl2 = self.lattice2mask.copy()
-        #self.lattice1mask = tmpl2.copy()
-        #self.lattice2mask = tmpl1.copy()
+        # tmpl1 = self.lattice1mask.copy()
+        # tmpl2 = self.lattice2mask.copy()
+        # self.lattice1mask = tmpl2.copy()
+        # self.lattice2mask = tmpl1.copy()
         lattice1maskatoms = atoms.arrays['lattice1mask']
         lattice2maskatoms = atoms.arrays['lattice2mask']
         lattice1maskatoms[:] = self.lattice1mask
@@ -285,7 +288,8 @@ class CubicCauchyBorn:
             # relax cell
             opt = LBFGS(unitcell_copy, logfile=None)
             opt.run(fmax=1e-10)
-            relaxed_shift[:] = unitcell_copy.get_positions()[1] - unitcell_copy.get_positions()[0]
+            relaxed_shift[:] = unitcell_copy.get_positions(
+            )[1] - unitcell_copy.get_positions()[0]
 
             # get shift
             shift_diff = relaxed_shift - initial_shift
@@ -1152,10 +1156,10 @@ class CubicCauchyBorn:
             tol = tol * len(atoms[mask])
         else:
             tol = tol * len(atoms)
-        print('tol', tol)
+        # print('tol', tol)
 
         cb_err = self.get_cb_error(atoms, forces=forces, mask=mask)
-        print('cb_err', cb_err)
+        # print('cb_err', cb_err)
         if abs(cb_err) < tol:  # do not refit in this case
             return 0, cb_err / len(atoms)
 
@@ -1387,7 +1391,7 @@ class CubicCauchyBorn:
 
     def grad_basis_function_evaluation(self, E_vecs, dE_vecs):
         """Function that evaluates the derivative of the polynomial
-        basis functions used in the regression model on a set of 
+        basis functions used in the regression model on a set of
         strain vectors to build the gradient design matrix grad_phi.
 
         Parameters
@@ -1438,7 +1442,7 @@ class CubicCauchyBorn:
         -------
         predictions : array_like
             prediction of gradient of the Cauchy-Born shift corrector model
-            at each of the given E points. 
+            at each of the given E points.
         """
 
         # turn E and dE into voigt vectors
@@ -1446,9 +1450,15 @@ class CubicCauchyBorn:
         dE_voigt = full_3x3_to_Voigt_6_strain(dE)
 
         # Get the rotated versions of the strain and strain deriv tensors
-        eps = [E_voigt, self.permutation(E_voigt, 1), self.permutation(E_voigt, 2)]
+        eps = [
+            E_voigt, self.permutation(
+                E_voigt, 1), self.permutation(
+                E_voigt, 2)]
 
-        deps = [dE_voigt, self.permutation(dE_voigt, 1), self.permutation(dE_voigt, 2)]
+        deps = [
+            dE_voigt, self.permutation(
+                dE_voigt, 1), self.permutation(
+                dE_voigt, 2)]
         predictions = np.zeros([np.shape(eps[0])[0], 3])
 
         for i in range(3):
@@ -1470,7 +1480,7 @@ class CubicCauchyBorn:
         """Get the deformation gradient tensor field or Green-Lagrange strain
         tensor field for a system of atoms in the lab frame, depending on which
         function is provided. From these, get the gradients of the Cauchy-Born shift corrector field
-        field in the lattice frame. The supplied F_func or E_func needs to take 
+        field in the lattice frame. The supplied F_func or E_func needs to take
         parameter de, used for finite differences to evaluate the derivative of the
         given field
 
@@ -1492,7 +1502,7 @@ class CubicCauchyBorn:
             for the atoms in form of a numpy array shape [natoms,ndims,ndims],
             where F is specified in cartesian coordinates. The returned
             tensor field must be in the lab frame. Optional, but one of
-            F_func or E_func must be provided. The function must accept de as a 
+            F_func or E_func must be provided. The function must accept de as a
             keyword argument for calculating the gradient of the field by finite
             differences.
         E_func : Function
@@ -1504,8 +1514,8 @@ class CubicCauchyBorn:
             field for the atoms in form of a numpy array shape
             [natoms,ndims,ndims], where E is specified in cartesian
             coordinates, and the returned tensor field is in the lab frame.
-            Optional, but one of F_func or E_func must be provided. The 
-            function must accept de as a keyword argument for calculating 
+            Optional, but one of F_func or E_func must be provided. The
+            function must accept de as a keyword argument for calculating
             the gradient of the field by finite differences.
         coordinates : string
             Specifies the coordinate system that the function
@@ -1530,7 +1540,7 @@ class CubicCauchyBorn:
             coordinates=coordinates, de=de, *args, **kwargs)
 
         # print(E_higher,E_lower)
-        dE = (E_higher-E_lower)/(2*de)
+        dE = (E_higher - E_lower) / (2 * de)
         # print(dE)
         natoms = len(atoms)
         # get the cauchy born shifts unrotated
@@ -1544,8 +1554,8 @@ class CubicCauchyBorn:
             # dshift_2[i, :] = np.transpose(A) @ dshift_2_no_rr[i, :]
 
         # need to adjust gradients for different lattices
-        dshifts[self.lattice1mask] = -0.5*(dshifts[self.lattice1mask])
-        dshifts[self.lattice2mask] = 0.5*(dshifts[self.lattice2mask])
+        dshifts[self.lattice1mask] = -0.5 * (dshifts[self.lattice1mask])
+        dshifts[self.lattice2mask] = 0.5 * (dshifts[self.lattice2mask])
 
         return dshifts
 
