@@ -42,7 +42,7 @@ class GammaSurface():
         self.cut_at : ase.atoms.Atoms object
             Cut Atoms object used as base for gamma surface image generation
         self.surf_directions : dict
-            Dict giving miller indeces for "x", "y" and "z" directions of gamma surface plot
+            Dict giving miller indices for "x", "y" and "z" directions of gamma surface plot
             -   self.surf_directions["z"] = surface_direction
             -   self.surf_directions["y"] = y_dir, if y_dir was specified
         self.nx, self.ny : int
@@ -196,7 +196,8 @@ class GammaSurface():
         return images
 
 
-    def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, path_xlims=[0, 1], path_ylims=None, compressed=True):
+    def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, 
+                        path_xlims=[0, 1], path_ylims=None, compressed=True):
         '''
         Generate gamma surface images on an (nx, ny) grid
 
@@ -385,12 +386,13 @@ class GammaSurface():
         self.Es = Es
         return Es
 
-    def plot_gamma_surface(self, ax=None, si=True):
+    def plot_gamma_surface(self, Es=None, ax=None, si=True):
         '''
         Produce a matplotlib plot of the gamma surface energy, from the data gathered in self.generate_images and self.get_surface_energioes
 
         Returns a matplotlib fig and ax object
-
+        Es: np.array
+            (nx, ny) array of energy densities. If None, uses self.Es (if populated from self.get_surface_energies())
         ax: matplotlib axis object
             Axis to draw plot
         si: bool
@@ -399,6 +401,14 @@ class GammaSurface():
 
         from ase.units import _e
         import matplotlib.pyplot as plt
+
+        if Es is None:
+            Es = self.Es
+
+        if Es is None:
+            # Should have been populated from self.Es
+            # If not, self.get_surface_energies() should have been called
+            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_surface_energies().")
 
         if si:
             mul = _e * 1e20
@@ -451,6 +461,14 @@ class StackingFault(GammaSurface):
         '''
         from ase.units import _e
         import matplotlib.pyplot as plt
+
+        if Es is None:
+            Es = self.Es
+
+        if Es is None:
+            # Should have been populated from self.Es
+            # If not, self.get_surface_energies() should have been called
+            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_surface_energies()."
 
         if si:
             mul = _e * 1e20
