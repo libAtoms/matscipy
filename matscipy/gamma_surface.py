@@ -453,7 +453,8 @@ class StackingFault(GammaSurface):
         Produce a matplotlib plot of the stacking fault energy, from the data gathered in self.generate_images and self.get_surface_energy
 
         Returns a matplotlib fig and ax object
-
+        Es: np.array
+            (nx, ny) array of energy densities. If None, uses self.Es (if populated from self.get_surface_energies())
         ax: matplotlib axis object
             Axis to draw plot
         si: bool
