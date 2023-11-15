@@ -61,6 +61,7 @@ class GammaSurface():
         self.offset = 0
         self.crystalstructure = None
         self.ylims = [0, 1]
+        self.Es = None
 
         axes = None
         disloc = False
