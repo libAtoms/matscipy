@@ -28,6 +28,8 @@ import time
 from queue import Empty
 from copy import deepcopy
 
+from ase.optimize.sciopt import OptimizerConvergenceError
+
 
 class RegressionModel:
     def fit(self,alphas,Ks):
@@ -86,7 +88,7 @@ def search(K0,alpha0,sc_dict):
     sc = sc_dict[os.getpid()]
     assign_calc(sc)
 
-    print(f'pid {os.getpid()} sc is {sc} sc calc is {sc.calc}')
+    # print(f'pid {os.getpid()} sc is {sc} sc calc is {sc.calc}')
     sc.variable_k = False
     k1g = sc.k1g
     sc.k = K0*k1g
@@ -96,13 +98,13 @@ def search(K0,alpha0,sc_dict):
     converged = False
     try:
         sc.optimize(ftol=0.0005, steps=1000,method='ode12r',precon=True)
-    except:
+    except OptimizerConvergenceError:
         print('did not converge fully in ode12r section, proceeding with krylov')
 
     try:
         sc.optimize(ftol=fmax, steps=100,method='krylov')
         converged = True
-    except:
+    except RuntimeError:
         print('No convergence')
 
     if converged:
@@ -112,7 +114,7 @@ def search(K0,alpha0,sc_dict):
 
         print(f'Rescaling K_I from {sc.k} to {sc.k + dk * k1g}')
         k_x1 = k_x0 + dk
-        print(k0)
+        # print(k0)
         sc.k = k_x1*k1g
         sc.update_atoms()
         sc.optimize(ftol=0.0001, steps=100,method='krylov')
@@ -155,7 +157,7 @@ def walk(x0,x1,direction,pipe_output,sc_dict):
     print('starting ncflex...')
     sc.variable_k = True
     precon = False
-    print('lammps lib process',os.getpid(),sc.calc)
+    # print('lammps lib process',os.getpid(),sc.calc)
     sc.arc_length_continuation(x0, x1, N=nsteps,
                             ds=ds, ds_max=0.05, ftol=fmax, max_steps=10,
                             direction=direction,
@@ -168,11 +170,10 @@ def walk(x0,x1,direction,pipe_output,sc_dict):
 
     #time.sleep(10)
     #go idle
-    data_queue.put([os.getpid(),x0,direction])
     status_queue.put([os.getpid(),'idle'],block=False)
     delete_calc(sc)
 
-def get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids):    
+def get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids):    
     print('GETTING NEW OPT K ALPHA')
     #get a random value of alpha that's not yet been 
     #searched, as well as corresponding estimate for K from
@@ -183,7 +184,7 @@ def get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids):
 
     alpha_covered = 0
     for pid in walk_positions:
-        if pid not in already_killed_pids:
+        if pid in currently_walking_pids:
             [[k_lead,alpha_lead],direction] = walk_positions[pid]
             [k_trail,alpha_trail] = trail_positions[pid]
             alpha_covered += (alpha_lead-alpha_trail)*direction
@@ -196,11 +197,11 @@ def get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids):
                 starts.append(alpha_lead)
                 ends.append(alpha_trail)
 
-    print('alpha covered',alpha_covered)
+    # print('alpha covered',alpha_covered)
     alpha_not_covered = (alpha_range[1]-alpha_range[0])-alpha_covered
-    print('alpha not covered',alpha_not_covered)
+    # print('alpha not covered',alpha_not_covered)
     random_alph_start = np.random.uniform(0,alpha_not_covered)
-    print('random alpha start', random_alph_start)
+    # print('random alpha start', random_alph_start)
 
     if len(starts) == 0:
         #if nothing has been started yet, just guess alpha as random_alph_start
@@ -213,11 +214,11 @@ def get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids):
     alpha_assigned = False
     i = 0
     #first gap
-    print('first start:', starts[si[0]])
+    # print('first start:', starts[si[0]])
     if alpha_range[0] < np.min(starts):
         random_alph_start -= (starts[si[0]]-alpha_range[0])
-        print(f'subtract_amount{i}:', (starts[si[0]]-alpha_range[0]))
-        print(f'random_alph_start_subtract_{i}:', random_alph_start)
+        # print(f'subtract_amount{i}:', (starts[si[0]]-alpha_range[0]))
+        # print(f'random_alph_start_subtract_{i}:', random_alph_start)
         if random_alph_start < 0:
             alpha = starts[si[0]] + random_alph_start
             alpha_assigned = True
@@ -226,28 +227,28 @@ def get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids):
         i += 1
         #if at the end:
         if i == (len(si)):
-            print('at the end')
-            print(f'final end is:{ends[si[i-1]]}')
-            print(f'remaining alpha to spend is',{random_alph_start})
+            # print('at the end')
+            # print(f'final end is:{ends[si[i-1]]}')
+            # print(f'remaining alpha to spend is',{random_alph_start})
             alpha = ends[si[i-1]] + random_alph_start
-            print(f'alpha is{alpha}')
+            # print(f'alpha is{alpha}')
             alpha_assigned = True
             break
         gap = starts[si[i]]-ends[si[i-1]]
-        print(f'next start{i}:',starts[si[i]])
-        print(f'next end{i}',ends[si[i-1]])
-        print(f'subtract_amount{i}:', (starts[si[i]]-ends[si[i-1]]))
+        # print(f'next start{i}:',starts[si[i]])
+        # print(f'next end{i}',ends[si[i-1]])
+        # print(f'subtract_amount{i}:', (starts[si[i]]-ends[si[i-1]]))
         if gap<0:
-            print('gap zeroed')
+            # print('gap zeroed')
             gap = 0
         random_alph_start -= gap
-        print(f'random_alph_start_subtract_{i}:', random_alph_start)
+        # print(f'random_alph_start_subtract_{i}:', random_alph_start)
         if random_alph_start < 0:
-            print('found right gap')
-            print(f'right hand edge of gap, {starts[si[i]]}')
-            print(f'subtraction amount {random_alph_start}')
+            # print('found right gap')
+            # print(f'right hand edge of gap, {starts[si[i]]}')
+            # print(f'subtraction amount {random_alph_start}')
             alpha = starts[si[i]] + random_alph_start
-            print(f'alpha assigned as {alpha}')
+            # print(f'alpha assigned as {alpha}')
             alpha_assigned = True
     
     opt_alpha = alpha
@@ -261,7 +262,7 @@ def get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids):
             hf.close()
             K_vals_reduced = K_vals/sc.k1g
             break
-        except:
+        except OSError:
             print('hdf5 file not accessible, trying again in 1s')
             print('failed to access file')
             time.sleep(1.0)
@@ -297,7 +298,7 @@ def main(K_range,alpha_range):
 
     #create copies of sc for each process
     sc_array = [deepcopy(sc) for i in range(num_processors)]
-    print(sc_array)
+    # print(sc_array)
 
     #now, start worker pool
     worker_pool = multiprocessing.Pool(num_processors,initializer=init_worker)
@@ -327,24 +328,31 @@ def main(K_range,alpha_range):
             queue_empty = True
 
     #assign scs
-    print('assigning SCs')
+    # print('assigning SCs')
     for i in range(num_processors):
         #make a new calculator instance
         calc = params.new_calculator_instance()
         [pid,sc] = worker_pool.apply(assign_sc, args=(tuple([sc_array[i]])))
         sc_dict[pid] = sc
-    print(sc_dict)
+    # print(sc_dict)
 
-    #launch half of the workers on a non-blocking initial search
+    #launch workers on a non-blocking initial search
+    #depending on search direction
     #generate the grid of initial points for exploration
+    # print('explore direction',explore_direction)
+    if (explore_direction == 1) or (explore_direction ==-1):
+        launch_num = num_processors
+    elif (explore_direction == 0):
+        launch_num = int(num_processors/2)
+
     num_branches = int(np.floor((2*(alpha_range[1]-alpha_range[0]))/alpha_period))
     if num_branches == 0:
-        num_K_vals = int(num_processors/2)
+        num_K_vals = launch_num
     else:
-        num_K_vals = int(np.floor((num_processors/2)/num_branches))
+        num_K_vals = int(np.floor(launch_num/num_branches))
     
     num_K_val_array = [num_K_vals for i in range(num_branches)]
-    sum_diff = int(num_processors/2) - np.sum(num_K_val_array)
+    sum_diff = launch_num - np.sum(num_K_val_array)
     for i in range(sum_diff):
         num_K_val_array[i] += 1
     
@@ -369,12 +377,12 @@ def main(K_range,alpha_range):
 
     it_num = 0
     killed_num = 0
-    already_killed_pids = []
+    currently_walking_pids = []
     curve_explored = False
     percentage_covered = 0
     time.sleep(5)
     while not curve_explored:
-        print(f'already killed pids, {already_killed_pids}')
+        # print(f'currently walking pids, {currently_walking_pids}')
         it_num += 1
         #first, check the status queue to update any worker statuses. 
         #get PID list
@@ -406,15 +414,18 @@ def main(K_range,alpha_range):
                 search_num += 1
             elif worker_status[pid] == 'walking':
                 walk_num += 1
-        print(f'idle: {idle_num}, search, {search_num}, walk {walk_num}')
+        # print(f'idle: {idle_num}, search, {search_num}, walk {walk_num}')
         
         #print('checking to launch new searches')
         #if there's unnaccounted for idle processes, launch new searches
-        num_new_searches = int(np.floor(idle_num-search_num))
+        if explore_direction == 0:
+            num_new_searches = int(np.floor(idle_num-search_num))
+        elif (explore_direction == 1) or (explore_direction ==-1):
+            num_new_searches = idle_num
         if num_new_searches>0:
             for i in range(num_new_searches):
                 print('LAUNCHING A NEW SEARCH')
-                new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids)
+                new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids)
                 print('INITIAL K, ALPHA OF NEW SEARCH:',new_K,new_alpha)
                 worker_pool.apply_async(search, args=(new_K,new_alpha,sc_dict))
                 time.sleep(1)
@@ -435,14 +446,14 @@ def main(K_range,alpha_range):
 
         if len(search_results)>0:
             print('found finished search!')
-            print(search_results)
+            # print(search_results)
             for res in search_results:
                 [pid,[x0,x1]] = res
 
                 if len(x0) == 2:
                     #this indicates that the search failed. Immediately restart it
                     print('search failed, restarting')
-                    new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids)
+                    new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids)
                     worker_pool.apply_async(search, args=(new_K,new_alpha,sc_dict))
                     continue
 
@@ -454,7 +465,7 @@ def main(K_range,alpha_range):
 
                 #if found alpha is out of range, start a new search
                 if (found_alpha<alpha_range[0] or found_alpha>alpha_range[1]):
-                    new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids)
+                    new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids)
                     worker_pool.apply_async(search, args=(new_K,new_alpha,sc_dict))
                     continue
 
@@ -470,37 +481,62 @@ def main(K_range,alpha_range):
                         #is at least 0.1 big. 
                         if (alpha_lead>comp_alpha_range[0]) and (alpha_lead<comp_alpha_range[1]):
                             print('alpha detected in already searched range, starting new search')
-                            new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,already_killed_pids)
+                            new_K, new_alpha = get_opt_K_alpha(walk_positions,trail_positions,currently_walking_pids)
                             worker_pool.apply_async(search, args=(new_K,new_alpha,sc_dict))
                             search_restarted=True
                             break
 
                 if search_restarted:
                     continue
+                
+                if explore_direction == 0:
+                    #create two new pipes
+                    pipes = []
+                    pipes.append(multiprocessing.Pipe())
+                    pipes.append(multiprocessing.Pipe())
 
-                #create two new pipes
-                pipes = []
-                pipes.append(multiprocessing.Pipe())
-                pipes.append(multiprocessing.Pipe())
+                    #start walk jobs
+                    worker_pool.apply_async(walk,args=(x0,x1,-1,pipes[0][0],sc_dict))
+                    worker_pool.apply_async(walk,args=(x0,x1,1,pipes[1][0],sc_dict))
 
-                #start walk jobs
-                worker_pool.apply_async(walk,args=(x0,x1,-1,pipes[0][0],sc_dict))
-                worker_pool.apply_async(walk,args=(x0,x1,1,pipes[1][0],sc_dict))
+                    #send pipeIDs down pipes
+                    pipes[0][1].send(0)
+                    pipes[1][1].send(1)
 
-                #send pipeIDs down pipes
-                pipes[0][1].send(0)
-                pipes[1][1].send(1)
+                    #assign resulting pipe communication to correct pid
+                    queue_empty = False
+                    while not queue_empty:
+                        try:
+                            [pipe_id,pid] = pipe_setup_queue.get(block=True,timeout=3)
+                            pipe_dict[pid] = pipes[pipe_id][1]
+                            #add initial positions as trails to dict
+                            trail_positions[pid] = [x0[-1],x0[-2]] #[K,alpha]
+                            currently_walking_pids.append(pid)
+                        except Empty:
+                            queue_empty = True
+                elif (explore_direction == 1) or (explore_direction ==-1):
+                    #create new pipe
+                    pipes = []
+                    pipes.append(multiprocessing.Pipe())
 
-                #assign resulting pipe communication to correct pid
-                queue_empty = False
-                while not queue_empty:
-                    try:
-                        [pipe_id,pid] = pipe_setup_queue.get(block=True,timeout=3)
-                        pipe_dict[pid] = pipes[pipe_id][1]
-                        #add initial positions as trails to dict
-                        trail_positions[pid] = [x0[-1],x0[-2]] #[K,alpha]
-                    except Empty:
-                        queue_empty = True
+                    #start walk job
+                    worker_pool.apply_async(walk,args=(x0,x1,explore_direction,pipes[0][0],sc_dict))
+
+                    #send pipeID down pipe
+                    pipes[0][1].send(0)
+
+                    #assign resulting pipe communication to correct pid
+                    queue_empty = False
+                    while not queue_empty:
+                        try:
+                            [pipe_id,pid] = pipe_setup_queue.get(block=True,timeout=3)
+                            pipe_dict[pid] = pipes[pipe_id][1]
+                            #add initial positions as trails to dict
+                            trail_positions[pid] = [x0[-1],x0[-2]] #[K,alpha]
+                            currently_walking_pids.append(pid)
+                        except Empty:
+                            queue_empty = True
+
 
                 
 
@@ -515,7 +551,7 @@ def main(K_range,alpha_range):
             try:
                 item = data_queue.get(block=True,timeout=0.2)
                 items.append(item)
-                print('got data,', item)
+                # print('got data,', item)
             except Empty:
                 queue_empty = True
         if it_num%100 == 0:
@@ -527,23 +563,23 @@ def main(K_range,alpha_range):
             kill_pids = []
             for item in items:
                 [pid, x, direction] = item
-                if pid in already_killed_pids:
+                if pid not in currently_walking_pids:
                     #if the pid that sent the message
                     #has already had a command sent to kill
                     #but has not yet been killed
                     #ignore the message
                     continue
                 # write x to h5 traj file
-                print('writing to file!')
+                # print('writing to file!')
                 for nattempt in range(1000):
                     try:
                         with h5py.File(traj_file, 'a') as hf:
                             x_traj = hf['x']
                             x_traj.resize((x_traj.shape[0] + 1, x_traj.shape[1]))
                             x_traj[-1, :] = x
-                            print('written')
+                            # print('written')
                             break
-                    except:
+                    except OSError:
                         print('hdf5 file not accessible, trying again in 1s')
                         print('failed to access file')
                         time.sleep(1.0)
@@ -555,8 +591,8 @@ def main(K_range,alpha_range):
                 alpha_lead = x[-2]
                 walk_positions[pid] = [[k_lead, alpha_lead], direction]
                 #check for encroachment
-                print('LEAD POSITIONS:', walk_positions)
-                print('TRAIL POSITIONS:',trail_positions)
+                # print('LEAD POSITIONS:', walk_positions)
+                # print('TRAIL POSITIONS:',trail_positions)
                 for other_pid in walk_positions:
                     if other_pid != pid:
                         [[comp_k_lead,comp_alpha_lead],comp_direction] = walk_positions[other_pid]
@@ -568,34 +604,34 @@ def main(K_range,alpha_range):
                             #if the alpha lies within the comparison range, and the comparision range
                             #is at least 0.1 big. 
                             if (alpha_lead>comp_alpha_range[0]) and (alpha_lead<comp_alpha_range[1]) and ((comp_alpha_range[1]-comp_alpha_range[0])>1e-2):
-                                print('alpha detected in range!')
+                                # print('alpha detected in range!')
                                 #if it's more than 1e-3 away from one of the ends (some serious overlap)
                                 if (abs(alpha_lead-comp_alpha_lead)>1e-3) and (abs(alpha_lead-comp_alpha_trail)>1e-3):
-                                    print('encroachment detected!')
+                                    # print('encroachment detected!')
                                     if pid not in kill_pids:
                                         kill_pids.append(pid)
                             
                 if alpha_lead > alpha_range[1]:
-                    print('alpha detected out of upper range')
+                    # print('alpha detected out of upper range')
                     if pid not in kill_pids:
                         kill_pids.append(pid)
                 elif alpha_lead < alpha_range[0]:
-                    print('alpha detected out of lower range')
+                    # print('alpha detected out of lower range')
                     if pid not in kill_pids:
                         kill_pids.append(pid)
             
-            print('kill_pids:,', kill_pids)
+            # print('kill_pids:,', kill_pids)
             #kill any pids that need killing
             if len(kill_pids)>0:
                 for pid in kill_pids:
                     pipe_dict[pid].send(1) #send kill command
-                    already_killed_pids.append(pid)
+                    currently_walking_pids.remove(pid)
                     killed_num += 1
                     trail_positions[f'killed{killed_num}'] = trail_positions[pid]
                     walk_positions[f'killed{killed_num}'] = walk_positions[pid]
                     #walk_positions[pid] = [[0,0],0]
                     #trail_positions[pid] = [[0,0]]
-                print(kill_pids)
+                # print(kill_pids)
                 #worker_pool.close()
                 #exit()
         
@@ -604,7 +640,6 @@ def main(K_range,alpha_range):
         while not queue_empty:
             try:
                 pid = kill_confirm_queue.get(block=False)
-                already_killed_pids.remove(pid)
                 del trail_positions[pid]
                 del walk_positions[pid]
             except Empty:
@@ -613,14 +648,14 @@ def main(K_range,alpha_range):
         #check if the search is finished and calculate %
         total_alpha_covered = 0
         for pid in walk_positions:
-            if pid in already_killed_pids:
+            if pid not in currently_walking_pids:
                 #need to avoid double counting when a process terminates
                 continue
             [[k_lead,alpha_lead],direction] = walk_positions[pid]
             [k_trail,alpha_trail] = trail_positions[pid]
             contribution = (alpha_lead-alpha_trail)*direction
             total_alpha_covered += contribution
-            print('CONTRIBUTION:',pid,contribution)
+            # print('CONTRIBUTION:',pid,contribution)
         percentage_covered = total_alpha_covered/(alpha_range[1]-alpha_range[0])
         if percentage_covered > 1:
             curve_explored=True
@@ -679,6 +714,7 @@ if __name__ == '__main__':
     cutoff = parameter('cutoff')
     dk = parameter('dk', 1e-4)
     dalpha = parameter('dalpha', 1e-1)
+    explore_direction = parameter('explore_direction', 0)
 
     if cb == 'None':
         cb = None
@@ -703,8 +739,7 @@ if __name__ == '__main__':
     sorted_x = np.sort(closest_x)
     diffs = np.diff(sorted_x)
     alpha_period = np.sum(np.unique(np.round(np.diff(sorted_x),decimals=4)))
-    print('alpha_period',alpha_period)
-
+    # print('alpha_period',alpha_period)
     # setup the crack
     crk = CubicCrystalCrack(parameter('crack_surface'),
                     parameter('crack_front'),
@@ -712,7 +747,7 @@ if __name__ == '__main__':
     
     #get k1g
     k1g = crk.k1g(parameter('surface_energy'))
-
+    print('griffthk1,',k1g)
     cluster = params.cluster.copy() 
     # save the cluster used for NCFlex, to avoid sort-index inconsistencies
     ase.io.write('ncflex_cluster.xyz',cluster) 

@@ -138,7 +138,9 @@ def show_dislocation(system, scale=0.5, CNA_color=True, diamond_structure=False,
     view.camera = 'orthographic'
     view.parameters = {"clipDist": 0}
 
-    view._remote_call("setSize", target="Widget", args=["700px", "400px"])
+    #view._remote_call("setSize", target="Widget", args=["400px", "300px"])
+    view.layout.width = '100%'
+    view.layout.height = '300px'
     view.center()
 
     view._js(tooltip_js)
@@ -159,6 +161,8 @@ def interactive_view(system, scale=0.5, name=""):
     view.parameters = {"clipDist": 0}
 
     view.center()
-    view._remote_call("setSize", target="Widget", args=["300px", "300px"])
+    #view._remote_call("setSize", target="Widget", args=["300px", "300px"])
+    view.layout.width = '100%'
+    view.layout.height = '300px'
     view._js(tooltip_js)
     return view

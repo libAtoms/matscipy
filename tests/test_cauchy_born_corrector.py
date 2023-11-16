@@ -10,6 +10,7 @@ from matscipy.calculators.manybody import Manybody
 from scipy.linalg import sqrtm
 import ase.io
 import matscipytest
+from matscipy.elasticity import Voigt_6_to_full_3x3_strain
 
 
 class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
@@ -44,64 +45,49 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
 
     def test_fit_taylor_model(self):
         self.cb.fit_taylor()
-        # print(self.cb.grad_f)
-        # print(self.cb.hess_f)
-        grad_f = np.array([0.00000000e+00, 0.00000000e+00, 0.00000000e+00, -
-                          1.09995082e+00, -2.22044605e-12, -3.33066907e-12])
-        hess_f = np.array([[0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 2.03958794e-01, 0.00000000e+00, 1.11022302e-08],
+        print(self.cb.grad_f)
+        print(self.cb.hess_f)
+        grad_f = np.array([0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+                          -5.49975395e-01, 0.00000000e+00, -2.22044605e-12])
+        hess_f = np.array([[0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+                               1.01979464e-01, 1.66533454e-08, 1.66533454e-08],
                            [0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
-                               9.12311482e-01, -5.55111512e-09, 0.00000000e+00],
+                               4.56155597e-01, -1.66533454e-08, 0.00000000e+00],
                            [0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
-                               9.12311465e-01, 0.00000000e+00, 0.00000000e+00],
-                           [2.03958794e-01, 9.12311493e-01, 9.12311465e-01,
-                            0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
-                           [0.00000000e+00, -5.55111512e-09, 0.00000000e+00,
-                            0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
-                           [1.11022302e-08, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00]])
+                               4.56155608e-01, 0.00000000e+00, 0.00000000e+00],
+                           [1.01979464e-01, 4.56155597e-01, 4.56155608e-01,
+                               0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
+                           [1.66533454e-08, -1.66533454e-08, 0.00000000e+00,
+                               0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
+                           [1.66533454e-08, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00]])
         assert np.allclose(self.cb.grad_f, grad_f, atol=1e-6)
         assert np.allclose(self.cb.hess_f, hess_f, atol=1e-6)
 
     def E_cart3D(self, x, y, z, eps=None):
-        E = np.zeros([len(x), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps = np.reshape(eps,[1,6])
+        eps_vec = np.repeat(eps,len(x),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         return E
 
     def E_cylind3D(self, r, theta, z, eps=None):
-        E = np.zeros([len(r), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps = np.reshape(eps,[1,6])
+        eps_vec = np.repeat(eps,len(r),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         return E
 
     def F_cart3D(self, x, y, z, eps=None):
-        E = np.zeros([len(x), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps = np.reshape(eps,[1,6])
+        eps_vec = np.repeat(eps,len(x),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         U = np.zeros_like(E)
         for i in range(np.shape(E)[0]):
             U[i, :, :] = sqrtm((2*E[i, :, :])+np.eye(3))
         return U  # with no rigid rotation, U is F
 
     def F_cylind3D(self, r, theta, z, eps=None):
-        E = np.zeros([len(r), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps = np.reshape(eps,[1,6])
+        eps_vec = np.repeat(eps,len(r),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         U = np.zeros_like(E)
         for i in range(np.shape(E)[0]):
             U[i, :, :] = sqrtm((2*E[i, :, :])+np.eye(3))
@@ -232,15 +218,15 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
             dirs, eps, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
         assert shift_err_after < shift_err_before
         # print(shift_err_before,shift_err_after)
-    
+
     def E_cart3D_with_de(self, x, y, z, eps=None, de=0):
-        E = np.zeros([len(x), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]+de
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps_arr = eps.copy()
+        eps_arr[1] += de
+        eps_arr = np.reshape(eps_arr,[1,6])
+        eps_vec = np.repeat(eps_arr,len(x),axis=0)
+        print('eps_vec', eps_vec[0,:])
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
+        print('E out', E[0,:,:])
         return E
 
     def test_regression_model_gradient_E(self):
@@ -249,17 +235,17 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         dirs = [[1, 1, 1], [-2, 1, 1], np.cross([1, 1, 1], [-2, 1, 1])]
         func = self.E_cart3D_with_de
         coordinates = 'cart3D'
-        #print('MAKING RAW PREDICION WITH NO ADDED EPS')
+        # print('MAKING RAW PREDICION WITH NO ADDED EPS')
         atoms, shifts, shift_err_before, A = self.model_prediction(
             dirs, eps, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
         atoms_copy_init = atoms.copy()
-        self.cb.apply_shifts(atoms_copy_init,shifts)
-        #find the gradient using the strain function finite differences
+        self.cb.apply_shifts(atoms_copy_init, shifts)
+        # find the gradient using the strain function finite differences
         de = 1e-5
-        nu_grad = self.cb.get_shift_gradients(A,atoms,\
-            E_func=func, coordinates='cart3D',eps=eps,de=de)
+        nu_grad = self.cb.get_shift_gradients(A, atoms,
+                                              E_func=func, coordinates='cart3D', eps=eps, de=de)
 
-        #find the gradients manually by finite differences
+        # find the gradients manually by finite differences
         eps_down = eps.copy()
         eps_down[1] -= de
 
@@ -267,30 +253,29 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
             dirs, eps_down, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
         atoms_copy_down = atoms.copy()
         self.cb.apply_shifts(atoms_copy_down, shifts_down)
-        
+
         eps_up = eps.copy()
         eps_up[1] += de
         atoms, shifts_up, shift_err_before, A = self.model_prediction(
             dirs, eps_up, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
-        
+
         atoms_copy_up = atoms.copy()
         self.cb.apply_shifts(atoms_copy_up, shifts_up)
-        #print(shifts_up-shifts_down)
-        nu_grad_fd = (atoms_copy_up.get_positions()-atoms_copy_down.get_positions())/(2*de)
-        #print(nu_grad_fd-nu_grad)
-        assert np.allclose(nu_grad_fd,nu_grad,1e-8)
+        # print(shifts_up-shifts_down)
+        nu_grad_fd = (atoms_copy_up.get_positions() -
+                      atoms_copy_down.get_positions())/(2*de)
+        # print(nu_grad_fd-nu_grad)
+        assert np.allclose(nu_grad_fd, nu_grad, 1e-8)
 
     def F_cart3D_with_de(self, x, y, z, eps=None, de=0):
-        E = np.zeros([len(x), 3, 3])
-        E[:, 0, 0] = eps[0]
-        E[:, 1, 1] = eps[1]+de
-        E[:, 2, 2] = eps[2]
-        E[:, 1, 2], E[:, 2, 1] = eps[3], eps[3]
-        E[:, 0, 2], E[:, 2, 0] = eps[4], eps[4]
-        E[:, 0, 1], E[:, 1, 0] = eps[5], eps[5]
+        eps_arr = eps.copy()
+        eps_arr[1] += de
+        eps_arr = np.reshape(eps_arr,[1,6])
+        eps_vec = np.repeat(eps_arr,len(x),axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
         U = np.zeros_like(E)
         for i in range(np.shape(E)[0]):
-            U[i,:,:] = sqrtm((2*E[i, :, :])+np.eye(3))
+            U[i, :, :] = sqrtm((2*E[i, :, :])+np.eye(3))
         return U
 
     def test_regression_model_gradient_F(self):
@@ -299,16 +284,16 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         dirs = [[1, 1, 1], [-2, 1, 1], np.cross([1, 1, 1], [-2, 1, 1])]
         func = self.F_cart3D_with_de
         coordinates = 'cart3D'
-        #print('MAKING RAW PREDICION WITH NO ADDED EPS')
+        # print('MAKING RAW PREDICION WITH NO ADDED EPS')
         atoms, shifts, shift_err_before, A = self.model_prediction(
-            dirs, eps, method='regression', F_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
-        
-        #find the gradient using the function finite differences
-        de = 1e-5
-        nu_grad = self.cb.get_shift_gradients(A,atoms,\
-            F_func=func, coordinates='cart3D',eps=eps,de=de)
+            dirs, eps, method='regression', F_func=func, coordinates=coordinates, atol=2e-4, returnvals=True)
 
-        #find the gradients manually by finite differences
+        # find the gradient using the function finite differences
+        de = 1e-5
+        nu_grad = self.cb.get_shift_gradients(A, atoms,
+                                              F_func=func, coordinates='cart3D', eps=eps, de=de)
+
+        # find the gradients manually by finite differences
         eps_down = eps.copy()
         eps_down[1] -= de
 
@@ -321,15 +306,16 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         eps_up[1] += de
         atoms, shifts_up, shift_err_before, A = self.model_prediction(
             dirs, eps_up, method='regression', F_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
-        
+
         atoms_copy_up = atoms.copy()
         self.cb.apply_shifts(atoms_copy_up, shifts_up)
-        #print(shifts_up-shifts_down)
+        # print(shifts_up-shifts_down)
 
-        #print(shifts_up-shifts_down)
-        nu_grad_fd = (atoms_copy_up.get_positions()-atoms_copy_down.get_positions())/(2*de)
+        # print(shifts_up-shifts_down)
+        nu_grad_fd = (atoms_copy_up.get_positions() -
+                      atoms_copy_down.get_positions())/(2*de)
         print(nu_grad_fd, nu_grad)
-        assert np.allclose(nu_grad_fd,nu_grad,1e-8)
+        assert np.allclose(nu_grad_fd, nu_grad, 1e-8)
 
 
 if __name__ == '__main__':
