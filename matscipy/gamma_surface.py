@@ -282,8 +282,10 @@ class GammaSurface():
             y_points[j, :] = dy * j
 
         if compressed is True:
+            # "Compressed" images via cell moves
             self.images = self._gen_compressed_images(base_struct, nx, ny, x_points, y_points, vacuum)
         else:
+            # "Uncompressed" images via atom moves
             self.images = self._gen_uncompressed_images(base_struct, nx, ny, x_points, y_points)
         return self.images
 
@@ -322,8 +324,8 @@ class GammaSurface():
         if cell_relax:
             cell_constraint_mask[2, 2] = 1  # Allow z component relaxation
 
+        select_all = np.full_like(self.images[0], True, dtype=bool)
         for image in self.images:
-            select_all = np.full_like(image, True, dtype=bool)
 
             if constrain_atoms:
                 image.set_constraint(FixedLineAtoms(select_all, (0, 0, 1)))
@@ -469,7 +471,7 @@ class StackingFault(GammaSurface):
         if Es is None:
             # Should have been populated from self.Es
             # If not, self.get_surface_energies() should have been called
-            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_surface_energies()."
+            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_surface_energies().")
 
         if si:
             mul = _e * 1e20
