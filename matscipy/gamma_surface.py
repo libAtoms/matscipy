@@ -196,7 +196,7 @@ class GammaSurface():
         return images
 
 
-    def generate_images(self, nx, ny, z_replications=1, atom_offset=None, cell_strain=0.0, vacuum=0.0, 
+    def generate_images(self, nx, ny, z_replications=1, atom_offset=0.0, cell_strain=0.0, vacuum=0.0, 
                         path_xlims=[0, 1], path_ylims=None, compressed=True):
         '''
         Generate gamma surface images on an (nx, ny) grid
@@ -244,10 +244,7 @@ class GammaSurface():
         base_struct = self.cut_at * (1, 1, z_replications)
 
         # Atom offset
-        if atom_offset is not None:
-            offset = atom_offset
-        else:
-            offset = self.offset
+        offset = atom_offset + self.offset
         pos = base_struct.get_positions()
         pos[:, 2] += offset
         base_struct.set_positions(pos)
