@@ -105,7 +105,7 @@ class GammaSurface():
         alat, self.cut_at = validate_cubic_cell(a, axes=ax, crystalstructure=crystalstructure, symbol=symbol)
         self.offset *= alat
 
-    def _vec_to_miller(vec):
+    def _vec_to_miller(self, vec):
         '''
         Converts np.array vec to string miller notation
 
@@ -448,15 +448,29 @@ class GammaSurface():
         atom_axes = [atom_ax1, atom_ax2, atom_ax3]
         rotations = ["-90z, -90x", "-90x", ""]
 
+        directions = [ # Directions corresponding to the above rotations
+            ("y", "z"),
+            ("x", "z"),
+            ("x", "y")
+        ]
+
         def plot_all_atom_axes(atoms, keep_lims=True):
             for i in range(3):
                 curr_ax = atom_axes[i]
                 rot = rotations[i]
 
+                xdir, ydir = directions[i]
+
                 xlim = curr_ax.get_xlim()
                 ylim = curr_ax.get_ylim()
                 curr_ax.clear()
-                curr_ax.axis('off')
+
+                curr_ax.set_xticks([])
+                curr_ax.set_yticks([])
+
+                curr_ax.set_xlabel(self._vec_to_miller(self.surf_directions[xdir]))
+                curr_ax.set_ylabel(self._vec_to_miller(self.surf_directions[ydir]))
+
 
                 if CNA_color:
                     plot_atoms(atoms, ax=curr_ax, colors=atoms.get_array("colors"), 
@@ -567,7 +581,7 @@ class StackingFault(GammaSurface):
         my_ax.set_title(title)
         return fig, my_ax
     
-    def show(self, CNA_color=True, plot_energies=False, si=False, rotation="-90z, -90x", **kwargs):
+    def show(self, CNA_color=True, plot_energies=False, si=False, **kwargs):
         '''
         Overload of GammaSurface.show()
         Plots an animation of the stacking fault structure, and optionally the associated 
@@ -591,6 +605,8 @@ class StackingFault(GammaSurface):
         
         images = [image.copy() for image in self.images]
         nims = len(images)
+
+        rotation = "-90z, -90x"
 
         if si:
             si_fac = 1e20 * _e
@@ -633,9 +649,13 @@ class StackingFault(GammaSurface):
             framenum, atoms = framedata
             # Plot Structure
             atom_ax.clear()
-            atom_ax.axis('off')
+            
+            atom_ax.set_xticks([])
+            atom_ax.set_yticks([])
 
-            atom_ax.set_ylabel()
+            atom_ax.set_xlabel(self._vec_to_miller(self.surf_directions["y"]))
+            atom_ax.set_ylabel(self._vec_to_miller(self.surf_directions["z"]))
+
             if CNA_color:
                 plot_atoms(atoms, ax=atom_ax, colors=atoms.get_array("colors"), 
                 rotation=rotation, **kwargs)
