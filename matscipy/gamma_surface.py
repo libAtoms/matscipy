@@ -291,7 +291,7 @@ class GammaSurface():
             opt = optimiser(cell_filter, logfile=logfile)
             opt.run(ftol, **kwargs)
 
-    def get_surface_energies(self, calculator=None, relax=False, **relax_kwargs):
+    def get_energy_densities(self, calculator=None, relax=False, **relax_kwargs):
         '''
         Get (self.nx, self.ny) grid of gamma surface energies from self.images
 
@@ -350,7 +350,7 @@ class GammaSurface():
 
         Returns a matplotlib fig and ax object
         Es: np.array
-            (nx, ny) array of energy densities. If None, uses self.Es (if populated from self.get_surface_energies())
+            (nx, ny) array of energy densities. If None, uses self.Es (if populated from self.get_energy_densities())
         ax: matplotlib axis object
             Axis to draw plot
         si: bool
@@ -365,8 +365,8 @@ class GammaSurface():
 
         if Es is None:
             # Should have been populated from self.Es
-            # If not, self.get_surface_energies() should have been called
-            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_surface_energies().")
+            # If not, self.get_energy_densities() should have been called
+            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_energy_densities().")
 
         if si:
             mul = _e * 1e20
@@ -412,7 +412,7 @@ class StackingFault(GammaSurface):
 
         Returns a matplotlib fig and ax object
         Es: np.array
-            (nx, ny) array of energy densities. If None, uses self.Es (if populated from self.get_surface_energies())
+            (nx, ny) array of energy densities. If None, uses self.Es (if populated from self.get_energy_densities())
         ax: matplotlib axis object
             Axis to draw plot
         si: bool
@@ -426,8 +426,8 @@ class StackingFault(GammaSurface):
 
         if Es is None:
             # Should have been populated from self.Es
-            # If not, self.get_surface_energies() should have been called
-            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_surface_energies().")
+            # If not, self.get_energy_densities() should have been called
+            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_energy_densities().")
 
         if si:
             mul = _e * 1e20
