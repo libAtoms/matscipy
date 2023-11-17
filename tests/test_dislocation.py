@@ -468,6 +468,12 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
+    def test_edge111bar_dislocation(self):
+        self.check_disloc(sd.BCCEdge111barDislocation, 90.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
     def test_edge100_dislocation(self,):
         self.check_disloc(sd.BCCEdge100Dislocation, 90.0,
                           burgers=np.array([1.0, 0.0, 0.0]))
@@ -741,6 +747,115 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         np.testing.assert_almost_equal(E, target_E, decimal=3)
         np.testing.assert_almost_equal(shift, target_shift, decimal=3)
+    
+    
+    def check_anisotropic_disloc(self, cls, ref_angle, structure="BCC", 
+                                 test_u=True, test_grad_u=True,
+                                 tol_angle=10.0, dx=1e-6):
+        # Parameters for BCC-Fe
+        a0 = 2.87
+        C11 = 239.54994189008644
+        C12 = 135.75008213328775
+        C44 = 120.75007086691606
+
+        # Setup CubicCrystalDislocation object, and get displacments
+        ccd = cls(a0, C11, C12, C44, symbol="Fe")
+        bulk, sc_disloc1 = ccd.build_cylinder(20.0)
+        center = np.diag(bulk.cell) / 2
+        stroh_disp = ccd.displacements(bulk.positions, center, use_atomman=True, self_consistent=False)
+
+        # Get displacements using AnistoropicDislocation class
+        adsl_disp = ccd.displacements(bulk.positions, center, use_atomman=False, self_consistent=False)
+
+        # Setup the dislcation from the AnistoropicDislocation object
+        disloc = bulk.copy()
+        disloc.positions += adsl_disp
+
+        # Check its Burgers vector
+        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
+        assert len(results) == 1
+        position, b, line, angle = results[0]
+        b = np.abs( np.array(b) / np.linalg.norm(b) ) 
+        b_ref = np.abs( ccd.burgers / np.linalg.norm(ccd.burgers) ) 
+        self.assertArrayAlmostEqual(b, b_ref)  
+    
+        # Check its angle
+        err = angle - ref_angle
+        print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
+        assert abs(err) < tol_angle
+
+        if test_u:
+            # Check displacements
+            np.testing.assert_array_almost_equal(adsl_disp, stroh_disp)
+    
+        if test_grad_u:
+        
+            # Find finite difference gradients from atomman stroh
+            dims = list(range(3))
+            grad = []
+            for i in dims:
+                center_dx = center.copy()
+                center_dx[i] += dx
+                stroh_disp_dx = ccd.displacements(bulk.positions, center_dx, self_consistent=False)
+                grad += [ ( stroh_disp_dx - stroh_disp ) / dx ]
+
+            # Put them together to form the transposed 2D gradient tensor. Form: [[du_dx, du_dy], [dv_dx, dv_dy]]
+            grad2D_stroh_T = np.array([ [grad[x][:,u] for x in dims] for u in dims ])
+
+            # Flip sign, as moving the dislocation core in the positive axis direction corresponds to a compressive strain 
+            # along that axis, whereas the deformation gradient tensor is defined with respect to extensional strain.
+            grad2D_stroh_T *= -1
+
+            # Add unity matrix along the diagonal block, to turn this into the deformation gradient tensor.
+            for i in dims:
+                grad2D_stroh_T[i,i,:] += np.ones(len(stroh_disp))
+
+            # Transpose to get the correct form
+            grad2D_stroh = np.transpose(grad2D_stroh_T)
+
+            # Find 2D gradient tensor from AnistoropicDislocation object
+            grad2D_adsl = ccd.ADstroh.deformation_gradient(bulk, center)
+
+            # Check gradients
+            np.testing.assert_array_almost_equal(grad2D_adsl, grad2D_stroh)
+        
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_screw_dislocation_adsl(self):
+        self.check_anisotropic_disloc(sd.BCCScrew111Dislocation, 0.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge_dislocation_adsl(self):
+        self.check_anisotropic_disloc(sd.BCCEdge111Dislocation, 90.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge111bar_dislocation_adsl(self):
+        self.check_anisotropic_disloc(sd.BCCEdge111barDislocation, 90.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge100_dislocation_adsl(self,):
+        self.check_anisotropic_disloc(sd.BCCEdge100Dislocation, 90.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_edge100110_dislocation_adsl(self,):
+        self.check_anisotropic_disloc(sd.BCCEdge100110Dislocation, 90.0)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def test_mixed_dislocation_adsl(self):
+        self.check_anisotropic_disloc(sd.BCCMixed111Dislocation, 70.5)
+
 
 if __name__ == '__main__':
     unittest.main()

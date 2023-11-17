@@ -749,6 +749,9 @@ if __name__ == '__main__':
     k1g = crk.k1g(parameter('surface_energy'))
     print('griffthk1,',k1g)
     cluster = params.cluster.copy() 
+    # save the cluster used for NCFlex, to avoid sort-index inconsistencies
+    ase.io.write('ncflex_cluster.xyz',cluster) 
+
     if crk.cauchy_born is not None:
         crk.cauchy_born.set_sublattices(cluster,np.transpose(crk.RotationMatrix),read_from_atoms=True)
 

@@ -42,6 +42,8 @@ from ase.io import read
 
 from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
+from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
+from matscipy.elasticity import cubic_to_Voigt_6x6
 from matscipy.utils import validate_cubic_cell
 
 
@@ -2150,6 +2152,177 @@ def check_duplicates(atoms, distance=0.1):
     # print(f"found {duplicates.sum()} duplicates")
     return duplicates.astype(np.bool)
 
+class AnisotropicDislocation:
+    """
+    Displacement and displacement gradient field of straight dislocation 
+    in anisotropic elastic media. Ref: pp. 467 in J.P. Hirth and J. Lothe, 
+    Theory of Dislocations, 2nd ed. Similar to class `CubicCrystalDislocation`.
+    """
+
+    def __init__(self, C11, C12, C44, axes,
+                 slip_plane, disloc_line, burgers):
+        """
+        Setup a dislocation in a cubic crystal. 
+        C11, C12 and C44 are the elastic constants in the Catersian geometry.
+        The arg 'axes' is a 3x3 array containing axes of frame of reference (eg.crack system).
+        The dislocation parameters required are the slip plane normal ('slip_plane'), the 
+        dislocation line direction ('disloc_line') and the Burgers vector ('burgers').
+        """
+
+        # normalize axes of the cell (for NCFlex: crack system coordinates) 
+        A = np.array([ np.array(v)/np.linalg.norm(v) for v in axes ])
+
+        # normalize axis of dislocation coordinates
+        n = np.array(slip_plane) ; n =  n / np.linalg.norm(n) 
+        xi = np.array(disloc_line) ; xi = xi / np.linalg.norm(xi) 
+        m = np.cross(n, xi) # dislocation glide direction
+        m = m / np.linalg.norm(m)    
+        
+        # Rotate vectors from dislocation system to crack coordinates
+        m = np.einsum('ij,j', A, m)
+        n = np.einsum('ij,j', A, n)
+        xi = np.einsum('ij,j', A, xi)
+        b = np.einsum('ij,j', A, burgers)
+        
+        # define elastic constant in Voigt notation
+        C_v = cubic_to_Voigt_6x6(C11, C12, C44)
+        # convert Voigt to tensor
+        C = Voigt_6x6_to_full_3x3x3x3(C_v)
+        # rotate elastic matrix
+        cijkl = np.einsum('ig,jh,ghmn,km,ln', \
+            A, A, C, A, A)
+    
+        # solve the Stroh sextic formalism: the same as Stroh.py from atomman
+        # this part can also be replaced by calling Stroh.py from atomman
+        mm = np.einsum('i,ijkl,l', m, cijkl, m)
+        mn = np.einsum('i,ijkl,l', m, cijkl, n)
+        nm = np.einsum('i,ijkl,l', n, cijkl, m)
+        nn = np.einsum('i,ijkl,l', n, cijkl, n)
+
+        # TODO: Replace with np.linalg.solve as it is more stable than np.linalg.inv
+        nninv = np.linalg.inv(nn)
+        mn_nninv = np.dot(mn, nninv)      
+        #mn_nninv_2 = np.linalg.solve(nn.T, mn.T).T # works, consistent with mn_nninv
+        #nninv_2 = np.linalg.solve(mn, mn_nninv_2) # TODO: Resolve LinAlgError: Singular matrix
+
+        N = np.zeros((6,6), dtype=float)
+        N[0:3,0:3] = -np.dot(nninv, nm)
+        N[0:3,3:6] = -nninv
+        N[3:6,0:3] = -(np.dot(mn_nninv, nm) - mm)
+        N[3:6,3:6] = -mn_nninv
+
+        # slove the eigenvalue problem
+        Np, Nv = np.linalg.eig(N)
+
+        # The eigenvector Nv contains the vectors A and L.
+        # Normalize A and L, such that 2*A*L=1 
+        for i in range(0,6):
+            norm = 2.0 * np.dot(Nv[0:3, i], Nv[3:6, i])
+            Nv[0:3, i] /= np.sqrt(norm)
+            Nv[3:6, i] /= np.sqrt(norm)
+
+        # Store key variables
+        self.m = m
+        self.n = n
+        self.xi = xi
+        self.b = b
+        self.Np = Np
+        self.Nv = Nv
+    
+
+    def displacement(self, bulk_positions, center=np.array([0.0,0.0,0.0])):
+
+        """
+        Displacement field of a straight dislocation. Currently only for 2D, can be extended.
+        Parameters
+        ----------
+        bulk_positions : array
+            Positions of atoms in the bulk cell (with axes == self.axes)
+        center : 3x1 array
+            Position of the dislocation core within the cell
+        Returns
+        -------
+        disp : array
+            Stroh displacements along the crack running direction (axes[0]) and crack plane normal (axes[1]).
+        """
+
+        # Get atomic positions wrt dislocation core in Cartesian coordinates
+        coordinates = [ vec-center for vec in bulk_positions]
+
+        # calculation
+        signs = np.sign(np.imag(self.Np))
+        signs[np.where(signs==0.0)] = 1.0
+        A = self.Nv[0:3,:]
+        L = self.Nv[3:6,:]
+        D = np.einsum('i,ij', self.b, L)
+        constant_factor = signs * A * D
+
+        eta = (np.expand_dims(np.einsum('i,ji', self.m, coordinates), axis=1)
+            + np.outer(np.einsum('i,ji', self.n, coordinates), self.Np))
+
+        # get the displacements
+        disp = ((1.0/(2.0 * np.pi * 1.0j))
+            * np.einsum('ij,kj', np.log(eta), constant_factor))
+
+        return np.real(disp) 
+
+
+    def deformation_gradient(self, bulk_positions, center=np.array([0.0,0.0,0.0]), return_2D=False):
+        """
+        3D displacement gradient tensor of the dislocation. 
+
+        Parameters
+        ----------
+        bulk_positions : array
+            Positions of atoms in the bulk cell (with axes == self.axes)
+        center : 3x1 array
+            Position of the dislocation core within the cell
+
+        Returns
+        -------
+        du_dx, du_dy, du/dz, dv_dx, dv_dy, dv/dz, dw/dx, dw/dy, dw/dz : 1D arrays
+            Displacement gradients:
+            dx, dy, dz: changes in dislocation core position along the three axes of self.axes
+            du, dv, dw: changes in displacements of atoms along the three axes of self.axes, in response to changes in dislocation core position
+        """
+
+        # Get atomic positions wrt dislocation core in Cartesian coordinates
+        coordinates = [ vec-center for vec in bulk_positions]
+
+        signs = np.sign(np.imag(self.Np))
+        signs[np.where(signs==0.0)] = 1.0
+        
+        A = self.Nv[0:3,:]
+        L = self.Nv[3:6,:]
+        D = signs * np.einsum('i,ij', self.b, L)
+
+        eta = (np.expand_dims(np.einsum('i,ji', self.m, coordinates), axis=1)
+               + np.outer(np.einsum('i,ji', self.n, coordinates), self.Np))
+        
+        pref = (1.0/(2.0 * np.pi * 1.0j))
+
+        # Compute the displacement gradient components
+        nat = len(coordinates)
+        grad3D_T = np.zeros((3,3,nat))
+        for i in range(3):
+            for j in range(3):
+                grad3D_T[i,j,:] = np.real(( pref * np.einsum('ij,j', 1/eta, (self.m[j] + self.Np * self.n[j]) * A[i,:] * D) ))
+
+        # Add unity matrix along the diagonal block, to turn this into the deformation gradient tensor.
+        for i in range(3):
+            grad3D_T[i,i,:] += np.ones(nat)
+        
+        # Transpose to get the correct shape
+        # Form: np.transpose([[du_dx, du_dy, du_dz], [dv_dx, dv_dy, dv_dz], [dw_dx, dw_dy, dw_dz]])
+        grad3D = np.transpose(grad3D_T)
+        
+        if return_2D:
+            # Form: np.transpose([[du_dx, du_dy], [dv_dx, dv_dy]])
+            grad2D = grad3D[:, 0:2, 0:2]
+            return grad2D
+
+        return grad3D
+
 
 class CubicCrystalDislocation(metaclass=ABCMeta):
     '''
@@ -2170,6 +2343,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     self_consistent = True
     pbc = [True, True, True]
     stroh = None
+    ADstroh = None
 
     def __init__(self, a, C11, C12, C44, symbol="W"):
         """
@@ -2240,6 +2414,19 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
         self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
 
+    def init_anisotropic_dislocation(self):
+
+        # Extract consistent parameters
+        axes = self.axes
+        slip_plane = axes[1].copy() 
+        disloc_line = axes[2].copy() 
+
+        # Setup AnistoropicDislocation object
+        self.ADstroh = AnisotropicDislocation(self.C11, self.C12, self.C44, 
+                                           axes, slip_plane, disloc_line, 
+                                           self.burgers)
+
+
     # @property & @var.setter decorators used to ensure var and var_dimensionless don't get out of sync
     @property
     def burgers(self):
@@ -2300,20 +2487,19 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ax.set_xlabel(r"$\AA$")
         ax.set_ylabel(r"$\AA$")
 
-    def displacements(self, bulk_positions, center, self_consistent=True,
-                      tol=1e-6, max_iter=100, verbose=True):
-        if self.stroh is None:
-            self.init_stroh()
-
-        disp1 = np.real(self.stroh.displacement(bulk_positions - center))
-        if not self_consistent:
+    def self_consistent_displacements(self, solver, bulk_positions, center, 
+                                      tol=1e-6, max_iter=100, verbose=True):
+        
+        disp1 = np.real(solver(bulk_positions - center))
+        if max_iter == 0:
             return disp1
-
+        
+        # Self-consistent calculation
         res = np.inf
         i = 0
         while res > tol:
             disloc_positions = bulk_positions + disp1
-            disp2 = np.real(self.stroh.displacement(disloc_positions - center))
+            disp2 = np.real(solver(disloc_positions - center))
             res = np.abs(disp1 - disp2).max()
             disp1 = disp2
             if verbose:
@@ -2323,6 +2509,30 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 raise RuntimeError('Self-consistency' +
                                    f'did not converge in {max_iter} cycles')
         return disp2
+
+    def displacements(self, bulk_positions, center, use_atomman=True,
+                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
+        
+        if use_atomman:
+            # Use stroh solver from atomman package
+            if self.stroh is None:
+                self.init_stroh()
+            solver = self.stroh.displacement
+
+        else:
+            # Use AnistoropicDislocation class from matscipy.dislocation
+            if self.ADstroh is None:
+                self.init_anisotropic_dislocation()
+            solver = self.ADstroh.displacement
+
+        if not self_consistent:
+            max_iter = 0
+
+        disp = self.self_consistent_displacements(solver, bulk_positions, center, 
+                                                  tol, max_iter, verbose)
+
+        return disp
+    
 
     def build_cylinder(self, radius,
                        core_position=np.array([0., 0., 0.]),
@@ -2736,6 +2946,15 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
     glide_distance_dimensionless = np.sqrt(3) / 3.0
     n_planes = 6
 
+class BCCEdge111barDislocation(CubicCrystalDislocation):
+    crystalstructure = "bcc"
+    axes = np.array([[1, 1, -1],
+                     [1, 1, 2],
+                     [1, -1, 0]])
+    burgers_dimensionless = np.array([-1, -1, 1]) / 2.0
+    unit_cell_core_position_dimensionless =  np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 0.25 * np.sqrt(2.0), 0])
+    glide_distance_dimensionless = np.sqrt(3) / 3.0
+    n_planes = 1
 
 class BCCMixed111Dislocation(CubicCrystalDislocation):
     crystalstructure = "bcc"

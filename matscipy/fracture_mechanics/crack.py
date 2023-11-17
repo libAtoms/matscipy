@@ -1584,7 +1584,7 @@ class SinclairCrack:
     def arc_length_continuation(self, x0, x1, N=10, ds=0.01, ftol=1e-2,
                                 direction=1, max_steps=10,
                                 continuation=False, traj_file='x_traj.h5',
-                                traj_interval=1,
+                                traj_interval=1, otf_traj=False,
                                 precon=False,
                                 ds_max=np.inf, ds_min=0,
                                 ds_aggressiveness=2,
@@ -1738,6 +1738,8 @@ class SinclairCrack:
             # Update variables
             x1[:] = x2
             xdot1[:] = xdot2
+            if otf_traj:
+                self.write_atoms_to_file()
 
             # Update the stepsize
             ds *= (1 + ds_aggressiveness *
@@ -1837,13 +1839,13 @@ class SinclairCrack:
         self.set_dofs(x[i, :])
         if cutoff is None:
             # Do not plot bonds (eg. for metals)
-            plot_elements = self.plot(ax2, regions=regions, rplot=rzoom, bonds=False, cutoff=cutoff, tip=plot_tip,
+            plot_elements = self.plot(ax2, regions=regions, rzoom=rzoom, bonds=False, cutoff=cutoff, tip=plot_tip, 
                                       regions_styles=regions_styles, atoms_args=atoms_args, bonds_args=bonds_args, tip_args=tip_args)
             tip = plot_elements.pop(-1)
             lc = None  # placeholder, no bond lines
         else:
-            plot_elements = self.plot(ax2, regions=regions, rzoom=rzoom, bonds=regions, cutoff=cutoff, tip=plot_tip,
-                                      regions_styles=regions_styles, atoms_arg=atoms_args, bonds_args=bonds_args, tip_args=tip_args)
+            plot_elements = self.plot(ax2, regions=regions, rzoom=rzoom, bonds=regions, cutoff=cutoff, tip=plot_tip, 
+                                      regions_styles=regions_styles, atoms_args=atoms_args, bonds_args=bonds_args, tip_args=tip_args)
             tip = plot_elements.pop(-1)
             lc = plot_elements.pop(-1)
 
@@ -1877,7 +1879,7 @@ class SinclairCrack:
         return FuncAnimation(fig, frame, frames)
 
     @counted
-    def write_atoms_to_file(self, fname):
+    def write_atoms_to_file(self, fname, tag=''):
         alpha_at = Atom('Au')
         crack_atoms = self.atoms.copy()
 
@@ -1972,12 +1974,15 @@ class SinclairCrack:
         fx[len(crack_atoms) - 1] = falpha
         ftot[len(crack_atoms) - 1] = falpha
         logabsftot[:] = np.log10(np.abs(ftot))
-        ase.io.write(fname + '.xyz', crack_atoms)
 
-    ##### ----------------PLOTTING SCRIPTS-------------######
-    # Potentially consider moving these to seperate class in future
-    def strain_err(self, cutoff, seperate_surface=False):
-        '''Function that returns the atomistic corrector strain error Dv for each atom using the norm of the difference
+        # compute corrected energy (for energy barriers)
+        crack_atoms.info['corrected_energy'] = self.get_potential_energy()
+
+        ase.io.write(tag+fname+'.xyz',crack_atoms)
+    
+    def strain_err(self,cutoff,seperate_surface=False):
+        """
+        Function that returns the atomistic corrector strain error Dv for each atom using the norm of the difference
         between the corrector on each atom and all those around it within some cutoff. Also has an option to return states
         adjacent to the free surface of the crack seperately for comparison.
 
@@ -1995,7 +2000,6 @@ class SinclairCrack:
         dv : norm strain error for each atom in r.
         """
 
-        '''
         # want to get all neighbours in region I
         I, J = neighbour_list('ij', self.atoms[self.regionI], cutoff)
         # print(I)

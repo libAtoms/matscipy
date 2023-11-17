@@ -229,6 +229,13 @@ def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,
     cx, cy = sx / 2, sy / 2
     r = np.sqrt((x - cx)**2 + (y - cy)**2)
 
+    # Check region radii values do not lie on atoms
+    #r_II = r_I +cutoff ; r_IV = r_III+cutoff
+    #for num, rad in enumerate([r_I, r_II, r_III, r_IV]):
+    #    if rad in r:
+    #        reg_num = num + 1
+    #        print(f'Radius r_{reg_num:} from cracktip overlaps with atleast one atom.')
+
     # Regions I and III defined by radial distance from center
     regionI = r < r_I
     regionII = (r >= r_I) & (r < (r_I + cutoff))
