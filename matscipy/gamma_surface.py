@@ -12,7 +12,7 @@ class GammaSurface():
     '''
     A class for generating gamma surface/generalised stacking fault images & plots
     '''
-    def __init__(self, a, surface_direction, y_dir=None, crystalstructure=None, symbol="C"):
+    def __init__(self, a, surface_direction, glide_direction=None, crystalstructure=None, symbol="C"):
         '''
         Initialise by cutting and rotating the input structure.
 
@@ -26,9 +26,10 @@ class GammaSurface():
             Vector direction of gamma surface, in miller index notation
             EG: np.array([0, 0, 1]), np.array([-1, 1, 0]), np.array([1, 1, 1])
             A subclass of matscipy.dislocation.CubicCrystalDissociatedDislocation (EG: DiamondGlideScrew or FCCEdge110Dislocation)
-        y_dir: np.array of int or None
-            Basis vector (in miller indices) to form "y" axis, which should be orthogonal to surface_direction
-            If None, a suitable y_dir will be found automatically
+        glide_direction: np.array of int or None
+            Basis vector (in miller indices) to form the glide direction of the stacking fault, which is oriented along the y axis of generated images
+            Should be orthogonal to surface_direction
+            If None, a suitable glide_direction will be found automatically
         crystalstructure: str
             Crystal Structure to use in building a base cubic cell
             Required when a is a lattice constant
@@ -44,7 +45,7 @@ class GammaSurface():
         self.surf_directions : dict
             Dict giving miller indices for "x", "y" and "z" directions of gamma surface plot
             -   self.surf_directions["z"] = surface_direction
-            -   self.surf_directions["y"] = y_dir, if y_dir was specified
+            -   self.surf_directions["y"] = glide_direction, if glide_direction was specified
         self.nx, self.ny : int
             Dimensions of the (nx, ny) gamma surface grid
         self.images : list of ase.atoms.Atoms objects
@@ -91,14 +92,14 @@ class GammaSurface():
             ax[1, :] = self.surf_directions["y"]
             ax[2, :] = self.surf_directions["z"]
         else:
-            if y_dir is None:
+            if glide_direction is None:
                 _y_dir = self._y_dir_search(surface_direction)
             else:
-                _y_dir = np.array(y_dir)
+                _y_dir = np.array(glide_direction)
 
                 if np.abs(np.dot(surface_direction, _y_dir)) >= 1e-3:
                     # Vector basis is not orthogonal
-                    msg = f"y_dir vector {_y_dir} is not orthogonal to surface_direction vector {surface_direction}; dot(surface_direction, y_dir) = {float(np.dot(surface_direction, _y_dir))}\n" + \
+                    msg = f"glide_direction vector {_y_dir} is not orthogonal to surface_direction vector {surface_direction}; dot(surface_direction, glide_direction) = {float(np.dot(surface_direction, _y_dir))}\n" + \
                         "Gamma Surface plot may not show the correct directions"
                     warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
