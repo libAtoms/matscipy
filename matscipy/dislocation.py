@@ -452,7 +452,9 @@ def get_elastic_constants(pot_path=None,
                           calculator=None,
                           delta=1e-2,
                           symbol="W",
-                          verbose=True):
+                          verbose=True,
+                          fmax=1e-4,
+                          smax=1e-3):
     """
     return lattice parameter, and cubic elastic constants: C11, C12, 44
     using matscipy function
@@ -480,10 +482,10 @@ def get_elastic_constants(pot_path=None,
     # or UnitCellFilter(W)
     # -> to minimise wrt pos, cell
     if verbose:
-        opt = FIRE(sf)
+        opt = PreconLBFGS(sf, precon=None)
     else:
-        opt = FIRE(sf, logfile=None)
-    opt.run(fmax=1e-4)  # max force in eV/A
+        opt = PreconLBFGS(sf, precon=None, logfile=None)
+    opt.run(fmax=fmax, smax=smax)  # max force in eV/A
     
     alat = unit_cell.cell.lengths()[0]
     #    print("a0 relaxation %.4f --> %.4f" % (a0, a))
