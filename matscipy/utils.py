@@ -160,12 +160,12 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
                     # No nice integer vector found!
                     raise RuntimeError(f"Could not automatically find an integer basis from basis vector {v1}")
 
-    V1 = v1.copy().astype(int)
+    V1 = np.array(v1).copy().astype(int)
 
     if v2 is None:
         V2 = _v2_search(v1, nmax, tol).astype(int)
     else:
-        V2 = v2.copy().astype(int)
+        V2 = np.array(v2).copy().astype(int)
 
     if np.abs(np.dot(V1, V2)) >= tol:
         # Vector basis is not orthogonal
@@ -187,3 +187,46 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
         V3 = V3.astype(int)/ int(gcd)
 
     return V1, V2, V3
+
+
+# Get the results of Ovito Common Neighbor Analysis 
+# https://www.ovito.org/docs/current/reference/pipelines/modifiers/common_neighbor_analysis.html
+# and Identify Diamond modifier
+# https://www.ovito.org/docs/current/reference/pipelines/modifiers/identify_diamond.html
+# for better visualisation of the dislocation core
+# it will be identified as "other" structure type
+def get_structure_types(structure, diamond_structure=False):
+    """Get the results of Common Neighbor Analysis and 
+        Identify Diamond modifiers from Ovito
+        (Requires Ovito python module)
+    Args:
+        structure (ase.atoms): input structure
+    Returns:
+        atom_labels (array of ints): per atom labels of the structure types
+        structure_names (list of strings): names of the structure types
+        colors (list of strings): colors of the structure types in hex format
+    """
+    from ovito.io.ase import ase_to_ovito
+    from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
+    from ovito.pipeline import StaticSource, Pipeline
+    ovito_structure = structure.copy()
+    if "fix_mask" in ovito_structure.arrays:
+        del ovito_structure.arrays["fix_mask"]
+    
+    if diamond_structure:
+        modifier = IdentifyDiamondModifier()
+    else:
+        modifier = CommonNeighborAnalysisModifier() 
+    
+    data = ase_to_ovito(ovito_structure)
+    pipeline = Pipeline(source=StaticSource(data=data))
+    pipeline.modifiers.append(modifier)
+    data = pipeline.compute()
+
+    atom_labels = data.particles['Structure Type'].array
+
+    structure_names = [structure.name for structure in modifier.structures]
+    colors = [structure.color for structure in modifier.structures]
+    hex_colors = ['#{:02x}{:02x}{:02x}'.format(int(r*255), int(g*255), int(b*255)) for r, g, b in colors] 
+
+    return atom_labels, structure_names, hex_colors

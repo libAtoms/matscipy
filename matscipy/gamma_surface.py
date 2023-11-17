@@ -7,6 +7,7 @@ from ase.constraints import UnitCellFilter
 from matscipy.utils import validate_cubic_cell, complete_basis
 import inspect
 from matscipy.dislocation import CubicCrystalDissociatedDislocation
+from ase.units import _e
 
 class GammaSurface():
     '''
@@ -356,8 +357,6 @@ class GammaSurface():
         si: bool
             Use SI units (J/m^2) if True, else atomic units (eV/A^2)
         '''
-
-        from ase.units import _e
         import matplotlib.pyplot as plt
 
         if Es is None:
@@ -406,7 +405,7 @@ class StackingFault(GammaSurface):
         '''
         return super().generate_images(1, n, *args, **kwargs)
     
-    def plot_gamma_surface(self, ax=None, si=False):
+    def plot_gamma_surface(self, Es=None, ax=None, si=False):
         '''
         Produce a matplotlib plot of the stacking fault energy, from the data gathered in self.generate_images and self.get_surface_energy
 
@@ -418,7 +417,6 @@ class StackingFault(GammaSurface):
         si: bool
             Use SI units (J/m^2) if True, else atomic units (eV/A^2)
         '''
-        from ase.units import _e
         import matplotlib.pyplot as plt
 
         if Es is None:
@@ -450,3 +448,75 @@ class StackingFault(GammaSurface):
         title = "(" + ' '.join(self.surf_directions["z"].astype(str)) + ") Stacking Fault\n" + "Surface Separation = {:0.2f}".format(self.surface_separation) + "${\AA}$"
         my_ax.set_title(title)
         return fig, my_ax
+    
+    def show(self, CNA_color=True, plot_energies=False, si=False, **kwargs):
+        from ase.visualize.plot import plot_atoms
+        import matplotlib.pyplot as plt
+        from matplotlib.animation import FuncAnimation
+        from matscipy.utils import get_structure_types
+        
+        images = [image.copy() * (2, 2, 2) for image in self.images]
+        nims = len(images)
+
+        if si:
+            si_fac = 1e20 * _e
+        else:
+            si_fac = 1
+
+        if CNA_color:
+            for system in images:
+                atom_labels, structure_names, colors = get_structure_types(system, 
+                                                                        diamond_structure=True)
+                atom_colors = [colors[atom_label] for atom_label in atom_labels]
+
+                system.set_array("colors", np.array(atom_colors))
+        
+        if plot_energies:
+            fig, ax = plt.subplots(ncols=2)
+            atom_ax, energy_ax = ax
+
+            if self.Es is not None:
+                Es = self.Es
+            else:
+                try:
+                    # Assume that calculator is attached so we can get energy densities
+                    Es = self.get_energy_densities()
+                except:
+                    raise RuntimeError("Cannot plot energy densities before get_energy_densities is called!")
+                
+            self.plot_gamma_surface(ax=energy_ax, si=si)
+        else:
+            fig, atom_ax = plt.subplots()
+
+        plt.tight_layout()
+
+        plot_atoms(images[-1], ax=atom_ax, **kwargs)
+
+        xlim = atom_ax.get_xlim()
+        ylim = atom_ax.get_ylim()
+        
+        def drawimage(framedata):
+            framenum, atoms = framedata
+            # Plot Structure
+            atom_ax.clear()
+            atom_ax.axis('off')
+            if CNA_color:
+                plot_atoms(atoms, ax=atom_ax, colors=atoms.get_array("colors"), 
+                **kwargs)
+            else: # default color are jmol (same is nglview)
+                plot_atoms(atoms, ax=atom_ax, **kwargs)
+            # avoid changing the size of the plot during animation
+            atom_ax.set_xlim(xlim) 
+            atom_ax.set_ylim(ylim)
+
+            # Plot energies
+            if plot_energies:
+                energy_ax.clear()
+                self.plot_gamma_surface(ax=energy_ax, si=si)
+                plt.scatter(framenum/(nims-1), Es[0, framenum] * si_fac, marker="x", color="k")
+
+
+        animation = FuncAnimation(fig, drawimage, frames=enumerate(images),
+                                init_func=lambda: None,
+                                interval=200)
+        return animation

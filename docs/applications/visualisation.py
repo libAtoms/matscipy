@@ -1,9 +1,6 @@
 import numpy as np
 # interactive visualisation  inside the notebook with nglview
 from nglview import show_ase, show_asetraj, ASEStructure
-from ovito.io.ase import ase_to_ovito
-from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
-from ovito.pipeline import StaticSource, Pipeline
 from ase.visualize.ngl import NGLDisplay
 
 
@@ -23,6 +20,9 @@ def get_structure_types(structure, diamond_structure=False):
         structure_names (list of strings): names of the structure types
         colors (list of strings): colors of the structure types in hex format
     """
+    from ovito.io.ase import ase_to_ovito
+    from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
+    from ovito.pipeline import StaticSource, Pipeline
     ovito_structure = structure.copy()
     if "fix_mask" in ovito_structure.arrays:
         del ovito_structure.arrays["fix_mask"]
@@ -167,47 +167,6 @@ def interactive_view(system, scale=0.5, name=""):
 
 
 def show_stacking_fault(images, ax=None, CNA_color=True, **kwargs):
-    from IPython.display import HTML
-    from ase.visualize.plot import plot_atoms
-    import matplotlib.pyplot as plt
-    from matplotlib.animation import FuncAnimation
-    from visualisation import get_structure_types
-    
-    images = [image.copy() * (2, 2, 2) for image in images]
-    
-    if CNA_color:
-        for system in images:
-            atom_labels, structure_names, colors = get_structure_types(system, 
-                                                                       diamond_structure=True)
-            atom_colors = [colors[atom_label] for atom_label in atom_labels]
-
-            system.set_array("colors", np.array(atom_colors))
-    
-    ax = plot_atoms(images[-1], **kwargs)
-
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
-
-    if ax is None:
-        ax = plt.gca()
-
-    fig = ax.get_figure()
-    
-    def drawimage(atoms):
-        ax.clear()
-        ax.axis('off')
-        if CNA_color:
-            plot_atoms(atoms, ax=ax, colors=atoms.get_array("colors"), 
-            **kwargs)
-        else: # default color are jmol (same is nglview)
-            plot_atoms(atoms, ax=ax, **kwargs)
-        # avoid changing the size of the plot during animation
-        ax.set_xlim(xlim) 
-        ax.set_ylim(ylim)
-    animation = FuncAnimation(fig, drawimage, frames=images,
-                              init_func=lambda: None,
-                              interval=200)
-    
     
     html = animation.to_jshtml()
     # center the animation according to the width of the page
