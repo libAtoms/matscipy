@@ -401,6 +401,105 @@ class GammaSurface():
 
         return fig, my_ax
 
+    def show(self, CNA_color=True, plot_energies=False, si=False, **kwargs):
+        '''
+        Overload of GammaSurface.show()
+        Plots an animation of the stacking fault structure, and optionally the associated 
+        energy densities (requires self.get_energy_densitities() to have been called)
+        
+        CNA_color: bool
+            Toggle atom colours based on Common Neighbour Analysis (Structure identification)
+        plot_energies:
+            Add additional plot showing energy density profile, alongside the structure
+        si: bool
+            Plot energy densities in SI units (J/m^2), or "ASE" units eV/A^2
+        **kwargs
+            extra kwargs passed to ase.visualize.plot.plot_atoms
+        '''
+        from ase.visualize.plot import plot_atoms
+        import matplotlib.pyplot as plt
+        from matplotlib.animation import FuncAnimation
+        from matscipy.utils import get_structure_types
+        
+        images = [image.copy() for image in self.images]
+
+
+        if CNA_color:
+            for system in images:
+                atom_labels, structure_names, colors = get_structure_types(system, 
+                                                                        diamond_structure=True)
+                atom_colors = [colors[atom_label] for atom_label in atom_labels]
+
+                system.set_array("colors", np.array(atom_colors))
+        
+        fig, ax = plt.subplots(ncols=2, nrows=2)
+        atom_ax1, atom_ax2, atom_ax3, energy_ax = ax.flatten()
+
+        atom_axes = [atom_ax1, atom_ax2, atom_ax3]
+        rotations = ["-90z, -90x", "-90x", ""]
+
+        def plot_all_atom_axes(atoms, keep_lims=True):
+            for i in range(3):
+                curr_ax = atom_axes[i]
+                rot = rotations[i]
+
+                xlim = curr_ax.get_xlim()
+                ylim = curr_ax.get_ylim()
+                curr_ax.clear()
+                curr_ax.axis('off')
+
+                if CNA_color:
+                    plot_atoms(atoms, ax=curr_ax, colors=atoms.get_array("colors"), 
+                    rotation=rot, **kwargs)
+                else: # default color are jmol (same is nglview)
+                    plot_atoms(atoms, ax=curr_ax, rotation=rot, **kwargs)
+                # avoid changing the size of the plot during animation
+                if keep_lims:
+                    curr_ax.set_xlim(xlim)
+                    curr_ax.set_ylim(ylim)
+
+
+        if plot_energies:
+            if self.Es is not None:
+                Es = self.Es
+            else:
+                try:
+                    # Assume that calculator is attached so we can get energy densities
+                    Es = self.get_energy_densities()
+                except:
+                    raise RuntimeError("Cannot plot energy densities before get_energy_densities is called!")
+                
+            self.plot_gamma_surface(ax=energy_ax, si=si)
+        else:
+            energy_ax.clear()
+            energy_ax.axis("off")
+
+        plt.tight_layout()
+
+        plot_all_atom_axes(images[-1], keep_lims=False)
+
+        def drawimage(framedata):
+            framenum, atoms = framedata
+            # Plot Structure
+            
+            plot_all_atom_axes(atoms, keep_lims=True)
+
+            # Plot energies
+            if plot_energies:
+                # Manually clear the colorbar
+                energy_ax.images[-1].colorbar.remove()
+                energy_ax.clear()
+                self.plot_gamma_surface(ax=energy_ax, si=si)
+                pos = self.offsets[framenum]
+                plt.scatter(pos[0], pos[1], marker="x", color="k")
+
+
+        animation = FuncAnimation(fig, drawimage, frames=enumerate(images),
+                                init_func=lambda: None,
+                                interval=200)
+        return animation
+
+
 class StackingFault(GammaSurface):
     '''
     Class for stacking fault-specific generation & plotting
