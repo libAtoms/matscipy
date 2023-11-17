@@ -4,7 +4,7 @@ from matscipy.dislocation import FixedLineAtoms
 from ase.optimize import BFGSLineSearch
 import warnings
 from ase.constraints import UnitCellFilter
-from matscipy.utils import validate_cubic_cell
+from matscipy.utils import validate_cubic_cell, complete_basis
 import inspect
 from matscipy.dislocation import CubicCrystalDissociatedDislocation
 
@@ -92,59 +92,17 @@ class GammaSurface():
             ax[1, :] = self.surf_directions["y"]
             ax[2, :] = self.surf_directions["z"]
         else:
-            if glide_direction is None:
-                _y_dir = self._y_dir_search(surface_direction)
-            else:
-                _y_dir = np.array(glide_direction)
+            z, y, x = complete_basis(surface_direction, glide_direction)
 
-                if np.abs(np.dot(surface_direction, _y_dir)) >= 1e-3:
-                    # Vector basis is not orthogonal
-                    msg = f"glide_direction vector {_y_dir} is not orthogonal to surface_direction vector {surface_direction}; dot(surface_direction, glide_direction) = {float(np.dot(surface_direction, _y_dir))}\n" + \
-                        "Gamma Surface plot may not show the correct directions"
-                    warnings.warn(msg, RuntimeWarning, stacklevel=2)
-
-            _x_dir = np.cross(_y_dir, surface_direction)
-        
             self.surf_directions = {
-                "x": np.array(_x_dir),
-                "y": np.array(_y_dir),
-                "z": np.array(surface_direction)
+                "x": np.array(x),
+                "y": np.array(y),
+                "z": np.array(z)
                 }
-            ax = np.array([_x_dir, _y_dir, surface_direction])
+            ax = np.array([x, y, z])
         
         alat, self.cut_at = validate_cubic_cell(a, axes=ax, crystalstructure=crystalstructure, symbol=symbol)
         self.offset *= alat
-
-    def _y_dir_search(self, d1):
-        '''
-        Search for integer x, y, z components for vectors perpendicular to d1
-        '''
-        nmax = 5
-        tol = 1e-6
-        for i in range(nmax):
-            for j in range(-i-1, i+1):
-                for k in range(-j-1, j+1):
-                    if i==j and j==k and k==0:
-                        continue
-
-                    # Try all permutations
-                    test_vec = np.array([i, j, k])
-
-                    if np.abs(np.dot(d1, test_vec)) < tol:
-                        return test_vec
-                    
-                    test_vec = np.array([k, i, j])
-
-                    if np.abs(np.dot(d1, test_vec)) < tol:
-                        return test_vec
-                    
-                    test_vec = np.array([j, k, i])
-
-                    if np.abs(np.dot(d1, test_vec)) < tol:
-                        return test_vec
-        
-        # No nice integer vector found!
-        raise RuntimeError(f"Could not automatically find an integer basis from basis vector {d1}")
 
     def _gen_compressed_images(self, base_struct, nx, ny, x_points, y_points, vacuum=0.0):
         # Add vacuum

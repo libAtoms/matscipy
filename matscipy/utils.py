@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 
 def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
@@ -110,3 +111,79 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         raise TypeError("type(a) is not a float, or an Atoms object")
 
     return alat, unit_cell
+
+def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
+    '''
+    Generate a complete (v1, v2, v3) orthogonal basis in 3D from v1 and an optional v2
+
+    v1: np.array
+        len(3) array giving primary axis
+    v2: np.array | None
+        len(3) array giving secondary axis
+        If None, a search for a "sensible" secondary axis will occur, raising a RuntimeError if unsuccessful
+         (Searches for vectors perpendicular to v1 with small integer indices)
+        If v2 is given and is not orthogonal to v1, raises a warning
+    normalise: bool
+        return an orthonormal basis, rather than just orthogonal
+    nmax: int
+        Maximum integer index for v2 search
+    tol: float
+        Tolerance for checking orthogonality between v1 and v2
+
+    Returns
+    -------
+    V1, V2, V3: np.arrays
+        Complete orthogonal basis, optionally normalised
+    '''
+
+    def _v2_search(v1, nmax, tol):
+        for i in range(nmax):
+            for j in range(-i-1, i+1):
+                for k in range(-j-1, j+1):
+                    if i==j and j==k and k==0:
+                        continue
+                    # Try all permutations
+                    test_vec = np.array([i, j, k])
+
+                    if np.abs(np.dot(v1, test_vec)) < tol:
+                        return test_vec
+                    
+                    test_vec = np.array([k, i, j])
+
+                    if np.abs(np.dot(v1, test_vec)) < tol:
+                        return test_vec
+                    
+                    test_vec = np.array([j, k, i])
+
+                    if np.abs(np.dot(v1, test_vec)) < tol:
+                        return test_vec
+                    # No nice integer vector found!
+                    raise RuntimeError(f"Could not automatically find an integer basis from basis vector {v1}")
+
+    V1 = v1.copy().astype(int)
+
+    if v2 is None:
+        V2 = _v2_search(v1, nmax, tol).astype(int)
+    else:
+        V2 = v2.copy().astype(int)
+
+    if np.abs(np.dot(V1, V2)) >= tol:
+        # Vector basis is not orthogonal
+        msg = f"V2 vector {V2} is not orthogonal to V1 vector {V1}; dot(V1, V2) = {float(np.dot(V1, V2))}"
+        warnings.warn(msg, RuntimeWarning, stacklevel=2)
+    
+    V3 = np.cross(V1, V2)
+
+    if normalise:
+        V1 = V1.astype(np.float64) / np.linalg.norm(V1)
+        V2 = V2.astype(np.float64) / np.linalg.norm(V2)
+        V3 = V3.astype(np.float64) / np.linalg.norm(V3)
+    else:
+        # V3 may not be an ideal vector
+        # Try to find integer vector in same direction
+        # with smaller magnitude
+        non_zero = np.abs(V3[V3!=0])
+        gcd = np.gcd.reduce(non_zero)
+        V3 = V3.astype(int)/ int(gcd)
+
+    return V1, V2, V3
