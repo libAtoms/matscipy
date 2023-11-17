@@ -394,10 +394,10 @@ class GammaSurface():
         im = my_ax.imshow(self.Es.T * mul, origin="lower", extent=[0, np.linalg.norm(self.x_disp), 0, np.linalg.norm(self.y_disp)], interpolation="bicubic")
         fig.colorbar(im, ax=ax, label=f"Energy Density ({units})")
 
-        my_ax.set_xlabel("(" + " ".join(self.surf_directions["x"].astype(str)) + ")")
-        my_ax.set_ylabel("(" + " ".join(self.surf_directions["y"].astype(str)) + ")")
+        my_ax.set_xlabel("Glide in (" + "".join(self.surf_directions["x"].astype(str)) + ") ($\AA$)")
+        my_ax.set_ylabel("Glide in (" + "".join(self.surf_directions["y"].astype(str)) + ") ($\AA$)")
 
-        my_ax.set_title("(" + " ".join(self.surf_directions["z"].astype(str)) + ") Gamma Surface\nSurface Separation = {:0.2f} A".format(self.surface_separation))
+        my_ax.set_title("(" + "".join(self.surf_directions["z"].astype(str)) + ") Gamma Surface\nSurface Separation = {:0.2f} A".format(self.surface_separation))
 
         return fig, my_ax
 
@@ -451,10 +451,10 @@ class StackingFault(GammaSurface):
             my_ax = ax
             fig = my_ax.get_figure()
 
-        my_ax.plot(np.arange(self.ny)/(self.ny-1), self.Es[0, :] * mul)
-        my_ax.set_xlabel("Position along ("+ ' '.join(self.surf_directions["y"].astype(str)) + ") path")
+        my_ax.plot(np.linalg.norm(self.y_disp) * np.arange(self.ny)/(self.ny-1), self.Es[0, :] * mul)
+        my_ax.set_xlabel("Glide distance in ("+ ''.join(self.surf_directions["y"].astype(str)) + ") ($\AA$)")
         my_ax.set_ylabel(f"Energy Density ({units})")
-        title = "(" + ' '.join(self.surf_directions["z"].astype(str)) + ") Stacking Fault\n" + "Surface Separation = {:0.2f}".format(self.surface_separation) + "${\AA}$"
+        title = "(" + "".join(self.surf_directions["z"].astype(str)) + ") Stacking Fault\n" + "Surface Separation = {:0.2f}".format(self.surface_separation) + "${\AA}$"
         my_ax.set_title(title)
         return fig, my_ax
     
@@ -538,7 +538,7 @@ class StackingFault(GammaSurface):
             if plot_energies:
                 energy_ax.clear()
                 self.plot_gamma_surface(ax=energy_ax, si=si)
-                plt.scatter(framenum/(nims-1), Es[0, framenum] * si_fac, marker="x", color="k")
+                plt.scatter(np.linalg.norm(self.y_disp) * framenum/(nims-1), Es[0, framenum] * si_fac, marker="x", color="k")
 
 
         animation = FuncAnimation(fig, drawimage, frames=enumerate(images),
