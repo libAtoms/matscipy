@@ -458,7 +458,23 @@ class StackingFault(GammaSurface):
         my_ax.set_title(title)
         return fig, my_ax
     
-    def show(self, CNA_color=True, plot_energies=False, si=False, **kwargs):
+    def show(self, CNA_color=True, plot_energies=False, si=False, rotation="-90z, -90x", **kwargs):
+        '''
+        Overload of GammaSurface.show()
+        Plots an animation of the stacking fault structure, and optionally the associated 
+        energy densities (requires self.get_energy_densitities() to have been called)
+        
+        CNA_color: bool
+            Toggle atom colours based on Common Neighbour Analysis (Structure identification)
+        plot_energies:
+            Add additional plot showing energy density profile, alongside the structure
+        si: bool
+            Plot energy densities in SI units (J/m^2), or "ASE" units eV/A^2
+        rotation: str
+            rotation to apply to the structures, passed directly to ase.visualize.plot.plot_atoms
+        **kwargs
+            extra kwargs passed to ase.visualize.plot.plot_atoms
+        '''
         from ase.visualize.plot import plot_atoms
         import matplotlib.pyplot as plt
         from matplotlib.animation import FuncAnimation
@@ -499,7 +515,7 @@ class StackingFault(GammaSurface):
 
         plt.tight_layout()
 
-        plot_atoms(images[-1], ax=atom_ax, **kwargs)
+        plot_atoms(images[-1], ax=atom_ax, rotation=rotation, **kwargs)
 
         xlim = atom_ax.get_xlim()
         ylim = atom_ax.get_ylim()
@@ -511,9 +527,9 @@ class StackingFault(GammaSurface):
             atom_ax.axis('off')
             if CNA_color:
                 plot_atoms(atoms, ax=atom_ax, colors=atoms.get_array("colors"), 
-                **kwargs)
+                rotation=rotation, **kwargs)
             else: # default color are jmol (same is nglview)
-                plot_atoms(atoms, ax=atom_ax, **kwargs)
+                plot_atoms(atoms, ax=atom_ax, rotation=rotation, **kwargs)
             # avoid changing the size of the plot during animation
             atom_ax.set_xlim(xlim) 
             atom_ax.set_ylim(ylim)
