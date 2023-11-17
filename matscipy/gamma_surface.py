@@ -105,6 +105,16 @@ class GammaSurface():
         alat, self.cut_at = validate_cubic_cell(a, axes=ax, crystalstructure=crystalstructure, symbol=symbol)
         self.offset *= alat
 
+    def _vec_to_miller(vec):
+        '''
+        Converts np.array vec to string miller notation
+
+        vec: np.array
+        array to convert to string miller notation
+        e.g. (100) or (11-2)
+        '''
+        return "(" + "".join(vec.astype(int).astype(str)) + ")"
+
     def _gen_compressed_images(self, base_struct, nx, ny, x_points, y_points, vacuum=0.0):
         # Add vacuum
         half_dist = base_struct.cell[2, 2] / 2
@@ -394,10 +404,10 @@ class GammaSurface():
         im = my_ax.imshow(self.Es.T * mul, origin="lower", extent=[0, np.linalg.norm(self.x_disp), 0, np.linalg.norm(self.y_disp)], interpolation="bicubic")
         fig.colorbar(im, ax=ax, label=f"Energy Density ({units})")
 
-        my_ax.set_xlabel("Glide in (" + "".join(self.surf_directions["x"].astype(str)) + ") ($\AA$)")
-        my_ax.set_ylabel("Glide in (" + "".join(self.surf_directions["y"].astype(str)) + ") ($\AA$)")
+        my_ax.set_xlabel("Glide in " + self._vec_to_miller(self.surf_directions["x"]) + " ($\AA$)")
+        my_ax.set_ylabel("Glide in " + self._vec_to_miller(self.surf_directions["y"]) + " ($\AA$)")
 
-        my_ax.set_title("(" + "".join(self.surf_directions["z"].astype(str)) + ") Gamma Surface\nSurface Separation = {:0.2f} A".format(self.surface_separation))
+        my_ax.set_title(self._vec_to_miller(self.surf_directions["z"]) + " Gamma Surface\nSurface Separation = {:0.2f} A".format(self.surface_separation))
 
         return fig, my_ax
 
@@ -551,9 +561,9 @@ class StackingFault(GammaSurface):
             fig = my_ax.get_figure()
 
         my_ax.plot(np.linalg.norm(self.y_disp) * np.arange(self.ny)/(self.ny-1), self.Es[0, :] * mul)
-        my_ax.set_xlabel("Glide distance in ("+ ''.join(self.surf_directions["y"].astype(str)) + ") ($\AA$)")
+        my_ax.set_xlabel("Glide distance in "+ self._vec_to_miller(self.surf_directions["y"]) + " ($\AA$)")
         my_ax.set_ylabel(f"Energy Density ({units})")
-        title = "(" + "".join(self.surf_directions["z"].astype(str)) + ") Stacking Fault\n" + "Surface Separation = {:0.2f}".format(self.surface_separation) + "${\AA}$"
+        title = self._vec_to_miller(self.surf_directions["z"]) + " Stacking Fault\n" + "Surface Separation = {:0.2f}".format(self.surface_separation) + "${\AA}$"
         my_ax.set_title(title)
         return fig, my_ax
     
@@ -624,6 +634,8 @@ class StackingFault(GammaSurface):
             # Plot Structure
             atom_ax.clear()
             atom_ax.axis('off')
+
+            atom_ax.set_ylabel()
             if CNA_color:
                 plot_atoms(atoms, ax=atom_ax, colors=atoms.get_array("colors"), 
                 rotation=rotation, **kwargs)
