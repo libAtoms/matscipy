@@ -134,13 +134,15 @@ class GammaSurface():
                 images.append(ats)
         return images
     
-    def _gen_uncompressed_images(self, base_struct, nx, ny, x_points, y_points):
-        slab = stack(base_struct, base_struct.copy())
-        z_cut = base_struct.cell[2, 2]
+    def _gen_uncompressed_images(self, base_struct, nx, ny, x_points, y_points, vacuum):
+        slab = stack(base_struct.copy(), base_struct.copy())
+        z_cut = slab.cell[2, 2]/2
         base_pos = slab.get_positions()
-        top_mask = base_pos[:, 2] > z_cut + np.min(base_pos[:, 2])
 
-        slab.set_pbc([True, True, False])
+        top_idxs = np.arange(len(base_struct), len(slab))
+
+        if vacuum:
+            slab.set_pbc([True, True, False])
         
         images = []
         for i in range(nx):
@@ -149,7 +151,7 @@ class GammaSurface():
                 self.offsets.append(offset)
                 ats = slab.copy()
                 pos = base_pos.copy()
-                pos[top_mask, :] += offset
+                pos[top_idxs, :] += offset
                 ats.set_positions(pos)
 
                 images.append(ats)
@@ -208,7 +210,14 @@ class GammaSurface():
         pos = base_struct.get_positions()
         pos[:, 2] += offset
         base_struct.set_positions(pos)
+        # Wrap atoms back to select a new plane at gamma surface edge
         base_struct.wrap()
+
+        # Realign atoms back to origin
+        pos = base_struct.get_positions()
+        min_z = np.min(pos[:, 2])
+        pos[:, 2] -= min_z
+        base_struct.set_positions(pos)
         
         # Apply cell strain
         new_cell = base_struct.cell[:, :].copy()
@@ -243,7 +252,7 @@ class GammaSurface():
             self.images = self._gen_compressed_images(base_struct, nx, ny, x_points, y_points, vacuum)
         else:
             # "Uncompressed" images via atom moves
-            self.images = self._gen_uncompressed_images(base_struct, nx, ny, x_points, y_points)
+            self.images = self._gen_uncompressed_images(base_struct, nx, ny, x_points, y_points, bool(vacuum))
         return self.images
 
 
@@ -455,7 +464,7 @@ class StackingFault(GammaSurface):
         from matplotlib.animation import FuncAnimation
         from matscipy.utils import get_structure_types
         
-        images = [image.copy() * (2, 2, 2) for image in self.images]
+        images = [image.copy() for image in self.images]
         nims = len(images)
 
         if si:
