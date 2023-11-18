@@ -164,17 +164,3 @@ def interactive_view(system, scale=0.5, name=""):
     view._remote_call("setSize", target="Widget", args=["300px", "300px"])
     view._js(tooltip_js)
     return view
-
-
-def show_stacking_fault(images, ax=None, CNA_color=True, **kwargs):
-    
-    html = animation.to_jshtml()
-    # center the animation according to the width of the page
-    # does not affect the size of the figure
-    output_html = f'''
-        <div style="display: flex; justify-content: center;">
-        {html}
-        </div>
-        '''
-    plt.close(fig=fig)
-    return HTML(output_html)
