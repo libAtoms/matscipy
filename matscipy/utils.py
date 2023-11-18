@@ -163,7 +163,9 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     V1 = np.array(v1).copy().astype(int)
 
     if v2 is None:
-        V2 = _v2_search(v1, nmax, tol).astype(int)
+        V2 = _v2_search(v1, nmax, tol)
+        V2 *= np.sign(V2[0])
+        V2 = V2.astype(int)
     else:
         V2 = np.array(v2).copy().astype(int)
 
@@ -185,7 +187,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
         non_zero = np.abs(V3[V3!=0])
         gcd = np.gcd.reduce(non_zero)
         V3 = V3.astype(int)/ int(gcd)
-
+        V3 = V3.astype(int)
     return V1, V2, V3
 
 
