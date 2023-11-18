@@ -364,7 +364,7 @@ class GammaSurface():
         self.Es = Es
         return Es
 
-    def plot_gamma_surface(self, Es=None, ax=None, si=True):
+    def plot_energy_densities(self, Es=None, ax=None, si=True):
         '''
         Produce a matplotlib plot of the gamma surface energy, from the data gathered in self.generate_images and self.get_surface_energioes
 
@@ -493,7 +493,7 @@ class GammaSurface():
                 except:
                     raise RuntimeError("Cannot plot energy densities before get_energy_densities is called!")
                 
-            self.plot_gamma_surface(ax=energy_ax, si=si)
+            self.plot_energy_densities(ax=energy_ax, si=si)
         else:
             energy_ax.clear()
             energy_ax.axis("off")
@@ -513,7 +513,7 @@ class GammaSurface():
                 # Manually clear the colorbar
                 energy_ax.images[-1].colorbar.remove()
                 energy_ax.clear()
-                self.plot_gamma_surface(ax=energy_ax, si=si)
+                self.plot_energy_densities(ax=energy_ax, si=si)
                 pos = self.offsets[framenum]
                 plt.scatter(pos[0], pos[1], marker="x", color="k")
 
@@ -537,7 +537,7 @@ class StackingFault(GammaSurface):
         '''
         return super().generate_images(1, n, *args, **kwargs)
     
-    def plot_gamma_surface(self, Es=None, ax=None, si=False):
+    def plot_energy_densities(self, Es=None, ax=None, si=False):
         '''
         Produce a matplotlib plot of the stacking fault energy, from the data gathered in self.generate_images and self.get_surface_energy
 
@@ -634,7 +634,7 @@ class StackingFault(GammaSurface):
                 except:
                     raise RuntimeError("Cannot plot energy densities before get_energy_densities is called!")
                 
-            self.plot_gamma_surface(ax=energy_ax, si=si)
+            self.plot_energy_densities(ax=energy_ax, si=si)
         else:
             fig, atom_ax = plt.subplots()
 
@@ -668,7 +668,7 @@ class StackingFault(GammaSurface):
             # Plot energies
             if plot_energies:
                 energy_ax.clear()
-                self.plot_gamma_surface(ax=energy_ax, si=si)
+                self.plot_energy_densities(ax=energy_ax, si=si)
                 plt.scatter(np.linalg.norm(self.y_disp) * framenum/(nims-1), Es[0, framenum] * si_fac, marker="x", color="k")
 
 
