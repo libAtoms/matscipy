@@ -364,7 +364,7 @@ class GammaSurface():
         self.Es = Es
         return Es
 
-    def plot_energy_densities(self, Es=None, ax=None, si=True):
+    def plot_energy_densities(self, Es=None, ax=None, si=True, interpolation="bicubic"):
         '''
         Produce a matplotlib plot of the gamma surface energy, from the data gathered in self.generate_images and self.get_surface_energioes
 
@@ -375,6 +375,8 @@ class GammaSurface():
             Axis to draw plot
         si: bool
             Use SI units (J/m^2) if True, else atomic units (eV/A^2)
+        interpolation: str
+            arg to pass to matplotlib imshow interpolation
         '''
         import matplotlib.pyplot as plt
 
@@ -401,8 +403,11 @@ class GammaSurface():
             my_ax = ax
             fig = my_ax.get_figure()
 
-        im = my_ax.imshow(self.Es.T * mul, origin="lower", extent=[0, np.linalg.norm(self.x_disp), 0, np.linalg.norm(self.y_disp)], interpolation="bicubic")
+        im = my_ax.imshow(self.Es.T * mul, origin="lower", extent=[0, np.linalg.norm(self.x_disp), 0, np.linalg.norm(self.y_disp)], interpolation=interpolation)
         fig.colorbar(im, ax=ax, label=f"Energy Density ({units})")
+
+        my_ax.set_xlim([0, np.linalg.norm(self.x_disp)])
+        my_ax.set_ylim([0, np.linalg.norm(self.y_disp)])
 
         my_ax.set_xlabel("Glide in " + self._vec_to_miller(self.surf_directions["x"]) + " ($\AA$)")
         my_ax.set_ylabel("Glide in " + self._vec_to_miller(self.surf_directions["y"]) + " ($\AA$)")
