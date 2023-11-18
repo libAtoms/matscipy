@@ -6,7 +6,7 @@ import warnings
 from ase.constraints import UnitCellFilter
 from matscipy.utils import validate_cubic_cell, complete_basis
 import inspect
-from matscipy.dislocation import CubicCrystalDissociatedDislocation
+from matscipy.dislocation import CubicCrystalDislocation, CubicCrystalDissociatedDislocation
 from ase.units import _e
 
 class GammaSurface():
@@ -66,22 +66,31 @@ class GammaSurface():
         self.Es = None
 
         axes = None
+
+        # Check if surface_direction is some kind of dislocation
         disloc = False
         if inspect.isclass(surface_direction):
-            if issubclass(surface_direction, CubicCrystalDissociatedDislocation):
-                # Passed a class which inherits from CubicCrystalDissociatedDislocation
+            if issubclass(surface_direction, CubicCrystalDislocation):
+                # Passed a class
                 disloc = True
-        elif isinstance(surface_direction, CubicCrystalDissociatedDislocation):
-            # Passed an instance of a class which inherits from CubicCrystalDissociatedDislocation
+                dissociated = issubclass(surface_direction, CubicCrystalDissociatedDislocation)
+        elif isinstance(surface_direction, CubicCrystalDislocation):
+            # Passed an instance
             disloc = True
+            dissociated = isinstance(surface_direction, CubicCrystalDissociatedDislocation)
         
         if disloc:
+            # surface_direction was some kind of CubicCrystalDislocation
+            if dissociated:
+                disloc = surface_direction.left_dislocation
+            else:
+                disloc = surface_direction
             # Dislocation object was found
-            axes = surface_direction.left_dislocation.axes.copy()
-            self.offset = -surface_direction.left_dislocation.unit_cell_core_position_dimensionless[1]
-            crystalstructure = surface_direction.left_dislocation.crystalstructure
+            axes = disloc.axes.copy()
+            self.offset = -disloc.unit_cell_core_position_dimensionless[1]
+            crystalstructure = disloc.crystalstructure
 
-            self.ylims = [0, surface_direction.left_dislocation.glide_distance_dimensionless]
+            self.ylims = [0, disloc.glide_distance_dimensionless]
 
             self.surf_directions = {
                 "x": axes[2, :],
@@ -93,6 +102,7 @@ class GammaSurface():
             ax[1, :] = self.surf_directions["y"]
             ax[2, :] = self.surf_directions["z"]
         else:
+            # surface_direction is a vector for the basis
             z, y, x = complete_basis(surface_direction, glide_direction)
 
             self.surf_directions = {
