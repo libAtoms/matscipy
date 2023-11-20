@@ -116,6 +116,8 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     '''
     Generate a complete (v1, v2, v3) orthogonal basis in 3D from v1 and an optional v2
 
+    (V1, V2, V3) is always right-handed.
+
     v1: np.array
         len(3) array giving primary axis
     v2: np.array | None
@@ -181,13 +183,26 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
         V2 = V2.astype(np.float64) / np.linalg.norm(V2)
         V3 = V3.astype(np.float64) / np.linalg.norm(V3)
     else:
-        # V3 may not be an ideal vector
+        # Attempt to improve V3
         # Try to find integer vector in same direction
         # with smaller magnitude
         non_zero = np.abs(V3[V3!=0])
         gcd = np.gcd.reduce(non_zero)
         V3 = V3.astype(int)/ int(gcd)
         V3 = V3.astype(int)
+
+    # If we made a V2 ourselves, enforce a Right-handed coordinate system
+    chirality = np.linalg.det(np.array([V1, V2, V3]))
+
+    if chirality < 0:
+        # Left Handed coord system
+        if v2 is None:
+            # We founds V2 ourselves, so is safe to swap
+            V3, V2 = V2, V3
+        else:
+            # V2 was specified, invert V3
+            V3 = -V3
+    
     return V1, V2, V3
 
 

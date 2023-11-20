@@ -105,6 +105,12 @@ class GammaSurface():
             # surface_direction is a vector for the basis
             z, y, x = complete_basis(surface_direction, glide_direction)
 
+            # z, y, x -> x, y, z swap means chirality is wrong
+            if glide_direction is None:
+                y, x = x, y
+            else:
+                x = - x
+
             self.surf_directions = {
                 "x": np.array(x),
                 "y": np.array(y),
