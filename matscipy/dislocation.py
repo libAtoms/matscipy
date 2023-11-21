@@ -2441,6 +2441,12 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     def set_burgers(self, burgers):
         self.burgers = burgers
 
+    def invert_burgers(self):
+        '''
+        Modify dislocation to produce same dislocation with opposite burgers vector
+        '''
+        self.burgers_dimensionless *= -1
+
     @property
     def unit_cell_core_position(self):
         return self.unit_cell_core_position_dimensionless * self.alat
@@ -2795,8 +2801,10 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                         left and righ dislocations are not the same.
         """
 
-        self.left_dislocation = self.left_dislocation(a, C11, C12, C44, symbol)
-        self.right_dislocation = self.right_dislocation(a, C11, C12, C44, symbol)
+        if not isinstance(self.left_dislocation, CubicCrystalDislocation):
+            self.left_dislocation = self.left_dislocation(a, C11, C12, C44, symbol)
+        if not isinstance(self.right_dislocation, CubicCrystalDislocation):
+            self.right_dislocation = self.right_dislocation(a, C11, C12, C44, symbol)
 
         # Change disloc burgers vectors, if requested
         if self.new_left_burgers is not None:
@@ -2864,6 +2872,18 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                              "partials must be the same")
 
 
+
+
+    def invert_burgers(self):
+        '''
+        Modify dislocation to produce same dislocation with opposite burgers vector
+        '''
+        self.burgers_dimensionless *= -1
+
+        self.left_dislocation.invert_burgers()
+        self.right_dislocation.invert_burgers()
+
+
     def build_cylinder(self, radius, partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
                        extension=np.array([0., 0., 0.]),
@@ -2924,6 +2944,33 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                                                        **kwargs)
 
         return left_u + right_u
+
+class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
+    burgers_dimensionless = np.zeros(3)
+    def __init__(self, disloc_class, *args, **kwargs):
+        '''
+        Initialise dislocation quadrupole class
+
+        Arguments
+        ---------
+        disloc_class: Subclass of CubicCrystalDislocation
+            Dislocation class to create (e.g. DiamondGlide90DegreePartial)
+
+        *args, **kwargs
+            Parameters fed to CubicCrystalDislocation.__init__()
+        '''
+
+        if isinstance(disloc_class, CubicCrystalDislocation):
+            disloc_cls = disloc_class.__class__
+        else:
+            disloc_cls = disloc_class
+
+        self.left_dislocation = disloc_cls(*args, **kwargs)
+        self.right_dislocation = disloc_cls(*args, **kwargs)
+
+        self.left_dislocation.invert_burgers()
+        super().__init__(*args, **kwargs)
+
 
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
