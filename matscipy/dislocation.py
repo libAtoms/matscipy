@@ -44,7 +44,7 @@ from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
 from matscipy.elasticity import cubic_to_Voigt_6x6
-from matscipy.utils import validate_cubic_cell
+from matscipy.utils import validate_cubic_cell, points_in_polygon2D
 
 
 def make_screw_cyl(alat, C11, C12, C44,
