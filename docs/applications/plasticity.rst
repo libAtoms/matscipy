@@ -7,7 +7,7 @@ Creating an atomistic system containing a dislocation requires a rather deep kno
 
 Some dislocation systems feature additional complexity, as they can dissociate into two partial dislocations connected by a stacking fault. These kinds of dislocations subclass `matscipy.dislocation.CubicCrystalDissociatedDislocation`, and follow a near-identical interface.
 
-`matscipy.gamma_surface` implements classes which assist in the modeling of these stacking faults, as well as more general gamma surfaces. The classes can be initialised based on a dislocation system, or by known axes. 
+:mod:`matscipy.gamma_surface` implements classes which assist in the modeling of these stacking faults, as well as more general gamma surfaces. The classes can be initialised based on a dislocation system, or by known axes. 
 Installation and tests
 ----------------------
 

@@ -121,17 +121,26 @@ class GammaSurface():
         alat, self.cut_at = validate_cubic_cell(a, axes=ax, crystalstructure=crystalstructure, symbol=symbol)
         self.offset *= alat
 
-    def _vec_to_miller(self, vec):
+    def _vec_to_miller(self, vec, latex=True):
         '''
         Converts np.array vec to string miller notation
 
         vec: np.array
-        array to convert to string miller notation
-        e.g. (100) or (11-2)
+            array to convert to string miller notation
+            e.g. (100) or (11-2)
+        latex: bool
+            Use LaTeX expressions to contstruct representation
         '''
-        return "(" + "".join(vec.astype(int).astype(str)) + ")"
+        int_vec = vec.astype(int)
+        l = []
+        for item in int_vec:
+            if latex and item < 0:
+                l.extend(r"$\overline{" + str(-item) + "}$")
+            else:
+                l.extend(str(item))
+        return "(" + "".join(l) + ")"
 
-    def _gen_compressed_images(self, base_struct, nx, ny, x_points, y_points, vacuum=0.0):
+    def _gen_cellmove_images(self, base_struct, nx, ny, x_points, y_points, vacuum=0.0):
         # Add vacuum
         half_dist = base_struct.cell[2, 2] / 2
 
@@ -160,7 +169,7 @@ class GammaSurface():
                 images.append(ats)
         return images
     
-    def _gen_uncompressed_images(self, base_struct, nx, ny, x_points, y_points, vacuum):
+    def _gen_atommove_images(self, base_struct, nx, ny, x_points, y_points, vacuum):
         slab = stack(base_struct.copy(), base_struct.copy())
         z_cut = slab.cell[2, 2]/2
         base_pos = slab.get_positions()
@@ -184,8 +193,8 @@ class GammaSurface():
         return images
 
 
-    def generate_images(self, nx, ny, z_replications=1, atom_offset=0.0, cell_strain=0.0, vacuum=0.0, 
-                        path_xlims=[0, 1], path_ylims=None, compressed=True):
+    def generate_images(self, nx, ny, z_reps=1, z_offset=0.0, cell_strain=0.0, vacuum=0.0, 
+                        path_xlims=[0, 1], path_ylims=None, cell_move=True):
         '''
         Generate gamma surface images on an (nx, ny) grid
 
@@ -195,12 +204,15 @@ class GammaSurface():
             Number of points in the x direction
         ny: int
             Number of points in the y direction
-        z_replications: int
+        z_reps: int
             Number of supercell copies in z (increases separation between periodic surfaces)
-        atom_offset: float
+        z_offset: float
             Offset in the z direction (in A) to apply to all atoms
+            Used to select different stacking fault planes sharing the same normal direction
+            (e.g. glide and shuffle planes in Diamond)
         cell_strain: float
-            Fractional strain to apply in z direction to cell only (0.1 = +10% strain)
+            Fractional strain to apply in z direction to cell only (0.1 = +10% strain; atoms aren't moved)
+            Helpful for issues when atoms are extremely close in unrelaxed images.
         vacuum: float
             Additional vacuum layer (in A) to add between periodic images of the gamma surface
         vacuum_offset: float
@@ -212,6 +224,8 @@ class GammaSurface():
         path_ylims: list or array of floats
             Limits (in fractional coordinates) of the stacking fault path in the x direction
             If not supplied, will be set to either [0, 1], or will be set based on the glide distance of the supplied dislocation
+        cell_move: bool
+            Toggles using the cell move method (True) or atom move method (False)
 
         Returns
         --------
@@ -229,10 +243,10 @@ class GammaSurface():
         self.nx = nx
         self.ny = ny
 
-        base_struct = self.cut_at * (1, 1, z_replications)
+        base_struct = self.cut_at * (1, 1, z_reps)
 
         # Atom offset
-        offset = atom_offset + self.offset
+        offset = z_offset + self.offset
         pos = base_struct.get_positions()
         pos[:, 2] += offset
         base_struct.set_positions(pos)
@@ -273,12 +287,12 @@ class GammaSurface():
         for j in range(ny):
             y_points[j, :] = dy * j
 
-        if compressed is True:
-            # "Compressed" images via cell moves
-            self.images = self._gen_compressed_images(base_struct, nx, ny, x_points, y_points, vacuum)
+        if cell_move is True:
+            # Generate images via cell moves
+            self.images = self._gen_cellmove_images(base_struct, nx, ny, x_points, y_points, vacuum)
         else:
-            # "Uncompressed" images via atom moves
-            self.images = self._gen_uncompressed_images(base_struct, nx, ny, x_points, y_points, bool(vacuum))
+            # Generate images via atom moves
+            self.images = self._gen_atommove_images(base_struct, nx, ny, x_points, y_points, bool(vacuum))
         return self.images
 
 
@@ -390,7 +404,7 @@ class GammaSurface():
         ax: matplotlib axis object
             Axis to draw plot
         si: bool
-            Use SI units (J/m^2) if True, else atomic units (eV/A^2)
+            Use SI units (J/m^2) if True, else ASE units (eV/A^2)
         interpolation: str
             arg to pass to matplotlib imshow interpolation
         '''
@@ -568,7 +582,7 @@ class StackingFault(GammaSurface):
         ax: matplotlib axis object
             Axis to draw plot
         si: bool
-            Use SI units (J/m^2) if True, else atomic units (eV/A^2)
+            Use SI units (J/m^2) if True, else ASE units (eV/A^2)
         '''
         import matplotlib.pyplot as plt
 
