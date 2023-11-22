@@ -297,7 +297,7 @@ class GammaSurface():
 
 
     def relax_images(self, calculator=None, ftol=1e-3, optimiser=BFGSLineSearch, constrain_atoms=True,
-                     cell_relax=True, logfile=None, **kwargs):
+                     cell_relax=True, logfile=None, steps=200):
         '''
         Utility function to relax gamma surface images using calculator
 
@@ -315,8 +315,9 @@ class GammaSurface():
         cell_relax: bool
             Allow z component of cell (cell[2, 2]) to relax
             (normal to the gamma surface)
-        **kwargs: Other keyword args
-            Extra arguments passed to the optimiser.run() method
+        steps: int
+            Maximum number of iterations allowed for each image relaxation
+            Fed directly to optimiser.run()
         '''
         if calculator is not None:
             calc = calculator
@@ -339,7 +340,10 @@ class GammaSurface():
             cell_filter = UnitCellFilter(image, mask=cell_constraint_mask)
             image.calc = calc
             opt = optimiser(cell_filter, logfile=logfile)
-            opt.run(ftol, **kwargs)
+            opt.run(ftol, steps=steps)
+
+            if not opt.converged():
+                raise RuntimeError("An image relaxation failed to converge")
 
     def get_energy_densities(self, calculator=None, relax=False, **relax_kwargs):
         '''
