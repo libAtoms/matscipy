@@ -27,6 +27,7 @@
 import numpy as np
 
 from abc import ABCMeta
+import warnings
 
 from scipy.optimize import minimize
 
@@ -2871,9 +2872,6 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
             raise ValueError("Parameters of left and right" +
                              "partials must be the same")
 
-
-
-
     def invert_burgers(self):
         '''
         Modify dislocation to produce same dislocation with opposite burgers vector
@@ -2971,6 +2969,121 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         self.left_dislocation.invert_burgers()
         super().__init__(*args, **kwargs)
 
+    def periodic_displacements(self, positions, v1, v2, left_pos, right_pos, disp_tol=1e-3, max_neighs=60, **kwargs):
+        '''
+        Calculate the stroh displacements for the periodic structure defined by 2D lattice vectors v1 & v2
+        given the core positions.
+
+        positions: np.array
+            Atomic positions to calculate displacements at
+        v1, v2: np.array
+            Lattice vectors defining periodicity in XY plane (dislocation line is in Z)
+        left_pos: np.array
+            position of the left dislocation core
+        right_pos: np.array
+            position of the right dislocation core
+        disp_tol: float
+            Displacement tolerance controlling the termination of displacement convergence
+        max_neighs: int
+            Maximum number of nth-nearest neighbour cells to consider
+            max_neighs=0 is just the current cell, max_neighs=1 also includes nearest-neighbour cells, ...
+
+        returns
+        -------
+        disps: np.array
+            displacements
+        '''
+
+        displacements = np.zeros_like(positions)
+        disp_update = np.zeros_like(positions)
+        
+        for neigh_idx in range(max_neighs):
+            disp_update = np.zeros_like(positions)
+            for ix in range(-neigh_idx, neigh_idx+1):
+                for iy in range(-neigh_idx, neigh_idx+1):
+                    if ix < neigh_idx and ix > -neigh_idx and iy < neigh_idx and iy > -neigh_idx:
+                        # Looping over cells covered by previous iteration, skip
+                        continue
+
+                    # In a new cell
+                    disp_update += self.left_dislocation.displacements(
+                        positions, left_pos+ ix * v1 + iy * v2, **kwargs)
+                    disp_update += self.right_dislocation.displacements(
+                        positions, right_pos+ ix * v1 + iy * v2, **kwargs)
+
+            displacements += disp_update
+            max_disp_change = np.max(np.linalg.norm(disp_update, axis=-1))
+            print(neigh_idx, max_disp_change)
+            if max_disp_change < disp_tol and ix > 0:
+                return displacements
+        warnings.warn("Quadrupole displacments did not converge!", stacklevel=2)
+        return displacements
+
+
+    def build_quadrupole(self, glide_separation=0, **kwargs):
+
+        core_separation = glide_separation * self.glide_distance
+        
+
+        # Replicate the unit cell enough times to fill the target cell
+        cell = self.unit_cell.cell[:, :].copy()
+
+        reps = np.ceil(2 * core_separation / np.sum(cell[0, :])).astype(int)
+
+        base_cell = self.unit_cell.copy() * (reps, reps, 1)
+        cell = base_cell.cell[:, :].copy()
+
+
+        # New cell based on old cell vectors
+        # Constructed to make the cell as square as possible
+        new_cell = np.array([
+            cell[0, :] + 0.5 * cell[1, :],
+            cell[0, :] - 0.5 * cell[1, :],
+            cell[2, :] 
+        ])
+
+        # mask out atoms outside the cell
+        cell_points_2d = np.array([
+            [0, 0],
+            cell[0, :2],
+            cell[0, :2] + cell[1, :2],
+            cell[1, :2]
+        ])
+        cell[1, :] += cell[0, :]
+
+        pos = base_cell.get_positions()
+
+        p = pos.copy()
+        # Add small offset to prevent atoms lying on cell lines
+        # More offset in x, as one of the cell lines follows a y=x slope
+        p[:, 0] += 1e-2
+        p[:, 1] += 5e-3
+        mask = points_in_polygon2D(p[:, :2], cell_points_2d)
+        base_cell = base_cell[mask]
+
+        base_cell.set_cell(new_cell)
+        base_cell.wrap()
+        pos = base_cell.get_positions()
+
+        # Get the core positions, translate everything so the cores are central in the cell
+        core_pos_1 = self.left_dislocation.unit_cell_core_position
+        core_pos_2 = core_pos_1.copy()
+        core_pos_2[0] += core_separation
+        
+        offset = 0.5 * (new_cell[1, :2] + new_cell[0, :2]) - core_pos_1[:2] - 0.5 * np.array([core_separation, 0])
+        core_pos_1[:2] += offset
+        core_pos_2[:2] += offset
+        pos[:, :2] += offset
+
+        print(core_pos_1, core_pos_2)
+
+        disps = self.periodic_displacements(pos, new_cell[0, :], new_cell[1, :], core_pos_1, core_pos_2, **kwargs)
+
+        pos += disps
+        base_cell.set_positions(pos)
+        base_cell.wrap()
+
+        return base_cell
 
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):

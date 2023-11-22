@@ -120,18 +120,20 @@ def line_intersect_2D(p1, p2, x1, x2):
     '''
 
     # Convert from pointwise p1, p2 form to ax + by + c = 0 form
-    a_p = p2[0] - p1[0]
-    b_p = p1[1] - p2[1]
+    a_p = p2[1] - p1[1]
+    b_p = p1[0] - p2[0]
     c_p = (p2[0] * p1[1]) - (p1[0] * p2[1])
 
     # Sub in x1, x2
-    d1 = a_p * x1[0] + b_p * x1[1] + c_p
-    d2 = a_p * x2[0] + b_p * x2[1] + c_p
+    d1 = (a_p * x1[0]) + (b_p * x1[1]) + c_p
+    d2 = (a_p * x2[0]) + (b_p * x2[1]) + c_p
 
     # Both points above the line
-    if (d1 > 0 and d2 > 0) return False
+    if (d1 > 0 and d2 > 0):
+        return False
     # Both points below the line
-    if (d1 < 0 and d2 < 0) return False
+    if (d1 < 0 and d2 < 0):
+        return False
 
     # One point above, one point below the *infinite* line defined by p1, p2
     # Instead of testing for finite line, switch p <-> x and repeat
@@ -139,18 +141,20 @@ def line_intersect_2D(p1, p2, x1, x2):
     # lines defined by the other set of points)
 
     # Convert from pointwise x1, x2 form to ax + by + c = 0 form
-    a_x = x2[0] - x1[0]
-    b_x = x1[1] - x2[1]
+    a_x = x2[1] - x1[1]
+    b_x = x1[0] - x2[0]
     c_x = (x2[0] * x1[1]) - (x1[0] * x2[1])
 
     # Sub in p1, p2
-    d1 = a_x * p1[0] + b_x * p1[1] + c_x
-    d2 = a_x * p2[0] + b_x * p2[1] + c_x
+    d1 = (a_x * p1[0]) + (b_x * p1[1]) + c_x
+    d2 = (a_x * p2[0]) + (b_x * p2[1]) + c_x
 
     # Both points above the line
-    if (d1 > 0 and d2 > 0) return False
+    if (d1 > 0 and d2 > 0):
+        return False
     # Both points below the line
-    if (d1 < 0 and d2 < 0) return False
+    if (d1 < 0 and d2 < 0): 
+        return False
 
     # 2 possibilities left: the lines intersect at a single point, or the lines are collinear,
     # both result in an intersection, so return True
@@ -174,29 +178,28 @@ def points_in_polygon2D(p, poly_points):
     '''
     if len(p.shape) == 1:
         # Single point provided
-        points = p[np.newaxis, :]
+        points = p.copy()[np.newaxis, :]
     else:
-        points = p
+        points = p.copy()
+
+    points += 1E-3
 
     # Ensure polygon is closed
-    if poly_points[0, :] != poly_points[-1, :]:
-        poly_points = np.append(poly_points, poly_points[0, :], axis=0)
-
-
+    if np.all(poly_points[0, :] != poly_points[-1, :]):
+        poly_points = np.append(poly_points, poly_points[0, :][np.newaxis, :], axis=0)
 
     npoints = points.shape[0]
 
     mask = np.zeros(npoints, dtype=bool)
 
     # Get point that is definitely outside the polygon
-    test_point = np.array([2 * np.max(poly_points[:, 0]), 2 * np.max(poly_points[:, 1])])
+    test_point = np.array([11 * np.max(poly_points[:, 0]), 7 * np.max(poly_points[:, 1])])
 
     for i in range(npoints):
         intersections = 0
         for j in range(poly_points.shape[0] - 1):
-            intersections += line_intersect2D(poly_points[j, :], poly_points[j+1, :], test_point, points[i, :])
-
-        if intersections %% 2:
+            intersections += line_intersect_2D(poly_points[j, :2], poly_points[j+1, :2], test_point, points[i, :2])
+        if intersections % 2:
             # Even number of intersections, point is inside polygon
             mask[i] = True
     return mask
