@@ -481,10 +481,7 @@ def get_elastic_constants(pot_path=None,
     sf = StrainFilter(unit_cell)
     # or UnitCellFilter(W)
     # -> to minimise wrt pos, cell
-    if verbose:
-        opt = PreconLBFGS(sf, precon=None)
-    else:
-        opt = PreconLBFGS(sf, precon=None, logfile=None)
+    opt = PreconLBFGS(sf, precon=None, logfile="-" if verbose else None)
     opt.run(fmax=fmax, smax=smax)  # max force in eV/A
     
     alat = unit_cell.cell.lengths()[0]
