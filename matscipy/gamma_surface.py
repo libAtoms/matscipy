@@ -558,8 +558,9 @@ class GammaSurface():
 
 
         animation = FuncAnimation(fig, drawimage, frames=enumerate(images),
-                                init_func=lambda: None,
-                                interval=200)
+                                  save_count=len(images),
+                                  init_func=lambda: None,
+                                  interval=200)
         return animation
 
 
@@ -712,6 +713,7 @@ class StackingFault(GammaSurface):
 
 
         animation = FuncAnimation(fig, drawimage, frames=enumerate(images),
-                                init_func=lambda: None,
-                                interval=200)
+                                  save_count=len(images),
+                                  init_func=lambda: None,
+                                  interval=200)
         return animation
