@@ -3023,23 +3023,26 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
     def build_quadrupole(self, glide_separation=0, **kwargs):
 
         core_separation = glide_separation * self.glide_distance
+        core_vec = np.array([core_separation, 0, 0])
         
 
         # Replicate the unit cell enough times to fill the target cell
         cell = self.unit_cell.cell[:, :].copy()
 
-        reps = np.ceil(2 * core_separation / np.sum(cell[0, :])).astype(int)
+        xreps = np.ceil(2 * core_separation / np.sum(cell[0, :])).astype(int)
+        # Try to keep vertical separation similar to horizontal separation
+        yreps = np.ceil(core_separation / np.sum(cell[1, :])).astype(int)
 
-        base_cell = self.unit_cell.copy() * (reps, reps, 1)
-        cell = base_cell.cell[:, :].copy()
+        quad_bulk = self.unit_cell.copy() * (xreps, yreps, 1)
+        cell = quad_bulk.cell[:, :].copy()
 
 
         # New cell based on old cell vectors
-        # Constructed to make the cell as square as possible
+        # Rhomboid shape enclosing both cores, + any stacking fault
         new_cell = np.array([
-            cell[0, :] + 0.5 * cell[1, :],
-            cell[0, :] - 0.5 * cell[1, :],
-            cell[2, :] 
+            core_vec + cell[1, :],
+            cell[0, :],
+            cell[2, :]
         ])
 
         # mask out atoms outside the cell
@@ -3051,7 +3054,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         ])
         cell[1, :] += cell[0, :]
 
-        pos = base_cell.get_positions()
+        pos = quad_bulk.get_positions()
 
         p = pos.copy()
         # Add small offset to prevent atoms lying on cell lines
@@ -3059,31 +3062,50 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         p[:, 0] += 1e-2
         p[:, 1] += 5e-3
         mask = points_in_polygon2D(p[:, :2], cell_points_2d)
-        base_cell = base_cell[mask]
+        quad_bulk = quad_bulk[mask]
 
-        base_cell.set_cell(new_cell)
-        base_cell.wrap()
-        pos = base_cell.get_positions()
+        quad_bulk.set_cell(new_cell)
+        quad_bulk.wrap()
+        pos = quad_bulk.get_positions()
+
+        quad_disloc = quad_bulk.copy()
 
         # Get the core positions, translate everything so the cores are central in the cell
         core_pos_1 = self.left_dislocation.unit_cell_core_position
-        core_pos_2 = core_pos_1.copy()
-        core_pos_2[0] += core_separation
         
-        offset = 0.5 * (new_cell[1, :2] + new_cell[0, :2]) - core_pos_1[:2] - 0.5 * np.array([core_separation, 0])
-        core_pos_1[:2] += offset
-        core_pos_2[:2] += offset
-        pos[:, :2] += offset
+        offset = 0.5 * (new_cell[1, :] + new_cell[0, :]) - core_pos_1 - 0.5 * core_vec
+        core_pos_1 += offset
+        core_pos_2 = core_pos_1.copy()  + core_vec
+        pos += offset
 
-        print(core_pos_1, core_pos_2)
+        quad_bulk.set_positions(pos)
 
+        # Apply disloc displacements to quad_disloc
         disps = self.periodic_displacements(pos, new_cell[0, :], new_cell[1, :], core_pos_1, core_pos_2, **kwargs)
 
         pos += disps
-        base_cell.set_positions(pos)
-        base_cell.wrap()
+        quad_disloc.set_positions(pos)
+        quad_disloc.wrap()
 
-        return base_cell
+
+        # Change cell again, this time to one that should be more square
+        # This cell is less stable in periodic_displacements due to stacking faults running across
+        # cell boundaries for quadrupoles of partial dislocations
+        cell = quad_disloc.cell[:, :]
+
+        new_cell = np.array([
+            cell[0, :],
+            cell[1, :] - cell[0, :],
+            cell[2, :]
+        ])
+
+        quad_bulk.set_cell(new_cell)
+        quad_bulk.wrap()
+        
+        quad_disloc.set_cell(new_cell)
+        quad_disloc.wrap()
+
+        return quad_bulk, quad_disloc
 
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
