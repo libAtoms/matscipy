@@ -1,7 +1,31 @@
+'''
+Tools for converting plots into formats viewable in the sphinx HTML documentation
+
+'''
+
 import numpy as np
 # interactive visualisation  inside the notebook with nglview
-from nglview import show_ase, show_asetraj, ASEStructure
-from ase.visualize.ngl import NGLDisplay
+from nglview import show_ase, ASEStructure
+import matplotlib.pyplot as plt
+from IPython.display import HTML
+def show_HTML(anim):
+    '''
+    Convert matplotlib.animation.FuncAnimation 
+    (e.g. from GammaSurface.show()) to HTML viewable object.
+
+    anim: matplotlib.animation.FuncAnimation object
+        Animation to convert to HTML
+    '''
+    html = anim.to_jshtml()
+    # center the animation according to the width of the page
+    # does not affect the size of the figure
+    output_html = f'''
+        <div style="display: flex; justify-content: center;">
+        {html}
+        </div>
+        '''
+    plt.close(fig=plt.gcf())
+    return HTML(output_html)
 
 
 # Get the results of Ovito Common Neighbor Analysis 
