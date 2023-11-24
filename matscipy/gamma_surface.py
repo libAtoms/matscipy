@@ -6,29 +6,35 @@ import warnings
 from ase.constraints import UnitCellFilter
 from matscipy.utils import validate_cubic_cell, complete_basis
 import inspect
-from matscipy.dislocation import CubicCrystalDislocation, CubicCrystalDissociatedDislocation
+from matscipy.dislocation import CubicCrystalDislocation, \
+                                 CubicCrystalDissociatedDislocation
 from ase.units import _e
+
 
 class GammaSurface():
     '''
     A class for generating gamma surface/generalised stacking fault images & plots
     '''
-    def __init__(self, a, surface_direction, glide_direction=None, crystalstructure=None, symbol="C"):
+    def __init__(self, a, surface_direction, glide_direction=None,
+                 crystalstructure=None, symbol="C"):
         '''
         Initialise by cutting and rotating the input structure.
 
         Parameters
         ----------
         a: float or ase.Atoms
-            Lattice Constant or Starting structure to generate gamma surface from
-            (Operates similarly to CubicCrystalDislocation)
+            Lattice Constant or Starting structure to generate gamma surface
+            from (Operates similarly to CubicCrystalDislocation)
             If lattice constant is provided, crystalstructure must also be set
-        surface_direction: np.array of int or subclass of matscipy.dislocation.CubicCrystalDissociatedDislocation
+        surface_direction: np.array of int or subclass of
+            matscipy.dislocation.CubicCrystalDissociatedDislocation
             Vector direction of gamma surface, in miller index notation
             EG: np.array([0, 0, 1]), np.array([-1, 1, 0]), np.array([1, 1, 1])
-            A subclass of matscipy.dislocation.CubicCrystalDissociatedDislocation (EG: DiamondGlideScrew or FCCEdge110Dislocation)
+            A subclass of matscipy.dislocation.CubicCrystalDissociatedDislocation 
+            (EG: DiamondGlideScrew or FCCEdge110Dislocation)
         glide_direction: np.array of int or None
-            Basis vector (in miller indices) to form the glide direction of the stacking fault, which is oriented along the y axis of generated images
+            Basis vector (in miller indices) to form the glide direction of 
+            the stacking fault, which is oriented along the y axis of generated images
             Should be orthogonal to surface_direction
             If None, a suitable glide_direction will be found automatically
         crystalstructure: str
@@ -117,8 +123,10 @@ class GammaSurface():
                 "z": np.array(z)
                 }
             ax = np.array([x, y, z])
-        
-        alat, self.cut_at = validate_cubic_cell(a, axes=ax, crystalstructure=crystalstructure, symbol=symbol)
+
+        alat, self.cut_at = validate_cubic_cell(a, axes=ax, 
+                                                crystalstructure=crystalstructure,
+                                                symbol=symbol)
         self.offset *= alat
 
     def _vec_to_miller(self, vec, latex=True):
@@ -129,7 +137,7 @@ class GammaSurface():
             array to convert to string miller notation
             e.g. (100) or (11-2)
         latex: bool
-            Use LaTeX expressions to contstruct representation
+            Use LaTeX expressions to construct representation
         '''
         int_vec = vec.astype(int)
         l = []
@@ -140,25 +148,26 @@ class GammaSurface():
                 l.extend(str(item))
         return "(" + "".join(l) + ")"
 
-    def _gen_cellmove_images(self, base_struct, nx, ny, x_points, y_points, vacuum=0.0):
+    def _gen_cellmove_images(self, base_struct, 
+                             nx, ny, x_points, y_points, vacuum=0.0):
         # Add vacuum
         half_dist = base_struct.cell[2, 2] / 2
 
         atom_mask = base_struct.get_positions()[:, 2] > half_dist
-        
+
         cell = base_struct.cell[:, :].copy()
         cell[2, 2] += vacuum
         pos = base_struct.get_positions()
         pos[atom_mask, 2] += vacuum
         base_struct.set_positions(pos)
-        
+
         # Gen images
         images = []
         for i in range(nx):
             for j in range(ny):
                 offset = x_points[i] + y_points[j]
                 self.offsets.append(offset)
-            
+
                 new_cell = cell.copy()
                 new_cell[2, :] += offset
 
@@ -168,7 +177,7 @@ class GammaSurface():
 
                 images.append(ats)
         return images
-    
+
     def _gen_atommove_images(self, base_struct, nx, ny, x_points, y_points, vacuum):
         slab = stack(base_struct.copy(), base_struct.copy())
         z_cut = slab.cell[2, 2]/2
@@ -178,7 +187,7 @@ class GammaSurface():
 
         if vacuum:
             slab.set_pbc([True, True, False])
-        
+
         images = []
         for i in range(nx):
             for j in range(ny):
@@ -192,8 +201,7 @@ class GammaSurface():
                 images.append(ats)
         return images
 
-
-    def generate_images(self, nx, ny, z_reps=1, z_offset=0.0, cell_strain=0.0, vacuum=0.0, 
+    def generate_images(self, nx, ny, z_reps=1, z_offset=0.0, cell_strain=0.0, vacuum=0.0,
                         path_xlims=[0, 1], path_ylims=None, cell_move=True):
         '''
         Generate gamma surface images on an (nx, ny) grid
@@ -205,25 +213,31 @@ class GammaSurface():
         ny: int
             Number of points in the y direction
         z_reps: int
-            Number of supercell copies in z (increases separation between periodic surfaces)
+            Number of supercell copies in z
+            (increases separation between periodic surfaces)
         z_offset: float
             Offset in the z direction (in A) to apply to all atoms
-            Used to select different stacking fault planes sharing the same normal direction
+            Used to select different stacking fault planes
+            sharing the same normal direction
             (e.g. glide and shuffle planes in Diamond)
         cell_strain: float
-            Fractional strain to apply in z direction to cell only (0.1 = +10% strain; atoms aren't moved)
+            Fractional strain to apply in z direction to cell
+            only (0.1 = +10% strain; atoms aren't moved)
             Helpful for issues when atoms are extremely close in unrelaxed images.
         vacuum: float
-            Additional vacuum layer (in A) to add between periodic images of the gamma surface
+            Additional vacuum layer (in A) to add between periodic
+            images of the gamma surface
         vacuum_offset: float
-            Offset (in A) applied to the position of the vacuum layer in the cell
+            Offset (in A) applied to the position of
+            the vacuum layer in the cell
             The position of the vacuum layer is given by:
             vac_pos = self.cut_at.cell[2, 2] * (1 + cell_strain) / 2 + vacuum_offset
         path_xlims: list or array of floats
             Limits (in fractional coordinates) of the stacking fault path in the x direction
         path_ylims: list or array of floats
             Limits (in fractional coordinates) of the stacking fault path in the x direction
-            If not supplied, will be set to either [0, 1], or will be set based on the glide distance of the supplied dislocation
+            If not supplied, will be set to either [0, 1],
+            or will be set based on the glide distance of the supplied dislocation
         cell_move: bool
             Toggles using the cell move method (True) or atom move method (False)
 
@@ -237,7 +251,7 @@ class GammaSurface():
             y_lims = self.ylims
         else:
             y_lims = path_ylims
-        
+
         x_lims = path_xlims
 
         self.nx = nx
@@ -258,7 +272,7 @@ class GammaSurface():
         min_z = np.min(pos[:, 2])
         pos[:, 2] -= min_z
         base_struct.set_positions(pos)
-        
+
         # Apply cell strain
         new_cell = base_struct.cell[:, :].copy()
         new_cell[2, 2] += cell_strain
@@ -271,7 +285,7 @@ class GammaSurface():
 
         self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
         self.surface_separation = np.abs(cell[2, 2])
-                
+
         dx = self.x_disp / nx
         dy = self.y_disp / ny
 
@@ -289,14 +303,16 @@ class GammaSurface():
 
         if cell_move is True:
             # Generate images via cell moves
-            self.images = self._gen_cellmove_images(base_struct, nx, ny, x_points, y_points, vacuum)
+            self.images = self._gen_cellmove_images(base_struct, nx, ny, 
+                                                    x_points, y_points, vacuum)
         else:
             # Generate images via atom moves
-            self.images = self._gen_atommove_images(base_struct, nx, ny, x_points, y_points, bool(vacuum))
+            self.images = self._gen_atommove_images(base_struct, nx, ny, 
+                                                    x_points, y_points, bool(vacuum))
         return self.images
 
-
-    def relax_images(self, calculator=None, ftol=1e-3, optimiser=BFGSLineSearch, constrain_atoms=True,
+    def relax_images(self, calculator=None, ftol=1e-3, 
+                     optimiser=BFGSLineSearch, constrain_atoms=True,
                      cell_relax=True, logfile=None, steps=200):
         '''
         Utility function to relax gamma surface images using calculator
@@ -325,7 +341,7 @@ class GammaSurface():
             calc = self.calc
 
         if calc is None:
-            raise RuntimeError("No calculator supplied for relaxation")        
+            raise RuntimeError("No calculator supplied for relaxation")
 
         cell_constraint_mask = np.zeros((3, 3))
         if cell_relax:
@@ -345,25 +361,28 @@ class GammaSurface():
             if not opt.converged():
                 raise RuntimeError("An image relaxation failed to converge")
 
-    def get_energy_densities(self, calculator=None, relax=False, **relax_kwargs):
+    def get_energy_densities(self, calculator=None,
+                             relax=False, **relax_kwargs):
         '''
         Get (self.nx, self.ny) grid of gamma surface energies from self.images
 
         Parameters
         ----------
         calculator : ase calculator
-            Calculator to use for finding surface energies (and optionally in the relaxation)
+            Calculator to use for finding surface energies 
+            (and optionally in the relaxation)
         relax : bool
-            Whether to additionally relax the images (through a call to self.relax_images) before finding energies
+            Whether to additionally relax the images 
+            (through a call to self.relax_images) before finding energies
         **relax_kwargs : keyword args
             Extra kwargs to be passed to self.relax_images if relax=True
 
         Returns 
         -------
         Es : np.array
-        (nx, ny) array of energy densities (energy per unit surface area) for the gamma surface, in eV/A**2
+        (nx, ny) array of energy densities (energy per unit surface area) 
+        for the gamma surface, in eV/A**2
         '''
-
 
         if calculator is not None:
             calc = calculator
@@ -377,12 +396,11 @@ class GammaSurface():
         self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
         self.surface_separation = np.abs(cell[2, 2])
 
-
         Es = np.zeros((self.nx, self.ny))
 
         if relax:
             self.relax_images(calc, **relax_kwargs)
-        
+
         idx = 0
 
         for i in range(self.nx):
@@ -398,13 +416,17 @@ class GammaSurface():
         self.Es = Es
         return Es
 
-    def plot_energy_densities(self, Es=None, ax=None, si=True, interpolation="bicubic"):
+    def plot_energy_densities(self, Es=None, ax=None, 
+                              si=True, interpolation="bicubic"):
         '''
-        Produce a matplotlib plot of the gamma surface energy, from the data gathered in self.generate_images and self.get_surface_energioes
+        Produce a matplotlib plot of the gamma surface energy,
+        from the data gathered in self.generate_images
+        and self.get_surface_energies
 
         Returns a matplotlib fig and ax object
         Es: np.array
-            (nx, ny) array of energy densities. If None, uses self.Es (if populated from self.get_energy_densities())
+            (nx, ny) array of energy densities. If None, uses self.Es
+            (if populated from self.get_energy_densities())
         ax: matplotlib axis object
             Axis to draw plot
         si: bool
@@ -420,7 +442,8 @@ class GammaSurface():
         if Es is None:
             # Should have been populated from self.Es
             # If not, self.get_energy_densities() should have been called
-            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_energy_densities().")
+            raise RuntimeError("No energies to use im plotting! Pass Es=Es," +
+                               " or call self.get_energy_densities().")
 
         if si:
             mul = _e * 1e20
@@ -437,7 +460,11 @@ class GammaSurface():
             my_ax = ax
             fig = my_ax.get_figure()
 
-        im = my_ax.imshow(self.Es.T * mul, origin="lower", extent=[0, np.linalg.norm(self.x_disp), 0, np.linalg.norm(self.y_disp)], interpolation=interpolation)
+        im = my_ax.imshow(self.Es.T * mul, origin="lower",
+                          extent=[0, np.linalg.norm(self.x_disp),
+                                  0, np.linalg.norm(self.y_disp)],
+                          interpolation=interpolation)
+
         fig.colorbar(im, ax=ax, label=f"Energy Density ({units})")
 
         my_ax.set_xlim([0, np.linalg.norm(self.x_disp)])
@@ -446,16 +473,18 @@ class GammaSurface():
         my_ax.set_xlabel("Glide in " + self._vec_to_miller(self.surf_directions["x"]) + " ($\AA$)")
         my_ax.set_ylabel("Glide in " + self._vec_to_miller(self.surf_directions["y"]) + " ($\AA$)")
 
-        my_ax.set_title(self._vec_to_miller(self.surf_directions["z"]) + " Gamma Surface\nSurface Separation = {:0.2f} A".format(self.surface_separation))
+        my_ax.set_title(self._vec_to_miller(self.surf_directions["z"]) +
+                        " Gamma Surface\nSurface Separation = {:0.2f} A".format(self.surface_separation))
 
         return fig, my_ax
 
     def show(self, CNA_color=True, plot_energies=False, si=False, **kwargs):
         '''
         Overload of GammaSurface.show()
-        Plots an animation of the stacking fault structure, and optionally the associated 
-        energy densities (requires self.get_energy_densitities() to have been called)
-        
+        Plots an animation of the stacking fault structure,
+        and optionally the associated energy densities
+        (requires self.get_energy_densitities() to have been called)
+
         CNA_color: bool
             Toggle atom colours based on Common Neighbour Analysis (Structure identification)
         plot_energies:
@@ -469,18 +498,17 @@ class GammaSurface():
         import matplotlib.pyplot as plt
         from matplotlib.animation import FuncAnimation
         from matscipy.utils import get_structure_types
-        
-        images = [image.copy() for image in self.images]
 
+        images = [image.copy() for image in self.images]
 
         if CNA_color:
             for system in images:
                 atom_labels, structure_names, colors = get_structure_types(system, 
-                                                                        diamond_structure=True)
+                                                                           diamond_structure=True)
                 atom_colors = [colors[atom_label] for atom_label in atom_labels]
 
                 system.set_array("colors", np.array(atom_colors))
-        
+
         fig, ax = plt.subplots(ncols=2, nrows=2)
         atom_ax1, atom_ax2, atom_ax3, energy_ax = ax.flatten()
 
@@ -510,9 +538,8 @@ class GammaSurface():
                 curr_ax.set_xlabel(self._vec_to_miller(self.surf_directions[xdir]))
                 curr_ax.set_ylabel(self._vec_to_miller(self.surf_directions[ydir]))
 
-
                 if CNA_color:
-                    plot_atoms(atoms, ax=curr_ax, colors=atoms.get_array("colors"), 
+                    plot_atoms(atoms, ax=curr_ax, colors=atoms.get_array("colors"),
                     rotation=rot, **kwargs)
                 else: # default color are jmol (same is nglview)
                     plot_atoms(atoms, ax=curr_ax, rotation=rot, **kwargs)
@@ -520,7 +547,6 @@ class GammaSurface():
                 if keep_lims:
                     curr_ax.set_xlim(xlim)
                     curr_ax.set_ylim(ylim)
-
 
         if plot_energies:
             if self.Es is not None:
@@ -531,7 +557,7 @@ class GammaSurface():
                     Es = self.get_energy_densities()
                 except:
                     raise RuntimeError("Cannot plot energy densities before get_energy_densities is called!")
-                
+
             self.plot_energy_densities(ax=energy_ax, si=si)
         else:
             energy_ax.clear()
@@ -544,7 +570,7 @@ class GammaSurface():
         def drawimage(framedata):
             framenum, atoms = framedata
             # Plot Structure
-            
+
             plot_all_atom_axes(atoms, keep_lims=True)
 
             # Plot energies
@@ -556,10 +582,10 @@ class GammaSurface():
                 pos = self.offsets[framenum]
                 plt.scatter(pos[0], pos[1], marker="x", color="k")
 
-
         animation = FuncAnimation(fig, drawimage, frames=enumerate(images),
-                                init_func=lambda: None,
-                                interval=200)
+                                  save_count=len(images),
+                                  init_func=lambda: None,
+                                  interval=200)
         return animation
 
 
@@ -575,14 +601,16 @@ class StackingFault(GammaSurface):
             Number of images
         '''
         return super().generate_images(1, n, *args, **kwargs)
-    
+
     def plot_energy_densities(self, Es=None, ax=None, si=False):
         '''
-        Produce a matplotlib plot of the stacking fault energy, from the data gathered in self.generate_images and self.get_surface_energy
+        Produce a matplotlib plot of the stacking fault energy, 
+        from the data gathered in self.generate_images and self.get_surface_energy
 
         Returns a matplotlib fig and ax object
         Es: np.array
-            (nx, ny) array of energy densities. If None, uses self.Es (if populated from self.get_energy_densities())
+            (nx, ny) array of energy densities. If None, uses self.Es 
+            (if populated from self.get_energy_densities())
         ax: matplotlib axis object
             Axis to draw plot
         si: bool
@@ -596,7 +624,8 @@ class StackingFault(GammaSurface):
         if Es is None:
             # Should have been populated from self.Es
             # If not, self.get_energy_densities() should have been called
-            raise RuntimeError("No energies to use im plotting! Pass Es=Es, or call self.get_energy_densities().")
+            raise RuntimeError("No energies to use im plotting! Pass Es=Es," + 
+                               " or call self.get_energy_densities().")
 
         if si:
             mul = _e * 1e20
@@ -604,7 +633,7 @@ class StackingFault(GammaSurface):
         else:
             mul = 1
             units = "eV/${\AA}^2$"
-        
+
         if ax is None:
 
             fig, my_ax = plt.subplots()
@@ -619,13 +648,14 @@ class StackingFault(GammaSurface):
         title = self._vec_to_miller(self.surf_directions["z"]) + " Stacking Fault\n" + "Surface Separation = {:0.2f}".format(self.surface_separation) + "${\AA}$"
         my_ax.set_title(title)
         return fig, my_ax
-    
+
     def show(self, CNA_color=True, plot_energies=False, si=False, **kwargs):
         '''
         Overload of GammaSurface.show()
-        Plots an animation of the stacking fault structure, and optionally the associated 
+        Plots an animation of the stacking fault structure, 
+        and optionally the associated 
         energy densities (requires self.get_energy_densitities() to have been called)
-        
+
         CNA_color: bool
             Toggle atom colours based on Common Neighbour Analysis (Structure identification)
         plot_energies:
@@ -633,7 +663,8 @@ class StackingFault(GammaSurface):
         si: bool
             Plot energy densities in SI units (J/m^2), or "ASE" units eV/A^2
         rotation: str
-            rotation to apply to the structures, passed directly to ase.visualize.plot.plot_atoms
+            rotation to apply to the structures, 
+            passed directly to ase.visualize.plot.plot_atoms
         **kwargs
             extra kwargs passed to ase.visualize.plot.plot_atoms
         '''
@@ -641,7 +672,7 @@ class StackingFault(GammaSurface):
         import matplotlib.pyplot as plt
         from matplotlib.animation import FuncAnimation
         from matscipy.utils import get_structure_types
-        
+
         images = [image.copy() for image in self.images]
         nims = len(images)
 
@@ -655,11 +686,11 @@ class StackingFault(GammaSurface):
         if CNA_color:
             for system in images:
                 atom_labels, structure_names, colors = get_structure_types(system, 
-                                                                        diamond_structure=True)
+                                                                           diamond_structure=True)
                 atom_colors = [colors[atom_label] for atom_label in atom_labels]
 
                 system.set_array("colors", np.array(atom_colors))
-        
+
         if plot_energies:
             fig, ax = plt.subplots(ncols=2)
             atom_ax, energy_ax = ax
@@ -672,7 +703,7 @@ class StackingFault(GammaSurface):
                     Es = self.get_energy_densities()
                 except:
                     raise RuntimeError("Cannot plot energy densities before get_energy_densities is called!")
-                
+
             self.plot_energy_densities(ax=energy_ax, si=si)
         else:
             fig, atom_ax = plt.subplots()
@@ -683,12 +714,12 @@ class StackingFault(GammaSurface):
 
         xlim = atom_ax.get_xlim()
         ylim = atom_ax.get_ylim()
-        
+
         def drawimage(framedata):
             framenum, atoms = framedata
             # Plot Structure
             atom_ax.clear()
-            
+
             atom_ax.set_xticks([])
             atom_ax.set_yticks([])
 
@@ -710,8 +741,8 @@ class StackingFault(GammaSurface):
                 self.plot_energy_densities(ax=energy_ax, si=si)
                 plt.scatter(np.linalg.norm(self.y_disp) * framenum/(nims-1), Es[0, framenum] * si_fac, marker="x", color="k")
 
-
         animation = FuncAnimation(fig, drawimage, frames=enumerate(images),
-                                init_func=lambda: None,
-                                interval=200)
+                                  save_count=len(images),
+                                  init_func=lambda: None,
+                                  interval=200)
         return animation

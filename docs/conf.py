@@ -287,4 +287,6 @@ autodoc_default_options = {
 }
 
 myst_enable_extensions = [
-    "dollarmath"]
+    "dollarmath",
+    "colon_fence",
+    ]
