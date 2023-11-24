@@ -287,14 +287,15 @@ class GammaSurface():
         self.surface_area = np.linalg.norm(np.cross(cell[0, :], cell[1, :]))
         self.surface_separation = np.abs(cell[2, 2])
 
-        dx = self.x_disp / nx
-        dy = self.y_disp / ny
+        dx = self.x_disp
+        dy = self.y_disp
 
 
         self.offsets = []
 
         x_points = np.zeros((nx, 3))
         y_points = np.zeros((ny, 3))
+
 
         for i in range(nx):
             x_points[i, :] = dx * xs[i]
