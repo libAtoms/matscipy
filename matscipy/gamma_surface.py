@@ -180,7 +180,6 @@ class GammaSurface():
 
     def _gen_atommove_images(self, base_struct, nx, ny, x_points, y_points, vacuum):
         slab = stack(base_struct.copy(), base_struct.copy())
-        z_cut = slab.cell[2, 2]/2
         base_pos = slab.get_positions()
 
         top_idxs = np.arange(len(base_struct), len(slab))
@@ -257,6 +256,9 @@ class GammaSurface():
         self.nx = nx
         self.ny = ny
 
+        xs = np.linspace(x_lims[0], x_lims[1], nx)
+        ys = np.linspace(y_lims[0], y_lims[1], ny)
+
         base_struct = self.cut_at * (1, 1, z_reps)
 
         # Atom offset
@@ -289,7 +291,6 @@ class GammaSurface():
         dx = self.x_disp / nx
         dy = self.y_disp / ny
 
-        images = []
 
         self.offsets = []
 
@@ -297,9 +298,9 @@ class GammaSurface():
         y_points = np.zeros((ny, 3))
 
         for i in range(nx):
-            x_points[i, :] = dx * i
+            x_points[i, :] = dx * xs[i]
         for j in range(ny):
-            y_points[j, :] = dy * j
+            y_points[j, :] = dy * ys[j]
 
         if cell_move is True:
             # Generate images via cell moves

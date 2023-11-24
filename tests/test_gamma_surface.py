@@ -30,7 +30,7 @@ class GammaSurfaceTest(matscipytest.MatSciPyTestCase):
         surface.generate_images(9, z_reps=1, path_ylims=[0, 0.5])
         surface.relax_images(self.model, self.fmax)
         Es = surface.get_energy_densities(self.model)[0, :]
-        assert np.allclose(np.max(Es), 0.2920033849024309)
+        assert np.allclose(np.max(Es), 0.020221014385843204)
 
     def test_disloc_stacking_fault(self):
         from matscipy.dislocation import DiamondGlideScrew
