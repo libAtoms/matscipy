@@ -5,6 +5,8 @@ For large loads, solids can respond with irreversible deformation. One form of i
 
 Creating an atomistic system containing a dislocation requires a rather deep knowledge of crystallographic system, elasticity theory as well as hands on experience with atomistic simulations. Thus, it can be challenging for people not familiar to the field. Within this module we attempt to create a flexible, friendly and pythonic tool to enable atomistic simulations of dislocations with ease. The base of the model is :class:`matscipy.dislocation.CubicCrystalDislocation` class that contains all the necessary information to create an atomistic dislocation. To start experimenting, a user only has to choose the dislocation of interest and provide a lattice parameter and elastic constants.
 
+Some dislocation systems feature additional complexity, as they can dissociate into two partial dislocations connected by a stacking fault. These kinds of dislocations are implemented within the subclass :class:`matscipy.dislocation.CubicCrystalDissociatedDislocation` and follow a near-identical interface. :mod:`matscipy.gamma_surface` implements classes which assist in the modeling of stacking faults, as well as more general gamma surfaces. The classes can be initialised based on a dislocation system, or by known axes. 
+
 Installation and tests
 ----------------------
 
@@ -19,3 +21,5 @@ Tutorials:
 
     cylinder_configurations.ipynb
     multispecies_dislocations.ipynb
+    gamma_surfaces.ipynb
+    gamma_surface_advanced.ipynb
