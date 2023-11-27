@@ -968,6 +968,47 @@ class CubicCauchyBorn:
                 'Error! Can only predict cauchy born shift with implemented methods - "taylor" or "regression"')
             raise NotImplementedError
 
+
+    def find_exact_shift_for_homogeneous_field(self, E_3x3, atoms, dirs):
+        """Find the exact shift for a homogeneous strain field, where the
+        strain field is given by E_3x3. This is done by finding the exact
+        shift for a single atom in the system
+        
+        Parameters
+        ----------
+        E_3x3 : array_like
+            3x3 Green-Lagrange strain tensor defining the strain state
+            on each atom.
+        atoms : ASE atoms object
+            Atoms object
+        A : 3x3 numpy array, floats
+            rotation matrix of the form [x^T,y^T,z^T], where x^T,y^T,z^T
+            are normalised column vectors of the lab frame directions
+            expressed in terms of the crystal lattice directions.
+        
+        Returns
+        -------
+        shift : array_like
+            The exact shift for a homogeneous strain field
+        """
+        # Rotate E to lattice frame
+        E_voigt_lab = full_3x3_to_Voigt_6_strain(E_3x3)
+        print('voigt lattice',E_voigt_lab)
+        # Get the exact shift for a single atom in rotated unitcell
+        unitcell = self.lattice(self.el, latticeconstant=self.a0,
+                        size=[1, 1, 1], directions=dirs)
+        unitcell.set_pbc([True, True, True])
+
+        shift = self.eval_shift(E_voigt_lab,unitcell)
+        print('lab shift',shift)
+        #now duplicate the shift vector for all atoms
+        natoms = len(atoms)
+        shifts = np.tile(shift, (natoms, 1))
+        
+        return shifts
+        
+
+    
     def apply_shifts(self, atoms, shifts, mask=None):
         """Apply predicted Cauchy-Born corrector shifts to atoms object with an
         optional mask.
@@ -1352,11 +1393,7 @@ class CubicCauchyBorn:
             unitcell_copy.get_positions()[0]
 
         shift_diff = relaxed_shift - initial_shift
-        # TRANSFER SHIFT_DIFF BACK INTO THE LATTICE FRAME, OUT OF THE DEFORMED
-        # FRAME
-        # back_transform = np.transpose(cell_rescale)
-        # shift_diff_transform = back_transform@shift_diff
-        # print('shift_diff',shift_diff,'shift_diff_transform',shift_diff_transform)
+        
         return shift_diff  # return all 3 components
 
     def basis_function_evaluation(self, E_vecs):
