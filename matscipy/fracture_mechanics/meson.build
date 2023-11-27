@@ -7,7 +7,8 @@ python_sources = [
     'crack.py',
     'crackpathsel.py',
     'energy_release.py',
-    'idealbrittlesolid.py'
+    'idealbrittlesolid.py',
+    'thin_strip_utils.py'
 ]
 
 # Install pure Python
