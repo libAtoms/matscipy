@@ -3029,7 +3029,9 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # Replicate the unit cell enough times to fill the target cell
         cell = self.unit_cell.cell[:, :].copy()
 
-        xreps = np.ceil(2 * core_separation / np.sum(cell[0, :])).astype(int)
+        fac = np.ceil(core_separation / np.sum(cell[0, :])).astype(int)
+
+        xreps = 2*fac
         # Try to keep vertical separation similar to horizontal separation
         yreps = np.ceil(core_separation / np.sum(cell[1, :])).astype(int)
 
@@ -3041,18 +3043,17 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # Rhomboid shape enclosing both cores, + any stacking fault
         new_cell = np.array([
             core_vec + cell[1, :],
-            cell[0, :],
+            (fac-1) * core_vec,
             cell[2, :]
         ])
 
         # mask out atoms outside the cell
         cell_points_2d = np.array([
             [0, 0],
-            cell[0, :2],
-            cell[0, :2] + cell[1, :2],
-            cell[1, :2]
+            new_cell[0, :2],
+            new_cell[0, :2] + new_cell[1, :2],
+            new_cell[1, :2]
         ])
-        cell[1, :] += cell[0, :]
 
         pos = quad_bulk.get_positions()
 
@@ -3071,14 +3072,14 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         quad_disloc = quad_bulk.copy()
 
         # Get the core positions, translate everything so the cores are central in the cell
-        core_pos_1 = self.left_dislocation.unit_cell_core_position
-        
-        offset = 0.5 * (new_cell[1, :] + new_cell[0, :]) - core_pos_1 - 0.5 * core_vec
-        core_pos_1 += offset
-        core_pos_2 = core_pos_1.copy()  + core_vec
-        pos += offset
+        lens = np.sum(new_cell, axis=0)
+        core_pos_1 = lens/2 - 0.5 * core_vec
+        core_pos_2 = core_pos_1 + core_vec
+        pos += core_pos_1 - self.left_dislocation.unit_cell_core_position
 
         quad_bulk.set_positions(pos)
+        quad_bulk.wrap()
+        pos = quad_bulk.get_positions()
 
         # Apply disloc displacements to quad_disloc
         disps = self.periodic_displacements(pos, new_cell[0, :], new_cell[1, :], core_pos_1, core_pos_2, **kwargs)
