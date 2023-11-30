@@ -3013,14 +3013,20 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
             displacements += disp_update
             max_disp_change = np.max(np.linalg.norm(disp_update, axis=-1))
-            print(neigh_idx, max_disp_change)
             if max_disp_change < disp_tol and ix > 0:
                 return displacements
         warnings.warn("Quadrupole displacments did not converge!", stacklevel=2)
         return displacements
 
 
-    def build_quadrupole(self, glide_separation=0, **kwargs):
+    def build_quadrupole(self, glide_separation=4, **kwargs):
+
+        if glide_separation =< 1:
+            raise RuntimeError("glide_distance should be >= 1")
+        elif glide_separation < 3:
+            msg = "glide_distance is very small. Resulting structure may be very unstable."
+            warnings.warn(msg, stacklevel=2)
+
 
         core_separation = glide_separation * self.glide_distance
         core_vec = np.array([core_separation, 0, 0])
@@ -3053,8 +3059,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # New cell based on old cell vectors
         # Rhomboid shape enclosing both cores, + any stacking fault
         new_cell = np.array([
-            0.5 * cell[0, :] - cell[1, :],
-            0.5 * cell[0, :] + cell[1, :],
+            cell[1, :] + 0.5 * cell[0, :],
+            -cell[1, :] + 0.5 *  cell[0, :],
             cell[2, :]
         ])
         quad_bulk.set_cell(new_cell)
@@ -3067,7 +3073,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         lens = np.sum(new_cell, axis=0)
         core_pos_1 = lens/2 - 0.5 * core_vec
         core_pos_2 = core_pos_1 + core_vec
-        pos += core_pos_1 + self.left_dislocation.unit_cell_core_position
+        pos += core_pos_1 - self.left_dislocation.unit_cell_core_position
 
         quad_bulk.set_positions(pos)
         quad_bulk.wrap()
