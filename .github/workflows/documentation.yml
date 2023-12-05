@@ -33,7 +33,7 @@ jobs:
       - name: build_doc
         run: |
           cd docs
-          make html
+          make html SPHINXOPTS="-j auto"
           cd ..
 
       # Publish built docs to gh-pages branch.

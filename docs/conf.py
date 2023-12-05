@@ -275,6 +275,11 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
+# Raise Error (not default Warning) when a notebook execution fails
+# (due to code error, timeout, etc.)
+nb_execution_raise_on_error = True
+
+
 # -- Extension configuration -------------------------------------------------
 
 autodoc_default_options = {
@@ -287,4 +292,6 @@ autodoc_default_options = {
 }
 
 myst_enable_extensions = [
-    "dollarmath"]
+    "dollarmath",
+    "colon_fence",
+    ]

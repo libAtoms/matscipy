@@ -1,9 +1,32 @@
+'''
+Tools for converting plots into formats viewable in the sphinx HTML documentation
+
+'''
+
 import numpy as np
 # interactive visualisation  inside the notebook with nglview
 from nglview import show_ase, ASEStructure
-from ovito.io.ase import ase_to_ovito
-from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
-from ovito.pipeline import StaticSource, Pipeline
+import matplotlib.pyplot as plt
+from IPython.display import HTML
+def show_HTML(anim):
+    '''
+    Convert matplotlib.animation.FuncAnimation 
+    (e.g. from GammaSurface.show()) to HTML viewable object.
+
+    anim: matplotlib.animation.FuncAnimation object
+        Animation to convert to HTML
+    '''
+    html = anim.to_jshtml()
+    # center the animation according to the width of the page
+    # does not affect the size of the figure
+    output_html = f'''
+        <div style="display: flex; justify-content: center;">
+        {html}
+        </div>
+        '''
+    plt.close(fig=plt.gcf())
+    return HTML(output_html)
+
 
 # Get the results of Ovito Common Neighbor Analysis 
 # https://www.ovito.org/docs/current/reference/pipelines/modifiers/common_neighbor_analysis.html
@@ -21,6 +44,9 @@ def get_structure_types(structure, diamond_structure=False):
         structure_names (list of strings): names of the structure types
         colors (list of strings): colors of the structure types in hex format
     """
+    from ovito.io.ase import ase_to_ovito
+    from ovito.modifiers import CommonNeighborAnalysisModifier, IdentifyDiamondModifier
+    from ovito.pipeline import StaticSource, Pipeline
     ovito_structure = structure.copy()
     if "fix_mask" in ovito_structure.arrays:
         del ovito_structure.arrays["fix_mask"]
