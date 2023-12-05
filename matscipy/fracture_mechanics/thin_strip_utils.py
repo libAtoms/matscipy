@@ -1,0 +1,496 @@
+import numpy as np
+from ase.lattice.cubic import Diamond
+from ase.constraints import ExpCellFilter
+from ase.optimize import LBFGS
+import ase.io
+import ase.io.lammpsdata
+import ase.units as units
+from matscipy.elasticity import youngs_modulus, poisson_ratio
+from matscipy.fracture_mechanics.crack import G_to_strain, thin_strip_displacement_y
+from matscipy.fracture_mechanics.clusters import set_groups
+from matscipy.fracture_mechanics.crack import find_tip_coordination
+import matplotlib.pyplot as plt
+from matscipy.cauchy_born import CubicCauchyBorn
+
+class ThinStripBuilder:
+
+    def __init__(self,el,a0,C,calc,lattice,directions,cb=None,multilattice=False,switch_sublattices=False):
+        self.el = el
+        self.a0 = a0
+        self.C = C
+        self.directions = directions
+        self.E = youngs_modulus(C, directions[1])
+        self.nu = poisson_ratio(C, directions[1], directions[0])
+        self.multilattice = multilattice
+        self.calc = calc
+        self.lattice = lattice
+        self.y_strain = 0
+        self.total_added_dist = 0
+        if self.multilattice:
+            assert cb is not None, 'Must provide a Cauchy Born object if multilattice is True'
+            self.cb = cb
+            #build rotation matrix
+            self.A = np.zeros([3, 3])
+            for i, direc in enumerate(directions):
+                self.A[:, i] = direc / np.linalg.norm(direc)
+            if switch_sublattices:
+                self.switch_sublattices = True
+
+
+    def K_to_strain(self,K,strip_height):
+        """
+        convert a stress intensity factor (in MPa sqrt(m)) to a strain for a given unstrained strip height
+        """
+        K_ase = (K/1000) * (units.GPa*np.sqrt(units.m))
+        initial_G = ((K_ase)**2)/self.E
+        strain = G_to_strain(initial_G, self.E, self.nu, strip_height)
+        return strain
+
+    def E_tensor_from_strain(self,strain_y,strain_x):
+        E = np.zeros([3,3])
+        E[0,0] = strain_y
+        E[1,1] = strain_x
+        return E
+
+    def get_equilibrium_x_strain(self,y_strain):
+        if y_strain == self.y_strain:
+            return self.x_strain
+        else:
+            #build an ASE unit cell with the correct strain
+            unitcell = self.lattice(
+                self.el, latticeconstant=self.a0, size=[1, 1, 1],directions=self.directions)
+            ase.io.write('unitcell_0.xyz',unitcell)
+            #set the strain
+            cell = unitcell.get_cell()
+            a_x_before = cell[0,0]
+            print('a_x_before',a_x_before)
+            #multiply the y component of the cell by the strain
+            cell[1,1] *= (1+y_strain)
+            #set the cell, shifting the atoms
+            unitcell.set_cell(cell,scale_atoms=True)
+            unitcell.set_pbc((True,True,True))
+            #set the calculator
+            unitcell.calc = self.calc
+            #set the expcellfilter constraint, only allowing strain to move in x direction
+            expcellfilter = ExpCellFilter(unitcell, mask=[1, 0, 0, 0, 0, 0])
+            #run the optimisation
+            opt = LBFGS(expcellfilter)
+            opt.run(fmax=1e-3)
+            ase.io.write('unitcell_1.xyz',unitcell)
+            #ge the lattice param in x direction
+            a_x = unitcell.get_cell()[0,0]
+            print('a_x_after',a_x)
+            self.y_strain = y_strain
+            self.x_strain = (a_x-a_x_before)/a_x_before
+        return self.x_strain
+
+    def build_thin_strip(self,width,height,thickness,vacuum):
+        """
+        Build a thin strip with no strain and no crack
+        """
+        print('thickness', thickness)
+        # now, we build system aligned with requested crystallographic orientation
+        unit_slab = Diamond(directions=self.directions,
+                            size=(1, 1, 1),
+                            symbol=self.el,
+                            pbc=True,
+                            latticeconstant=self.a0)
+        if self.multilattice:
+            self.cb.set_sublattices(unit_slab, self.A)
+
+        # center vertically half way along the vertical bond between atoms 0 and 1
+        unit_slab.positions[:, 1] += (unit_slab.positions[1, 1] -
+                                    unit_slab.positions[0, 1]) / 2.0
+
+        # map positions back into unit cell
+        unit_slab.set_scaled_positions(unit_slab.get_scaled_positions())
+
+        # ***** Setup crack slab supercell *****
+
+        # Now we will build the full crack slab system,
+        # approximately matching requested width and height
+        nx = int(width / unit_slab.cell[0, 0])
+        ny = int(height/ unit_slab.cell[1, 1])
+        nz = int(thickness/ unit_slab.cell[2, 2])
+        ase.io.write('unitslab.xyz',unit_slab)
+        self.single_cell_width = unit_slab.cell[0,0]
+        self.min_x_pos_dist = np.min(unit_slab.get_positions()[:,0])
+        self.max_x_pos_dist = self.single_cell_width - np.max(unit_slab.get_positions()[:,0])
+        print('min x pos', self.min_x_pos_dist)
+        print('max x pos', self.max_x_pos_dist)
+        # make sure ny is even so slab is centered on a bond
+        if ny % 2 == 1:
+            ny += 1
+
+        # make a supercell of unit_slab
+        crack_slab = unit_slab * (1, ny, nz)
+        #add an array 'trackable' to crack_slab which is True for the leftmost atom nearest the centre
+        #and False for all other atoms. This is for checking steady state
+        xpos = crack_slab.get_positions()[:,0]
+        ypos = crack_slab.get_positions()[:,1]
+        zpos = crack_slab.get_positions()[:,2]
+        shifted_ypos = ypos - (ypos.max() + ypos.min())/2
+        ordered_in = np.lexsort((zpos,xpos,np.abs(shifted_ypos)))
+        trackable = np.zeros(len(crack_slab),dtype=bool)
+        trackable[ordered_in[0]] = True
+        crack_slab.new_array('trackable',trackable)
+
+        crack_slab = crack_slab * (nx, 1, 1)
+        crack_slab.positions += [1,0.1,0]
+        crack_slab.wrap()
+
+        # open up the cell along x and y by introducing some vaccum
+        crack_slab.center(vacuum, axis=0)
+        crack_slab.center(vacuum, axis=1)
+
+        orig_width = (crack_slab.positions[:, 0].max() -
+                    crack_slab.positions[:, 0].min())
+        orig_height = (crack_slab.positions[:, 1].max() -
+                    crack_slab.positions[:, 1].min())
+        orig_thickness = (crack_slab.positions[:, 2].max() -
+                        crack_slab.positions[:, 2].min())
+
+        print(('Made slab with %d atoms, original width, height and thickness: %.1f x %.1f x %.1f A^2' %
+            (len(crack_slab), orig_width, orig_height, orig_thickness)))
+        #resort indicies such that they are stable
+        order = self.stable_sort_strip(crack_slab)
+        crack_slab = crack_slab[order]
+
+        #set self.trackable_atoms_mask to be the atoms which are in the 'trackable' array of crack_slab
+        self.trackable_atoms_mask = crack_slab.arrays['trackable']
+        #ase.io.write('1_slab.xyz',crack_slab)
+        #set groups (useful later for crack tip determination)
+        set_groups(crack_slab,[nx,ny,nz],20,10)
+        self.group_array = crack_slab.arrays['groups']
+        return crack_slab
+
+    def build_absorbent_test_strip(self,width):
+        """
+        build a single unit cell thin strip in y and z which stretches
+        along x with periodic boundaries in y and z
+        """
+        # now, we build system aligned with requested crystallographic orientation
+        unit_slab = Diamond(directions=self.directions,
+                            size=(1, 1, 1),
+                            symbol=self.el,
+                            pbc=True,
+                            latticeconstant=self.a0)
+        
+        nx = int(width / unit_slab.cell[0, 0])
+
+        # make a supercell of unit_slab
+        test_slab = unit_slab * (nx, 1, 1)
+        test_slab.wrap()
+        #set periodic boundaries
+        test_slab.set_pbc((False,True,True))
+        return test_slab
+
+    def build_thin_strip_with_strain(self,K,width,height,thickness,vacuum,force_spacing=None):
+        #force spacing is the width of a single unit cell to force upon the slab
+        crack_slab = self.build_thin_strip(width,height,thickness,vacuum)
+        strain = self.K_to_strain(K,height)
+        #shift crack
+        # centre the slab on the origin
+        xmean = crack_slab.positions[:, 0].mean()
+        ymean = crack_slab.positions[:, 1].mean()
+        crack_slab.positions[:, 0] -= xmean
+        crack_slab.positions[:, 1] -= ymean
+
+        crack_slab.positions[:, 1] += strain*crack_slab.positions[:, 1]
+        #now apply the Poisson strain in the x direction
+        print('NU',self.nu)
+        if force_spacing is None:
+            #x_strain = -self.nu*strain
+            x_strain = self.get_equilibrium_x_strain(strain)
+        else:
+            x_strain = (force_spacing-self.single_cell_width)/self.single_cell_width
+            print('effective x strain', x_strain)
+        
+        crack_slab.positions[:, 0] += x_strain*crack_slab.positions[:, 0]
+        
+        # undo crack shift
+        crack_slab.positions[:, 0] += xmean
+        crack_slab.positions[:, 1] += ymean
+
+        #add cauchy-born shift correction if crack is a multi-lattice
+        if self.multilattice:
+            #set sublattices
+            self.cb.set_sublattices(crack_slab, self.A, read_from_atoms=True)
+            if self.switch_sublattices:
+                self.cb.switch_sublattices(crack_slab)
+            E_3x3 = self.E_tensor_from_strain(strain,x_strain)
+            shifts = self.cb.find_exact_shift_for_homogeneous_field(E_3x3, crack_slab, self.directions)
+            #apply shifts
+            self.cb.apply_shifts(crack_slab, shifts)
+
+        #ase.io.write('2_slab.xyz',crack_slab)
+        #add the x strain as info to crack_slab
+        crack_slab.info['x_strain'] = x_strain
+        return crack_slab
+
+
+    def build_thin_strip_with_crack(self,K,width,height,thickness,vacuum,crack_seed_length,strain_ramp_length,track_spacing=0):
+        """
+        build a thin strip at some defined strain with a crack of some defined length
+        When building the crack, add tracked atoms every track_spacing along x 
+        """
+        #build a thin strip with no strain
+        crack_slab = self.build_thin_strip(width,height,thickness,vacuum)
+        slab_length = crack_slab.positions[:,0].max() - crack_slab.positions[:,0].min()
+        crack_length = crack_seed_length + strain_ramp_length
+        crack_tip_pos = crack_slab.positions[:,0].min() + crack_length
+        strain = self.K_to_strain(K,height)
+
+        if track_spacing>0:
+            atoms_to_track=[]
+            #only track atoms if track_spacing is greater than 0
+            trackable_atoms = np.where(crack_slab.arrays['trackable'])[0]
+            trackable_atom_pos_x = crack_slab[crack_slab.arrays['trackable']].get_positions()[:,0]
+            n_atoms_to_track = int(np.floor((slab_length-crack_length)/track_spacing))
+            for i in range(n_atoms_to_track):
+                #find the closest atom to tip + i*track_spacing
+                atoms_to_track.append(trackable_atoms[np.argmin(np.abs(trackable_atom_pos_x-(crack_tip_pos+i*track_spacing)))])
+            
+            crack_slab.new_array('tracked',np.zeros(len(crack_slab),dtype=int))
+            crack_slab.arrays['tracked'][atoms_to_track] = range(1,n_atoms_to_track+1)
+            self.tracked_atoms_y0 = crack_slab[crack_slab.arrays['tracked']].get_positions()[0,1]
+        else:
+            #track no atoms
+            crack_slab.new_array('tracked',np.zeros(len(crack_slab),dtype=int))
+
+        #shift crack
+        # centre the slab on the origin
+        xmean = crack_slab.positions[:, 0].mean()
+        ymean = crack_slab.positions[:, 1].mean()
+        crack_slab.positions[:, 0] -= xmean
+        crack_slab.positions[:, 1] -= ymean
+
+        left = crack_slab.positions[:, 0].min()
+        crack_slab.positions[:, 1] += thin_strip_displacement_y(
+                                        crack_slab.positions[:, 0],
+                                        crack_slab.positions[:, 1],
+                                        strain,
+                                        left + crack_seed_length,
+                                        left + crack_seed_length +
+                                                strain_ramp_length)
+        
+        #first part has no associated Poisson strain
+        #last part has easy to calculate Poisson strain
+        #middle part has a poisson strain gradient
+        a = left + crack_seed_length
+        b = left + crack_seed_length + strain_ramp_length
+        y = crack_slab.positions[:,1]
+        x = crack_slab.positions[:,0]
+        u_x = np.zeros_like(x)
+        #get x_strain
+        x_strain = self.get_equilibrium_x_strain(strain)
+        u_x[x>b] = x_strain*x[x>b]
+        middle = (x >= a) & (x <= b)
+        f = (x[middle] - a) / (b - a)
+        u_x[middle] = (x_strain * f * x[middle])
+        crack_slab.positions[:,0] += u_x
+
+
+        # undo crack shift
+        crack_slab.positions[:, 0] += xmean
+        crack_slab.positions[:, 1] += ymean
+        #write to file
+        ase.io.write('3_slab.xyz',crack_slab)
+        return crack_slab
+
+
+    def stable_sort_strip(self,atoms):
+        #take a set of atom and sort by x, y and z
+        pos = atoms.get_positions()
+        x, y, z = pos[:,0],pos[:,1], pos[:,2]
+        order = np.lexsort((z, y, x))
+        return order
+        
+        
+        
+    def paste_atoms_into_strip(self,K,width,height,thickness,vacuum,old_atoms,crop,track_spacing=0,right_hand_edge_dist=0,match_cell_length=False):
+        """
+        build a thin strip at some defined strain, and paste in the old atoms at the left hand edge of the strip
+        Crop is the amount to be cut and pasted in
+        Right hand edge dist is the amount at the right hand edge to be preserved.
+        """
+
+        trackable = old_atoms.arrays['trackable']
+        #get a mask for between the final 80 and 50 angstroms in x of the old_atoms
+        mask = (old_atoms.positions[:,0]>(np.max(old_atoms.positions[:,0])-80)) & (old_atoms.positions[:,0]<(np.max(old_atoms.positions[:,0])-50))
+        mask = mask & trackable
+        avg_cell_length = np.mean(np.diff(old_atoms.get_positions()[:,0][mask]))
+        print('avg cell length', avg_cell_length)
+
+        #copy old_atoms to avoid overwriting object
+        old_atoms = old_atoms.copy()
+        #build a thin strip at some defined strain
+        new_strip = self.build_thin_strip_with_strain(K,width,height,thickness,vacuum,force_spacing=avg_cell_length)
+        ase.io.write('new_strip_temp.xyz',new_strip)
+        paste_num_cells = int(crop/self.single_cell_width)
+        right_hand_edge_cells = int(right_hand_edge_dist/self.single_cell_width)
+        print(f'Copying and pasting {paste_num_cells} unit cells')
+        print(f'Preserving {right_hand_edge_cells} unit cells on the right')
+        strain = self.K_to_strain(K,height)
+        right_hand_edge_dist = right_hand_edge_cells*self.single_cell_width
+        crop = paste_num_cells*self.single_cell_width
+        
+        x_strain = new_strip.info['x_strain']
+        max_x_pos_dist = self.max_x_pos_dist + (self.max_x_pos_dist*x_strain)
+        min_x_pos_dist = self.min_x_pos_dist + (self.min_x_pos_dist*x_strain)
+        crop += x_strain*crop
+        #right_hand_edge_dist -= self.nu*strain*right_hand_edge_dist
+        #crop += right_hand_edge_dist
+
+        pos = new_strip.get_positions()
+
+        right_edge_pos = np.max(pos[:,0])-right_hand_edge_dist+max_x_pos_dist-0.05
+        
+        #align the old_atom positions such that the right most atom aligns with
+        #the right most atom of the new strip
+        ase.io.write('new_strip_init.xyz',new_strip)
+        #make a copy of the old_atoms
+        old_atoms_non_shifted = old_atoms.copy()
+        ase.io.write('old_atoms_1.xyz',old_atoms)
+        #shift all the old_atoms positions backwards by crop
+        old_atoms.positions[:,0] -= crop
+        ase.io.write('old_atoms_2.xyz',old_atoms)
+        diff = (np.max(pos[:,0][pos[:,0]<(right_edge_pos-crop)])-np.max(old_atoms.positions[:,0][pos[:,0]<right_edge_pos]))
+        print('diff',diff)
+        old_atoms_non_shifted.positions[:,0] += diff
+        old_atoms.positions[:,0] += diff
+        ase.io.write('old_atoms_3.xyz',old_atoms)
+        
+        print('minmax',min_x_pos_dist, max_x_pos_dist)
+        min_crop = np.min(pos[:,0]) + crop - min_x_pos_dist - 0.05
+        max_crop = np.max(pos[:,0]) - crop + max_x_pos_dist - 0.05
+
+        print('min_crop', min_crop)
+        print('max crop', max_crop)
+        new_strip_copy = new_strip.copy()
+        new_strip_copy.new_array('crop', np.zeros(len(old_atoms),dtype=int))
+        crop_arr = new_strip_copy.arrays['crop']
+        crop_arr[pos[:,0]<(max_crop-right_hand_edge_dist)] += 1 
+        crop_arr[((pos[:,0]>min_crop)&(pos[:,0]<right_edge_pos))] += 1
+        ase.io.write('crop_arrfile.xyz',new_strip_copy)
+
+        new_pos = new_strip.get_positions()
+        old_pos = old_atoms.get_positions()
+        old_v = old_atoms.get_velocities()
+        old_tracked = old_atoms.arrays['tracked']
+        new_strip.new_array('tracked',np.zeros(len(new_strip),dtype=int))
+        new_v = np.zeros_like(old_v)
+
+        #shift the atoms getting tracked backwards
+        new_strip.arrays['tracked'][pos[:,0]<max_crop] = old_tracked[pos[:,0]>min_crop]
+
+        #add new atoms for tracking if necessary
+        if track_spacing>0:
+            new_atoms_to_track=[]
+            trackable_atoms = np.where(new_strip.arrays['trackable'])[0]
+            trackable_atom_pos_x = new_strip[new_strip.arrays['trackable']].get_positions()[:,0]
+            max_tracked_atom_pos_x = np.max(new_strip[new_strip.arrays['tracked']>0].get_positions()[:,0])
+            #find distance between last tracked atom right edge of strip
+            dist_to_right_edge = np.max(pos[:,0]) - max_tracked_atom_pos_x
+            n_new_atoms_to_track = int(np.floor(dist_to_right_edge/track_spacing))
+            for i in range(n_new_atoms_to_track):
+                new_atoms_to_track.append(trackable_atoms[np.argmin(np.abs(trackable_atom_pos_x-\
+                                                                           (max_tracked_atom_pos_x + (i+1)*track_spacing)))])
+            new_strip.arrays['tracked'][new_atoms_to_track] = range(np.max(new_strip.arrays['tracked'])+1,
+                                                                    np.max(new_strip.arrays['tracked'])+1+n_new_atoms_to_track)
+        
+        
+        #paste in atom positions and velocities
+        new_pos[pos[:,0]<(max_crop-right_hand_edge_dist)] = old_pos[((pos[:,0]>min_crop)&(pos[:,0]<right_edge_pos))]
+        new_v[pos[:,0]<(max_crop-right_hand_edge_dist)] = old_v[((pos[:,0]>min_crop)&(pos[:,0]<right_edge_pos))]
+
+        #add the length of the new segment to the total crop distance total
+        added_atoms_mask = (pos[:,0]>(max_crop-right_hand_edge_dist)) & ((pos[:,0]<right_edge_pos))
+        if len(pos[:,0][added_atoms_mask])>0:
+            self.total_added_dist += np.max(pos[:,0][added_atoms_mask]) - np.min(pos[:,0][added_atoms_mask]) + min_x_pos_dist + max_x_pos_dist
+        
+        old_pos_non_shifted = old_atoms_non_shifted.get_positions()
+        new_pos[pos[:,0]>right_edge_pos] = old_pos_non_shifted[pos[:,0]>right_edge_pos]
+        new_v[pos[:,0]>right_edge_pos] = old_v[pos[:,0]>right_edge_pos]
+        new_strip.set_positions(new_pos)
+        new_strip.set_velocities(new_v)
+        return new_strip
+
+    def rescale_K(self,atoms,K_old,K_new,strip_height,tip_position):
+        """
+        rescale the stress intensity factor of the crack atoms
+        """
+        crack_atoms = atoms.copy()
+        #get the strain corresponding to the old K and new K
+        strain_old = self.K_to_strain(K_old,strip_height)
+        strain_new = self.K_to_strain(K_new,strip_height)
+        print('strain_old',strain_old)
+        print('strain_new',strain_new)
+        #rescale the y positions of the crack atoms by the ratio of the strains, taking the midpoint at 0 for atoms beyond tip position
+        midpoint = (crack_atoms.positions[:,1].max() + crack_atoms.positions[:,1].min())/2
+        print('midpoint',midpoint)
+        beyond_tip_mask = crack_atoms.positions[:,0] > tip_position
+        behind_tip_mask = np.logical_not(beyond_tip_mask)
+        print('pos before',crack_atoms.positions[:,1][beyond_tip_mask][-1])
+        crack_atoms.positions[:,1][beyond_tip_mask] += (crack_atoms.positions[:,1][beyond_tip_mask] - midpoint)*(strain_new-strain_old)
+        print('pos after',crack_atoms.positions[:,1][beyond_tip_mask][-1])
+        #rescale the x positions of the atoms by the poisson strain
+        # crack_atoms.positions[:,0][beyond_tip_mask] = crack_atoms.positions[:,0][beyond_tip_mask] - self.nu*(strain_new-strain_old)*crack_atoms.positions[:,0][beyond_tip_mask]
+        #for atoms behind the crack tip, change the y displacement of top and bottom halves by half the height times strain_new/strain_old
+        y_disp_change = (strain_new-strain_old)*strip_height/2
+        print('y_disp_change',y_disp_change)
+        #mask for those lower than the midpoint
+        lower_mask = (crack_atoms.positions[:,1] < midpoint) & behind_tip_mask
+        higher_mask = (crack_atoms.positions[:,1] > midpoint) & behind_tip_mask
+        crack_atoms.positions[:,1][lower_mask] = crack_atoms.positions[:,1][lower_mask] - y_disp_change
+        crack_atoms.positions[:,1][higher_mask] = crack_atoms.positions[:,1][higher_mask] + y_disp_change
+
+        return crack_atoms
+
+    
+    def check_steady_state(self,atom_1_traj,atom_2_traj):
+        """
+        take the y position as a function of time for 2 atoms and check to what extent they are in steady state
+        atom_1_traj and atom_2_traj are both 2 dimensional arrays, with one column being simulation time, and the other
+        being the y position of the atom
+        """
+        #take the MD trajectories of two atoms and check to what extent they are in steady state
+        # first, estimate velocity by finding the times at which the atoms cross a y displacement of 1 Angstrom
+
+        #find the times at which the atoms cross a y displacement of 1 Angstrom
+        vs = []
+        atom_trajs = [atom_1_traj,atom_2_traj]
+        break_tsteps = []
+        x_pos = []
+        for atom_traj in atom_trajs:
+            break_tsteps.append(atom_traj[:,0][(atom_traj[:,1]-atom_traj[0,1])>1][0])
+            x_pos.append(atom_traj[:,2][(atom_traj[:,1]-atom_traj[0,1])>1][0])
+        dist_between_atoms = x_pos[1]-x_pos[0]
+        #compute velocity from dist_between_atoms and the time diff between times
+        v = dist_between_atoms/(break_tsteps[1]-break_tsteps[0])
+        #convert v from A/fs to km/s
+        v_kms = v*(10**2)
+        #print velocity
+        print(f'Velocity is {v_kms} km/s')
+        #find sum squared overlap between trajectories for 5 ps
+        diff = atom_2_traj[:,1][(atom_2_traj[:,1]-atom_2_traj[0,1])>1][:1000] - atom_1_traj[:,1][(atom_1_traj[:,1]-atom_1_traj[0,1])>1][:1000]
+        #find 2 norm
+        steady_state_criterion = np.linalg.norm(diff)
+        print(f'Steady state value is {steady_state_criterion}')
+
+        return v_kms, steady_state_criterion
+
+#C = parameter('C')
+#a0 = parameter('a0')
+#directions = [parameter('crack_direction'),
+#              parameter('cleavage_plane'),
+#              parameter('crack_front')]
+#el = parameter('el')
+
+#tsb = thin_strip_builder(el,a0,C,directions)
+#tsb.build_thin_strip_with_strain(0.05,300,100,8)
+#cracked_slab = tsb.build_thin_strip_with_crack(0.05,300,100,8,200,10)
+
+#for i in range(10):
+#    cracked_slab = tsb.paste_atoms_into_strip(0.05,300,100,8,cracked_slab,1)
+#    ase.io.write(f'{i}.xyz',cracked_slab)
