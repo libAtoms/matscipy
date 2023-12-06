@@ -2625,7 +2625,6 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4, calculate_midpoint=False
 
     a.set_array('above', above)
     a.set_array('below', below)
-    ase.io.write('test.xyz', a)
     bond1 = above.nonzero()[0][a.positions[above, 0].argmax()]
     bond2 = below.nonzero()[0][a.positions[below, 0].argmax()]
 
