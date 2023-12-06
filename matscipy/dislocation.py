@@ -2517,7 +2517,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                                    f'did not converge in {max_iter} cycles')
         return disp2
 
-    def displacements(self, bulk_positions, center, use_atomman=True,
+    def displacements(self, bulk_positions, center, use_atomman=True, partial_distance=0,
                       self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
         
         if use_atomman:
@@ -2881,6 +2881,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         self.left_dislocation.invert_burgers()
         self.right_dislocation.invert_burgers()
 
+        # Flip dislocations
+        self.left_dislocation, self.right_dislocation = self.right_dislocation, self.left_dislocation
+
 
     def build_cylinder(self, radius, partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
@@ -2969,7 +2972,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         self.left_dislocation.invert_burgers()
         super().__init__(*args, **kwargs)
 
-    def periodic_displacements(self, positions, v1, v2, left_pos, right_pos, disp_tol=1e-3, max_neighs=60, **kwargs):
+    def periodic_displacements(self, positions, v1, v2, left_pos, right_pos, disp_tol=1e-3, max_neighs=60, 
+                               partial_distance=0, **kwargs):
         '''
         Calculate the stroh displacements for the periodic structure defined by 2D lattice vectors v1 & v2
         given the core positions.
@@ -2987,12 +2991,22 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         max_neighs: int
             Maximum number of nth-nearest neighbour cells to consider
             max_neighs=0 is just the current cell, max_neighs=1 also includes nearest-neighbour cells, ...
+        partial_distance: int or list of int
+            Distance between dissociated partial dislocations
+            If a list, specify a partial distance for each dislocation
+            If an int, specify a partial distance for both dislocations
 
         returns
         -------
         disps: np.array
             displacements
         '''
+
+        if np.issubdtype(type(partial_distance), np.integer):
+            partial_dist = [partial_distance, partial_distance]
+        else:
+            # Assume list or array
+            partial_dist = partial_distance
 
         displacements = np.zeros_like(positions)
         disp_update = np.zeros_like(positions)
@@ -3007,9 +3021,11 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
                     # In a new cell
                     disp_update += self.left_dislocation.displacements(
-                        positions, left_pos+ ix * v1 + iy * v2, **kwargs)
+                        positions, left_pos+ ix * v1 + iy * v2, partial_distance=partial_dist[0], 
+                        **kwargs)
                     disp_update += self.right_dislocation.displacements(
-                        positions, right_pos+ ix * v1 + iy * v2, **kwargs)
+                        positions, right_pos+ ix * v1 + iy * v2, partial_distance=partial_dist[1],
+                        **kwargs)
 
             displacements += disp_update
             max_disp_change = np.max(np.linalg.norm(disp_update, axis=-1))
@@ -3019,17 +3035,35 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         return displacements
 
 
-    def build_quadrupole(self, glide_separation=4, **kwargs):
+    def build_quadrupole(self, glide_separation=4, partial_distance=0, extension=0, **kwargs):
+        '''
+        Build periodic quadrupole cell
 
-        if glide_separation =< 1:
-            raise RuntimeError("glide_distance should be >= 1")
+        Parameters
+        ----------
+        glide_separation: int
+            Number of glide distances separating the two dislocation cores
+        partial_distance: int or list of int
+            Distance between dissociated partial dislocations
+            If a list, specify a partial distance for each dislocation
+            If an int, specify a partial distance for both dislocations
+        
+        '''
+
+        if glide_separation < 1:
+            raise RuntimeError("glide_separation should be >= 1")
         elif glide_separation < 3:
-            msg = "glide_distance is very small. Resulting structure may be very unstable."
+            msg = "glide_separation is very small. Resulting structure may be very unstable."
             warnings.warn(msg, stacklevel=2)
 
+        assert extension >= 0
+        assert partial_distance >= 0
 
         core_separation = glide_separation * self.glide_distance
         core_vec = np.array([core_separation, 0, 0])
+
+        # Additional space to add to the cell
+        extra_extension = np.array([extension + partial_distance, 0, 0]) * self.glide_distance
         
         # Replicate the unit cell enough times to fill the target cell
         cell = self.unit_cell.cell[:, :].copy()
@@ -3039,18 +3073,11 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         glides_per_unit_cell_y = np.floor(np.linalg.norm(cell[1, :]) / (self.glide_distance - 1e-2)).astype(int)
 
         # Number of unit cells in x (glide) direction
-        xreps = int((2*glide_separation) // glides_per_unit_cell_x)
+        xreps = np.ceil((2*glide_separation + extension + partial_distance) / glides_per_unit_cell_x).astype(int)
 
-        if (2*glide_separation) % glides_per_unit_cell_x:
-            # Add extra rep when we still have glides remaining
-            xreps += 1
 
-        # Number of unit cells in x (glide) direction
-        yreps = int(glide_separation // glides_per_unit_cell_y)
-
-        if glide_separation % glides_per_unit_cell_y:
-            # Add extra rep when we still have glides remaining
-            yreps += 1
+        # Number of unit cells in y direction
+        yreps = np.ceil(glide_separation / glides_per_unit_cell_y).astype(int)
 
         quad_bulk = self.unit_cell.copy() * (xreps, yreps, 1)
         cell = quad_bulk.cell[:, :].copy()
@@ -3063,6 +3090,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             -cell[1, :] + 0.5 *  cell[0, :],
             cell[2, :]
         ])
+            
         quad_bulk.set_cell(new_cell)
         quad_bulk.wrap()
         pos = quad_bulk.get_positions()
@@ -3080,7 +3108,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         pos = quad_bulk.get_positions()
 
         # Apply disloc displacements to quad_disloc
-        disps = self.periodic_displacements(pos, new_cell[0, :], new_cell[1, :], core_pos_1, core_pos_2, **kwargs)
+        disps = self.periodic_displacements(pos, new_cell[0, :], new_cell[1, :], core_pos_1, core_pos_2, 
+                                            partial_distance=partial_distance, **kwargs)
 
         pos += disps
         quad_disloc.set_positions(pos)
