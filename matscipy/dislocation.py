@@ -2973,7 +2973,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         super().__init__(*args, **kwargs)
 
     def periodic_displacements(self, positions, v1, v2, left_pos, right_pos, disp_tol=1e-3, max_neighs=60, 
-                               partial_distance=0, **kwargs):
+                               partial_distance=0, verbose="periodic", **kwargs):
         '''
         Calculate the stroh displacements for the periodic structure defined by 2D lattice vectors v1 & v2
         given the core positions.
@@ -2995,12 +2995,49 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             Distance between dissociated partial dislocations
             If a list, specify a partial distance for each dislocation
             If an int, specify a partial distance for both dislocations
+        verbose: bool, str or None
+            Controls verbosity of the displacement solving
+            False, None, or "off" : No printing
+            "periodic" (default) : Prints status of the periodic displacement convergence
+            True : Also prints status of self-consistent solutions for each dislocation
+                    (i.e. verbose=True for CubicCrystalDislocation.displacements())
 
         returns
         -------
         disps: np.array
             displacements
         '''
+
+        if type(verbose) == str:
+            if verbose.lower() == "off":
+                periodic_verbose = False
+                disloc_verbose = False
+            elif verbose.lower() == "periodic":
+                periodic_verbose = True
+                disloc_verbose = False
+            else:
+                warnings.warn(f"Unrecognised string verbosity '{verbose}'", stacklevel=2)
+                periodic_verbose = True
+                disloc_verbose = False
+        elif type(verbose) == bool:
+            if verbose:
+                periodic_verbose = True
+                disloc_verbose = True
+            else:
+                periodic_verbose = False
+                disloc_verbose = False
+        elif verbose is None:
+            periodic_verbose = False
+            disloc_verbose = False
+        else:
+            warnings.warn(f"verbose argument '{verbose}' of type {type(verbose)} not understood.")
+            periodic_verbose = True
+            disloc_verbose = False
+
+        if "self_consistent" in kwargs:
+            # Disable disloc verbosity if no self-consistent solve of disloc displacements
+            # CubicCrystalDislocation.displacements doesn't print unless SCF is turned on 
+            disloc_verbose = disloc_verbose * kwargs["self_consistent"]
 
         if np.issubdtype(type(partial_distance), np.integer):
             partial_dist = [partial_distance, partial_distance]
@@ -3020,22 +3057,34 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
                         continue
 
                     # In a new cell
+                    if disloc_verbose:
+                        print(f"Left dislocation displacements for cell {ix} {iy}")
                     disp_update += self.left_dislocation.displacements(
                         positions, left_pos+ ix * v1 + iy * v2, partial_distance=partial_dist[0], 
-                        **kwargs)
+                        verbose=disloc_verbose, **kwargs)
+                    if disloc_verbose:
+                        print(f"Right dislocation displacements for cell {ix} {iy}")
                     disp_update += self.right_dislocation.displacements(
                         positions, right_pos+ ix * v1 + iy * v2, partial_distance=partial_dist[1],
-                        **kwargs)
+                        verbose=disloc_verbose, **kwargs)
 
             displacements += disp_update
             max_disp_change = np.max(np.linalg.norm(disp_update, axis=-1))
+
+            if periodic_verbose:
+                print(f"Periodic displacement iteration {neigh_idx} -> max(|dr|) = {np.round(max_disp_change, 4)}")
+
             if max_disp_change < disp_tol and ix > 0:
+                
+                if periodic_verbose:
+                    print(f"Periodic displacements converged to r_tol={disp_tol} after {neigh_idx} iterations")
+
                 return displacements
-        warnings.warn("Quadrupole displacments did not converge!", stacklevel=2)
+        warnings.warn("Periodic quadrupole displacments did not converge!", stacklevel=2)
         return displacements
 
 
-    def build_quadrupole(self, glide_separation=4, partial_distance=0, extension=0, **kwargs):
+    def build_quadrupole(self, glide_separation=4, partial_distance=0, extension=0, verbose='periodic', **kwargs):
         '''
         Build periodic quadrupole cell
 
@@ -3047,6 +3096,14 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             Distance between dissociated partial dislocations
             If a list, specify a partial distance for each dislocation
             If an int, specify a partial distance for both dislocations
+        extension: int
+            Argument to modify the minimum length of the cell in the glide (x) direction.
+            Cell will always be at least 
+            (2 * glide_separation) + partial_distance + extension glide vectors long
+            Useful for setting up images for glide barrier calculations, as 
+            start and end structures must be the same size for the NEB method
+        verbose: bool, str, or None
+            Verbosity value to be fed to CubicCrystalDislocationQuadrupole.periodic_displacements
         
         '''
 
@@ -3109,7 +3166,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         # Apply disloc displacements to quad_disloc
         disps = self.periodic_displacements(pos, new_cell[0, :], new_cell[1, :], core_pos_1, core_pos_2, 
-                                            partial_distance=partial_distance, **kwargs)
+                                            partial_distance=partial_distance, verbose=verbose, **kwargs)
 
         pos += disps
         quad_disloc.set_positions(pos)
