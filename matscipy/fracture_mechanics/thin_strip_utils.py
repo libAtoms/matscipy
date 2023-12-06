@@ -458,7 +458,7 @@ class ThinStripBuilder:
         # first, estimate velocity by finding the times at which the atoms cross a y displacement of 1 Angstrom
 
         #find the times at which the atoms cross a y displacement of 1 Angstrom
-        num_points = min(np.shape((atom_2_traj))[0],1000)
+        num_points = min(np.shape((atom_1_traj))[0],1000)
         atom_trajs = [atom_1_traj,atom_2_traj]
         break_tsteps = []
         x_pos = []
