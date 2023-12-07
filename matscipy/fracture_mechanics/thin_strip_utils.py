@@ -407,7 +407,7 @@ class ThinStripBuilder:
         #add the length of the new segment to the total crop distance total
         added_atoms_mask = (pos[:,0]>(max_crop-right_hand_edge_dist)) & ((pos[:,0]<right_edge_pos))
         if len(pos[:,0][added_atoms_mask])>0:
-            self.total_added_dist += np.max(pos[:,0][added_atoms_mask]) - np.min(pos[:,0][added_atoms_mask]) + min_x_pos_dist + max_x_pos_dist
+            self.total_added_dist += np.max(pos[:,0][added_atoms_mask]) - np.min(pos[:,0][added_atoms_mask]) + min_x_pos_dist + max_x_pos_dist - diff
         
         old_pos_non_shifted = old_atoms_non_shifted.get_positions()
         new_pos[pos[:,0]>right_edge_pos] = old_pos_non_shifted[pos[:,0]>right_edge_pos]

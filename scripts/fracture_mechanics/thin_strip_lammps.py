@@ -227,7 +227,7 @@ for knum,K in enumerate(kvals):
             pasted = False
             if tip_pos > (np.max(final_crack_state.get_positions()[:,0])-paste_threshold):
                 #if it is, set crop to be the distance between the crack tip and the crack_reset_pos
-                crop = tip_pos - crack_reset_pos
+                crop = tip_pos - (np.min(final_crack_state.get_positions()[:,0]) + crack_reset_pos)
                 pasted = True
             else:
                 #do no pasting and just create a fresh input file identical to old one
