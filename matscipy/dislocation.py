@@ -454,7 +454,10 @@ def show_configuration(disloc, bulk, u, fixed_mask=None):
 def get_elastic_constants(pot_path=None,
                           calculator=None,
                           delta=1e-2,
-                          symbol="W"):
+                          symbol="W",
+                          verbose=True,
+                          fmax=1e-4,
+                          smax=1e-3):
     """
     return lattice parameter, and cubic elastic constants: C11, C12, 44
     using matscipy function
@@ -481,8 +484,9 @@ def get_elastic_constants(pot_path=None,
     sf = StrainFilter(unit_cell)
     # or UnitCellFilter(W)
     # -> to minimise wrt pos, cell
-    opt = FIRE(sf)
-    opt.run(fmax=1e-4)  # max force in eV/A
+    opt = PreconLBFGS(sf, precon=None, logfile="-" if verbose else None)
+    opt.run(fmax=fmax, smax=smax)  # max force in eV/A
+    
     alat = unit_cell.cell.lengths()[0]
     #    print("a0 relaxation %.4f --> %.4f" % (a0, a))
     #    e_coh = W.get_potential_energy()
@@ -490,7 +494,8 @@ def get_elastic_constants(pot_path=None,
 
     Cij, Cij_err = fit_elastic_constants(unit_cell,
                                          symmetry="cubic",
-                                         delta=delta)
+                                         delta=delta,
+                                         verbose=verbose)
 
     Cij = Cij/GPa  # unit conversion to GPa
 
@@ -3394,6 +3399,11 @@ def gamma_line(unit_cell, calc=None, shift_dir=0, surface=2,
     images: list of ase.Atoms
             images along the gamma surface. Returned if return_images is True
     """
+
+    import warnings
+
+    msg = f"gamma_line is depreciated. Use of matscipy.gamma_surface.StackingFault is preferred"
+    warnings.warn(msg, DeprecationWarning, stacklevel=2)
 
     from ase.optimize import LBFGSLineSearch
 
