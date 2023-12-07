@@ -69,6 +69,9 @@ right_damp_thickness = parameter('right_damp_thickness',60.0)
 n_v_compare = parameter('n_v_compare',10) # number of velocity values to compare to check for steady state
 ss_tol = parameter('ss_tol',0.01) # user defined tolerance for steady state around velocity mean
 
+if int(strip_width/track_spacing) > 25:
+    raise ValueError('LAMMPS only allows 32 groups total, reduce track spacing')
+
 if restart and initial_damp:
     initial_damp = False
 

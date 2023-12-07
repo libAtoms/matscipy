@@ -458,7 +458,8 @@ class ThinStripBuilder:
         # first, estimate velocity by finding the times at which the atoms cross a y displacement of 1 Angstrom
 
         #find the times at which the atoms cross a y displacement of 1 Angstrom
-        num_points = min(np.shape((atom_1_traj))[0],1000)
+        num_points = min(np.shape((atom_2_traj[(atom_2_traj[:,1]-atom_2_traj[0,1])>1]))[0],1000)
+        print('num points', num_points)
         atom_trajs = [atom_1_traj,atom_2_traj]
         break_tsteps = []
         x_pos = []
@@ -477,7 +478,6 @@ class ThinStripBuilder:
         #find 2 norm
         steady_state_criterion = (np.linalg.norm(diff)/num_points)*1000
         print(f'Steady state value is {steady_state_criterion}')
-
         return v_kms, steady_state_criterion
 
 
