@@ -68,7 +68,7 @@ left_damp_thickness = parameter('left_damp_thickness',60.0)
 right_damp_thickness = parameter('right_damp_thickness',60.0)
 n_v_compare = parameter('n_v_compare',10) # number of velocity values to compare to check for steady state
 ss_tol = parameter('ss_tol',0.01) # user defined tolerance for steady state around velocity mean
-
+dump_files = parameter('dump_files', True)
 if int(strip_width/track_spacing) > 25:
     raise ValueError('LAMMPS only allows 32 groups total, reduce track spacing')
 
@@ -147,7 +147,7 @@ for knum,K in enumerate(kvals):
         MPI.COMM_WORLD.Barrier()
         #now set up simulation (but do not run)
         set_up_simulation_lammps(lmp,temp_path,mass,cmds,sim_tstep=sim_tstep,damping_strength=damping_strength
-                                 , dump_freq=dump_freq, dump_name=dump_name, thermo_freq=thermo_freq,
+                                 , dump_freq=dump_freq, dump_name=dump_name, thermo_freq=thermo_freq, dump_files=dump_files,
                                  left_damp_thickness=left_damp_thickness, right_damp_thickness=right_damp_thickness)
         if (i < initial_damping_time) and (intial_damp):
             #add a lammps command to set a thermostat for all atoms initially, for the first 10 picoseconds
