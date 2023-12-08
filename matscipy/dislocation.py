@@ -2340,7 +2340,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     # (see https://stackoverflow.com/questions/472000/usage-of-slots for more details on __slots__)
     __slots__ = ("burgers_dimensionless", "unit_cell_core_position_dimensionless",
                  "glide_distance_dimensionless", "crystalstructure", "axes",
-                 "C11", "C12", "C44", "alat", "unit_cell")
+                 "C11", "C12", "C44", "alat", "unit_cell", "name")
 
     # Attributes with defaults
     # These may be overridden by child classes
@@ -2633,6 +2633,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         disloc.set_array('fix_mask', final_fix_mask)
         disloc.set_constraint(FixAtoms(mask=final_fix_mask))
 
+        disloc.info["core_positions"] = [list(shifted_center)]
+        disloc.info["burgers_vectors"] = [list(self.burgers)]
+        disloc.info["dislocation_types"] = [self.name]
+        disloc.info["dislocation_classes"] = [str(self.__class__)]
+
         # adding vacuum and centering breaks consistency
         # of displacement =  dislo.positions - bulk.positions
         # which is essential for plot_vitek and other tools
@@ -2779,6 +2784,161 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         impurities_disloc.cell = disloc.cell
 
         return impurities_disloc
+    
+    @staticmethod
+    def view_cyl(system, scale=0.5, CNA_color=True, add_bonds=False,
+                     line_color=[0, 1, 0], disloc_names=None):
+        '''
+        NGLview-based visualisation tool for structures generated from the dislocation class
+
+        Parameters
+        ----------
+        system: ase.Atoms
+            Dislocation system to view
+        scale: float
+            Adjust radiusScale of add_ball_and_stick (add_bonds=True) or add_spacefill (add_bonds=False)
+        CNA_color: bool
+            Turn on atomic/bond colours based on Common Neighbour Analysis structure identification
+        add_bonds: bool
+            Add atomic bonds
+        line_color: list or list of lists
+            [R, G, B] values for the colour of dislocation lines
+            if a list of lists, line_color[i] defines the colour of the ith dislocation (see structure.info["dislocation_types"])
+        disloc_names: list of str
+            Manual override for the automatic naming of the dislocation lines 
+            (see structure.info["dislocation_types"] for defaults)
+        '''
+
+        def _plot_disloc_line(view, disloc_pos, disloc_name, z_length, color=[0, 1, 0]):
+            '''Add dislocation line to the view as a cylinder and two cones.
+            The cylinder is hollow by default so the second cylinder is needed to close it.
+            In case partial distance is provided, two dislocation lines are added and are shifter accordingly.
+            
+            Parameters
+            ----------
+            view: NGLview
+                NGLview plot of the atomic structure
+            disloc_pos: list or array
+                Position of the dislocation core
+            color: list
+                [R, G, B] colour of the dislocation line
+            '''
+
+            view.shape.add_cylinder((disloc_pos[0], disloc_pos[1], -2.0), 
+                                    (disloc_pos[0], disloc_pos[1], z_length - 0.5),
+                                    color,
+                                    [0.3],
+                                    disloc_name)
+            
+            view.shape.add_cone((disloc_pos[0], disloc_pos[1], -2.0), 
+                                (disloc_pos[0], disloc_pos[1], 0.5),
+                                color,
+                                [0.3],
+                                disloc_name)
+            
+            view.shape.add_cone((disloc_pos[0], disloc_pos[1], z_length - 0.5), 
+                                (disloc_pos[0], disloc_pos[1], z_length + 1.0),
+                                color,
+                                [0.55],
+                                disloc_name)
+    
+        from nglview import show_ase, ASEStructure
+        from matscipy.utils import get_structure_types
+        # custom tooltip for nglview to avoid showing molecule and residue names
+        # that are not relevant for dislocation structures
+        tooltip_js = """
+                        this.stage.mouseControls.add('hoverPick', (stage, pickingProxy) => {
+                            let tooltip = this.stage.tooltip;
+                            if(pickingProxy && pickingProxy.atom && !pickingProxy.bond){
+                                let atom = pickingProxy.atom;
+                                if (atom.structure.name.length > 0){
+                                    tooltip.innerText = atom.atomname + " atom: " + atom.structure.name;
+                                } else {
+                                    tooltip.innerText = atom.atomname + " atom";
+                                }
+                            } else if (pickingProxy && pickingProxy.bond){
+                                let bond = pickingProxy.bond;
+                                if (bond.structure.name.length > 0){
+                                tooltip.innerText = bond.atom1.atomname + "-" + bond.atom2.atomname + " bond: " + bond.structure.name;
+                                } else {
+                                    tooltip.innerText = bond.atom1.atomname + "-" + bond.atom2.atomname + " bond";
+                                }
+                            } else if (pickingProxy && pickingProxy.unitcell){
+                                tooltip.innerText = "Unit cell";
+                            }
+                        });
+                        """
+        
+        
+        # Check system contains all keys in structure.info we need to plot the dislocations
+        for expected_key in ["core_positions", "burgers_vectors", "dislocation_types", "dislocation_classes"]:
+            
+            if not expected_key in system.info.keys():
+                raise RuntimeError(f"{expected_key} not found in system.info, regenerate system from self.build_cylinder()")
+        
+        # Validate line_color arg
+        if type(line_color) in [list, np.array, tuple]:
+            if type(line_color[0]) in [list, np.array, tuple]:
+                # Given an RGB value per dislocation
+                colours = line_color
+            else:
+                # Assume we're given a single RBG value for all dislocs
+                colours = [line_color] * len(system.info["dislocation_types"])
+                
+        # Check if system contains a diamond dislocation (e.g. DiamondGlideScrew, Diamond90degreePartial)
+        diamond_structure = "Diamond" in system.info["dislocation_classes"][0]
+
+        atom_labels, structure_names, colors = get_structure_types(system, 
+                                                                diamond_structure=diamond_structure)
+        if disloc_names is None:
+            disloc_names = system.info["dislocation_types"]
+
+        disloc_positions = system.info["core_positions"]
+
+        if len(disloc_names) != len(disloc_positions):
+            raise RuntimeError("Number of dislocation positions is not equal to number of dislocation types/names")
+
+        view = show_ase(system)
+        view.hide([0])
+        
+        if add_bonds: # add bonds between all atoms to have bonds between structures
+            component = view.add_component(ASEStructure(system), default_representation=False, name='between structures')
+            component.add_ball_and_stick(cylinderOnly=True, radiusType='covalent', radiusScale=scale, aspectRatio=0.1)
+        
+        # Add structure and struct colours
+        for structure_type in np.unique(atom_labels):
+            # every structure type is a different component
+            mask = atom_labels == structure_type
+            component = view.add_component(ASEStructure(system[mask]), 
+                                        default_representation=False, name=str(structure_names[structure_type]))
+            if CNA_color:
+                if add_bonds:
+                    component.add_ball_and_stick(color=colors[structure_type], radiusType='covalent', radiusScale=scale)
+                else:
+                    component.add_spacefill(color=colors[structure_type], radiusType='covalent', radiusScale=scale)
+            else:
+                if add_bonds:
+                    component.add_ball_and_stick(radiusType='covalent', radiusScale=scale)
+                else:
+                    component.add_spacefill(radiusType='covalent', radiusScale=scale)
+                        
+        component.add_unitcell()
+
+        # Plot dislocation lines
+        z_length = system.cell[2, 2]
+        for i in range(len(disloc_positions)):
+            _plot_disloc_line(view, disloc_positions[i], disloc_names[i] + " dislocation line", z_length, colours[i])
+
+        view.camera = 'orthographic'
+        view.parameters = {"clipDist": 0}
+
+        #view._remote_call("setSize", target="Widget", args=["400px", "300px"])
+        view.layout.width = '100%'
+        view.layout.height = '300px'
+        view.center()
+
+        view._js(tooltip_js)
+        return view
 
 
 class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCMeta):
@@ -2929,6 +3089,20 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 
         u_right = disloc_right.positions - bulk.positions
         disloc.positions += u_right
+
+        if partial_distance > 0:
+            # Specify left & right dislocation separately
+            disloc.info["core_positions"] = [list(disloc.info["core_positions"][0]), list(np.array(disloc.info["core_positions"][0]) + partial_distance_Angstrom)]
+            disloc.info["burgers_vectors"] = [list(self.left_dislocation.burgers), list(self.right_dislocation.burgers)]
+            disloc.info["dislocation_types"] = [self.left_dislocation.name, self.right_dislocation.name]
+            disloc.info["dislocation_classes"] = [str(self.left_dislocation.__class__), str(self.right_dislocation.__class__)]
+        else:
+            # Perfect, non-dissociated dislocation, only show values for single dislocation
+            
+            # "core_positions" already set by self.left_dislocation.build_cylinder
+            disloc.info["burgers_vectors"] = [list(self.burgers)]
+            disloc.info["dislocation_types"] = [self.name]
+            disloc.info["dislocation_classes"] = [str(self.__class__)]
 
         return bulk, disloc
 
@@ -3187,6 +3361,7 @@ class BCCScrew111Dislocation(CubicCrystalDislocation):
     burgers_dimensionless = np.array([1, 1, 1]) / 2.0
     unit_cell_core_position_dimensionless = np.array([np.sqrt(6.)/6.0, np.sqrt(2.)/6.0, 0])
     glide_distance_dimensionless = np.sqrt(6) / 3.0
+    name = "1/2<111> screw"
 
 
 class BCCEdge111Dislocation(CubicCrystalDislocation):
@@ -3198,6 +3373,7 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
     unit_cell_core_position_dimensionless =  np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 0.25 * np.sqrt(2.0), 0])
     glide_distance_dimensionless = np.sqrt(3) / 3.0
     n_planes = 6
+    name = "1/2<111> edge"
 
 class BCCEdge111barDislocation(CubicCrystalDislocation):
     crystalstructure = "bcc"
@@ -3208,6 +3384,7 @@ class BCCEdge111barDislocation(CubicCrystalDislocation):
     unit_cell_core_position_dimensionless =  np.array([(1.0/3.0) * np.sqrt(3.0)/2.0, 0.25 * np.sqrt(2.0), 0])
     glide_distance_dimensionless = np.sqrt(3) / 3.0
     n_planes = 1
+    name = "1/2<11-1> edge"
 
 class BCCMixed111Dislocation(CubicCrystalDislocation):
     crystalstructure = "bcc"
@@ -3219,6 +3396,7 @@ class BCCMixed111Dislocation(CubicCrystalDislocation):
     # middle of the right edge of the first upward triangle
     # half way between (1/6, 1/2, 0) and (1/3, 0, 0) in fractional coords
     unit_cell_core_position_dimensionless = np.array([1/6, 1/6, 0])
+    name = "1/2<111> mixed"
 
 
 class BCCEdge100Dislocation(CubicCrystalDislocation):
@@ -3230,6 +3408,7 @@ class BCCEdge100Dislocation(CubicCrystalDislocation):
     unit_cell_core_position_dimensionless = np.array([1/4, 1/4, 0])
     glide_distance_dimensionless = 1.0
     n_planes = 2
+    name = "<100>{110} edge"
 
 
 class BCCEdge100110Dislocation(CubicCrystalDislocation):
@@ -3241,6 +3420,7 @@ class BCCEdge100110Dislocation(CubicCrystalDislocation):
     unit_cell_core_position_dimensionless = np.array([0.5, np.sqrt(2) / 4.0, 0])
     glide_distance_dimensionless = 0.5
     n_planes = 2
+    name = "<100>{001} edge"
 
 
 class DiamondGlide30degreePartial(CubicCrystalDislocation):
@@ -3260,6 +3440,7 @@ class DiamondGlide30degreePartial(CubicCrystalDislocation):
     # This leads to the cut plane crossing one of the atomic planes and
     # thus breaking the stacking fault.
     self_consistent = False
+    name = "1/6<112> 30 degree partial"
 
 
 class DiamondGlide90degreePartial(CubicCrystalDislocation):
@@ -3279,6 +3460,7 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
     # This leads to the cut plane crossing one of the atomic planes and
     # thus breaking the stacking fault.
     self_consistent = False
+    name = "1/6<112> 90 degree partial"
 
 
 class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
@@ -3286,6 +3468,7 @@ class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = DiamondGlide30degreePartial
     right_dislocation = DiamondGlide30degreePartial
+    name = "1/2<110> screw"
 
 
 class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
@@ -3293,6 +3476,7 @@ class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = DiamondGlide30degreePartial
     right_dislocation = DiamondGlide90degreePartial
+    name = "1/2<110> 60 degree screw"
 
 
 class FCCScrewShockleyPartial(CubicCrystalDislocation):
@@ -3304,6 +3488,7 @@ class FCCScrewShockleyPartial(CubicCrystalDislocation):
     glide_distance_dimensionless = np.sqrt(6) / 4.0
     n_planes = 2
     unit_cell_core_position_dimensionless = np.array([5/6, 1/9, 0])
+    name = "1/6<112> screw Shockley partial"
 
 
 class FCCEdgeShockleyPartial(CubicCrystalDislocation):
@@ -3315,6 +3500,7 @@ class FCCEdgeShockleyPartial(CubicCrystalDislocation):
     unit_cell_core_position_dimensionless = np.array([0, 1/6 , 0])
     glide_distance_dimensionless = np.sqrt(2)/4
     n_planes = 6
+    name = "1/2<110> edge Shockley partial"
 
 
 class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
@@ -3322,6 +3508,7 @@ class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = FCCScrewShockleyPartial
     right_dislocation = FCCScrewShockleyPartial
+    name = "1/2<110>{111} screw"
 
 
 class FCCEdge110Dislocation(CubicCrystalDissociatedDislocation):
@@ -3330,6 +3517,7 @@ class FCCEdge110Dislocation(CubicCrystalDissociatedDislocation):
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = FCCEdgeShockleyPartial
     right_dislocation = FCCEdgeShockleyPartial
+    name = "1/2<110> edge"
 
 
 class FixedLineAtoms:
