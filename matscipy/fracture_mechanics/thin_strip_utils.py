@@ -317,7 +317,10 @@ class ThinStripBuilder:
 
         trackable = old_atoms.arrays['trackable']
         #get a mask for between the final 80 and 50 angstroms in x of the old_atoms
-        mask = (old_atoms.positions[:,0]>(np.max(old_atoms.positions[:,0])-(crop+right_hand_edge_dist))) & (old_atoms.positions[:,0]<(np.max(old_atoms.positions[:,0])-(right_hand_edge_dist)))
+        #print('crop and rhed',crop,right_hand_edge_dist)
+
+        mask = (old_atoms.positions[:,0]>(np.max(old_atoms.positions[:,0])-(30+right_hand_edge_dist))) & (old_atoms.positions[:,0]<(np.max(old_atoms.positions[:,0])-(right_hand_edge_dist)))
+        #print('mask len',len(np.where(mask)[0]))
         mask = mask & trackable
         avg_cell_length = np.mean(np.diff(old_atoms.get_positions()[:,0][mask]))
         print('avg cell length', avg_cell_length)
@@ -483,7 +486,7 @@ class ThinStripBuilder:
 
 
 def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
-                             sim_tstep=0.001,damping_strength=0.1,dump_freq=100, dump_files=True,
+                             sim_tstep=0.001,damping_strength_right=0.1,damping_strength_left=0.1,dump_freq=100, dump_files=True,
                              dump_name='dump.lammpstrj',thermo_freq=100,left_damp_thickness=60,
                              right_damp_thickness=60):
     """Set up the simulation by passing an active LAMMPS object a number of commands"""
@@ -537,10 +540,10 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     lmps.command('fix 2 bottom_atoms setforce NULL 0.0 NULL')
 
     # --------- Turn right edge atoms into a rigid body to prevent any curvature -------------
-    lmps.command(f'fix 4 right_atoms rigid single force 1 on off off torque 1 off off off langevin 0.0 0.0 {damping_strength} 1029')
+    lmps.command(f'fix 4 right_atoms rigid single force 1 on off off torque 1 off off off langevin 0.0 0.0 {damping_strength_right} 1029')
 
     # --------- Create groups for atoms treated with different ensembles --------------------
-    lmps.command('group nvt_atoms union left_thermo right_thermo')
+    # lmps.command('group nvt_atoms union left_thermo right_thermo')
     lmps.command('group nve_atoms subtract all right_atoms')
     lmps.command('group non_fixed_atoms subtract all top_atoms bottom_atoms right_atoms')
 
@@ -549,7 +552,10 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
 
     # ---------- Apply a thermostat to control the temperature ------------
     lmps.command('fix 5 nve_atoms nve')
-    lmps.command(f'fix therm nvt_atoms langevin 0.0 0.0 {damping_strength} 1029')
+    lmps.command(f'fix therm_left left_thermo langevin 0.0 0.0 {damping_strength_left} 1029')
+    lmps.command(f'fix therm_right right_thermo langevin 0.0 0.0 {damping_strength_right} 1029')
+
+
 
     # Add a dump command to save .lammpstrj files every 100 timesteps during equilibration
     if dump_files:

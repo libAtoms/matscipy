@@ -54,7 +54,8 @@ mass = parameter('mass') #atomic mass
 cmds = parameter('cmds')
 sim_tstep = parameter('sim_tstep',0.001) #ps
 temp_path = parameter('temp_path','./temp')
-damping_strength = parameter('damping_strength', 0.1)
+damping_strength_right = parameter('damping_strength_right', 0.1)
+damping_strength_left = parameter('damping_strength_left', 0.1)
 dump_freq = parameter('dump_freq',100)
 dump_name = parameter('dump_name','dump.lammpstrj')
 thermo_freq = parameter('thermo_freq',100)
@@ -146,7 +147,7 @@ for knum,K in enumerate(kvals):
         #sychronise all processes
         MPI.COMM_WORLD.Barrier()
         #now set up simulation (but do not run)
-        set_up_simulation_lammps(lmp,temp_path,mass,cmds,sim_tstep=sim_tstep,damping_strength=damping_strength
+        set_up_simulation_lammps(lmp,temp_path,mass,cmds,sim_tstep=sim_tstep,damping_strength_right=damping_strength_right,damping_strength_left=damping_strength_left
                                  , dump_freq=dump_freq, dump_name=dump_name, thermo_freq=thermo_freq, dump_files=dump_files,
                                  left_damp_thickness=left_damp_thickness, right_damp_thickness=right_damp_thickness)
         if (i < initial_damping_time) and (intial_damp):
