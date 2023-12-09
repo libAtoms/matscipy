@@ -476,8 +476,8 @@ class ThinStripBuilder:
         dist_between_atoms = x_pos[1]-x_pos[0]
         #compute velocity from dist_between_atoms and the time diff between times
         v = dist_between_atoms/(break_tsteps[1]-break_tsteps[0])
-        #convert v from A/fs to km/s
-        v_kms = v*(10**2)
+        #convert v from A/ps to km/s
+        v_kms = v*(10**-1)
         #print velocity
         print(f'Velocity is {v_kms} km/s')
         #find sum squared overlap between trajectories for 5 ps

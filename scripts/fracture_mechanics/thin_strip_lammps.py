@@ -35,7 +35,7 @@ bondlength = parameter('bondlength')
 bulk_nn = parameter('bulk_nn')
 paste_threshold = parameter('paste_threshold')
 track_spacing = parameter('track_spacing',150) #distance between tracked atoms
-track_tstep = parameter('track_tstep',5) #timestep between tracked atom dumping
+track_tstep = parameter('track_tstep',5) #number of timesteps between tracked atom dumping
 restart = parameter('restart', False)
 checkpointing = parameter('checkpointing',False)
 checkpoint_filename = parameter('checkpoint_filename','thin_strip')
@@ -180,7 +180,7 @@ for knum,K in enumerate(kvals):
                 sim_time_tmp = sim_time
                 for tstep in range(1,len(traj)):
                     t = traj[tstep]
-                    sim_time_tmp += track_tstep
+                    sim_time_tmp += track_tstep*sim_tstep
                     atom = t[0]
                     tracked_motion_dict[tracked_array[atom_index]][tstep-1,:] = [sim_time_tmp,atom.position[1],atom.position[0]+tsb.total_added_dist]
             sim_time=sim_time_tmp
