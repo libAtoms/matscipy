@@ -138,6 +138,8 @@ for knum,K in enumerate(kvals):
         intial_damp = False
     at_steady_state = False
     i = -1
+    final_v = -1 #set to -1 so that if steady state is not reached, it is obvious
+    final_v_std = 100 #set to 100 so that if steady state is not reached, it is obvious
     while not at_steady_state:
         i += 1
         if i>max_loop_number:
@@ -296,6 +298,10 @@ for knum,K in enumerate(kvals):
                 #copy steady_state.txt if it exists
                 os.system(f'cp {results_path}/steady_state.txt {cpdir}')
                 cpnum += 1
+
+        
+        #at the end of each loop, broadcast at_steady_state to all processes
+        at_steady_state = MPI.COMM_WORLD.bcast(at_steady_state,root=0)
     
     if me == 0:
         if not at_steady_state:
@@ -321,7 +327,6 @@ for knum,K in enumerate(kvals):
         plt.savefig(f'{results_path}/K_vs_velocity.png')
         plt.close()
 
-
+print("Finalising on %d out of %d procs" % (me,nprocs),lmp)
 MPI.COMM_WORLD.Barrier()
-print("Proc %d out of %d procs has" % (me,nprocs),lmp)
 MPI.Finalize()
