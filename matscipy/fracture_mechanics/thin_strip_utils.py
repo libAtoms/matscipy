@@ -185,7 +185,7 @@ class ThinStripBuilder:
         test_slab.set_pbc((False,True,True))
         return test_slab
 
-    def build_thin_strip_with_strain(self,K,width,height,thickness,vacuum,force_spacing=None):
+    def build_thin_strip_with_strain(self,K,width,height,thickness,vacuum,apply_x_strain=False,force_spacing=None):
         #force spacing is the width of a single unit cell to force upon the slab
         crack_slab = self.build_thin_strip(width,height,thickness,vacuum)
         strain = self.K_to_strain(K,height)
@@ -199,12 +199,15 @@ class ThinStripBuilder:
         crack_slab.positions[:, 1] += strain*crack_slab.positions[:, 1]
         #now apply the Poisson strain in the x direction
         #print('NU',self.nu)
-        if force_spacing is None:
-            #x_strain = -self.nu*strain
-            x_strain = self.get_equilibrium_x_strain(strain)
+        if apply_x_strain:
+            if force_spacing is None:
+                #x_strain = -self.nu*strain
+                x_strain = self.get_equilibrium_x_strain(strain)
+            else:
+                x_strain = (force_spacing-self.single_cell_width)/self.single_cell_width
+                print('effective x strain', x_strain)
         else:
-            x_strain = (force_spacing-self.single_cell_width)/self.single_cell_width
-            print('effective x strain', x_strain)
+            x_strain = 0
         
         crack_slab.positions[:, 0] += x_strain*crack_slab.positions[:, 0]
         
@@ -229,7 +232,7 @@ class ThinStripBuilder:
         return crack_slab
 
 
-    def build_thin_strip_with_crack(self,K,width,height,thickness,vacuum,crack_seed_length,strain_ramp_length,track_spacing=0):
+    def build_thin_strip_with_crack(self,K,width,height,thickness,vacuum,crack_seed_length,strain_ramp_length,track_spacing=0,apply_x_strain=False):
         """
         build a thin strip at some defined strain with a crack of some defined length
         When building the crack, add tracked atoms every track_spacing along x 
@@ -274,21 +277,22 @@ class ThinStripBuilder:
                                         left + crack_seed_length +
                                                 strain_ramp_length)
         
-        #first part has no associated Poisson strain
-        #last part has easy to calculate Poisson strain
-        #middle part has a poisson strain gradient
-        a = left + crack_seed_length
-        b = left + crack_seed_length + strain_ramp_length
-        y = crack_slab.positions[:,1]
-        x = crack_slab.positions[:,0]
-        u_x = np.zeros_like(x)
-        #get x_strain
-        x_strain = self.get_equilibrium_x_strain(strain)
-        u_x[x>b] = x_strain*x[x>b]
-        middle = (x >= a) & (x <= b)
-        f = (x[middle] - a) / (b - a)
-        u_x[middle] = (x_strain * f * x[middle])
-        crack_slab.positions[:,0] += u_x
+        if apply_x_strain:
+            #first part has no associated Poisson strain
+            #last part has easy to calculate Poisson strain
+            #middle part has a poisson strain gradient
+            a = left + crack_seed_length
+            b = left + crack_seed_length + strain_ramp_length
+            y = crack_slab.positions[:,1]
+            x = crack_slab.positions[:,0]
+            u_x = np.zeros_like(x)
+            #get x_strain
+            x_strain = self.get_equilibrium_x_strain(strain)
+            u_x[x>b] = x_strain*x[x>b]
+            middle = (x >= a) & (x <= b)
+            f = (x[middle] - a) / (b - a)
+            u_x[middle] = (x_strain * f * x[middle])
+            crack_slab.positions[:,0] += u_x
 
 
         # undo crack shift
@@ -328,7 +332,7 @@ class ThinStripBuilder:
         #copy old_atoms to avoid overwriting object
         old_atoms = old_atoms.copy()
         #build a thin strip at some defined strain
-        new_strip = self.build_thin_strip_with_strain(K,width,height,thickness,vacuum,force_spacing=avg_cell_length)
+        new_strip = self.build_thin_strip_with_strain(K,width,height,thickness,vacuum,apply_x_strain=False) #,force_spacing=avg_cell_length)
         #ase.io.write('new_strip_temp.xyz',new_strip)
         paste_num_cells = int(crop/self.single_cell_width)
         right_hand_edge_cells = int(right_hand_edge_dist/self.single_cell_width)
@@ -519,28 +523,30 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     #---------- Define Regions for Boundary Layers ----------
     lmps.command('region bottom_layer block INF INF $((v_ymin-2)) $((v_ymin+3)) INF INF')
     lmps.command('region top_layer block INF INF $((v_ymax)-3) $(v_ymax+2) INF INF')
-    lmps.command('region left_layer_fixed block $((v_xmin)) $((v_xmin+5)) INF INF INF INF')
-    lmps.command('region right_layer_fixed block $((v_xmax-1)) $((v_xmax+2)) INF INF INF INF')
+    lmps.command('region left_layer_fixed block $((v_xmin-2)) $((v_xmin+5)) INF INF INF INF')
+    lmps.command('region right_layer_fixed block $((v_xmax-3)) $((v_xmax+2)) INF INF INF INF')
     lmps.command(f'region left_layer_thermostat block $((v_xmin-2)) $((v_xmin+{left_damp_thickness})) INF INF INF INF')
-    lmps.command(f'region right_layer_thermostat block $((v_xmax-{right_damp_thickness})) $((v_xmax-1)) INF INF INF INF')
+    lmps.command(f'region right_layer_thermostat block $((v_xmax-{right_damp_thickness})) $((v_xmax+2)) INF INF INF INF')
 
     #---------- Set groups for boundary layers ----------
     # Identify atoms within 1 unit of the top and bottom boundaries
-    lmps.command('group top_atoms_full region top_layer')
-    lmps.command('group bottom_atoms_full region bottom_layer')
+    lmps.command('group top_atoms region top_layer')
+    lmps.command('group bottom_atoms region bottom_layer')
     lmps.command('group left_atoms region left_layer_fixed')
     lmps.command('group right_atoms region right_layer_fixed')
     lmps.command('group left_thermo region left_layer_thermostat')
     lmps.command('group right_thermo region right_layer_thermostat')
-    lmps.command('group top_atoms subtract top_atoms_full right_atoms')
-    lmps.command('group bottom_atoms subtract bottom_atoms_full right_atoms')
+    #lmps.command('group top_atoms subtract top_atoms_full right_atoms')
+    #lmps.command('group bottom_atoms subtract bottom_atoms_full right_atoms')
 
     # --------- Fix the edge atoms to prevent movement -----------
-    lmps.command('fix 1 top_atoms setforce NULL 0.0 NULL')
-    lmps.command('fix 2 bottom_atoms setforce NULL 0.0 NULL')
+    lmps.command('fix 1 top_atoms setforce 0.0 0.0 NULL')
+    lmps.command('fix 2 bottom_atoms setforce 0.0 0.0 NULL')
+    lmps.command('fix 3 left_atoms setforce 0.0 0.0 NULL')
+    lmps.command('fix 4 right_atoms setforce 0.0 0.0 NULL')
 
     # --------- Turn right edge atoms into a rigid body to prevent any curvature -------------
-    lmps.command(f'fix 4 right_atoms rigid single force 1 on off off torque 1 off off off langevin 0.0 0.0 {damping_strength_right} 1029')
+    #lmps.command(f'fix 4 right_atoms rigid single force 1 on off off torque 1 off off off langevin 0.0 0.0 {damping_strength_right} 1029')
 
     # --------- Create groups for atoms treated with different ensembles --------------------
     # lmps.command('group nvt_atoms union left_thermo right_thermo')
