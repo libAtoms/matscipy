@@ -20,7 +20,8 @@ class ThinStripBuilder:
         self.C = C
         self.directions = directions
         self.E = youngs_modulus(C, directions[1])
-        self.nu = poisson_ratio(C, directions[1], directions[0])
+        pr = poisson_ratio(C, directions[1], directions[0])
+        print('elastic constant poisson ratio',pr)
         self.multilattice = multilattice
         self.calc = calc
         self.lattice = lattice
@@ -35,6 +36,10 @@ class ThinStripBuilder:
                 self.A[:, i] = direc / np.linalg.norm(direc)
             if switch_sublattices:
                 self.switch_sublattices = True
+        
+        self.nu = self.measure_poisson_ratio()
+        print('measured poisson ratio',self.nu)
+
 
 
     def K_to_strain(self,K,strip_height):
@@ -42,7 +47,7 @@ class ThinStripBuilder:
         convert a stress intensity factor (in MPa sqrt(m)) to a strain for a given unstrained strip height
         """
         K_ase = (K/1000) * (units.GPa*np.sqrt(units.m))
-        initial_G = ((K_ase)**2)/self.E
+        initial_G = (((K_ase)**2)*(1-self.nu**2))/(self.E)
         strain = G_to_strain(initial_G, self.E, self.nu, strip_height)
         return strain
 
@@ -52,6 +57,11 @@ class ThinStripBuilder:
         E[1,1] = strain_x
         return E
 
+    def measure_poisson_ratio(self):
+        y_strain = 0.01
+        x_strain = self.get_equilibrium_x_strain(y_strain)
+        return -(x_strain/y_strain)
+         
     def get_equilibrium_x_strain(self,y_strain):
         if y_strain == self.y_strain:
             return self.x_strain
@@ -465,14 +475,17 @@ class ThinStripBuilder:
         # first, estimate velocity by finding the times at which the atoms cross a y displacement of 1 Angstrom
 
         #find the times at which the atoms cross a y displacement of 1 Angstrom
-        num_points = min(np.shape((atom_2_traj[(atom_2_traj[:,1]-atom_2_traj[0,1])>1]))[0],1000)
+        mask_traj_1 = np.abs(atom_1_traj[:,1]-atom_1_traj[0,1])>1
+        mask_traj_2 = np.abs(atom_2_traj[:,1]-atom_2_traj[0,1])>1
+        num_points = min(np.shape((atom_2_traj[mask_traj_2]))[0],1000)
+        masks = [mask_traj_1,mask_traj_2]
         print('num points', num_points)
         atom_trajs = [atom_1_traj,atom_2_traj]
         break_tsteps = []
         x_pos = []
-        for atom_traj in atom_trajs:
-            break_tsteps.append(atom_traj[:,0][(atom_traj[:,1]-atom_traj[0,1])>1][0])
-            x_pos.append(atom_traj[:,2][(atom_traj[:,1]-atom_traj[0,1])>1][0])
+        for i,atom_traj in enumerate(atom_trajs):
+            break_tsteps.append(atom_traj[:,0][masks[i]][0])
+            x_pos.append(atom_traj[:,2][masks[i]][0])
         dist_between_atoms = x_pos[1]-x_pos[0]
         #compute velocity from dist_between_atoms and the time diff between times
         v = dist_between_atoms/(break_tsteps[1]-break_tsteps[0])
@@ -481,7 +494,7 @@ class ThinStripBuilder:
         #print velocity
         print(f'Velocity is {v_kms} km/s')
         #find sum squared overlap between trajectories for 5 ps
-        diff = atom_2_traj[:,1][(atom_2_traj[:,1]-atom_2_traj[0,1])>1][:num_points] - atom_1_traj[:,1][(atom_1_traj[:,1]-atom_1_traj[0,1])>1][:num_points]
+        diff = atom_2_traj[:,1][mask_traj_2][:num_points] - atom_1_traj[:,1][mask_traj_1][:num_points]
         #find 2 norm
         steady_state_criterion = (np.linalg.norm(diff)/num_points)*1000
         print(f'Steady state value is {steady_state_criterion}')
