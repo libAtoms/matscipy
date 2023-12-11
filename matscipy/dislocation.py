@@ -3350,7 +3350,71 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         pos += disps
         quad_disloc.set_positions(pos)
         quad_disloc.wrap()
+
+        if partial_distance > 0 and isinstance(self.right_dislocation, CubicCrystalDissociatedDislocation):
+            # Dissociated dislocation quadrupole
+            # 4 dislocations in total
+            # "Left" dissociated dislocation
+            pos1 = core_pos_1
+            pos2 = core_pos_1 + np.array([partial_distance * self.glide_distance, 0, 0])
+            # "Right" dissociated dislocation
+            pos3 = core_pos_2
+            pos4 = core_pos_2 + np.array([partial_distance * self.glide_distance, 0, 0])
+                                         
+            quad_disloc.info["core_positions"] = [list(pos1), list(pos2), list(pos3), list(pos4)]
+
+            # Quadrupole is a "dissociated dissociated" dislocation
+            # 4 partial dislocs are .L.L, .L.R, .R.L, .R.R
+            # (L = left_dislocation, R = right_dislocation)
+
+            for key, prop in [
+                ("burgers_vectors", "burgers"),
+                ("dislocation_types", "name"),
+                ("dislocation_classes", "__class__")
+            ]:
+                quad_disloc.info[key] = [
+                    getattr(self.left_dislocation.left_dislocation, prop),
+                    getattr(self.left_dislocation.right_dislocation, prop),
+                    getattr(self.right_dislocation.left_dislocation, prop),
+                    getattr(self.right_dislocation.right_dislocation, prop)
+                ]
+
+            # Type conversions
+            quad_disloc.info["burgers_vectors"] = [list(burgers) for burgers in quad_disloc.info["burgers_vectors"]]
+            quad_disloc.info["dislocation_classes"] = [str(name) for name in quad_disloc.info["dislocation_classes"]]
+        else:
+            # Perfect, non-dissociated dislocation, only show values for single dislocation
+            
+            quad_disloc.info["core_positions"] = [list(core_pos_1), list(core_pos_2)]
+            quad_disloc.info["burgers_vectors"] = [list(self.left_dislocation.burgers), list(self.right_dislocation.burgers)]
+            quad_disloc.info["dislocation_types"] = [self.left_dislocation.name, self.right_dislocation.name]
+            quad_disloc.info["dislocation_classes"] = [str(self.left_dislocation.__class__), str(self.right_dislocation.__class__)]
+
+
+
         return quad_bulk, quad_disloc
+    
+    def view_quad(self, system, *args, **kwargs):
+        '''
+        Specialised wrapper of view_cyl for showing quadrupoles, as the quadrupole cell 
+        causes the plot to be rotated erroneously
+        
+        Takes the same args and kwargs as view_cyl
+        '''
+
+        view = self.view_cyl(system, *args, **kwargs)
+
+        cell = system.cell[:, :]
+        
+        # Default rotation has cell[0, :] pointing in x
+        # Rotate such that cell[0, :] has angle theta to x
+        # cell[1, :] has -theta to x
+        dot = (cell[0, :] @ cell[1, :]) / (np.linalg.norm(cell[0, :]) * np.linalg.norm(cell[1, :]))
+        rot_angle = -np.arccos(dot)/2
+
+        # Rotate system by rot_angle about [0, 0, 1]
+        view.control.spin([0, 0, 1], rot_angle)
+        return view
 
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
