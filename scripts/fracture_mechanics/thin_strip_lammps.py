@@ -40,7 +40,6 @@ restart = parameter('restart', False)
 checkpointing = parameter('checkpointing',False)
 checkpoint_filename = parameter('checkpoint_filename','thin_strip')
 initial_checkpoint_num = parameter('initial_checkpoint_num',1)
-cpnum = initial_checkpoint_num
 results_path = parameter('results_path','./results')
 checkpoint_interval = parameter('checkpoint_interval',1)
 kvals = parameter('kvals') #initial stress intensity factor (in MPa sqrt(m))
@@ -70,6 +69,12 @@ right_damp_thickness = parameter('right_damp_thickness',60.0)
 n_v_compare = parameter('n_v_compare',10) # number of velocity values to compare to check for steady state
 ss_tol = parameter('ss_tol',0.01) # user defined tolerance for steady state around velocity mean
 dump_files = parameter('dump_files', True)
+
+cpnum = initial_checkpoint_num
+
+if restart:
+    restart_path = parameter('restart_path')
+
 if int(strip_width/track_spacing) > 25:
     raise ValueError('LAMMPS only allows 32 groups total, reduce track spacing')
 
@@ -88,14 +93,13 @@ plot_num = 0
 
 ######################SET UP SIMULATION OR RESTART FROM CHECKPOINT FILES##############################
 if me == 0:
-    os.makedirs(results_path, exist_ok=False)
-    os.makedirs(temp_path,exist_ok=True)
     tsb = ThinStripBuilder(el,a0,C,calc,lattice,directions,multilattice=multilattice,cb=cb,switch_sublattices=True)
 
     crack_slab = tsb.build_thin_strip_with_crack(initial_K,strip_width,strip_height,strip_thickness\
                                                ,vacuum,crack_seed_length,strain_ramp_length,track_spacing=track_spacing,apply_x_strain=False)
-    
+    os.makedirs(temp_path,exist_ok=True)
     if not restart:
+        os.makedirs(results_path, exist_ok=False)
         tracked_array = crack_slab.arrays['tracked']
         print('Writing crack slab to file "crack.xyz"')
         crack_slab.set_velocities(np.zeros([len(crack_slab),3]))
@@ -103,8 +107,27 @@ if me == 0:
         ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',crack_slab,velocities=True)
     else:
         #if restarting
-        tracked_array = np.loadtxt('tracked_array.txt',dtype=int)
+        #if results_path does not exist, create it and raise warning
+        if not os.path.exists(results_path):
+            os.makedirs(results_path, exist_ok=False)
+        else:
+            warnings.warn('Results path already exists, overwriting files')
+        
+        #copy checkpointed files to results path
+        os.system(f'cp {restart_path}/tracked_motion_*.txt {results_path}')
+        os.system(f'cp {restart_path}/steady_state.txt {results_path}')
+        os.system(f'cp {restart_path}/crack.lj {temp_path}/crack.lj')
+        tracked_array = np.loadtxt(f'{restart_path}/tracked_array.txt').astype(int)
         crack_slab.arrays['tracked'] = tracked_array
+        [restart_knum,K_restart,sim_time,plot_num,cpnum] = np.loadtxt(f'{restart_path}/simulation_restart_params.txt')
+        restart_knum = int(restart_knum)
+        plot_num = int(plot_num)
+        cpnum = int(cpnum)+1
+        assert (kvals[restart_knum] == K_restart), 'K value in restart file does not match K value in kvals list'
+        #assert that cpdir/cpnum does not exist
+        assert not os.path.exists(f'./{checkpoint_filename}/{cpnum}'), f'The next checkpoint directory ./{checkpoint_filename}/{cpnum} already exists, please change checkpoint directory'
+        #shorten kvals list to start from the restart_knum entry
+        kvals = kvals[restart_knum:]
 
     tip_pos = crack_seed_length+strain_ramp_length+np.min(crack_slab.get_positions()[:,0])
     K_curr = initial_K
@@ -292,6 +315,7 @@ for knum,K in enumerate(kvals):
                 cpdir = f'./{checkpoint_filename}/{cpnum}'
                 os.makedirs(cpdir, exist_ok=False)
                 ase.io.lammpsdata.write_lammps_data(f'{cpdir}/crack.lj',new_slab,velocities=True,masses=True)
+                np.savetxt(f'{cpdir}/simulation_restart_params.txt',np.array([knum,K_curr,sim_time,plot_num,cpnum]))
                 np.savetxt(f'{cpdir}/tracked_array.txt',tracked_array)
                 #copy all files called tracked_motion_*.txt in current directory to cpdir
                 os.system(f'cp {results_path}/tracked_motion_*.txt {cpdir}')
