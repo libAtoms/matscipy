@@ -3263,7 +3263,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         return displacements
 
 
-    def build_quadrupole(self, glide_separation=4, partial_distance=0, extension=0, verbose='periodic', **kwargs):
+    def build_quadrupole(self, glide_separation=4, partial_distance=0, extension=0, verbose='periodic', 
+                         left_offset=None, right_offset=None, **kwargs):
         '''
         Build periodic quadrupole cell
 
@@ -3283,8 +3284,16 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             start and end structures must be the same size for the NEB method
         verbose: bool, str, or None
             Verbosity value to be fed to CubicCrystalDislocationQuadrupole.periodic_displacements
+        left_offset, right_offset: np.array
+            Translational offset (in Angstrom) for the left and right dislocation cores 
+            (i.e. for the +b and -b cores)
         
         '''
+
+        if left_offset is None:
+            left_offset = np.zeros(3)
+        if right_offset is None:
+            right_offset = np.zeros(3)
 
         if glide_separation < 1:
             raise RuntimeError("glide_separation should be >= 1")
@@ -3338,6 +3347,9 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         core_pos_1 = lens/2 - 0.5 * core_vec
         core_pos_2 = core_pos_1 + core_vec
         pos += core_pos_1 - self.left_dislocation.unit_cell_core_position
+
+        core_pos_1 += left_offset
+        core_pos_2 += right_offset
 
         quad_bulk.set_positions(pos)
         quad_bulk.wrap()
@@ -3393,6 +3405,39 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
 
         return quad_bulk, quad_disloc
+    
+    def build_glide_quadrupoles(self, nims, glide_left=True, glide_right=True, *args, **kwargs):
+        '''
+        Construct a sequence of quadrupole structures providing an initial guess of the dislocation glide
+        trajectory
+
+        Parameters
+        ----------
+        nims: int
+            Number of images to generate
+        glide_left, glide_right: bool
+            Flags for toggling whether the left/right cores
+            are allowed to glide
+        *args, **kwargs
+            Fed to self.build_quadrupole()
+        
+        '''
+        
+        glide_offsets = np.linspace(0, self.glide_distance, nims, endpoint=True)
+
+        images = []
+
+        for i in range(nims):
+            left_offset = np.array([glide_offsets[i], 0, 0]) if glide_left else np.zeros(3)
+            right_offset = np.array([glide_offsets[i], 0, 0]) if glide_right else np.zeros(3)
+
+            images.append(self.build_quadrupole(
+                left_offset=left_offset,
+                right_offset=right_offset,
+                *args,
+                **kwargs
+            )[1])
+        return images
     
     def view_quad(self, system, *args, **kwargs):
         '''

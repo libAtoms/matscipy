@@ -21,5 +21,6 @@ Tutorials:
 
     cylinder_configurations.ipynb
     multispecies_dislocations.ipynb
+    quadrupole_dislocations.ipynb
     gamma_surfaces.ipynb
     gamma_surface_advanced.ipynb
