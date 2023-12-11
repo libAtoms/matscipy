@@ -124,7 +124,7 @@ for knum,K in enumerate(kvals):
         # ase.io.write(f'{knum}_rescale0.xyz',unscaled_crack)
         #print out y position of last atom of unscaled crack
         # print('in pos',unscaled_crack.get_positions()[-1,1])
-        rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,tip_pos)
+        rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,strip_width,strip_thickness,vacuum,tip_pos)
         #print out y position of last atom of rescaled crack
         # print('out pos',rescale_crack.get_positions()[-1,1])
         #re-write lammps data file

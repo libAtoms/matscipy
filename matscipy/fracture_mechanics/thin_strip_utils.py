@@ -46,6 +46,7 @@ class ThinStripBuilder:
         """
         convert a stress intensity factor (in MPa sqrt(m)) to a strain for a given unstrained strip height
         """
+        print('strip_height',strip_height)
         K_ase = (K/1000) * (units.GPa*np.sqrt(units.m))
         initial_G = (((K_ase)**2)*(1-self.nu**2))/(self.E)
         strain = G_to_strain(initial_G, self.E, self.nu, strip_height)
@@ -198,7 +199,9 @@ class ThinStripBuilder:
     def build_thin_strip_with_strain(self,K,width,height,thickness,vacuum,apply_x_strain=False,force_spacing=None):
         #force spacing is the width of a single unit cell to force upon the slab
         crack_slab = self.build_thin_strip(width,height,thickness,vacuum)
-        strain = self.K_to_strain(K,height)
+        #get true height
+        true_height = crack_slab.positions[:,1].max() - crack_slab.positions[:,1].min()
+        strain = self.K_to_strain(K,true_height)
         #shift crack
         # centre the slab on the origin
         xmean = crack_slab.positions[:, 0].mean()
@@ -249,10 +252,12 @@ class ThinStripBuilder:
         """
         #build a thin strip with no strain
         crack_slab = self.build_thin_strip(width,height,thickness,vacuum)
+        #get true height
+        true_height = crack_slab.positions[:,1].max() - crack_slab.positions[:,1].min()
         slab_length = crack_slab.positions[:,0].max() - crack_slab.positions[:,0].min()
         crack_length = crack_seed_length + strain_ramp_length
         crack_tip_pos = crack_slab.positions[:,0].min() + crack_length
-        strain = self.K_to_strain(K,height)
+        strain = self.K_to_strain(K,true_height)
 
         if track_spacing>0:
             atoms_to_track=[]
@@ -348,7 +353,7 @@ class ThinStripBuilder:
         right_hand_edge_cells = int(right_hand_edge_dist/self.single_cell_width)
         print(f'Copying and pasting {paste_num_cells} unit cells')
         print(f'Preserving {right_hand_edge_cells} unit cells on the right')
-        strain = self.K_to_strain(K,height)
+        #strain = self.K_to_strain(K,height)
         right_hand_edge_dist = right_hand_edge_cells*self.single_cell_width
         crop = paste_num_cells*self.single_cell_width
         
@@ -432,15 +437,28 @@ class ThinStripBuilder:
         new_strip.set_positions(new_pos)
         new_strip.set_velocities(new_v)
         return new_strip
+    
+    def get_true_height(self,strip_height,strip_width,strip_thickness,vacuum):
+        """
+        get the true height of a strip with no strain
+        """
+        #build a thin strip with no strain
+        crack_slab = self.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
+        #get true height
+        true_height = crack_slab.positions[:,1].max() - crack_slab.positions[:,1].min()
+        return true_height
+    
 
-    def rescale_K(self,atoms,K_old,K_new,strip_height,tip_position):
+    def rescale_K(self,atoms,K_old,K_new,strip_height, strip_width, strip_thickness, vacuum, tip_position):
         """
         rescale the stress intensity factor of the crack atoms
         """
         crack_atoms = atoms.copy()
         #get the strain corresponding to the old K and new K
-        strain_old = self.K_to_strain(K_old,strip_height)
-        strain_new = self.K_to_strain(K_new,strip_height)
+        true_strip_height = self.get_true_height(strip_height,strip_width,strip_thickness,vacuum)
+        strain_old = self.K_to_strain(K_old,true_strip_height)
+        strain_new = self.K_to_strain(K_new,true_strip_height)
+
         print('strain_old',strain_old)
         print('strain_new',strain_new)
         #rescale the y positions of the crack atoms by the ratio of the strains, taking the midpoint at 0 for atoms beyond tip position
