@@ -140,6 +140,7 @@ else:
 
 for knum,K in enumerate(kvals):
     if me == 0:
+        crack_tip_positions = np.array([])
         prev_v = 0
         unique_v_vals = 0
         unscaled_crack = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/crack.lj',atom_style='atomic')
@@ -214,7 +215,7 @@ for knum,K in enumerate(kvals):
                 with open(f'{results_path}/tracked_motion_{key}.txt','ab') as f:
                     np.savetxt(f,tracked_motion_dict[key])
             
-            #check for copy-pasting
+            # -------------- read in simulation output file --------------- #
             final_crack_state = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/simulation_output.temp',atom_style='atomic')
             final_crack_state.set_pbc([False,False,True])
             final_crack_state.new_array('groups',crack_slab.arrays['groups'])
@@ -249,6 +250,18 @@ for knum,K in enumerate(kvals):
             tip_pos = tip_pos[0]
             print(f'Found crack tip at position {tip_pos}')
 
+            # ------------check for an arrested crack ------------ #
+            #only start checking after the first initial_damping steps
+            if (i >= initial_damping_time) or (not intial_damp):
+                crack_tip_positions = np.append(crack_tip_positions,tip_pos+tsb.total_added_dist)
+                #if the crack tip has not moved in the last 10 loops, then it is arrested
+                if len(crack_tip_positions) > 10:
+                    if np.max(crack_tip_positions[-10:]) - np.min(crack_tip_positions[-10:]) < 1:
+                        at_steady_state = True
+                        final_v = 0
+                        final_v_std = 0
+                        print('Detected crack arrest!')
+            
             # ----------- check to paste atoms ------------ #
             pasted = False
             if tip_pos > (np.max(final_crack_state.get_positions()[:,0])-paste_threshold):
@@ -258,14 +271,18 @@ for knum,K in enumerate(kvals):
             else:
                 #do no pasting and just create a fresh input file identical to old one
                 crop = 0
+
+            # -------------- paste atoms --------------- #
             new_slab = tsb.paste_atoms_into_strip(K_curr,strip_width,strip_height,strip_thickness,vacuum,\
                                             final_crack_state,crop=crop,track_spacing=track_spacing,right_hand_edge_dist=right_hand_edge_dist,
                                             match_cell_length=True)
             new_slab.new_array('masses',final_crack_state.arrays['masses'])
 
+            # -------------- write file for next loop --------------- #
             #ase.io.write(f'{results_path}/new_slab_{plot_num}.xyz',new_slab,format='extxyz')
             ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',new_slab,velocities=True,masses=True)
-
+            
+            # --------------- check crack velocity --------------- #
             #finally, get the crack velocity and work out if it's reached steady state         
             mask = (final_crack_state.get_positions()[:,0] < (tip_pos-steady_state_check_dist)) & (tracked_array>0)
             print(f'CRACK TIP POS:{tip_pos}')
@@ -280,6 +297,8 @@ for knum,K in enumerate(kvals):
                 atom_2_traj = np.loadtxt(f'{results_path}/tracked_motion_{tracked_array[atom_ids[1]]}.txt')
                 #calculate crack velocity and check if it's steady
                 v, ss_c = tsb.check_steady_state(atom_1_traj,atom_2_traj)
+
+                # -------------- if it's a new velocity, write to files --------------- #
                 if np.round(v,decimals=6) != np.round(prev_v,decimals=6): 
                     #use numpy to write to file along with current timestep
                     with open(f'{results_path}/steady_state.txt','ab') as f:
@@ -303,13 +322,17 @@ for knum,K in enumerate(kvals):
                     final_v_std = np.std(steady_state_data[-n_v_compare:,1])
                     # check the range of the last n values of velocity. If it's within user defined tol of mean, then steady state is reached
                     unique_v_vals += 1
+
+                    # -------------- check for steady state --------------- #
                     if unique_v_vals >= n_v_compare:
                         if np.max(steady_state_data[-n_v_compare:,1]) - np.min(steady_state_data[-n_v_compare:,1]) < ss_tol*np.mean(steady_state_data[-n_v_compare:,1]):
                             at_steady_state = True
                             #set final velocity to be the mean of the last n values, with a standard deviation
                             print(f'Final crack velocity: {final_v} +/- {final_v_std} km/s')
                 prev_v = v
+            #check for copy-pasting
 
+            # -------------- write to checkpoint files --------------- #
             tracked_array = new_slab.arrays['tracked']
             if checkpointing and (i+1)%checkpoint_interval == 0:
                 cpdir = f'./{checkpoint_filename}/{cpnum}'
@@ -327,6 +350,7 @@ for knum,K in enumerate(kvals):
         #at the end of each loop, broadcast at_steady_state to all processes
         at_steady_state = MPI.COMM_WORLD.bcast(at_steady_state,root=0)
     
+    # -------------- loop broken, store K vs velocity data --------------- #
     if me == 0:
         if not at_steady_state:
             warnings.warn('Steady state not reached in loops given, fracture could be unstable!')
