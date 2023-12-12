@@ -36,7 +36,7 @@ from ase.lattice.cubic import (BodyCenteredCubic, FaceCenteredCubic,
 from ase.constraints import FixAtoms, StrainFilter
 from ase.optimize import FIRE
 from ase.optimize.precon import PreconLBFGS
-from ase.build import bulk
+from ase.build import bulk, stack
 from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
 from ase.io import read
@@ -3406,7 +3406,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         return quad_bulk, quad_disloc
     
-    def build_glide_quadrupoles(self, nims, glide_left=True, glide_right=True, *args, **kwargs):
+    def build_glide_quadrupoles(self, nims, invert_direction=False, glide_left=True, glide_right=True, *args, **kwargs):
         '''
         Construct a sequence of quadrupole structures providing an initial guess of the dislocation glide
         trajectory
@@ -3415,6 +3415,10 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         ----------
         nims: int
             Number of images to generate
+        invert_direction: bool
+            Invert the direction of the glide
+            invert_direction=False (default) glides in the +x direction
+            invert_direction=True glides in the -x direction
         glide_left, glide_right: bool
             Flags for toggling whether the left/right cores
             are allowed to glide
@@ -3424,6 +3428,9 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         '''
         
         glide_offsets = np.linspace(0, self.glide_distance, nims, endpoint=True)
+
+        if invert_direction:
+            glide_offsets *= -1
 
         images = []
 
@@ -3438,6 +3445,71 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
                 **kwargs
             )[1])
         return images
+    
+    def build_kink_quadrupole(self, z_reps, layer_tol=1e-1, invert_direction=False, *args, **kwargs):
+        '''
+        Construct a quadrupole structure providing an initial guess of the dislocation kink
+        mechanism. Produces a periodic array of kinks, where each kink is 
+        z_reps * self.unit_cell[2, 2] Ang long
+
+        Parameters
+        ----------
+        z_reps: int
+            Number of replications of self.unit_cell to use per kink
+            Should be >1
+        layer_tol: float
+            Tolerance for trying to determine the top atomic layer of the cell
+            (required in order to complete periodicity)
+            Top layer is defined as any atom with z component >= max(atom_z) - layer_tol
+        invert_direction: bool
+            Invert the direction of the glide
+            invert_direction=False (default) kink in the +x direction
+            invert_direction=True kink in the -x direction
+        *args, **kwargs
+            Fed to self.build_quadrupole()
+        
+        '''
+        assert z_reps > 1
+
+        direction = -1 if invert_direction else 1
+
+        # Need both cores to move for the infinite kink structure
+        reps = self.build_glide_quadrupoles(z_reps, glide_left=True, glide_right=True, 
+                                            invert_direction=invert_direction, *args, **kwargs)
+
+        kink_struct = reps[0]
+
+        for image in reps[1:]:
+            kink_struct = stack(kink_struct, image)
+        
+        cell = kink_struct.cell[:, :]
+
+        cell[2, 0] += self.glide_distance * direction
+
+        kink_struct.set_cell(cell)
+        kink_struct.wrap()
+
+        glides_per_unit_cell = np.floor((cell[0, 0] + cell[1, 0]) / (self.glide_distance - 1e-2)).astype(int)
+
+        glide_parity = (-direction) % glides_per_unit_cell
+
+        if glides_per_unit_cell:
+            # Cell won't be periodic if multiple glides needed to complete periodicity
+            # glide_parity gives number of layers required to remove
+
+            for i in range(glide_parity):
+                atom_heights = kink_struct.get_positions()[:, 2]
+                top_atom = np.max(atom_heights)
+
+                layer_mask = atom_heights >= top_atom - layer_tol
+
+                avg_layer_pos = np.average(atom_heights[layer_mask])
+
+                kink_struct = kink_struct[~layer_mask]
+                cell[2, 2] = avg_layer_pos
+                kink_struct.set_cell(cell)
+                kink_struct.wrap()
+        return kink_struct
     
     def view_quad(self, system, *args, **kwargs):
         '''
