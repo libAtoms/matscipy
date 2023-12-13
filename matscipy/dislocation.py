@@ -3151,6 +3151,9 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         self.left_dislocation.invert_burgers()
         super().__init__(*args, **kwargs)
 
+        self.glides_per_unit_cell = np.floor((self.unit_cell.cell[0, 0] + self.unit_cell.cell[1, 0]) 
+                                              / (self.glide_distance - 1e-2)).astype(int)
+
     def periodic_displacements(self, positions, v1, v2, left_pos, right_pos, disp_tol=1e-3, max_neighs=60, 
                                partial_distance=0, verbose="periodic", **kwargs):
         '''
@@ -3314,7 +3317,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         cell = self.unit_cell.cell[:, :].copy()
 
         # Integer number of glide distances which fit in a single unit cell
-        glides_per_unit_cell_x = np.floor(np.linalg.norm(cell[0, :]) / (self.glide_distance - 1e-2)).astype(int)
+        glides_per_unit_cell_x = self.glides_per_unit_cell
         glides_per_unit_cell_y = np.floor(np.linalg.norm(cell[1, :]) / (self.glide_distance - 1e-2)).astype(int)
 
         # Number of unit cells in x (glide) direction
@@ -3507,11 +3510,9 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         kink_struct.set_cell(cell)
         kink_struct.wrap()
 
-        glides_per_unit_cell = np.floor((cell[0, 0] + cell[1, 0]) / (self.glide_distance - 1e-2)).astype(int)
+        glide_parity = (-direction) % self.glides_per_unit_cell
 
-        glide_parity = (-direction) % glides_per_unit_cell
-
-        if glides_per_unit_cell:
+        if glide_parity:
             # Cell won't be periodic if multiple glides needed to complete periodicity
             # glide_parity gives number of layers required to remove
 
