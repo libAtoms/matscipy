@@ -84,9 +84,8 @@ if int(strip_width/track_spacing) > 25:
     raise ValueError('LAMMPS only allows 32 groups total, reduce track spacing')
 
 if restart and initial_damp:
-    #initial_damp = False
-    initial_damp = True
-
+    initial_damp = False
+    warnings.warn('Restarting from checkpoint, initial damping will be skipped')
 
 lmp = lammps()
 
