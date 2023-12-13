@@ -3335,6 +3335,11 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             -cell[1, :] + 0.5 *  cell[0, :],
             cell[2, :]
         ])
+
+        if self.crystalstructure == "bcc" and glide_separation % 3 == 1:
+            print("Fixing")
+            new_cell[0, 0] -= self.glide_distance * 3/2
+            new_cell[1, 0] += self.glide_distance * 3/2
             
         quad_bulk.set_cell(new_cell)
         quad_bulk.wrap()
