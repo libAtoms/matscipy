@@ -3336,8 +3336,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             cell[2, :]
         ])
 
-        if self.crystalstructure == "bcc" and glide_separation % 3 == 1:
-            print("Fixing")
+        if self.crystalstructure == "bcc" and np.floor(glide_separation).astype(int) % 3 == 1:
             new_cell[0, 0] -= self.glide_distance * 3/2
             new_cell[1, 0] += self.glide_distance * 3/2
             
@@ -3411,7 +3410,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         return quad_bulk, quad_disloc
     
-    def build_glide_quadrupoles(self, nims, invert_direction=False, glide_left=True, glide_right=True, *args, **kwargs):
+    def build_glide_quadrupoles(self, nims, invert_direction=False, glide_left=True, glide_right=True, 
+                                left_offset=None, right_offset=None, *args, **kwargs):
         '''
         Construct a sequence of quadrupole structures providing an initial guess of the dislocation glide
         trajectory
@@ -3437,11 +3437,24 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         if invert_direction:
             glide_offsets *= -1
 
+        if left_offset is not None:
+            _loff = left_offset
+        else:
+            _loff = np.zeros(3)
+
+        if right_offset is not None:
+            _roff = right_offset
+        else:
+            _roff = np.zeros(3)
+
         images = []
 
         for i in range(nims):
             left_offset = np.array([glide_offsets[i], 0, 0]) if glide_left else np.zeros(3)
             right_offset = np.array([glide_offsets[i], 0, 0]) if glide_right else np.zeros(3)
+
+            left_offset += _loff
+            right_offset += _roff
 
             images.append(self.build_quadrupole(
                 left_offset=left_offset,
@@ -3471,7 +3484,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             invert_direction=False (default) kink in the +x direction
             invert_direction=True kink in the -x direction
         *args, **kwargs
-            Fed to self.build_quadrupole()
+            Fed to self.build_quadrupole() & self.build_glide_quadrupoles
         
         '''
         assert z_reps > 1
