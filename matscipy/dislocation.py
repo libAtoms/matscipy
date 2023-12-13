@@ -3546,7 +3546,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # Rotate such that cell[0, :] has angle theta to x
         # cell[1, :] has -theta to x
         dot = (cell[0, :] @ cell[1, :]) / (np.linalg.norm(cell[0, :]) * np.linalg.norm(cell[1, :]))
-        rot_angle = -np.arccos(dot)/2
+        rot_angle = -np.arccos(dot)/2 + np.pi
 
         # Rotate system by rot_angle about [0, 0, 1]
         view.control.spin([0, 0, 1], rot_angle)
