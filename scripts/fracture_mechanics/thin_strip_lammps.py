@@ -60,7 +60,10 @@ dump_name = parameter('dump_name','dump.lammpstrj')
 thermo_freq = parameter('thermo_freq',100)
 initial_damp = parameter('initial_damp', True)
 initial_damping_time = parameter('initial_damping_time',10)
-initial_damping_strength = parameter('initial_damping_strength',0.1)
+initial_damping_strengths = parameter('initial_damping_strengths',[0.1*(i+1) for i in range(initial_damping_time)])
+
+assert len(initial_damping_strengths) == initial_damping_time, 'initial_damping_strengths must be a list of length initial_damping_time'
+
 n_steps_per_loop = parameter('n_steps_per_loop',1000)
 steady_state_check_dist = parameter('steady_state_check_dist',strip_width/5)
 max_loop_number = parameter('max_loop_number',500)
@@ -69,6 +72,8 @@ right_damp_thickness = parameter('right_damp_thickness',60.0)
 n_v_compare = parameter('n_v_compare',10) # number of velocity values to compare to check for steady state
 ss_tol = parameter('ss_tol',0.01) # user defined tolerance for steady state around velocity mean
 dump_files = parameter('dump_files', True)
+initial_kick = parameter('initial_kick', False) #give the crack an initial kick at the end of the damping time
+kick_timestep = parameter('kick_timestep', 9) # timestep to give the crack an initial kick
 
 cpnum = initial_checkpoint_num
 
@@ -79,7 +84,8 @@ if int(strip_width/track_spacing) > 25:
     raise ValueError('LAMMPS only allows 32 groups total, reduce track spacing')
 
 if restart and initial_damp:
-    initial_damp = False
+    #initial_damp = False
+    initial_damp = True
 
 
 lmp = lammps()
@@ -146,21 +152,22 @@ for knum,K in enumerate(kvals):
         unique_v_vals = 0
         unscaled_crack = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/crack.lj',atom_style='atomic')
         unscaled_crack.set_pbc([False,False,True])
-        # ase.io.write(f'{knum}_rescale0.xyz',unscaled_crack)
-        #print out y position of last atom of unscaled crack
-        # print('in pos',unscaled_crack.get_positions()[-1,1])
+
         rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,strip_width,strip_thickness,vacuum,tip_pos)
-        #print out y position of last atom of rescaled crack
-        # print('out pos',rescale_crack.get_positions()[-1,1])
         #re-write lammps data file
         ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',rescale_crack,velocities=True,masses=True)
-        # ase.io.write(f'{knum}_rescale1.xyz',rescale_crack)
     
     K_curr = K
     if (knum == 0) and initial_damp:
-        intial_damp = True
+        initial_damp = True
     else:
-        intial_damp = False
+        initial_damp = False
+    
+    if (knum == 0) and initial_kick:
+        initial_kick = True
+    else:
+        initial_kick = False
+
     at_steady_state = False
     i = -1
     final_v = -1 #set to -1 so that if steady state is not reached, it is obvious
@@ -177,9 +184,9 @@ for knum,K in enumerate(kvals):
         set_up_simulation_lammps(lmp,temp_path,mass,cmds,sim_tstep=sim_tstep,damping_strength_right=damping_strength_right,damping_strength_left=damping_strength_left
                                  , dump_freq=dump_freq, dump_name=dump_name, thermo_freq=thermo_freq, dump_files=dump_files,
                                  left_damp_thickness=left_damp_thickness, right_damp_thickness=right_damp_thickness)
-        if (i < initial_damping_time) and (intial_damp):
-            #add a lammps command to set a thermostat for all atoms initially, for the first 10 picoseconds
-            lmp.command(f'fix therm2 nve_atoms langevin 0.0 0.0 {initial_damping_strength*(i+1)} 1029')
+        if (i < initial_damping_time) and (initial_damp):
+            #add a lammps command to set a thermostat for all atoms initially
+            lmp.command(f'fix therm2 nve_atoms langevin 0.0 0.0 {initial_damping_strengths[i]} 1029')
         atom_ids = np.where(tracked_array>0)[0]
         #make a string of atom ids to pass to lammps
         #atom_id_string = ' '.join1([str(x) for x in atom_ids])
@@ -240,7 +247,7 @@ for knum,K in enumerate(kvals):
                     bond_atoms = find_tip_coordination(final_crack_state,bondlength=tmp_bondlength,bulk_nn=bulk_nn,calculate_midpoint=True)
                     tip_pos = (final_crack_state.get_positions()[bond_atoms,:][:,0])
                     #print(tip_pos[0],tip_pos[1])
-                    assert tip_pos[0]-tip_pos[1] < 1
+                    assert np.abs(tip_pos[0]-tip_pos[1]) < 1
                     found_tip=True
                     break
                 except AssertionError:
@@ -253,7 +260,7 @@ for knum,K in enumerate(kvals):
 
             # ------------check for an arrested crack ------------ #
             #only start checking after the first initial_damping steps
-            if (i >= initial_damping_time) or (not intial_damp):
+            if (i >= initial_damping_time) or (not initial_damp):
                 crack_tip_positions = np.append(crack_tip_positions,tip_pos+tsb.total_added_dist)
                 #if the crack tip has not moved in the last 10 loops, then it is arrested
                 if len(crack_tip_positions) > 10:
@@ -278,6 +285,29 @@ for knum,K in enumerate(kvals):
                                             final_crack_state,crop=crop,track_spacing=track_spacing,right_hand_edge_dist=right_hand_edge_dist,
                                             match_cell_length=True)
             new_slab.new_array('masses',final_crack_state.arrays['masses'])
+
+            # -------------- if turned on, give atoms an initial kick for the next loop --------------- #
+            if initial_kick and (i+1 == kick_timestep):
+                #get a mask for the right atoms to kick
+                simple_strip = tsb.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
+                x_pos = simple_strip.get_positions()[:,0]
+                y_pos = simple_strip.get_positions()[:,1]
+                tip_x_pos = x_pos[bond_atoms[0]]
+                tip_y_pos = [y_pos[bond_atoms[0]], y_pos[bond_atoms[1]]]
+                full_mask = (x_pos>(tip_x_pos-10)) & (x_pos<(tip_x_pos+40))
+                
+                #mask is full mask and atoms which have a y position equal to that of the crack tip within numerical resolution
+                top_mask = full_mask & (np.round(y_pos,decimals=3) == np.round(tip_y_pos[0],decimals=3))
+                bot_mask = full_mask & (np.round(y_pos,decimals=3) == np.round(tip_y_pos[1],decimals=3))
+
+                print('Delivering kick.........')
+                #set bond_atoms[0] velocity to -2 and bond_atoms[1] velocity to 2
+                velocities = new_slab.get_velocities()
+                velocities[:,1][top_mask] += 0.3
+                velocities[:,1][bot_mask] += -0.3
+                initial_kick = False
+                new_slab.set_velocities(velocities)
+
 
             # -------------- write file for next loop --------------- #
             #ase.io.write(f'{results_path}/new_slab_{plot_num}.xyz',new_slab,format='extxyz')
