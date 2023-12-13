@@ -20,6 +20,7 @@ class ThinStripBuilder:
         self.C = C
         self.directions = directions
         self.E = youngs_modulus(C, directions[1])
+        print('youngs modulus', self.E)
         pr = poisson_ratio(C, directions[1], directions[0])
         print('elastic constant poisson ratio',pr)
         self.multilattice = multilattice

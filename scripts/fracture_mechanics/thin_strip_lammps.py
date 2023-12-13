@@ -105,6 +105,8 @@ if me == 0:
         crack_slab.set_velocities(np.zeros([len(crack_slab),3]))
         ase.io.write(f'{temp_path}/crack.xyz', crack_slab, format='extxyz')
         ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',crack_slab,velocities=True)
+        tip_pos = crack_seed_length+strain_ramp_length+np.min(crack_slab.get_positions()[:,0])
+        K_curr = initial_K
     else:
         #if restarting
         #if results_path does not exist, create it and raise warning
@@ -119,7 +121,8 @@ if me == 0:
         os.system(f'cp {restart_path}/crack.lj {temp_path}/crack.lj')
         tracked_array = np.loadtxt(f'{restart_path}/tracked_array.txt').astype(int)
         crack_slab.arrays['tracked'] = tracked_array
-        [restart_knum,K_restart,sim_time,plot_num,cpnum] = np.loadtxt(f'{restart_path}/simulation_restart_params.txt')
+        [restart_knum,K_restart,sim_time,plot_num,cpnum,total_added_dist,tip_pos] = np.loadtxt(f'{restart_path}/simulation_restart_params.txt')
+        tsb.total_added_dist = total_added_dist
         restart_knum = int(restart_knum)
         plot_num = int(plot_num)
         cpnum = int(cpnum)+1
@@ -128,9 +131,7 @@ if me == 0:
         assert not os.path.exists(f'./{checkpoint_filename}/{cpnum}'), f'The next checkpoint directory ./{checkpoint_filename}/{cpnum} already exists, please change checkpoint directory'
         #shorten kvals list to start from the restart_knum entry
         kvals = kvals[restart_knum:]
-
-    tip_pos = crack_seed_length+strain_ramp_length+np.min(crack_slab.get_positions()[:,0])
-    K_curr = initial_K
+        K_curr = K_restart
 else:
     tracked_array = None
 
@@ -338,7 +339,7 @@ for knum,K in enumerate(kvals):
                 cpdir = f'./{checkpoint_filename}/{cpnum}'
                 os.makedirs(cpdir, exist_ok=False)
                 ase.io.lammpsdata.write_lammps_data(f'{cpdir}/crack.lj',new_slab,velocities=True,masses=True)
-                np.savetxt(f'{cpdir}/simulation_restart_params.txt',np.array([knum,K_curr,sim_time,plot_num,cpnum]))
+                np.savetxt(f'{cpdir}/simulation_restart_params.txt',np.array([knum,K_curr,sim_time,plot_num,cpnum,tsb.total_added_dist,tip_pos]))
                 np.savetxt(f'{cpdir}/tracked_array.txt',tracked_array)
                 #copy all files called tracked_motion_*.txt in current directory to cpdir
                 os.system(f'cp {results_path}/tracked_motion_*.txt {cpdir}')
