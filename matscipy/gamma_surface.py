@@ -128,7 +128,7 @@ class GammaSurface():
                                                 symbol=symbol)
         self.offset *= alat
 
-    def _vec_to_miller(self, vec, latex=True):
+    def _vec_to_miller(self, vec, latex=True, brackets="["):
         '''
         Converts np.array vec to string miller notation
 
@@ -137,7 +137,32 @@ class GammaSurface():
             e.g. (100) or (11-2)
         latex: bool
             Use LaTeX expressions to construct representation
+        brackets: str
+            Bracketing style. 
+            Options are "(" or ")" for "()", "{" or "}" for "{}",
+             or "[" or "]" for "[]"
+            Other options can be supplied by passing a len(2) list of str
         '''
+        # Sort out bracketing
+        bracket_types = [
+            [["(", ")", "()"], ["(", ")"]],
+            [["{", "}", r"{}"], ["{", "}"]],
+            [["[", "]", "[]"], ["[", "]"]]
+        ]
+        found = False
+        for key, val in bracket_types:
+            if brackets in key:
+                lbrac = val[0]
+                rbrac = val[1]
+                found = True
+        if not found:
+            if len(brackets) ==2:
+                lbrac = brackets[0]
+                rbrac = brackets[1]
+            else:
+                lbrac = "("
+                rbrac = ")"
+
         int_vec = vec.astype(int)
         l = []
         for item in int_vec:
@@ -145,7 +170,7 @@ class GammaSurface():
                 l.extend(r"$\overline{" + str(-item) + "}$")
             else:
                 l.extend(str(item))
-        return "(" + "".join(l) + ")"
+        return lbrac + "".join(l) + rbrac
 
     def _gen_cellmove_images(self, base_struct, 
                              nx, ny, x_points, y_points, vacuum=0.0):
@@ -451,7 +476,7 @@ class GammaSurface():
             units = "J/m$^2$"
         else:
             mul = 1
-            units = "eV/${\AA}^2$"
+            units = "eV/$ \mathrm{A}^2$"
 
         if ax is None:
 
@@ -471,10 +496,10 @@ class GammaSurface():
         my_ax.set_xlim([0, np.linalg.norm(self.x_disp)])
         my_ax.set_ylim([0, np.linalg.norm(self.y_disp)])
 
-        my_ax.set_xlabel("Glide in " + self._vec_to_miller(self.surf_directions["x"]) + " ($\AA$)")
-        my_ax.set_ylabel("Glide in " + self._vec_to_miller(self.surf_directions["y"]) + " ($\AA$)")
+        my_ax.set_xlabel("Glide in " + self._vec_to_miller(self.surf_directions["x"]) + " ($ \mathrm{A}$)")
+        my_ax.set_ylabel("Glide in " + self._vec_to_miller(self.surf_directions["y"]) + " ($ \mathrm{A}$)")
 
-        my_ax.set_title(self._vec_to_miller(self.surf_directions["z"]) +
+        my_ax.set_title(self._vec_to_miller(self.surf_directions["z"], brackets="()") +
                         " Gamma Surface\nSurface Separation = {:0.2f} A".format(self.surface_separation))
 
         return fig, my_ax
@@ -633,7 +658,7 @@ class StackingFault(GammaSurface):
             units = "J/m$^2$"
         else:
             mul = 1
-            units = "eV/${\AA}^2$"
+            units = "eV/$ \mathrm{A}^2$"
 
         if ax is None:
 
@@ -644,9 +669,10 @@ class StackingFault(GammaSurface):
             fig = my_ax.get_figure()
 
         my_ax.plot(np.linalg.norm(self.y_disp) * np.arange(self.ny)/(self.ny-1), self.Es[0, :] * mul)
-        my_ax.set_xlabel("Glide distance in "+ self._vec_to_miller(self.surf_directions["y"]) + " ($\AA$)")
+        my_ax.set_xlabel("Glide distance in "+ self._vec_to_miller(self.surf_directions["y"]) + " ($ \mathrm{A}$)")
         my_ax.set_ylabel(f"Energy Density ({units})")
-        title = self._vec_to_miller(self.surf_directions["z"]) + " Stacking Fault\n" + "Surface Separation = {:0.2f}".format(self.surface_separation) + "${\AA}$"
+        title = self._vec_to_miller(self.surf_directions["z"], brackets="()") + " Stacking Fault\n" + \
+                "Surface Separation = {:0.2f}".format(self.surface_separation) + "$ \mathrm{A}$"
         my_ax.set_title(title)
         return fig, my_ax
 
