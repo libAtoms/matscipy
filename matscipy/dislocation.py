@@ -3351,7 +3351,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         # Get the core positions, translate everything so the cores are central in the cell
         lens = np.sum(new_cell, axis=0)
-        core_pos_1 = lens/2 - 0.5 * core_vec
+        core_pos_1 = lens/2 - 0.5 * core_vec - 0.5 * partial_distance * np.array([self.glide_distance, 0, 0])
         core_pos_2 = core_pos_1 + core_vec
         pos += core_pos_1 - self.left_dislocation.unit_cell_core_position
 
