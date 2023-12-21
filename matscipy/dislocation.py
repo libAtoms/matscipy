@@ -3551,6 +3551,10 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # Rotate system by rot_angle about [0, 0, 1]
         view.control.spin([0, 0, 1], rot_angle)
         return view
+    
+# TODO: If non-cubic dislocation classes are implemented, need to build an
+# interface to make "Quadrupole" work for both
+Quadrupole = CubicCrystalDislocation
 
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
