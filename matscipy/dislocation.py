@@ -3554,7 +3554,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
     
 # TODO: If non-cubic dislocation classes are implemented, need to build an
 # interface to make "Quadrupole" work for both
-Quadrupole = CubicCrystalDislocation
+Quadrupole = CubicCrystalDislocationQuadrupole
 
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
