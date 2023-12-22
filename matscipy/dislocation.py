@@ -2477,10 +2477,10 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         base_cell = self.unit_cell
 
-        xreps = np.ceil(base_cell.cell[0, 0] / (targetx - 1e-2))
-        yreps = np.ceil(base_cell.cell[0, 0] / (targety - 1e-2))
-
-        return base_cell * (xreps, yreps, 1)
+        xreps = np.ceil(targetx / (base_cell.cell[0, 0] - 1e-2)).astype(int)
+        yreps = np.ceil(targety / (base_cell.cell[1, 1] - 1e-2)).astype(int)
+        sup = base_cell.copy() * (xreps, yreps, 1)
+        return sup
 
     def _build_bulk_cyl(self, radius, core_positions, fix_rad):
         '''
@@ -2504,28 +2504,37 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Bulk cyl, cut down based on radius, complete
             with FixAtoms constraints
         '''
-        from utils import radial_mask_from_polygon2D
+        from matscipy.utils import radial_mask_from_polygon2D
 
         if len(core_positions.shape) == 1:
             core_positions = core_positions[np.newaxis, :]
 
-        xlen = np.max(core_positions[:, 0]) - np.min(core_positions[:, 0])
-        ylen = np.max(core_positions[:, 1]) - np.min(core_positions[:, 1])
+        xlen = np.max(core_positions[:, 0]) - np.min(core_positions[:, 0]) + 2*radius
+        ylen = np.max(core_positions[:, 1]) - np.min(core_positions[:, 1]) + 2*radius
 
         sup = self._build_supercell(xlen, ylen)
 
-        mask = radialmask_from_polygon2D(sup.get_positions(), core_positions, radius, inner=True)
+        center = np.diag(sup.cell) / 2
+
+        pos = sup.get_positions()
+        pos += center - core_positions[0, :]
+        sup.set_positions(pos)
+        sup.wrap()
+
+        new_core_positions = core_positions.copy()
+        new_core_positions += center - core_positions[0, :]
+        
+        mask = radial_mask_from_polygon2D(sup.get_positions(), new_core_positions, radius, inner=True)
 
         cyl = sup[mask]
 
         if fix_rad:
-            fix_mask = not radialmask_from_polygon2D(sup.get_positions(), core_positions, radius - fix_rad, inner=True)
+            fix_mask = ~radial_mask_from_polygon2D(cyl.get_positions(), new_core_positions, radius - fix_rad, inner=True)
 
             fix_atoms = FixAtoms(mask=fix_mask)
             cyl.set_constraint(fix_atoms)
-        return cyl
-
-
+            cyl.arrays["fix_mask"] = fix_mask
+        return cyl, new_core_positions
 
     def plot_unit_cell(self, ms=250, ax=None):
         import matplotlib.pyplot as plt
@@ -2606,92 +2615,22 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     def build_cylinder(self, radius,
                        core_position=np.array([0., 0., 0.]),
-                       extension=np.array([0., 0., 0.]),
+                       extra_glide_widths=0,
                        fix_width=10.0, self_consistent=None):
 
         if self_consistent is None:
             self_consistent = self.self_consistent
+        
 
-        extent = np.array([2 * (radius + fix_width),
-                           2 * (radius + fix_width), 1.])
-        repeat = np.ceil(extent / np.diag(self.unit_cell.cell)).astype(int)
-
-        # if the extension and core position is
-        # within the unit cell, do not add extra unit cells
-        repeat_extension = np.floor(2.0 * extension /
-                                    np.diag(self.unit_cell.cell)).astype(int)
-        repeat_core_position = np.floor(2.0 * core_position /
-                                        np.diag(self.unit_cell.cell)).astype(int)
-
-        extra_repeat = np.stack((repeat_core_position,
-                                 repeat_extension)).max(axis=0)
-
-        repeat += extra_repeat
-
-        repeat[2] = 1  # exactly one cell in the periodic direction
-
-        # ensure correct parity in x and y directions
-        if repeat[0] % 2 != self.parity[0]:
-            repeat[0] += 1
-        if repeat[1] % 2 != self.parity[1]:
-            repeat[1] += 1
-
-        bulk = self.unit_cell * repeat
-        # in order to get center from an atom to the desired position
-        # we have to move the atoms in the opposite direction
-        bulk.positions -= self.unit_cell_core_position
-
-        center = np.diag(bulk.cell) / 2
-        shifted_center = center + core_position
-
-        cylinder_mask = get_centering_mask(bulk, radius,
-                                           core_position, extension)
-
-        # add square borders for the case of large extension or core position
-        x, y, _ = bulk.positions.T
-        x_mask = x - center[0] < extension[0] + core_position[0]
-        x_mask = x_mask * (x - center[0] > 0)
-        y_mask = np.abs(y - center[1]) < radius
-        square_mask = y_mask & x_mask
-
-        final_mask = square_mask | cylinder_mask
-
-        bulk = bulk[final_mask]
+        bulk, core_positions = self._build_bulk_cyl(radius, core_position + self.unit_cell_core_position, fix_width)
 
         # disloc is a copy of bulk with displacements applied
         disloc = bulk.copy()
 
-        disloc.positions += self.displacements(bulk.positions, shifted_center,
+        disloc.positions += self.displacements(bulk.positions, core_positions[0, :],
                                                self_consistent=self_consistent)
 
-        r = np.sqrt(((bulk.positions[:, [0, 1]]
-                      - center[[0, 1]])**2).sum(axis=1))
-
-        fix_mask = r > radius - fix_width
-
-        shifted_r = np.sqrt(((bulk.positions[:, [0, 1]] -
-                              shifted_center[[0, 1]]) ** 2).sum(axis=1))
-
-        shifted_fix_max = shifted_r > radius - fix_width
-        extension = np.array(extension)
-        extended_center = center + extension
-        extended_r = np.sqrt(((bulk.positions[:, [0, 1]] -
-                               extended_center[[0, 1]]) ** 2).sum(axis=1))
-        extended_fix_max = extended_r > radius - fix_width
-        final_fix_mask = fix_mask & shifted_fix_max & extended_fix_max
-
-        x, y, _ = bulk.positions.T
-        x_mask = x - center[0] < extension[0] + core_position[0]
-        x_mask = x_mask * (x - center[0] > 0)
-        y_mask = np.abs(y - center[1]) > radius - fix_width
-
-        # change mask only between the centers of the cylinders
-        final_fix_mask[x_mask] = y_mask[x_mask]
-
-        disloc.set_array('fix_mask', final_fix_mask)
-        disloc.set_constraint(FixAtoms(mask=final_fix_mask))
-
-        disloc.info["core_positions"] = [list(shifted_center)]
+        disloc.info["core_positions"] = [list(core_positions[0, :])]
         disloc.info["burgers_vectors"] = [list(self.burgers)]
         disloc.info["dislocation_types"] = [self.name]
         disloc.info["dislocation_classes"] = [str(self.__class__)]
