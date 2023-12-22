@@ -3274,8 +3274,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         self.glides_per_unit_cell = np.floor((self.unit_cell.cell[0, 0] + self.unit_cell.cell[1, 0]) 
                                               / (self.glide_distance - 1e-2)).astype(int)
 
-    def periodic_displacements(self, positions, v1, v2, left_pos, right_pos, disp_tol=1e-3, max_neighs=60, 
-                               partial_distance=0, verbose="periodic", **kwargs):
+    def periodic_displacements(self, positions, v1, v2, core_positions, disp_tol=1e-3, max_neighs=60, 
+                               verbose="periodic", **kwargs):
         '''
         Calculate the stroh displacements for the periodic structure defined by 2D lattice vectors v1 & v2
         given the core positions.
@@ -3284,19 +3284,13 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             Atomic positions to calculate displacements at
         v1, v2: np.array
             Lattice vectors defining periodicity in XY plane (dislocation line is in Z)
-        left_pos: np.array
-            position of the left dislocation core
-        right_pos: np.array
-            position of the right dislocation core
+        core_positions: np.array
+            positions of the all dislocation cores (including all partial cores)
         disp_tol: float
             Displacement tolerance controlling the termination of displacement convergence
         max_neighs: int
             Maximum number of nth-nearest neighbour cells to consider
             max_neighs=0 is just the current cell, max_neighs=1 also includes nearest-neighbour cells, ...
-        partial_distance: int or list of int
-            Distance between dissociated partial dislocations
-            If a list, specify a partial distance for each dislocation
-            If an int, specify a partial distance for both dislocations
         verbose: bool, str or None
             Controls verbosity of the displacement solving
             False, None, or "off" : No printing
@@ -3309,6 +3303,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         disps: np.array
             displacements
         '''
+
+        ncores = core_positions.shape[0]
 
         if type(verbose) == str:
             if verbose.lower() == "off":
@@ -3341,12 +3337,6 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             # CubicCrystalDislocation.displacements doesn't print unless SCF is turned on 
             disloc_verbose = disloc_verbose * kwargs["self_consistent"]
 
-        if np.issubdtype(type(partial_distance), np.integer):
-            partial_dist = [partial_distance, partial_distance]
-        else:
-            # Assume list or array
-            partial_dist = partial_distance
-
         displacements = np.zeros_like(positions)
         disp_update = np.zeros_like(positions)
         
@@ -3360,14 +3350,13 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
                     # In a new cell
                     if disloc_verbose:
-                        print(f"Left dislocation displacements for cell {ix} {iy}")
-                    disp_update += self.left_dislocation.displacements(
-                        positions, left_pos+ ix * v1 + iy * v2, partial_distance=partial_dist[0], 
-                        verbose=disloc_verbose, **kwargs)
-                    if disloc_verbose:
-                        print(f"Right dislocation displacements for cell {ix} {iy}")
-                    disp_update += self.right_dislocation.displacements(
-                        positions, right_pos+ ix * v1 + iy * v2, partial_distance=partial_dist[1],
+                        print(f"Displacements for cell {ix} {iy}")
+
+                    core_pos = core_positions.copy()
+                    for i in range(ncores):
+                        core_pos[i, :] += ix * v1 + iy * v2
+                    disp_update += self.displacements(
+                        positions, core_pos,
                         verbose=disloc_verbose, **kwargs)
 
             displacements += disp_update
@@ -3430,6 +3419,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         core_separation = glide_separation * self.glide_distance
         core_vec = np.array([core_separation, 0, 0])
 
+        partial_vec = np.array([partial_distance * self.glide_distance, 0, 0])
         # Additional space to add to the cell
         extra_extension = np.array([extension + partial_distance, 0, 0]) * self.glide_distance
         
@@ -3441,7 +3431,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         glides_per_unit_cell_y = np.floor(np.linalg.norm(cell[1, :]) / (self.glide_distance - 1e-2)).astype(int)
 
         # Number of unit cells in x (glide) direction
-        xreps = np.ceil((2*glide_separation + extension + partial_distance) / glides_per_unit_cell_x).astype(int)
+        xreps = np.ceil((2*glide_separation + extension + 2*partial_distance) / glides_per_unit_cell_x).astype(int)
 
 
         # Number of unit cells in y direction
@@ -3471,20 +3461,37 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         # Get the core positions, translate everything so the cores are central in the cell
         lens = np.sum(new_cell, axis=0)
-        core_pos_1 = lens/2 - 0.5 * core_vec - 0.5 * partial_distance * np.array([self.glide_distance, 0, 0])
+        core_pos_1 = lens/2 - 0.5 * core_vec - 0.5 * partial_vec
         core_pos_2 = core_pos_1 + core_vec
         pos += core_pos_1 - self.left_dislocation.unit_cell_core_position
 
         core_pos_1 += left_offset
         core_pos_2 += right_offset
 
+        core_positions = np.array([
+            core_pos_1,
+            core_pos_2
+        ])
+
+        if partial_distance > 0.0:
+            partial_core_pos = core_positions.copy()
+            partial_core_pos[:, 0] += partial_vec[0]
+            old_core_positions = core_positions
+            
+            core_positions = np.array([
+                old_core_positions[0, :],
+                partial_core_pos[0, :],
+                old_core_positions[1, :],
+                partial_core_pos[1, :]
+            ])
+
         quad_bulk.set_positions(pos)
         quad_bulk.wrap()
         pos = quad_bulk.get_positions()
 
         # Apply disloc displacements to quad_disloc
-        disps = self.periodic_displacements(pos, new_cell[0, :], new_cell[1, :], core_pos_1, core_pos_2, 
-                                            partial_distance=partial_distance, verbose=verbose, **kwargs)
+        disps = self.periodic_displacements(pos, new_cell[0, :], new_cell[1, :], core_positions, 
+                                            verbose=verbose, **kwargs)
 
         pos += disps
         quad_disloc.set_positions(pos)
