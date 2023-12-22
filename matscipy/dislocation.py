@@ -2566,30 +2566,41 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ax.set_xlabel(r"$\AA$")
         ax.set_ylabel(r"$\AA$")
 
-    def self_consistent_displacements(self, solver, bulk_positions, center, 
+    def self_consistent_displacements(self, solver, bulk_positions, core_positions, 
                                       tol=1e-6, max_iter=100, verbose=True):
         
-        disp1 = np.real(solver(bulk_positions - center))
+        if len(core_positions.shape) == 1:
+            core_positions = core_positions[np.newaxis, :]
+
+        ncores = core_positions.shape[0]
+
+        disp1 = np.zeros_like(bulk_positions)
+        for i in range(ncores):
+            disp1 += solver(bulk_positions - core_positions[i, :]).real
+        
         if max_iter == 0:
             return disp1
         
         # Self-consistent calculation
         res = np.inf
-        i = 0
-        while res > tol:
+        for i in range(max_iter):
             disloc_positions = bulk_positions + disp1
-            disp2 = np.real(solver(disloc_positions - center))
+            
+            disp2 = np.zeros_like(bulk_positions)
+            for i in range(ncores):
+                disp2 += solver(disloc_positions - core_positions[i, :]).real
+
             res = np.abs(disp1 - disp2).max()
             disp1 = disp2
             if verbose:
                 print('disloc SCF', i, '|d1-d2|_inf =', res)
-            i += 1
-            if i > max_iter:
-                raise RuntimeError('Self-consistency' +
-                                   f'did not converge in {max_iter} cycles')
-        return disp2
+            if res < tol:
+                return disp2
+            
+        raise RuntimeError('Self-consistency' +
+                            f'did not converge in {max_iter} cycles')
 
-    def displacements(self, bulk_positions, center, use_atomman=True, partial_distance=0,
+    def displacements(self, bulk_positions, core_positions, use_atomman=True, partial_distance=0,
                       self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
         
         if use_atomman:
@@ -2607,7 +2618,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         if not self_consistent:
             max_iter = 0
 
-        disp = self.self_consistent_displacements(solver, bulk_positions, center, 
+        disp = self.self_consistent_displacements(solver, bulk_positions, core_positions, 
                                                   tol, max_iter, verbose)
 
         return disp
@@ -2627,7 +2638,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         # disloc is a copy of bulk with displacements applied
         disloc = bulk.copy()
 
-        disloc.positions += self.displacements(bulk.positions, core_positions[0, :],
+        disloc.positions += self.displacements(bulk.positions, core_positions,
                                                self_consistent=self_consistent)
 
         disloc.info["core_positions"] = [list(core_positions[0, :])]
