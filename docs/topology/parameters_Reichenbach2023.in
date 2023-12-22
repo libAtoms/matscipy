@@ -1,18 +1,18 @@
 # An All-Atom Force Field for Dry and Water-Lubricated Carbon Tribological Interfaces
 # Thomas Reichenbach, Severin Sylla, Leonhard Mayrhofer, Pedro Antonio Romero, Paul Schwarz, Michael Moseler, Gianpietro Moras
-# DATE: 2023-12-14
+# DATE: 2023-12-22
 #
-# Parameters adopted from the original OPLS FF:
-# H1 charge: Jorgensen JACS 1996 - RH alkanes
-# H2 charge: Jorgensen JACS 1996 - H benzene
+# Parameters adopted from the literature:
+# H1 charge: W. Jorgensen et al., J. Am. Chem. Soc. 118, 45, 11225 (1996); https://doi.org/10.1021/ja9621760 - RH alkanes
+# H2 charge: W. Jorgensen et al., J. Am. Chem. Soc. 118, 45, 11225 (1996); https://doi.org/10.1021/ja9621760 - H benzene
+#
 # Dihedrals:
-# C-C-C(sp2)-H2, H2-C(sp2)-CZ-H2, O-C-C(sp2)-H2: Weiner JCP 1986 benzene
-# C-CY-O2-H5: Jorgensen JACS 1996 - phenol
-# C-C(sp3)-O1-H4, H1-C(sp3)-O1-H4: Jorgensen JACS 1996 - alcohols
+# C-C-C(sp2)-H2, H2-C(sp2)-CZ-H2, O-C-C(sp2)-H2: S. Weiner et al., J. Comput. Chem 7, 2, 230 (1986); https://doi.org/10.1002/jcc.540070216 - benzene
+# C-CY-O2-H5: W. Jorgensen et al., J. Am. Chem. Soc. 118, 45, 11225 (1996); https://doi.org/10.1021/ja9621760 - phenol
+# C-C(sp3)-O1-H4, H1-C(sp3)-O1-H4: W. Jorgensen et al., J. Am. Chem. Soc. 118, 45, 11225 (1996); https://doi.org/10.1021/ja9621760 - alcohols
 #
-# Parameters adopted from the TIP3P water model:
-# HW and OW charges and LJ parameters:  Price J Chem Phys 2004
-# HW-OW bond and HW-OW-HW angle: MacKerell J Phys Chem B 1998, Jorgensen JACS 1981
+# HW and OW charges and LJ parameters: D. Price et al., J. Chem. Phys. 121, 10096 (2004); https://doi.org/10.1063/1.1808117
+# HW-OW bond and HW-OW-HW angle: A. MacKerell et al., J. Phys. Chem. B 102, 18, 3586 (1998); https://doi.org/10.1021/jp973084f, W. Jorgensen et al., J. Am. Chem. Soc. 103, 2, 335 (1981); https://doi.org/10.1021/ja00392a016
 #
 #
 # Cutoffs-LJ-Coulomb
