@@ -2584,9 +2584,38 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ax.set_xlabel(r"$\AA$")
         ax.set_ylabel(r"$\AA$")
 
-    def self_consistent_displacements(self, solver, bulk_positions, core_positions, 
+    def self_consistent_displacements(self, solvers, bulk_positions, core_positions, 
                                       tol=1e-6, max_iter=100, verbose=True):
-        
+        '''
+        Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
+        Each dislocation core uses a separate solver, which computes the displacements associated with positions 
+        relative to that core (i.e. that the core is treated as lying at [0, 0, 0])
+
+        Parameters
+        ----------
+        solvers: list
+            List of functions, solvers[i] computes the displacement field for the dislocation
+            defined by core_positions[i, :]
+        bulk_positions: np.array
+            (N, 3) array of positions of atoms in the bulk configuration
+        core_positions: np.array
+            Positions of each dislocation core (shape = (ncores, 3))
+        tol: float
+            Displacement tolerance for the convergence of the self-consistent loop
+        max_iter: int
+            Maximum number of iterations of the self-consistent cycle to run before throwing 
+            an exception
+        verbose: bool
+            Enable/Disable printing progress of the self-consistent cycle each iteration
+
+        Returns
+        -------
+        displacements: np.array
+        shape (N, 3) array of displacements to apply to bulk_positions to form
+        the dislocation structure
+
+        Raises a RuntimeError if max_iter is reached without convergence
+        '''
         if len(core_positions.shape) == 1:
             core_positions = core_positions[np.newaxis, :]
 
@@ -2594,7 +2623,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         disp1 = np.zeros_like(bulk_positions)
         for i in range(ncores):
-            disp1 += solver(bulk_positions - core_positions[i, :]).real
+            disp1 += solvers[i](bulk_positions - core_positions[i, :]).real
         
         if max_iter == 0:
             return disp1
@@ -2605,8 +2634,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             disloc_positions = bulk_positions + disp1
             
             disp2 = np.zeros_like(bulk_positions)
-            for i in range(ncores):
-                disp2 += solver(disloc_positions - core_positions[i, :]).real
+            for j in range(ncores):
+                disp2 += solvers[j](disloc_positions - core_positions[j, :]).real
 
             res = np.abs(disp1 - disp2).max()
             disp1 = disp2
@@ -2617,10 +2646,25 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             
         raise RuntimeError('Self-consistency' +
                             f'did not converge in {max_iter} cycles')
+    
+    def get_solvers(self, use_atomman=True):
+        '''
+        Get list of dislocation displacement solvers
 
-    def displacements(self, bulk_positions, core_positions, use_atomman=True, partial_distance=0,
-                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
-        
+        As CubicCrystalDislocation models a single core, there is only one solver,
+        therefore solvers is a len(1) list
+
+        Parameters
+        ----------
+        use_atomman: bool
+            Use the Stroh solver included in atomman (requires atomman package) to
+            solve for displacements, or use the AnisotropicDislocation class
+
+        Returns
+        -------
+        solvers: list
+            List of functions f(positions) = displacements
+        '''
         if use_atomman:
             # Use stroh solver from atomman package
             if self.stroh is None:
@@ -2632,11 +2676,50 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             if self.ADstroh is None:
                 self.init_anisotropic_dislocation()
             solver = self.ADstroh.displacement
+        return [solver]
+
+    def displacements(self, bulk_positions, core_positions, use_atomman=True,
+                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
+        '''
+        Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
+        Each dislocation core uses a separate solver, which computes the displacements associated with positions 
+        relative to that core (i.e. that the core is treated as lying at [0, 0, 0])
+
+        Parameters
+        ----------
+        bulk_positions: np.array
+            (N, 3) array of positions of atoms in the bulk configuration
+        core_positions: np.array
+            Positions of each dislocation core (shape = (ncores, 3))
+        use_atomman: bool
+            Use the Stroh solver included in atomman (requires atomman package) to
+            solve for displacements, or use the AnisotropicDislocation class
+        self_consistent: bool
+            Whether to detemine the dislocation displacements in a self-consistent manner
+            (self_consistent=False is equivalent to max_iter=0)
+        tol: float
+            Displacement tolerance for the convergence of the self-consistent loop
+        max_iter: int
+            Maximum number of iterations of the self-consistent cycle to run before throwing 
+            an exception
+        verbose: bool
+            Enable/Disable printing progress of the self-consistent cycle each iteration
+
+        Returns
+        -------
+        displacements: np.array
+        shape (N, 3) array of displacements to apply to bulk_positions to form
+        the dislocation structure
+
+        Raises a RuntimeError if max_iter is reached without convergence
+        '''
+        
+        solvers = self.get_solvers(use_atomman)
 
         if not self_consistent:
             max_iter = 0
 
-        disp = self.self_consistent_displacements(solver, bulk_positions, core_positions, 
+        disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
                                                   tol, max_iter, verbose)
 
         return disp
@@ -2667,9 +2750,13 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Controls whether the displacement field used to construct the dislocation is converged 
             self-consistently. If None (default), the value of self.self_consistent is used
         
-        '''        
+        '''
 
-        bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_position + self.unit_cell_core_position, fix_width,
+        core_positions = np.array([
+            core_position + self.unit_cell_core_position
+        ])
+
+        bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width,
                                                             self_consistent)
 
         disloc.info["core_positions"] = [list(core_positions[0, :])]
@@ -3088,6 +3175,29 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         # Flip dislocations
         self.left_dislocation, self.right_dislocation = self.right_dislocation, self.left_dislocation
 
+    def get_solvers(self, use_atomman=True):
+        '''
+        Overload of CubicCrystalDislocation.get_solvers
+        Get list of dislocation displacement solvers
+
+        Parameters
+        ----------
+        use_atomman: bool
+            Use the Stroh solver included in atomman (requires atomman package) to
+            solve for displacements, or use the AnisotropicDislocation class
+
+        Returns
+        -------
+        solvers: list
+            List of functions f(positions) = displacements
+        '''
+        solvers = self.left_dislocation.get_solvers(use_atomman)
+
+        solvers.extend(
+            self.right_dislocation.get_solvers(use_atomman)
+        )
+
+        return solvers
 
     def build_cylinder(self, radius, partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
@@ -3108,62 +3218,32 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
             with b = b_left + b_right is produced
         """
 
-        if self_consistent is None:
-            self_consistent = self.self_consistent
-
+        
         partial_distance_Angstrom = np.array(
             [self.glide_distance * partial_distance, 0.0, 0.0])
             
 
-        bulk, disloc = self.left_dislocation.build_cylinder(radius,
-                                                            extension=extension + partial_distance_Angstrom,
-                                                            core_position=core_position,
-                                                            fix_width=fix_width,
-                                                            self_consistent=self_consistent)
+        core_positions = np.array([
+            core_position + self.unit_cell_core_position,
+            core_position + self.unit_cell_core_position + partial_distance_Angstrom
+        ])
 
-        _, disloc_right = self.right_dislocation.build_cylinder(radius,
-                                                                core_position=core_position + partial_distance_Angstrom,
-                                                                extension=extension,
-                                                                fix_width=fix_width,
-                                                                self_consistent=self_consistent)
+        bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width,
+                                                            self_consistent)
 
-        u_right = disloc_right.positions - bulk.positions
-        disloc.positions += u_right
-
+        disloc.info["core_positions"] = [list(core_positions[0, :]), list(core_positions[1, :])]
         if partial_distance > 0:
             # Specify left & right dislocation separately
-            disloc.info["core_positions"] = [list(disloc.info["core_positions"][0]), list(np.array(disloc.info["core_positions"][0]) + partial_distance_Angstrom)]
             disloc.info["burgers_vectors"] = [list(self.left_dislocation.burgers), list(self.right_dislocation.burgers)]
             disloc.info["dislocation_types"] = [self.left_dislocation.name, self.right_dislocation.name]
             disloc.info["dislocation_classes"] = [str(self.left_dislocation.__class__), str(self.right_dislocation.__class__)]
         else:
             # Perfect, non-dissociated dislocation, only show values for single dislocation
-            
-            # "core_positions" already set by self.left_dislocation.build_cylinder
             disloc.info["burgers_vectors"] = [list(self.burgers)]
             disloc.info["dislocation_types"] = [self.name]
             disloc.info["dislocation_classes"] = [str(self.__class__)]
 
         return bulk, disloc
-
-    def displacements(self, bulk_positions, center,
-                      partial_distance=0, **kwargs):
-        """Overloaded function to provide correct displacements
-        for the dissociated dislocation.
-        Partial distance is provided as an integer to define number
-        of glide distances between two partials.
-        """
-
-        partial_distance_Angstrom = np.array(
-            [self.glide_distance * partial_distance, 0.0, 0.0])
-
-        left_u = self.left_dislocation.displacements(bulk_positions, center,
-                                                     **kwargs)
-        right_u = self.right_dislocation.displacements(bulk_positions,
-                                                       center + partial_distance_Angstrom,
-                                                       **kwargs)
-
-        return left_u + right_u
 
 class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
     burgers_dimensionless = np.zeros(3)
