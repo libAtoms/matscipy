@@ -344,3 +344,70 @@ def points_in_polygon2D(p, poly_points):
             # Even number of intersections, point is inside polygon
             mask[i] = True
     return mask
+
+def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -> np.array:
+    '''
+    Get shortest distance between a test point and a polygon defined by polygon_points
+    
+    Uses formula from https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_two_points
+
+    test_points: np.array
+        2D Points to get distances for
+    polygon_points: np.array
+        Coordinates defining the points of the polygon
+    '''
+
+    def get_dist(p, v, w):
+        '''
+        Gets distance between point p, and the line segment defined by v and w
+        From https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+        '''
+        denominator = np.linalg.norm(v - w)
+
+        if denominator == 0.0:
+            # point 1 and point 2 are the same, return distance between test_point and poly_point_1
+            return np.linalg.norm(p - v)
+        
+        # Use t on [0, 1] to parameterize moving on the line segment defined by poly points
+        t = np.max([0, np.min([1, np.dot(p - v, w - v)/denominator**2])])
+
+        # Closest point on line segment
+        projection = v + t * (w - v)
+
+        return np.linalg.norm(p - projection)
+        
+    distances = np.zeros(test_points.shape[0])
+
+    N = polygon_points.shape[0]
+    for i in range(test_points.shape[0]):
+        test_point = test_points[i, :]
+
+        distances[i] = min([get_dist(test_point, polygon_points[j, :], polygon_points[(j+1)%N, :]) for j in range(N)])
+    
+    return distances
+
+def radial_mask_from_polygon2D(test_points:np.array, polygon_points:np.array, radius:float, inner:bool=True) -> np.array:
+    '''
+    Get a boolean mask of all test_points within a radius of any edge of the polygon defined by polygon_points
+
+    test_points: np.array
+        2D Points to get mask for
+    polygon_points: np.array
+        Coordinates defining the points of the polygon
+    radius: float
+        Radius to use as cutoff for mask
+    inner: bool
+        Whether test_points inside the polygon should always be masked as True, regardless of radius
+    '''
+
+    distances = get_distance_from_polygon2D(test_points, polygon_points)
+
+    outer_mask = distances <= radius 
+
+    if inner:
+        inner_mask = points_in_polygon2D(test_points, polygon_points)
+
+        full_mask = np.logical_or(inner_mask.astype(bool), outer_mask.astype(bool))
+    else:
+        full_mask = outer_mask.astype(bool)
+    return full_mask
