@@ -2469,6 +2469,64 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     def glide_distance(self, distance):
         self.glide_distance_dimensionless = distance / self.alat
 
+    def _build_supercell(self, targetx, targety):
+        '''
+        Build supercell in 2D from self.unit_cell, with target dimensions (targetx, targety).
+        Supercell is constructed to have cell lengths >= the target value (i.e. cell[0, 0] >= targetx)
+        '''
+
+        base_cell = self.unit_cell
+
+        xreps = np.ceil(base_cell.cell[0, 0] / (targetx - 1e-2))
+        yreps = np.ceil(base_cell.cell[0, 0] / (targety - 1e-2))
+
+        return base_cell * (xreps, yreps, 1)
+
+    def _build_bulk_cyl(self, radius, core_positions, fix_rad):
+        '''
+        Build bulk cylinder config from args supplied by self.build_cylinder
+
+        Parameters
+        ----------
+        radius: float
+            Radius for a radial mask for cyl config
+        core_positions: np.array
+            Positions of all dislocation cores
+            Should be of shape (ncores, 3)
+            Can add fictitious core positions in order to extend cyl as needed
+            e.g. for glide configs, etc
+        fix_rad: float
+            Radius for fixed atoms constraints
+
+        Returns
+        -------
+        cyl: ase.Atoms
+            Bulk cyl, cut down based on radius, complete
+            with FixAtoms constraints
+        '''
+        from utils import radial_mask_from_polygon2D
+
+        if len(core_positions.shape) == 1:
+            core_positions = core_positions[np.newaxis, :]
+
+        xlen = np.max(core_positions[:, 0]) - np.min(core_positions[:, 0])
+        ylen = np.max(core_positions[:, 1]) - np.min(core_positions[:, 1])
+
+        sup = self._build_supercell(xlen, ylen)
+
+        mask = radialmask_from_polygon2D(sup.get_positions(), core_positions, radius, inner=True)
+
+        cyl = sup[mask]
+
+        if fix_rad:
+            fix_mask = not radialmask_from_polygon2D(sup.get_positions(), core_positions, radius - fix_rad, inner=True)
+
+            fix_atoms = FixAtoms(mask=fix_mask)
+            cyl.set_constraint(fix_atoms)
+        return cyl
+
+
+
     def plot_unit_cell(self, ms=250, ax=None):
         import matplotlib.pyplot as plt
 
