@@ -2479,10 +2479,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         xreps = np.ceil(targetx / (base_cell.cell[0, 0] - 1e-2)).astype(int)
         yreps = np.ceil(targety / (base_cell.cell[1, 1] - 1e-2)).astype(int)
+
         sup = base_cell.copy() * (xreps, yreps, 1)
         return sup
 
-    def _build_bulk_cyl(self, radius, core_positions, fix_rad):
+    def _build_bulk_cyl(self, radius, core_positions, fix_rad, self_consistent):
         '''
         Build bulk cylinder config from args supplied by self.build_cylinder
 
@@ -2506,8 +2507,14 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         '''
         from matscipy.utils import radial_mask_from_polygon2D
 
+
+        if self_consistent is None:
+            self_consistent = self.self_consistent
+
         if len(core_positions.shape) == 1:
             core_positions = core_positions[np.newaxis, :]
+
+        ncores = core_positions.shape[0]
 
         xlen = np.max(core_positions[:, 0]) - np.min(core_positions[:, 0]) + 2*radius
         ylen = np.max(core_positions[:, 1]) - np.min(core_positions[:, 1]) + 2*radius
@@ -2516,25 +2523,36 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         center = np.diag(sup.cell) / 2
 
+
+        # Shift everything so that the dislocations ae centralised
+        shift = center - np.average(core_positions, axis=0)  
+
         pos = sup.get_positions()
-        pos += center - core_positions[0, :]
+        pos += shift
         sup.set_positions(pos)
         sup.wrap()
 
         new_core_positions = core_positions.copy()
-        new_core_positions += center - core_positions[0, :]
+        new_core_positions += shift
         
         mask = radial_mask_from_polygon2D(sup.get_positions(), new_core_positions, radius, inner=True)
 
         cyl = sup[mask]
 
+        # disloc is a copy of bulk with displacements applied
+        disloc = cyl.copy()
+
+        disloc.positions += self.displacements(cyl.positions, new_core_positions,
+                                               self_consistent=self_consistent)
+
         if fix_rad:
             fix_mask = ~radial_mask_from_polygon2D(cyl.get_positions(), new_core_positions, radius - fix_rad, inner=True)
 
             fix_atoms = FixAtoms(mask=fix_mask)
-            cyl.set_constraint(fix_atoms)
-            cyl.arrays["fix_mask"] = fix_mask
-        return cyl, new_core_positions
+            disloc.set_constraint(fix_atoms)
+            disloc.arrays["fix_mask"] = fix_mask
+
+        return cyl, disloc, new_core_positions
 
     def plot_unit_cell(self, ms=250, ax=None):
         import matplotlib.pyplot as plt
@@ -2628,18 +2646,31 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                        core_position=np.array([0., 0., 0.]),
                        extra_glide_widths=0,
                        fix_width=10.0, self_consistent=None):
+        '''
+        Build dislocation cylinder for single dislocation system
 
-        if self_consistent is None:
-            self_consistent = self.self_consistent
+        Parameters
+        ----------
+        radius: float
+            Radius of bulk surrounding the dislocation core
+        core_position: np.array
+            Vector offset of the core position from default site
+        extra_glide_widths: int
+            Add extra bulk to the system, to also surround a fictitious core that had
+            moved by extra_glide_widths * self.glide_distance in x
+        fix_width: float
+            Defines a region to apply the FixAtoms ase constraint to
+            Fixed region is given by (radius - fix_width) <= r <= radius,
+            where the position r is measured from the dislocation core
+            (or from the glide path, if extra_glide_widths is given)
+        self_consistent: bool
+            Controls whether the displacement field used to construct the dislocation is converged 
+            self-consistently. If None (default), the value of self.self_consistent is used
         
+        '''        
 
-        bulk, core_positions = self._build_bulk_cyl(radius, core_position + self.unit_cell_core_position, fix_width)
-
-        # disloc is a copy of bulk with displacements applied
-        disloc = bulk.copy()
-
-        disloc.positions += self.displacements(bulk.positions, core_positions,
-                                               self_consistent=self_consistent)
+        bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_position + self.unit_cell_core_position, fix_width,
+                                                            self_consistent)
 
         disloc.info["core_positions"] = [list(core_positions[0, :])]
         disloc.info["burgers_vectors"] = [list(self.burgers)]
@@ -3082,6 +3113,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 
         partial_distance_Angstrom = np.array(
             [self.glide_distance * partial_distance, 0.0, 0.0])
+            
 
         bulk, disloc = self.left_dislocation.build_cylinder(radius,
                                                             extension=extension + partial_distance_Angstrom,
