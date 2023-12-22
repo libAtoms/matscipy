@@ -2432,7 +2432,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                                            axes, slip_plane, disloc_line, 
                                            self.burgers)
 
-
     # @property & @var.setter decorators used to ensure var and var_dimensionless don't get out of sync
     @property
     def burgers(self):
@@ -2483,7 +2482,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         sup = base_cell.copy() * (xreps, yreps, 1)
         return sup
 
-    def _build_bulk_cyl(self, radius, core_positions, fix_rad, self_consistent):
+    def _build_bulk_cyl(self, radius, core_positions, fix_rad, extension,
+                        self_consistent, use_atomman, ext_idx):
         '''
         Build bulk cylinder config from args supplied by self.build_cylinder
 
@@ -2498,6 +2498,16 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             e.g. for glide configs, etc
         fix_rad: float
             Radius for fixed atoms constraints
+        extension: int
+            Ensure the cell extends out from the center to center + extension
+        ext_idx: int or np.array of ints
+            idxs of the cores each part of extension should apply to
+            extension = np.array([
+                            [-5.0, 0, 0],
+                            [5.0, 0, 0.0]
+                            ])
+            and ext_idxs = np.array([0, -1]) will extend the cell by 5Ang left of the first core, 
+            and 5Ang right of the last core
 
         Returns
         -------
@@ -2514,18 +2524,28 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         if len(core_positions.shape) == 1:
             core_positions = core_positions[np.newaxis, :]
 
-        ncores = core_positions.shape[0]
+        if len(extension.shape) == 1:
+            extension = extension[np.newaxis, :]
+        ext_idx = np.array(ext_idx)
 
-        xlen = np.max(core_positions[:, 0]) - np.min(core_positions[:, 0]) + 2*radius
-        ylen = np.max(core_positions[:, 1]) - np.min(core_positions[:, 1]) + 2*radius
+        exts = extension + core_positions[ext_idx, :]
+
+        xmax = np.max([np.max(core_positions[:, 0]), np.max(exts[:, 0])])
+        xmin = np.min([np.min(core_positions[:, 0]), np.min(exts[:, 0])])
+
+        ymax = np.max([np.max(core_positions[:, 1]), np.max(exts[:, 1])])
+        ymin = np.min([np.min(core_positions[:, 1]), np.min(exts[:, 1])])
+
+        xlen = xmax - xmin + 2*radius
+        ylen = ymax - ymin + 2*radius
 
         sup = self._build_supercell(xlen, ylen)
 
         center = np.diag(sup.cell) / 2
 
+        # Shift everything so that the dislocations are reasonably central
 
-        # Shift everything so that the dislocations ae centralised
-        shift = center - np.average(core_positions, axis=0)  
+        shift = center - 0.5 * (np.array([xmax, ymax, 0]) + np.array([xmin, ymin, 0]))
 
         pos = sup.get_positions()
         pos += shift
@@ -2533,9 +2553,17 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         sup.wrap()
 
         new_core_positions = core_positions.copy()
+
         new_core_positions += shift
+
+        mask_positions = np.vstack([new_core_positions, exts + shift])
+
+        idxs = np.argsort(mask_positions, axis=0)
+        mask_positions = np.take_along_axis(mask_positions, idxs, axis=0)
+
+        print(mask_positions)
         
-        mask = radial_mask_from_polygon2D(sup.get_positions(), new_core_positions, radius, inner=True)
+        mask = radial_mask_from_polygon2D(sup.get_positions(), mask_positions, radius, inner=True)
 
         cyl = sup[mask]
 
@@ -2543,10 +2571,10 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         disloc = cyl.copy()
 
         disloc.positions += self.displacements(cyl.positions, new_core_positions,
-                                               self_consistent=self_consistent)
+                                               self_consistent=self_consistent, use_atomman=use_atomman)
 
         if fix_rad:
-            fix_mask = ~radial_mask_from_polygon2D(cyl.get_positions(), new_core_positions, radius - fix_rad, inner=True)
+            fix_mask = ~radial_mask_from_polygon2D(cyl.get_positions(), mask_positions, radius - fix_rad, inner=True)
 
             fix_atoms = FixAtoms(mask=fix_mask)
             disloc.set_constraint(fix_atoms)
@@ -2727,8 +2755,10 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     def build_cylinder(self, radius,
                        core_position=np.array([0., 0., 0.]),
-                       extra_glide_widths=0,
-                       fix_width=10.0, self_consistent=None):
+                       extension=np.array([0, 0, 0]),
+                       fix_width=10.0, self_consistent=None,
+                       use_atomman=True,
+                       ext_idxs = -1):
         '''
         Build dislocation cylinder for single dislocation system
 
@@ -2738,9 +2768,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Radius of bulk surrounding the dislocation core
         core_position: np.array
             Vector offset of the core position from default site
-        extra_glide_widths: int
-            Add extra bulk to the system, to also surround a fictitious core that had
-            moved by extra_glide_widths * self.glide_distance in x
+        extension: np.array
+            Add extra bulk to the system, to also surround a fictitious core
+            that is extension away from the center of the cell
         fix_width: float
             Defines a region to apply the FixAtoms ase constraint to
             Fixed region is given by (radius - fix_width) <= r <= radius,
@@ -2749,7 +2779,17 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         self_consistent: bool
             Controls whether the displacement field used to construct the dislocation is converged 
             self-consistently. If None (default), the value of self.self_consistent is used
-        
+        use_atomman: bool
+            Use the Stroh solver included in atomman (requires atomman package) to
+            solve for displacements, or use the AnisotropicDislocation class
+        ext_idxs: int or np.array of ints
+            idxs of the cores each part of extension should apply to
+            extension = np.array([
+                            [-5.0, 0, 0],
+                            [5.0, 0, 0.0]
+                            ])
+            and ext_idxs = np.array([0, -1]) will extend the cell by 5Ang left of the first core, 
+            and 5Ang right of the last core
         '''
 
         core_positions = np.array([
@@ -2757,7 +2797,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ])
 
         bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width,
-                                                            self_consistent)
+                                                            extension, self_consistent, use_atomman, ext_idxs)
 
         disloc.info["core_positions"] = [list(core_positions[0, :])]
         disloc.info["burgers_vectors"] = [list(self.burgers)]
@@ -2780,10 +2820,13 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         bulk_ini, disloc_ini = self.build_cylinder(radius,
                                                    extension=final_core_position,
+                                                   ext_idxs=-1,
                                                    **kwargs)
 
         _, disloc_fin = self.build_cylinder(radius,
                                             core_position=final_core_position,
+                                            extension=-final_core_position,
+                                            ext_idxs=0,
                                             **kwargs)
         if average_positions:
             # get the fixed atoms constrain
@@ -3202,7 +3245,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
     def build_cylinder(self, radius, partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
                        extension=np.array([0., 0., 0.]),
-                       fix_width=10.0, self_consistent=None):
+                       fix_width=10.0, self_consistent=None,
+                       use_atomman=True,
+                       ext_idxs=-1):
         """
         Overloaded function to make dissociated dislocations.
         Partial distance is provided as an integer to define number
@@ -3216,6 +3261,17 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
             distance between partials (SF length) in number of glide distances.
             Default is 0 -> non dissociated dislocation
             with b = b_left + b_right is produced
+        use_atomman: bool
+            Use the Stroh solver included in atomman (requires atomman package) to
+            solve for displacements, or use the AnisotropicDislocation class
+        ext_idxs: int or np.array of ints
+            idxs of the cores each part of extension should apply to
+            extension = np.array([
+                            [-5.0, 0, 0],
+                            [5.0, 0, 0.0]
+                            ])
+            and ext_idxs = np.array([0, -1]) will extend the cell by 5Ang left of the first core, 
+            and 5Ang right of the last core
         """
 
         
@@ -3228,8 +3284,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
             core_position + self.unit_cell_core_position + partial_distance_Angstrom
         ])
 
-        bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width,
-                                                            self_consistent)
+        bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width, extension,
+                                                            self_consistent, use_atomman,
+                                                            ext_idxs)
 
         disloc.info["core_positions"] = [list(core_positions[0, :]), list(core_positions[1, :])]
         if partial_distance > 0:
