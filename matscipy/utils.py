@@ -326,7 +326,7 @@ def points_in_polygon2D(p, poly_points):
     points += 1E-3
 
     # Ensure polygon is closed
-    if np.all(poly_points[0, :] != poly_points[-1, :]):
+    if np.any(poly_points[0, :] != poly_points[-1, :]):
         poly_points = np.append(poly_points, poly_points[0, :][np.newaxis, :], axis=0)
 
     npoints = points.shape[0]
@@ -343,7 +343,7 @@ def points_in_polygon2D(p, poly_points):
         if intersections % 2:
             # Even number of intersections, point is inside polygon
             mask[i] = True
-    return mask
+    return mask.astype(bool)
 
 def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -> np.array:
     '''
@@ -407,7 +407,7 @@ def radial_mask_from_polygon2D(test_points:np.array, polygon_points:np.array, ra
     if inner:
         inner_mask = points_in_polygon2D(test_points, polygon_points)
 
-        full_mask = np.logical_or(inner_mask.astype(bool), outer_mask.astype(bool))
+        full_mask = (inner_mask + outer_mask).astype(bool)
     else:
         full_mask = outer_mask.astype(bool)
     return full_mask
