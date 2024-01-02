@@ -814,7 +814,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             grad2D_stroh = np.transpose(grad2D_stroh_T)
 
             # Find 2D gradient tensor from AnistoropicDislocation object
-            grad2D_adsl = ccd.ADstroh.deformation_gradient(bulk, center)
+            grad2D_adsl = ccd.ADstroh.deformation_gradient(bulk.positions, center)
 
             # Check gradients
             np.testing.assert_array_almost_equal(grad2D_adsl, grad2D_stroh)
