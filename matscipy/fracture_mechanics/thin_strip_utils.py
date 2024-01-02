@@ -21,8 +21,7 @@ class ThinStripBuilder:
         self.directions = directions
         self.E = youngs_modulus(C, directions[1])
         print('youngs modulus', self.E)
-        pr = poisson_ratio(C, directions[1], directions[0])
-        print('elastic constant poisson ratio',pr)
+
         self.multilattice = multilattice
         self.calc = calc
         self.lattice = lattice
@@ -38,19 +37,81 @@ class ThinStripBuilder:
             if switch_sublattices:
                 self.switch_sublattices = True
         
-        self.nu = self.measure_poisson_ratio()
-        print('measured poisson ratio',self.nu)
+        #self.nu = self.measure_poisson_ratio()
+        #print('measured poisson ratio',self.nu)
+        #get effective modulus from poisson ratios
+        #
+        nu_yx = poisson_ratio(C, directions[1], directions[0])
+        nu_zx = poisson_ratio(C, directions[2], directions[0])
+        nu_zy = poisson_ratio(C, directions[2], directions[1])
+        nu_xy = poisson_ratio(C, directions[0], directions[1])
+        nu_xz = poisson_ratio(C, directions[0], directions[2])
+        nu_yz = poisson_ratio(C, directions[1], directions[2])
 
+        nu_prime = (nu_yx + (nu_yz*nu_zx))/(nu_yz + (nu_yx*nu_xz))
+        print('nu_prime',nu_prime)
+        self.E_effective = self.E/(1-(nu_zy + nu_xy*nu_prime)*((nu_yz)/(1-nu_prime*nu_xz)))
+        print('E',self.E)
+        print('E effective',self.E_effective)
+        self.nu = nu_yx
+        self.nu_xy = nu_xy
+        self.nu_yx = nu_yx
 
+    def measure_energy_strain_relation(self,resolution=100):
+        supercell = self.lattice(size=[1,1,1],symbol=self.el,latticeconstant=self.a0,pbc=(1,1,1),directions=self.directions)
+        supercell.calc = self.calc
+        strains = np.linspace(0,0.3,resolution)
+        stresses = []
+        running_strains = []
+        energies_per_unit_vol = []
+        for strain in strains:
+            new_cell = supercell.copy()
+            new_cell.set_cell(new_cell.get_cell()*[1,1+strain,1],scale_atoms=True)
+            new_cell.calc = self.calc
+            #now relax
+            opt = LBFGS(new_cell)
+            opt.run(fmax=1e-3)
+            stresses.append(new_cell.get_stress()[1])
+            running_strains.append(strain)
+            #get energy per unit volume
+            energies_per_unit_vol.append(np.trapz(stresses,running_strains))
+        
+        #plot stresses and strains
+        plt.plot(running_strains,stresses)
+        plt.xlabel('strain')
+        plt.ylabel('stress')
+        plt.savefig('stress_strain_relation.png')
+        #now integrate to get energy per unit volume
+        print('energies per unit vol',energies_per_unit_vol)
+        energy_strain_relation = np.zeros([len(strains),2])
+        energy_strain_relation[:,0] = strains
+        energy_strain_relation[:,1] = energies_per_unit_vol
+        self.energy_strain_relation = energy_strain_relation
 
-    def K_to_strain(self,K,strip_height):
+    def interpolate_energy_strain_relation(self,energy):
+        #interpolate the energy strain relation to find the strain corresponding to a given energy per unit vol
+        return np.interp(energy,self.energy_strain_relation[:,1],self.energy_strain_relation[:,0])
+    
+
+    def K_to_strain(self,K,strip_height,approximate=False):
         """
         convert a stress intensity factor (in MPa sqrt(m)) to a strain for a given unstrained strip height
         """
         print('strip_height',strip_height)
         K_ase = (K/1000) * (units.GPa*np.sqrt(units.m))
-        initial_G = (((K_ase)**2)*(1-self.nu**2))/(self.E)
-        strain = G_to_strain(initial_G, self.E, self.nu, strip_height)
+        #convert to correct G for plane strain
+        initial_G = (((K_ase)**2)*(1-((self.nu_xy)*(self.nu_yx)))/(self.E))
+
+        if approximate:
+            #Convert G to strain directly, using the assumption that the stress strain curve is linear
+            strain = G_to_strain(initial_G, self.E_effective, self.nu, strip_height,effective_modulus=True)
+        else:
+            #use the energy strain relation to find the strain corresponding to the energy
+            #get energy per unit volume
+            energy = initial_G/strip_height
+            #interpolate the energy strain relation to find the strain corresponding to the energy
+            strain = self.interpolate_energy_strain_relation(energy)
+
         return strain
 
     def E_tensor_from_strain(self,strain_y,strain_x):
@@ -83,8 +144,8 @@ class ThinStripBuilder:
             unitcell.set_pbc((True,True,True))
             #set the calculator
             unitcell.calc = self.calc
-            #set the expcellfilter constraint, only allowing strain to move in x direction
-            expcellfilter = ExpCellFilter(unitcell, mask=[1, 0, 0, 0, 0, 0])
+            #set the expcellfilter constraint, allowing strain to move in x and z direction
+            expcellfilter = ExpCellFilter(unitcell, mask=[1, 0, 1, 0, 0, 0])
             #run the optimisation
             opt = LBFGS(expcellfilter)
             opt.run(fmax=1e-3)
@@ -124,8 +185,10 @@ class ThinStripBuilder:
         nx = int(width / unit_slab.cell[0, 0])
         ny = int(height/ unit_slab.cell[1, 1])
         nz = int(thickness/ unit_slab.cell[2, 2])
+        print('nx ny nz', nx,ny,nz)
         #ase.io.write('unitslab.xyz',unit_slab)
         self.single_cell_width = unit_slab.cell[0,0]
+        self.single_cell_height = unit_slab.cell[1,1]
         self.min_x_pos_dist = np.min(unit_slab.get_positions()[:,0])
         self.max_x_pos_dist = self.single_cell_width - np.max(unit_slab.get_positions()[:,0])
         #print('min x pos', self.min_x_pos_dist)
@@ -150,7 +213,6 @@ class ThinStripBuilder:
         crack_slab = crack_slab * (nx, 1, 1)
         crack_slab.positions += [1,0.1,0]
         crack_slab.wrap()
-
         # open up the cell along x and y by introducing some vaccum
         crack_slab.center(vacuum, axis=0)
         crack_slab.center(vacuum, axis=1)
@@ -174,6 +236,7 @@ class ThinStripBuilder:
         #set groups (useful later for crack tip determination)
         set_groups(crack_slab,[nx,ny,nz],20,10)
         self.group_array = crack_slab.arrays['groups']
+        crack_slab.set_pbc((False,False,True))
         return crack_slab
 
     def build_absorbent_test_strip(self,width):
@@ -197,12 +260,29 @@ class ThinStripBuilder:
         test_slab.set_pbc((False,True,True))
         return test_slab
 
-    def build_thin_strip_with_strain(self,K,width,height,thickness,vacuum,apply_x_strain=False,force_spacing=None):
+    def get_energy_accessible_to_crack(self,slab,strip_width,strip_height,strip_thickness,vacuum):
+        #build a thin strip with no strain
+        crack_slab = self.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
+        crack_slab.calc = self.calc
+        #get a mask for the non fixed atoms
+        # get the energy in the non fixed part of the slab
+        y_pos = crack_slab.positions[:,1]
+        x_pos = crack_slab.positions[:,0]
+        #get a mask for the non fixed atoms
+        #non_fixed_mask = (y_pos < (y_pos.max() - 10)) & (y_pos > (y_pos.min() + 10)) \
+        #    & (x_pos > (x_pos.min() + 10)) & (x_pos < (x_pos.max() - 10))
+        non_fixed_mask = np.ones(len(crack_slab),dtype=bool)
+        slab.calc = self.calc
+        #get the energy of the non fixed atoms
+        non_fixed_energy = slab.get_potential_energies()[non_fixed_mask].sum() - crack_slab.get_potential_energies()[non_fixed_mask].sum()
+        return non_fixed_energy
+            
+    def build_thin_strip_with_strain(self,K,width,height,thickness,vacuum,apply_x_strain=False,force_spacing=None,approximate=False):
         #force spacing is the width of a single unit cell to force upon the slab
         crack_slab = self.build_thin_strip(width,height,thickness,vacuum)
         #get true height
-        true_height = crack_slab.positions[:,1].max() - crack_slab.positions[:,1].min()
-        strain = self.K_to_strain(K,true_height)
+        true_height = self.get_true_height(height)
+        strain = self.K_to_strain(K,true_height,approximate=approximate)
         #shift crack
         # centre the slab on the origin
         xmean = crack_slab.positions[:, 0].mean()
@@ -222,7 +302,7 @@ class ThinStripBuilder:
                 print('effective x strain', x_strain)
         else:
             x_strain = 0
-        
+
         crack_slab.positions[:, 0] += x_strain*crack_slab.positions[:, 0]
         
         # undo crack shift
@@ -246,7 +326,7 @@ class ThinStripBuilder:
         return crack_slab
 
 
-    def build_thin_strip_with_crack(self,K,width,height,thickness,vacuum,crack_seed_length,strain_ramp_length,track_spacing=0,apply_x_strain=False):
+    def build_thin_strip_with_crack(self,K,width,height,thickness,vacuum,crack_seed_length,strain_ramp_length,track_spacing=0,apply_x_strain=False,approximate=False):
         """
         build a thin strip at some defined strain with a crack of some defined length
         When building the crack, add tracked atoms every track_spacing along x 
@@ -254,11 +334,11 @@ class ThinStripBuilder:
         #build a thin strip with no strain
         crack_slab = self.build_thin_strip(width,height,thickness,vacuum)
         #get true height
-        true_height = crack_slab.positions[:,1].max() - crack_slab.positions[:,1].min()
+        true_height = self.get_true_height(height)
         slab_length = crack_slab.positions[:,0].max() - crack_slab.positions[:,0].min()
         crack_length = crack_seed_length + strain_ramp_length
         crack_tip_pos = crack_slab.positions[:,0].min() + crack_length
-        strain = self.K_to_strain(K,true_height)
+        strain = self.K_to_strain(K,true_height,approximate=approximate)
 
         if track_spacing>0:
             atoms_to_track=[]
@@ -328,7 +408,7 @@ class ThinStripBuilder:
         
         
         
-    def paste_atoms_into_strip(self,K,width,height,thickness,vacuum,old_atoms,crop,track_spacing=0,right_hand_edge_dist=0,match_cell_length=False):
+    def paste_atoms_into_strip(self,K,width,height,thickness,vacuum,old_atoms,crop,track_spacing=0,right_hand_edge_dist=0,match_cell_length=False,approximate=False):
         """
         build a thin strip at some defined strain, and paste in the old atoms at the left hand edge of the strip
         Crop is the amount to be cut and pasted in
@@ -348,7 +428,7 @@ class ThinStripBuilder:
         #copy old_atoms to avoid overwriting object
         old_atoms = old_atoms.copy()
         #build a thin strip at some defined strain
-        new_strip = self.build_thin_strip_with_strain(K,width,height,thickness,vacuum,apply_x_strain=False) #,force_spacing=avg_cell_length)
+        new_strip = self.build_thin_strip_with_strain(K,width,height,thickness,vacuum,apply_x_strain=False,approximate=approximate) #,force_spacing=avg_cell_length)
         #ase.io.write('new_strip_temp.xyz',new_strip)
         paste_num_cells = int(crop/self.single_cell_width)
         right_hand_edge_cells = int(right_hand_edge_dist/self.single_cell_width)
@@ -439,42 +519,36 @@ class ThinStripBuilder:
         new_strip.set_velocities(new_v)
         return new_strip
     
-    def get_true_height(self,strip_height,strip_width,strip_thickness,vacuum):
+    def get_true_height(self,strip_height):
         """
         get the true height of a strip with no strain
         """
         #build a thin strip with no strain
-        crack_slab = self.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
-        #get true height
-        true_height = crack_slab.positions[:,1].max() - crack_slab.positions[:,1].min()
-        return true_height
-    
+        ny = int(strip_height/self.single_cell_height)
+        if ny % 2 == 1:
+            ny += 1
+        true_height = ny*self.single_cell_height
+        return true_height    
 
-    def rescale_K(self,atoms,K_old,K_new,strip_height, strip_width, strip_thickness, vacuum, tip_position):
+    def rescale_K(self,atoms,K_old,K_new,strip_height, tip_position,approximate=False):
         """
         rescale the stress intensity factor of the crack atoms
         """
         crack_atoms = atoms.copy()
         #get the strain corresponding to the old K and new K
-        true_strip_height = self.get_true_height(strip_height,strip_width,strip_thickness,vacuum)
-        strain_old = self.K_to_strain(K_old,true_strip_height)
-        strain_new = self.K_to_strain(K_new,true_strip_height)
+        true_strip_height = self.get_true_height(strip_height)
+        strain_old = self.K_to_strain(K_old,true_strip_height,approximate=approximate)
+        strain_new = self.K_to_strain(K_new,true_strip_height,approximate=approximate)
 
-        print('strain_old',strain_old)
-        print('strain_new',strain_new)
         #rescale the y positions of the crack atoms by the ratio of the strains, taking the midpoint at 0 for atoms beyond tip position
         midpoint = (crack_atoms.positions[:,1].max() + crack_atoms.positions[:,1].min())/2
-        print('midpoint',midpoint)
         beyond_tip_mask = crack_atoms.positions[:,0] > tip_position
         behind_tip_mask = np.logical_not(beyond_tip_mask)
-        print('pos before',crack_atoms.positions[:,1][beyond_tip_mask][-1])
         crack_atoms.positions[:,1][beyond_tip_mask] += (crack_atoms.positions[:,1][beyond_tip_mask] - midpoint)*(strain_new-strain_old)
-        print('pos after',crack_atoms.positions[:,1][beyond_tip_mask][-1])
         #rescale the x positions of the atoms by the poisson strain
         # crack_atoms.positions[:,0][beyond_tip_mask] = crack_atoms.positions[:,0][beyond_tip_mask] - self.nu*(strain_new-strain_old)*crack_atoms.positions[:,0][beyond_tip_mask]
         #for atoms behind the crack tip, change the y displacement of top and bottom halves by half the height times strain_new/strain_old
         y_disp_change = (strain_new-strain_old)*strip_height/2
-        print('y_disp_change',y_disp_change)
         #mask for those lower than the midpoint
         lower_mask = (crack_atoms.positions[:,1] < midpoint) & behind_tip_mask
         higher_mask = (crack_atoms.positions[:,1] > midpoint) & behind_tip_mask
@@ -498,7 +572,6 @@ class ThinStripBuilder:
         mask_traj_2 = np.abs(atom_2_traj[:,1]-atom_2_traj[0,1])>1
         num_points = min(np.shape((atom_2_traj[mask_traj_2]))[0],1000)
         masks = [mask_traj_1,mask_traj_2]
-        print('num points', num_points)
         atom_trajs = [atom_1_traj,atom_2_traj]
         break_tsteps = []
         x_pos = []
@@ -553,8 +626,8 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
 
 
     #---------- Define Regions for Boundary Layers ----------
-    lmps.command('region bottom_layer block INF INF $((v_ymin-2)) $((v_ymin+3)) INF INF')
-    lmps.command('region top_layer block INF INF $((v_ymax)-3) $(v_ymax+2) INF INF')
+    lmps.command('region bottom_layer block INF INF $((v_ymin-2)) $((v_ymin+1)) INF INF')
+    lmps.command('region top_layer block INF INF $((v_ymax)-1) $(v_ymax+2) INF INF')
     lmps.command('region left_layer_fixed block $((v_xmin-2)) $((v_xmin+5)) INF INF INF INF')
     lmps.command('region right_layer_fixed block $((v_xmax-3)) $((v_xmax+2)) INF INF INF INF')
     lmps.command(f'region left_layer_thermostat block $((v_xmin-2)) $((v_xmin+{left_damp_thickness})) INF INF INF INF')

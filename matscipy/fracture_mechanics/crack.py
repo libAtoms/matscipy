@@ -2311,7 +2311,7 @@ def strain_to_G(strain, E, nu, orig_height):
     return 0.5 * E / (1.0 - nu * nu) * strain * strain * orig_height
 
 
-def G_to_strain(G, E, nu, orig_height):
+def G_to_strain(G, E, nu, orig_height,effective_modulus=False):
     """
     Convert from energy release rate G to strain for thin strip geometry
 
@@ -2325,13 +2325,18 @@ def G_to_strain(G, E, nu, orig_height):
        Poission ratio -eps_yy/eps_xx
     orig_height : float
        Unstrained height of slab
-
+    effective_modulus: bool
+        If true, uses a modified user-specified Young's modulus. If false, then it takes the Young's modulus
+        as the uniaxial modulus and uses the Poisson ratio to calculate the effective modulus for plane strain.
     Returns
     -------
     strain : float
        Dimensionless ratio ``(current_height - orig_height)/orig_height``
     """
-    return np.sqrt(2.0 * G * (1.0 - nu * nu) / (E * orig_height))
+    if effective_modulus:
+        return np.sqrt((2.0 * G )/ (E * orig_height))
+    else:
+        return np.sqrt(2.0 * G * (1.0 - nu * nu) / (E * orig_height))
 
 
 def get_strain(atoms):

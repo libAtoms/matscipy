@@ -75,6 +75,7 @@ dump_files = parameter('dump_files', True)
 initial_kick = parameter('initial_kick', False) #give the crack an initial kick at the end of the damping time
 kick_timestep = parameter('kick_timestep', 9) # timestep to give the crack an initial kick
 
+approximate_strain = parameter('approximate_strain',False) #if True, use approximate strain calculation
 cpnum = initial_checkpoint_num
 
 if restart:
@@ -99,9 +100,11 @@ plot_num = 0
 ######################SET UP SIMULATION OR RESTART FROM CHECKPOINT FILES##############################
 if me == 0:
     tsb = ThinStripBuilder(el,a0,C,calc,lattice,directions,multilattice=multilattice,cb=cb,switch_sublattices=True)
-
+    if not approximate_strain:
+        tsb.measure_energy_strain_relation(resolution=1000)
+    
     crack_slab = tsb.build_thin_strip_with_crack(initial_K,strip_width,strip_height,strip_thickness\
-                                               ,vacuum,crack_seed_length,strain_ramp_length,track_spacing=track_spacing,apply_x_strain=False)
+                                               ,vacuum,crack_seed_length,strain_ramp_length,track_spacing=track_spacing,apply_x_strain=False,approximate=approximate_strain)
     os.makedirs(temp_path,exist_ok=True)
     if not restart:
         os.makedirs(results_path, exist_ok=False)
@@ -152,7 +155,7 @@ for knum,K in enumerate(kvals):
         unscaled_crack = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/crack.lj',atom_style='atomic')
         unscaled_crack.set_pbc([False,False,True])
 
-        rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,strip_width,strip_thickness,vacuum,tip_pos)
+        rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,tip_pos,approximate=approximate_strain)
         #re-write lammps data file
         ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',rescale_crack,velocities=True,masses=True)
     
@@ -282,7 +285,7 @@ for knum,K in enumerate(kvals):
             # -------------- paste atoms --------------- #
             new_slab = tsb.paste_atoms_into_strip(K_curr,strip_width,strip_height,strip_thickness,vacuum,\
                                             final_crack_state,crop=crop,track_spacing=track_spacing,right_hand_edge_dist=right_hand_edge_dist,
-                                            match_cell_length=True)
+                                            match_cell_length=False,approximate=approximate_strain)
             new_slab.new_array('masses',final_crack_state.arrays['masses'])
 
             # -------------- if turned on, give atoms an initial kick for the next loop --------------- #
