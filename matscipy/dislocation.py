@@ -2560,8 +2560,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         idxs = np.argsort(mask_positions, axis=0)
         mask_positions = np.take_along_axis(mask_positions, idxs, axis=0)
-
-        print(mask_positions)
         
         mask = radial_mask_from_polygon2D(sup.get_positions(), mask_positions, radius, inner=True)
 
