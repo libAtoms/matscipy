@@ -436,7 +436,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             # test the consistency
             # displacement = disloc.positions - bulk.positions
             stroh_displacement = d.displacements(bulk.positions,
-                                                 np.array(disloc.info["core_positions"]),#np.diag(bulk.cell) / 2.0,
+                                                 np.array(disloc.info["core_positions"]),
                                                  self_consistent=d.self_consistent)
 
             displacement = disloc.positions - bulk.positions
