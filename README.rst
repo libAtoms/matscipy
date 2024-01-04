@@ -39,7 +39,7 @@ Build status
 
 The following badge should say *passing*. This means that all automated tests completed successfully for the master branch.
 
-|Tests| |Wheels|
+|Tests||Wheels|
 
 
 Documentation
