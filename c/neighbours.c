@@ -1,7 +1,5 @@
 /* ======================================================================
    matscipy - Python materials science tools
-   https://github.com/pastewka/atomistica
-
    https://github.com/libAtoms/matscipy
 
    Copyright (2014) James Kermode, King's College London
