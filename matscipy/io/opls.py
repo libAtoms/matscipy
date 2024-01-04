@@ -21,9 +21,9 @@
 
 import time
 import copy
-import sys
 import re
-import distutils.version
+
+from looseversion import LooseVersion
 
 import numpy as np
 import ase
@@ -359,7 +359,7 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
                 fileobj.write('%d dihedral types\n' % (len(dtypes)))
 
             # cell
-            if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.11.0'):
+            if LooseVersion(ase_version_str) > LooseVersion('3.11.0'):
                 p = ase.calculators.lammpsrun.Prism(atoms.get_cell())
             else:
                 p = ase.calculators.lammpsrun.prism(atoms.get_cell())

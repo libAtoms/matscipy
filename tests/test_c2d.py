@@ -29,7 +29,7 @@ import subprocess
 import tempfile
 import unittest
 
-from distutils.version import LooseVersion
+from looseversion import LooseVersion
 
 class c2dCliTest(matscipytest.MatSciPyTestCase):
     """Tests c2d and pnp command line interfaces"""
