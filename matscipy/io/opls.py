@@ -385,9 +385,9 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
                 molid = [1] * len(atoms)
 
             pos = ase.calculators.lammpsrun.convert(atoms.get_positions(), 'distance', 'ASE', units)
-            if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.17.0'):
+            if LooseVersion(ase_version_str) > LooseVersion('3.17.0'):
                 positions_lammps_str = p.vector_to_lammps(pos).astype(str)
-            elif distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.13.0'):
+            elif LooseVersion(ase_version_str) > LooseVersion('3.13.0'):
                 positions_lammps_str = p.positions_to_lammps_strs(pos)
             else:
                 positions_lammps_str = map(p.pos_to_lammps_str, pos)
