@@ -1,3 +1,5 @@
+|Tests| |Wheels|
+
 Matscipy
 ========
 
@@ -33,14 +35,6 @@ To get the latest version directly (requires a working compiler)::
 
 Compiled up-to-date wheels for Windows, Linux and x86 macos can be found `here
 <https://github.com/libAtoms/matscipy/actions/workflows/build-wheels.yml>`__.
-
-Build status
-------------
-
-The following badge should say *passing*. This means that all automated tests completed successfully for the master branch.
-
-|Tests||Wheels|
-
 
 Documentation
 -------------
