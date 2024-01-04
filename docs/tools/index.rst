@@ -8,3 +8,4 @@ Analysis tools
    neighbour_list
    pair_distribution
    ring_analysis
+   setup_non-reactive_simulations
