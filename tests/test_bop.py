@@ -20,6 +20,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os.path
+
 import numpy as np
 
 import pytest
@@ -71,7 +73,7 @@ def test_stress(a0, par):
 
 def test_hessian_divide_by_masses():
     # Test the computation of dynamical matrix
-    atoms = ase.io.read('aSi.cfg')
+    atoms = ase.io.read(f'{os.path.dirname(__file__)}/aSi.cfg')
     masses_n = np.random.randint(1, 10, size=len(atoms))
     atoms.set_masses(masses=masses_n)
     kumagai_potential = kumagai.Kumagai_Comp_Mat_Sci_39_Si
