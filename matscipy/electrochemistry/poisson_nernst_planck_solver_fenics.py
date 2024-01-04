@@ -95,10 +95,10 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
         # constraints set up elsewhere
         F = poisson + nernst_planck + self.constraints
 
-        fn.solve(F == 0, self.w, self.boundary_conditions)
+        fn.solve(F == 0, self.w, self.boundary_conditions,
+                 solver_parameters=self.solver_parameters)
 
         # store results:
-
         wij = np.array([self.w(x) for x in self.X]).T
 
         self.uij = wij[0, :]  # potential
@@ -376,10 +376,27 @@ class PoissonNernstPlanckSystemFEniCS(PoissonNernstPlanckSystem):
             vqmu[0], [*vqmu[1:(self.M+1)]], [*vqmu[(self.M+1):]])
 
     def __init__(self, *args, **kwargs):
+        """Same parameters as PoissonNernstPlanckSystem.init
+        
+        Additional parameters:
+        ----------------------
+        bctol : float, optional
+            tolerance for identifying domain boundaries
+            (default: 1e-14)
+        solver_parameters : dict, optional
+            Additional solver parameters passed through to fenics solver
+            (default: {})
+        """
         self.init(*args, **kwargs)
 
-        # TODO: don't hard code btcol
+        self.solver_parameters = {}
+        if "solver_parameters" in kwargs:
+            self.solver_parameters = kwargs["solver_parameters"]
+
         self.bctol = 1e-14  # tolerance for identifying domain boundaries
+        if "bctol" in kwargs:
+            self.bctol = kwargs["bctol"]
+
         self.K = 0  # number of Lagrange multipliers (constraints)
         self.constraints = 0  # holds constraint kernels
         self.discretize()

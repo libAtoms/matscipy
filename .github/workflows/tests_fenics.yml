@@ -1,0 +1,66 @@
+name: Test electrochemistry examples including fenics functionality
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+
+jobs:
+  tests:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: install_python
+        run: |
+          sudo apt-get update -qy
+          sudo apt-get install -y python3-dev python3-pip python3-venv libxml2-dev libxslt-dev zlib1g-dev
+          # Upgrade to latest meson and ninja
+          sudo pip install --upgrade meson ninja
+          sudo pip install --upgrade jupyter jupytext pandas
+
+      - name: install_fenics
+        run: |
+          sudo apt-get install -y --no-install-recommends software-properties-common
+          sudo add-apt-repository -y ppa:fenics-packages/fenics
+          sudo apt-get update -qy
+          sudo apt-get install -y fenics python3-dolfin python3-mshr
+
+      - name: install matscipy
+        run: |
+          sudo pip install .
+
+      - name: build sample ipynb and html
+        run: |
+          cd examples/electrochemistry
+                    
+          # check that all sample html files are produced successfully
+          html_files=(./*.html)
+          rm *.html
+          
+          ls -1 *.py | grep -v to_html.py | bash to_html.sh
+          
+          for f in "${html_files[@]}"; do
+            if ! test -f "$f"; then
+              echo "Sample $f creation failed."
+              exit 1
+            fi
+          done
+
+    # use tar here, see https://github.com/actions/upload-artifact/issues/38
+      - name: Pack build assets
+        run: |
+          bash -c "tar -cvf electrochemistry-sample-ipynb.tar examples/electrochemistry/*.ipynb examples/electrochemistry/*.html"
+
+      - name: Upload sample ipynb artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: electrochemistry-sample-ipynb
+          path: electrochemistry-sample-ipynb.tar
+          if-no-files-found: error

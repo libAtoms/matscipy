@@ -1,3 +1,3 @@
 #!/bin/bash
-./run_robin.sh | tee run_robin.log
-./eval.sh      | tee eval.log
+bash ./run_robin.sh | tee run_robin.log
+bash ./eval.sh      | tee eval.log

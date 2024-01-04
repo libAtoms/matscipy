@@ -64,7 +64,6 @@ from matscipy.electrochemistry.poisson_boltzmann_distribution import gamma, pote
 from scipy import interpolate
 from matscipy.electrochemistry import continuous2discrete
 from matscipy.electrochemistry import get_histogram
-from matscipy.electrochemistry.utility import plot_dist
 
 # %%
 # steric correction
@@ -85,6 +84,38 @@ from matscipy.electrochemistry.steric_correction import apply_steric_correction
 # 3rd party file output
 import ase
 import ase.io
+
+# %%
+# helper functions
+def get_centers(bins):
+    """Return the center of the provided bins.
+
+    Example:
+    >>> get_centers(bins=np.array([0.0, 1.0, 2.0]))
+    array([ 0.5,  1.5])
+    """
+    bins = bins.astype(float)
+    return (bins[:-1] + bins[1:]) / 2
+
+def plot_dist(histogram, name, reference_distribution=None):
+    """Plot histogram with an optional reference distribution."""
+    hist, bins = histogram
+    width = 1 * (bins[1] - bins[0])
+    centers = get_centers(bins)
+
+    fi, ax = plt.subplots()
+    ax.bar( centers, hist, align='center', width=width, label='Empirical distribution',
+            edgecolor="none")
+
+    if reference_distribution is not None:
+        ref = reference_distribution(centers)
+        ref /= sum(ref)
+        ax.plot(centers, ref, color='red', label='Target distribution')
+
+    plt.title(name)
+    plt.legend()
+    plt.xlabel('Distance ' + name)
+    plt.savefig(name + '.png')
 
 # %%
 # matscipy.electrochemistry makes extensive use of Python's logging module

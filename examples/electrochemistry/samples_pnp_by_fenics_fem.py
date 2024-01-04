@@ -29,8 +29,11 @@
 
 # %%
 # stretching notebook width across whole window
-from IPython.core.display import display, HTML
-display(HTML("<style>.container { width:100% !important; }</style>"))
+try:
+    from IPython.core.display import display, HTML
+    display(HTML("<style>.container { width:100% !important; }</style>"))
+except:
+    pass
 
 # %%
 # for dynamic module reload during testing, code modifications take immediate effect
@@ -41,20 +44,11 @@ display(HTML("<style>.container { width:100% !important; }</style>"))
 # %matplotlib inline
 
 # %%
-from IPython.core.display import display, HTML
-
-# %%
 # basics
 import logging
 import numpy as np
 import scipy.constants as sc
 import matplotlib.pyplot as plt
-
-# sampling
-# from scipy import interpolate
-# from matscipy.electrochemistry import continuous2discrete
-# from matscipy.electrochemistry import get_histogram
-# from matscipy.electrochemistry.utility import plot_dist
 
 # electrochemistry basics
 from matscipy.electrochemistry import debye, ionic_strength
@@ -556,6 +550,13 @@ uij, nij, lamj = pnp['fenics_cell_low_potential'].solve()
 # %%
 pnp['fenics_cell_c_ref'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u, N = 300,
+    solver_parameters={
+        "newton_solver": {
+            "absolute_tolerance": 1e-7,
+            "relative_tolerance": 1e-4,
+            "maximum_iterations": 50
+        }
+    },
     potential0=pnp['fenics_cell_low_potential'].potential,
     concentration0=pnp['fenics_cell_low_potential'].concentration)
 pnp['fenics_cell_c_ref'].useCentralReferenceConcentrationBasedCellBC()
@@ -649,6 +650,13 @@ delta_u=0.4
 # %%
 pnp['fenics_cell_c_ref_u_0.4'] = PoissonNernstPlanckSystemFEniCS(
     c, z, L, delta_u=delta_u, N=2000,
+    solver_parameters={
+        "newton_solver": {
+            "absolute_tolerance": 1e-7,
+            "relative_tolerance": 1e-4,
+            "maximum_iterations": 50
+        }
+    },
     potential0=pnp['fenics_cell_c_ref'].potential,
     concentration0=pnp['fenics_cell_c_ref'].concentration)
 pnp['fenics_cell_c_ref_u_0.4'].useCentralReferenceConcentrationBasedCellBC()

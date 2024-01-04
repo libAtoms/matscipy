@@ -289,6 +289,7 @@ class PoissonNernstPlanckSystem:
         if self.zi0 is None:
             self.zi0 = np.kron(self.z, np.ones((self.Ni, 1))).T  # does not change
 
+
         # self.initial_values()
 
     def initial_values(self):
@@ -900,7 +901,8 @@ class PoissonNernstPlanckSystem:
              solver=None,
              options=None,
              potential0=None,
-             concentration0=None):
+             concentration0=None,
+             **kwarsg):
         """Initializes a 1D Poisson-Nernst-Planck system description.
 
         Expects quantities in SI units per default.
