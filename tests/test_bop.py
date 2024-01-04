@@ -146,7 +146,7 @@ def test_crystal_elastic_constants(a0, par):
 ])
 def test_amorphous(par):
     # Tests for amorphous Si
-    aSi = ase.io.read('aSi_N8.xyz')
+    aSi = ase.io.read(f'{os.path.dirname(__file__)}/aSi_N8.xyz')
     aSi.calc = Manybody(**par)
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, par)
