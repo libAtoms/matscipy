@@ -34,6 +34,19 @@ To get the latest version directly (requires a working compiler)::
 Compiled up-to-date wheels for Windows, Linux and x86 macos can be found `here
 <https://github.com/libAtoms/matscipy/actions/workflows/build-wheels.yml>`__.
 
+Build status
+------------
+
+Build status
+------------
+
+The following badge should say _passing_. This means that all automated tests completed successfully for the master branch.
+
+[![Tests](https://github.com/libAtoms/matscipy/actions/workflows/tests.yml/badge.svg)](https://github.com/libAtoms/matscipy/actions/workflows/tests.yml)
+
+[![Wheels](https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml/badge.svg)](https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml)
+
+
 Documentation
 -------------
 
