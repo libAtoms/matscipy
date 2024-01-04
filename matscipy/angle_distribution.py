@@ -19,6 +19,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+"""
+Compute a bond angle distributions.
+"""
+
 import numpy as np
 
 from . import ffi
@@ -37,6 +41,10 @@ def angle_distribution(i, j, dr, nbins, *args):
         Number of bins for bond angle histogram.
     cutoff : float, optional
         Bond length cutoff, i.e. consider only bonds shorter than this length.
+
+    Returns
+    -------
+
     """
     return ffi.angle_distribution(np.asarray(i), np.asarray(j),
                                   np.asarray(dr), nbins, *args)

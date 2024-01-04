@@ -39,6 +39,7 @@ docs = [
     "atomman",
     "ovito",
     "sphinx_copybutton",
+    "sphinx_rtd_theme",
     "pydata-sphinx-theme"
 ]
 
