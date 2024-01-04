@@ -16,7 +16,6 @@ python_sources = [
     'atomic_strain.py',
     'deformation.py',
     'dislocation.py',
-    'distributed_computation.py',
     'drift.py',
     'elasticity.py',
     'ffi.py',
