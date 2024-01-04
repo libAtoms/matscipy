@@ -37,14 +37,9 @@ Compiled up-to-date wheels for Windows, Linux and x86 macos can be found `here
 Build status
 ------------
 
-Build status
-------------
+The following badge should say *passing*. This means that all automated tests completed successfully for the master branch.
 
-The following badge should say _passing_. This means that all automated tests completed successfully for the master branch.
-
-[![Tests](https://github.com/libAtoms/matscipy/actions/workflows/tests.yml/badge.svg)](https://github.com/libAtoms/matscipy/actions/workflows/tests.yml)
-
-[![Wheels](https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml/badge.svg)](https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml)
+|Tests| |Wheels|
 
 
 Documentation
@@ -120,3 +115,8 @@ Funding
 
 **matscipy** was partially funded by the Deutsch Forschungsgemeinschaft (project `258153560 <https://gepris.dfg.de/gepris/projekt/258153560>`__) and by the Engineering and Physical Sciences Research Council (grants `EP/P002188/1 <https://gow.epsrc.ukri.org/NGBOViewGrant.aspx?GrantRef=EP/P002188/1>`__, `EP/R012474/1 <https://gow.epsrc.ukri.org/NGBOViewGrant.aspx?GrantRef=EP/R012474/1>`__ and `EP/R043612/1 <https://gow.epsrc.ukri.org/NGBOViewGrant.aspx?GrantRef=EP/R043612/1>`__).
 
+.. |Tests| image:: https://github.com/libAtoms/matscipy/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/libAtoms/matscipy/actions/workflows/tests.yml
+
+.. |Wheels| image:: https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml/badge.svg
+   :target: https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml
