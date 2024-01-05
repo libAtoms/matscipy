@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+
+import os.path
+
 import numpy as np
 
 import ase.io
@@ -233,7 +236,7 @@ def create_mcfm_potential(atoms,
 class TestMCFM(matscipytest.MatSciPyTestCase):
 
     def prepare_data(self):
-        self.atoms = load_atoms("carbon_chain.xyz")
+        self.atoms = load_atoms(f"{os.path.dirname(__file__)}/carbon_chain.xyz")
         self.morse1 = MorsePotentialPerAtom(r0=2, epsilon=2, rho0=6)
         self.morse2 = MorsePotentialPerAtom(r0=2, epsilon=4, rho0=6)
         self.mcfm_pot = create_mcfm_potential(self.atoms,

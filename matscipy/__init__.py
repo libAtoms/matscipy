@@ -23,7 +23,6 @@
 # Generic stuff may go here.
 
 from matscipy.logger import screen
-from .distributed_computation import BaseWorker, BaseResultManager
 
 
 def has_parameter(name):

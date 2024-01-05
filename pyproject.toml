@@ -21,22 +21,26 @@ dependencies = [
     "numpy>=1.16.0",
     "scipy>=1.2.3",
     "ase>=3.16.0",
+    "looseversion"
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest",
-    "sympy"
+    "sympy",
+    "atomman",
+    "ovito"
 ]
 docs = [
     "sphinx",
-    "sphinx-rtd-theme",
     "myst_nb",
     "nglview",
     "numpydoc",
     "atomman",
     "ovito",
-    "sphinx_copybutton"
+    "sphinx_copybutton",
+    "sphinx_rtd_theme",
+    "pydata-sphinx-theme"
 ]
 
 [project.urls]
