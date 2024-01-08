@@ -2351,6 +2351,18 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     stroh = None
     ADstroh = None
 
+    # Available solvers for atomic displacements
+    avail_methods = [
+        "atomman", "adsl"
+        ]
+    
+    # Attempt to load the atomman module once, 
+    try:
+        import atomman as atm
+        atomman = atm
+    except ImportError:
+        atomman = None
+
     def __init__(self, a, C11, C12, C44, symbol="W"):
         """
         This class represents a dislocation in a cubic crystal
@@ -2414,14 +2426,90 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         self.glide_distance = self.alat * self.glide_distance_dimensionless
 
+        # Empty dict for solver methods (e.g. AnisotropicDislocation.displacements)
+        self.solvers = {
+            m : None for m in self.avail_methods
+        }
+
+
+    def init_solver(self, method="atomman"):
+        '''
+        Run the correct solver initialiser
+
+        Solver init should take only the self arg, and set self.solver[method] to point to the function 
+        to calculate displacements
+
+        e.g. self.solvers["atomman"] = self.stroh.displacement
+        '''
+        solver_initters = {
+            "atomman" : self.init_stroh,
+            "adsl" : self.init_anisotropic_dislocation
+        }
+
+        # Execute init routine
+        solver_initters[method]()
+    
+    def get_solvers(self, method="atomman"):
+        '''
+        Get list of dislocation displacement solvers
+
+        As CubicCrystalDislocation models a single core, there is only one solver,
+        therefore solvers is a len(1) list
+
+        Parameters
+        ----------
+        use_atomman: bool
+            Use the Stroh solver included in atomman (requires atomman package) to
+            solve for displacements, or use the AnisotropicDislocation class
+
+        Returns
+        -------
+        solvers: list
+            List of functions f(positions) = displacements
+        '''
+        has_atomman = False if self.atomman is None else True
+
+        if type(method) != str:
+            if has_atomman:
+                warnings.warn("non-string method arg, falling back to method='atomman'")
+                method = "atomman"
+            else:
+                warnings.warn("non-string method arg, falling back to method='adsl'")
+                method = "adsl"
+
+        if method.lower() not in self.avail_methods:
+            # Passed an invalid method
+            if has_atomman:
+                warnings.warn(f"method='{method}' not one of {self.avail_methods}, falling back to method='atomman'")
+                method = "atomman"
+            else:
+                warnings.warn(f"method='{method}' not one of {self.avail_methods}, falling back to method='adsl'")
+                method = "adsl"
+
+        if method.lower() == "atomman" and not has_atomman:
+            # Atomman import failed
+            warnings.warn("Import of atomman failed, falling back to method='adsl'")
+            method="adsl"
+
+        if self.solvers[method] is None:
+            # Method needs initialising
+            self.init_solver(method)
+        
+        return [self.solvers[method]]
+
     def init_stroh(self):
-        from atomman import ElasticConstants
-        from atomman.defect import Stroh
-        c = ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
-        self.stroh = Stroh(c, burgers=self.burgers, axes=self.axes)
+        '''
+        Init atomman stroh solution solver (requires atomman)
+        '''
+        c = self.atomman.ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
+        self.stroh = self.atomman.defect.Stroh(c, burgers=self.burgers, axes=self.axes)
+
+        self.solvers["atomman"] = self.stroh.displacement
 
     def init_anisotropic_dislocation(self):
-
+        '''
+        Init adsl (Anisotropic DiSLocation) solver
+        '''
         # Extract consistent parameters
         axes = self.axes
         slip_plane = axes[1].copy() 
@@ -2431,6 +2519,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         self.ADstroh = AnisotropicDislocation(self.C11, self.C12, self.C44, 
                                            axes, slip_plane, disloc_line, 
                                            self.burgers)
+        
+        self.solvers["adsl"] = self.ADstroh.displacement
 
     # @property & @var.setter decorators used to ensure var and var_dimensionless don't get out of sync
     @property
@@ -2483,7 +2573,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return sup
 
     def _build_bulk_cyl(self, radius, core_positions, fix_rad, extension,
-                        self_consistent, use_atomman, ext_idx):
+                        self_consistent, method, ext_idx):
         '''
         Build bulk cylinder config from args supplied by self.build_cylinder
 
@@ -2569,7 +2659,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         disloc = cyl.copy()
 
         disloc.positions += self.displacements(cyl.positions, new_core_positions,
-                                               self_consistent=self_consistent, use_atomman=use_atomman)
+                                               self_consistent=self_consistent, method=method)
 
         if fix_rad:
             fix_mask = ~radial_mask_from_polygon2D(cyl.get_positions(), mask_positions, radius - fix_rad, inner=True)
@@ -2672,39 +2762,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             
         raise RuntimeError('Self-consistency' +
                             f'did not converge in {max_iter} cycles')
-    
-    def get_solvers(self, use_atomman=True):
-        '''
-        Get list of dislocation displacement solvers
 
-        As CubicCrystalDislocation models a single core, there is only one solver,
-        therefore solvers is a len(1) list
-
-        Parameters
-        ----------
-        use_atomman: bool
-            Use the Stroh solver included in atomman (requires atomman package) to
-            solve for displacements, or use the AnisotropicDislocation class
-
-        Returns
-        -------
-        solvers: list
-            List of functions f(positions) = displacements
-        '''
-        if use_atomman:
-            # Use stroh solver from atomman package
-            if self.stroh is None:
-                self.init_stroh()
-            solver = self.stroh.displacement
-
-        else:
-            # Use AnistoropicDislocation class from matscipy.dislocation
-            if self.ADstroh is None:
-                self.init_anisotropic_dislocation()
-            solver = self.ADstroh.displacement
-        return [solver]
-
-    def displacements(self, bulk_positions, core_positions, use_atomman=True,
+    def displacements(self, bulk_positions, core_positions, method="atomman",
                       self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
         '''
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
@@ -2740,7 +2799,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         Raises a RuntimeError if max_iter is reached without convergence
         '''
         
-        solvers = self.get_solvers(use_atomman)
+        solvers = self.get_solvers(method)
 
         if not self_consistent:
             max_iter = 0
@@ -2755,7 +2814,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                        core_position=np.array([0., 0., 0.]),
                        extension=np.array([0, 0, 0]),
                        fix_width=10.0, self_consistent=None,
-                       use_atomman=True,
+                       method="atomman",
                        ext_idxs = -1):
         '''
         Build dislocation cylinder for single dislocation system
@@ -2795,7 +2854,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ])
 
         bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width,
-                                                            extension, self_consistent, use_atomman, ext_idxs)
+                                                            extension, self_consistent, method, ext_idxs)
 
         disloc.info["core_positions"] = [list(core_positions[0, :])]
         disloc.info["burgers_vectors"] = [list(self.burgers)]
@@ -3216,7 +3275,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         # Flip dislocations
         self.left_dislocation, self.right_dislocation = self.right_dislocation, self.left_dislocation
 
-    def get_solvers(self, use_atomman=True):
+    def get_solvers(self, method="atomman"):
         '''
         Overload of CubicCrystalDislocation.get_solvers
         Get list of dislocation displacement solvers
@@ -3232,10 +3291,10 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         solvers: list
             List of functions f(positions) = displacements
         '''
-        solvers = self.left_dislocation.get_solvers(use_atomman)
+        solvers = self.left_dislocation.get_solvers(method)
 
         solvers.extend(
-            self.right_dislocation.get_solvers(use_atomman)
+            self.right_dislocation.get_solvers(method)
         )
 
         return solvers
@@ -3244,7 +3303,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                        core_position=np.array([0., 0., 0.]),
                        extension=np.array([0., 0., 0.]),
                        fix_width=10.0, self_consistent=None,
-                       use_atomman=True,
+                       method="atomman",
                        ext_idxs=-1):
         """
         Overloaded function to make dissociated dislocations.
@@ -3271,7 +3330,6 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
             and ext_idxs = np.array([0, -1]) will extend the cell by 5Ang left of the first core, 
             and 5Ang right of the last core
         """
-
         
         partial_distance_Angstrom = np.array(
             [self.glide_distance * partial_distance, 0.0, 0.0])
@@ -3283,7 +3341,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         ])
 
         bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width, extension,
-                                                            self_consistent, use_atomman,
+                                                            self_consistent, method,
                                                             ext_idxs)
 
         disloc.info["core_positions"] = [list(core_positions[0, :]), list(core_positions[1, :])]
@@ -3352,7 +3410,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             "periodic" (default) : Prints status of the periodic displacement convergence
             True : Also prints status of self-consistent solutions for each dislocation
                     (i.e. verbose=True for CubicCrystalDislocation.displacements())
-
+        **kwargs
+            Other keyword arguments fed to self.displacements() (e.g. method="adsl")
         returns
         -------
         disps: np.array
@@ -3369,7 +3428,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
                 periodic_verbose = True
                 disloc_verbose = False
             else:
-                warnings.warn(f"Unrecognised string verbosity '{verbose}'", stacklevel=2)
+                warnings.warn(f"Unrecognised string verbosity '{verbose}'")
                 periodic_verbose = True
                 disloc_verbose = False
         elif type(verbose) == bool:
@@ -3426,7 +3485,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
                     print(f"Periodic displacements converged to r_tol={disp_tol} after {neigh_idx} iterations")
 
                 return displacements
-        warnings.warn("Periodic quadrupole displacments did not converge!", stacklevel=2)
+        warnings.warn("Periodic quadrupole displacments did not converge!")
         return displacements
 
 
@@ -3466,7 +3525,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             raise RuntimeError("glide_separation should be >= 1")
         elif glide_separation < 3:
             msg = "glide_separation is very small. Resulting structure may be very unstable."
-            warnings.warn(msg, stacklevel=2)
+            warnings.warn(msg)
 
         assert extension >= 0
         assert partial_distance >= 0
@@ -3733,7 +3792,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # Rotate system by rot_angle about [0, 0, 1]
         view.control.spin([0, 0, 1], rot_angle)
         return view
-    
+   
 # TODO: If non-cubic dislocation classes are implemented, need to build an
 # interface to make "Quadrupole" work for both
 Quadrupole = CubicCrystalDislocationQuadrupole

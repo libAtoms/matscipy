@@ -762,10 +762,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         ccd = cls(a0, C11, C12, C44, symbol="Fe")
         bulk, sc_disloc1 = ccd.build_cylinder(20.0)
         center = np.diag(bulk.cell) / 2
-        stroh_disp = ccd.displacements(bulk.positions, center, use_atomman=True, self_consistent=False)
+        stroh_disp = ccd.displacements(bulk.positions, center, method="atomman", self_consistent=False)
 
         # Get displacements using AnistoropicDislocation class
-        adsl_disp = ccd.displacements(bulk.positions, center, use_atomman=False, self_consistent=False)
+        adsl_disp = ccd.displacements(bulk.positions, center, method="adsl", self_consistent=False)
 
         # Setup the dislcation from the AnistoropicDislocation object
         disloc = bulk.copy()
