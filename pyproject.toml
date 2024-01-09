@@ -63,7 +63,7 @@ cli = [
 #     pip install matscipy[cli]
 # (see https://github.com/libAtoms/matscipy/blob/92dd490a3c2c71edc5d0018487afbee5f2273730/setup.py#L302-L319)
 # With pyproject.toml and meson as build system, the console scripts are
-# always installed, even if they are specified as extra-dpenedent as done here.
+# always installed, even if they are specified as extra-dependent as done here.
 continuous2discrete = "matscipy.cli.electrochemistry.continuous2discrete_cli:main [cli]"
 poisson-nernst-planck = "matscipy.cli.electrochemistry.poisson_nernst_planck_solver_cli:main [cli]"
 stericify = "matscipy.cli.electrochemistry.stericify_cli:main [cli]"
