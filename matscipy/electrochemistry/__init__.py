@@ -20,6 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+"""
+Provides continuous 1D Poisson-Nernst-Planck system solver, sampling of discrete
+coordinate sets from continuum fields, steric correction for avoiding overlap
+of finite size species.
+"""
 from .poisson_boltzmann_distribution import ionic_strength, debye
 from .poisson_nernst_planck_solver import PoissonNernstPlanckSystem
 from .continuous2discrete import generate_structure as continuous2discrete
