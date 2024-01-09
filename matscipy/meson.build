@@ -48,6 +48,7 @@ python.install_sources(
 )
 
 subdir('calculators')
+subdir('cli')
 subdir('electrochemistry')
 subdir('fracture_mechanics')
 subdir('io')
