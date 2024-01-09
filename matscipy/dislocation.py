@@ -44,7 +44,7 @@ from ase.io import read
 from matscipy.neighbours import neighbour_list, mic
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
-from matscipy.elasticity import cubic_to_Voigt_6x6
+from matscipy.elasticity import cubic_to_Voigt_6x6, coalesce_elastic_constants
 from matscipy.utils import validate_cubic_cell, points_in_polygon2D
 
 
@@ -2165,11 +2165,11 @@ class AnisotropicDislocation:
     Theory of Dislocations, 2nd ed. Similar to class `CubicCrystalDislocation`.
     """
 
-    def __init__(self, C11, C12, C44, axes,
-                 slip_plane, disloc_line, burgers):
+    def __init__(self, axes, slip_plane, disloc_line, burgers,
+                 C11=None, C12=None, C44=None, C=None):
         """
         Setup a dislocation in a cubic crystal. 
-        C11, C12 and C44 are the elastic constants in the Catersian geometry.
+        C11, C12 and C44 are the elastic constants in the Cartesian geometry.
         The arg 'axes' is a 3x3 array containing axes of frame of reference (eg.crack system).
         The dislocation parameters required are the slip plane normal ('slip_plane'), the 
         dislocation line direction ('disloc_line') and the Burgers vector ('burgers').
@@ -2189,14 +2189,15 @@ class AnisotropicDislocation:
         n = np.einsum('ij,j', A, n)
         xi = np.einsum('ij,j', A, xi)
         b = np.einsum('ij,j', A, burgers)
+
+        
         
         # define elastic constant in Voigt notation
-        C_v = cubic_to_Voigt_6x6(C11, C12, C44)
-        # convert Voigt to tensor
-        C = Voigt_6x6_to_full_3x3x3x3(C_v)
+        Cijkl = coalesce_elastic_constants(C11, C12, C44, C, standard="Cijkl")
+
         # rotate elastic matrix
         cijkl = np.einsum('ig,jh,ghmn,km,ln', \
-            A, A, C, A, A)
+            A, A, Cijkl, A, A)
     
         # solve the Stroh sextic formalism: the same as Stroh.py from atomman
         # this part can also be replaced by calling Stroh.py from atomman
@@ -2340,7 +2341,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     # (see https://stackoverflow.com/questions/472000/usage-of-slots for more details on __slots__)
     __slots__ = ("burgers_dimensionless", "unit_cell_core_position_dimensionless",
                  "glide_distance_dimensionless", "crystalstructure", "axes",
-                 "C11", "C12", "C44", "alat", "unit_cell", "name")
+                 "C", "alat", "unit_cell", "name")
 
     # Attributes with defaults
     # These may be overridden by child classes
@@ -2363,23 +2364,30 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     except ImportError:
         atomman = None
 
-    def __init__(self, a, C11, C12, C44, symbol="W"):
+    def __init__(self, a, C11=None, C12=None, C44=None, C=None, symbol="W"):
         """
         This class represents a dislocation in a cubic crystal
 
         The dislocation is defined by the crystal unit cell,
-        elastic constants C11, C12 and C44, crystal axes,
+        elastic constants, crystal axes,
         burgers vector and optional shift and parity vectors.
+
+        The crystal used as the base for constructing dislocations can be defined 
+        by a lattice constant and a chemical symbol. For multi-species systems, an ase 
+        Atoms object defining the cubic unit cell can instead be used.
+
+        Elastic constants can be defined either through defining C11, C12 and C44, or by passing 
+        the full 6x6 elasticity matrix
 
         Parameters
         ----------
         a : lattice constant OR cubic ase.atoms.Atoms object
             Lattice constant passed to ase.lattice.cubic constructor or
             Atoms object used by ase.build.cut to get unit cell in correct orientation
-        C11 : float
-            Elastic Constants
-        C12
-        C44
+        C11, C12, C44 : float
+            Elastic Constants (in GPa) for cubic symmetry
+        C : np.array
+            Full 6x6 elasticity matrix (in GPa)
         symbol : str
             Chemical symbol used to construct unit cell (if "a" is a lattice constant)
 
@@ -2417,10 +2425,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         self.burgers_dimensionless = self.burgers_dimensionless.copy()
         self.unit_cell_core_position_dimensionless = self.unit_cell_core_position_dimensionless.copy()
         self.parity = self.parity.copy()
-
-        self.C11 = C11
-        self.C12 = C12
-        self.C44 = C44
         
         self.alat, self.unit_cell = validate_cubic_cell(a, symbol, self.axes, self.crystalstructure, self.pbc)
 
@@ -2431,6 +2435,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             m : None for m in self.avail_methods
         }
 
+        # Sort out elasticity matrix into 6x6 standard (as we know the system is cubic)
+        self.C = coalesce_elastic_constants(C11, C12, C44, C, standard="Cij")
 
     def init_solver(self, method="atomman"):
         '''
@@ -2501,7 +2507,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         '''
         Init atomman stroh solution solver (requires atomman)
         '''
-        c = self.atomman.ElasticConstants(C11=self.C11, C12=self.C12, C44=self.C44)
+        c = self.atomman.ElasticConstants(Cij=self.C)
         self.stroh = self.atomman.defect.Stroh(c, burgers=self.burgers, axes=self.axes)
 
         self.solvers["atomman"] = self.stroh.displacement
@@ -2516,9 +2522,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         disloc_line = axes[2].copy() 
 
         # Setup AnistoropicDislocation object
-        self.ADstroh = AnisotropicDislocation(self.C11, self.C12, self.C44, 
-                                           axes, slip_plane, disloc_line, 
-                                           self.burgers)
+        self.ADstroh = AnisotropicDislocation(axes, slip_plane, disloc_line, 
+                                           self.burgers, C=self.C)
         
         self.solvers["adsl"] = self.ADstroh.displacement
 
@@ -3177,7 +3182,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
     # Space for overriding the burgers vectors from cls.left_dislocation.burgers_dimensionless
     new_left_burgers = None
     new_right_burgers = None
-    def __init__(self, a, C11, C12, C44, symbol="W"):
+    def __init__(self, a, C11=None, C12=None, C44=None, C=None, symbol="W"):
         """
         This class represents a dissociated dislocation in a cubic crystal
         with burgers vector b = b_left + b_right.
@@ -3194,9 +3199,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         """
 
         if not isinstance(self.left_dislocation, CubicCrystalDislocation):
-            self.left_dislocation = self.left_dislocation(a, C11, C12, C44, symbol)
+            self.left_dislocation = self.left_dislocation(a, C11, C12, C44, C, symbol)
         if not isinstance(self.right_dislocation, CubicCrystalDislocation):
-            self.right_dislocation = self.right_dislocation(a, C11, C12, C44, symbol)
+            self.right_dislocation = self.right_dislocation(a, C11, C12, C44, C, symbol)
 
         # Change disloc burgers vectors, if requested
         if self.new_left_burgers is not None:
@@ -3215,7 +3220,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         self.n_planes = left_dislocation.n_planes
         self.self_consistent = left_dislocation.self_consistent
 
-        super().__init__(a, C11, C12, C44, symbol)
+        super().__init__(a, C11, C12, C44, C, symbol)
 
         # Validation of disloc inputs
         try:
@@ -3231,9 +3236,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         # left and right dislocations are the same
         try:
             assert left_dislocation.alat == right_dislocation.alat
-            assert left_dislocation.C11 == right_dislocation.C11
-            assert left_dislocation.C12 == right_dislocation.C12
-            assert left_dislocation.C44 == right_dislocation.C44
+            assert np.allclose(left_dislocation.C, right_dislocation.C)
 
             np.testing.assert_equal(left_dislocation.unit_cell.get_chemical_symbols(),
                                     right_dislocation.unit_cell.get_chemical_symbols())
