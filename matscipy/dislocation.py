@@ -2448,8 +2448,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         e.g. self.solvers["atomman"] = self.stroh.displacement
         '''
         solver_initters = {
-            "atomman" : self.init_stroh,
-            "adsl" : self.init_anisotropic_dislocation
+            "atomman" : self.init_atomman,
+            "adsl" : self.init_adsl
         }
 
         # Execute init routine
@@ -2503,7 +2503,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         
         return [self.solvers[method]]
 
-    def init_stroh(self):
+    def init_atomman(self):
         '''
         Init atomman stroh solution solver (requires atomman)
         '''
@@ -2512,7 +2512,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         self.solvers["atomman"] = self.stroh.displacement
 
-    def init_anisotropic_dislocation(self):
+    def init_adsl(self):
         '''
         Init adsl (Anisotropic DiSLocation) solver
         '''
