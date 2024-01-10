@@ -2193,7 +2193,7 @@ class AnisotropicDislocation:
         
         
         # define elastic constant in Voigt notation
-        Cijkl = coalesce_elastic_constants(C11, C12, C44, C, standard="Cijkl")
+        Cijkl = coalesce_elastic_constants(C11, C12, C44, C, convention="Cijkl")
 
         # rotate elastic matrix
         cijkl = np.einsum('ig,jh,ghmn,km,ln', \
@@ -2435,8 +2435,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             m : None for m in self.avail_methods
         }
 
-        # Sort out elasticity matrix into 6x6 standard (as we know the system is cubic)
-        self.C = coalesce_elastic_constants(C11, C12, C44, C, standard="Cij")
+        # Sort out elasticity matrix into 6x6 convention (as we know the system is cubic)
+        self.C = coalesce_elastic_constants(C11, C12, C44, C, convention="Cij")
 
     def init_solver(self, method="atomman"):
         '''

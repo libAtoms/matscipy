@@ -209,13 +209,13 @@ def cubic_to_Voigt_6x6(C11, C12, C44):
                      [  0,  0,  0,  0,C44,  0],
                      [  0,  0,  0,  0,  0,C44]])
 
-def coalesce_elastic_constants(C11=None, C12=None, C44=None, C=None, standard="Cij"):
+def coalesce_elastic_constants(C11=None, C12=None, C44=None, C=None, convention="Cij"):
     '''
-    Convert either all of C11, C12, C44, or 6x6 C, or 3x3x3x3 C to the form defined by standard.
+    Convert either all of C11, C12, C44, or 6x6 C, or 3x3x3x3 C to the form defined by convention.
 
-    standard="cubic": returns C11, C12, C44
-    standard="Cij": returns 6x6 C matrix
-    standard="Cijkl": returns 3x3x3x3 C tensor
+    convention="cubic": returns C11, C12, C44
+    convention="Cij": returns 6x6 C matrix
+    convention="Cijkl": returns 3x3x3x3 C tensor
     
     '''
     # Aim to convert to 3x3x3x3 first, as this contains the maximal information
@@ -252,13 +252,16 @@ def coalesce_elastic_constants(C11=None, C12=None, C44=None, C=None, standard="C
             raise RuntimeError("Elastic Constants not correctly defined. "+
                                 "Pass either C, or all of C11, C12, C44.")
 
-    if standard.lower() == "cijkl":
-        # 3x3x3x3 standard
+    if convention.lower() == "cijkl":
+        # 3x3x3x3 convention
         return Cijkl
-    elif standard.lower() == "cij":
+    elif convention.lower() == "cij":
+        # 6x6 convention
         return full_3x3x3x3_to_Voigt_6x6(Cijkl)
-    elif standard.lower() == "cubic":
+    elif convention.lower() == "cubic":
         return Voigt_6x6_to_cubic(full_3x3x3x3_to_Voigt_6x6(Cijkl))
+    
+    raise ValueError(f"{convention=} not one of 'cubic', 'Cij', 'Cijkl")
 
 def _invariants(s, syy=None, szz=None, syz=None, sxz=None, sxy=None,
                full_3x3_to_Voigt_6=full_3x3_to_Voigt_6_stress):
