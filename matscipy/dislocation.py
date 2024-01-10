@@ -2588,7 +2588,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return sup
 
     def _build_bulk_cyl(self, radius, core_positions, fix_rad, extension,
-                        self_consistent, method, ext_idx):
+                        self_consistent, method):
         '''
         Build bulk cylinder config from args supplied by self.build_cylinder
 
@@ -2603,16 +2603,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             e.g. for glide configs, etc
         fix_rad: float
             Radius for fixed atoms constraints
-        extension: int
-            Ensure the cell extends out from the center to center + extension
-        ext_idx: int or np.array of ints
-            idxs of the cores each part of extension should apply to
-            extension = np.array([
-                            [-5.0, 0, 0],
-                            [5.0, 0, 0.0]
-                            ])
-            and ext_idxs = np.array([0, -1]) will extend the cell by 5Ang left of the first core, 
-            and 5Ang right of the last core
+        extension: np.array
+            (N, 3) array of vector extensions from each core.
+            Will add a fictitious core at position 
+            core_positions[i, :] + extension[i, :], for the 
+            purposes of adding extra atoms
 
         Returns
         -------
@@ -2631,9 +2626,20 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         if len(extension.shape) == 1:
             extension = extension[np.newaxis, :]
-        ext_idx = np.array(ext_idx)
 
-        exts = extension + core_positions[ext_idx, :]
+        if np.all(extension.shape != core_positions.shape):            
+            if extension.shape[0] < core_positions.shape[0] and \
+                extension.shape[1] == core_positions.shape[1]:
+                # Too few extensions passed, assume that the extensions are for the first N cores
+                # Pad extension with zeros
+                extension = np.vstack([extension, np.zeros((
+                    core_positions.shape[0] - extension.shape[0], core_positions.shape[1]
+                ))])
+            else:
+                raise ValueError(f"{extension.shape=} does not match {core_positions.shape=}")
+
+        # Only care about non-zero extensions
+        exts = extension + core_positions
 
         xmax = np.max([np.max(core_positions[:, 0]), np.max(exts[:, 0])])
         xmin = np.min([np.min(core_positions[:, 0]), np.min(exts[:, 0])])
@@ -2660,6 +2666,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         new_core_positions = core_positions.copy()
 
         new_core_positions += shift
+
+        # Mask out extensions that are all zeros
+        nonzero_exts = np.sum(np.abs(extension), axis=-1) > 0.0
+
+        exts = exts[nonzero_exts, :]
 
         mask_positions = np.vstack([new_core_positions, exts + shift])
 
@@ -2829,8 +2840,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                        core_position=np.array([0., 0., 0.]),
                        extension=np.array([0, 0, 0]),
                        fix_width=10.0, self_consistent=None,
-                       method="atomman",
-                       ext_idxs = -1):
+                       method="atomman"):
         '''
         Build dislocation cylinder for single dislocation system
 
@@ -2842,7 +2852,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Vector offset of the core position from default site
         extension: np.array
             Add extra bulk to the system, to also surround a fictitious core
-            that is extension away from the center of the cell
+            that is at position core_position + extension
         fix_width: float
             Defines a region to apply the FixAtoms ase constraint to
             Fixed region is given by (radius - fix_width) <= r <= radius,
@@ -2854,14 +2864,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         use_atomman: bool
             Use the Stroh solver included in atomman (requires atomman package) to
             solve for displacements, or use the AnisotropicDislocation class
-        ext_idxs: int or np.array of ints
-            idxs of the cores each part of extension should apply to
-            extension = np.array([
-                            [-5.0, 0, 0],
-                            [5.0, 0, 0.0]
-                            ])
-            and ext_idxs = np.array([0, -1]) will extend the cell by 5Ang left of the first core, 
-            and 5Ang right of the last core
         '''
 
         core_positions = np.array([
@@ -2869,7 +2871,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ])
 
         bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width,
-                                                            extension, self_consistent, method, ext_idxs)
+                                                            extension, self_consistent, method)
 
         disloc.info["core_positions"] = [list(core_positions[0, :])]
         disloc.info["burgers_vectors"] = [list(self.burgers)]
@@ -2892,13 +2894,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         bulk_ini, disloc_ini = self.build_cylinder(radius,
                                                    extension=final_core_position,
-                                                   ext_idxs=-1,
                                                    **kwargs)
 
         _, disloc_fin = self.build_cylinder(radius,
                                             core_position=final_core_position,
                                             extension=-final_core_position,
-                                            ext_idxs=0,
                                             **kwargs)
         if average_positions:
             # get the fixed atoms constrain
@@ -3314,10 +3314,10 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 
     def build_cylinder(self, radius, partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
-                       extension=np.array([0., 0., 0.]),
+                       extension=np.array([[0., 0., 0.],
+                                          [0., 0., 0.]]),
                        fix_width=10.0, self_consistent=None,
-                       method="atomman",
-                       ext_idxs=-1):
+                       method="atomman"):
         """
         Overloaded function to make dissociated dislocations.
         Partial distance is provided as an integer to define number
@@ -3334,14 +3334,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         use_atomman: bool
             Use the Stroh solver included in atomman (requires atomman package) to
             solve for displacements, or use the AnisotropicDislocation class
-        ext_idxs: int or np.array of ints
-            idxs of the cores each part of extension should apply to
-            extension = np.array([
-                            [-5.0, 0, 0],
-                            [5.0, 0, 0.0]
-                            ])
-            and ext_idxs = np.array([0, -1]) will extend the cell by 5Ang left of the first core, 
-            and 5Ang right of the last core
+        extension: np.array
+            Shape (2, 3) array giving additional extension vectors from each dislocation core.
+            Used to add extra bulk, e.g. to set up glide configurations.
         """
         
         partial_distance_Angstrom = np.array(
@@ -3354,8 +3349,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         ])
 
         bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width, extension,
-                                                            self_consistent, method,
-                                                            ext_idxs)
+                                                            self_consistent, method)
 
         disloc.info["core_positions"] = [list(core_positions[0, :]), list(core_positions[1, :])]
         if partial_distance > 0:
