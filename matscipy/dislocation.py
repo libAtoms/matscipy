@@ -2535,8 +2535,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     @burgers.setter
     def burgers(self, burgers):
         self.burgers_dimensionless = burgers / self.alat
-        if self.stroh is None:
-            self.init_stroh()
 
     def set_burgers(self, burgers):
         self.burgers = burgers
