@@ -1,23 +1,20 @@
 # %% [markdown]
-# # From continuous double layer theory to discrete coordinate sets
-#
-# ## Poisson-Nernst-Planck systems
+# # One-dimensional Poisson-Nernst-Planck systems
 
 # %% [markdown]
 # The `matscipy.electrochemistry.PoissonNernstPlanckSystem` solver provides an interface for solving classical, one-dimensional electrochemical systems with an arbitrary number of $N$ ionic species by means of a controlled-volumes method.
 
 # %% [markdown]
-# ### The inert electrode
+# ## The inert electrode
 
 # %% [markdown]
-# An archetypical system is the inert electrode at the open half-space governed by the Poisson equation and $N$ Nernst-Planck equations with Dirichlet and Neumann boundary conditions as shown in Figure 1 below.
+# An archetypical system is the inert electrode at the open half-space governed by the Poisson equation and $N$ Nernst-Planck equations with Dirichlet and Neumann boundary conditions as shown in <a href="#figure1">Figure 1</a> below.
 
 # %% [markdown]
-# <figure>
-# <img src="electrochemistry/inertElectrode.svg" style="width:65%">
-# <figcaption align="center">Figure 1: Inert electrode at the open half-space</figcaption>
-# </figure>
+# <a id="figure1"></a><figure>
+# ![Figure 1](electrochemistry/inertElectrode.svg)
 #
+# *Figure 1*: Inert electrode at the open half-space
 
 # %% [markdown]
 # Here, $D_i$ is the diffusivity of the *i*th species, $c_i$ its local concentration, $c_i^\infty$ its bulk concentration, $u_i$ its electric mobility, and $z_i$ its charge number. $\phi$ is the local electrostatic potential, and $\phi_0$ the electrode's potential compared to the bulk solution. $\epsilon_0$ is the vacuum permittivity, $\epsilon_r$ is the relative permittivity of the solvent, and $F$ is the Faraday constant.
@@ -26,13 +23,12 @@
 # In the following, we use `matscipy.electrochemistry.PoissonNernstPlanckSystem` to solve this system for $0.1\,\mathrm{mM}~\text{NaCl}$ at $0.05\,\mathrm{V}$ bias. Parameters are provided in SI units. We will compare the results against the analytical solution, which exists for this special case of a binary electrolyte.
 
 # %% [markdown]
-# #### Preparations
+# ### Preparations
 
 # %% [markdown]
 # First, we import a few basic tools.
 
 # %%
-import logging
 import numpy as np
 import scipy.constants as sc
 import matplotlib.pyplot as plt
@@ -44,36 +40,7 @@ import matplotlib.pyplot as plt
 from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
 # %% [markdown]
-# `PoissonNernstPlanckSystem` makes extensive use of Python's logging module. We reconfigure to format and show logs as desired.
-#
-
-# %%
-# configure logging: verbosity level and format as desired
-standard_loglevel   = logging.INFO
-standard_logformat  = "[ %(filename)s:%(lineno)s - %(funcName)s() ]: %(message)s"
-
-# reset logger if previously loaded
-logging.shutdown()
-logging.basicConfig(level=standard_loglevel,
-                    format=standard_logformat,
-                    datefmt='%m-%d %H:%M')
-
-# in Jupyter notebooks, explicitly modifying the root logger necessary
-logger = logging.getLogger()
-logger.setLevel(standard_loglevel)
-
-# remove all handlers
-for h in logger.handlers: logger.removeHandler(h)
-
-# create and append custom handles
-ch = logging.StreamHandler()
-formatter = logging.Formatter(standard_logformat)
-ch.setFormatter(formatter)
-ch.setLevel(standard_loglevel)
-logger.addHandler(ch)
-
-# %% [markdown]
-# #### Solving a system
+# ### System initialization and solving
 
 # %%
 c = [0.1, 0.1] # bulk concentrations of ion species Na and Cl in mM
@@ -88,28 +55,23 @@ delta_u = 0.05
 pnp = PoissonNernstPlanckSystem(c=c, z=z, L=L, delta_u=delta_u)
 
 # %% [markdown]
-# The method `useStandardInterfaceBC` will apply boundary conditions as shown in Figure 1.
+# The method `useStandardInterfaceBC` will apply boundary conditions as shown in <a hef="#figure1">Figure 1</a>.
 
 # %%
 pnp.useStandardInterfaceBC()
-
-# %%
-pnp.output = True # let's Newton solver display convergence plots
 ui, nij, _ = pnp.solve()
 
 # %% [markdown]
 # `ui` holds the electrostatic potential at the discretization points and `nij` the species concentrations at the discretization points.
 
 # %% [markdown]
-# #### Validation: Analytical half-space solution & Numerical finite-size PNP system
+# ### Validation: Analytical half-space solution vs. numerical finite-interval PNP system
 
 # %% [markdown]
 # `matscipy.electrochemistry` provides a function for quickly retrieving the Debye length $\lambda_D$ of an electrolyte.
 
 # %%
 from matscipy.electrochemistry import debye
-
-# %%
 deb = debye(c, z)
 
 # %% [markdown]
@@ -118,7 +80,6 @@ deb = debye(c, z)
 # %%
 from matscipy.electrochemistry.poisson_boltzmann_distribution import potential, concentration, charge_density
 
-# %%
 x = np.linspace(0, L, 100)
 phi = potential(x, c, z, delta_u) 
 C =   concentration(x, c, z, delta_u)
@@ -195,21 +156,22 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# ### One-dimensional electrochemical cell
+# ## The electrochemical cell
 
 # %% [markdown]
-# Another archetypical system is the one-dimensional electrochemical cell governed by Neumann and Robin boundary conditions as shown below in Figure 2.
-#
+# Another archetypical system is the one-dimensional electrochemical cell governed by Neumann and Robin boundary conditions as shown below in <a href="#figure2">Figure 2</a>.
 
 # %% [markdown]
-# <figure>
-# <img src="electrochemistry/electrochemicalCellBazant1d.svg" style="width:80%">
-# <figcaption align="center">Figure 2: One-dimensional electrochemical cell after Bazant <a href="#bazant2006">[1]</a></figcaption>
-# </figure>
+# <a id="figure2"></a><figure>
+# ![Figure 2](electrochemistry/electrochemicalCellBazant1d.svg)
 #
+# *Figure 2*: One-dimensional electrochemical cell after Bazant <a href="#bazant2006">[1]</a>
 
 # %% [markdown]
 # Here, $i_\text{cell}$ is the total density of Faradaic current through the cell that arises due to $M$ half-reactions, with $i_j$ the partial current due to reaction $j$. $\nu_{ij}$ is the stochiometric coefficient of species $i$, and $n_j$ the number of electrons participating in half-reaction $j$. $\lambda_S$ is the width of a compact Stern layer. The assumption of a compact Stern layer [[2]](#stern1924) reduces the system's strong nonlinearity close to the electrode and may facilitate convergence.
+
+# %% [markdown]
+# ### System initialization and solving: Dirichlet and Neumann boundary conditions
 
 # %% [markdown]
 # Again, we solve this system for inert electrodes, i.e. in the absence of any current flux with the same parameters as above.
@@ -220,7 +182,6 @@ z = [1, -1] # number charges of ion species
 L = 1e-07 # interval length in m
 delta_u = 0.05 # electrostatic potential bias
 
-# %%
 pnp = PoissonNernstPlanckSystem(c=c, z=z, L=L, delta_u=delta_u)
 
 # %% [markdown]
@@ -287,7 +248,10 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# ### Stern layer boundary conditions
+# # From continuous double layer theory to discrete coordinate sets
+
+# %% [markdown]
+# ### Poisson-Nernst-Planck-System with Stern layer boundary conditions
 
 # %% [markdown]
 # In this example We want to fill a gap of 5 nm between gold electrodes with 0.2 wt % NaCl aqueous solution, apply a small potential difference and generate an initial configuration for LAMMPS within a cubic box.
@@ -296,7 +260,6 @@ plt.show()
 box_Ang = np.array([50.,50.,50.]) # Angstrom
 box_m = box_Ang*sc.angstrom # meters
 
-# %%
 vol_AngCube = box_Ang.prod() # Angstrom^3
 vol_mCube = vol_AngCube*sc.angstrom**3
 
@@ -309,36 +272,25 @@ weight_concentration_NaCl = 0.2 # wt %
 saline_mass_density_kg_per_L  = 1 + weight_concentration_NaCl * 0.15 / 0.20 # g / cm^3, kg / L
 # see e.g. https://www.engineeringtoolbox.com/density-aqueous-solution-inorganic-sodium-salt-concentration-d_1957.html
 
-# %%
 saline_mass_density_g_per_L = saline_mass_density_kg_per_L*sc.kilo
 
-# %%
 molar_mass_H2O = 18.015 # g / mol
 molar_mass_NaCl  = 58.44 # g / mol
 
-# %%
 cNaCl_M = weight_concentration_NaCl*saline_mass_density_g_per_L/molar_mass_NaCl # mol L^-1
 
-# %%
 cNaCl_mM = np.round(cNaCl_M/sc.milli) # mM
 
-# %%
-cNaCl_mM
-
-# %%
 n_NaCl = np.round(cNaCl_mM*vol_mCube*sc.value('Avogadro constant'))
-
-# %%
-n_NaCl
 
 # %% [markdown]
 # Nearly $4\,\mathrm{M}$ of saline solution correspond to about 300 ions of each species in our cubic $5^3\,\mathrm{nm}^3$ box.
 
 # %% [markdown]
-# We initialize the system assuming a Stern layer of $5\,\AA$ width, close to the order of magnitude of ion size.
+# We initialize the system assuming a Stern layer of 5 Å width, close to the order of magnitude of ion size.
 
 # %% [markdown]
-# #### System initialization and solving
+# ### System initialization and solving: Neumann and Robin boundary conditions
 
 # %%
 c = [cNaCl_mM,cNaCl_mM]
@@ -354,17 +306,16 @@ delta_u  = 0.5
 pnp = PoissonNernstPlanckSystem(c,z,L, lambda_S=lambda_S, delta_u=delta_u, N=200, maxit=20, e=1e-6)
 
 # %% [markdown]
-# The following applies Neumann and, particularly, Robin boundary conditions as shown in Figure 2.
+# The following applies Neumann and, particularly, Robin boundary conditions as shown in <a href="#figure2">Figure 2</a>.
 
 # %%
 pnp.useSternLayerCellBC()
 
-# %%
 pnp.output = True
 xij = pnp.solve()
 
 # %% [markdown]
-# #### Visualization
+# ### Visualization
 
 # %%
 x = np.linspace(0, L, 100)
@@ -413,7 +364,7 @@ plt.show()
 # Notice the nealry linear behavior of potential close to the electrodes arising from the Robin boundary conditions.
 
 # %% [markdown]
-# #### Sampling from continuous distributions
+# ## Sampling from continuous distributions
 
 # %% [markdown]
 # We want to generate three-dimensional atomistic configurations from the one-dimensional concentration distributions retrieved above. `matscipy.electrochemistry` provides the sampling interface `continuous2discrete` for this purpose.
@@ -421,19 +372,11 @@ plt.show()
 # %%
 from matscipy.electrochemistry import continuous2discrete
 
-# %%
-# continuous2discrete?
-
 # %% [markdown]
 # `continuous2discrete` expects a callable distribution function. Hence, we convert the physical concentration distributions into callable density functions.
 
 # %%
-pnp.concentration.shape
-
-# %%
 from scipy import interpolate
-
-# %%
 distributions = [interpolate.interp1d(pnp.grid,pnp.concentration[i,:]) for i in range(pnp.concentration.shape[0])]
 
 # %% [markdown]
@@ -447,8 +390,6 @@ na_coordinate_sample = continuous2discrete(distribution=distributions[0], box=bo
 
 # %%
 from matscipy.electrochemistry import get_histogram
-
-# %%
 histx, histy, histz = get_histogram(na_coordinate_sample, box=box_m, n_bins=51)
 
 
@@ -511,7 +452,7 @@ plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distributi
 # Notice the uniform distribution along x- and y-direction.
 
 # %% [markdown]
-# #### Configuration export
+# ### Coordinates export
 # Everntually, we use ASE to export our sample to some standard format, i.e. .xyz or LAMMPS data file.
 
 # %%
@@ -524,10 +465,6 @@ import ase.io
 # %%
 sample_size = int(n_NaCl)
 
-# %%
-sample_size
-
-# %%
 na_atoms = ase.Atoms(
     symbols='Na'*sample_size,
     charges=[1]*sample_size,
@@ -546,7 +483,6 @@ system = na_atoms + cl_atoms
 
 ase.io.write('NaCl_c_4_M_u_0.5_V_box_5x5x5nm_lambda_S_5_Ang.xyz', system, format='xyz')
 
-# %%
 # LAMMPS data format, units 'real', atom style 'full'
 # before ASE 3.19.0b1, ASE had issues with exporting atom style 'full' in LAMMPS data file format, so do not expect this line to work for older ASE versions
 ase.io.write('NaCl_c_4_M_u_0.5_V_box_5x5x5nm_lambda_S_5_Ang.lammps', system,
@@ -567,6 +503,5 @@ ase.io.write('NaCl_c_4_M_u_0.5_V_box_5x5x5nm_lambda_S_5_Ang.lammps', system,
 # <a id='stern1924'></a>[2] O. Stern, “Zur Theorie Der Elektrolytischen Doppelschicht,” Zeitschrift für Elektrochemie und angewandte physikalische Chemie, vol. 30, no. 21–22, pp. 508–516, 1924, doi: [10.1002/bbpc.192400182](https://doi.org/10.1002/bbpc.192400182).
 #
 # <a id='israelachvili1991'></a>[3] J. N. Israelachvili, Intermolecular and surface forces. Academic Press, London, 1991.
-#
 
 # %%
