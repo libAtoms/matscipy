@@ -2565,8 +2565,18 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     def _build_supercell(self, targetx, targety):
         '''
-        Build supercell in 2D from self.unit_cell, with target dimensions (targetx, targety).
+        Build supercell in 2D from self.unit_cell, with target dimensions (targetx, targety), specified in Angstrom.
         Supercell is constructed to have cell lengths >= the target value (i.e. cell[0, 0] >= targetx)
+
+        Parameters
+        ----------
+        targetx: float
+            Target length (in Ang) of the cell in the "x" direction (i.e. cell[0, 0])
+        targety: float
+            Target length (in Ang) of the cell in the "y" direction (i.e. cell[1, 0])
+
+        
+        Returns a supercell of self.unit_cell with cell[0, 0] >= targetx and cell[1, 1] >= targety
         '''
 
         base_cell = self.unit_cell
