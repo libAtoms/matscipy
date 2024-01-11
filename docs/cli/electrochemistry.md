@@ -1,4 +1,6 @@
-### Content
+# Command line interface for the electrochemistry module
+
+## Overview of commands
 
 * `poisson-nernst-planck`: Command line interface to the functionality of
   `matscipy.electrochemistry.posson_nernst_planck_solver` and
@@ -8,16 +10,15 @@
 * `stericify`: Command line interface to the functionality of 
   `matscipy.electrochemistry.steric_correction`.
 
-### Usage
+## Usage
 
 `poisson-nernst-planck`, `continuous2discrete` and
-`stericiy` executable scripts offer simple command line interfaces
+`stericify` executable scripts offer simple command line interfaces
 to solve arbitrary (1D) Poisson-Nernst-Planck systems, to sample
 discrete coordinate sets from continuous distributions, and to
 assure steric radii for all coordinate points in a sample.
 Type `poisson-nernst-planck --help`, `continuous2discrete --help`, and 
-`stericiy --help` for usage information.
-
+`stericify --help` for usage information.
 
 A simple sample usage to generate a discrete coordinate set from
 the continuous solution of Poisson-Nernst-Planck equations for
@@ -51,5 +52,3 @@ via command line interface.
 In order to impose a steric radius to the coordinates in some data file, use
 
     stericify --verbose -r 2.0 -- NaCl.lammps stericNaCl.lammps
-
-Headers (docstrings) of scripts contain more examples.
