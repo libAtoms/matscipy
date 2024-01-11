@@ -53,7 +53,7 @@ def main():
     Plot continuous and discrete distributions if wanted.
 
     ATTENTION: LAMMPS data file export (atom style 'full') requires
-    ase>=3.19.0b1 (> 6th Nov 2019) due to recently reseolved issue"""
+    ase>=3.19.0b1 (> 6th Nov 2019) due to recently resolved issue"""
 
     # in order to have both:
     # * preformatted help text and ...
@@ -298,7 +298,7 @@ def main():
             units="real",
             atom_style='full',
             specorder=args.names)
-    # specorder shoudl make sure ASE assigns types in the same order as
+    # specorder should make sure ASE assigns types in the same order as
     # species names have been specified on command line.
 
     else:  # elif outfile_format == '.xyz'
