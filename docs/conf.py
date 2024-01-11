@@ -295,3 +295,14 @@ myst_enable_extensions = [
     "dollarmath",
     "colon_fence",
     ]
+
+# The following makes mystnb convert notebooks with jupytext
+# before execution and documentation rendering. This allows
+# storing notebooks in properly versionable text formats, e.g.
+# the percent format,
+#   https://jupytext.readthedocs.io/en/latest/formats-scripts.html#the-percent-format
+# instead of .ipynb. Also see
+#   https://myst-nb.readthedocs.io/en/latest/authoring/custom-formats.html#using-jupytext
+nb_custom_formats = {
+  ".py": ["jupytext.reads", {"fmt": "py:percent"}]
+}
