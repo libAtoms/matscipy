@@ -40,7 +40,8 @@ docs = [
     "ovito",
     "sphinx_copybutton",
     "sphinx_rtd_theme",
-    "pydata-sphinx-theme"
+    "pydata-sphinx-theme",
+    "jupytext"
 ]
 cli = [
     "argcomplete"
