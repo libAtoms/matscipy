@@ -7,3 +7,4 @@ configurations usually encountered in the context of soluted electrolytes.
 .. toctree::
 
     electrochemistry_1
+    electrochemistry_3
