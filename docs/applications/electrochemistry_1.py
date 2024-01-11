@@ -499,13 +499,7 @@ plot_atoms(system, ax, radii=0.3, rotation=('80x,10y,10z'))
 ax.set_axis_off()
 
 # %% [markdown]
-# # Acknowledgements
-
-# %% [markdown]
-# We thank Lukas Elflein for supporting the development of `matscipy.electrochemistry` and the according example notebooks, Christian Seidl for early experimentation with the module's functionality, Andreas Greiner for discussions and inspirations on solving transport problems with controlled-volume and finte-elements methods, as well as Meng, Yonggang and Zhang, Jun for posing an interesting tribological problem that sparked the development of this module initially.
-
-# %% [markdown]
-# # References
+# ## References
 
 # %% [markdown]
 # <a id='bazant2006'></a>[1] M. Z. Bazant, K. T. Chu, and B. J. Bayly, “Current-Voltage Relations for Electrochemical Thin Films,” SIAM Journal on Applied Mathematics, Jul. 2006, doi: [10.1137/040609938](https://doi.org/10.1137/040609938).

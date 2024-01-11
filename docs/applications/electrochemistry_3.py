@@ -1,7 +1,7 @@
 # %% [markdown]
 # # Steric correction
 #
-# Continuum models do not account for the finite size of atoms. Sampling discrete particle coordinates from continuous concentration distributions may thus result in arbitrarily close atom positions. To avoid overlap and yield *usable* atomistic configurations from densily packed samples, `matscipy.electrochemistry` offers the `steric_correction` submodule. Its function `apply_steric_correction` applies a steric correction to the provided configuration, assuring the desired steric radii for all species if possible. To achieve this, the module reimplements a pseudo-potential minimization algorithm [](https://doi.org/10.1002/jcc.21224) used by [PACKMOL](https://m3g.github.io/packmol/) in Python 
+# Continuum models do not account for the finite size of atoms. Sampling discrete particle coordinates from continuous concentration distributions may thus result in arbitrarily close atom positions. To avoid overlap and yield *usable* atomistic configurations from densily packed samples, `matscipy.electrochemistry` offers the `steric_correction` submodule. Its function `apply_steric_correction` applies a steric correction to the provided configuration, assuring the desired steric radii for all species if possible. To achieve this, the module reimplements a pseudo-potential minimization algorithm [[1]](#martinez2009) used by [PACKMOL](https://m3g.github.io/packmol/) in Python 
 
 # %% [markdown]
 # Below, we generate continuous concentration distributions from classical electrochemical double layer theory, sample coordinates from thesedistributions, and apply a steric correction to the ion coordinates.
@@ -298,10 +298,10 @@ ase.io.write('NaCl_200_0.05V_5x5x20nm_at_interface_pb_distributed_steric_correct
 # ![Steric correction on 200 NaCl](electrochemistry/steric_correction_on_200_NaCl_300px.png)
 
 # %% [markdown]
-# # References
+# ## References
 
 # %% [markdown]
-# [1] L. Martinez, R. Andrade, E. G. Birgin, and J. M. Martínez, “PACKMOL: A package for building initial configurations for molecular dynamics simulations,” J. Comput. Chem., vol. 30, no. 13, pp. 2157–2164, 2009, doi: [10.1002/jcc.21224](https://doi.org/10.1002/jcc.21224).
+# <a id='martinez2009'></a>[1] L. Martinez, R. Andrade, E. G. Birgin, and J. M. Martínez, “PACKMOL: A package for building initial configurations for molecular dynamics simulations,” J. Comput. Chem., vol. 30, no. 13, pp. 2157–2164, 2009, doi: [10.1002/jcc.21224](https://doi.org/10.1002/jcc.21224).
 #
 
 # %%
