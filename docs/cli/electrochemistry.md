@@ -5,6 +5,9 @@
 * `poisson-nernst-planck`: Command line interface to the functionality of
   `matscipy.electrochemistry.posson_nernst_planck_solver` and
   `matscipy.electrochemistry.posson_nernst_planck_solver_fenics`.
+  If available `poisson-nernst-planck` will make use of the third-party
+  `FEniCS` finite elements solver, but fall back to our own controlled-volumes
+  solver otherwise.
 * `continuous2discrete`: Command line interface to the functionality of
   `matscipy.electrochemistry.continuous2discrete`.
 * `stericify`: Command line interface to the functionality of 
