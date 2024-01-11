@@ -9,7 +9,7 @@
    ./tools/index
    ./calculators/index
    ./topology/index
-   ./cli
+   ./cli/index
    ./api
 
 
