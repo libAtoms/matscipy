@@ -8,7 +8,7 @@
 # ## The inert electrode
 
 # %% [markdown]
-# An archetypical system is the inert electrode at the open half-space governed by the Poisson equation and $N$ Nernst-Planck equations with Dirichlet and Neumann boundary conditions as shown in <a href="#figure1">Figure 1</a> below.
+# An archetypical system is the inert electrode at the open half-space governed by the Poisson equation and $N$ Nernst-Planck equations with Dirichlet and zero flux' boundary conditions as shown in <a href="#figure1">Figure 1</a> below.
 
 # %% [markdown]
 # <a id="figure1"></a><figure>
@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
 # %% [markdown]
-# ### System initialization and solving
+# ### Solving with Dirichlet and zero flux boundary conditions
 
 # %%
 c = [0.1, 0.1] # bulk concentrations of ion species Na and Cl in mM
@@ -55,7 +55,7 @@ delta_u = 0.05
 pnp = PoissonNernstPlanckSystem(c=c, z=z, L=L, delta_u=delta_u)
 
 # %% [markdown]
-# The method `useStandardInterfaceBC` will apply boundary conditions as shown in <a hef="#figure1">Figure 1</a>.
+# The method `useStandardInterfaceBC` will apply boundary conditions as shown in <a hef="#figure1">Figure 1</a>, with Dirichlet boundary conditions on the potential and zero total flux boundary conditions on ion diffusion and electromigration.
 
 # %%
 pnp.useStandardInterfaceBC()
@@ -159,7 +159,7 @@ plt.show()
 # ## The electrochemical cell
 
 # %% [markdown]
-# Another archetypical system is the one-dimensional electrochemical cell governed by Neumann and Robin boundary conditions as shown below in <a href="#figure2">Figure 2</a>.
+# Another archetypical system is the one-dimensional electrochemical cell governed by flux and Robin boundary conditions as shown below in <a href="#figure2">Figure 2</a>.
 
 # %% [markdown]
 # <a id="figure2"></a><figure>
@@ -171,7 +171,7 @@ plt.show()
 # Here, $i_\text{cell}$ is the total density of Faradaic current through the cell that arises due to $M$ half-reactions, with $i_j$ the partial current due to reaction $j$. $\nu_{ij}$ is the stochiometric coefficient of species $i$, and $n_j$ the number of electrons participating in half-reaction $j$. $\lambda_S$ is the width of a compact Stern layer. The assumption of a compact Stern layer [[2]](#stern1924) reduces the system's strong nonlinearity close to the electrode and may facilitate convergence.
 
 # %% [markdown]
-# ### System initialization and solving: Dirichlet and Neumann boundary conditions
+# ### Solving with Dirichlet and zero flux boundary conditions
 
 # %% [markdown]
 # Again, we solve this system for inert electrodes, i.e. in the absence of any current flux with the same parameters as above.
@@ -290,7 +290,7 @@ n_NaCl = np.round(cNaCl_mM*vol_mCube*sc.value('Avogadro constant'))
 # We initialize the system assuming a Stern layer of 5 Å width, close to the order of magnitude of ion size.
 
 # %% [markdown]
-# ### System initialization and solving: Neumann and Robin boundary conditions
+# ### Solving with Robin and zero flux boundary conditions
 
 # %%
 c = [cNaCl_mM,cNaCl_mM]
@@ -306,7 +306,7 @@ delta_u  = 0.5
 pnp = PoissonNernstPlanckSystem(c,z,L, lambda_S=lambda_S, delta_u=delta_u, N=200, maxit=20, e=1e-6)
 
 # %% [markdown]
-# The following applies Neumann and, particularly, Robin boundary conditions as shown in <a href="#figure2">Figure 2</a>.
+# The following applies zero flux and, particularly, Robin boundary conditions as shown in <a href="#figure2">Figure 2</a>.
 
 # %%
 pnp.useSternLayerCellBC()
@@ -452,7 +452,7 @@ plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distributi
 # Notice the uniform distribution along x- and y-direction.
 
 # %% [markdown]
-# ### Coordinates export
+# ## Coordinates export
 # Everntually, we use ASE to export our sample to some standard format, i.e. .xyz or LAMMPS data file.
 
 # %%
@@ -489,10 +489,20 @@ ase.io.write('NaCl_c_4_M_u_0.5_V_box_5x5x5nm_lambda_S_5_Ang.lammps', system,
              format='lammps-data', units="real", atom_style='full')
 
 # %% [markdown]
+# Looking at the configuration, most ions are found within a Debye length next to the electrodes.
+
+# %%
+import matplotlib.pyplot as plt
+from ase.visualize.plot import plot_atoms
+fig, ax = plt.subplots()
+plot_atoms(system, ax, radii=0.3, rotation=('80x,10y,10z'))
+ax.set_axis_off()
+
+# %% [markdown]
 # # Acknowledgements
 
 # %% [markdown]
-# We thank Lukas Elflein for supporting the development of `matscipy.electrochemistry` and the according example notebooks. We thank Andreas Greiner for discussions and inspirations on solving transport problems with controlled-volume and finte-elements methods.
+# We thank Lukas Elflein for supporting the development of `matscipy.electrochemistry` and the according example notebooks, Christian Seidl for early experimentation with the module's ffunctionality, and Andreas Greiner for discussions and inspirations on solving transport problems with controlled-volume and finte-elements methods.
 
 # %% [markdown]
 # # References
