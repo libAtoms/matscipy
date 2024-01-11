@@ -25,6 +25,14 @@ jobs:
           # Upgrade to latest meson and ninja
           sudo pip install --upgrade meson ninja
 
+      # needs fenics to build fenics integration documentation snippet
+      - name: install_fenics
+        run: |
+          sudo apt-get install -y --no-install-recommends software-properties-common
+          sudo add-apt-repository -y ppa:fenics-packages/fenics
+          sudo apt-get update -qy
+          sudo apt-get install -y fenics python3-dolfin python3-mshr
+
       - name: install_package
         run: |
           sudo pip install .[docs]
