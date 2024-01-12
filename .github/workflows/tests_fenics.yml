@@ -42,7 +42,7 @@ jobs:
                     
           # check that all sample html files are produced successfully
           html_files=(./*.html)
-          rm *.html
+          rm -f *.html
           
           ls -1 *.py | grep -v to_html.py | bash to_html.sh
           
