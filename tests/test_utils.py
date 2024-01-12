@@ -219,7 +219,25 @@ class TestUtils(matscipytest.MatSciPyTestCase):
         assert np.all(utils_mod.points_in_polygon2D(inside, polygon) == True)
         assert np.all(utils_mod.points_in_polygon2D(outside, polygon) == False)
 
+    def test_get_distance_from_polygon(self):
+        polygon = np.array([
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 1]
+        ])
 
+        points = np.array([
+            [2, 0], # 1 away from point
+            [0.5, 0], # touching an edge of the polygon
+            [0.5, 0.5] # In the centre, 0.5 from a line
+        ])
+
+        expected_dists = np.array([1, 0, 0.5])
+
+        dists = utils_mod.get_distance_from_polygon2D(points, polygon)
+        
+        assert np.allclose(dists, expected_dists)
 
 if __name__ == '__main__':
     unittest.main()

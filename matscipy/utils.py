@@ -334,8 +334,10 @@ def points_in_polygon2D(p, poly_points):
 
     mask = np.zeros(npoints, dtype=bool)
 
-    # Get point that is definitely outside the polygon
-    test_point = np.array([11 * np.max(poly_points[:, 0]), 7 * np.max(poly_points[:, 1])])
+    # Get random point that is definitely outside the polygon
+    a, b = 10 + np.random.random(size=2) * 10
+
+    test_point = np.array([a * np.max(poly_points[:, 0]), b * np.max(poly_points[:, 1])])
 
     for i in range(npoints):
         intersections = 0
@@ -349,6 +351,7 @@ def points_in_polygon2D(p, poly_points):
 def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -> np.array:
     '''
     Get shortest distance between a test point and a polygon defined by polygon_points
+        (i.e. the shortest distance between each point and the lines of the polygon)
     
     Uses formula from https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_two_points
 
