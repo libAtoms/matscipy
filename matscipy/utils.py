@@ -126,7 +126,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
          (Searches for vectors perpendicular to v1 with small integer indices)
         If v2 is given and is not orthogonal to v1, raises a warning
     normalise: bool
-        return an orthonormal basis, rather than just orthogonal
+        return an float orthonormal basis, rather than integer orthogonal basis
     nmax: int
         Maximum integer index for v2 search
     tol: float
@@ -136,6 +136,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     -------
     V1, V2, V3: np.arrays
         Complete orthogonal basis, optionally normalised
+        dtype of arrays is int with normalise=False, float with normalise=True
     '''
 
     def _v2_search(v1, nmax, tol):
@@ -159,8 +160,8 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
 
                     if np.abs(np.dot(v1, test_vec)) < tol:
                         return test_vec
-                    # No nice integer vector found!
-                    raise RuntimeError(f"Could not automatically find an integer basis from basis vector {v1}")
+        # No nice integer vector found!
+        raise RuntimeError(f"Could not automatically find an integer basis from basis vector {v1}")
 
     V1 = np.array(v1).copy().astype(int)
 
