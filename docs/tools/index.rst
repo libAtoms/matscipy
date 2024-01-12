@@ -9,4 +9,3 @@ Analysis tools
    pair_distribution
    angle_distribution
    ring_analysis
-   setup_non-reactive_simulations
