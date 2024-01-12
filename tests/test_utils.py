@@ -140,5 +140,86 @@ class TestUtils(matscipytest.MatSciPyTestCase):
         # with max value less than the default nmax
         self.assertRaises(RuntimeError, test_case, [v1])
 
+    def test_line_intersect_2d(self):
+
+        p1 = np.array([0, 0])
+        p2 = np.array([2, 0])
+
+        # "Plus" pattern
+        x1 = np.array([1, 1])
+        x2 = np.array([1, -1])
+
+        assert utils_mod.line_intersect_2D(p1, p2, x1, x2) == True
+
+        # Lines don't cross ever
+        x2 = np.array([2, 1])
+        assert utils_mod.line_intersect_2D(p1, p2, x1, x2) == False
+
+        # Finite lines don't meet, but infinite ones would
+        x2 = np.array([2, 0.5])
+        assert utils_mod.line_intersect_2D(p1, p2, x1, x2) == False
+
+        # Lines meet at one of the points
+        x1 = np.array([0, 1])
+        x2 = np.array([0, -1])
+        assert utils_mod.line_intersect_2D(p1, p2, x1, x2) == True
+
+        # Lines end at the same point
+        x2 = p1
+        assert utils_mod.line_intersect_2D(p1, p2, x1, x2) == True
+
+
+    def test_points_in_polygon2D(self):
+
+        # Simple square shape
+        polygon = np.array([
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 1]
+        ])
+
+        inside = np.array([0.5, 0.5])
+        outside = np.array([0.5, 4])
+
+        assert utils_mod.points_in_polygon2D(inside, polygon) == True
+        assert utils_mod.points_in_polygon2D(outside, polygon) == False
+
+        # Complex polygon
+
+        polygon = np.array([
+            [0, 0],
+            [5, 0],
+            [5, 5],
+            [3, 5],
+            [3, 4],
+            [4, 4],
+            [4, 1],
+            [1, 1],
+            [1, 4],
+            [2, 4],
+            [2, 5],
+            [0, 5]
+        ])
+
+        inside = np.array([
+            [0.5, 0.5],
+            [1.5, 4.5]
+        ])
+
+
+        outside = np.array([
+            [6, 0],
+            [0, 6],
+            [2.5, 4.5],
+            [2.5, 2.5],
+            [3.5, 3.5]
+        ])
+
+        assert np.all(utils_mod.points_in_polygon2D(inside, polygon) == True)
+        assert np.all(utils_mod.points_in_polygon2D(outside, polygon) == False)
+
+
+
 if __name__ == '__main__':
     unittest.main()
