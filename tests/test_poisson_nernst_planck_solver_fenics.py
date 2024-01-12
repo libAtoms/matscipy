@@ -25,6 +25,7 @@ import unittest
 from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
     import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
 
+
 class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
 
     def setUp(self):
@@ -47,6 +48,7 @@ class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
         self.assertArrayAlmostEqual(pnp.grid, self.ref_data ['x'])
         self.assertArrayAlmostEqual(pnp.potential, self.ref_data ['u'], 1e-6)
         self.assertArrayAlmostEqual(pnp.concentration, self.ref_data ['c'], 1e-5)
+
 
 if __name__ == '__main__':
     unittest.main()
