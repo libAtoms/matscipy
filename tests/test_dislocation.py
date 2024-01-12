@@ -453,6 +453,54 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
         assert abs(err) < tol
 
+        if issubclass(cls, sd.CubicCrystalDislocationQuadrupole):
+            self.check_dissociated_disloc(cls, structure, gen_bulk)
+
+    def check_dissociated_disloc(self, cls, structure="BCC", gen_bulk=False):
+        alat = 3.14339177996466
+        C11 = 523.0266819809012
+        C12 = 202.1786296941397
+        C44 = 160.88179872237012
+
+        if gen_bulk:
+            a = ase_bulk("Al", structure.lower(), alat, cubic=True)
+        else:
+            a = alat
+
+        d = cls(a, C11, C12, C44, symbol="Al")
+        
+        partial_dist = 5.0        
+        bulk, disloc = d.build_cylinder(40.0, partial_distance=partial_dist)
+
+        # Check good agreement of displacements method with sum of 
+        # left and right displacements
+        # May not be equal, due to self_consistent
+
+        core_positions = np.array([
+            [0, 0, 0],
+            [partial_dist, 0, 0]
+        ])
+        
+        # Left + Right displacements
+        full_disps = d.displacements(bulk.positions, core_positions, 
+                                      self_consistent=d.self_consistent)
+        # Left only
+        left_disps = d.left_dislocation.displacements(bulk.positions, core_positions[0, :], 
+                                      self_consistent=d.self_consistent)
+        # Right only
+        right_disps = d.right_dislocation.displacements(bulk.positions, core_positions[1, :], 
+                                      self_consistent=d.self_consistent)
+        
+        diff = left_disps + right_disps - full_disps
+
+        max_err = np.max(np.abs(diff))
+
+        # Percentage tolerance of the error, w/ respect to the lattice parameter
+        percent_tol = 1.0
+
+        assert (max_err / alat) <= (percent_tol / 100.0)
+
+
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
