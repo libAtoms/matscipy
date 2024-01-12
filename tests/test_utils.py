@@ -236,8 +236,45 @@ class TestUtils(matscipytest.MatSciPyTestCase):
         expected_dists = np.array([1, 0, 0.5])
 
         dists = utils_mod.get_distance_from_polygon2D(points, polygon)
-        
+
         assert np.allclose(dists, expected_dists)
+
+    def test_radial_mask_from_polygon2D(self):
+        polygon = np.array([
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 1]
+        ])
+        
+        # Get 100 random points
+        points = np.random.rand(100, 2)
+
+        # Check that points_in_polygon2D is reproduced
+        assert np.all(utils_mod.radial_mask_from_polygon2D(points, polygon, radius=0.0, inner=True) ==
+                      utils_mod.points_in_polygon2D(points, polygon))
+        
+
+        radius = 0.2
+        inner = False
+
+        points = np.array([
+            [0.5, 0.5], # Inside polygon, outside radius from points/lines
+            [0.5, 0.1], # Close to a line
+            [2, 0.5] # Outside polygon, far from lines
+        ])
+
+        target_mask = np.array([False, True, False])
+
+        assert np.all(utils_mod.radial_mask_from_polygon2D(points, polygon, radius=radius, 
+                                                           inner=inner) == target_mask)
+        
+        inner = True
+        target_mask = np.array([True, True, False])
+        assert np.all(utils_mod.radial_mask_from_polygon2D(points, polygon, radius=radius, 
+                                                           inner=inner) == target_mask)
+
+
 
 if __name__ == '__main__':
     unittest.main()
