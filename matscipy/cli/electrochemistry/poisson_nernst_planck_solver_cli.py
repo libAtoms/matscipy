@@ -39,7 +39,6 @@ def main():
 
     Specify quantities in SI units at this command line interface."""
 
-
     # in order to have both:
     # * preformatted help text and ...
     # * automatic display of defaults
@@ -221,6 +220,12 @@ def main():
     else:
         raise ValueError("Boundary conditions '{}' not implemented!".format(
                          args.boundary_conditions))
+
+    if not args.outfile:
+        # fenics writes some log messages to stdout. If we pipe the output,
+        # we don't want that, hence here we have to suppress fenics logging
+        # if no output file has been specified
+        dolfin.cpp.log.set_log_active(False)
 
     pnp.solve()
 

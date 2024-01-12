@@ -31,8 +31,9 @@ import unittest
 
 from looseversion import LooseVersion
 
-class c2dCliTest(matscipytest.MatSciPyTestCase):
-    """Tests c2d and pnp command line interfaces"""
+
+class ElectrochemistryCliTest(matscipytest.MatSciPyTestCase):
+    """Tests continuous2discrete and poisson-nernst-planck command line interfaces"""
 
     def setUp(self):
         """Reads reference data files"""
@@ -60,9 +61,9 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
         # command line interface scripts are expected to reside within
         # ../matscipy/cli/electrochemistry relative to this test directory
         self.pnp_cli = os.path.join(
-            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','pnp.py')
+            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','poisson_nernst_planck_solver_cli.py')
         self.c2d_cli = os.path.join(
-            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','c2d.py')
+            self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','continuous2discrete_cli.py')
 
         self.assertTrue(os.path.exists(self.pnp_cli))
         self.assertTrue(os.path.exists(self.c2d_cli))
@@ -86,7 +87,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
         self.bin_path.cleanup()
 
     def test_c2d_input_format_npz_output_format_xyz(self):
-        """c2d NaCl.npz NaCl.xyz"""
+        """continuous2discrete NaCl.npz NaCl.xyz"""
         print("  RUN test_c2d_input_format_npz_output_format_xyz")
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run(
@@ -101,7 +102,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
             self.assertTrue( ( xyz.cell == self.ref_xyz.cell ).all() )
 
     def test_c2d_input_format_txt_output_format_xyz(self):
-        """c2d NaCl.txt NaCl.xyz"""
+        """continuous2discrete NaCl.txt NaCl.xyz"""
         print("  RUN test_c2d_input_format_txt_output_format_xyz")
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run(
@@ -119,7 +120,7 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
         """ LAMMPS data file won't work for ASE version up until 3.18.1,
             LAMMPS data file input broken in ASE 3.19.0, skipped""")
     def test_c2d_input_format_npz_output_format_lammps(self):
-        """c2d NaCl.npz NaCl.lammps"""
+        """continuous2discrete NaCl.npz NaCl.lammps"""
         print("  RUN test_c2d_input_format_npz_output_format_lammps")
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run(
@@ -147,13 +148,14 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             test_npz = np.load(os.path.join(tmpdir,'out.npz'))
 
-            # depending on which solver is used for the tests, absolute values might deviate more than the default tolerance
+            # depending on which solver is used for the tests,
+            # absolute values might deviate more than the default tolerance
             self.assertArrayAlmostEqual(test_npz['x'], self.ref_npz['x'], tol=1e-7)
             self.assertArrayAlmostEqual(test_npz['u'], self.ref_npz['u'], tol=1e-5)
             self.assertArrayAlmostEqual(test_npz['c'], self.ref_npz['c'], tol=1e-3)
 
     def test_pnp_output_format_txt(self):
-        """pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell NaCl.txt"""
+        """poisson-nernst-planck -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell NaCl.txt"""
         print("  RUN test_pnp_output_format_txt")
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run(
@@ -164,13 +166,14 @@ class c2dCliTest(matscipytest.MatSciPyTestCase):
 
             test_txt = np.loadtxt(os.path.join(tmpdir,'out.txt'), unpack=True)
 
-            # depending on which solver is used for the tests, absolute values might deviate more than the default tolerance
+            # depending on which solver is used for the tests,
+            # absolute values might deviate more than the default tolerance
             self.assertArrayAlmostEqual(test_txt[0,:], self.ref_txt[0,:], tol=1e-5) # x
             self.assertArrayAlmostEqual(test_txt[1,:],self.ref_txt[1,:], tol=1e-5) # u
             self.assertArrayAlmostEqual(test_txt[2:,:],self.ref_txt[2:,:], tol=1e-3) # c
 
     def test_pnp_c2d_pipeline_mode(self):
-        """pnp -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell | c2d > NaCl.xyz"""
+        """poisson-nernst-planck -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell | continuous2discrete > NaCl.xyz"""
         print("  RUN test_pnp_c2d_pipeline_mode")
         with tempfile.TemporaryDirectory() as tmpdir:
             pnp = subprocess.Popen(
