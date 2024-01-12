@@ -126,7 +126,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
          (Searches for vectors perpendicular to v1 with small integer indices)
         If v2 is given and is not orthogonal to v1, raises a warning
     normalise: bool
-        return an orthonormal basis, rather than just orthogonal
+        return an float orthonormal basis, rather than integer orthogonal basis
     nmax: int
         Maximum integer index for v2 search
     tol: float
@@ -136,6 +136,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     -------
     V1, V2, V3: np.arrays
         Complete orthogonal basis, optionally normalised
+        dtype of arrays is int with normalise=False, float with normalise=True
     '''
 
     def _v2_search(v1, nmax, tol):
@@ -159,8 +160,8 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
 
                     if np.abs(np.dot(v1, test_vec)) < tol:
                         return test_vec
-                    # No nice integer vector found!
-                    raise RuntimeError(f"Could not automatically find an integer basis from basis vector {v1}")
+        # No nice integer vector found!
+        raise RuntimeError(f"Could not automatically find an integer basis from basis vector {v1}")
 
     V1 = np.array(v1).copy().astype(int)
 
@@ -326,15 +327,17 @@ def points_in_polygon2D(p, poly_points):
     points += 1E-3
 
     # Ensure polygon is closed
-    if np.all(poly_points[0, :] != poly_points[-1, :]):
+    if np.any(poly_points[0, :] != poly_points[-1, :]):
         poly_points = np.append(poly_points, poly_points[0, :][np.newaxis, :], axis=0)
 
     npoints = points.shape[0]
 
     mask = np.zeros(npoints, dtype=bool)
 
-    # Get point that is definitely outside the polygon
-    test_point = np.array([11 * np.max(poly_points[:, 0]), 7 * np.max(poly_points[:, 1])])
+    # Get random point that is definitely outside the polygon
+    a, b = 10 + np.random.random(size=2) * 10
+
+    test_point = np.array([a * np.max(poly_points[:, 0]), b * np.max(poly_points[:, 1])])
 
     for i in range(npoints):
         intersections = 0
@@ -343,4 +346,72 @@ def points_in_polygon2D(p, poly_points):
         if intersections % 2:
             # Even number of intersections, point is inside polygon
             mask[i] = True
-    return mask
+    return mask.astype(bool)
+
+def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -> np.array:
+    '''
+    Get shortest distance between a test point and a polygon defined by polygon_points
+        (i.e. the shortest distance between each point and the lines of the polygon)
+    
+    Uses formula from https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_two_points
+
+    test_points: np.array
+        2D Points to get distances for
+    polygon_points: np.array
+        Coordinates defining the points of the polygon
+    '''
+
+    def get_dist(p, v, w):
+        '''
+        Gets distance between point p, and the line segment defined by v and w
+        From https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+        '''
+        denominator = np.linalg.norm(v - w)
+
+        if denominator == 0.0:
+            # point 1 and point 2 are the same, return distance between test_point and poly_point_1
+            return np.linalg.norm(p - v)
+        
+        # Use t on [0, 1] to parameterize moving on the line segment defined by poly points
+        t = np.max([0, np.min([1, np.dot(p - v, w - v)/denominator**2])])
+
+        # Closest point on line segment
+        projection = v + t * (w - v)
+
+        return np.linalg.norm(p - projection)
+        
+    distances = np.zeros(test_points.shape[0])
+
+    N = polygon_points.shape[0]
+    for i in range(test_points.shape[0]):
+        test_point = test_points[i, :]
+
+        distances[i] = min([get_dist(test_point, polygon_points[j, :], polygon_points[(j+1)%N, :]) for j in range(N)])
+    
+    return distances
+
+def radial_mask_from_polygon2D(test_points:np.array, polygon_points:np.array, radius:float, inner:bool=True) -> np.array:
+    '''
+    Get a boolean mask of all test_points within a radius of any edge of the polygon defined by polygon_points
+
+    test_points: np.array
+        2D Points to get mask for
+    polygon_points: np.array
+        Coordinates defining the points of the polygon
+    radius: float
+        Radius to use as cutoff for mask
+    inner: bool
+        Whether test_points inside the polygon should always be masked as True, regardless of radius
+    '''
+
+    distances = get_distance_from_polygon2D(test_points, polygon_points)
+
+    outer_mask = distances <= radius 
+
+    if inner:
+        inner_mask = points_in_polygon2D(test_points, polygon_points)
+
+        full_mask = (inner_mask + outer_mask).astype(bool)
+    else:
+        full_mask = outer_mask.astype(bool)
+    return full_mask
