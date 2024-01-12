@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+
 """ Compute ion concentrations consistent with general
 Poisson-Nernst-Planck (PNP) equations via FEniCS.
 
@@ -26,6 +27,7 @@ University of Freiburg
 Authors:
   Johannes Hoermann <johannes.hoermann@imtek-uni-freiburg.de>
 """
+
 import numpy as np
 import scipy.interpolate
 import fenics as fn

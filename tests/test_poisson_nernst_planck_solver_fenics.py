@@ -17,20 +17,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import matscipytest
-import numpy as np
+
 import os.path
-import sys
 import unittest
 
+import numpy as np
+
+import matscipytest
 
 try:
     import fenics
 except ImportError:
+    fenics = None
     print("fenics not found: skipping fenics-dependent tests")
 
-from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
-    import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
+if fenics is not None:
+    from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
+        import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
 
 
 class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
@@ -40,23 +43,22 @@ class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
         self.test_path = os.path.dirname(os.path.abspath(__file__))
         self.ref_data = np.load(
             os.path.join(self.test_path, 'electrochemistry_data',
-            'NaCl_c_0.1_mM_0.1_mM_z_+1_-1_L_1e-7_u_0.05_V_seg_200_interface.npz') )
+                         'NaCl_c_0.1_mM_0.1_mM_z_+1_-1_L_1e-7_u_0.05_V_seg_200_interface.npz'))
 
-    @unittest.skipIf("fenics" not in sys.modules,
-                     "fenics required")
+    @unittest.skipIf(fenics is None, "fenics required")
     def test_poisson_nernst_planck_solver_fenics_std_interface_bc(self):
         """Tests PNP solver against simple interfacial BC"""
         pnp = PoissonNernstPlanckSystem(
-            c=[0.1,0.1], z=[1,-1], L=1e-7, delta_u=0.05,
+            c=[0.1, 0.1], z=[1, -1], L=1e-7, delta_u=0.05,
             N=200, e=1e-12, maxit=20)
         pnp.useStandardInterfaceBC()
         pnp.solve()
 
         # Reference data has been generated with controlled-volume solver and is slightly off the FEM results,
         # hence the generous tolerances below
-        self.assertArrayAlmostEqual(pnp.grid, self.ref_data ['x'])
-        self.assertArrayAlmostEqual(pnp.potential, self.ref_data ['u'], 1e-6)
-        self.assertArrayAlmostEqual(pnp.concentration, self.ref_data ['c'], 1e-5)
+        self.assertArrayAlmostEqual(pnp.grid, self.ref_data['x'])
+        self.assertArrayAlmostEqual(pnp.potential, self.ref_data['u'], 1e-6)
+        self.assertArrayAlmostEqual(pnp.concentration, self.ref_data['c'], 1e-5)
 
 
 if __name__ == '__main__':
