@@ -20,7 +20,14 @@
 import matscipytest
 import numpy as np
 import os.path
+import sys
 import unittest
+
+
+try:
+    import fenics
+except ImportError:
+    print("fenics not found: skipping fenics-dependent tests")
 
 from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
     import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
@@ -35,7 +42,9 @@ class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
             os.path.join(self.test_path, 'electrochemistry_data',
             'NaCl_c_0.1_mM_0.1_mM_z_+1_-1_L_1e-7_u_0.05_V_seg_200_interface.npz') )
 
-    def test_poisson_nernst_planck_solver_std_interface_bc(self):
+    @unittest.skipIf("fenics" not in sys.modules,
+                     "fenics required")
+    def test_poisson_nernst_planck_solver_fenics_std_interface_bc(self):
         """Tests PNP solver against simple interfacial BC"""
         pnp = PoissonNernstPlanckSystem(
             c=[0.1,0.1], z=[1,-1], L=1e-7, delta_u=0.05,
