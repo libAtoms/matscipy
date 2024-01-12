@@ -8,4 +8,5 @@ Application domains
    elastic_constants
    plasticity
    fracture_mechanics
+   electrochemistry
    tribology

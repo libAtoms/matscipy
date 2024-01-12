@@ -253,10 +253,6 @@ def main():
         data = np.column_stack([pnp.grid, pnp.potential, pnp.concentration.T])
         np.savetxt(outfile, data, fmt='%22.15e', header=header)
 
-    # write out final state as usual, but mark process failed if not converged
-    # if not pnp.converged:
-    #    sys.exit(1)
-
     sys.exit(0)
 
 

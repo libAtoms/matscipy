@@ -40,10 +40,38 @@ docs = [
     "ovito",
     "sphinx_copybutton",
     "sphinx_rtd_theme",
-    "pydata-sphinx-theme"
+    "sphinxcontrib-spelling",
+    "pydata-sphinx-theme",
+    "jupytext"
 ]
+cli = [
+    "argcomplete"
+]
+
+# https://packaging.python.org/en/latest/specifications/pyproject-toml/#entry-points
+[project.scripts]
+# With setuptools, specifying entry points like this in setup.py
+#       ...
+#       entry_points={
+#            'console_scripts': [
+#                'c2d = matscipy.cli.electrochemistry.c2d:main [cli]',
+#                'pnp = matscipy.cli.electrochemistry.pnp:main [cli]',
+#                'stericify = matscipy.cli.electrochemistry.stericify:main [cli]'
+#            ],
+#        },
+#        ...
+# resulted in optional CLI scripts installed only if the extra [cli] had been
+# explicitly requested, e.g. via
+#     pip install matscipy[cli]
+# (see https://github.com/libAtoms/matscipy/blob/92dd490a3c2c71edc5d0018487afbee5f2273730/setup.py#L302-L319)
+# With pyproject.toml and meson as build system, the console scripts are
+# always installed, even if they are specified as extra-dependent as done here.
+continuous2discrete = "matscipy.cli.electrochemistry.continuous2discrete_cli:main [cli]"
+poisson-nernst-planck = "matscipy.cli.electrochemistry.poisson_nernst_planck_solver_cli:main [cli]"
+stericify = "matscipy.cli.electrochemistry.stericify_cli:main [cli]"
 
 [project.urls]
 documentation = "http://libatoms.github.io/matscipy/"
 repository = "https://github.com/libAtoms/matscipy"
 changelog = "https://github.com/libAtoms/matscipy/blob/master/ChangeLog.md"
+

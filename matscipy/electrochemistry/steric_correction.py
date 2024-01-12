@@ -873,7 +873,7 @@ def apply_steric_correction(
     target_function: func, optional
         One of the target functions within this submodule, or function
         of same signature. (default: neigh_list_based_target_function)
-    returns_gradient: bool, optional (default: Trze)
+    returns_gradient: bool, optional (default: True)
         If True, then 'target_function' is expected to return a tuple (f, df)
         with f the actual target function value and df its (N,dim) gradient.
         This flag must be set for 'neigh_list_based_target_function'.
@@ -885,6 +885,8 @@ def apply_steric_correction(
     -------
     float : (N,dim) ndarray
         Modified particle coordinates, meeting steric constraints.
+    scipy.optimize.OptimizeResult
+        Forwarded raw object as returned by scipy.optimize.minimize
     """
     logger = logging.getLogger(__name__)
     assert isinstance(x, np.ndarray), "x must be np.ndarray"
@@ -980,9 +982,6 @@ def apply_steric_correction(
     logger.info("    {} and".format(P1))
     logger.info("    {}.".format(P2))
     logger.info("    normalized by L = {:.2g}.".format(L))
-
-
-
 
     def minimizer_callback(xk, *_):
         """Callback function to be used by optimizers of scipy.optimize.

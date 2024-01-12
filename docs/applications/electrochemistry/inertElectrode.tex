@@ -1,0 +1,46 @@
+\documentclass[tikz,margin=0mm]{standalone}
+
+\usepackage{amsmath}
+
+\usetikzlibrary{arrows}
+\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{shadows,fadings}
+\usetikzlibrary{shadows.blur}
+\usetikzlibrary{fit}
+\usetikzlibrary{calc}
+
+\tikzset{geometry/.style=thick}
+\tikzset{feederElectrode/.style={fill=black!30!white, draw=black!80!white}}
+\tikzset{electrolyte/.style={fill=black!10!white, draw=black!80!white}}
+
+\begin{document}
+\begin{tikzpicture}[geometry]
+\fill[electrolyte,draw=none] (0,0) rectangle +(10,1);
+\shade[left color=black!10,right color=white,draw=none] (9.5,0) rectangle +(0.5,1);
+\draw[electrolyte,fill=none] (0,0) -- +(10,0) +(10,1) -- +(0,1);
+\filldraw[feederElectrode] (-0.2,0) rectangle +(0.2,1);
+\draw (-0.2,0.5) node[anchor=east] {electrode};
+\draw (5,0.5) node[anchor=center] {electrolyte};
+\draw (10,0.5) node[anchor=west] {bulk};
+% 
+% electrode BC
+\draw (0,2) node[node font=\footnotesize,anchor=south,align=right] {
+  	%$\phi + \lambda_S \cdot \mathbf{\hat{n}} \cdot \nabla \phi = \phi_0$\\
+  	$\phi = \phi_0$\\
+  	$( -D_i \nabla c_i - z_i F u_i c_i \nabla \phi ) = 0$
+	};
+\draw[->] (0,2) -- +(0,-0.8);
+  
+% bulk BC
+\draw (10,2) node[node font=\footnotesize,anchor=south,align=center] {
+    	$\phi = 0$\\
+  	$c_i = c_i^\infty$
+  	};
+\draw[->] (10,2) -- +(0,-0.8);
+
+%% governing eq
+\draw [decorate,decoration={brace,amplitude=10pt},xshift=0,yshift=0] (10,-0.2) -- +(-10,0) node [node font=\footnotesize,anchor=north,midway,yshift=-10pt,align=center]  {\footnotesize  	$ \nabla \cdot ( -D_i \nabla c_i - z_i F u_i c_i \nabla \phi ) = 0 $ \\
+  	$\nabla \cdot ( - \epsilon_r \epsilon_0 \nabla \phi ) - F \cdot \sum_{i=1}^N z_i c_i  = 0$ 
+  	}; 
+\end{tikzpicture}
+\end{document}

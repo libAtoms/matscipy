@@ -1,0 +1,13 @@
+Run
+
+    pdflatex file.tex
+    
+to build pdf and
+
+    pdf2svg file.pdf file.svg
+    
+to convert to svg, then
+
+    inkscape -h 1024 file.svg -o file.png
+
+to convert to png at 1024 px height.
