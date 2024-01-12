@@ -196,7 +196,7 @@ pnp['fenics_interface_high_potential'].useStandardInterfaceBC()
 uij, nij, _ = pnp['fenics_interface_high_potential'].solve()
 
 # %% [markdown]
-# ... while `PoissonNernstPlanckSystemFEniCS` does. Visualizing the results proves the areement of finite elements results and analytical solution.
+# ... while `PoissonNernstPlanckSystemFEniCS` does. Visualizing the results proves the agreement of finite elements results and analytical solution.
 
 # %%
 x = np.linspace(0, L, 100)

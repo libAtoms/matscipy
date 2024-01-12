@@ -75,7 +75,7 @@ from matscipy.electrochemistry import debye
 deb = debye(c, z)
 
 # %% [markdown]
-# The analytical solution for the open half-space at an inert electrode is just the Possion-Boltzmann disribution [[3]](#israelachvili1991). `matscipy.electrochemistry.poisson_boltzmann_distribution` provides a few short-hand functions for retrieving electrostatic potential, charge density and concentrations that arise from this analaytical solution.
+# The analytical solution for the open half-space at an inert electrode is just the Possion-Boltzmann distribution [[3]](#israelachvili1991). `matscipy.electrochemistry.poisson_boltzmann_distribution` provides a few short-hand functions for retrieving electrostatic potential, charge density and concentrations that arise from this analytical solution.
 
 # %%
 from matscipy.electrochemistry.poisson_boltzmann_distribution import potential, concentration, charge_density
@@ -87,7 +87,7 @@ rho = charge_density(x, c, z, delta_u)
 
 
 # %% [markdown]
-# We define a little helper for a prettifying ourt plot.
+# We define a little helper for a prettifying our plot.
 
 # %%
 def make_patch_spines_invisible(ax):
@@ -361,7 +361,7 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# Notice the nealry linear behavior of potential close to the electrodes arising from the Robin boundary conditions.
+# Notice the nearly linear behavior of potential close to the electrodes arising from the Robin boundary conditions.
 
 # %% [markdown]
 # ## Sampling from continuous distributions
@@ -394,7 +394,7 @@ histx, histy, histz = get_histogram(na_coordinate_sample, box=box_m, n_bins=51)
 
 
 # %% [markdown]
-# For visulaization purposes, we define two little helper functions.
+# For visualization purposes, we define two little helper functions.
 
 # %%
 # helper functions
@@ -453,7 +453,7 @@ plot_dist(histz, 'Distribution of Cl- ions in z-direction', reference_distributi
 
 # %% [markdown]
 # ## Coordinates export
-# Everntually, we use ASE to export our sample to some standard format, i.e. .xyz or LAMMPS data file.
+# Eventually, we use ASE to export our sample to some standard format, i.e. .xyz or LAMMPS data file.
 
 # %%
 import ase

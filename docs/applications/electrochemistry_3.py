@@ -1,10 +1,10 @@
 # %% [markdown]
 # # Steric correction
 #
-# Continuum models do not account for the finite size of atoms. Sampling discrete particle coordinates from continuous concentration distributions may thus result in arbitrarily close atom positions. To avoid overlap and yield *usable* atomistic configurations from densily packed samples, `matscipy.electrochemistry` offers the `steric_correction` submodule. Its function `apply_steric_correction` applies a steric correction to the provided configuration, assuring the desired steric radii for all species if possible. To achieve this, the module reimplements a pseudo-potential minimization algorithm [[1]](#martinez2009) used by [PACKMOL](https://m3g.github.io/packmol/) in Python 
+# Continuum models do not account for the finite size of atoms. Sampling discrete particle coordinates from continuous concentration distributions may thus result in arbitrarily close atom positions. To avoid overlap and yield *usable* atomistic configurations from densely packed samples, `matscipy.electrochemistry` offers the `steric_correction` sub-module. Its function `apply_steric_correction` applies a steric correction to the provided configuration, assuring the desired steric radii for all species if possible. To achieve this, the module re-implements a pseudo-potential minimization algorithm [[1]](#martinez2009) used by [PACKMOL](https://m3g.github.io/packmol/) in Python
 
 # %% [markdown]
-# Below, we generate continuous concentration distributions from classical electrochemical double layer theory, sample coordinates from thesedistributions, and apply a steric correction to the ion coordinates.
+# Below, we generate continuous concentration distributions from classical electrochemical double layer theory, sample coordinates from these distributions, and apply a steric correction to the ion coordinates.
 
 # %% [markdown]
 # Theory and mechanisms involved in step 1 and 2 have been discussed in detail in previous documentation sections.
@@ -21,7 +21,7 @@ from matscipy.electrochemistry.poisson_boltzmann_distribution import (
     potential, concentration, charge_density)
 
 # %% [markdown]
-# Although we look at a continuous 1d system now, we want to sample coordinates in a 3d box from it later. Hence, we specify the 3d box size here already and retrieve potential, concentration and charge distributions arising from solving the Poisson-Bolzmann equation analytically.
+# Although we look at a continuous 1d system now, we want to sample coordinates in a 3d box from it later. Hence, we specify the 3d box size here already and retrieve potential, concentration and charge distributions arising from solving the Poisson-Boltzmann equation analytically.
 
 # %%
 import numpy as np 
@@ -258,7 +258,7 @@ fig.tight_layout()
 # %% [markdown]
 # ### Export initial and steric configurations
 #
-# We may use ASE to export both initial and steric ccoordinate samples to LAMMPS data files.
+# We may use ASE to export both initial and steric coordinate samples to LAMMPS data files.
 
 # %%
 import ase
