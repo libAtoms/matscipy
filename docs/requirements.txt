@@ -2,3 +2,4 @@ numpy>=1.16.0
 ase>=3.16.0
 sphinx_rtd_theme
 jupytext
+sphinxcontrib-spelling

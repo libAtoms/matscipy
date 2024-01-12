@@ -46,6 +46,7 @@ extensions = [
     'myst_nb',
     'numpydoc',
     'sphinx_copybutton',
+    'sphinxcontrib.spelling'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -306,3 +307,7 @@ myst_enable_extensions = [
 nb_custom_formats = {
   ".py": ["jupytext.reads", {"fmt": "py:percent"}]
 }
+
+# spell check with sphinxcontrib.spelling
+spelling_lang = 'en_US'
+spelling_show_suggestions = True

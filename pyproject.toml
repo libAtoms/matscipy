@@ -40,6 +40,7 @@ docs = [
     "ovito",
     "sphinx_copybutton",
     "sphinx_rtd_theme",
+    "sphinxcontrib-spelling",
     "pydata-sphinx-theme",
     "jupytext"
 ]
