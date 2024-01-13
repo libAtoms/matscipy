@@ -211,12 +211,12 @@ def main():
         relative_permittivity=float(args.relative_permittivity))
 
     if args.boundary_conditions in ('cell-robin') and float(args.lambda_S) > 0:
-        pnp.useSternLayerCellBC()
+        pnp.use_stern_layer_cell_bc()
     elif ((args.boundary_conditions in ('cell-robin') and float(args.lambda_S) == 0)
             or args.boundary_conditions == 'cell'):
-        pnp.useStandardCellBC()
+        pnp.use_standard_cell_bc()
     elif args.boundary_conditions == 'interface':
-        pnp.useStandardInterfaceBC()
+        pnp.use_standard_interface_bc()
     else:
         raise ValueError("Boundary conditions '{}' not implemented!".format(
                          args.boundary_conditions))

@@ -289,7 +289,7 @@ def generate_structure(distribution, box=np.array([50, 50, 100]), count=100, n_g
             Z, _ = integrate.quad(d, support[-1][0], support[-1][1])
         else:  # discrete support
             support.append(np.linspace(0, box[k], n_gridpoints[k]))
-            Z = np.sum(d(support[-1])) # Normalization constant
+            Z = np.sum(d(support[-1]))  # Normalization constant
 
         logger.info("Normalizing 'distribution' {} by {}.".format(d, Z))
         normalized_distribution.append(

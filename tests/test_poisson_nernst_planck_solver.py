@@ -39,7 +39,7 @@ class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
         pnp = PoissonNernstPlanckSystem(
             c=[0.1,0.1], z=[1,-1], L=1e-7, delta_u=0.05,
             N=200, e=1e-12, maxit=20)
-        pnp.useStandardInterfaceBC()
+        pnp.use_standard_interface_bc()
         pnp.solve()
 
         self.assertArrayAlmostEqual(pnp.grid, self.ref_data ['x'])
