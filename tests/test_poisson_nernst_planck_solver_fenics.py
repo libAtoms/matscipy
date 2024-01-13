@@ -26,11 +26,10 @@ import unittest
 
 try:
     import fenics
+    from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
+        import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
 except ImportError:
     print("fenics not found: skipping fenics-dependent tests")
-
-from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
-    import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
 
 
 class PoissonNernstPlanckSolverTest(matscipytest.MatSciPyTestCase):
