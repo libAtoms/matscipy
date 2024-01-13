@@ -26,6 +26,14 @@ jobs:
           # Upgrade to latest meson and ninja
           sudo pip install --upgrade meson ninja
 
+      # needs fenics only to run test_poisson_nernst_planck_solver_fenics
+      - name: install_fenics
+        run: |
+          sudo apt-get install -y --no-install-recommends software-properties-common
+          sudo add-apt-repository -y ppa:fenics-packages/fenics
+          sudo apt-get update -qy
+          sudo apt-get install -y fenics python3-dolfin python3-mshr
+
       - name: build_c
         run: |
           sudo pip install .[test]
