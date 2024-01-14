@@ -63,12 +63,12 @@ pnp['std_interface'] = PoissonNernstPlanckSystem(
     c, z, L, delta_u=delta_u, N=N,
     solver="hybr", options={'xtol':1e-12})
 
-pnp['std_interface'].useStandardInterfaceBC()
+pnp['std_interface'].use_standard_interface_bc()
 uij, nij, lamj = pnp['std_interface'].solve()
 
 # define desired system
 pnp['fenics_interface'] = PoissonNernstPlanckSystemFEniCS(c, z, L, delta_u=delta_u, N=N)
-pnp['fenics_interface'].useStandardInterfaceBC()
+pnp['fenics_interface'].use_standard_interface_bc()
 uij, nij, _ = pnp['fenics_interface'].solve()
 
 # %% [markdown]
@@ -184,7 +184,7 @@ N = 200
 pnp['std_interface_high_potential'] = PoissonNernstPlanckSystem(
     c, z, L, delta_u=delta_u,N=N,
     solver="hybr", options={'xtol':1e-14})
-pnp['std_interface_high_potential'].useStandardInterfaceBC()
+pnp['std_interface_high_potential'].use_standard_interface_bc()
 uij, nij, lamj = pnp['std_interface_high_potential'].solve()
 
 # %% [markdown]
@@ -192,7 +192,7 @@ uij, nij, lamj = pnp['std_interface_high_potential'].solve()
 
 # %%
 pnp['fenics_interface_high_potential'] = PoissonNernstPlanckSystemFEniCS(c, z, L, delta_u=delta_u, N=200)
-pnp['fenics_interface_high_potential'].useStandardInterfaceBC()
+pnp['fenics_interface_high_potential'].use_standard_interface_bc()
 uij, nij, _ = pnp['fenics_interface_high_potential'].solve()
 
 # %% [markdown]

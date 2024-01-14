@@ -55,10 +55,10 @@ delta_u = 0.05
 pnp = PoissonNernstPlanckSystem(c=c, z=z, L=L, delta_u=delta_u)
 
 # %% [markdown]
-# The method `useStandardInterfaceBC` will apply boundary conditions as shown in <a hef="#figure1">Figure 1</a>, with Dirichlet boundary conditions on the potential and zero total flux boundary conditions on ion diffusion and electromigration.
+# The method `use_standard_interface_bc` will apply boundary conditions as shown in <a hef="#figure1">Figure 1</a>, with Dirichlet boundary conditions on the potential and zero total flux boundary conditions on ion diffusion and electromigration.
 
 # %%
-pnp.useStandardInterfaceBC()
+pnp.use_standard_interface_bc()
 ui, nij, _ = pnp.solve()
 
 # %% [markdown]
@@ -188,7 +188,7 @@ pnp = PoissonNernstPlanckSystem(c=c, z=z, L=L, delta_u=delta_u)
 # The only difference is the application of another set of predefined boundary conditions.
 
 # %%
-pnp.useStandardCellBC()
+pnp.use_standard_cell_bc()
 
 # %% [markdown]
 # These boundary conditions assume no Stern layer, i.e. $\lambda_S = 0$
@@ -309,7 +309,7 @@ pnp = PoissonNernstPlanckSystem(c,z,L, lambda_S=lambda_S, delta_u=delta_u, N=200
 # The following applies zero flux and, particularly, Robin boundary conditions as shown in <a href="#figure2">Figure 2</a>.
 
 # %%
-pnp.useSternLayerCellBC()
+pnp.use_stern_layer_cell_bc()
 
 pnp.output = True
 xij = pnp.solve()

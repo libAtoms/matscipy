@@ -642,7 +642,7 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
     r: float or (N,) ndarray, optional (default=1.0)
         steric radii of particles
     constraints: callable, returns (float, (N,dim) ndarray)
-        constraint function value and gradien
+        constraint function value and gradient
     Dij: (N, N) ndarray, optional (default=None)
         pairwise minimum allowed distance matrix, overrides r
 
@@ -870,6 +870,8 @@ def apply_steric_correction(
         Forwarded to scipy minimzer.
         https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html
         (default: {'gtol':1.e-5,'maxiter':10,'disp':True,'eps':1.e-8})
+    method: str
+        scipy.optimize.minimize method
     target_function: func, optional
         One of the target functions within this submodule, or function
         of same signature. (default: neigh_list_based_target_function)
