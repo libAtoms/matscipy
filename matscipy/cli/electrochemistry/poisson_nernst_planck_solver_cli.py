@@ -225,7 +225,12 @@ def main():
         # fenics writes some log messages to stdout. If we pipe the output,
         # we don't want that, hence here we have to suppress fenics logging
         # if no output file has been specified
-        dolfin.cpp.log.set_log_active(False)
+        try:
+            dolfin.cpp.log.set_log_active(False)
+            logging.getLogger('UFL').setLevel(logging.WARNING)
+            logging.getLogger('FFC').setLevel(logging.WARNING)
+        except:  # if fenics not available, ignore any error here
+            pass
 
     pnp.solve()
 
