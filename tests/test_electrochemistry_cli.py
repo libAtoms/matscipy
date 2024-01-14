@@ -182,20 +182,29 @@ class ElectrochemistryCliTest(matscipytest.MatSciPyTestCase):
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, encoding='utf-8', env=self.myenv)
 
-            c2d = subprocess.Popen(['c2d'],
-                stdin=pnp.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                cwd=tmpdir, encoding='utf-8', env=self.myenv)
-            pnp.stdout.close()  # Allow pnp to receive a SIGPIPE if p2 exits.
+            # detour via python string
+            pnp_output, pnp_error = pnp.communicate()
 
+            c2d = subprocess.Popen(['c2d'],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                cwd=tmpdir, encoding='utf-8', env=self.myenv)
+
+            # pnp.stdout.close()  # Allow pnp to receive a SIGPIPE if p2 exits.
+
+            c2d_output, c2d_error = c2d.communicate(input=pnp_output)
+
+            print("  poisson-nernst-planck stdout")
+            print(pnp_output)
             print("  poisson-nernst-planck stderr")
-            print(pnp.stderr.read())
-            print("  poisson-nernst-planck stderr")
-            print(c2d.stderr.read())
+            print(pnp_error)
+            print("  continuous2discrete output")
+            print(c2d_output)
+            print("  continuous2discrete stderr")
+            print(c2d_error)
 
             self.assertEqual(c2d.wait(),0)
             self.assertEqual(pnp.wait(),0)
 
-            c2d_output = c2d.communicate()[0]
             with io.StringIO(c2d_output) as xyz_instream:
                 xyz = ase.io.read(xyz_instream, format='extxyz')
             self.assertEqual(len(xyz),len(self.ref_xyz))
