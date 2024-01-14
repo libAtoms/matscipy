@@ -24,13 +24,11 @@ sys.stderr = open('stderr.txt', 'w')
 
 import numpy as np
 
-from ovito import *
 from ovito.data import *
-from ovito.modifiers import *
 
 import ase2ovito
 
-from ase.io import read, write
+from ase.io import read
 
 # Read ASE Atoms instance from disk
 atoms = read(sys.argv[1])

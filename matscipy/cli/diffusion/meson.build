@@ -3,17 +3,11 @@
 # Pure Python sources
 python_sources = [
     '__init__.py',
-    'ase2ovito.py',
-    'average_eam_potential.py',
-    'openovito.py'
+    'rms.py',
 ]
 
 # Install pure Python
 python.install_sources(
     python_sources,
-    subdir: 'matscipy/cli'
+    subdir: 'matscipy/cli/diffusion'
 )
-
-subdir('diffusion')
-subdir('electrochemistry')
-subdir('glasses')
