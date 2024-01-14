@@ -164,6 +164,35 @@ def main():
     logger = logging.getLogger()
     logger.setLevel(loglevel)
 
+    # use FEniCS finite element solver if available,
+    # otherwise own controlled volume scheme
+    try:
+        import fenics
+        from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
+            import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
+        import dolfin
+        dolfin.cpp.log.set_log_level(loglevel)
+
+        if not args.outfile:
+            # fenics writes some log messages to stdout. If we pipe the output,
+            # we don't want that, hence here we have to suppress fenics logging
+            # if no output file has been specified
+
+            fenics.set_log_level(logging.WARNING)
+            fenics.set_log_active(False)
+            dolfin.cpp.log.set_log_level(logging.WARNING)
+            dolfin.cpp.log.set_log_active(False)
+            logging.getLogger('UFL').setLevel(logging.WARNING)
+            logging.getLogger('FFC').setLevel(logging.WARNING)
+
+        logger.info("Will use FEniCS finite element solver.")
+    except ModuleNotFoundError:
+        logger.warning(
+            "No FEniCS finite element solver found,"
+            " falling back to internal controlled-volume implementation."
+            " ATTENTION: Number conservation not exact.")
+        from matscipy.electrochemistry import PoissonNernstPlanckSystem
+
     # remove all handlers
     for h in logger.handlers:
         logger.removeHandler(h)
@@ -180,22 +209,6 @@ def main():
         fh.setFormatter(formatter)
         fh.setLevel(loglevel)
         logger.addHandler(fh)
-
-    # use FEniCS finite element solver if available,
-    # otherwise own controlled volume scheme
-    try:
-        import fenics
-        from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
-            import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
-        import dolfin
-        dolfin.cpp.log.set_log_level(loglevel)
-        logger.info("Will use FEniCS finite element solver.")
-    except ModuleNotFoundError:
-        logger.warning(
-            "No FEniCS finite element solver found,"
-            " falling back to internal controlled-volume implementation."
-            " ATTENTION: Number conservation not exact.")
-        from matscipy.electrochemistry import PoissonNernstPlanckSystem
 
     # set up system
     pnp = PoissonNernstPlanckSystem(
@@ -220,18 +233,6 @@ def main():
     else:
         raise ValueError("Boundary conditions '{}' not implemented!".format(
                          args.boundary_conditions))
-
-    if not args.outfile:
-        # fenics writes some log messages to stdout. If we pipe the output,
-        # we don't want that, hence here we have to suppress fenics logging
-        # if no output file has been specified
-        try:
-            fenics.set_log_active(False)
-            dolfin.cpp.log.set_log_active(False)
-            logging.getLogger('UFL').setLevel(logging.WARNING)
-            logging.getLogger('FFC').setLevel(logging.WARNING)
-        except:  # if fenics not available, ignore any error here
-            pass
 
     pnp.solve()
 
