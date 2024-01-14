@@ -182,10 +182,15 @@ class ElectrochemistryCliTest(matscipytest.MatSciPyTestCase):
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, encoding='utf-8', env=self.myenv)
 
-            c2d = subprocess.Popen([ 'c2d' ],
+            c2d = subprocess.Popen(['c2d'],
                 stdin=pnp.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=tmpdir, encoding='utf-8', env=self.myenv)
             pnp.stdout.close()  # Allow pnp to receive a SIGPIPE if p2 exits.
+
+            print("  poisson-nernst-planck stderr")
+            print(pnp.stderr.read())
+            print("  poisson-nernst-planck stderr")
+            print(c2d.stderr.read())
 
             self.assertEqual(c2d.wait(),0)
             self.assertEqual(pnp.wait(),0)
