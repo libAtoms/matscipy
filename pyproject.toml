@@ -8,7 +8,7 @@ description = "Generic Python Materials Science tools"
 readme = "README.rst"
 license = { file = "LICENSE" }
 authors = [
-    { name = "James Kermode", email = "james.kermode@gmail.com"},
+    { name = "James Kermode", email = "james.kermode@gmail.com" },
     { name = "Lars Pastewka", email = "lars.pastewka@imtek.uni-freiburg.de" }
 ]
 classifiers = [
@@ -16,7 +16,7 @@ classifiers = [
     "Programming Language :: Python"
 ]
 requires-python = ">=3.7.0"
-dynamic = [ "version" ]
+dynamic = ["version"]
 dependencies = [
     "numpy>=1.16.0",
     "scipy>=1.2.3",
@@ -66,9 +66,20 @@ cli = [
 # (see https://github.com/libAtoms/matscipy/blob/92dd490a3c2c71edc5d0018487afbee5f2273730/setup.py#L302-L319)
 # With pyproject.toml and meson as build system, the console scripts are
 # always installed, even if they are specified as extra-dependent as done here.
-continuous2discrete = "matscipy.cli.electrochemistry.continuous2discrete_cli:main [cli]"
-poisson-nernst-planck = "matscipy.cli.electrochemistry.poisson_nernst_planck_solver_cli:main [cli]"
-stericify = "matscipy.cli.electrochemistry.stericify_cli:main [cli]"
+
+# Generic
+matscipy_rms = "matscipy.cli.diffusion.rms:main"
+
+# Glasses
+matscipy_quench = "matscipy.cli.glasses.quench:main"
+
+# Electrochemistry
+matscipy_continuous2discrete = "matscipy.cli.electrochemistry.continuous2discrete:main"
+matscipy_poisson-nernst-planck = "matscipy.cli.electrochemistry.poisson_nernst_planck_solver:main"
+matscipy_stericify = "matscipy.cli.electrochemistry.stericify:main"
+
+# Interatomic potentials
+matscipy_average_eam_potential = "matscipy.cli.average_eam_potential:main"
 
 [project.urls]
 documentation = "http://libatoms.github.io/matscipy/"

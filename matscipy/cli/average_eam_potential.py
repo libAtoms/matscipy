@@ -22,6 +22,7 @@ import numpy as np
 import click
 from matscipy.calculators.eam import io, average_atom
 
+
 @click.command()
 @click.argument("input_table", type=click.Path(exists=True, readable=True))
 @click.argument("output_table", type=click.Path(exists=False, writable=True))
@@ -58,5 +59,5 @@ def average(input_table, output_table, concentrations):
     )
 
 
-if __name__ == "__main__":
+def main():
     average()

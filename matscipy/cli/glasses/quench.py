@@ -67,102 +67,100 @@ def random_solid(els, density, sx=None, sy=None):
 
 ###
 
-# For coordination counting
-cutoff = 1.85
+def main():
+    els = parameter('stoichiometry')
+    densities  = parameter('densities')
 
-els = parameter('stoichiometry')
-densities  = parameter('densities')
+    T1 = parameter('T1', 5000*kB)
+    T2 = parameter('T2', 300*kB)
+    dt1 = parameter('dt1', 0.1*fs)
+    dt2 = parameter('dt2', 0.1*fs)
+    tau1 = parameter('tau1', 5000*fs)
+    tau2 = parameter('tau2', 500*fs)
+    dtdump = parameter('dtdump', 100*fs)
+    teq = parameter('teq', 50e3*fs)
+    tqu = parameter('tqu', 20e3*fs)
+    nsteps_relax = parameter('nsteps_relax', 10000)
 
-T1 = parameter('T1', 5000*kB)
-T2 = parameter('T2', 300*kB)
-dt1 = parameter('dt1', 0.1*fs)
-dt2 = parameter('dt2', 0.1*fs)
-tau1 = parameter('tau1', 5000*fs)
-tau2 = parameter('tau2', 500*fs)
-dtdump = parameter('dtdump', 100*fs)
-teq = parameter('teq', 50e3*fs)
-tqu = parameter('tqu', 20e3*fs)
-nsteps_relax = parameter('nsteps_relax', 10000)
+    ###
 
-###
+    quick_calc = parameter('quick_calc')
+    calc = parameter('calc')
 
-quick_calc = parameter('quick_calc')
-calc = parameter('calc')
+    ###
 
-###
+    for _density in densities:
+        try:
+            density, sx, sy = _density
+        except:
+            density = _density
+            sx = sy = None
+        print('density =', density)
 
-for _density in densities:
-    try:
-        density, sx, sy = _density
-    except:
-        density = _density
-        sx = sy = None
-    print('density =', density)
+        initial_fn = 'density_%2.1f-initial.traj' % density
 
-    initial_fn = 'density_%2.1f-initial.traj' % density
+        liquid_fn = 'density_%2.1f-liquid.traj' % density
+        liquid_final_fn = 'density_%2.1f-liquid.final.traj' % density
 
-    liquid_fn = 'density_%2.1f-liquid.traj' % density
-    liquid_final_fn = 'density_%2.1f-liquid.final.traj' % density
+        quench_fn = 'density_%2.1f-quench.traj' % density
+        quench_final_fn = 'density_%2.1f-quench.final.traj' % density
 
-    quench_fn = 'density_%2.1f-quench.traj' % density
-    quench_final_fn = 'density_%2.1f-quench.final.traj' % density
+        print('=== LIQUID ===')
 
-    print('=== LIQUID ===')
+        if not os.path.exists(liquid_final_fn):
+            if not os.path.exists(liquid_fn):
+                print('... creating new solid ...')
+                a = random_solid(els, density, sx=sx, sy=sy)
+                n = a.get_atomic_numbers().copy()
 
-    if not os.path.exists(liquid_final_fn):
-        if not os.path.exists(liquid_fn):
-            print('... creating new solid ...')
-            a = random_solid(els, density, sx=sx, sy=sy)
-            n = a.get_atomic_numbers().copy()
+                # Relax with the quick potential
+                a.set_atomic_numbers([6]*len(a))
+                a.set_calculator(quick_calc)
+                FIRE(a, downhill_check=True).run(fmax=1.0, steps=nsteps_relax)
+                a.set_atomic_numbers(n)
+                write(initial_fn, a)
+            else:
+                print('... reading %s ...' % liquid_fn)
+                a = read(liquid_fn)
 
-            # Relax with the quick potential
-            a.set_atomic_numbers([6]*len(a))
-            a.set_calculator(quick_calc)
-            FIRE(a, downhill_check=True).run(fmax=1.0, steps=nsteps_relax)
-            a.set_atomic_numbers(n)
-            write(initial_fn, a)
+            # Thermalize with the slow (but correct) potential
+            a.set_calculator(calc)
+            traj = Trajectory(liquid_fn, 'a', a)
+            dyn = Langevin(a, dt1, T1, 1.0/tau1,
+                           logfile='-', loginterval=int(dtdump/dt1))
+            dyn.attach(traj.write, interval=int(dtdump/dt1)) # every 100 fs
+            nsteps = int(teq/dt1)-len(traj)*int(dtdump/dt1)
+            print('Need to run for further {} steps to reach total of {} steps.'.format(nsteps, int(teq/dt1)))
+            if nsteps <= 0:
+                nsteps = 1
+            dyn.run(nsteps)
+            traj.close()
+
+            # Write snapshot
+            write(liquid_final_fn, a)
         else:
-            print('... reading %s ...' % liquid_fn)
-            a = read(liquid_fn)
-
-        # Thermalize with the slow (but correct) potential
-        a.set_calculator(calc)
-        traj = Trajectory(liquid_fn, 'a', a)
-        dyn = Langevin(a, dt1, T1, 1.0/tau1,
-                       logfile='-', loginterval=int(dtdump/dt1))
-        dyn.attach(traj.write, interval=int(dtdump/dt1)) # every 100 fs
-        nsteps = int(teq/dt1)-len(traj)*int(dtdump/dt1)
-        print('Need to run for further {} steps to reach total of {} steps.'.format(nsteps, int(teq/dt1)))
-        if nsteps <= 0:
-            nsteps = 1
-        dyn.run(nsteps)
-        traj.close()
-
-        # Write snapshot
-        write(liquid_final_fn, a)
-    else:
-        print('... reading %s ...' % liquid_final_fn)
-        a = read(liquid_final_fn)
-        a.set_calculator(calc)
-
-    print('=== QUENCH ===')
-
-    if not os.path.exists(quench_final_fn):
-        if os.path.exists(quench_fn):
-            print('... reading %s ...' % quench_fn)
-            a = read(quench_fn)
+            print('... reading %s ...' % liquid_final_fn)
+            a = read(liquid_final_fn)
             a.set_calculator(calc)
 
-        # 10ps Langevin quench to 300K
-        traj = Trajectory(quench_fn, 'a', a)
-        dyn = Langevin(a, dt2, T2, 1.0/tau2,
-                       logfile='-', loginterval=200)
-        dyn.attach(traj.write, interval=int(dtdump/dt2)) # every 100 fs
-        nsteps = int(tqu/dt2)-len(traj)*int(dtdump/dt2)
-        print('Need to run for further {} steps to reach total of {} steps.'.format(nsteps, int(teq/dt1)))
-        dyn.run(nsteps)
+        print('=== QUENCH ===')
 
-        # Write snapshot
-        write(quench_final_fn, a)
+        if not os.path.exists(quench_final_fn):
+            if os.path.exists(quench_fn):
+                print('... reading %s ...' % quench_fn)
+                a = read(quench_fn)
+                a.set_calculator(calc)
 
-    open('DONE_%2.1f' % density, 'w')
+            # 10ps Langevin quench to 300K
+            traj = Trajectory(quench_fn, 'a', a)
+            dyn = Langevin(a, dt2, T2, 1.0/tau2,
+                           logfile='-', loginterval=200)
+            dyn.attach(traj.write, interval=int(dtdump/dt2)) # every 100 fs
+            nsteps = int(tqu/dt2)-len(traj)*int(dtdump/dt2)
+            print('Need to run for further {} steps to reach total of {} steps.'.format(nsteps, int(teq/dt1)))
+            dyn.run(nsteps)
+
+            # Write snapshot
+            write(quench_final_fn, a)
+
+        open('DONE_%2.1f' % density, 'w')
