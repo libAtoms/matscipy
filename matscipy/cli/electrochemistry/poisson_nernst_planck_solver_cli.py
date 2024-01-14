@@ -171,19 +171,21 @@ def main():
         from matscipy.electrochemistry.poisson_nernst_planck_solver_fenics \
             import PoissonNernstPlanckSystemFEniCS as PoissonNernstPlanckSystem
         import dolfin
+        import ffc
         dolfin.cpp.log.set_log_level(loglevel)
 
         if not args.outfile:
             # fenics writes some log messages to stdout. If we pipe the output,
             # we don't want that, hence here we have to suppress fenics logging
             # if no output file has been specified
-
-            fenics.set_log_level(logging.WARNING)
+            ffc.log.set_level(logging.ERROR)
+            fenics.set_log_level(logging.ERROR)
             fenics.set_log_active(False)
-            dolfin.cpp.log.set_log_level(logging.WARNING)
+            dolfin.cpp.log.set_log_level(logging.ERROR)
             dolfin.cpp.log.set_log_active(False)
-            logging.getLogger('UFL').setLevel(logging.WARNING)
-            logging.getLogger('FFC').setLevel(logging.WARNING)
+
+            logging.getLogger('UFL').setLevel(logging.ERROR)
+            logging.getLogger('FFC').setLevel(logging.ERROR)
 
         logger.info("Will use FEniCS finite element solver.")
     except ModuleNotFoundError:
