@@ -226,6 +226,7 @@ def main():
         # we don't want that, hence here we have to suppress fenics logging
         # if no output file has been specified
         try:
+            fenics.set_log_active(False)
             dolfin.cpp.log.set_log_active(False)
             logging.getLogger('UFL').setLevel(logging.WARNING)
             logging.getLogger('FFC').setLevel(logging.WARNING)
