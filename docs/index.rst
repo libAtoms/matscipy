@@ -1,8 +1,8 @@
-.. include:: ../README.rst
+.. include:: getting_started.rst
 
 .. toctree::
    :maxdepth: 2
-   :caption: Table of Contents:
+   :caption: Table of Contents
 
    self
    ./applications/index
