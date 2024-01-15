@@ -68,18 +68,18 @@ cli = [
 # always installed, even if they are specified as extra-dependent as done here.
 
 # Generic
-matscipy_rms = "matscipy.cli.diffusion.rms:main"
+matscipy-rms = "matscipy.cli.diffusion.rms:main"
 
 # Glasses
-matscipy_quench = "matscipy.cli.glasses.quench:main"
+matscipy-quench = "matscipy.cli.glasses.quench:main"
 
 # Electrochemistry
-matscipy_continuous2discrete = "matscipy.cli.electrochemistry.continuous2discrete:main"
-matscipy_poisson-nernst-planck = "matscipy.cli.electrochemistry.poisson_nernst_planck_solver:main"
-matscipy_stericify = "matscipy.cli.electrochemistry.stericify:main"
+matscipy-continuous2discrete = "matscipy.cli.electrochemistry.continuous2discrete:main"
+matscipy-poisson-nernst-planck = "matscipy.cli.electrochemistry.poisson_nernst_planck_solver:main"
+matscipy-stericify = "matscipy.cli.electrochemistry.stericify:main"
 
 # Interatomic potentials
-matscipy_average_eam_potential = "matscipy.cli.average_eam_potential:main"
+matscipy-average-eam-potential = "matscipy.cli.average_eam_potential:main"
 
 [project.urls]
 documentation = "http://libatoms.github.io/matscipy/"
