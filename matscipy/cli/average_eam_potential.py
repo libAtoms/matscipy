@@ -18,8 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import numpy as np
+
 import click
+import numpy as np
+
 from matscipy.calculators.eam import io, average_atom
 
 
