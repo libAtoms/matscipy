@@ -1,8 +1,14 @@
 Change log
 ==========
 
-v0.8.0 (not yet released) 
+v0.9.0 (not yet released)
 -------------------------
+
+- Scripts are now installable CLI
+- Updated documentation packages
+
+v0.8.0 (12Apr23) 
+----------------
 
 - Calculator for traditional Ewald summation 
 - Analytic computation of Hessian and zero-temperature elastic constants for potentials with electrostatic interaction
