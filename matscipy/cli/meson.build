@@ -3,9 +3,7 @@
 # Pure Python sources
 python_sources = [
     '__init__.py',
-    'ase2ovito.py',
-    'average_eam_potential.py',
-    'openovito.py'
+    'average_eam_potential.py'
 ]
 
 # Install pure Python
