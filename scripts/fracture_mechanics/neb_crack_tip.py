@@ -46,11 +46,9 @@
 # contains simulation parameters. Some parameters can be omitted, see below.
 
 import os
-import sys
 
 import numpy as np
 
-import ase
 import ase.constraints
 import ase.io
 #import ase.optimize.precon
@@ -58,14 +56,13 @@ import ase.io
 from ase.neb import NEB
 
 from ase.data import atomic_numbers
-from ase.units import GPa
 
 import matscipy.fracture_mechanics.crack as crack
 from matscipy import parameter
 from matscipy.logger import screen
 from matscipy.io import savetbl
 
-from setup_crack import setup_crack
+from matscipy.cli.fracture_mechanics.setup_crack import setup_crack
 
 from scipy.integrate import cumtrapz
 

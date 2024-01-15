@@ -4,7 +4,7 @@
 
 This command generates an averaged EAM potential for an alloy. The basic theory behind averaged alloy EAM potentials is
 described in
-[Varvenne, Luque,  Nöhring, Curtin, Phys. Rev. B 93, 104201 (2016)](https://doi.org/10.1103/PhysRevB.93.104201). The
+[Varvenne, Luque, Nöhring, Curtin, Phys. Rev. B 93, 104201 (2016)](https://doi.org/10.1103/PhysRevB.93.104201). The
 basic usage of the command is
 
 ```bash

@@ -46,26 +46,21 @@
 # Code imports the file 'params.py' from current working directory. params.py
 # contains simulation parameters. Some parameters can be omitted, see below.
 
-from math import sqrt
-
 import os
-import sys
 
 import numpy as np
 
-import ase
 from ase.constraints import FixConstraint
 import ase.io
 import ase.optimize
 from ase.data import atomic_numbers
-from ase.units import GPa
 from ase.geometry import find_mic
 
 import matscipy.fracture_mechanics.crack as crack
 from matscipy import parameter
 from matscipy.logger import screen
 
-from setup_crack import setup_crack
+from matscipy.cli.fracture_mechanics.setup_crack import setup_crack
 
 ###
 

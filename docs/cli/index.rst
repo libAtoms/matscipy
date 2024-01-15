@@ -14,5 +14,6 @@ whether a default parameter was used, to the log.
 
    diffusion
    electrochemistry
-   interatomic
+   fracture_mechanics
+   calculators
    structure
