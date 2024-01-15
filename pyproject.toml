@@ -79,7 +79,7 @@ matscipy-poisson-nernst-planck = "matscipy.cli.electrochemistry.poisson_nernst_p
 matscipy-stericify = "matscipy.cli.electrochemistry.stericify:main"
 
 # Interatomic potentials
-matscipy-average-eam-potential = "matscipy.cli.average_eam_potential:main"
+matscipy-average-eam-potential = "matscipy.cli.calculators.average_eam_potential:main"
 
 [project.urls]
 documentation = "http://libatoms.github.io/matscipy/"
