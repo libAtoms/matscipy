@@ -58,7 +58,7 @@ class ElectrochemistryCliTest(matscipytest.MatSciPyTestCase):
         self.ref_lammps = ase.io.read(
             os.path.join(self.data_path,'NaCl.lammps'),format='lammps-data')
 
-        # command line interface scripts are expected to reside within
+        # command line interface staging are expected to reside within
         # ../matscipy/cli/electrochemistry relative to this test directory
         self.pnp_cli = os.path.join(
             self.test_path,os.path.pardir,'matscipy','cli','electrochemistry','poisson_nernst_planck_solver.py')

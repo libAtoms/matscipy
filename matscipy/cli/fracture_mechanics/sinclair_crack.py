@@ -35,7 +35,7 @@ from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 import sys
 
 def main():
-    sys.path.insert(0, '../../../scripts/fracture_mechanics')
+    sys.path.insert(0, '../../../staging/fracture_mechanics')
     import params
 
     calc = parameter('calc')

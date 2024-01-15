@@ -60,11 +60,11 @@ cli = [
 #            ],
 #        },
 #        ...
-# resulted in optional CLI scripts installed only if the extra [cli] had been
+# resulted in optional CLI staging installed only if the extra [cli] had been
 # explicitly requested, e.g. via
 #     pip install matscipy[cli]
 # (see https://github.com/libAtoms/matscipy/blob/92dd490a3c2c71edc5d0018487afbee5f2273730/setup.py#L302-L319)
-# With pyproject.toml and meson as build system, the console scripts are
+# With pyproject.toml and meson as build system, the console staging are
 # always installed, even if they are specified as extra-dependent as done here.
 
 # Generic

@@ -41,7 +41,7 @@ import sys
 def main():
     print(matscipy.__file__)
 
-    sys.path.insert(0, '../../../scripts/fracture_mechanics')
+    sys.path.insert(0, '../../../staging/fracture_mechanics')
 
     import params
 
