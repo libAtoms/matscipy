@@ -62,6 +62,66 @@ set_groups(cryst, n, skin_x, skin_y)  # Outer fixed atoms
 ase.io.write('cryst.xyz', cryst, format='extxyz')  # Dump initial crack system (without notch)
 ```
 
+## `matscipy-sinclair-crack`
+
+This command carries out a relaxation of an atomistic fracture system with flexible boundary conditions, following the approach of [Sinclair (1975)](https://www.tandfonline.com/doi/abs/10.1080/14786437508226544).
+It reads a `params.py` which is similar to that used for `matscipy-quasi-static-fracture` described above.
+
+An example parameter file for silicon using the screened Kumagai potential from Atomistica is given below:
+
+```Python
+import numpy as np
+from matscipy.fracture_mechanics.clusters import diamond, set_groups, set_regions
+import ase.io
+import atomistica
+
+# Interaction potential
+calc = atomistica.KumagaiScr()
+
+# Fundamental material properties
+el = 'Si'
+a0 = 5.429
+surface_energy = 1.08 * 10  # GPa*A = 0.1 J/m^2
+
+elastic_symmetry = 'cubic'
+
+# Crack system
+crack_surface = [1, 1, 1]
+crack_front = [1, -1, 0]
+
+vacuum = 6.0
+
+# Simulation control
+ds = 0.01
+nsteps = 10000
+continuation = True
+
+k0 = 0.9
+dk = 1e-4
+
+fmax = 1e-2
+max_steps = 50
+
+r_I = 15.0
+cutoff = 6.0
+r_III = 40.0
+
+n = [2 * int((r_III + cutoff)/ a0), 2 * int((r_III + cutoff)/ a0) - 1, 1]
+print('n=', n)
+
+# Setup crack system and regions I, II, III and IV
+cryst = diamond(el, a0, n, crack_surface, crack_front)
+cluster = set_regions(cryst, r_I, cutoff, r_III)  # carve circular cluster
+
+ase.io.write('cryst.cfg', cryst)
+ase.io.write('cluster.cfg', cluster)
+```
+
 ## `matscipy-sinclair-continuation`
 
-## `matscipy-sinclair-crack`
+This command build on the functionality of `matscipy-sinclair-crack` by carrying out numerical continuation
+to map out a solution path containing both stable and unstable equilibria, following the approach described
+in [Buze and Kermode (2021)](http://dx.doi.org/10.1103/PhysRevE.103.033002).
+
+The `params.py` parameter file given above for `matscipy-sinclair-crack` is also suitable as an example
+input file for this script.
