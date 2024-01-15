@@ -25,11 +25,11 @@ import sys
 import numpy as np
 
 import ase
-from ase.atoms import string2symbols
 from ase.io import read, write
 from ase.io.trajectory import Trajectory
-from ase.optimize import FIRE
 from ase.md import Langevin
+from ase.optimize import FIRE
+from ase.symbols import string2symbols
 from ase.units import mol, fs, kB
 
 from matscipy import parameter

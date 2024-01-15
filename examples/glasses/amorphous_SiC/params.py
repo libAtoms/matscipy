@@ -17,12 +17,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import atomistica
+from ase.units import fs
+
+from matscipy.calculators.manybody import Manybody
+from matscipy.calculators.manybody.explicit_forms import TersoffBrenner
+from matscipy.calculators.manybody.explicit_forms.tersoff_brenner import Tersoff_PRB_39_5566_Si_C
 
 # Quick and robust calculator to relax initial positions
-quick_calc = atomistica.Tersoff()
+quick_calc = Manybody(**TersoffBrenner(Tersoff_PRB_39_5566_Si_C))
 # Calculator for actual quench
-calc = atomistica.TersoffScr()
+calc = quick_calc
 
 stoichiometry = 'Si128C128'
 densities = [3.21]
+
+# These times are too low for production runs and are intended for demonstration only
+dtdump = 10 * fs
+teq = 1e3 * fs
+tqu = 1e3 * fs
+
+
