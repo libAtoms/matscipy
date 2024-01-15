@@ -70,6 +70,7 @@ Utility functions
    :toctree: generated
    :recursive:
 
+   matscipy
    matscipy.io
    matscipy.numpy_tricks
    matscipy.logger
