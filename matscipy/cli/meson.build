@@ -14,4 +14,5 @@ python.install_sources(
 subdir('calculators')
 subdir('diffusion')
 subdir('electrochemistry')
+subdir('fracture_mechanics')
 subdir('glasses')

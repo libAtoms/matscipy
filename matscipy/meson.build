@@ -52,5 +52,3 @@ subdir('cli')
 subdir('electrochemistry')
 subdir('fracture_mechanics')
 subdir('io')
-subdir('tool')
-

@@ -46,14 +46,13 @@ import numpy as np
 import ase.io
 import ase.constraints
 import ase.optimize
+from ase.optimize.precon import PreconLBFGS
 
 from matscipy import parameter
 from matscipy.logger import screen
 
-from setup_crack import setup_crack
-from ase.optimize.precon import PreconLBFGS
+from .setup_crack import setup_crack
 
-###
 
 def main():
     # Atom types used for outputting the crack tip position.
