@@ -87,6 +87,11 @@ release = 'devel'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns = ['_build']
+# conditionally exclude fenics-dependent jupyter notebook if fenics not available
+try:
+    import fenics
+except ModuleNotFoundError:
+    exclude_patterns.extend(["applications/electrochemistry_2.py"])
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
