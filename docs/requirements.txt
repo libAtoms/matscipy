@@ -3,3 +3,4 @@ ase>=3.16.0
 sphinx_rtd_theme
 jupytext
 sphinxcontrib-spelling
+nglview==3.0.8

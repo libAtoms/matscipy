@@ -42,7 +42,8 @@ docs = [
     "sphinx_rtd_theme",
     "sphinxcontrib-spelling",
     "pydata-sphinx-theme",
-    "jupytext"
+    "jupytext",
+    "nglview==3.0.8"  # resolves https://github.com/libAtoms/matscipy/issues/222
 ]
 cli = [
     "argcomplete"
