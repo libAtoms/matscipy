@@ -591,8 +591,8 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
 class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
-    has_atomman = "atomman" not in sys.modules
-    has_ovito = "ovito" not in sys.modules
+    has_atomman = "atomman" in sys.modules
+    has_ovito = "ovito" in sys.modules
     
     def __init__(self, disloc_cls):
         '''
@@ -825,7 +825,7 @@ class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
 # Build correct unittest test suite
 ##############
 
-def suite():
+def load_tests(loader, tests, pattern):
     import inspect
 
     # Get all cubic dislocation classes
@@ -840,7 +840,6 @@ def suite():
     cubic_perfect_dislocs = [item for item in cubic_dislocs if not issubclass(item, sd.CubicCrystalDissociatedDislocation)]
 
     disloc_testsuite = unittest.TestSuite()
-    loader = unittest.TestLoader()
 
     disloc_testsuite.addTests([TestCubicCrystalDislocation(disloc) 
                                     for disloc in cubic_perfect_dislocs])
@@ -854,6 +853,6 @@ def suite():
     return disloc_testsuite
 
 if __name__ == '__main__':
-    disloc_testsuite = suite()
+    disloc_testsuite = load_tests()
     runner = unittest.TextTestRunner()
     runner.run(disloc_testsuite)
