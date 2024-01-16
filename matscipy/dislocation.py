@@ -2586,7 +2586,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return sup
 
     def _build_bulk_cyl(self, radius, core_positions, fix_rad, extension,
-                        self_consistent, method):
+                        self_consistent, method, verbose):
         '''
         Build bulk cylinder config from args supplied by self.build_cylinder
 
@@ -2683,7 +2683,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         disloc = cyl.copy()
 
         disloc.positions += self.displacements(cyl.positions, new_core_positions,
-                                               self_consistent=self_consistent, method=method)
+                                               self_consistent=self_consistent, method=method,
+                                               verbose=verbose)
 
         if fix_rad:
             fix_mask = ~radial_mask_from_polygon2D(cyl.get_positions(), mask_positions, radius - fix_rad, inner=True)
@@ -2838,7 +2839,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                        core_position=np.array([0., 0., 0.]),
                        extension=np.array([0, 0, 0]),
                        fix_width=10.0, self_consistent=None,
-                       method="atomman"):
+                       method="atomman",
+                       verbose=True):
         '''
         Build dislocation cylinder for single dislocation system
 
@@ -2869,7 +2871,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ])
 
         bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width,
-                                                            extension, self_consistent, method)
+                                                            extension, self_consistent, method, verbose)
 
         disloc.info["core_positions"] = [list(core_positions[0, :])]
         disloc.info["burgers_vectors"] = [list(self.burgers)]
@@ -3315,7 +3317,8 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                        extension=np.array([[0., 0., 0.],
                                           [0., 0., 0.]]),
                        fix_width=10.0, self_consistent=None,
-                       method="atomman"):
+                       method="atomman",
+                       verbose=True):
         """
         Overloaded function to make dissociated dislocations.
         Partial distance is provided as an integer to define number
@@ -3347,7 +3350,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         ])
 
         bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width, extension,
-                                                            self_consistent, method)
+                                                            self_consistent, method, verbose)
 
         if partial_distance > 0:
             # Specify left & right dislocation separately
@@ -3455,7 +3458,10 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         if "self_consistent" in kwargs:
             # Disable disloc verbosity if no self-consistent solve of disloc displacements
             # CubicCrystalDislocation.displacements doesn't print unless SCF is turned on 
-            disloc_verbose = disloc_verbose * kwargs["self_consistent"]
+            disloc_verbose = disloc_verbose * bool(kwargs["self_consistent"])
+            self_consistent = bool(kwargs[self_consistent])
+        else:
+            kwargs["self_consistent"] = self.self_consistent
 
         displacements = np.zeros_like(positions)
         disp_update = np.zeros_like(positions)
