@@ -3349,14 +3349,15 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         bulk, disloc, core_positions = self._build_bulk_cyl(radius, core_positions, fix_width, extension,
                                                             self_consistent, method)
 
-        disloc.info["core_positions"] = [list(core_positions[0, :]), list(core_positions[1, :])]
         if partial_distance > 0:
             # Specify left & right dislocation separately
+            disloc.info["core_positions"] = [list(core_positions[0, :]), list(core_positions[1, :])]
             disloc.info["burgers_vectors"] = [list(self.left_dislocation.burgers), list(self.right_dislocation.burgers)]
             disloc.info["dislocation_types"] = [self.left_dislocation.name, self.right_dislocation.name]
             disloc.info["dislocation_classes"] = [str(self.left_dislocation.__class__), str(self.right_dislocation.__class__)]
         else:
             # Perfect, non-dissociated dislocation, only show values for single dislocation
+            disloc.info["core_positions"] = [list(core_positions[0, :])]
             disloc.info["burgers_vectors"] = [list(self.burgers)]
             disloc.info["dislocation_types"] = [self.name]
             disloc.info["dislocation_classes"] = [str(self.__class__)]
