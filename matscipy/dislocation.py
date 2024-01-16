@@ -2069,15 +2069,15 @@ def ovito_dxa_straight_dislo_info(disloc, structure="BCC", replicate_z=3):
     if 'fix_mask' in dxa_disloc.arrays:
         del dxa_disloc.arrays['fix_mask']
 
-    input_crystal_structures = {"BCC": DislocationAnalysisModifier.Lattice.BCC,
-                                "FCC": DislocationAnalysisModifier.Lattice.FCC,
-                                "Diamond": DislocationAnalysisModifier.Lattice.CubicDiamond}
+    input_crystal_structures = {"bcc": DislocationAnalysisModifier.Lattice.BCC,
+                                "fcc": DislocationAnalysisModifier.Lattice.FCC,
+                                "diamond": DislocationAnalysisModifier.Lattice.CubicDiamond}
 
     data = ase_to_ovito(dxa_disloc)
     pipeline = Pipeline(source=StaticSource(data=data))
     pipeline.modifiers.append(ReplicateModifier(num_z=replicate_z))
     dxa = DislocationAnalysisModifier(
-          input_crystal_structure=input_crystal_structures[structure])
+          input_crystal_structure=input_crystal_structures[structure.lower()])
     pipeline.modifiers.append(dxa)
 
     data = pipeline.compute()

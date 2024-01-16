@@ -55,7 +55,6 @@ try:
 except ImportError:
     print("ovito not found: skipping some tests")
 
-
 class TestDislocation(matscipytest.MatSciPyTestCase):
     """Class to store test for dislocation.py module."""
 
@@ -411,320 +410,6 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         # to length of kink_length * 3 - 1 (for left kink)
         self.assertEqual(len(sliced_left_kink), kink_length * 3 - 1)
 
-    def check_disloc(self, cls, ref_angle, structure="BCC", test_u=True,
-                     burgers=0.5 * np.array([1.0, 1.0, 1.0]), tol=10.0, gen_bulk=False):
-        alat = 3.14339177996466
-        C11 = 523.0266819809012
-        C12 = 202.1786296941397
-        C44 = 160.88179872237012
-
-        if gen_bulk:
-            a = ase_bulk("Al", structure.lower(), alat, cubic=True)
-        else:
-            a = alat
-
-        d = cls(a, C11, C12, C44, symbol="Al")
-        bulk, disloc = d.build_cylinder(20.0)
-
-        # test that assigning non default symbol worked
-        assert np.unique(bulk.get_chemical_symbols()) == "Al"
-        assert np.unique(disloc.get_chemical_symbols()) == "Al"
-
-        assert len(bulk) == len(disloc)
-
-        if test_u:
-            # test the consistency
-            # displacement = disloc.positions - bulk.positions
-            stroh_displacement = d.displacements(bulk.positions,
-                                                 np.array(disloc.info["core_positions"]),
-                                                 self_consistent=d.self_consistent)
-
-            displacement = disloc.positions - bulk.positions
-
-            np.testing.assert_array_almost_equal(displacement,
-                                                 stroh_displacement)
-
-        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
-        assert len(results) == 1
-        position, b, line, angle = results[0]
-        self.assertArrayAlmostEqual(np.abs(b), burgers)  # signs can change
-
-        err = angle - ref_angle
-        print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
-        assert abs(err) < tol
-
-        if issubclass(cls, sd.CubicCrystalDislocationQuadrupole):
-            self.check_dissociated_disloc(cls, structure, gen_bulk)
-
-    def check_dissociated_disloc(self, cls, structure="BCC", gen_bulk=False):
-        alat = 3.14339177996466
-        C11 = 523.0266819809012
-        C12 = 202.1786296941397
-        C44 = 160.88179872237012
-
-        if gen_bulk:
-            a = ase_bulk("Al", structure.lower(), alat, cubic=True)
-        else:
-            a = alat
-
-        d = cls(a, C11, C12, C44, symbol="Al")
-        
-        partial_dist = 5.0        
-        bulk, disloc = d.build_cylinder(40.0, partial_distance=partial_dist)
-
-        # Check good agreement of displacements method with sum of 
-        # left and right displacements
-        # May not be equal, due to self_consistent
-
-        core_positions = np.array([
-            [0, 0, 0],
-            [partial_dist, 0, 0]
-        ])
-        
-        # Left + Right displacements
-        full_disps = d.displacements(bulk.positions, core_positions, 
-                                      self_consistent=d.self_consistent)
-        # Left only
-        left_disps = d.left_dislocation.displacements(bulk.positions, core_positions[0, :], 
-                                      self_consistent=d.self_consistent)
-        # Right only
-        right_disps = d.right_dislocation.displacements(bulk.positions, core_positions[1, :], 
-                                      self_consistent=d.self_consistent)
-        
-        diff = left_disps + right_disps - full_disps
-
-        max_err = np.max(np.abs(diff))
-
-        # Percentage tolerance of the error, w/ respect to the lattice parameter
-        percent_tol = 1.0
-
-        assert (max_err / alat) <= (percent_tol / 100.0)
-
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_screw_dislocation(self):
-        self.check_disloc(sd.BCCScrew111Dislocation, 0.0)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_edge_dislocation(self):
-        self.check_disloc(sd.BCCEdge111Dislocation, 90.0)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_edge111bar_dislocation(self):
-        self.check_disloc(sd.BCCEdge111barDislocation, 90.0)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_edge100_dislocation(self,):
-        self.check_disloc(sd.BCCEdge100Dislocation, 90.0,
-                          burgers=np.array([1.0, 0.0, 0.0]))
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_edge100110_dislocation(self,):
-        self.check_disloc(sd.BCCEdge100110Dislocation, 90.0,
-                          burgers=np.array([1.0, 0.0, 0.0]))
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_mixed_dislocation(self):
-        self.check_disloc(sd.BCCMixed111Dislocation, 70.5)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_30degree_diamond_partial_dislocation(self,):
-        self.check_disloc(sd.DiamondGlide30degreePartial, 30.0,
-                          structure="Diamond",
-                          burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_90degree_diamond_partial_dislocation(self,):
-        self.check_disloc(sd.DiamondGlide90degreePartial, 90.0,
-                          structure="Diamond",
-                          burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]))
-        self.check_disloc(sd.DiamondGlide90degreePartial, 90.0,
-                          structure="Diamond",
-                          burgers=(1.0 / 6.0) * np.array([2.0, 1.0, 1.0]),
-                          gen_bulk=True)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_screw_diamond_dislocation(self,):
-        self.check_disloc(sd.DiamondGlideScrew, 0.0,
-                          structure="Diamond",
-                          burgers=(1.0 / 2.0) * np.array([0.0, 1.0, 1.0]))
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_60degree_diamond_dislocation(self,):
-        self.check_disloc(sd.DiamondGlide60Degree, 60.0,
-                          structure="Diamond",
-                          burgers=(1.0 / 2.0) * np.array([1.0, 0.0, 1.0]))
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_fcc_screw_shockley_partial_dislocation(self,):
-        self.check_disloc(sd.FCCScrewShockleyPartial, 30.0,
-                          structure="FCC",
-                          burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_fcc_screw110_dislocation(self,):
-        self.check_disloc(sd.FCCScrew110Dislocation, 0.0,
-                          structure="FCC",
-                          burgers=(1.0 / 2.0) * np.array([0.0, 1.0, 1.0]))
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_fcc_edge_shockley_partial_dislocation(self,):
-        self.check_disloc(sd.FCCEdgeShockleyPartial, 60.0,
-                          structure="FCC",
-                          burgers=(1.0 / 6.0) * np.array([1.0, 2.0, 1.0]))
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_fcc_edge110_partial_dislocation(self,):
-        self.check_disloc(sd.FCCEdge110Dislocation, 90.0,
-                          structure="FCC",
-                          burgers=(1.0 / 2.0) * np.array([1.0, 1.0, 0.0]))
-
-    def check_glide_configs(self, cls, structure="BCC"):
-        alat = 3.14339177996466
-        C11 = 523.0266819809012
-        C12 = 202.1786296941397
-        C44 = 160.88179872237012
-
-        d = cls(alat, C11, C12, C44)
-        bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40)
-
-        assert len(bulk) == len(disloc_ini)
-        assert len(disloc_ini) == len(disloc_fin)
-
-        assert all(disloc_ini.get_array("fix_mask") ==
-                   disloc_fin.get_array("fix_mask"))
-
-        results = sd.ovito_dxa_straight_dislo_info(disloc_ini,
-                                                   structure=structure)
-        assert len(results) == 1
-        ini_x_position = results[0][0][0]
-
-        results = sd.ovito_dxa_straight_dislo_info(disloc_fin,
-                                                   structure=structure)
-        assert len(results) == 1
-        fin_x_position = results[0][0][0]
-        # test that difference between initial and final positions are
-        # roughly equal to glide distance.
-        # Since the configurations are unrelaxed dxa gives
-        # a very rough estimation (especially for edge dislocations)
-        # thus tolerance is taken to be ~1 Angstrom
-        np.testing.assert_almost_equal(fin_x_position - ini_x_position,
-                                       d.glide_distance, decimal=0)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_screw_glide(self):
-        self.check_glide_configs(sd.BCCScrew111Dislocation)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_edge_glide(self):
-        self.check_glide_configs(sd.BCCEdge111Dislocation)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_mixed_glide(self):
-        self.check_glide_configs(sd.BCCMixed111Dislocation)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_edge100_glide(self):
-        self.check_glide_configs(sd.BCCEdge100Dislocation)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_edge100110_glide(self):
-        self.check_glide_configs(sd.BCCEdge100110Dislocation)
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_30degree_diamond_partial_glide(self):
-        self.check_glide_configs(sd.DiamondGlide30degreePartial,
-                                 structure="Diamond")
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_90degree_diamond_partial_glide(self):
-        self.check_glide_configs(sd.DiamondGlide90degreePartial,
-                                 structure="Diamond")
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_screw_diamond_glide(self):
-        self.check_glide_configs(sd.DiamondGlideScrew,
-                                 structure="Diamond")
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_60degree_diamond_glide(self):
-        self.check_glide_configs(sd.DiamondGlide60Degree,
-                                 structure="Diamond")
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_fcc_screw_shockley_partial_glide(self):
-        self.check_glide_configs(sd.FCCScrewShockleyPartial,
-                                 structure="FCC")
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_fcc_screw_110_glide(self):
-        self.check_glide_configs(sd.FCCScrew110Dislocation,
-                                 structure="FCC")
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_fcc_edge_shockley_partial_glide(self):
-        self.check_glide_configs(sd.FCCEdgeShockleyPartial,
-                                 structure="FCC")
-
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
-    def test_fcc_edge_dislocation_glide(self):
-        self.check_glide_configs(sd.FCCEdge110Dislocation,
-                                 structure="FCC")
-
     def test_fixed_line_atoms(self):
 
         from ase.build import bulk
@@ -904,5 +589,249 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.check_anisotropic_disloc(sd.BCCMixed111Dislocation, 70.5)
 
 
+class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
+    def __init__(self, disloc_cls):
+        '''
+        Test a CubicCrystalDislocation class
+        '''
+        self.test_cls = disloc_cls
+
+        self.alat = 3.14339177996466
+        self.C11 = 523.0266819809012
+        self.C12 = 202.1786296941397
+        self.C44 = 160.88179872237012
+
+        self.set_test_name()
+
+    def set_test_name(self):
+        '''
+        Hack for making the unittest test name include the name of the dislocation
+        e.g. "TestDiamondGlide90degreePartial"
+        '''
+
+        test_method_name = "Test" + self.test_cls.__name__
+        self.__setattr__(test_method_name, self.perfect_disloc_tests)
+        unittest.TestCase.__init__(self, methodName=test_method_name)
+
+    @unittest.skipIf("atomman" not in sys.modules or
+                     "ovito" not in sys.modules,
+                     "requires atomman and ovito")
+    def perfect_disloc_tests(self):
+        '''
+        Test build_cylinder and build_glide_configurations
+        '''
+        with self.subTest("Checking construction of dislocation cylinders"):
+            self.check_disloc(gen_bulk=False)
+            self.check_disloc(gen_bulk=True)
+
+        with self.subTest("Checking dislocation glide configurations"):
+            self.check_glide_configs()
+
+        with self.subTest("Checking validity of all displacement methods"):
+            self.check_methods()
+
+    def check_disloc(self, test_u=True,
+                     tol=10.0, gen_bulk=False):
+
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
+        structure = d.crystalstructure
+
+        if gen_bulk:
+            a = ase_bulk("Al", structure.lower(), self.alat, cubic=True)
+        else:
+            a = self.alat
+
+        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
+        bulk, disloc = d.build_cylinder(20.0)
+
+        # test that assigning non default symbol worked
+        assert np.unique(bulk.get_chemical_symbols()) == "Al"
+        assert np.unique(disloc.get_chemical_symbols()) == "Al"
+
+        assert len(bulk) == len(disloc)
+
+        if test_u:
+            # test the consistency
+            # displacement = disloc.positions - bulk.positions
+            stroh_displacement = d.displacements(bulk.positions,
+                                                 np.array(disloc.info["core_positions"]),
+                                                 self_consistent=d.self_consistent,
+                                                 verbose=False)
+
+            displacement = disloc.positions - bulk.positions
+
+            np.testing.assert_array_almost_equal(displacement,
+                                                 stroh_displacement)
+
+        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
+        assert len(results) == 1
+        position, b, line, angle = results[0]
+
+        # Sign flips and symmetry groups can cause differences in direct comparisons
+        self.assertArrayAlmostEqual(np.sort(np.abs(b)), np.sort(np.abs(d.burgers_dimensionless)))
+
+        # norm_burgers = d.burgers_dimensionless / np.linalg.norm(d.burgers_dimensionless)
+        # norm_axis = d.axes[:, 2] / np.linalg.norm(d.axes[:, 2])
+        # ref_angle = np.arccos(np.dot(norm_burgers, norm_axis))
+        # err = angle - ref_angle
+        # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
+        # assert abs(err) < tol
+        
+    def check_glide_configs(self):
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
+        structure = d.crystalstructure
+        
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44)
+        bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40)
+
+        assert len(bulk) == len(disloc_ini)
+        assert len(disloc_ini) == len(disloc_fin)
+
+        assert all(disloc_ini.get_array("fix_mask") ==
+                   disloc_fin.get_array("fix_mask"))
+
+        results = sd.ovito_dxa_straight_dislo_info(disloc_ini,
+                                                   structure=structure)
+        assert len(results) == 1
+        ini_x_position = results[0][0][0]
+
+        results = sd.ovito_dxa_straight_dislo_info(disloc_fin,
+                                                   structure=structure)
+        assert len(results) == 1
+        fin_x_position = results[0][0][0]
+        # test that difference between initial and final positions are
+        # roughly equal to glide distance.
+        # Since the configurations are unrelaxed dxa gives
+        # a very rough estimation (especially for edge dislocations)
+        # thus tolerance is taken to be ~1 Angstrom
+        np.testing.assert_almost_equal(fin_x_position - ini_x_position,
+                                       d.glide_distance, decimal=0)
+        
+    def check_methods(self):
+        methods = self.test_cls.avail_methods
+
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44)
+        bulk, _ = d.build_cylinder(radius=20.0)
+
+        # Base method to compare against
+        base_method="atomman"
+
+        methods = [method for method in methods if method != base_method]
+
+        if issubclass(self.test_cls, sd.CubicCrystalDissociatedDislocation):
+            ncores = 2
+        else:
+            ncores = 1
+
+        core_positions = np.zeros((ncores, 3))
+
+        atomman_displacements = d.displacements(bulk.positions, core_positions, method="atomman", verbose=False)
+
+        for method in methods:
+            method_disps = d.displacements(bulk.positions, core_positions, method=method, verbose=False)
+
+            try:
+                np.testing.assert_array_almost_equal(method_disps, atomman_displacements)
+
+            except AssertionError as e:
+                raise AssertionError(f"Displacements from {method} did not match {base_method}")
+
+class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
+    def __init__(self, disloc_cls):
+        TestCubicCrystalDislocation.__init__(self, disloc_cls)
+
+    def set_test_name(self):
+        '''
+        Hack for making the unittest test name include the name of the dislocation
+        '''
+        test_method_name = "Test" + self.test_cls.__name__
+        self.__setattr__(test_method_name, self.dissociated_disloc_tests)
+        unittest.TestCase.__init__(self, methodName=test_method_name)
+
+    def dissociated_disloc_tests(self):
+        # All dissociated dislocs should pass these tests too
+        self.perfect_disloc_tests()
+
+        with self.subTest("Checking dissociation of dislocation"):
+            self.check_dissociated_disloc(gen_bulk=False)
+            self.check_dissociated_disloc(gen_bulk=True)
+
+    def check_dissociated_disloc(self, gen_bulk=False):
+
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
+        structure = d.crystalstructure
+
+        if gen_bulk:
+            a = ase_bulk("Al", structure.lower(), self.alat, cubic=True)
+        else:
+            a = self.alat
+
+        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
+        
+        partial_dist = 5.0        
+        bulk, disloc = d.build_cylinder(40.0, partial_distance=partial_dist)
+
+        # Check good agreement of displacements method with sum of 
+        # left and right displacements
+        # May not be equal, due to self_consistent
+
+        core_positions = np.array([
+            [0, 0, 0],
+            [partial_dist, 0, 0]
+        ])
+        
+        # Left + Right displacements
+        full_disps = d.displacements(bulk.positions, core_positions, 
+                                      self_consistent=d.self_consistent)
+        # Left only
+        left_disps = d.left_dislocation.displacements(bulk.positions, core_positions[0, :], 
+                                      self_consistent=d.self_consistent)
+        # Right only
+        right_disps = d.right_dislocation.displacements(bulk.positions, core_positions[1, :], 
+                                      self_consistent=d.self_consistent)
+        
+        diff = left_disps + right_disps - full_disps
+
+        max_err = np.max(np.abs(diff))
+
+        # Percentage tolerance of the error, w/ respect to the lattice parameter
+        percent_tol = 1.0
+
+        assert (max_err / self.alat) <= (percent_tol / 100.0)
+
+
+
+
+
+##############
+# Build correct unittest test suite
+##############
+
+import inspect
+
+# Get all cubic dislocation classes
+# So new disloc types are automatically added to testing framework
+cubic_dislocs = [item for name, item in sd.__dict__.items() if inspect.isclass(item) and issubclass(item, sd.CubicCrystalDislocation)]
+cubic_dislocs = [item for item in cubic_dislocs if item not in [sd.CubicCrystalDislocation, 
+                                                                sd.CubicCrystalDissociatedDislocation,
+                                                                sd.CubicCrystalDislocationQuadrupole]]
+
+# Split into dissociated vs "perfect" dislocations (CCDD vs CCD)
+cubic_dissociated_dislocs = [item for item in cubic_dislocs if issubclass(item, sd.CubicCrystalDissociatedDislocation)]
+cubic_perfect_dislocs = [item for item in cubic_dislocs if not issubclass(item, sd.CubicCrystalDissociatedDislocation)]
+
+disloc_testsuite = unittest.TestSuite()
+
+disloc_testsuite.addTests([TestCubicCrystalDislocation(disloc) 
+                                   for disloc in cubic_perfect_dislocs])
+disloc_testsuite.addTests([TestCubicCrystalDissociatedDislocation(disloc) 
+                                   for disloc in cubic_dissociated_dislocs])
+
+# Load all tests in TestDislocation into the test suite
+loader = unittest.TestLoader()
+other_tests = loader.loadTestsFromTestCase(TestDislocation)
+disloc_testsuite.addTests(other_tests)
+
 if __name__ == '__main__':
-    unittest.main()
+    runner = unittest.TextTestRunner()
+    runner.run(disloc_testsuite)
