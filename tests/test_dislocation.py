@@ -867,43 +867,36 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
             # Check gradients
             np.testing.assert_array_almost_equal(grad2D_adsl, grad2D_stroh)
         
-
-    @unittest.skip('Reenable in #206')
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_screw_dislocation_adsl(self):
         self.check_anisotropic_disloc(sd.BCCScrew111Dislocation, 0.0)
 
-    @unittest.skip('Reenable in #206')
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_edge_dislocation_adsl(self):
         self.check_anisotropic_disloc(sd.BCCEdge111Dislocation, 90.0)
 
-    @unittest.skip('Reenable in #206')
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_edge111bar_dislocation_adsl(self):
         self.check_anisotropic_disloc(sd.BCCEdge111barDislocation, 90.0)
 
-    @unittest.skip('Reenable in #206')
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_edge100_dislocation_adsl(self,):
         self.check_anisotropic_disloc(sd.BCCEdge100Dislocation, 90.0)
 
-    @unittest.skip('Reenable in #206')
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
     def test_edge100110_dislocation_adsl(self,):
         self.check_anisotropic_disloc(sd.BCCEdge100110Dislocation, 90.0)
 
-    @unittest.skip('Reenable in #206')
     @unittest.skipIf("atomman" not in sys.modules or
                      "ovito" not in sys.modules,
                      "requires atomman and ovito")
