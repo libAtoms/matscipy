@@ -19,7 +19,7 @@
 #
 
 """
-Tools related to homogenously deformed volumes.
+Tools related to homogeneously deformed volumes.
 """
 
 import numpy as np

@@ -11,5 +11,8 @@ python.install_sources(
     subdir: 'matscipy/cli'
 )
 
+subdir('calculators')
+subdir('diffusion')
 subdir('electrochemistry')
-
+subdir('fracture_mechanics')
+subdir('glasses')
