@@ -609,6 +609,12 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
         self.default_method = "atomman" if self.has_atomman else "adsl"
 
+
+        if issubclass(self.test_cls, sd.CubicCrystalDissociatedDislocation):
+            self.ncores = 2
+        else:
+            self.ncores = 1
+
     def set_test_name(self):
         '''
         Hack for making the unittest test name include the name of the dislocation
@@ -621,7 +627,7 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
     def perfect_disloc_tests(self):
         '''
-        Test build_cylinder and build_glide_configurations
+        Test build_cylinder, build_glide_configurations, and all displacement solver methods
         '''
         with self.subTest("Checking construction of dislocation cylinders"):
             self.check_dislocation_cylinder(gen_bulk=False)
@@ -632,6 +638,9 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
         with self.subTest("Checking validity of all displacement methods"):
             self.check_methods()
+
+        with self.subTest("Check cylinder against ovito DXA"):
+            self.check_cylinder_ovito_dxa()
 
     def check_dislocation_cylinder(self, test_u=True,
                      tol=10.0, gen_bulk=False):
@@ -648,7 +657,8 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
             a = self.alat
 
         d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
-        bulk, disloc = d.build_cylinder(20.0, method=self.default_method, verbose=False)
+        bulk, disloc = d.build_cylinder(20.0, method=self.default_method, 
+                                        self_consistent=d.self_consistent, verbose=False)
 
         # test that assigning non default symbol worked
         assert np.unique(bulk.get_chemical_symbols()) == "Al"
@@ -660,7 +670,7 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
             # test the consistency
             # displacement = disloc.positions - bulk.positions
             stroh_displacement = d.displacements(bulk.positions,
-                                                 np.array(disloc.info["core_positions"]),
+                                                 np.array(disloc.info["core_positions"]*self.ncores),
                                                  self_consistent=d.self_consistent,
                                                  verbose=False,
                                                  method=self.default_method)
@@ -669,23 +679,36 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
             np.testing.assert_array_almost_equal(displacement,
                                                  stroh_displacement)
+            
+    def check_cylinder_ovito_dxa(self, test_u=True,
+                     tol=10.0, gen_bulk=False):
+            
+        if not self.has_ovito:
+            self.skipTest("ovito module not installed")
+        
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
+        structure = d.crystalstructure
 
-        with self.subTest("Check cylinder against ovito DXA"):
-            if not self.has_ovito:
-                self.skipTest("ovito module not installed")
-            results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
-            assert len(results) == 1
-            position, b, line, angle = results[0]
+        if gen_bulk:
+            a = ase_bulk("Al", structure.lower(), self.alat, cubic=True)
+        else:
+            a = self.alat
 
-            # Sign flips and symmetry groups can cause differences in direct comparisons
-            self.assertArrayAlmostEqual(np.sort(np.abs(b)), np.sort(np.abs(d.burgers_dimensionless)))
+        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
+        bulk, disloc = d.build_cylinder(20.0, method=self.default_method, verbose=False)
+        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
+        assert len(results) == 1
+        position, b, line, angle = results[0]
 
-            # norm_burgers = d.burgers_dimensionless / np.linalg.norm(d.burgers_dimensionless)
-            # norm_axis = d.axes[:, 2] / np.linalg.norm(d.axes[:, 2])
-            # ref_angle = np.arccos(np.dot(norm_burgers, norm_axis))
-            # err = angle - ref_angle
-            # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
-            # assert abs(err) < tol
+        # Sign flips and symmetry groups can cause differences in direct comparisons
+        self.assertArrayAlmostEqual(np.sort(np.abs(b)), np.sort(np.abs(d.burgers_dimensionless)))
+
+        # norm_burgers = d.burgers_dimensionless / np.linalg.norm(d.burgers_dimensionless)
+        # norm_axis = d.axes[:, 2] / np.linalg.norm(d.axes[:, 2])
+        # ref_angle = np.arccos(np.dot(norm_burgers, norm_axis))
+        # err = angle - ref_angle
+        # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
+        # assert abs(err) < tol
         
     def check_glide_configs(self):
         d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
@@ -732,12 +755,7 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
         methods = [method for method in methods if method != base_method]
 
-        if issubclass(self.test_cls, sd.CubicCrystalDissociatedDislocation):
-            ncores = 2
-        else:
-            ncores = 1
-
-        core_positions = np.zeros((ncores, 3))
+        core_positions = np.zeros((self.ncores, 3))
 
         base_displacements = d.displacements(bulk.positions, core_positions, method="atomman", verbose=False)
 
@@ -843,16 +861,17 @@ def load_tests(loader, tests, pattern):
 
     disloc_testsuite.addTests([TestCubicCrystalDislocation(disloc) 
                                     for disloc in cubic_perfect_dislocs])
-    # disloc_testsuite.addTests([TestCubicCrystalDissociatedDislocation(disloc) 
-    #                                    for disloc in cubic_dissociated_dislocs])
+    disloc_testsuite.addTests([TestCubicCrystalDissociatedDislocation(disloc) 
+                                       for disloc in cubic_dissociated_dislocs])
 
-    # # Load all tests in TestDislocation into the test suite
-    # other_tests = loader.loadTestsFromTestCase(TestDislocation)
-    # disloc_testsuite.addTests(other_tests)
+    # Load all tests in TestDislocation into the test suite
+    other_tests = loader.loadTestsFromTestCase(TestDislocation)
+    disloc_testsuite.addTests(other_tests)
 
     return disloc_testsuite
 
 if __name__ == '__main__':
-    disloc_testsuite = load_tests()
+    loader = unittest.TestLoader()
+    disloc_testsuite = load_tests(loader, [], [])
     runner = unittest.TextTestRunner()
     runner.run(disloc_testsuite)
