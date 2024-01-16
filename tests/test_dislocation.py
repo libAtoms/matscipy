@@ -218,7 +218,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         fig = sd.show_NEB_configurations([disloc_ini, disloc_fin], bulk_ini,
                                          xyscale=5.0, show=False)
         print("'dd_test.png' will be created: check the displacement map")
-        fig.savefig("dd_test.png")
+        #fig.savefig("dd_test.png")
 
     @unittest.skipIf("atomman" not in sys.modules,
                      'requires Stroh solution from atomman to run')
