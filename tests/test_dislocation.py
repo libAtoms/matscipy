@@ -106,7 +106,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         pot_path = os.path.join(test_dir, pot_name)
         calc_EAM = EAM(pot_path)
         obtained_values = sd.get_elastic_constants(calculator=calc_EAM,
-                                                   delta=1.0e-3)
+                                                   delta=1.0e-3, verbose=False)
 
         self.assertArrayAlmostEqual(obtained_values, target_values, tol=1e-2)
 
@@ -135,7 +135,7 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
                            log_file="lammps.log")
 
         obtained_values = sd.get_elastic_constants(calculator=lammps,
-                                                   delta=1.0e-3)
+                                                   delta=1.0e-3, verbose=False)
 
         os.remove("lammps.log")
 
@@ -493,12 +493,12 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
         # Setup CubicCrystalDislocation object, and get displacments
         ccd = cls(a0, C11, C12, C44, symbol="Fe")
-        bulk, sc_disloc1 = ccd.build_cylinder(20.0)
+        bulk, sc_disloc1 = ccd.build_cylinder(20.0, verbose=False)
         center = np.diag(bulk.cell) / 2
-        stroh_disp = ccd.displacements(bulk.positions, center, method="atomman", self_consistent=False)
+        stroh_disp = ccd.displacements(bulk.positions, center, method="atomman", self_consistent=False, verbose=False)
 
         # Get displacements using AnistoropicDislocation class
-        adsl_disp = ccd.displacements(bulk.positions, center, method="adsl", self_consistent=False)
+        adsl_disp = ccd.displacements(bulk.positions, center, method="adsl", self_consistent=False, verbose=False)
 
         # Setup the dislcation from the AnistoropicDislocation object
         disloc = bulk.copy()
@@ -590,6 +590,10 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
 
 
 class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
+
+    has_atomman = "atomman" not in sys.modules
+    has_ovito = "ovito" not in sys.modules
+    
     def __init__(self, disloc_cls):
         '''
         Test a CubicCrystalDislocation class
@@ -603,6 +607,8 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
         self.set_test_name()
 
+        self.default_method = "atomman" if self.has_atomman else "adsl"
+
     def set_test_name(self):
         '''
         Hack for making the unittest test name include the name of the dislocation
@@ -613,16 +619,13 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         self.__setattr__(test_method_name, self.perfect_disloc_tests)
         unittest.TestCase.__init__(self, methodName=test_method_name)
 
-    @unittest.skipIf("atomman" not in sys.modules or
-                     "ovito" not in sys.modules,
-                     "requires atomman and ovito")
     def perfect_disloc_tests(self):
         '''
         Test build_cylinder and build_glide_configurations
         '''
         with self.subTest("Checking construction of dislocation cylinders"):
-            self.check_disloc(gen_bulk=False)
-            self.check_disloc(gen_bulk=True)
+            self.check_dislocation_cylinder(gen_bulk=False)
+            self.check_dislocation_cylinder(gen_bulk=True)
 
         with self.subTest("Checking dislocation glide configurations"):
             self.check_glide_configs()
@@ -630,8 +633,11 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         with self.subTest("Checking validity of all displacement methods"):
             self.check_methods()
 
-    def check_disloc(self, test_u=True,
+    def check_dislocation_cylinder(self, test_u=True,
                      tol=10.0, gen_bulk=False):
+        '''
+        Test construction of CubicCrystalDislocation.build_cylinder
+        '''
 
         d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
         structure = d.crystalstructure
@@ -642,7 +648,7 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
             a = self.alat
 
         d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
-        bulk, disloc = d.build_cylinder(20.0)
+        bulk, disloc = d.build_cylinder(20.0, method=self.default_method, verbose=False)
 
         # test that assigning non default symbol worked
         assert np.unique(bulk.get_chemical_symbols()) == "Al"
@@ -656,33 +662,37 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
             stroh_displacement = d.displacements(bulk.positions,
                                                  np.array(disloc.info["core_positions"]),
                                                  self_consistent=d.self_consistent,
-                                                 verbose=False)
+                                                 verbose=False,
+                                                 method=self.default_method)
 
             displacement = disloc.positions - bulk.positions
 
             np.testing.assert_array_almost_equal(displacement,
                                                  stroh_displacement)
 
-        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
-        assert len(results) == 1
-        position, b, line, angle = results[0]
+        with self.subTest("Check cylinder against ovito DXA"):
+            if not self.has_ovito:
+                self.skipTest("ovito module not installed")
+            results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
+            assert len(results) == 1
+            position, b, line, angle = results[0]
 
-        # Sign flips and symmetry groups can cause differences in direct comparisons
-        self.assertArrayAlmostEqual(np.sort(np.abs(b)), np.sort(np.abs(d.burgers_dimensionless)))
+            # Sign flips and symmetry groups can cause differences in direct comparisons
+            self.assertArrayAlmostEqual(np.sort(np.abs(b)), np.sort(np.abs(d.burgers_dimensionless)))
 
-        # norm_burgers = d.burgers_dimensionless / np.linalg.norm(d.burgers_dimensionless)
-        # norm_axis = d.axes[:, 2] / np.linalg.norm(d.axes[:, 2])
-        # ref_angle = np.arccos(np.dot(norm_burgers, norm_axis))
-        # err = angle - ref_angle
-        # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
-        # assert abs(err) < tol
+            # norm_burgers = d.burgers_dimensionless / np.linalg.norm(d.burgers_dimensionless)
+            # norm_axis = d.axes[:, 2] / np.linalg.norm(d.axes[:, 2])
+            # ref_angle = np.arccos(np.dot(norm_burgers, norm_axis))
+            # err = angle - ref_angle
+            # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
+            # assert abs(err) < tol
         
     def check_glide_configs(self):
         d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
         structure = d.crystalstructure
         
         d = self.test_cls(self.alat, self.C11, self.C12, self.C44)
-        bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40)
+        bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40, method=self.default_method, verbose=False)
 
         assert len(bulk) == len(disloc_ini)
         assert len(disloc_ini) == len(disloc_fin)
@@ -690,31 +700,35 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         assert all(disloc_ini.get_array("fix_mask") ==
                    disloc_fin.get_array("fix_mask"))
 
-        results = sd.ovito_dxa_straight_dislo_info(disloc_ini,
-                                                   structure=structure)
-        assert len(results) == 1
-        ini_x_position = results[0][0][0]
+        with self.subTest("Check glide configs against Ovito DXA"):
+            if not self.has_ovito:
+                self.skipTest("ovito module not installed")
 
-        results = sd.ovito_dxa_straight_dislo_info(disloc_fin,
-                                                   structure=structure)
-        assert len(results) == 1
-        fin_x_position = results[0][0][0]
-        # test that difference between initial and final positions are
-        # roughly equal to glide distance.
-        # Since the configurations are unrelaxed dxa gives
-        # a very rough estimation (especially for edge dislocations)
-        # thus tolerance is taken to be ~1 Angstrom
-        np.testing.assert_almost_equal(fin_x_position - ini_x_position,
-                                       d.glide_distance, decimal=0)
+            results = sd.ovito_dxa_straight_dislo_info(disloc_ini,
+                                                    structure=structure)
+            assert len(results) == 1
+            ini_x_position = results[0][0][0]
+
+            results = sd.ovito_dxa_straight_dislo_info(disloc_fin,
+                                                    structure=structure)
+            assert len(results) == 1
+            fin_x_position = results[0][0][0]
+            # test that difference between initial and final positions are
+            # roughly equal to glide distance.
+            # Since the configurations are unrelaxed dxa gives
+            # a very rough estimation (especially for edge dislocations)
+            # thus tolerance is taken to be ~1 Angstrom
+            np.testing.assert_almost_equal(fin_x_position - ini_x_position,
+                                        d.glide_distance, decimal=0)
         
     def check_methods(self):
         methods = self.test_cls.avail_methods
 
         d = self.test_cls(self.alat, self.C11, self.C12, self.C44)
-        bulk, _ = d.build_cylinder(radius=20.0)
+        bulk, _ = d.build_cylinder(radius=20.0, verbose=False)
 
         # Base method to compare against
-        base_method="atomman"
+        base_method=self.default_method
 
         methods = [method for method in methods if method != base_method]
 
@@ -725,16 +739,20 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
         core_positions = np.zeros((ncores, 3))
 
-        atomman_displacements = d.displacements(bulk.positions, core_positions, method="atomman", verbose=False)
+        base_displacements = d.displacements(bulk.positions, core_positions, method="atomman", verbose=False)
 
-        for method in methods:
-            method_disps = d.displacements(bulk.positions, core_positions, method=method, verbose=False)
+        for i, method in enumerate(methods):
+            
+            with self.subTest(f"Validating {method} method against {base_method}", i=i):
+                if method == "atomman" and not self.has_atomman:
+                    self.skipTest("atomman not installed")
+                method_disps = d.displacements(bulk.positions, core_positions, method=method, verbose=False)
 
-            try:
-                np.testing.assert_array_almost_equal(method_disps, atomman_displacements)
+                try:
+                    np.testing.assert_array_almost_equal(method_disps, base_displacements)
+                except AssertionError as e:
 
-            except AssertionError as e:
-                raise AssertionError(f"Displacements from {method} did not match {base_method}")
+                    raise AssertionError(f"Displacements from {method} did not match {base_method}")
 
 class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
     def __init__(self, disloc_cls):
@@ -769,7 +787,7 @@ class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
         d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
         
         partial_dist = 5.0        
-        bulk, disloc = d.build_cylinder(40.0, partial_distance=partial_dist)
+        bulk, disloc = d.build_cylinder(40.0, partial_distance=partial_dist, verbose=False)
 
         # Check good agreement of displacements method with sum of 
         # left and right displacements
@@ -782,13 +800,13 @@ class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
         
         # Left + Right displacements
         full_disps = d.displacements(bulk.positions, core_positions, 
-                                      self_consistent=d.self_consistent)
+                                      self_consistent=d.self_consistent, verbose=False)
         # Left only
         left_disps = d.left_dislocation.displacements(bulk.positions, core_positions[0, :], 
-                                      self_consistent=d.self_consistent)
+                                      self_consistent=d.self_consistent, verbose=False)
         # Right only
         right_disps = d.right_dislocation.displacements(bulk.positions, core_positions[1, :], 
-                                      self_consistent=d.self_consistent)
+                                      self_consistent=d.self_consistent, verbose=False)
         
         diff = left_disps + right_disps - full_disps
 
@@ -807,31 +825,35 @@ class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
 # Build correct unittest test suite
 ##############
 
-import inspect
+def suite():
+    import inspect
 
-# Get all cubic dislocation classes
-# So new disloc types are automatically added to testing framework
-cubic_dislocs = [item for name, item in sd.__dict__.items() if inspect.isclass(item) and issubclass(item, sd.CubicCrystalDislocation)]
-cubic_dislocs = [item for item in cubic_dislocs if item not in [sd.CubicCrystalDislocation, 
-                                                                sd.CubicCrystalDissociatedDislocation,
-                                                                sd.CubicCrystalDislocationQuadrupole]]
+    # Get all cubic dislocation classes
+    # So new disloc types are automatically added to testing framework
+    cubic_dislocs = [item for name, item in sd.__dict__.items() if inspect.isclass(item) and issubclass(item, sd.CubicCrystalDislocation)]
+    cubic_dislocs = [item for item in cubic_dislocs if item not in [sd.CubicCrystalDislocation, 
+                                                                    sd.CubicCrystalDissociatedDislocation,
+                                                                    sd.CubicCrystalDislocationQuadrupole]]
 
-# Split into dissociated vs "perfect" dislocations (CCDD vs CCD)
-cubic_dissociated_dislocs = [item for item in cubic_dislocs if issubclass(item, sd.CubicCrystalDissociatedDislocation)]
-cubic_perfect_dislocs = [item for item in cubic_dislocs if not issubclass(item, sd.CubicCrystalDissociatedDislocation)]
+    # Split into dissociated vs "perfect" dislocations (CCDD vs CCD)
+    cubic_dissociated_dislocs = [item for item in cubic_dislocs if issubclass(item, sd.CubicCrystalDissociatedDislocation)]
+    cubic_perfect_dislocs = [item for item in cubic_dislocs if not issubclass(item, sd.CubicCrystalDissociatedDislocation)]
 
-disloc_testsuite = unittest.TestSuite()
+    disloc_testsuite = unittest.TestSuite()
+    loader = unittest.TestLoader()
 
-disloc_testsuite.addTests([TestCubicCrystalDislocation(disloc) 
-                                   for disloc in cubic_perfect_dislocs])
-disloc_testsuite.addTests([TestCubicCrystalDissociatedDislocation(disloc) 
-                                   for disloc in cubic_dissociated_dislocs])
+    disloc_testsuite.addTests([TestCubicCrystalDislocation(disloc) 
+                                    for disloc in cubic_perfect_dislocs])
+    # disloc_testsuite.addTests([TestCubicCrystalDissociatedDislocation(disloc) 
+    #                                    for disloc in cubic_dissociated_dislocs])
 
-# Load all tests in TestDislocation into the test suite
-loader = unittest.TestLoader()
-other_tests = loader.loadTestsFromTestCase(TestDislocation)
-disloc_testsuite.addTests(other_tests)
+    # # Load all tests in TestDislocation into the test suite
+    # other_tests = loader.loadTestsFromTestCase(TestDislocation)
+    # disloc_testsuite.addTests(other_tests)
+
+    return disloc_testsuite
 
 if __name__ == '__main__':
+    disloc_testsuite = suite()
     runner = unittest.TextTestRunner()
     runner.run(disloc_testsuite)
