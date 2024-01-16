@@ -41,6 +41,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+import os.path
 import unittest
 
 import numpy as np
@@ -70,7 +71,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_neighbour_list(self):
         for pbc in [True, False, [True, False, True]]:
-            a = io.read('aC.cfg')
+            a = io.read(f'{os.path.dirname(__file__)}/aC.cfg')
             a.set_pbc(pbc)
             j, dr, i, abs_dr, shift = neighbour_list("jDidS", a, 1.85)
 
@@ -90,7 +91,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
 
     def test_neighbour_list_atoms_outside_box(self):
         for pbc in [True, False, [True, False, True]]:
-            a = io.read('aC.cfg')
+            a = io.read(f'{os.path.dirname(__file__)}/aC.cfg')
             a.set_pbc(pbc)
             a.positions[100, :] += a.cell[0, :]
             a.positions[200, :] += a.cell[1, :]
@@ -243,7 +244,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         self.assertTrue(exception_thrown)
 
     def test_shrink_wrapped_direct_call(self):
-        a = io.read('aC.cfg')
+        a = io.read(f'{os.path.dirname(__file__)}/aC.cfg')
         r = a.positions
         j, dr, i, abs_dr, shift = neighbour_list("jDidS", positions=r,
                                                  cutoff=1.85)

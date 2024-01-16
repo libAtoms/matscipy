@@ -23,7 +23,7 @@
 #
 
 import gzip
-import random
+import os.path
 import unittest
 
 import numpy as np
@@ -53,8 +53,8 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
     tol = 2e-6
 
     def test_forces(self):
-        for calc in [EAM('Au-Grochola-JCP05.eam.alloy')]:
-            a = io.read('Au_923.xyz')
+        for calc in [EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')]:
+            a = io.read(f'{os.path.dirname(__file__)}/Au_923.xyz')
             a.center(vacuum=10.0)
             a.calc = calc
             f = a.get_forces()
@@ -67,7 +67,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
 
     def test_stress(self):
         a = FaceCenteredCubic('Au', size=[2,2,2])
-        calc = EAM('Au-Grochola-JCP05.eam.alloy')
+        calc = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
         a.calc = calc
         self.assertArrayAlmostEqual(a.get_stress(), numerical_stress(a), tol=self.tol)
 
@@ -80,7 +80,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
 
     def test_Grochola(self):
         a = FaceCenteredCubic('Au', size=[2,2,2])
-        calc = EAM('Au-Grochola-JCP05.eam.alloy')
+        calc = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
         a.calc = calc
         FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         a0 = a.cell.diagonal().mean()/2
@@ -94,17 +94,17 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
     def test_direct_evaluation(self):
         a = FaceCenteredCubic('Au', size=[2,2,2])
         a.rattle(0.1)
-        calc = EAM('Au-Grochola-JCP05.eam.alloy')
+        calc = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
         a.calc = calc
         f = a.get_forces()
 
-        calc2 = EAM('Au-Grochola-JCP05.eam.alloy')
+        calc2 = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
         i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', a, cutoff=calc2.cutoff)
         epot, virial, f2 = calc2.energy_virial_and_forces(a.numbers, i_n, j_n, dr_nc, abs_dr_n)
         self.assertArrayAlmostEqual(f, f2)
 
         a = FaceCenteredCubic('Cu', size=[2,2,2])
-        calc = EAM('CuAg.eam.alloy')
+        calc = EAM(f'{os.path.dirname(__file__)}/CuAg.eam.alloy')
         a.calc = calc
         FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         e_Cu = a.get_potential_energy()/len(a)
@@ -151,7 +151,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         # This is a test for the potential published in:
         # Mendelev, Sordelet, Kramer, J. Appl. Phys. 102, 043501 (2007)
         a = FaceCenteredCubic('Cu', size=[2,2,2])
-        calc = EAM('CuZr_mm.eam.fs', kind='eam/fs')
+        calc = EAM(f'{os.path.dirname(__file__)}/CuZr_mm.eam.fs', kind='eam/fs')
         a.calc = calc
         FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
         a_Cu = a.cell.diagonal().mean()/2
@@ -215,7 +215,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
                 modify sort id format float "%.14g"
         """
         format = "lammps-dump" if "lammps-dump" in io.formats.all_formats.keys() else "lammps-dump-text"
-        atoms = io.read("CuZr_glass_460_atoms_forces.lammps.dump.gz", format=format)
+        atoms = io.read(f"{os.path.dirname(__file__)}/CuZr_glass_460_atoms_forces.lammps.dump.gz", format=format)
         old_atomic_numbers = atoms.get_atomic_numbers()
         sel, = np.where(old_atomic_numbers == 1)
         new_atomic_numbers = np.zeros_like(old_atomic_numbers)
@@ -223,12 +223,12 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         sel, = np.where(old_atomic_numbers == 2)
         new_atomic_numbers[sel] = 29 # Cu
         atoms.set_atomic_numbers(new_atomic_numbers)
-        calculator = EAM('ZrCu.onecolumn.eam.alloy')
+        calculator = EAM(f'{os.path.dirname(__file__)}/ZrCu.onecolumn.eam.alloy')
         atoms.calc = calculator
         atoms.pbc = [True, True, True]
         forces = atoms.get_forces()
         # Read tabulated forces and compare
-        with gzip.open("CuZr_glass_460_atoms_forces.lammps.dump.gz") as file:
+        with gzip.open(f"{os.path.dirname(__file__)}/CuZr_glass_460_atoms_forces.lammps.dump.gz") as file:
             for line in file:
                 if line.startswith(b"ITEM: ATOMS "): # ignore header
                     break
@@ -275,7 +275,7 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         for i in range(1, 202):
             latticeconstant = amin + i * da
             atoms = FaceCenteredCubic(symbol='Au', size=[5,5,5], pbc=(1,1,1), latticeconstant=latticeconstant)
-            calc = EAM('Au-Grochola-JCP05.eam.alloy')
+            calc = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
             atoms.calc = calc
             energy = atoms.get_potential_energy()
             print(energy)

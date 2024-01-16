@@ -16,7 +16,6 @@ python_sources = [
     'atomic_strain.py',
     'deformation.py',
     'dislocation.py',
-    'distributed_computation.py',
     'drift.py',
     'elasticity.py',
     'ffi.py',
@@ -49,8 +48,7 @@ python.install_sources(
 )
 
 subdir('calculators')
+subdir('cli')
 subdir('electrochemistry')
 subdir('fracture_mechanics')
 subdir('io')
-subdir('tool')
-

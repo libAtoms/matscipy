@@ -1,3 +1,5 @@
+|Tests| |Wheels|
+
 Matscipy
 ========
 
@@ -65,6 +67,28 @@ To run the tests locally, from Matscipy's root directory::
   cd tests/
   python3 -m pytest .
 
+Editable installs
+~~~~~~~~~~~~~~~~~
+
+When developing `matscipy`, it can be useful to have an editable install of
+the source directory. This means that changes to the source code are directly
+reflected in the `matscipy` install. We are using *Meson* and *meson-python* as a
+build system, and there are some `restriction to editable installs <https://meson-python.readthedocs.io/en/latest/how-to-guides/editable-installs.html>`__.
+
+The editable install only works with the
+`--no-build-isolation` option::
+
+  python3 -m pip install --no-build-isolation --editable .[test]
+
+If you get the message::
+
+  ERROR: Tried to form an absolute path to a dir in the source tree.
+
+then you are most likely try to install into a Python virtual environment that
+is located inside your source directory. This is not possible; your virtual
+environment needs to be located outside of the source directory.
+
+
 Dependencies
 ------------
 
@@ -85,3 +109,8 @@ Funding
 
 **matscipy** was partially funded by the Deutsch Forschungsgemeinschaft (project `258153560 <https://gepris.dfg.de/gepris/projekt/258153560>`__) and by the Engineering and Physical Sciences Research Council (grants `EP/P002188/1 <https://gow.epsrc.ukri.org/NGBOViewGrant.aspx?GrantRef=EP/P002188/1>`__, `EP/R012474/1 <https://gow.epsrc.ukri.org/NGBOViewGrant.aspx?GrantRef=EP/R012474/1>`__ and `EP/R043612/1 <https://gow.epsrc.ukri.org/NGBOViewGrant.aspx?GrantRef=EP/R043612/1>`__).
 
+.. |Tests| image:: https://github.com/libAtoms/matscipy/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/libAtoms/matscipy/actions/workflows/tests.yml
+
+.. |Wheels| image:: https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml/badge.svg
+   :target: https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml

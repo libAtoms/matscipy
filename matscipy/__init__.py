@@ -23,7 +23,8 @@
 # Generic stuff may go here.
 
 from matscipy.logger import screen
-from .distributed_computation import BaseWorker, BaseResultManager
+
+from ._version import __version__
 
 
 def has_parameter(name):
@@ -79,5 +80,3 @@ def parameter(name, default=None, logger=screen):
         else:
             raise
     return value
-
-from ._version import __version__

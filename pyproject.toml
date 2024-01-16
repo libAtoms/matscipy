@@ -8,7 +8,7 @@ description = "Generic Python Materials Science tools"
 readme = "README.rst"
 license = { file = "LICENSE" }
 authors = [
-    { name = "James Kermode", email = "james.kermode@gmail.com"},
+    { name = "James Kermode", email = "james.kermode@gmail.com" },
     { name = "Lars Pastewka", email = "lars.pastewka@imtek.uni-freiburg.de" }
 ]
 classifiers = [
@@ -16,30 +16,79 @@ classifiers = [
     "Programming Language :: Python"
 ]
 requires-python = ">=3.7.0"
-dynamic = [ "version" ]
+dynamic = ["version"]
 dependencies = [
     "numpy>=1.16.0",
     "scipy>=1.2.3",
     "ase>=3.16.0",
+    "looseversion"
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest",
-    "sympy"
+    "sympy",
+    "atomman",
+    "ovito"
 ]
 docs = [
     "sphinx",
-    "sphinx-rtd-theme",
     "myst_nb",
     "nglview",
     "numpydoc",
     "atomman",
     "ovito",
-    "sphinx_copybutton"
+    "sphinx_copybutton",
+    "sphinx_rtd_theme",
+    "sphinxcontrib-spelling",
+    "pydata-sphinx-theme",
+    "jupytext",
+    "nglview==3.0.8"  # resolves https://github.com/libAtoms/matscipy/issues/222
 ]
+cli = [
+    "argcomplete"
+]
+
+# https://packaging.python.org/en/latest/specifications/pyproject-toml/#entry-points
+[project.scripts]
+# With setuptools, specifying entry points like this in setup.py
+#       ...
+#       entry_points={
+#            'console_scripts': [
+#                'c2d = matscipy.cli.electrochemistry.c2d:main [cli]',
+#                'pnp = matscipy.cli.electrochemistry.pnp:main [cli]',
+#                'stericify = matscipy.cli.electrochemistry.stericify:main [cli]'
+#            ],
+#        },
+#        ...
+# resulted in optional CLI staging installed only if the extra [cli] had been
+# explicitly requested, e.g. via
+#     pip install matscipy[cli]
+# (see https://github.com/libAtoms/matscipy/blob/92dd490a3c2c71edc5d0018487afbee5f2273730/setup.py#L302-L319)
+# With pyproject.toml and meson as build system, the console staging are
+# always installed, even if they are specified as extra-dependent as done here.
+
+# Generic
+matscipy-rms = "matscipy.cli.diffusion.rms:main"
+
+# Structure generation
+matscipy-quench = "matscipy.cli.glasses.quench:main"
+
+# Electrochemistry
+matscipy-continuous2discrete = "matscipy.cli.electrochemistry.continuous2discrete:main"
+matscipy-poisson-nernst-planck = "matscipy.cli.electrochemistry.poisson_nernst_planck_solver:main"
+matscipy-stericify = "matscipy.cli.electrochemistry.stericify:main"
+
+# Fracture mechanics
+matscipy-quasistatic-crack = "matscipy.cli.fracture_mechanics.quasistatic_crack:main"
+matscipy-sinclair-continuation = "matscipy.cli.fracture_mechanics.sinclair_continuation:main"
+matscipy-sinclair-crack = "matscipy.cli.fracture_mechanics.sinclair_crack:main"
+
+# Interatomic potentials
+matscipy-average-eam-potential = "matscipy.cli.calculators.average_eam_potential:main"
 
 [project.urls]
 documentation = "http://libatoms.github.io/matscipy/"
 repository = "https://github.com/libAtoms/matscipy"
 changelog = "https://github.com/libAtoms/matscipy/blob/master/ChangeLog.md"
+

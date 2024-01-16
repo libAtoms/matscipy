@@ -42,11 +42,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+import os.path
 import unittest
 
 import numpy as np
-
-import os
 
 from matscipy.calculators.eam import io, average_atom
 
@@ -79,11 +78,11 @@ class TestEAMAverageAtom(matscipytest.MatSciPyTestCase):
         input_table = "Mishin-Ni-Al-2009.eam.alloy"
         reference_table = "Mishin-Ni-Al-2009_reference_A-atom_Ni85Al15.eam.alloy"
         concentrations = np.array((0.85, 0.15))
-        source, parameters, F, f, rep = io.read_eam(input_table)
+        source, parameters, F, f, rep = io.read_eam(f'{os.path.dirname(__file__)}/{input_table}')
         (new_parameters, new_F, new_f, new_rep) = average_atom.average_potential(
             concentrations, parameters, F, f, rep
         )
-        ref_source, ref_parameters, ref_F, ref_f, ref_rep = io.read_eam(reference_table)
+        ref_source, ref_parameters, ref_F, ref_f, ref_rep = io.read_eam(f'{os.path.dirname(__file__)}/{reference_table}')
         diff_F = np.linalg.norm(ref_F - new_F)
         diff_f = np.linalg.norm(ref_f - new_f)
         diff_rep = np.linalg.norm(ref_rep - new_rep)
@@ -113,11 +112,11 @@ class TestEAMAverageAtom(matscipytest.MatSciPyTestCase):
         input_table = "FeCuNi.eam.alloy"
         reference_table = "FeCuNi_reference_A-atom_Fe33Cu33Ni33.eam.alloy"
         concentrations = np.array((1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0))
-        source, parameters, F, f, rep = io.read_eam(input_table)
+        source, parameters, F, f, rep = io.read_eam(f'{os.path.dirname(__file__)}/{input_table}')
         (new_parameters, new_F, new_f, new_rep) = average_atom.average_potential(
             concentrations, parameters, F, f, rep
         )
-        ref_source, ref_parameters, ref_F, ref_f, ref_rep = io.read_eam(reference_table)
+        ref_source, ref_parameters, ref_F, ref_f, ref_rep = io.read_eam(f'{os.path.dirname(__file__)}/{reference_table}')
         diff_F = np.linalg.norm(ref_F - new_F)
         diff_f = np.linalg.norm(ref_f - new_f)
         diff_rep = np.linalg.norm(ref_rep - new_rep)

@@ -21,9 +21,9 @@
 
 import time
 import copy
-import sys
 import re
-import distutils.version
+
+from looseversion import LooseVersion
 
 import numpy as np
 import ase
@@ -44,29 +44,30 @@ except:
 
 def read_extended_xyz(fileobj):
     """
-    Read extended xyz file with labeled atoms. The number of atoms should
-    be given in the first line, the second line contains the cell
+    Read an extended xyz file with labeled atoms. The number of atoms
+    should be given in the first line, the second line contains the cell
     dimensions and the definition of the columns. The file should contain
     the following columns: element (1 or 2 characters), x(float), y(float),
     z (float), molecule id (int), name (1 or 2 characters). A full
     description of the extended xyz format can be found for example in the
     ASE documentation. An example for a file defining an H2 molecule is
     given below.
+    ::
+      2
+      Lattice="10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 10.0" Properties=species:S:1:pos:R:3:molid:I:1:type:S:1
+      H 4.5 5.0 5.0 1 H1
+      H 5.5 5.0 5.0 1 H1
 
-    ====== Example ======
-    2
-    Lattice="10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 10.0" Properties=species:S:1:pos:R:3:molid:I:1:type:S:1
-    H 4.5 5.0 5.0 1 H1
-    H 5.5 5.0 5.0 1 H1
-    ====== End of example ======
 
     Parameters
     ----------
     filename : str
+        Name of the file to read from.
 
     Returns
     -------
-    opls_struct : matscipy.opls.OPLSStructure
+    matscipy.opls.OPLSStructure
+        Atomic structure as defined in the input file.
     """
     atoms = ase.io.read(fileobj)
     opls_struct = matscipy.opls.OPLSStructure(atoms)
@@ -86,24 +87,34 @@ def read_extended_xyz(fileobj):
 def read_block(filename, name):
     """
     Read a named data block from a parameter file for a non-reactive
-    potential. Blocks begin with '# name' and are terminated by empty
-    lines. More information and an example can be found in the
-    documentation of the 'read_parameter_file' function.
+    potential. Blocks begin with ``# name`` and are terminated by empty
+    lines. Using the function on a file named ``parameterfile`` which
+    contains a block named ``Bonds`` and the following entries
+    ::
+      # Bonds
+      C1-C1 10.0 1.0
+      H1-H1 20.0 2.0
+
+    will return the following dictionary:
+    ::
+      {'C1-C1': [10., 1.], 'H1-H1': [20., 2.]}
 
     Parameters
     ----------
     filename : str
+        Name of the file to read from.
     name : str
+        Name of the data block to search for.
 
     Returns
     -------
-    data : dict
+    dict
         Name-Value pairs. Each value is a list of arbitrary length.
 
     Raises
     ------
     RuntimeError
-        If data block 'name' is not found in the file.
+        If data block ``name`` is not found in the file.
 
     """
     data = {}
@@ -146,23 +157,23 @@ def read_block(filename, name):
 def read_cutoffs(filename):
     """
     Read the cutoffs for construction of a non-reactive system from a
-    file. Comments in the file begin with '#', the file should be
+    file. Comments in the file begin with ``#``, the file should be
     structured like this:
-
-    ====== Example ======
-    # Cutoffs
-    C1-C1 1.23  # name, cutoff (A)
-    H1-H1 4.56  # name, cutoff (A)
-    C1-H1 7.89  # name, cutoff (A)
-    ====== End of example ======
+    ::
+      # Cutoffs
+      C1-C1 1.23  # name, cutoff (A)
+      H1-H1 4.56  # name, cutoff (A)
+      C1-H1 7.89  # name, cutoff (A)
 
     Parameters
     ----------
     filename : str
+        Name of the file to read from.
 
     Returns
     -------
-    cutoffs : matscipy.opls.CutoffList
+    matscipy.opls.CutoffList
+        Cutoffs.
     """
     cutoffs = matscipy.opls.CutoffList(read_block(filename, 'Cutoffs'))
     return cutoffs
@@ -170,55 +181,61 @@ def read_cutoffs(filename):
 
 def read_parameter_file(filename):
     """
-    Read the parameters of a non-reactive potential from a file. An example
-    for the file structure is given below. The blocks are separated by empty
-    lines, comments begin with '#'. For more information about the
-    potentials, refer to the documentation of the LAMMPS commands
-    bond_style harmonic, angle_style harmonic, dihedral_style harmonic.
-    The default global cutoffs for Lennard-Jones and Coulomb interactions
-    are 10.0 and 7.4 A. They can be overridden with the optional
-    'Cutoffs-LJ-Coulomb' block. By default, geometric mixing is applied
-    between Lennard-Jones parameters of different particle types and the
-    global cutoff is used for all pairs. This behavior can be overridden
-    using the optional 'LJ-pairs' block.
+    Read the parameters of a non-reactive potential from a file. An
+    example for the file structure is given below. The blocks are
+    separated by empty lines, comments begin with ``#``. For more
+    information about the potentials, refer to the documentation of
+    the LAMMPS commands ``bond_style harmonic``,
+    ``angle_style harmonic``, ``dihedral_style harmonic``. The default
+    global cutoffs for Lennard-Jones and Coulomb interactions are 10.0
+    and 7.4 A. They can be overridden with the optional
+    ``Cutoffs-LJ-Coulomb`` block. By default, geometric mixing is
+    applied between Lennard-Jones parameters of different particle types
+    and the global cutoff is used for all pairs. This behavior can be
+    overridden using the optional ``LJ-pairs`` block.
+    ::
+      # Element
+      C1 0.001 3.5 -0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)
+      H1 0.001 2.5  0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)
 
-    ====== Example ======
-    # Element
-    C1 0.001 3.5 -0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)
-    H1 0.001 2.5  0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)
-
-    # Cutoffs-LJ-Coulomb (this block is optional)
-    LJ 10.0  # distance (A)
-    C  10.0  # distance (A)
+      # Cutoffs-LJ-Coulomb (this block is optional)
+      LJ 10.0  # distance (A)
+      C  10.0  # distance (A)
     
-    # LJ-pairs (this block is optional)
-    C1-H1 0.002 2.1 12.0  # name, epsilon (eV), sigma (A), cutoff (A)
+      # LJ-pairs (this block is optional)
+      C1-H1 0.002 2.1 12.0  # name, epsilon (eV), sigma (A), cutoff (A)
 
-    # Bonds
-    C1-C1 10.0 1.0  # name, spring constant*2 (eV/A**2), distance (A)
+      # Bonds
+      C1-C1 10.0 1.0  # name, spring constant*2 (eV/A**2), distance (A)
 
-    # Angles
-    H1-C1-C1 1.0 100.0  # name, spring constant*2 (eV), equilibrium angle
+      # Angles
+      H1-C1-C1 1.0 100.0  # name, spring constant*2 (eV), equilibrium angle
 
-    # Dihedrals
-    H1-C1-C1-H1 0.0 0.0 0.01 0.0  # name, energy (eV), energy (eV), ...
+      # Dihedrals
+      H1-C1-C1-H1 0.0 0.0 0.01 0.0  # name, energy (eV), energy (eV), ...
 
-    # Cutoffs
-    C1-C1 1.85  # name, cutoff (A)
-    C1-H1 1.15  # name, cutoff (A)
-    ====== End of example ======
+      # Cutoffs
+      C1-C1 1.85  # name, cutoff (A)
+      C1-H1 1.15  # name, cutoff (A)
 
     Parameters
     ----------
     filename : str
+        Name of the file to read from.
 
     Returns
     -------
     cutoffs : matscipy.opls.CutoffList
+        Cutoffs.
     ljq : matscipy.opls.LJQData
+        Lennard-Jones data and atomic charges.
     bonds : matscipy.opls.BondData
+        Bond coefficients, i.e. spring constants and
+        equilibrium distances.
     angles : matscipy.opls.AnglesData
+        Angle coefficients.
     dihedrals : matscipy.opls.DihedralsData
+        Dihedral coefficients.
     """
     ljq = matscipy.opls.LJQData(read_block(filename, 'Element'))
 
@@ -243,15 +260,20 @@ def read_parameter_file(filename):
 
 def write_lammps(prefix, atoms):
     """
-    Convenience function. The functions 'write_lammps_in',
-    'write_lammps_atoms' and 'write_lammps_definitions' are usually
-    called at the same time. This function combines them, filenames
-    will be 'prefix.in', 'prefix.atoms' and 'prefix.opls'.
+    Convenience function. The functions
+    :func:`matscipy.io.opls.write_lammps_in`,
+    :func:`matscipy.io.opls.write_lammps_atoms` and
+    :func:`matscipy.io.opls.write_lammps_definitions`
+    are usually called at the same time. This function
+    combines them, filenames will be ``prefix.in``,
+    ``prefix.atoms`` and ``prefix.opls``.
 
     Parameters
     ----------
     prefix : str
+        Prefix for filenames.
     atoms : matscipy.opls.OPLSStructure
+        The atomic structure to be written.
     """
     write_lammps_in(prefix)
     write_lammps_atoms(prefix, atoms)
@@ -260,14 +282,16 @@ def write_lammps(prefix, atoms):
 
 def write_lammps_in(prefix):
     """
-    Writes a simple LAMMPS input script for a structure optimization using
-    a non-reactive potential. The name of the resulting script is
-    'prefix.in', while the atomic structure is defined in 'prefix.atoms'
-    and the definition of the atomic interaction in 'prefix.opls'.
+    Writes a simple LAMMPS input script for a structure optimization
+    using a non-reactive potential. The name of the resulting script
+    is ``prefix.in``, while the atomic structure is defined in
+    ``prefix.atoms`` and the definition of the atomic interaction in
+    ``prefix.opls``.
 
     Parameters
     ----------
     prefix : str
+        Prefix for filename.
     """
     if isinstance(prefix, str):
         with open(prefix + '.in', 'w') as fileobj:
@@ -298,13 +322,16 @@ def write_lammps_in(prefix):
 
 def write_lammps_atoms(prefix, atoms, units='metal'):
     """
-    Write atoms input for LAMMPS. Filename will be 'prefix.atoms'.
+    Write atoms input for LAMMPS. Filename will be ``prefix.atoms``.
 
     Parameters
     ----------
     prefix : str
+        Prefix for filename.
     atoms : matscipy.opls.OPLSStructure
-    units : str
+        The atomic structure to be written.
+    units : str, optional
+        The units to be used.
     """
     if isinstance(prefix, str):
         with open(prefix + '.atoms', 'w') as fileobj:
@@ -332,7 +359,7 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
                 fileobj.write('%d dihedral types\n' % (len(dtypes)))
 
             # cell
-            if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.11.0'):
+            if LooseVersion(ase_version_str) > LooseVersion('3.11.0'):
                 p = ase.calculators.lammpsrun.Prism(atoms.get_cell())
             else:
                 p = ase.calculators.lammpsrun.prism(atoms.get_cell())
@@ -358,9 +385,9 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
                 molid = [1] * len(atoms)
 
             pos = ase.calculators.lammpsrun.convert(atoms.get_positions(), 'distance', 'ASE', units)
-            if distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.17.0'):
+            if LooseVersion(ase_version_str) > LooseVersion('3.17.0'):
                 positions_lammps_str = p.vector_to_lammps(pos).astype(str)
-            elif distutils.version.LooseVersion(ase_version_str) > distutils.version.LooseVersion('3.13.0'):
+            elif LooseVersion(ase_version_str) > LooseVersion('3.13.0'):
                 positions_lammps_str = p.positions_to_lammps_strs(pos)
             else:
                 positions_lammps_str = map(p.pos_to_lammps_str, pos)
@@ -436,12 +463,21 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
 def write_lammps_definitions(prefix, atoms):
     """
     Write force field definitions for LAMMPS.
-    Filename will be 'prefix.opls'.
+    Filename will be ``prefix.opls``.
 
     Parameters
     ----------
     prefix : str
+        Prefix for filename.
     atoms : matscipy.opls.OPLSStructure
+        The atomic structure for which the force field definitions
+        should be written. Must contain at least Lennard-Jones and
+        charge data :class:`matscipy.opls.LJQData`. Bond-, angle-
+        and dihedral-potentials are optional and are written if they
+        are present:
+        :class:`matscipy.opls.BondData`,
+        :class:`matscipy.opls.AnglesData`,
+        :class:`matscipy.opls.DihedralsData`.
     """
     if isinstance(prefix, str):
         with open(prefix + '.opls', 'w') as fileobj:
@@ -527,38 +563,48 @@ def write_lammps_definitions(prefix, atoms):
 def read_lammps_definitions(filename):
     """
     Reads force field definitions from a LAMMPS parameter file and
-    stores the parameters in the LJQData, BondData, AnglesData and
-    DihedralsData objects. The 'number' of the particles, pairs, ...
-    for the corresponding interaction parameters is not included in
-    these objects and is output in dicts. Note that there is an
-    offset of one between LAMMPS and python numbering.
+    stores the parameters in :class:`matscipy.opls.LJQData`,
+    :class:`matscipy.opls.BondData`, :class:`matscipy.opls.AnglesData`
+    and :class:`matscipy.opls.DihedralsData` objects. The 'number'
+    of the particles, pairs, ... for the corresponding interaction
+    parameters is not included in these objects and is output in
+    dicts. Note that there is an offset of one between LAMMPS and
+    python numbering.
 
-    ====== Example ======
     Parameter file:
-
-    bond_style      harmonic
-    bond_coeff      1 1.2 3.4 # AA-AA
-    bond_coeff      2 5.6 7.8 # AA-BB
+    ::
+      bond_style      harmonic
+      bond_coeff      1 1.2 3.4 # AA-AA
+      bond_coeff      2 5.6 7.8 # AA-BB
 
     Returned dictionary:
-    bond_type_index[0] = 'AA-AA'
-    bond_type_index[1] = 'AA-BB'
-    ====== End of example ======
+    ::
+      bond_type_index[0] = 'AA-AA'
+      bond_type_index[1] = 'AA-BB'
 
     Parameters
     ----------
     filename : str
+        Name of the file to read from.
 
     Returns
     -------
     ljq_data : matscipy.opls.LJQData
+        Lennard-Jones and charge data.
     bond_data : matscipy.opls.BondData
+        Parameters of the harmonic bond potentials.
     ang_data : matscipy.opls.AnglesData
+        Parameters of the harmonic angle potentials.
     dih_data : matscipy.opls.DihedralsData
+        Parameters of the OPLS dihedral potentials.
     particle_type_index : dict
+        Indicees of particle types as used by LAMMPS.
     bond_type_index : dict
+        Indicees of bond types as used by LAMMPS.
     ang_type_index : dict
+        Indicees of angle types as used by LAMMPS.
     dih_type_index : dict
+        Indicees of dihedral types as used by LAMMPS.
     """
     with open(filename, 'r') as fileobj:
         bond_nvh = {}
@@ -663,11 +709,14 @@ def read_lammps_data(filename, filename_lammps_params=None):
     Parameters
     ----------
     filename : str
-    filename_lammps_params : str
+        Name of the file to read the atomic configuration from.
+    filename_lammps_params : str, optional
+        Name of the file to read the interactions from.
 
     Returns
     -------
     matscipy.opls.OPLSStructure
+        Atomic structure as defined in the input file.
 
     """
     atoms = ase.io.read(filename, format='lammps-data', Z_of_type=None,
@@ -796,12 +845,17 @@ def update_from_lammps_dump(atoms, filename, check=True):
     Parameters
     ----------
     atoms : matscipy.opls.OPLSStructure
+        Atomic structure to be updated.
     filename : str
-    check : bool
+        Name of the file to read the atomic configuration from.
+    check : bool, optional
+        Make sure that the particle types in the input structure
+        and the read-in file are the same.
 
     Returns
     -------
     matscipy.opls.OPLSStructure
+        Atomic structure as defined in the input file.
 
     """
     atoms_dump = ase.io.lammpsrun.read_lammps_dump(filename)

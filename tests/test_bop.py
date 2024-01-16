@@ -20,6 +20,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os.path
+
 import numpy as np
 
 import pytest
@@ -71,7 +73,7 @@ def test_stress(a0, par):
 
 def test_hessian_divide_by_masses():
     # Test the computation of dynamical matrix
-    atoms = ase.io.read('aSi.cfg')
+    atoms = ase.io.read(f'{os.path.dirname(__file__)}/aSi.cfg')
     masses_n = np.random.randint(1, 10, size=len(atoms))
     atoms.set_masses(masses=masses_n)
     kumagai_potential = kumagai.Kumagai_Comp_Mat_Sci_39_Si
@@ -142,9 +144,9 @@ def test_crystal_elastic_constants(a0, par):
     TersoffBrenner(tersoff_brenner.Tersoff_PRB_39_5566_Si_C),
     StillingerWeber(stillinger_weber.Stillinger_Weber_PRB_31_5262_Si)
 ])
-def test_amorphous(par):
+def test_amorphous(par, datafile_directory):
     # Tests for amorphous Si
-    aSi = ase.io.read('aSi_N8.xyz')
+    aSi = ase.io.read(f'{datafile_directory}/aSi_N8.xyz')
     aSi.calc = Manybody(**par)
     # Non-zero forces and Hessian
     compute_forces_and_hessian(aSi, par)

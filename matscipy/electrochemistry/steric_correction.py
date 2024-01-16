@@ -141,7 +141,7 @@ import numpy as np
 import scipy.optimize
 import scipy.spatial.distance
 
-from . import ffi
+from matscipy import ffi
 
 
 # https://stackoverflow.com/questions/21377020/python-how-to-do-lazy-debug-logging
@@ -642,7 +642,7 @@ def neigh_list_based_target_function(x, r=1.0, constraints=None, Dij=None):
     r: float or (N,) ndarray, optional (default=1.0)
         steric radii of particles
     constraints: callable, returns (float, (N,dim) ndarray)
-        constraint function value and gradien
+        constraint function value and gradient
     Dij: (N, N) ndarray, optional (default=None)
         pairwise minimum allowed distance matrix, overrides r
 
@@ -870,10 +870,12 @@ def apply_steric_correction(
         Forwarded to scipy minimzer.
         https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html
         (default: {'gtol':1.e-5,'maxiter':10,'disp':True,'eps':1.e-8})
+    method: str
+        scipy.optimize.minimize method
     target_function: func, optional
         One of the target functions within this submodule, or function
         of same signature. (default: neigh_list_based_target_function)
-    returns_gradient: bool, optional (default: Trze)
+    returns_gradient: bool, optional (default: True)
         If True, then 'target_function' is expected to return a tuple (f, df)
         with f the actual target function value and df its (N,dim) gradient.
         This flag must be set for 'neigh_list_based_target_function'.
@@ -885,6 +887,8 @@ def apply_steric_correction(
     -------
     float : (N,dim) ndarray
         Modified particle coordinates, meeting steric constraints.
+    scipy.optimize.OptimizeResult
+        Forwarded raw object as returned by scipy.optimize.minimize
     """
     logger = logging.getLogger(__name__)
     assert isinstance(x, np.ndarray), "x must be np.ndarray"
@@ -980,9 +984,6 @@ def apply_steric_correction(
     logger.info("    {} and".format(P1))
     logger.info("    {}.".format(P2))
     logger.info("    normalized by L = {:.2g}.".format(L))
-
-
-
 
     def minimizer_callback(xk, *_):
         """Callback function to be used by optimizers of scipy.optimize.
