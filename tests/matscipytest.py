@@ -123,7 +123,7 @@ class MatSciPyTestCase(unittest.TestCase):
     def assertAtomsAlmostEqual(self, a, b, tol=1e-7):
         self.assertArrayAlmostEqual(a.positions, b.positions, tol)
         self.assertArrayAlmostEqual(a.numbers, b.numbers)
-        self.assertArrayAlmostEqual(a._cell, b._cell)
+        self.assertArrayAlmostEqual(a.cell[:, :], b.cell[:, :])
         self.assertArrayAlmostEqual(a._pbc, b._pbc)
 
 def skip(f):
