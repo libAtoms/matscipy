@@ -2785,7 +2785,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             if res < tol:
                 return disp2
             
-        raise RuntimeError('Self-consistency' +
+        raise RuntimeError('Self-consistency ' +
                             f'did not converge in {max_iter} cycles')
 
     def displacements(self, bulk_positions, core_positions, method="atomman",
