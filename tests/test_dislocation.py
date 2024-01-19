@@ -593,21 +593,24 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.check_anisotropic_disloc(sd.BCCMixed111Dislocation, 70.5)
 
 
-test_calculators = {
+test_props = {
     # Calculators for several bulk properties
     "diamond" : {
         "symbol" : "Si",
-        "calc" : Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si))
+        "props" : sd.get_elastic_constants(calculator=Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si)), 
+                                           symbol="Si", verbose=False)
     },
 
     "fcc" : {
         "symbol" : "Ni",
-        "calc" : EAM(test_dir + os.sep + "FeCuNi.eam.alloy")
+        "props" : sd.get_elastic_constants(calculator=EAM(test_dir + os.sep + "FeCuNi.eam.alloy"), 
+                                           symbol="Ni", verbose=False)
     },
 
     "bcc" : {
         "symbol" : "W",
-        "calc" : EAM(test_dir + os.sep + "w_eam4.fs")
+        "props" : sd.get_elastic_constants(calculator=EAM(test_dir + os.sep + "w_eam4.fs"), 
+                                           symbol="W", verbose=False)
     }
 }
 
@@ -622,12 +625,11 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         '''
         self.test_cls = disloc_cls
 
-        structure = self.test_cls.crystalstructure
+        self.structure = self.test_cls.crystalstructure
 
-        self.symbol = test_calculators[structure.lower()]["symbol"]
-        calc = test_calculators[structure.lower()]["calc"]
+        self.symbol = test_props[self.structure.lower()]["symbol"]
 
-        self.alat, self.C11, self.C12, self.C44 = sd.get_elastic_constants(calculator=calc, symbol=self.symbol, verbose=False)
+        self.alat, self.C11, self.C12, self.C44 = test_props[self.structure.lower()]["props"]
 
         self.set_test_name()
 
@@ -862,12 +864,11 @@ class TestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestCase):
         '''
         self.test_cls = disloc_cls
 
-        structure = self.test_cls.crystalstructure
+        self.structure = self.test_cls.crystalstructure
 
-        self.symbol = test_calculators[structure.lower()]["symbol"]
-        calc = test_calculators[structure.lower()]["calc"]
+        self.symbol = test_props[self.structure.lower()]["symbol"]
 
-        self.alat, self.C11, self.C12, self.C44 = sd.get_elastic_constants(calculator=calc, symbol=self.symbol, verbose=False)
+        self.alat, self.C11, self.C12, self.C44 = test_props[self.structure.lower()]["props"]
 
 
         self.set_test_name()
