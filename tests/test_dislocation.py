@@ -29,6 +29,10 @@ import numpy as np
 
 from ase.calculators.lammpslib import LAMMPSlib
 from matscipy.calculators.eam import EAM
+from matscipy.dislocation import DiamondGlide90degreePartial, get_elastic_constants
+from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber,\
+                                                                Holland_Marder_PRL_80_746_Si
+from matscipy.calculators.manybody import Manybody
 
 from ase.build import bulk as ase_bulk
 
@@ -589,6 +593,24 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         self.check_anisotropic_disloc(sd.BCCMixed111Dislocation, 70.5)
 
 
+test_calculators = {
+    # Calculators for several bulk properties
+    "diamond" : {
+        "symbol" : "Si",
+        "calc" : Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si))
+    },
+
+    "fcc" : {
+        "symbol" : "Ni",
+        "calc" : EAM(test_dir + os.sep + "FeCuNi.eam.alloy")
+    },
+
+    "bcc" : {
+        "symbol" : "W",
+        "calc" : EAM(test_dir + os.sep + "w_eam4.fs")
+    }
+}
+
 class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
     has_atomman = "atomman" in sys.modules
@@ -600,10 +622,12 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         '''
         self.test_cls = disloc_cls
 
-        self.alat = 3.14339177996466
-        self.C11 = 523.0266819809012
-        self.C12 = 202.1786296941397
-        self.C44 = 160.88179872237012
+        structure = self.test_cls.crystalstructure
+
+        self.symbol = test_calculators[structure.lower()]["symbol"]
+        calc = test_calculators[structure.lower()]["calc"]
+
+        self.alat, self.C11, self.C12, self.C44 = sd.get_elastic_constants(calculator=calc, symbol=self.symbol, verbose=False)
 
         self.set_test_name()
 
@@ -648,21 +672,19 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         Test construction of CubicCrystalDislocation.build_cylinder
         '''
 
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
-        structure = d.crystalstructure
 
         if gen_bulk:
-            a = ase_bulk("Al", structure.lower(), self.alat, cubic=True)
+            a = ase_bulk(self.symbol, self.structure.lower(), self.alat, cubic=True)
         else:
             a = self.alat
 
-        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
+        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol=self.symbol)
         bulk, disloc = d.build_cylinder(20.0, method=self.default_method, 
                                         self_consistent=d.self_consistent, verbose=False)
 
         # test that assigning non default symbol worked
-        assert np.unique(bulk.get_chemical_symbols()) == "Al"
-        assert np.unique(disloc.get_chemical_symbols()) == "Al"
+        assert np.unique(bulk.get_chemical_symbols()) == self.symbol
+        assert np.unique(disloc.get_chemical_symbols()) == self.symbol
 
         assert len(bulk) == len(disloc)
 
@@ -685,18 +707,17 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
             
         if not self.has_ovito:
             self.skipTest("ovito module not installed")
-        
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
-        structure = d.crystalstructure
 
         if gen_bulk:
-            a = ase_bulk("Al", structure.lower(), self.alat, cubic=True)
+            a = ase_bulk(self.symbol, self.structure.lower(), self.alat, cubic=True)
         else:
             a = self.alat
 
-        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
+        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol=self.symbol)
         bulk, disloc = d.build_cylinder(20.0, method=self.default_method, verbose=False)
-        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=structure)
+
+        results = sd.ovito_dxa_straight_dislo_info(disloc, structure=self.structure)
+
         assert len(results) == 1
         position, b, line, angle = results[0]
 
@@ -710,11 +731,8 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
         # assert abs(err) < tol
         
-    def check_glide_configs(self):
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
-        structure = d.crystalstructure
-        
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44)
+    def check_glide_configs(self):        
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
         bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40, method=self.default_method, verbose=False)
 
         assert len(bulk) == len(disloc_ini)
@@ -728,12 +746,12 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
                 self.skipTest("ovito module not installed")
 
             results = sd.ovito_dxa_straight_dislo_info(disloc_ini,
-                                                    structure=structure)
+                                                    structure=self.structure)
             assert len(results) == 1
             ini_x_position = results[0][0][0]
 
             results = sd.ovito_dxa_straight_dislo_info(disloc_fin,
-                                                    structure=structure)
+                                                    structure=self.structure)
             assert len(results) == 1
             fin_x_position = results[0][0][0]
             # test that difference between initial and final positions are
@@ -747,7 +765,7 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
     def check_methods(self):
         methods = self.test_cls.avail_methods
 
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44)
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
         bulk, _ = d.build_cylinder(radius=20.0, verbose=False)
 
         # Base method to compare against
@@ -757,7 +775,7 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
         core_positions = np.zeros((self.ncores, 3))
 
-        base_displacements = d.displacements(bulk.positions, core_positions, method="atomman", verbose=False)
+        base_displacements = d.displacements(bulk.positions, core_positions, method=base_method, verbose=False)
 
         for i, method in enumerate(methods):
             
@@ -794,15 +812,12 @@ class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
 
     def check_dissociated_disloc(self, gen_bulk=False):
 
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol="Al")
-        structure = d.crystalstructure
-
         if gen_bulk:
-            a = ase_bulk("Al", structure.lower(), self.alat, cubic=True)
+            a = ase_bulk(self.symbol, self.structure.lower(), self.alat, cubic=True)
         else:
             a = self.alat
 
-        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol="Al")
+        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol=self.symbol)
         
         partial_dist = 5.0        
         bulk, disloc = d.build_cylinder(40.0, partial_distance=partial_dist, verbose=False)
@@ -847,10 +862,13 @@ class TestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestCase):
         '''
         self.test_cls = disloc_cls
 
-        self.alat = 3.14339177996466
-        self.C11 = 523.0266819809012
-        self.C12 = 202.1786296941397
-        self.C44 = 160.88179872237012
+        structure = self.test_cls.crystalstructure
+
+        self.symbol = test_calculators[structure.lower()]["symbol"]
+        calc = test_calculators[structure.lower()]["calc"]
+
+        self.alat, self.C11, self.C12, self.C44 = sd.get_elastic_constants(calculator=calc, symbol=self.symbol, verbose=False)
+
 
         self.set_test_name()
 
@@ -884,34 +902,34 @@ class TestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestCase):
         Validation that build_quadrupole runs without errors
         '''
         
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44)
+        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
-        with self.subTest("Check basic functionality"):
+        with self.subTest("Check build_quadrupole basic functionality"):
 
-            bulk, quad = d.build_quadrupole(glide_separation=6, verbose=False)
+            bulk, quad = d.build_quadrupole(glide_separation=4, verbose=False)
 
             self.assertEqual(len(bulk), len(quad))
 
-        with self.subTest("Test more args"):
-            bulk, quad = d.build_quadrupole(glide_separation=6, extension=2,
+        with self.subTest("Test build_quadrupole offset & extension args"):
+            bulk, quad = d.build_quadrupole(glide_separation=4, extension=2,
                                             left_offset=np.array([d.glide_distance/2, 0, 0]),
                                             verbose=False)
 
 
     def check_glide_configs(self):
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44)
+        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
 
-        with self.subTest("Check basic functionality"):
-            configs = d.build_glide_quadrupoles(nims=2, glide_separation=6, glide_left=True, glide_right=False,
+        with self.subTest("Check build_glide_quadrupoles basic functionality"):
+            configs = d.build_glide_quadrupoles(nims=2, glide_separation=4, glide_left=True, glide_right=False,
                                                 verbose=False)
 
-        with self.subTest("Check against equivalent build_quadrupoles"):
-            bulk, ini_quad = d.build_quadrupole(glide_separation=6,
+        with self.subTest("Check build_glide_quadrupoles against equivalent build_quadrupoles calls"):
+            bulk, ini_quad = d.build_quadrupole(glide_separation=4,
                                             verbose=False)
             
 
-            bulk, fin_quad = d.build_quadrupole(glide_separation=6,
+            bulk, fin_quad = d.build_quadrupole(glide_separation=4,
                                             left_offset=np.array([d.glide_distance, 0, 0]),
                                             verbose=False)
             
@@ -922,7 +940,7 @@ class TestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestCase):
         '''
         Validate that generation of single kink structures runs without errors
         '''
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44)
+        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
 
         kink_struct = d.build_kink_quadrupole(zreps=4, glide_separation=5)
@@ -960,11 +978,11 @@ class TestCubicCrystalDissociatedDislocationQuadrupole(TestCubicCrystalDislocati
         '''
         Check execution with no errors
         '''
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44)
+        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
 
         # Cell has to be quite big to also have partial distances in there
-        bulk, quad = d.build_quadrupole(glide_separation=14, partial_distance=4, verbose=False)
+        bulk, quad = d.build_quadrupole(glide_separation=8, partial_distance=2, verbose=False)
 
 
 
@@ -991,23 +1009,23 @@ def load_tests(loader, tests, pattern):
 
 
     # Unittests of CubicCrystalDislocation classes
-    # disloc_testsuite.addTests([TestCubicCrystalDislocation(disloc) 
-    #                                 for disloc in cubic_perfect_dislocs])
+    disloc_testsuite.addTests([TestCubicCrystalDislocation(disloc) 
+                                    for disloc in cubic_perfect_dislocs])
     
     disloc_testsuite.addTests([TestCubicCrystalDislocationQuadrupole(disloc)
                                     for disloc in cubic_perfect_dislocs])
     
     # Unittests of CubicCrystalDissociatedDislocation classes
-    # disloc_testsuite.addTests([TestCubicCrystalDissociatedDislocation(disloc) 
-    #                                    for disloc in cubic_dissociated_dislocs])
+    disloc_testsuite.addTests([TestCubicCrystalDissociatedDislocation(disloc) 
+                                       for disloc in cubic_dissociated_dislocs])
 
 
     disloc_testsuite.addTests([TestCubicCrystalDislocationQuadrupole(disloc)
                                     for disloc in cubic_dissociated_dislocs])
 
     # Load all tests in TestDislocation into the test suite
-    # other_tests = loader.loadTestsFromTestCase(TestDislocation)
-    # disloc_testsuite.addTests(other_tests)
+    other_tests = loader.loadTestsFromTestCase(TestDislocation)
+    disloc_testsuite.addTests(other_tests)
 
     return disloc_testsuite
 
