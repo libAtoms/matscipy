@@ -799,6 +799,7 @@ class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
     def set_test_name(self):
         '''
         Hack for making the unittest test name include the name of the dislocation
+        Overloads TestCubicCrystalDislocation.set_test_name
         '''
         test_method_name = "Test" + self.test_cls.__name__
         self.__setattr__(test_method_name, self.dissociated_disloc_tests)
@@ -960,6 +961,7 @@ class TestCubicCrystalDissociatedDislocationQuadrupole(TestCubicCrystalDislocati
         '''
         Hack for making the unittest test name include the name of the dislocation
         e.g. "TestDiamondGlide90degreePartialQuadrupole"
+        Overload of TestCubicCrystalDislocationQuadrupole.set_test_name
         '''
 
         test_method_name = "Test" + self.test_cls.__name__ + "Quadrupole"
