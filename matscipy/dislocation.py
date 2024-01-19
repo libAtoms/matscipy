@@ -2421,10 +2421,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         # Create copies of immutable class attributes
         # Prevents side effects when E.G. changing burgers vector of an instance
         # Also makes changing cls.var and instance.var work as expected for these variables
-        # Skipped for dissociated dislocations, as these operate via classmethod properties
+        self.burgers_dimensionless = self.burgers_dimensionless.copy()
+
+        # Skip these for dissociated dislocations, as these operate via classmethod properties
         if not issubclass(self.__class__, CubicCrystalDissociatedDislocation):
             self.axes = self.axes.copy()
-            self.burgers_dimensionless = self.burgers_dimensionless.copy()
             self.unit_cell_core_position_dimensionless = self.unit_cell_core_position_dimensionless.copy()
             self.parity = self.parity.copy()
         
