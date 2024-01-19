@@ -2763,6 +2763,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ncores = core_positions.shape[0]
 
         disp1 = np.zeros_like(bulk_positions)
+        for i in range(ncores):
+            disp1 += solvers[i](bulk_positions - core_positions[i, :]).real
         
         if max_iter == 0:
             return disp1
@@ -2785,7 +2787,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 print('disloc SCF', i, '|d1-d2|_inf =', res)
             if res < tol:
                 return disp2
-          
+            
         raise RuntimeError('Self-consistency ' +
                             f'did not converge in {max_iter} cycles')
 
