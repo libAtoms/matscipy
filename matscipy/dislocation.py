@@ -2726,7 +2726,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ax.set_ylabel(r"$\AA$")
 
     def self_consistent_displacements(self, solvers, bulk_positions, core_positions, 
-                                      tol=1e-6, max_iter=100, verbose=True):
+                                      tol=1e-6, max_iter=100, verbose=True, mixing=0.8):
         '''
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
         Each dislocation core uses a separate solver, which computes the displacements associated with positions 
@@ -2776,6 +2776,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             for j in range(ncores):
                 disp2 += solvers[j](disloc_positions - core_positions[j, :]).real
 
+            # Add mixing of previous iteration
+            disp2 = mixing * disp2 + (1-mixing) * disp1
+
             res = np.abs(disp1 - disp2).max()
             disp1 = disp2
             if verbose:
@@ -2787,7 +2790,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                             f'did not converge in {max_iter} cycles')
 
     def displacements(self, bulk_positions, core_positions, method="atomman",
-                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
+                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True, mixing=0.5):
         '''
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
         Each dislocation core uses a separate solver, which computes the displacements associated with positions 
@@ -2828,7 +2831,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             max_iter = 0
 
         disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
-                                                  tol, max_iter, verbose)
+                                                  tol, max_iter, verbose, mixing)
 
         return disp
     
