@@ -1,5 +1,4 @@
 import numpy as np
-from ase.lattice.cubic import Diamond
 from ase.constraints import ExpCellFilter
 from ase.optimize import LBFGS
 import ase.io
@@ -163,7 +162,7 @@ class ThinStripBuilder:
         """
         print('thickness', thickness)
         # now, we build system aligned with requested crystallographic orientation
-        unit_slab = Diamond(directions=self.directions,
+        unit_slab = self.lattice(directions=self.directions,
                             size=(1, 1, 1),
                             symbol=self.el,
                             pbc=True,
@@ -245,7 +244,7 @@ class ThinStripBuilder:
         along x with periodic boundaries in y and z
         """
         # now, we build system aligned with requested crystallographic orientation
-        unit_slab = Diamond(directions=self.directions,
+        unit_slab = self.lattice(directions=self.directions,
                             size=(1, 1, 1),
                             symbol=self.el,
                             pbc=True,
@@ -591,6 +590,44 @@ class ThinStripBuilder:
         steady_state_criterion = (np.linalg.norm(diff)/num_points)*1000
         print(f'Steady state value is {steady_state_criterion}')
         return v_kms, steady_state_criterion
+    
+    def cut_out_tip_region(self,crack_atoms,strip_width,strip_height,strip_thickness,cut_out_width,cut_out_height,bondlength,bulk_nn,return_base_strip=False):
+        #first, build a thin strip which matches the width, height and thickness supplied
+        base_strip = self.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum=0)
+        #once base strip is built, now get the tip atoms from crack_atoms
+        bond_atoms = find_tip_coordination(crack_atoms,bondlength=bondlength,bulk_nn=bulk_nn,calculate_midpoint=True)
+        #now we have the bond atoms, build a mask of width cut_out_width and height cut_out_height
+        #around the positions of the average of the bond atoms in base_strip
+        #create new array, set bond atoms to 1 and write to file
+        crack_atoms.new_array('bond_atoms',np.zeros(len(crack_atoms),dtype=int))
+        crack_atoms.arrays['bond_atoms'][bond_atoms[0]] = 1
+        crack_atoms.arrays['bond_atoms'][bond_atoms[1]] = 1
+        ase.io.write('bond_atoms.xyz',crack_atoms)
+
+        tip_x = (base_strip.get_positions()[bond_atoms[0],0] + base_strip.get_positions()[bond_atoms[1],0])/2
+        tip_y = (base_strip.get_positions()[bond_atoms[0],1] + base_strip.get_positions()[bond_atoms[1],1])/2
+
+        mask = (base_strip.get_positions()[:,0] > (tip_x - cut_out_width/2)) & (base_strip.get_positions()[:,0] < (tip_x + cut_out_width/2)) \
+            & (base_strip.get_positions()[:,1] > (tip_y - cut_out_height/2)) & (base_strip.get_positions()[:,1] < (tip_y + cut_out_height/2))
+        
+        #now we have the mask, we can cut out the tip region from crack_atoms
+        cut_base_strip = base_strip[mask]
+        cut_out_atoms = crack_atoms[mask]
+
+        #now we need to perform another stable sort on the cut_base_strip
+        order = self.stable_sort_strip(cut_base_strip)
+
+        #we can now use this to re-index the cut_out_atoms
+        cut_out_atoms = cut_out_atoms[order]
+        cut_base_strip = cut_base_strip[order]
+        
+        self.cut_out_mask = mask
+        self.cut_out_new_order = order
+
+        if return_base_strip:
+            return cut_out_atoms, cut_base_strip
+        else:
+            return cut_out_atoms
 
 
 
@@ -670,7 +707,8 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
 
     # Add a dump command to save .lammpstrj files every 100 timesteps during equilibration
     if dump_files:
-        lmps.command(f'dump myDump all atom {dump_freq} {tmp_file_path}/{dump_name}')
+        #lmps.command(f'dump myDump all atom {dump_freq} {tmp_file_path}/{dump_name}')
+        lmps.command(f'dump myDump all custom {dump_freq} {tmp_file_path}/{dump_name} id type xs ys zs vx vy vz')
         lmps.command('dump_modify myDump append yes')
 
     # Specify the output frequency for thermo data
