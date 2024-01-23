@@ -45,13 +45,15 @@ import unittest
 import logging
 from io import StringIO
 import numpy as np
+import pytest
+import pytest_subtests
 
 def string_to_array(s):
     return np.loadtxt(StringIO(s)).T
 
-class MatSciPyTestCase(unittest.TestCase):
+class MatSciPyBaseTest():
     """
-    Subclass of unittest.TestCase with extra methods for comparing arrays and dictionaries
+    Base Class of methods for comparing arrays and dictionaries
     """
 
     def assertDictionariesEqual(self, d1, d2, skip_keys=[], ignore_case=True):
@@ -125,6 +127,41 @@ class MatSciPyTestCase(unittest.TestCase):
         self.assertArrayAlmostEqual(a.numbers, b.numbers)
         self.assertArrayAlmostEqual(a.cell[:, :], b.cell[:, :])
         self.assertArrayAlmostEqual(a._pbc, b._pbc)
+
+
+class MatSciPyTestCase(MatSciPyBaseTest, unittest.TestCase):
+    '''
+    unittest.TestCase class for unittests requiring assertAtomsAlmostEqual etc.
+    Define methods like self.fail, self.subTest, etc through unittest.TestCase
+    '''
+    pass
+
+class MatSciPyTestFixture(MatSciPyBaseTest):
+    '''
+    Pytest-only variant of test framework, which doesn't depend on unittest.TestCase
+    (and so it can be @pytest.mark.parameterize'd)
+
+
+    self.subTest calls need to be replaced with pytest-subtests style calls
+    (i.e. including subtests as a function arg, and calling subtest.test())
+    See https://blog.ganssle.io/articles/2020/04/subtests-in-python.html for more info
+    '''
+
+    @staticmethod
+    def fail(msg=""):
+        return pytest.fail(msg)
+    
+    @staticmethod
+    def skipTest(msg=""):
+        return pytest.skip(msg)
+    
+    def assertNotAlmostEqual(self, a, b, tol=1e-6, msg=""):
+        if np.max(np.abs(a - b)) < tol:
+            return self.fail(msg)
+
+    def assertTrue(self, a, msg=""):
+        if not a == True:
+            self.fail(msg)
 
 def skip(f):
     """

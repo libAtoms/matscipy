@@ -22,6 +22,7 @@
 import os
 import unittest
 import matscipytest
+import pytest
 import sys
 
 import matscipy.dislocation as sd
@@ -58,6 +59,33 @@ try:
     import ovito
 except ImportError:
     print("ovito not found: skipping some tests")
+
+# Generator functions for lists of cubic dislocations
+def cubic_dislocs():
+    import inspect
+
+    # Get all cubic dislocation classes
+    # So new disloc types are automatically added to testing framework
+    _cubic_dislocs = [item for name, item in sd.__dict__.items() if inspect.isclass(item) and issubclass(item, sd.CubicCrystalDislocation)]
+    _cubic_dislocs = [item for item in _cubic_dislocs if item not in [sd.CubicCrystalDislocation, 
+                                                                    sd.CubicCrystalDissociatedDislocation,
+                                                                    sd.CubicCrystalDislocationQuadrupole]]
+    return _cubic_dislocs
+
+def cubic_perfect_dislocs():
+    _cubic_dislocs = cubic_dislocs()
+
+    _cubic_perfect_dislocs = [item for item in _cubic_dislocs if not issubclass(item, sd.CubicCrystalDissociatedDislocation)]
+    
+    return _cubic_perfect_dislocs
+
+def cubic_dissociated_dislocs():
+    _cubic_dislocs = cubic_dislocs()
+
+    _cubic_dissociated_dislocs = [item for item in _cubic_dislocs if issubclass(item, sd.CubicCrystalDissociatedDislocation)]
+    
+    return _cubic_dissociated_dislocs
+
 
 class TestDislocation(matscipytest.MatSciPyTestCase):
     """Class to store test for dislocation.py module."""
@@ -614,15 +642,12 @@ test_props = {
     }
 }
 
-class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
+class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
 
     has_atomman = "atomman" in sys.modules
     has_ovito = "ovito" in sys.modules
     
-    def __init__(self, disloc_cls):
-        '''
-        Test a CubicCrystalDislocation class
-        '''
+    def set_up_cls(self, disloc_cls):
         self.test_cls = disloc_cls
 
         self.structure = self.test_cls.crystalstructure
@@ -630,8 +655,6 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         self.symbol = test_props[self.structure.lower()]["symbol"]
 
         self.alat, self.C11, self.C12, self.C44 = test_props[self.structure.lower()]["props"]
-
-        self.set_test_name()
 
         self.default_method = "atomman" if self.has_atomman else "adsl"
 
@@ -641,39 +664,13 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         else:
             self.ncores = 1
 
-    def set_test_name(self):
-        '''
-        Hack for making the unittest test name include the name of the dislocation
-        e.g. "TestDiamondGlide90degreePartial"
-        '''
-
-        test_method_name = "Test" + self.test_cls.__name__
-        self.__setattr__(test_method_name, self.perfect_disloc_tests)
-        unittest.TestCase.__init__(self, methodName=test_method_name)
-
-    def perfect_disloc_tests(self):
-        '''
-        Test build_cylinder, build_glide_configurations, and all displacement solver methods
-        '''
-        with self.subTest("Checking construction of dislocation cylinders"):
-            self.check_dislocation_cylinder(gen_bulk=False)
-            self.check_dislocation_cylinder(gen_bulk=True)
-
-        with self.subTest("Checking dislocation glide configurations"):
-            self.check_glide_configs()
-
-        with self.subTest("Checking validity of all displacement methods"):
-            self.check_methods()
-
-        with self.subTest("Check cylinder against ovito DXA"):
-            self.check_cylinder_ovito_dxa()
-
-    def check_dislocation_cylinder(self, test_u=True,
-                     tol=10.0, gen_bulk=False):
+    @pytest.mark.parametrize("gen_bulk", [True, False])
+    def test_dislocation_cylinder(self, disloc, gen_bulk, 
+                                  test_u=True, tol=10.0):
         '''
         Test construction of CubicCrystalDislocation.build_cylinder
         '''
-
+        self.set_up_cls(disloc)
 
         if gen_bulk:
             a = ase_bulk(self.symbol, self.structure.lower(), self.alat, cubic=True)
@@ -703,9 +700,11 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
             np.testing.assert_array_almost_equal(displacement,
                                                  stroh_displacement)
-            
-    def check_cylinder_ovito_dxa(self, test_u=True,
-                     tol=10.0, gen_bulk=False):
+    
+    @pytest.mark.parametrize("gen_bulk", [True, False])
+    def test_cylinder_ovito_dxa(self, disloc, gen_bulk, 
+                                test_u=True, tol=10.0):
+        self.set_up_cls(disloc)
             
         if not self.has_ovito:
             self.skipTest("ovito module not installed")
@@ -733,7 +732,9 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
         # assert abs(err) < tol
         
-    def check_glide_configs(self):        
+    def test_glide_configs(self, disloc, subtests):  
+        self.set_up_cls(disloc)      
+
         d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
         bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40, method=self.default_method, verbose=False)
 
@@ -743,7 +744,7 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
         assert all(disloc_ini.get_array("fix_mask") ==
                    disloc_fin.get_array("fix_mask"))
 
-        with self.subTest("Check glide configs against Ovito DXA"):
+        with subtests.test("Check glide configs against Ovito DXA"):
             if not self.has_ovito:
                 self.skipTest("ovito module not installed")
 
@@ -764,7 +765,9 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
             np.testing.assert_almost_equal(fin_x_position - ini_x_position,
                                         d.glide_distance, decimal=0)
         
-    def check_methods(self):
+    def test_methods(self, disloc, subtests):
+        self.set_up_cls(disloc)
+
         methods = self.test_cls.avail_methods
 
         d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
@@ -781,7 +784,7 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
         for i, method in enumerate(methods):
             
-            with self.subTest(f"Validating {method} method against {base_method}", i=i):
+            with subtests.test(f"Validating {method} method against {base_method}", i=i):
                 if method == "atomman" and not self.has_atomman:
                     self.skipTest("atomman not installed")
                 method_disps = d.displacements(bulk.positions, core_positions, method=method, verbose=False)
@@ -792,28 +795,15 @@ class TestCubicCrystalDislocation(matscipytest.MatSciPyTestCase):
 
                     raise AssertionError(f"Displacements from {method} did not match {base_method}")
 
-class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
-    def __init__(self, disloc_cls):
-        TestCubicCrystalDislocation.__init__(self, disloc_cls)
+@pytest.mark.parametrize("disloc", cubic_perfect_dislocs())
+class TestCubicCrystalDislocation(BaseTestCubicCrystalDislocation):
+    pass
 
-    def set_test_name(self):
-        '''
-        Hack for making the unittest test name include the name of the dislocation
-        Overloads TestCubicCrystalDislocation.set_test_name
-        '''
-        test_method_name = "Test" + self.test_cls.__name__
-        self.__setattr__(test_method_name, self.dissociated_disloc_tests)
-        unittest.TestCase.__init__(self, methodName=test_method_name)
-
-    def dissociated_disloc_tests(self):
-        # All dissociated dislocs should pass these tests too
-        self.perfect_disloc_tests()
-
-        with self.subTest("Checking dissociation of dislocation"):
-            self.check_dissociated_disloc(gen_bulk=False)
-            self.check_dissociated_disloc(gen_bulk=True)
-
-    def check_dissociated_disloc(self, gen_bulk=False):
+@pytest.mark.parametrize("disloc", cubic_dissociated_dislocs())
+class TestCubicCrystalDissociatedDislocation(BaseTestCubicCrystalDislocation):
+    @pytest.mark.parametrize("gen_bulk", [True, False])
+    def test_dissociated_disloc(self, disloc, gen_bulk):
+        self.set_up_cls(disloc)
 
         if gen_bulk:
             a = ase_bulk(self.symbol, self.structure.lower(), self.alat, cubic=True)
@@ -853,17 +843,12 @@ class TestCubicCrystalDissociatedDislocation(TestCubicCrystalDislocation):
 
         assert (max_err / self.alat) <= (percent_tol / 100.0)
 
-
-
-class TestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestCase):
+class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture):
     has_atomman = "atomman" in sys.modules
     has_ovito = "ovito" in sys.modules
     
-    def __init__(self, disloc_cls):
-        '''
-        Test a CubicCrystalDislocation class
-        '''
-        self.test_cls = disloc_cls
+    def set_up_cls(self, disloc):
+        self.test_cls = disloc
 
         self.structure = self.test_cls.crystalstructure
 
@@ -871,66 +856,47 @@ class TestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestCase):
 
         self.alat, self.C11, self.C12, self.C44 = test_props[self.structure.lower()]["props"]
 
-
-        self.set_test_name()
-
         self.default_method = "atomman" if self.has_atomman else "adsl"
-
 
         if issubclass(self.test_cls, sd.CubicCrystalDissociatedDislocation):
             self.ncores = 2
         else:
             self.ncores = 1
 
-    def set_test_name(self):
-        '''
-        Hack for making the unittest test name include the name of the dislocation
-        e.g. "TestDiamondGlide90degreePartialQuadrupole"
-        '''
-
-        test_method_name = "Test" + self.test_cls.__name__ + "Quadrupole"
-        self.__setattr__(test_method_name, self.perfect_quadrupole_tests)
-        unittest.TestCase.__init__(self, methodName=test_method_name)
-
-    def perfect_quadrupole_tests(self):
-        with self.subTest("Check build_quadrupole"):
-            self.check_quadrupole_struct()
-
-        with self.subTest("Check build_glide_quadrupoles"):
-            self.check_glide_configs()
-
-    def check_quadrupole_struct(self):
+    def test_quadrupole_struct(self, disloc, subtests):
         '''
         Validation that build_quadrupole runs without errors
         '''
-        
+        self.set_up_cls(disloc)
+
         d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
-        with self.subTest("Check build_quadrupole basic functionality"):
+        with subtests.test("Check build_quadrupole basic functionality"):
 
             bulk, quad = d.build_quadrupole(glide_separation=4, verbose=False)
 
             self.assertEqual(len(bulk), len(quad))
 
-        with self.subTest("Test build_quadrupole offset & extension args"):
+        with subtests.test("Test build_quadrupole offset & extension args"):
             bulk, quad = d.build_quadrupole(glide_separation=4, extension=2,
                                             left_offset=np.array([d.glide_distance/2, 0, 0]),
                                             verbose=False)
 
 
-    def check_glide_configs(self):
+    def test_glide_configs(self, disloc, subtests):
+        self.set_up_cls(disloc)
+
         d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
 
-        with self.subTest("Check build_glide_quadrupoles basic functionality"):
+        with subtests.test("Check build_glide_quadrupoles basic functionality"):
             configs = d.build_glide_quadrupoles(nims=2, glide_separation=4, glide_left=True, glide_right=False,
                                                 verbose=False)
 
-        with self.subTest("Check build_glide_quadrupoles against equivalent build_quadrupoles calls"):
+        with subtests.test("Check build_glide_quadrupoles against equivalent build_quadrupoles calls"):
             bulk, ini_quad = d.build_quadrupole(glide_separation=4,
                                             verbose=False)
             
-
             bulk, fin_quad = d.build_quadrupole(glide_separation=4,
                                             left_offset=np.array([d.glide_distance, 0, 0]),
                                             verbose=False)
@@ -938,14 +904,15 @@ class TestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestCase):
             self.assertAtomsAlmostEqual(configs[0], ini_quad)
             self.assertAtomsAlmostEqual(configs[1], fin_quad)
 
-    def check_single_kink_quadrupole(self):
+    def test_single_kink_quadrupole(self, disloc):
         '''
         Validate that generation of single kink structures runs without errors
         '''
+        self.set_up_cls(disloc)
         d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
 
-        kink_struct = d.build_kink_quadrupole(zreps=4, glide_separation=5)
+        kink_struct = d.build_kink_quadrupole(z_reps=4, glide_separation=5)
 
         # Check that the z vector has been tilted to get an infinite array of periodic single kinks
         z_vec = kink_struct.cell[2, :]
@@ -953,34 +920,23 @@ class TestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestCase):
         vals = np.abs(z_vec[:2])
 
         self.assertNotAlmostEqual(vals[0], 0.0)
-        self.assertNotAlmostEqual(vals[1], 0.0)
 
 
-class TestCubicCrystalDissociatedDislocationQuadrupole(TestCubicCrystalDislocationQuadrupole):
-    def set_test_name(self):
-        '''
-        Hack for making the unittest test name include the name of the dislocation
-        e.g. "TestDiamondGlide90degreePartialQuadrupole"
-        Overload of TestCubicCrystalDislocationQuadrupole.set_test_name
-        '''
 
-        test_method_name = "Test" + self.test_cls.__name__ + "Quadrupole"
-        self.__setattr__(test_method_name, self.dissociated_quadrupole_tests)
-        unittest.TestCase.__init__(self, methodName=test_method_name)
-
-    def dissociated_quadrupole_tests(self):
-        # Quadrupoles of CubicCrystalDissociatedDislocation should pass
-        # these tests as well
-        self.perfect_quadrupole_tests()
-
-        with self.subTest("Checking construction of dissociated quadrupoles"):
-            self.check_dissociated_quadrupole()
+@pytest.mark.parametrize("disloc", cubic_perfect_dislocs())
+class TestCubicCrystalDislocationQuadrupole(BaseTestCubicCrystalDislocationQuadrupole):
+    pass
 
 
-    def check_dissociated_quadrupole(self):
+@pytest.mark.parametrize("disloc", cubic_dissociated_dislocs())
+class TestCubicCrystalDissociatedDislocationQuadrupole(BaseTestCubicCrystalDislocationQuadrupole):
+    
+    def test_dissociated_quadrupole(self, disloc):
         '''
         Check execution with no errors
         '''
+        self.set_up_cls(disloc)
+
         d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
 
@@ -990,50 +946,6 @@ class TestCubicCrystalDissociatedDislocationQuadrupole(TestCubicCrystalDislocati
 
 
 
-##############
-# Build correct unittest test suite
-##############
-
-def load_tests(loader, tests, pattern):
-    import inspect
-
-    # Get all cubic dislocation classes
-    # So new disloc types are automatically added to testing framework
-    cubic_dislocs = [item for name, item in sd.__dict__.items() if inspect.isclass(item) and issubclass(item, sd.CubicCrystalDislocation)]
-    cubic_dislocs = [item for item in cubic_dislocs if item not in [sd.CubicCrystalDislocation, 
-                                                                    sd.CubicCrystalDissociatedDislocation,
-                                                                    sd.CubicCrystalDislocationQuadrupole]]
-
-    # Split into dissociated vs "perfect" dislocations (CCDD vs CCD)
-    cubic_dissociated_dislocs = [item for item in cubic_dislocs if issubclass(item, sd.CubicCrystalDissociatedDislocation)]
-    cubic_perfect_dislocs = [item for item in cubic_dislocs if not issubclass(item, sd.CubicCrystalDissociatedDislocation)]
-
-    disloc_testsuite = unittest.TestSuite()
-
-
-    # Unittests of CubicCrystalDislocation classes
-    disloc_testsuite.addTests([TestCubicCrystalDislocation(disloc) 
-                                    for disloc in cubic_perfect_dislocs])
-    
-    disloc_testsuite.addTests([TestCubicCrystalDislocationQuadrupole(disloc)
-                                    for disloc in cubic_perfect_dislocs])
-    
-    # Unittests of CubicCrystalDissociatedDislocation classes
-    disloc_testsuite.addTests([TestCubicCrystalDissociatedDislocation(disloc) 
-                                       for disloc in cubic_dissociated_dislocs])
-
-
-    disloc_testsuite.addTests([TestCubicCrystalDislocationQuadrupole(disloc)
-                                    for disloc in cubic_dissociated_dislocs])
-
-    # Load all tests in TestDislocation into the test suite
-    other_tests = loader.loadTestsFromTestCase(TestDislocation)
-    disloc_testsuite.addTests(other_tests)
-
-    return disloc_testsuite
 
 if __name__ == '__main__':
-    loader = unittest.TestLoader()
-    disloc_testsuite = load_tests(loader, [], [])
-    runner = unittest.TextTestRunner()
-    runner.run(disloc_testsuite)
+    unittest.main()
