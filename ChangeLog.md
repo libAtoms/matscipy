@@ -6,6 +6,8 @@ v0.9.0 (not yet released)
 
 - Scripts are now installable CLI
 - Updated documentation packages
+- Added tool for generating dislocation quadrupoles for any `CubicCrystalDislocation` or `CubicCrystalDissociatedDislocation`
+- Refactor of dislocation internals & testing to allow for easy integration of new dislocation types and displacement solver methods.
 
 v0.8.0 (12Apr23) 
 ----------------
