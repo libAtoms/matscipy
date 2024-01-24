@@ -3032,7 +3032,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     
     @staticmethod
     def view_cyl(system, scale=0.5, CNA_color=True, add_bonds=False,
-                     line_color=[0, 1, 0], disloc_names=None):
+                     line_color=[0, 1, 0], disloc_names=None, hide_arrows=False):
         '''
         NGLview-based visualisation tool for structures generated from the dislocation class
 
@@ -3052,6 +3052,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         disloc_names: list of str
             Manual override for the automatic naming of the dislocation lines 
             (see structure.info["dislocation_types"] for defaults)
+        hide_arrows: bool
+            Hide arrows for placed on the dislocation lines
         '''
 
         def _plot_disloc_line(view, disloc_pos, disloc_name, z_length, color=[0, 1, 0]):
@@ -3171,8 +3173,10 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         # Plot dislocation lines
         z_length = system.cell[2, 2]
-        for i in range(len(disloc_positions)):
-            _plot_disloc_line(view, disloc_positions[i], disloc_names[i] + " dislocation line", z_length, colours[i])
+
+        if not hide_arrows:
+            for i in range(len(disloc_positions)):
+                _plot_disloc_line(view, disloc_positions[i], disloc_names[i] + " dislocation line", z_length, colours[i])
 
         view.camera = 'orthographic'
         view.parameters = {"clipDist": 0}
@@ -3871,7 +3875,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         Takes the same args and kwargs as view_cyl
         '''
 
-        view = self.view_cyl(system, *args, **kwargs)
+        view = self.view_cyl(system, hide_arrows=True, *args, **kwargs)
 
         cell = system.cell[:, :]
         
