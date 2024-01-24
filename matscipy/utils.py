@@ -126,7 +126,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
          (Searches for vectors perpendicular to v1 with small integer indices)
         If v2 is given and is not orthogonal to v1, raises a warning
     normalise: bool
-        return an orthonormal basis, rather than just orthogonal
+        return an float orthonormal basis, rather than integer orthogonal basis
     nmax: int
         Maximum integer index for v2 search
     tol: float
@@ -136,6 +136,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     -------
     V1, V2, V3: np.arrays
         Complete orthogonal basis, optionally normalised
+        dtype of arrays is int with normalise=False, float with normalise=True
     '''
 
     def _v2_search(v1, nmax, tol):
@@ -159,8 +160,8 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
 
                     if np.abs(np.dot(v1, test_vec)) < tol:
                         return test_vec
-                    # No nice integer vector found!
-                    raise RuntimeError(f"Could not automatically find an integer basis from basis vector {v1}")
+        # No nice integer vector found!
+        raise RuntimeError(f"Could not automatically find an integer basis from basis vector {v1}")
 
     V1 = np.array(v1).copy().astype(int)
 
@@ -247,3 +248,170 @@ def get_structure_types(structure, diamond_structure=False):
     hex_colors = ['#{:02x}{:02x}{:02x}'.format(int(r*255), int(g*255), int(b*255)) for r, g, b in colors] 
 
     return atom_labels, structure_names, hex_colors
+
+def line_intersect_2D(p1, p2, x1, x2):
+    '''
+    Test if 2D finite line defined by points p1 & p2 intersects with the finite line defined by x1 & x2.
+    Essentially a Python conversion of the ray casting algorithm suggested in: 
+    https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
+
+    Returns True if lines intersect (including if they are collinear)
+
+    p1, p2, x1, x2: np.array
+        2D points defining lines
+    '''
+
+    # Convert from pointwise p1, p2 form to ax + by + c = 0 form
+    a_p = p2[1] - p1[1]
+    b_p = p1[0] - p2[0]
+    c_p = (p2[0] * p1[1]) - (p1[0] * p2[1])
+
+    # Sub in x1, x2
+    d1 = (a_p * x1[0]) + (b_p * x1[1]) + c_p
+    d2 = (a_p * x2[0]) + (b_p * x2[1]) + c_p
+
+    # Both points above the line
+    if (d1 > 0 and d2 > 0):
+        return False
+    # Both points below the line
+    if (d1 < 0 and d2 < 0):
+        return False
+
+    # One point above, one point below the *infinite* line defined by p1, p2
+    # Instead of testing for finite line, switch p <-> x and repeat
+    # (Both finite lines intersect if both sets of points intersect the infinite
+    # lines defined by the other set of points)
+
+    # Convert from pointwise x1, x2 form to ax + by + c = 0 form
+    a_x = x2[1] - x1[1]
+    b_x = x1[0] - x2[0]
+    c_x = (x2[0] * x1[1]) - (x1[0] * x2[1])
+
+    # Sub in p1, p2
+    d1 = (a_x * p1[0]) + (b_x * p1[1]) + c_x
+    d2 = (a_x * p2[0]) + (b_x * p2[1]) + c_x
+
+    # Both points above the line
+    if (d1 > 0 and d2 > 0):
+        return False
+    # Both points below the line
+    if (d1 < 0 and d2 < 0): 
+        return False
+
+    # 2 possibilities left: the lines intersect at a single point, or the lines are collinear,
+    # both result in an intersection, so return True
+    return True
+
+def points_in_polygon2D(p, poly_points):
+    '''
+    Test if points lies within the closed 2D polygon defined by poly_points
+    Uses ray casting algorithm, as suggested by:
+    https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
+
+    p: np.array
+        (n, 2) array of points to test
+    poly_points: np.array
+        Points defining the 2D polygon
+
+    Returns
+    -------
+    mask: np.array
+        Boolean mask. True for points inside the poylgon
+    '''
+    if len(p.shape) == 1:
+        # Single point provided
+        points = p.copy()[np.newaxis, :]
+    else:
+        points = p.copy()
+
+    points += 1E-3
+
+    # Ensure polygon is closed
+    if np.any(poly_points[0, :] != poly_points[-1, :]):
+        poly_points = np.append(poly_points, poly_points[0, :][np.newaxis, :], axis=0)
+
+    npoints = points.shape[0]
+
+    mask = np.zeros(npoints, dtype=bool)
+
+    # Get random point that is definitely outside the polygon
+    a, b = 10 + np.random.random(size=2) * 10
+
+    test_point = np.array([a * np.max(poly_points[:, 0]), b * np.max(poly_points[:, 1])])
+
+    for i in range(npoints):
+        intersections = 0
+        for j in range(poly_points.shape[0] - 1):
+            intersections += line_intersect_2D(poly_points[j, :2], poly_points[j+1, :2], test_point, points[i, :2])
+        if intersections % 2:
+            # Even number of intersections, point is inside polygon
+            mask[i] = True
+    return mask.astype(bool)
+
+def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -> np.array:
+    '''
+    Get shortest distance between a test point and a polygon defined by polygon_points
+        (i.e. the shortest distance between each point and the lines of the polygon)
+    
+    Uses formula from https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_two_points
+
+    test_points: np.array
+        2D Points to get distances for
+    polygon_points: np.array
+        Coordinates defining the points of the polygon
+    '''
+
+    def get_dist(p, v, w):
+        '''
+        Gets distance between point p, and the line segment defined by v and w
+        From https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+        '''
+        denominator = np.linalg.norm(v - w)
+
+        if denominator == 0.0:
+            # point 1 and point 2 are the same, return distance between test_point and poly_point_1
+            return np.linalg.norm(p - v)
+        
+        # Use t on [0, 1] to parameterize moving on the line segment defined by poly points
+        t = np.max([0, np.min([1, np.dot(p - v, w - v)/denominator**2])])
+
+        # Closest point on line segment
+        projection = v + t * (w - v)
+
+        return np.linalg.norm(p - projection)
+        
+    distances = np.zeros(test_points.shape[0])
+
+    N = polygon_points.shape[0]
+    for i in range(test_points.shape[0]):
+        test_point = test_points[i, :]
+
+        distances[i] = min([get_dist(test_point, polygon_points[j, :], polygon_points[(j+1)%N, :]) for j in range(N)])
+    
+    return distances
+
+def radial_mask_from_polygon2D(test_points:np.array, polygon_points:np.array, radius:float, inner:bool=True) -> np.array:
+    '''
+    Get a boolean mask of all test_points within a radius of any edge of the polygon defined by polygon_points
+
+    test_points: np.array
+        2D Points to get mask for
+    polygon_points: np.array
+        Coordinates defining the points of the polygon
+    radius: float
+        Radius to use as cutoff for mask
+    inner: bool
+        Whether test_points inside the polygon should always be masked as True, regardless of radius
+    '''
+
+    distances = get_distance_from_polygon2D(test_points, polygon_points)
+
+    outer_mask = distances <= radius 
+
+    if inner:
+        inner_mask = points_in_polygon2D(test_points, polygon_points)
+
+        full_mask = (inner_mask + outer_mask).astype(bool)
+    else:
+        full_mask = outer_mask.astype(bool)
+    return full_mask
