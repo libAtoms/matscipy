@@ -2069,15 +2069,15 @@ def ovito_dxa_straight_dislo_info(disloc, structure="BCC", replicate_z=3):
     if 'fix_mask' in dxa_disloc.arrays:
         del dxa_disloc.arrays['fix_mask']
 
-    input_crystal_structures = {"BCC": DislocationAnalysisModifier.Lattice.BCC,
-                                "FCC": DislocationAnalysisModifier.Lattice.FCC,
-                                "Diamond": DislocationAnalysisModifier.Lattice.CubicDiamond}
+    input_crystal_structures = {"bcc": DislocationAnalysisModifier.Lattice.BCC,
+                                "fcc": DislocationAnalysisModifier.Lattice.FCC,
+                                "diamond": DislocationAnalysisModifier.Lattice.CubicDiamond}
 
     data = ase_to_ovito(dxa_disloc)
     pipeline = Pipeline(source=StaticSource(data=data))
     pipeline.modifiers.append(ReplicateModifier(num_z=replicate_z))
     dxa = DislocationAnalysisModifier(
-          input_crystal_structure=input_crystal_structures[structure])
+          input_crystal_structure=input_crystal_structures[structure.lower()])
     pipeline.modifiers.append(dxa)
 
     data = pipeline.compute()
@@ -2421,19 +2421,20 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         # Create copies of immutable class attributes
         # Prevents side effects when E.G. changing burgers vector of an instance
         # Also makes changing cls.var and instance.var work as expected for these variables
-        self.axes = self.axes.copy()
         self.burgers_dimensionless = self.burgers_dimensionless.copy()
-        self.unit_cell_core_position_dimensionless = self.unit_cell_core_position_dimensionless.copy()
-        self.parity = self.parity.copy()
+
+        # Skip these for dissociated dislocations, as these operate via classmethod properties
+        if not issubclass(self.__class__, CubicCrystalDissociatedDislocation):
+            self.axes = self.axes.copy()
+            self.unit_cell_core_position_dimensionless = self.unit_cell_core_position_dimensionless.copy()
+            self.parity = self.parity.copy()
         
-        self.alat, self.unit_cell = validate_cubic_cell(a, symbol, self.axes, self.crystalstructure, self.pbc)
+            self.alat, self.unit_cell = validate_cubic_cell(a, symbol, self.axes, self.crystalstructure, self.pbc)
 
-        self.glide_distance = self.alat * self.glide_distance_dimensionless
-
-        # Empty dict for solver methods (e.g. AnisotropicDislocation.displacements)
-        self.solvers = {
-            m : None for m in self.avail_methods
-        }
+            # Empty dict for solver methods (e.g. AnisotropicDislocation.displacements)
+            self.solvers = {
+                m : None for m in self.avail_methods
+            }
 
         # Sort out elasticity matrix into 6x6 convention (as we know the system is cubic)
         self.C = coalesce_elastic_constants(C11, C12, C44, C, convention="Cij")
@@ -2726,7 +2727,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ax.set_ylabel(r"$\AA$")
 
     def self_consistent_displacements(self, solvers, bulk_positions, core_positions, 
-                                      tol=1e-6, max_iter=100, verbose=True):
+                                      tol=1e-6, max_iter=100, verbose=True, mixing=0.8):
         '''
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
         Each dislocation core uses a separate solver, which computes the displacements associated with positions 
@@ -2778,6 +2779,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             for j in range(ncores):
                 disp2 += solvers[j](disloc_positions - core_positions[j, :]).real
 
+            # Add mixing of previous iteration
+            disp2 = mixing * disp2 + (1-mixing) * disp1
+
             res = np.abs(disp1 - disp2).max()
             disp1 = disp2
             if verbose:
@@ -2785,11 +2789,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             if res < tol:
                 return disp2
             
-        raise RuntimeError('Self-consistency' +
+        raise RuntimeError('Self-consistency ' +
                             f'did not converge in {max_iter} cycles')
 
     def displacements(self, bulk_positions, core_positions, method="atomman",
-                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True):
+                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True, mixing=0.5):
         '''
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
         Each dislocation core uses a separate solver, which computes the displacements associated with positions 
@@ -2830,7 +2834,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             max_iter = 0
 
         disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
-                                                  tol, max_iter, verbose)
+                                                  tol, max_iter, verbose, mixing)
 
         return disp
     
@@ -3208,9 +3212,11 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                         left and righ dislocations are not the same.
         """
 
-        if not isinstance(self.left_dislocation, CubicCrystalDislocation):
+        if not (isinstance(self.left_dislocation, CubicCrystalDislocation) or \
+                isinstance(self.left_dislocation, CubicCrystalDissociatedDislocation)):
             self.left_dislocation = self.left_dislocation(a, C11, C12, C44, C, symbol)
-        if not isinstance(self.right_dislocation, CubicCrystalDislocation):
+        if not (isinstance(self.right_dislocation, CubicCrystalDislocation) or \
+                isinstance(self.right_dislocation, CubicCrystalDissociatedDislocation)):
             self.right_dislocation = self.right_dislocation(a, C11, C12, C44, C, symbol)
 
         # Change disloc burgers vectors, if requested
@@ -3222,13 +3228,6 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         # Set self.attrs based on left disloc attrs
         left_dislocation = self.left_dislocation
         right_dislocation = self.right_dislocation
-        self.crystalstructure = left_dislocation.crystalstructure
-        self.axes = left_dislocation.axes.copy()
-        self.unit_cell_core_position_dimensionless = left_dislocation.unit_cell_core_position_dimensionless.copy()
-        self.parity = left_dislocation.parity
-        self.glide_distance_dimensionless = left_dislocation.glide_distance_dimensionless
-        self.n_planes = left_dislocation.n_planes
-        self.self_consistent = left_dislocation.self_consistent
 
         super().__init__(a, C11, C12, C44, C, symbol)
 
@@ -3239,7 +3238,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                                            self.burgers)
         except AssertionError as error:
             print(error)
-            raise ValueError("Burgers vectors of left and right disloctions" +
+            raise ValueError("Burgers vectors of left and right dislocations " +
                              "do not add up to the desired vector")
 
         # checking that parameters of
@@ -3275,6 +3274,54 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
             print(error)
             raise ValueError("Parameters of left and right" +
                              "partials must be the same")
+
+    # classmethod properties that get props from left dislocation
+    # Used so e.g. cls.crystalstructure is setup prior to __init__
+    # as is the case with CubicCrystalDislocation
+
+    @classmethod
+    @property
+    def crystalstructure(cls):
+        return cls.left_dislocation.crystalstructure
+    
+    @classmethod
+    @property
+    def axes(cls):
+        return cls.left_dislocation.axes
+    
+    @classmethod
+    @property
+    def unit_cell_core_position_dimensionless(cls):
+        return cls.left_dislocation.unit_cell_core_position_dimensionless
+    
+    @classmethod
+    @property
+    def parity(cls):
+        return cls.left_dislocation.parity
+    
+    
+    @classmethod
+    @property
+    def n_planes(cls):
+        return cls.left_dislocation.n_planes
+    
+    @classmethod
+    @property
+    def self_consistent(cls):
+        return cls.left_dislocation.self_consistent
+    
+    @classmethod
+    @property
+    def glide_distance_dimensionless(cls):
+        return cls.left_dislocation.glide_distance_dimensionless
+    
+    @property
+    def alat(self):
+        return self.left_dislocation.alat
+    
+    @property
+    def unit_cell(self):
+        return self.left_dislocation.unit_cell
 
     def invert_burgers(self):
         '''
@@ -3391,10 +3438,43 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         self.right_dislocation = disloc_cls(*args, **kwargs)
 
         self.left_dislocation.invert_burgers()
+        
         super().__init__(*args, **kwargs)
 
         self.glides_per_unit_cell = np.floor((self.unit_cell.cell[0, 0] + self.unit_cell.cell[1, 0]) 
                                               / (self.glide_distance - 1e-2)).astype(int)
+
+    # Overload all of the classmethod properties from CubicCrystalDissociatedDislocation, as these cannot be
+    # known at class level (don't know which disloc to make a quadrupole of, so can't know what axes should be)
+        
+    @property
+    def crystalstructure(self):
+        return self.left_dislocation.crystalstructure
+    
+    @property
+    def axes(self):
+        return self.left_dislocation.axes
+    
+    @property
+    def unit_cell_core_position_dimensionless(self):
+        return self.left_dislocation.unit_cell_core_position_dimensionless
+    
+    @property
+    def parity(self):
+        return self.left_dislocation.parity
+
+    @property
+    def n_planes(self):
+        return self.left_dislocation.n_planes
+    
+    @property
+    def self_consistent(self):
+        return self.left_dislocation.self_consistent
+    
+    @property
+    def glide_distance_dimensionless(self):
+        return self.left_dislocation.glide_distance_dimensionless
+
 
     def periodic_displacements(self, positions, v1, v2, core_positions, disp_tol=1e-3, max_neighs=60, 
                                verbose="periodic", **kwargs):
