@@ -18,7 +18,8 @@ def set_up_lammps(lmps,input_file,mass_cmds,potential_cmds):
     lmps.command('atom_style atomic')
     lmps.command('units metal')
     lmps.command('comm_style tiled')
-    print(input_file)
+    
+    #print(input_file)
     #----------Read atoms------------
     lmps.command(f'read_data {input_file}')
     
@@ -30,7 +31,7 @@ def set_up_lammps(lmps,input_file,mass_cmds,potential_cmds):
     lmps.command('thermo 20')
 
     #----------Create dump file----------------
-    lmps.command('dump 1 all custom 10 dump.lammpstrj id type x y z vx vy vz')
+    lmps.command('dump 1 all custom 50 dump.lammpstrj id type x y z vx vy vz')
     #make sure to append
     lmps.command('dump_modify 1 append yes')
 
@@ -98,7 +99,8 @@ def deposit_atom_sim(rank,prev_config,atom_energy,atom_mass,lmps,mass_cmds,poten
         while not particle_peened:
             loops += 1
             if loops == 3:
-                print('DEPOSITION SUCCESSFUL')
+                if rank == 0:
+                    print('DEPOSITION SUCCESSFUL')
                 atom_depositied = True
                 break
             #in this loop, run NVE simulation for 20fs total, checking twice if the particle has peened off the surface
@@ -116,7 +118,6 @@ def deposit_atom_sim(rank,prev_config,atom_energy,atom_mass,lmps,mass_cmds,poten
             timestep = lmps.comm.bcast(timestep, root=0)
             
             
-            print(timestep)
             lmps.command(f'timestep {timestep}')
             #now run for twice the amount of time it should take for the atom to strike the surface (10fs, by design)
             n_tsteps = int((10/1000)/(timestep))
