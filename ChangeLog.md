@@ -1,11 +1,18 @@
 Change log
 ==========
 
-v0.9.0 (not yet released)
+v1.0.0 (24Jan24)
 -------------------------
 
-- Scripts are now installable CLI
-- Updated documentation packages
+- JOSS paper!
+- Significant updates documentation packages
+- Displacement field and associated deformation tensors for dislocations in anisotropic elastic media
+- Multiple improvements to arc-length continuation for flexible boundary conditions (NCFlex): Mode II fracture,
+  mixed mode I/II fracture, parallel calculations
+- Tools for generation of stacking fault & gamma surface (generalised stacking fault) images
+- Committees of models as a calculator
+- Compatibility with recent ASE and scipy versions
+- Scripts are now an installable command-line interface; experimental scripts remain in a "staging" subdirectory
 
 v0.8.0 (12Apr23) 
 ----------------
