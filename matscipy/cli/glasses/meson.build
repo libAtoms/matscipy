@@ -4,6 +4,7 @@
 python_sources = [
     '__init__.py',
     'quench.py',
+    'deposition.py'
 ]
 
 # Install pure Python
