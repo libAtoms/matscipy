@@ -13,6 +13,9 @@ v1.0.0 (24Jan24)
 - Committees of models as a calculator
 - Compatibility with recent ASE and scipy versions
 - Scripts are now an installable command-line interface; experimental scripts remain in a "staging" subdirectory
+- Updated documentation packages
+- Added tool for generating dislocation quadrupoles for any `CubicCrystalDislocation` or `CubicCrystalDissociatedDislocation`
+- Refactor of dislocation internals & testing to allow for easy integration of new dislocation types and displacement solver methods.
 
 v0.8.0 (12Apr23) 
 ----------------

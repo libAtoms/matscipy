@@ -27,6 +27,7 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "pytest",
+    "pytest-subtests",
     "sympy",
     "atomman",
     "ovito"
