@@ -1,6 +1,9 @@
 import os.path
 
 import pytest
+import inspect
+import numpy as np
+
 
 @pytest.fixture
 def datafile_directory():
@@ -12,14 +15,19 @@ def pytest_make_parametrize_id(config, val, argname):
     '''
     Define how pytest should label parametrized tests
     '''
-    if "matscipy." in str(val):
-        # Assume val is a path to a class or function
-        # e.g. matscipy.dislocation.BCCEdge111Dislocation
-        v = str(val).split(".")[-1]
+    
+    if inspect.isclass(val):
+        # Strip full path (e.g. matscipy.dislocation.X)
+        # And also the <class 'x'> wrapper
+        v = str(val).split(".")[-1][:-2]
 
-        if "'>" in v:
-            v = v[:-2]
-    else:
-        v = str(val)
+        return f"{argname}={v}"
+    
+    elif type(val) in [bool, str] or \
+        np.issubdtype(type(val), np.integer) or \
+        np.issubdtype(type(val), np.floating):
+        # Common rule for nice class names
+        return f"{argname}={val}"
 
-    return f"{argname}={v}"
+    # Allow pytest default behaviour
+    return None
