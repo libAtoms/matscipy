@@ -14,7 +14,7 @@ def set_up_lammps(lmps,input_file,mass_cmds,potential_cmds):
     # ---------- Initialize Simulation --------------------- 
     lmps.command('clear') 
     lmps.command('dimension 3')
-    lmps.command('boundary p p f')
+    lmps.command('boundary p p p')
     lmps.command('atom_style atomic')
     lmps.command('units metal')
     lmps.command('comm_style tiled')
@@ -156,7 +156,7 @@ def deposit_atom_sim(rank,prev_config,atom_energy,atom_mass,lmps,mass_cmds,poten
     for i in range(7):
         #set up timestep based on max velocity, such that fastest atom only moves 0.1 angstroms per timestep
         if rank == 0:
-            vs = np.linalg.norm(sim_output.get_velocities()[:,2])
+            vs = np.linalg.norm(sim_output.get_velocities(),axis=1)
             avg_v = np.mean(vs)
             max_v = np.max(vs)
             print(f'AVERAGE VELOCITY: {avg_v}')
