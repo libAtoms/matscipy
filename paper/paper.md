@@ -87,7 +87,7 @@ affiliations:
     index: 7
   - name: Cluster of Excellence livMatS, Freiburg Center for Interactive Materials and Bioinspired Technologies, University of Freiburg, Georges-Köhler-Allee 105, 79110, Freiburg, Germany
     index: 8
-  - name : Engineering and Technology Institute, Faculty of Science and Engineering, University of Groningen, Nijenborgh 4, 9747 AG Groningen, The Netherlands
+  - name : Engineering and Technology Institute Groningen, Faculty of Science and Engineering, University of Groningen, Nijenborgh 4, 9747 AG Groningen, The Netherlands
     index: 9
 date: 07 July 2023
 bibliography: paper.bib
