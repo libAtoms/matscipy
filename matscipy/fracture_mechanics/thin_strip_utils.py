@@ -233,7 +233,7 @@ class ThinStripBuilder:
         self.trackable_atoms_mask = crack_slab.arrays['trackable']
         #ase.io.write('1_slab.xyz',crack_slab)
         #set groups (useful later for crack tip determination)
-        set_groups(crack_slab,[nx,ny,nz],20,10)
+        set_groups(crack_slab,[nx,ny,nz],int(nx/5),int(ny/5))
         self.group_array = crack_slab.arrays['groups']
         crack_slab.set_pbc((False,False,True))
         return crack_slab

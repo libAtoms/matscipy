@@ -192,12 +192,18 @@ def generate_3D_cubic_111(cryst_2D, nzlayer, el, a0, lattice, crack_surface,
 def set_groups(a, n, skin_x, skin_y, central_x=-1. / 2, central_y=-1. / 2,
                invert_central=False):
     nx, ny, nz = n
-    sx, sy, sz = a.cell.diagonal()
+    #sx, sy, sz = a.cell.diagonal()
+    #get sx and sy instead from looking directly at atoms
+    sx = np.max(a.positions[:, 0]) - np.min(a.positions[:, 0])
+    sy = np.max(a.positions[:, 1]) - np.min(a.positions[:, 1])
     print('skin_x = {0}*a0, skin_y = {1}*a0'.format(skin_x, skin_y))
     skin_x = skin_x * sx / nx
     skin_y = skin_y * sy / ny
     print('skin_x = {0}, skin_y = {1}'.format(skin_x, skin_y))
-    r = a.positions
+    r = a.get_positions()
+    #shift r such that the min x and y values are 0
+    r[:, 0] -= np.min(r[:, 0])
+    r[:, 1] -= np.min(r[:, 1])
 
     g = np.ones(len(a), dtype=int)
     mask = np.logical_or(
