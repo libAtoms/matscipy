@@ -8,9 +8,8 @@
 	number = {27},
 	pages = {273002},
 	author = {Ask Hjorth Larsen and Jens J{\o}rgen Mortensen and Jakob Blomqvist and Ivano E Castelli and Rune Christensen and Marcin Du{\l}ak and Jesper Friis and Michael N Groves and Bj{\o}rk Hammer and Cory Hargus and Eric D Hermes and Paul C Jennings and Peter Bjerre Jensen and James Kermode and John R Kitchin and Esben Leonhard Kolsbjerg and Joseph Kubal and Kristen Kaasbjerg and Steen Lysgaard and J{\'{o}}n Bergmann Maronsson and Tristan Maxson and Thomas Olsen and Lars Pastewka and Andrew Peterson and Carsten Rostgaard and Jakob Schi{\o}tz and Ole Schütt and Mikkel Strange and Kristian S Thygesen and Tejs Vegge and Lasse Vilhelmsen and Michael Walter and Zhenhua Zeng and Karsten W Jacobsen},
-	title = {The atomic simulation environment{\textemdash}a Python library for working with atoms},
-	journal = {Journal of Physics: Condensed Matter},
-	abstract = {The atomic simulation environment (ASE) is a software package written in the Python programming language with the aim of setting up, steering, and analyzing atomistic simulations. In ASE, tasks are fully scripted in Python. The powerful syntax of Python combined with the NumPy array library make it possible to perform very complex simulation tasks. For example, a sequence of calculations may be performed with the use of a simple ‘for-loop’ construction. Calculations of energy, forces, stresses and other quantities are performed through interfaces to many external electronic structure codes or force fields using a uniform interface. On top of this calculator interface, ASE provides modules for performing many standard simulation tasks such as structure optimization, molecular dynamics, handling of constraints and performing nudged elastic band calculations.}
+	title = {The atomic simulation environment - a {Python} library for working with atoms},
+	journal = {J. Phys. Condens. Matter}
 }
 
 @article{AtomMan,
@@ -24,15 +23,6 @@
   title     = "Visualization and analysis of atomistic simulation data with
                {OVITO--the} Open Visualization Tool",
   author    = "Stukowski, Alexander",
-  abstract  = "The Open Visualization Tool (OVITO) is a new 3D visualization
-               software designed for post-processing atomistic data obtained
-               from molecular dynamics or Monte Carlo simulations. Unique
-               analysis, editing and animations functions are integrated into
-               its easy-to-use graphical user interface. The software is
-               written in object-oriented C++, controllable via Python scripts
-               and easily extendable through a plug-in interface. It is
-               distributed as open-source software and can be downloaded from
-               the website http://ovito.sourceforge.net/.",
   journal   = "Modell. Simul. Mater. Sci. Eng.",
   publisher = "IOP Publishing",
   volume    =  18,
@@ -49,8 +39,6 @@
 @ARTICLE{Bernstein2009,
   title    = "Hybrid atomistic simulation methods for materials systems",
   author   = "Bernstein, Noam and Kermode, J R and Cs{\'a}nyi, G",
-  abstract = "N 1 , JR 2,3 and G Csanyi CB2 1PZ, UK E-mail: noam. @nrl. navy
-              review recent progress in the methodology of /classical (QM",
   journal  = "Rep. Prog. Phys.",
   volume   =  72,
   number   =  2,
@@ -65,26 +53,6 @@
               Learning",
   author   = "Musil, F{\'e}lix and Willatt, Michael J and Langovoy, Mikhail A
               and Ceriotti, Michele",
-  abstract = "We present a scheme to obtain an inexpensive and reliable
-              estimate of the uncertainty associated with the predictions of a
-              machine-learning model of atomic and molecular properties. The
-              scheme is based on resampling, with multiple models being
-              generated based on subsampling of the same training data. The
-              accuracy of the uncertainty prediction can be benchmarked by
-              maximum likelihood estimation, which can also be used to correct
-              for correlations between resampled models and to improve the
-              performance of the uncertainty estimation by a cross-validation
-              procedure. In the case of sparse Gaussian Process Regression
-              models, this resampled estimator can be evaluated at negligible
-              cost. We demonstrate the reliability of these estimates for the
-              prediction of molecular and materials energetics and for the
-              estimation of nuclear chemical shieldings in molecular crystals.
-              Extension to estimate the uncertainty in energy differences,
-              forces, or other correlated predictions is straightforward. This
-              method can be easily applied to other machine-learning schemes
-              and will be beneficial to make data-driven predictions more
-              reliable and to facilitate training-set optimization and
-              active-learning strategies.",
   journal  = "J. Chem. Theory Comput.",
   volume   =  15,
   number   =  2,
@@ -103,28 +71,6 @@
                nanotube-polymer composites",
   author    = "Go{\l}{\k e}biowski, Jacek R and Kermode, James R and Mostofi,
                Arash A and Haynes, Peter D",
-  abstract  = "Computational investigation of interfacial failure in composite
-               materials is challenging because it is inherently multi-scale:
-               the bond-breaking processes that occur at the covalently bonded
-               interface and initiate failure involve quantum mechanical
-               phenomena, yet the mechanisms by which external stresses are
-               transferred through the matrix occur on length and time scales
-               far in excess of anything that can be simulated quantum
-               mechanically. In this work, we demonstrate and validate an
-               adaptive quantum mechanics (QM)/molecular mechanics simulation
-               method that can be used to address these issues and apply it to
-               study critical failure at a covalently bonded carbon nanotube
-               (CNT)-polymer interface. In this hybrid approach, the majority
-               of the system is simulated with a classical forcefield, while
-               areas of particular interest are identified on-the-fly and
-               atomic forces in those regions are updated based on QM
-               calculations. We demonstrate that the hybrid method results are
-               in excellent agreement with fully QM benchmark simulations and
-               offers qualitative insights missing from classical simulations.
-               We use the hybrid approach to show how the chemical structure at
-               the CNT-polymer interface determines its strength, and we
-               propose candidate chemistries to guide further experimental work
-               in this area.",
   journal   = "J. Chem. Phys.",
   publisher = "American Institute of Physics",
   volume    =  149,
@@ -142,25 +88,12 @@
               interfaces in carbon nanotube-polymer composites",
   author   = "Go{\l}{\k e}biowski, Jacek R and Kermode, James R and Haynes,
               Peter D and Mostofi, Arash A",
-  abstract = "We investigate the failure of carbon-nanotube/polymer composites
-              by using a recently-developed hybrid
-              quantum-mechanical/molecular-mechanical (QM/MM) approach to
-              simulate nanotube pull-out from a cross-linked polyethene matrix.
-              Our study focuses on the strength and failure modes of
-              covalently-bonded nanotube-polymer interfaces based on amine,
-              carbene and carboxyl functional groups and a [2+1] cycloaddition.
-              We find that the choice of the functional group linking the
-              polymer matrix to the nanotube determines the effective strength
-              of the interface, which can be increased by up to 50\% (up to the
-              limit dictated by the strength of the polymer backbone itself) by
-              choosing groups with higher interfacial binding energy. We rank
-              the functional groups presented in this work based on the
-              strength of the resulting interface and suggest broad guidelines
-              for the rational design of nanotube functionalisation for
-              nanotube-polymer composites.",
   journal  = "Phys. Chem. Chem. Phys.",
   month    =  may,
   year     =  2020,
+  volume    =  22,
+  number    =  21,
+  pages     = "12007-12014",
   language = "en",
   issn     = "1463-9076, 1463-9084",
   pmid     = "32421117",
@@ -171,7 +104,7 @@
 @article{Grigorev2020,
   title = {Hybrid quantum/classical study of hydrogen-decorated screw dislocations in tungsten: Ultrafast pipe diffusion, core reconstruction, and effects on glide mechanism},
   author = {Grigorev, Petr and Swinburne, Thomas D. and Kermode, James R.},
-  journal = {Phys. Rev. Materials},
+  journal = {Phys. Rev. Mater.},
   volume = {4},
   issue = {2},
   pages = {023601},
@@ -185,15 +118,13 @@
 
 @article{Grigorev2023,
 title = {Calculation of dislocation binding to helium-vacancy defects in tungsten using hybrid ab initio-machine learning methods},
-journal = {Acta Materialia},
+journal = {Acta Mater.},
 volume = {247},
 pages = {118734},
 year = {2023},
 issn = {1359-6454},
 doi = {10.1016/j.actamat.2023.118734},
-author = {Petr Grigorev and Alexandra M. Goryaeva and Mihai-Cosmin Marinica and James R. Kermode and Thomas D. Swinburne},
-keywords = {Plasticity, Dislocations, Tungsten, Helium, Segregation, Density functional theory, QM/MM, Machine learning},
-abstract = {Calculations of dislocation-defect interactions are essential to model metallic strength, but the required system sizes are at or beyond ab initio limits. Current estimates thus have extrapolation or finite size errors that are very challenging to quantify. Hybrid methods offer a solution, embedding small ab initio simulations in an empirical medium. However, current implementations can only match mild elastic deformations at the ab initio boundary. We describe a robust method to employ linear-in-descriptor machine learning potentials as a highly flexible embedding medium, precisely matching dislocation migration pathways whilst keeping at least the elastic properties constant. This advanced coupling allows dislocations to cross the ab initio boundary in fully three dimensional defect geometries. Investigating helium and vacancy segregation to edge and screw dislocations in tungsten, we find long-range relaxations qualitatively change impurity-induced core reconstructions compared to those in short periodic supercells, even when multiple helium atoms are present. We also show that helium-vacancy complexes, considered to be the dominant configuration at low temperatures, have only a very weak binding to screw dislocations. These results are discussed in the context of recent experimental and theoretical studies. More generally, our approach opens a vast range of mechanisms to ab initio investigation and provides new reference data to both validate and improve interatomic potentials.},
+author = {Petr Grigorev and Alexandra M. Goryaeva and Mihai-Cosmin Marinica and James R. Kermode and Thomas D. Swinburne}
 }
 
 @article{Pastewka2010,
@@ -206,7 +137,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
   pages = {49--61},
   author = {Lars Pastewka and Stefan Moser and Michael Moseler},
   title = {Atomistic Insights into the Running-in,  Lubrication,  and Failure of Hydrogenated Diamond-Like Carbon Coatings},
-  journal = {Tribology Letters}
+  journal = {Tribol. Lett.}
 }
 
 @article{StillingerWeber1985,
@@ -224,7 +155,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
 @article{Kumagai2007,
   title={Development of bond-order potentials that can reproduce the elastic constants and melting point of silicon for classical molecular dynamics simulation},
   author={Kumagai, T and Izumi, S and Hara, S and Sakai, S},
-  journal={Computational materials science},
+  journal={Comp. Mater. Sci.},
   volume={39},
   number={2},
   pages={457--464},
@@ -265,7 +196,6 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
 	author = {Brenner, Donald W.},
 	year = {1990},
 	pages = {9458--9471},
-	file = {Brenner 1990 - Empirical potential for hydrocarbons for use in simulating chemical vapor deposition of diamond films:C\:\\Users\\Lars Pastewka\\Zotero\\storage\\Q32QX6R5\\Brenner 1990 - Empirical potential for hydrocarbons for use in simulating chemical vapor deposition of diamond films.pdf:application/pdf},
 	optdoi = {10.1103/PhysRevB.42.9458},
 }
 
@@ -338,7 +268,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
 
 @ARTICLE{Buze2021,
   title     = "Numerical-continuation-enhanced flexible boundary condition
-               scheme applied to mode-I and {mode-III} fracture",
+               scheme applied to {mode-I} and {mode-III} fracture",
   author    = "Buze, Maciej and Kermode, James R",
   journal   = "Phys. Rev. E",
   publisher = "American Physical Society",
@@ -351,15 +281,14 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
 }
 
 @article{Martinez2009,
-  title = {{{PACKMOL}}: {{A}} Package for Building Initial Configurations for Molecular Dynamics Simulations},
+  title = {{PACKMOL}: A Package for Building Initial Configurations for Molecular Dynamics Simulations},
   author = {Martinez, L. and Andrade, R and Birgin, E G and Mart{\'i}nez, J M},
   year = {2009},
-  journal = {Journal of Computational Chemistry},
+  journal = {J. Comput. Chem.},
   volume = {30},
   number = {13},
   pages = {2157--2164},
   doi = {10.1002/jcc.21224},
-  abstract = {Adequate initial configurations for molecular dynamics simulations consist of arrangements of molecules distributed in space in such a way to approximately represent the system's overall structure. In order that the simulations are not disrupted by large van derWaals repulsive interactions, atoms from different molecules must keep safe pairwise distances. Obtaining such a molecular arrangement can be considered a packing problem: Each type molecule must satisfy spatial constraints related to the geometry of the system, and the distance between atoms of different molecules must be greater than some specified tolerance. We have developed a code able to pack millions of atoms, grouped in arbitrarily complex molecules, inside a variety of three-dimensional regions. The regions may be intersections of spheres, ellipses, cylinders, planes, or boxes. The user must provide only the structure of one molecule of each type and the geometrical constraints that each type of molecule must satisfy. Building complex mixtures, interfaces, solvating biomolecules in water, other solvents, or mixtures of solvents, is straightforward. In addition, different atoms belonging to the same molecule may also be restricted to different spatial regions, in such a way that more ordered molecular arrangements can be built, as micelles, lipid double-layers, etc. The packing time for state-of-the-art molecular dynamics systems varies from a few seconds to a few minutes in a personal computer. The input files are simple and currently compatible with PDB, Tinker, Molden, or Moldy coordinate files. The package is distributed as free software and can be downloaded from http://www.ime.unicamp.br/{$\sim$}martinez/packmol/. \textcopyright},
   arxiv = {NIHMS150003},
   issn = {1096-987X},
   pmid = {20928852},
@@ -380,27 +309,25 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
   author = {Seidl, Christian and H{\"o}rmann, Johannes L. and Pastewka, Lars},
   year = {2021},
   month = jan,
-  journal = {Tribology Letters},
+  journal = {Tribol. Lett.},
   volume = {69},
   number = {1},
   pages = {22},
   issn = {1573-2711},
-  doi = {10.1007/s11249-020-01395-6},
-  abstract = {We study the frictional response of water-lubricated gold electrodes subject to an electrostatic potential difference using molecular dynamics simulations. Contrary to previous studies on electrotunable lubrication that were carried out by fixing the charges, our simulations keep electrodes at fixed electrostatic potential using a variable charge method. For pure water and NaCl solutions, viscosity is independent of the polarization of the electrodes, but wall slip depends on the potential difference. Our findings are in agreement with previous analytical theories of how wall slip is affected by interatomic interactions. The simulations shed light on the role of electrode polarization for wall slip and illustrate a mechanism for controlling friction and nanoscale flow in simple aqueous lubricants.},
-  langid = {english},
+  doi = {10.1007/s11249-020-01395-6}
 }
 
 @article{Bazant2006,
-  title = {Current-{{Voltage Relations}} for {{Electrochemical Thin Films}}},
+  title = {Current-Voltage Relations for Electrochemical Thin Films},
   author = {Bazant, Martin Z. and Chu, Kevin T. and Bayly, B. J.},
   year = {2006},
+  volume = {65},
+  number = {5},
+  pages = {1463-1484},
   month = jul,
-  journal = {SIAM Journal on Applied Mathematics},
+  journal = {SIAM J. Appl. Math.},
   publisher = {{Society for Industrial and Applied Mathematics}},
-  doi = {10.1137/040609938},
-  abstract = {The DC response of an electrochemical thin film, such as the separator in a microbattery, is analyzed by solving the Poisson--Nernst--Planck equations, subject to boundary conditions appropriate fo...},
-  copyright = {Copyright \textcopyright{} 2005 Society for Industrial and Applied Mathematics},
-  langid = {english},
+  doi = {10.1137/040609938}
 }
 
 @ARTICLE{Jorgensen1996,
@@ -408,7 +335,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
                Conformational Energetics and Properties of Organic Liquids",
   author    = "Jorgensen, William L. and Maxwell, David S. and
                Tirado-Rives, Julian",
-  journal   = "Journal of the American Chemical Society",
+  journal   = "J. Am. Chem. Soc.",
   volume    =  118,
   number    =  45,
   pages     = "11225-11236",
@@ -425,7 +352,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
                and Moore, Stan G. and Nguyen, Trung Dac and Shan, Ray and
                Stevens, Mark J. and Tranchida, Julien and Trott, Christian
                and Plimpton, Steven J.",
-  journal   = "Computer Physics Communications",
+  journal   = "Comp. Phys. Commun.",
   volume    =  271,
   pages     = "108171",
   year      =  2022,
@@ -438,7 +365,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
   author    = "Mayrhofer, Leonhard and Moras, Gianpietro and
                Mulakaluri, Narasimham and Rajagopalan, Srinivasan and
                Stevens, Paul A. and Moseler, Michael",
-  journal   = "Journal of the American Chemical Society",
+  journal   = "J. Am. Chem. Soc.",
   volume    =  138,
   pages     = "4018-4028",
   year      =  2016,
@@ -461,7 +388,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
                Carbon Surfaces",
   author    = "Reichenbach, Thomas and Mayrhofer, Leonhard and
                Kuwahara, Takuya and Moseler, Michael and Moras, Gianpietro",
-  journal   = "ACS Applied Materials \& Interfaces",
+  journal   = "ACS Appl. Mater. Interf.",
   volume    =  12,
   pages     = "8805-8816",
   year      =  2020,
@@ -476,7 +403,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
                Konig, Florian and Mayrhofer, Leonhard and
                Moras, Gianpietro and Jacobs, Georg and
                Moseler, Michael",
-  journal   = "Tribology Letters",
+  journal   = "Tribol. Lett.",
   volume    =  69,
   pages     = "136",
   year      =  2021,
@@ -527,25 +454,6 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
                    potentials",
   author        = "Grie{\ss}er, Jan and Fr{\'e}rot, Lucas and Oldenstaedt,
                    Jonas A and M{\"u}ser, Martin H and Pastewka, Lars",
-  abstract      = "Elastic constants are among the most fundamental and
-                   important properties of solid materials, which is why they
-                   are routinely characterized in both experiments and
-                   simulations. While conceptually simple, the treatment of
-                   elastic constants is complicated by two factors not yet
-                   having been concurrently discussed: finite-strain and
-                   non-affine, internal displacements. Here, we revisit the
-                   theory behind zero-temperature, finite-strain elastic
-                   constants and extend it to explicitly consider non-affine
-                   displacements. We further present analytical expressions for
-                   second-order derivatives of the potential energy for
-                   two-body and generic many-body interatomic potentials, such
-                   as cluster and empirical bond-order potentials.
-                   Specifically, we revisit the elastic constants of silicon,
-                   silicon carbide and silicon dioxide under hydrostatic
-                   compression and dilatation. Based on existing and new
-                   results, we outline the effect of multiaxial stress states
-                   as opposed to volumetric deformation on the limits of
-                   stability of their crystalline lattices.",
   year          =  2023,
   journal       = "Phys. Rev. Mater.",
   volume        = 7,
@@ -568,57 +476,30 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
 }
 
 @ARTICLE{Anciaux2018,
-  title    = "The Coupled {Atomistic/Discrete-Dislocation} method in 3d part I:
+  title    = "The {Coupled Atomistic/Discrete-Dislocation} method in 3d part I:
               Concept and algorithms",
   author   = "Anciaux, G and Junge, T and Hodapp, M and Cho, J and Molinari,
               J-F and Curtin, W A",
-  abstract = "The Coupled Atomistic/Discrete-Dislocation (CADD) method is a
-              concurrent multiscale technique that couples atomistic and
-              discrete dislocation domains with the ability to pass
-              dislocations seamlessly between domains. CADD has been
-              demonstrated only in 2d plane-strain problems, for which each
-              individual dislocation is either entirely atomistic or entirely
-              discrete. Here, a full 3d implementation of CADD is presented,
-              with emphasis on the algorithms for handling the description of
-              dislocation lines that span both atomistic and continuum domains,
-              so-called hybrid dislocations. The key new features of the method
-              for 3d are (i) the use of an atomistic template of the
-              dislocation core structure to transmit the proper atomistic
-              environment of a continuum dislocation to the atomistic domain
-              for hybrid dislocations and (ii) a staggered solution procedure
-              enabling evolution of the hybrid dislocations. The method
-              naturally requires calibration of discrete-dislocation Peierls
-              stresses and mobilities to their atomistic values, implementation
-              of a dislocation detection algorithm to identify atomistic
-              dislocations, and computation of continuum dislocation
-              displacement fields that provide boundary conditions for the
-              atomistic problem. The method is implemented using the atomistic
-              code LAMMPS and the discrete dislocation code ParaDiS within the
-              LibMultiscale environment developed by the lead authors, and so
-              has all the advantages of these widely-used high-performance
-              open-source codes. Validation and application of CADD-3d are
-              presented in companion papers.",
   journal  = "J. Mech. Phys. Solids",
   volume   =  118,
-  pages    = "152--171",
+  pages    = "152-171",
   month    =  sep,
   year     =  2018,
   doi      =  "10.1016/j.jmps.2018.05.004"
 }
 
-% The entry below contains non-ASCII chars that could not be converted
-% to a LaTeX equivalent.
-@ARTICLE{Anciaux2007,
-  title     = "Simulation multi-{\'e}chelles des solides par une approche
-               coupl{\'e}e dynamique mol{\'e}culaire/{\'e}l{\'e}ments finis. De
-               la mod{\'e}lisation {\`a} la simulation haute performance",
-  author    = "Anciaux, G",
-  abstract  = "Cette th{\`e}se porte sur l'{\'e}tude de la simulation des
-               solides par des m{\'e}thodes de couplage multi-{\'e}chelles
-               (m{\'e}thode atomique/continue ACM). Dans ce travail de
-               th{\`e}se, nous abordons …",
-  publisher = "theses.hal.science",
-  year      =  2007
+@phdthesis{Anciaux2007,
+  TITLE = {{Simulation multi-{\'e}chelles des solides par une approche coupl{\'e}e dynamique mol{\'e}culaire/{\'e}l{\'e}ments finis. De la mod{\'e}lisation {\`a} la simulation haute performance.}},
+  AUTHOR = {Anciaux, Guillaume},
+  URL = {https://theses.hal.science/tel-00263816},
+  SCHOOL = {{Universit{\'e} Sciences et Technologies - Bordeaux I}},
+  YEAR = {2007},
+  MONTH = Jul,
+  KEYWORDS = {Multi-{\'e}chelles ; solides ; dynamique mol{\'e}culaire ; Bridging Method. ; Simulation multi-{\'e}chelles des solides par une approche coupl{\'e}e dynamique mol{\'e}culaire/{\'e}l{\'e}ments finis. De la mod{\'e}lisation {\`a} la simulation haute performance. ; {\'e}l{\'e}ments finis ; fissuration ; propagation d'ondes ; couplage ; calcul haute performance ; Bridging Method},
+  TYPE = {Theses},
+  PDF = {https://theses.hal.science/tel-00263816v3/file/These.pdf},
+  HAL_ID = {tel-00263816},
+  HAL_VERSION = {v3},
 }
 
 @ARTICLE{Campana2006,
@@ -646,13 +527,10 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
 @ARTICLE{Falk1998,
   title    = "Dynamics of viscoplastic deformation in amorphous solids",
   author   = "Falk, Michael L and Langer, J S",
-  abstract = "for situations in which the stresses necessarily rise to values
-              at or 7204 AND 45 . Carlson and A. Batista, 46 S. and A. Liu
-              unpublished",
   journal  = "Phys. Rev. E",
   volume   =  57,
   number   =  6,
-  pages    = "7192--7205",
+  pages    = "7192-7205",
   month    =  jun,
   year     =  1998,
   doi      = "10.1103/PhysRevE.57.7192"
@@ -662,16 +540,6 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
   title    = "Correlations of non-affine displacements in metallic glasses
               through the yield transition",
   author   = "Jana, Richard and Pastewka, Lars",
-  abstract = "We study correlations of non-affine displacements during simple
-              shear deformation of Cu--Zr bulk metallic glasses in molecular
-              dynamics calculations. In the elastic regime, our calculations
-              show exponential correlation with a decay length that we
-              interpret as the size of a shear transformation zone in the
-              elastic regime. This correlation length becomes system-size
-              dependent beyond the yield transition as our calculation develops
-              a shear band, indicative of a diverging length scale. We discuss
-              these observations in the context of a recent proposition of
-              yield as a first-order phase transition.",
   journal  = "J. Phys. Mater.",
   volume   =  2,
   pages    = "045006",
@@ -686,22 +554,10 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
               {Cu|Au} nanolaminate pillars",
   author   = "Gola, Adrien and Zhang, Guang-Ping and Pastewka, Lars and
               Schwaiger, Ruth",
-  abstract = ", The authors carried out matched experiments and molecular
-              dynamics simulations of the compression of nanopillars prepared
-              from Cu|Au nanolaminates with up to 25 nm layer thickness. The
-              stress--strain behaviors obtained from both techniques are in
-              excellent agreement. Variation in the layer thickness reveals an
-              increase in the strength with a decreasing layer thickness.
-              Pillars fail through the formation of shear bands whose
-              nucleation they trace back to the existence of surface flaws.
-              This combined approach demonstrates the crucial role of contact
-              geometry in controlling the deformation mode and suggests that
-              modulus-matched nanolaminates should be able to suppress strain
-              localization while maintaining controllable strength.",
-  journal  = "MRS Communications",
+  journal  = "MRS Commun.",
   volume   =  9,
   number   =  3,
-  pages    = "1067--1071",
+  pages    = "1067-1071",
   year     =  2019,
   language = "en",
   doi      = "10.1557/mrc.2019.93"
@@ -711,19 +567,6 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
   title    = "Pattern formation during deformation of metallic nanolaminates",
   author   = "Gola, Adrien and Schwaiger, Ruth and Gumbsch, Peter and Pastewka,
               Lars",
-  abstract = "We used nonequilibrium molecular dynamics simulations to study
-              the shear deformation of metallic composites composed of
-              alternating layers of Cu and Au. Our simulations reveal the
-              formation of ``vortices'' or ``swirls'' if the bimaterial
-              interfaces are atomically rough and if none of the \{111\} planes
-              that accommodate slip in fcc materials are exactly parallel to
-              this interface. We trace the formation of these patterns back to
-              grain rotation, induced by hindering dislocations from crossing
-              the bimaterial interface. The instability is accompanied by shear
-              softening of the material. These calculations shed light on
-              recent observations of pattern formation in plastic flow,
-              mechanical mixing of materials, and the common formation of a
-              tribomutation layer in tribologically loaded systems.",
   journal  = "Phys. Rev. Mater.",
   volume   =  4,
   number   =  1,
@@ -739,7 +582,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
   journal = "Phys. Rev. B",
   volume  =  44,
   number  =  10,
-  pages   = "4925--4930",
+  pages   = "4925-4930",
   month   =  sep,
   year    =  1991,
   doi     = "10.1103/PhysRevB.44.4925"
@@ -748,16 +591,6 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
 @TECHREPORT{Saad1990,
   title     = "{SPARSKIT}: A basic tool kit for sparse matrix computations",
   author    = "Saad, Youcef",
-  abstract  = "Presented here are the main features of a tool package for
-               manipulating and working with sparse matrices. One of the goals
-               of the package is to provide basic tools to facilitate the
-               exchange of software and data between researchers in sparse
-               matrix computations. The starting point is the Harwell/Boeing
-               collection of matrices for which the authors provide a number of
-               tools. Among other things, the package provides programs for
-               converting data structures, printing simple statistics on a
-               matrix, plotting a matrix profile, and performing linear algebra
-               operations with sparse matrices.",
   publisher = "ntrs.nasa.gov",
   number    = "NAS 1.26:185876",
   month     =  may,
@@ -769,7 +602,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
              Importance of an environment-dependent interaction range",
   author  = "Pastewka, Lars and Pou, Pablo and P{\'e}rez, Rub{\'e}n and
              Gumbsch, Peter and Moseler, Michael",
-  journal = "Phys. Rev. B Condens. Matter",
+  journal = "Phys. Rev. B",
   volume  =  78,
   number  =  16,
   pages   = "161402(R)",
@@ -780,30 +613,7 @@ abstract = {Calculations of dislocation-defect interactions are essential to mod
 @ARTICLE{Muser2023,
   title     = "Interatomic potentials: achievements and challenges",
   author    = "M{\"u}ser, Martin H and Sukhomlinov, Sergey V and Pastewka, Lars",
-  abstract  = "ABSTRACTInteratomic potentials approximate the potential energy
-               of atoms as a function of their coordinates. Their main
-               application is the effective simulation of many-atom systems.
-               Here, we review empirical interatomic potentials designed to
-               reproduce elastic properties, defect energies, bond breaking,
-               bond formation, and even redox reactions. We discuss popular
-               two-body potentials, embedded-atom models for metals, bond-order
-               potentials for covalently bonded systems, polarizable potentials
-               including charge-transfer approaches for ionic systems and
-               quantum-Drude oscillator models mimicking higher-order and
-               many-body dispersion. Particular emphasis is laid on the
-               question what constraints ensue from the functional form of a
-               potential, e.g., in what way Cauchy relations for elastic tensor
-               elements can be violated and what this entails for the ratio of
-               defect and cohesive energies, or why the ratio of boiling to
-               melting temperature tends to be large for potentials describing
-               metals but small for short-ranged pair potentials. The review is
-               meant to be pedagogical rather than encyclopedic. This is why we
-               highlight potentials with functional forms sufficiently simple
-               to remain amenable to analytical treatments. Our main objective
-               is to provide a stimulus for how existing approaches can be
-               advanced or meaningfully combined to extent the scope of
-               simulations based on empirical potentials.",
-  journal   = "Advances in Physics: X",
+  journal   = "Adv. Phys. X",
   publisher = "Taylor \& Francis",
   volume    =  8,
   number    =  1,
@@ -824,7 +634,7 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
 }
 
 @misc{Batatia2022Design,
-  title = {The Design Space of E(3)-Equivariant Atom-Centered Interatomic Potentials},
+  title = {The Design Space of {E(3)}-Equivariant Atom-Centered Interatomic Potentials},
   author = {Batatia, Ilyes and Batzner, Simon and Kov{\'a}cs, D{\'a}vid P{\'e}ter and Musaelian, Albert and Simm, Gregor N. C. and Drautz, Ralf and Ortner, Christoph and Kozinsky, Boris and Cs{\'a}nyi, G{\'a}bor},
   year = {2022},
   number = {arXiv:2205.06643},
@@ -834,16 +644,14 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
   archiveprefix = {arXiv}
  }
 
-% The entry below contains non-ASCII chars that could not be converted
-% to a LaTeX equivalent.
 @ARTICLE{Peguiron2016-wf,
   title   = "Activation and mechanochemical breaking of {C−C} bonds initiate
              wear of diamond (110) surfaces in contact with silica",
   author  = "Peguiron, Anke and Moras, Gianpietro and Walter, Michael and
              Uetsuka, Hiroshi and Pastewka, Lars and Moseler, Michael",
-  journal = "Carbon N. Y.",
+  journal = "Carbon",
   volume  =  98,
-  pages   = "474--483",
+  pages   = "474-483",
   year    =  2016,
   doi     = "10.1016/j.carbon.2015.10.098"
 }
@@ -854,7 +662,7 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
   author  = "Moras, Gianpietro and Klemenz, Andreas and Reichenbach, Thomas and
              Gola, Adrien and Uetsuka, Hiroshi and Moseler, Michael and
              Pastewka, Lars",
-  journal = "Phys. Rev. Materials",
+  journal = "Phys. Rev. Mater.",
   volume  =  2,
   number  =  8,
   pages   = "083601",
@@ -868,19 +676,6 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
               Amorphization and Recrystallization",
   author   = "Reichenbach, Thomas and Moras, Gianpietro and Pastewka, Lars and
               Moseler, Michael",
-  abstract = "We study mechanically induced phase transitions at tribological
-              interfaces between silicon crystals using reactive molecular
-              dynamics. The simulations reveal that the interplay between
-              shear-driven amorphization and recrystallization results in an
-              amorphous shear interface with constant thickness. Different
-              shear elastic responses of the two anisotropic crystals can lead
-              to the migration of the amorphous interface normal to the sliding
-              plane, causing the crystal with lowest elastic energy density to
-              grow at the expense of the other one. This triboepitaxial growth
-              can be achieved by crystal misorientation or exploiting elastic
-              finite-size effects, enabling the direct deposition of
-              homoepitaxial silicon nanofilms by a crystalline tip rubbing
-              against a substrate.",
   journal  = "Phys. Rev. Lett.",
   volume   =  127,
   number   =  12,
@@ -891,16 +686,13 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
   doi      = "10.1103/PhysRevLett.127.126101"
 }
 
-% The entry below contains non-ASCII chars that could not be converted
-% to a LaTeX equivalent.
 @ARTICLE{Moras2011-my,
   title     = "Formation and oxidation of linear carbon chains and their role
                in the wear of carbon materials",
   author    = "Moras, G and Pastewka, L and Gumbsch, P and Moseler, M",
-  abstract  = "The atomic-scale processes taking place during the sliding of
-               diamond and diamond-like carbon surfaces are investigated using
-               classical molecular dynamics simulations. During the …",
   journal   = "Tribol. Lett.",
+  volume   =  44,
+  pages    = "355",
   publisher = "Springer",
   year      =  2011,
   doi       = "10.1007/s11249-011-9864-9"
@@ -913,7 +705,7 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
   journal = "Nat. Mater.",
   volume  =  10,
   number  =  1,
-  pages   = "34--38",
+  pages   = "34-38",
   month   =  nov,
   year    =  2011,
   doi     = "10.1038/nmat2902"
@@ -923,25 +715,6 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
   title    = "Molecular simulations of sliding on {SDS} surfactant films",
   author   = "H{\"o}rmann, Johannes L and Liu, Chenxu and Meng, Yonggang and
               Pastewka, Lars",
-  abstract = "We use molecular dynamics simulations to study the frictional
-              response of monolayers of the anionic surfactant sodium dodecyl
-              sulfate and hemicylindrical aggregates physisorbed on gold. Our
-              simulations of a sliding spherical asperity reveal the following
-              two friction regimes: at low loads, the films show Amonton's
-              friction with a friction force that rises linearly with normal
-              load, and at high loads, the friction force is independent of the
-              load as long as no direct solid-solid contact occurs. The
-              transition between these two regimes happens when a single
-              molecular layer is confined in the gap between the sliding
-              bodies. The friction force at high loads on a monolayer rises
-              monotonically with film density and drops slightly with the
-              transition to hemicylindrical aggregates. This monotonous
-              increase of friction force is compatible with a traditional
-              plowing model of sliding friction. At low loads, the friction
-              coefficient reaches a minimum at the intermediate surface
-              concentrations. We attribute this behavior to a competition
-              between adhesive forces, repulsion of the compressed film, and
-              the onset of plowing.",
   journal  = "J. Chem. Phys.",
   volume   =  158,
   number   =  24,
@@ -962,31 +735,10 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
               and Wiebe, Mark and Peterson, Pearu and G{\'e}rard-Marchant,
               Pierre and Sheppard, Kevin and Reddy, Tyler and Weckesser, Warren
               and Abbasi, Hameer and Gohlke, Christoph and Oliphant, Travis E",
-  abstract = "Array programming provides a powerful, compact and expressive
-              syntax for accessing, manipulating and operating on data in
-              vectors, matrices and higher-dimensional arrays. NumPy is the
-              primary array programming library for the Python language. It has
-              an essential role in research analysis pipelines in fields as
-              diverse as physics, chemistry, astronomy, geoscience, biology,
-              psychology, materials science, engineering, finance and
-              economics. For example, in astronomy, NumPy was an important part
-              of the software stack used in the discovery of gravitational
-              waves1 and in the first imaging of a black hole2. Here we review
-              how a few fundamental array concepts lead to a simple and
-              powerful programming paradigm for organizing, exploring and
-              analysing scientific data. NumPy is the foundation upon which the
-              scientific Python ecosystem is constructed. It is so pervasive
-              that several projects, targeting audiences with specialized
-              needs, have developed their own NumPy-like interfaces and array
-              objects. Owing to its central position in the ecosystem, NumPy
-              increasingly acts as an interoperability layer between such array
-              computation libraries and, together with its application
-              programming interface (API), provides a flexible framework to
-              support the next decade of scientific and industrial analysis.",
   journal  = "Nature",
   volume   =  585,
   number   =  7825,
-  pages    = "357--362",
+  pages    = "357-362",
   month    =  sep,
   year     =  2020,
   language = "en",
@@ -995,7 +747,7 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
 
 @ARTICLE{Virtanen2020-tq,
   title    = "{SciPy} 1.0: fundamental algorithms for scientific computing in
-              Python",
+              {Python}",
   author   = "Virtanen, Pauli and Gommers, Ralf and Oliphant, Travis E and
               Haberland, Matt and Reddy, Tyler and Cournapeau, David and
               Burovski, Evgeni and Peterson, Pearu and Weckesser, Warren and
@@ -1035,19 +787,10 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
               Cera, Tim and Leslie, Tim and Zito, Tiziano and Krauss, Tom and
               Upadhyay, Utkarsh and Halchenko, Yaroslav O and
               V{\'a}zquez-Baeza, Yoshiki",
-  abstract = "Abstract SciPy is an open-source scientific computing library for
-              the Python programming language. Since its initial release in
-              2001, SciPy has become a de facto standard for leveraging
-              scientific algorithms in Python, with over 600 unique code
-              contributors, thousands of dependent packages, over 100,000
-              dependent repositories and millions of downloads per year. In
-              this work, we provide an overview of the capabilities and
-              development practices of SciPy 1.0 and highlight some recent
-              technical developments.",
   journal  = "Nat. Methods",
   volume   =  17,
   number   =  3,
-  pages    = "261--272",
+  pages    = "261-272",
   month    =  mar,
   year     =  2020,
   language = "en",
@@ -1057,57 +800,9 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
 @ARTICLE{Hirel2015-ts,
   title    = "Atomsk: A tool for manipulating and converting atomic data files",
   author   = "Hirel, Pierre",
-  abstract = "We present a libre, Open Source command-line program named
-              Atomsk, that aims at creating and manipulating atomic systems for
-              the purposes of ab initio calculations, classical atomistic
-              calculations, and visualization, in the areas of computational
-              physics and chemistry. The program can run on GNU/Linux, Apple
-              Mac OS X, and Microsoft Windows platforms. Many file formats are
-              supported, allowing for easy conversion of atomic configuration
-              files. The command-line options allow to construct supercells,
-              insert point defects (vacancies, interstitials), line defects
-              (dislocations, cracks), plane defects (stacking faults), as well
-              as other transformations. Several options can be applied
-              consecutively, allowing for a comprehensive workflow from a unit
-              cell to the final atomic system. Some modes allow to construct
-              complex structures, or to perform specific analysis of atomic
-              systems. Program summary Program title: Atomsk Catalogue
-              identifier: AEXM\_v1\_0 Program summary
-              URL:http://cpc.cs.qub.ac.uk/summaries/AEXM\_v1\_0.html Program
-              obtainable from: CPC Program Library, Queen's University,
-              Belfast, N. Ireland Licensing provisions: GNU/GPL version 3 or
-              any later version No. of lines in distributed program, including
-              test data, etc.: 61,450 No. of bytes in distributed program,
-              including test data, etc.: 539,898 Distribution format: tar.gz
-              Programming language: Fortran 90. Computer: All computers with a
-              Fortran compiler supporting at least Fortran 90. Operating
-              system: All operating systems with such a compiler. Some of the
-              Makefiles and scripts depend on a Unix-like system and need
-              modification under Windows. RAM: Typically 32 bytes $\times$ N,
-              where N is the number of particles. Classification: 4.14, 7.1.
-              External routines: LAPACK Nature of problem: Atomistic
-              simulations require the generation of atomic data files. Few
-              software are available to construct atomic systems containing
-              dislocations, especially in anisotropic media. Solution method:
-              Atomsk is a unified program that allows to generate, convert and
-              transform atomic systems for the purposes of ab initio
-              calculations, classical atomistic simulations, or visualization.
-              It supports many lattice types, all atom chemical species, and
-              supports systems described with the ionic core--shell model. It
-              allows to construct dislocations and analyze them, and perform
-              post-treatment of simulation output files. Restrictions: no
-              support for molecular bonds; limit of 2 billions particles.
-              Unusual features: dislocations in anisotropic media; computation
-              of the Nye tensor; generation of polycrystal from any type of
-              lattice; support for ionic core--shell models and analysis of
-              electric polarization. Additional comments: the program and its
-              documentation are available at: http://atomsk.univ-lille1.fr
-              Running time: spans from a fraction of a second to several
-              minutes depending on the number of particles in the atomic
-              system, the mode, and the machine performance.",
   journal  = "Comput. Phys. Commun.",
   volume   =  197,
-  pages    = "212--219",
+  pages    = "212-219",
   month    =  dec,
   year     =  2015,
   doi      = "10.1016/j.cpc.2015.07.012"
@@ -1116,10 +811,10 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
 @article{Daw1984,
   title = {Embedded-atom method: Derivation and application to impurities, surfaces, and other defects in metals},
   author = {Daw, Murray S. and Baskes, Michael I.},
-  journal = {Physical Review B},
+  journal = {Phys. Rev. B},
   volume = {29},
   issue = {12},
-  pages = {6443--6453},
+  pages = {6443-6453},
   numpages = {0},
   year = {1984},
   month = {Jun},
@@ -1148,7 +843,7 @@ url={https://openreview.net/forum?id=YPpSngE-ZU}
   year      = "2015",
   publisher = "Springer",
   address   = "Cham",
-  pages     = "61--79",
+  pages     = "61-79",
   abstract  = "This paper describes methods and algorithms implemented for the co-simulation between a mesh-free discrete element method (DEM) code and a finite element analysis (FEA) code under control of a co-simulation middleware software environment.",
   isbn      = "978-3-319-06898-5",
   doi       = "10.1007/978-3-319-06898-5_4"
