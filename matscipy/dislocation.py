@@ -3543,7 +3543,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             # Disable disloc verbosity if no self-consistent solve of disloc displacements
             # CubicCrystalDislocation.displacements doesn't print unless SCF is turned on 
             disloc_verbose = disloc_verbose * bool(kwargs["self_consistent"])
-            self_consistent = bool(kwargs[self_consistent])
+            self_consistent = bool(kwargs["self_consistent"])
         else:
             kwargs["self_consistent"] = self.self_consistent
 
