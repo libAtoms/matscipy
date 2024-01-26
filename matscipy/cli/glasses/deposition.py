@@ -162,12 +162,11 @@ def deposit_atom_sim(rank,prev_config,atom_energy,atom_mass,lmps,mass_cmds,poten
             print(f'AVERAGE VELOCITY: {avg_v}')
             print(f'MAX VELOCITY: {max_v}')
             #if max velocity is much larger than average velocity, then have small timestep
-            if (max_v > 1.3*avg_v) and (i>0):
-                print(f'MAX VELOCITY: {max_v}')
-                timestep = ((0.1)/(max_v))/(fs*1000) #in ps
-                print(f'TIMESTEP: {timestep}')
-            else:
-                timestep = 0.002 #set timestep to 2fs
+            print(f'MAX VELOCITY: {max_v}')
+            timestep = ((0.1)/(max_v))/(fs*1000) #in ps
+            if timestep>0.002:
+                timestep = 0.002
+            print(f'TIMESTEP: {timestep}')
         else:
             timestep = 0
         #communicate timestep to all ranks
