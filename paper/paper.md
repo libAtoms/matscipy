@@ -79,7 +79,7 @@ affiliations:
     index: 3
   - name: Institute for Applied Materials, Karlsruhe Institute of Technology, Engelbert-Arnold-Straße 4, 76131 Karlsruhe, Germany
     index: 4
-  - name: Fraunhofer IWM, MikroTribologie Centrum $\mu$TC, Wöhlerstraße 11, 79108, Freiburg, Germany
+  - name: Fraunhofer IWM, MikroTribologie Centrum µTC, Wöhlerstraße 11, 79108, Freiburg, Germany
     index: 5
   - name: Department of Materials, Imperial College London, London SW7 2AZ, UK
     index: 6
