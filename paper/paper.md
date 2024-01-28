@@ -79,13 +79,13 @@ affiliations:
     index: 3
   - name: Institute for Applied Materials, Karlsruhe Institute of Technology, Engelbert-Arnold-Straße 4, 76131 Karlsruhe, Germany
     index: 4
-  - name: Fraunhofer IWM, MikroTribologie Centrum µTC, Wöhlerstraße 11, 79108, Freiburg, Germany
+  - name: Fraunhofer IWM, MikroTribologie Centrum µTC, Wöhlerstraße 11, 79108 Freiburg, Germany
     index: 5
   - name: Department of Materials, Imperial College London, London SW7 2AZ, UK
     index: 6
-  - name: Fritz Haber Institute of the Max Planck Society, Faradayweg 4-6, D-14195, Berlin, Germany
+  - name: Fritz Haber Institute of the Max Planck Society, Faradayweg 4-6, 14195 Berlin, Germany
     index: 7
-  - name: Cluster of Excellence livMatS, Freiburg Center for Interactive Materials and Bioinspired Technologies, University of Freiburg, Georges-Köhler-Allee 105, 79110, Freiburg, Germany
+  - name: Cluster of Excellence livMatS, Freiburg Center for Interactive Materials and Bioinspired Technologies, University of Freiburg, Georges-Köhler-Allee 105, 79110 Freiburg, Germany
     index: 8
   - name : Engineering and Technology Institute Groningen, Faculty of Science and Engineering, University of Groningen, Nijenborgh 4, 9747 AG Groningen, The Netherlands
     index: 9
