@@ -1,4 +1,4 @@
-|Tests| |Wheels|
+|Tests| |Wheels| |JOSS|
 
 Matscipy
 ========
@@ -114,3 +114,6 @@ Funding
 
 .. |Wheels| image:: https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml/badge.svg
    :target: https://github.com/libAtoms/matscipy/actions/workflows/wheels.yml
+
+.. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.05668/status.svg
+   :target: https://doi.org/10.21105/joss.05668
