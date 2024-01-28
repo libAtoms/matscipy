@@ -1,0 +1,145 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Grigorev
+  given-names: Petr
+  orcid: "https://orcid.org/0000-0002-6409-9092"
+- family-names: Frérot
+  given-names: Lucas
+  orcid: "https://orcid.org/0000-0002-4138-1052"
+- family-names: Birks
+  given-names: Fraser
+  orcid: "https://orcid.org/0009-0008-9117-0393"
+- family-names: Gola
+  given-names: Adrien
+  orcid: "https://orcid.org/0000-0002-5102-1931"
+- family-names: Golebiowski
+  given-names: Jacek
+  orcid: "https://orcid.org/0000-0001-8053-8318"
+- family-names: Grießer
+  given-names: Jan
+  orcid: "https://orcid.org/0000-0003-2149-6730"
+- family-names: Hörmann
+  given-names: Johannes L.
+  orcid: "https://orcid.org/0000-0001-5867-695X"
+- family-names: Klemenz
+  given-names: Andreas
+  orcid: "https://orcid.org/0000-0001-5677-5639"
+- family-names: Moras
+  given-names: Gianpietro
+  orcid: "https://orcid.org/0000-0002-4623-2881"
+- family-names: Nöhring
+  given-names: Wolfram G.
+  orcid: "https://orcid.org/0000-0003-4203-755X"
+- family-names: Oldenstaedt
+  given-names: Jonas A.
+  orcid: "https://orcid.org/0000-0002-7475-3019"
+- family-names: Patel
+  given-names: Punit
+- family-names: Reichenbach
+  given-names: Thomas
+  orcid: "https://orcid.org/0000-0001-7477-6248"
+- family-names: Rocke
+  given-names: Thomas
+  orcid: "https://orcid.org/0000-0002-4612-9112"
+- family-names: Shenoy
+  given-names: Lakshmi
+  orcid: "https://orcid.org/0000-0001-5760-3345"
+- family-names: Walter
+  given-names: Michael
+  orcid: "https://orcid.org/0000-0001-6679-2491"
+- family-names: Wengert
+  given-names: Simon
+  orcid: "https://orcid.org/0000-0002-8008-1482"
+- family-names: Zhang
+  given-names: Lei
+  orcid: "https://orcid.org/0000-0003-4414-7111"
+- family-names: Kermode
+  given-names: James R.
+  orcid: "https://orcid.org/0000-0001-6755-6271"
+- family-names: Pastewka
+  given-names: Lars
+  orcid: "https://orcid.org/0000-0001-8351-7336"
+contact:
+- family-names: Kermode
+  given-names: James R.
+  orcid: "https://orcid.org/0000-0001-6755-6271"
+- family-names: Pastewka
+  given-names: Lars
+  orcid: "https://orcid.org/0000-0001-8351-7336"
+doi: 10.5281/zenodo.10564956
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Grigorev
+    given-names: Petr
+    orcid: "https://orcid.org/0000-0002-6409-9092"
+  - family-names: Frérot
+    given-names: Lucas
+    orcid: "https://orcid.org/0000-0002-4138-1052"
+  - family-names: Birks
+    given-names: Fraser
+    orcid: "https://orcid.org/0009-0008-9117-0393"
+  - family-names: Gola
+    given-names: Adrien
+    orcid: "https://orcid.org/0000-0002-5102-1931"
+  - family-names: Golebiowski
+    given-names: Jacek
+    orcid: "https://orcid.org/0000-0001-8053-8318"
+  - family-names: Grießer
+    given-names: Jan
+    orcid: "https://orcid.org/0000-0003-2149-6730"
+  - family-names: Hörmann
+    given-names: Johannes L.
+    orcid: "https://orcid.org/0000-0001-5867-695X"
+  - family-names: Klemenz
+    given-names: Andreas
+    orcid: "https://orcid.org/0000-0001-5677-5639"
+  - family-names: Moras
+    given-names: Gianpietro
+    orcid: "https://orcid.org/0000-0002-4623-2881"
+  - family-names: Nöhring
+    given-names: Wolfram G.
+    orcid: "https://orcid.org/0000-0003-4203-755X"
+  - family-names: Oldenstaedt
+    given-names: Jonas A.
+    orcid: "https://orcid.org/0000-0002-7475-3019"
+  - family-names: Patel
+    given-names: Punit
+  - family-names: Reichenbach
+    given-names: Thomas
+    orcid: "https://orcid.org/0000-0001-7477-6248"
+  - family-names: Rocke
+    given-names: Thomas
+    orcid: "https://orcid.org/0000-0002-4612-9112"
+  - family-names: Shenoy
+    given-names: Lakshmi
+    orcid: "https://orcid.org/0000-0001-5760-3345"
+  - family-names: Walter
+    given-names: Michael
+    orcid: "https://orcid.org/0000-0001-6679-2491"
+  - family-names: Wengert
+    given-names: Simon
+    orcid: "https://orcid.org/0000-0002-8008-1482"
+  - family-names: Zhang
+    given-names: Lei
+    orcid: "https://orcid.org/0000-0003-4414-7111"
+  - family-names: Kermode
+    given-names: James R.
+    orcid: "https://orcid.org/0000-0001-6755-6271"
+  - family-names: Pastewka
+    given-names: Lars
+    orcid: "https://orcid.org/0000-0001-8351-7336"
+  date-published: 2024-01-28
+  doi: 10.21105/joss.05668
+  issn: 2475-9066
+  issue: 93
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 5668
+  title: "matscipy: materials science at the atomic scale with Python"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.05668"
+  volume: 9
+title: "matscipy: materials science at the atomic scale with Python"
