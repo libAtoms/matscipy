@@ -104,6 +104,24 @@ Optional packages:
 -  **atomistica** - https://www.github.com/Atomistica/atomistica
 -  **chemview** - https://github.com/gabrielelanaro/chemview
 
+Citing matscipy
+---------------
+
+Please cite the following publication if you use matscipy::
+
+  @article{Grigorev2024,
+    author = {Grigorev, Petr and Frérot, Lucas and Birks, Fraser and Gola, Adrien and Golebiowski, Jacek and Grießer, Jan and Hörmann, Johannes L. and Klemenz, Andreas and Moras, Gianpietro and Nöhring, Wolfram G. and Oldenstaedt, Jonas A. and Patel, Punit and Reichenbach, Thomas and Rocke, Thomas and Shenoy, Lakshmi and Walter, Michael and Wengert, Simon and Zhang, Lei and Kermode, James R. and Pastewka, Lars},
+    doi = {10.21105/joss.05668},
+    journal = {Journal of Open Source Software},
+    month = jan,
+    number = {93},
+    pages = {5668},
+    title = {{matscipy: materials science at the atomic scale with Python}},
+    url = {https://joss.theoj.org/papers/10.21105/joss.05668},
+    volume = {9},
+    year = {2024}
+  }
+
 Funding
 -------
 
