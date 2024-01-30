@@ -3543,9 +3543,6 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             # Disable disloc verbosity if no self-consistent solve of disloc displacements
             # CubicCrystalDislocation.displacements doesn't print unless SCF is turned on 
             disloc_verbose = disloc_verbose * bool(kwargs["self_consistent"])
-            self_consistent = bool(kwargs["self_consistent"])
-        else:
-            kwargs["self_consistent"] = self.self_consistent
 
         displacements = np.zeros_like(positions)
         disp_update = np.zeros_like(positions)
@@ -3683,7 +3680,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             core_pos_2
         ])
 
-        if partial_distance > 0.0:
+        if isinstance(self.right_dislocation, CubicCrystalDissociatedDislocation):
             partial_core_pos = core_positions.copy()
             partial_core_pos[:, 0] += partial_vec[0]
             old_core_positions = core_positions
