@@ -3578,8 +3578,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
                     print(f"Periodic displacements converged to r_tol={disp_tol} after {neigh_idx} iterations")
 
                 return displacements
-        warnings.warn("Periodic quadrupole displacments did not converge!")
-        return displacements
+        # Not converged, throw error
+        raise RuntimeError("Periodic quadrupole displacments did not converge!")
 
 
     def build_quadrupole(self, glide_separation=4, partial_distance=0, extension=0, verbose='periodic', 
