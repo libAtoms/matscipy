@@ -76,6 +76,7 @@ initial_kick = parameter('initial_kick', False) #give the crack an initial kick 
 kick_timestep = parameter('kick_timestep', 9) # timestep to give the crack an initial kick
 
 approximate_strain = parameter('approximate_strain',False) #if True, use approximate strain calculation
+y_threshold = parameter('y_threshold',1)
 cpnum = initial_checkpoint_num
 
 if restart:
@@ -329,7 +330,7 @@ for knum,K in enumerate(kvals):
                 atom_1_traj = np.loadtxt(f'{results_path}/tracked_motion_{tracked_array[atom_ids[0]]}.txt')
                 atom_2_traj = np.loadtxt(f'{results_path}/tracked_motion_{tracked_array[atom_ids[1]]}.txt')
                 #calculate crack velocity and check if it's steady
-                v, ss_c = tsb.check_steady_state(atom_1_traj,atom_2_traj)
+                v, ss_c = tsb.check_steady_state(atom_1_traj,atom_2_traj,y_threshold=y_threshold)
 
                 # -------------- if it's a new velocity, write to files --------------- #
                 if np.round(v,decimals=6) != np.round(prev_v,decimals=6): 
