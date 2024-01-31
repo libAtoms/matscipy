@@ -3480,7 +3480,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         return self.left_dislocation.glide_distance_dimensionless
 
 
-    def periodic_displacements(self, positions, v1, v2, core_positions, disp_tol=1e-3, max_neighs=60, 
+    def periodic_displacements(self, positions, v1, v2, core_positions, disp_tol=1e-3, max_neighs=15, 
                                verbose="periodic", **kwargs):
         '''
         Calculate the stroh displacements for the periodic structure defined by 2D lattice vectors v1 & v2
