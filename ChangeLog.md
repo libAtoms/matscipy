@@ -1,10 +1,18 @@
 Change log
 ==========
 
-v0.9.0 (not yet released)
+v1.0.0 (24Jan24)
 -------------------------
 
-- Scripts are now installable CLI
+- JOSS paper!
+- Significant updates documentation packages
+- Displacement field and associated deformation tensors for dislocations in anisotropic elastic media
+- Multiple improvements to arc-length continuation for flexible boundary conditions (NCFlex): Mode II fracture,
+  mixed mode I/II fracture, parallel calculations
+- Tools for generation of stacking fault & gamma surface (generalised stacking fault) images
+- Committees of models as a calculator
+- Compatibility with recent ASE and scipy versions
+- Scripts are now an installable command-line interface; experimental scripts remain in a "staging" subdirectory
 - Updated documentation packages
 - Added tool for generating dislocation quadrupoles for any `CubicCrystalDislocation` or `CubicCrystalDissociatedDislocation`
 - Refactor of dislocation internals & testing to allow for easy integration of new dislocation types and displacement solver methods.
