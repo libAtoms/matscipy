@@ -136,7 +136,8 @@ if me == 0:
         #--------------- if multi potential, redraw boundaries ----------------#
         if multi_potential:
             if partition_type == 'strip':
-                pos = crack_slab.get_positions()
+                basic_slab = tsb.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
+                pos = basic_slab.get_positions()
                 #get the atoms within +- partition_width/2 of the centre in y
                 mid_point_y = (np.max(pos[:,1]) + np.min(pos[:,1]))/2
                 mask = (pos[:,1] > (mid_point_y - partition_width/2)) & (pos[:,1] < (mid_point_y + partition_width/2))
@@ -351,7 +352,8 @@ for knum,K in enumerate(kvals):
             #--------------- if multi potential, redraw boundaries ----------------#
             if multi_potential:
                 if partition_type == 'strip':
-                    pos = new_slab.get_positions()
+                    basic_slab = tsb.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
+                    pos = basic_slab.get_positions()
                     #get the atoms within +- partition_width/2 of the centre in y
                     mid_point_y = (np.max(pos[:,1]) + np.min(pos[:,1]))/2
                     mask = (pos[:,1] > (mid_point_y - partition_width/2)) & (pos[:,1] < (mid_point_y + partition_width/2))
