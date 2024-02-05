@@ -560,7 +560,7 @@ class ThinStripBuilder:
         return crack_atoms
 
     
-    def check_steady_state(self,atom_1_traj,atom_2_traj):
+    def check_steady_state(self,atom_1_traj,atom_2_traj,y_threshold=1):
         """
         take the y position as a function of time for 2 atoms and check to what extent they are in steady state
         atom_1_traj and atom_2_traj are both 2 dimensional arrays, with one column being simulation time, and the other
@@ -570,9 +570,14 @@ class ThinStripBuilder:
         # first, estimate velocity by finding the times at which the atoms cross a y displacement of 1 Angstrom
 
         #find the times at which the atoms cross a y displacement of 1 Angstrom
-        mask_traj_1 = np.abs(atom_1_traj[:,1]-atom_1_traj[0,1])>1
-        mask_traj_2 = np.abs(atom_2_traj[:,1]-atom_2_traj[0,1])>1
+        mask_traj_1 = np.abs(atom_1_traj[:,1]-atom_1_traj[0,1])>y_threshold
+        mask_traj_2 = np.abs(atom_2_traj[:,1]-atom_2_traj[0,1])>y_threshold
+        print('1')
+        print(atom_1_traj[:,1]-atom_1_traj[0,1])
+        print('2')
+        print(atom_2_traj[:,1]-atom_2_traj[0,1])
         num_points = min(np.shape((atom_2_traj[mask_traj_2]))[0],1000)
+        print('num points',num_points)
         masks = [mask_traj_1,mask_traj_2]
         atom_trajs = [atom_1_traj,atom_2_traj]
         break_tsteps = []
