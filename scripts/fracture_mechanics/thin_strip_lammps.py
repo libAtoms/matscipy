@@ -75,7 +75,24 @@ dump_files = parameter('dump_files', True)
 initial_kick = parameter('initial_kick', False) #give the crack an initial kick at the end of the damping time
 kick_timestep = parameter('kick_timestep', 9) # timestep to give the crack an initial kick
 
+y_buffer_unit_cells = parameter('y_buffer_unit_cells',0) #added additional unit cells of atoms in y to be fixed 
+# important if you don't want potential to see outide edge
 approximate_strain = parameter('approximate_strain',False) #if True, use approximate strain calculation
+
+multi_potential = parameter('multi_potential',False) #if True, use dual potentials, for different regions of the crack
+if multi_potential:
+    partition_type = parameter('partition_type') #get the type of partitioning to use between potentials
+    pot_speedup = parameter('pot_speedup') #get the relative speedup between the two potentials
+    #if the partition type is strip, then get the strip width 
+    if partition_type == 'strip':
+        partition_width = parameter('partition_width')
+    else:
+        partition_width = None
+else:
+    partition_type = None
+    partition_width = None
+    pot_speedup = None
+
 cpnum = initial_checkpoint_num
 
 if restart:
@@ -100,17 +117,31 @@ plot_num = 0
 ######################SET UP SIMULATION OR RESTART FROM CHECKPOINT FILES##############################
 if me == 0:
     tsb = ThinStripBuilder(el,a0,C,calc,lattice,directions,multilattice=multilattice,cb=cb,switch_sublattices=True)
+    tsb.y_buffer_unit_cells = int(y_buffer_unit_cells)
     if not approximate_strain:
         tsb.measure_energy_strain_relation(resolution=1000)
     
     crack_slab = tsb.build_thin_strip_with_crack(initial_K,strip_width,strip_height,strip_thickness\
                                                ,vacuum,crack_seed_length,strain_ramp_length,track_spacing=track_spacing,apply_x_strain=False,approximate=approximate_strain)
+    print(crack_slab.get_chemical_symbols())
+    print(crack_slab.symbols.indices())
+    print(float(crack_slab[crack_slab.symbols.indices()['Si'][0]].mass))
     os.makedirs(temp_path,exist_ok=True)
     if not restart:
         os.makedirs(results_path, exist_ok=False)
         tracked_array = crack_slab.arrays['tracked']
         print('Writing crack slab to file "crack.xyz"')
         crack_slab.set_velocities(np.zeros([len(crack_slab),3]))
+        #--------------- if multi potential, redraw boundaries ----------------#
+        if multi_potential:
+            if partition_type == 'strip':
+                pos = crack_slab.get_positions()
+                #get the atoms within +- partition_width/2 of the centre in y
+                mid_point_y = (np.max(pos[:,1]) + np.min(pos[:,1]))/2
+                mask = (pos[:,1] > (mid_point_y - partition_width/2)) & (pos[:,1] < (mid_point_y + partition_width/2))
+                #set these atoms to be Helium, by setting chemical symbols
+                crack_slab.set_chemical_symbols(np.array(['He' if x else 'Si' for x in mask]))
+        
         ase.io.write(f'{temp_path}/crack.xyz', crack_slab, format='extxyz')
         ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',crack_slab,velocities=True)
         tip_pos = crack_seed_length+strain_ramp_length+np.min(crack_slab.get_positions()[:,0])
@@ -140,13 +171,17 @@ if me == 0:
         #shorten kvals list to start from the restart_knum entry
         kvals = kvals[restart_knum:]
         K_curr = K_restart
+    
+    y_fixed_length = y_buffer_unit_cells*tsb.single_cell_height + 1
 else:
     tracked_array = None
+    y_fixed_length = 0
 
 ######################################################################################################
 
 ###########################MAIN LOOP#################################
 
+y_fixed_length = MPI.COMM_WORLD.bcast(y_fixed_length,root=0)
 for knum,K in enumerate(kvals):
     if me == 0:
         crack_tip_positions = np.array([])
@@ -185,7 +220,8 @@ for knum,K in enumerate(kvals):
         #now set up simulation (but do not run)
         set_up_simulation_lammps(lmp,temp_path,mass,cmds,sim_tstep=sim_tstep,damping_strength_right=damping_strength_right,damping_strength_left=damping_strength_left
                                  , dump_freq=dump_freq, dump_name=dump_name, thermo_freq=thermo_freq, dump_files=dump_files,
-                                 left_damp_thickness=left_damp_thickness, right_damp_thickness=right_damp_thickness)
+                                 left_damp_thickness=left_damp_thickness, right_damp_thickness=right_damp_thickness,multi_potential=multi_potential,
+                                 pot_speedup=pot_speedup,y_fixed_length=y_fixed_length)
         if (i < initial_damping_time) and (initial_damp):
             #add a lammps command to set a thermostat for all atoms initially
             lmp.command(f'fix therm2 nve_atoms langevin 0.0 0.0 {initial_damping_strengths[i]} 1029')
@@ -310,6 +346,16 @@ for knum,K in enumerate(kvals):
                 initial_kick = False
                 new_slab.set_velocities(velocities)
 
+
+            #--------------- if multi potential, redraw boundaries ----------------#
+            if multi_potential:
+                if partition_type == 'strip':
+                    pos = new_slab.get_positions()
+                    #get the atoms within +- partition_width/2 of the centre in y
+                    mid_point_y = (np.max(pos[:,1]) + np.min(pos[:,1]))/2
+                    mask = (pos[:,1] > (mid_point_y - partition_width/2)) & (pos[:,1] < (mid_point_y + partition_width/2))
+                    #set these atoms to be Helium, by setting chemical symbols
+                    new_slab.set_chemical_symbols(np.array(['He' if x else 'Si' for x in mask]))
 
             # -------------- write file for next loop --------------- #
             #ase.io.write(f'{results_path}/new_slab_{plot_num}.xyz',new_slab,format='extxyz')

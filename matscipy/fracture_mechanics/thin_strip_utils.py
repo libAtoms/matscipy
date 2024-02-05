@@ -26,6 +26,7 @@ class ThinStripBuilder:
         self.lattice = lattice
         self.y_strain = 0
         self.total_added_dist = 0
+        self.y_buffer_unit_cells = 0 #number of unit cells to add to top and bottom in y and fix
         if self.multilattice:
             assert cb is not None, 'Must provide a Cauchy Born object if multilattice is True'
             self.cb = cb
@@ -74,12 +75,13 @@ class ThinStripBuilder:
             running_strains.append(strain)
             #get energy per unit volume
             energies_per_unit_vol.append(np.trapz(stresses,running_strains))
-        
+        #print('plotting graph...')
         #plot stresses and strains
-        plt.plot(running_strains,stresses)
-        plt.xlabel('strain')
-        plt.ylabel('stress')
-        plt.savefig('stress_strain_relation.png')
+        #plt.plot(running_strains,stresses)
+        #plt.xlabel('strain')
+        #plt.ylabel('stress')
+        #plt.savefig('stress_strain_relation.png')
+        #print('done!')
         #now integrate to get energy per unit volume
         print('energies per unit vol',energies_per_unit_vol)
         energy_strain_relation = np.zeros([len(strains),2])
@@ -184,6 +186,8 @@ class ThinStripBuilder:
         nx = int(width / unit_slab.cell[0, 0])
         ny = int(height/ unit_slab.cell[1, 1])
         nz = int(thickness/ unit_slab.cell[2, 2])
+        #add additional unit cells to the top and bottom of the slab
+        ny += 2*self.y_buffer_unit_cells
         print('nx ny nz', nx,ny,nz)
         #ase.io.write('unitslab.xyz',unit_slab)
         self.single_cell_width = unit_slab.cell[0,0]
@@ -522,7 +526,6 @@ class ThinStripBuilder:
         """
         get the true height of a strip with no strain
         """
-        #build a thin strip with no strain
         ny = int(strip_height/self.single_cell_height)
         if ny % 2 == 1:
             ny += 1
@@ -634,7 +637,7 @@ class ThinStripBuilder:
 def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
                              sim_tstep=0.001,damping_strength_right=0.1,damping_strength_left=0.1,dump_freq=100, dump_files=True,
                              dump_name='dump.lammpstrj',thermo_freq=100,left_damp_thickness=60,
-                             right_damp_thickness=60):
+                             right_damp_thickness=60,multi_potential=False, pot_speedup=None,y_fixed_length=1):
     """Set up the simulation by passing an active LAMMPS object a number of commands"""
     
     # ---------- Initialize Simulation --------------------- 
@@ -648,25 +651,39 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     #----------Read atoms------------
     lmps.command(f'read_data {tmp_file_path}/crack.lj')
                  
-    #----------Define potential-------
-    lmps.command(f'mass 1 {atomic_mass}')
-
-    ############ set up potential ################
-    lmps.commands_list(calc_commands)
 
     #---------- Determine Lowest and Highest y-coordinates ----------
-    lmps.command('group crack type 1')
+    lmps.command('group crack type 1 2')
     lmps.command('variable ymax equal bound(crack,ymax)')
     lmps.command('variable ymin equal bound(crack,ymin)')
     lmps.command('variable xmax equal bound(crack,xmax)')
     lmps.command('variable xmin equal bound(crack,xmin)')
+    #define a variable for average y position of crack atoms using ymax and ymin
+    lmps.command('variable ymid equal (v_ymax+v_ymin)/2')
+    #----------Define potential-------
+    lmps.command(f'mass 1 {atomic_mass}')
+    if multi_potential:
+        lmps.command(f'mass 2 {atomic_mass}')
+        lmps.command('group expensive_potential type 1')
+        lmps.command('group cheap_potential type 2')
 
 
+
+    
+    ############ set up potential ################
+    #set up both potentials, ensuring that interactions between types are defined
+    lmps.commands_list(calc_commands)
+
+    #---------- Define balance fix to spread load between processors
+    if multi_potential:
+        lmps.command(f'fix b_fix all balance 100 1.2 shift xy 10 1.05 weight group 2 cheap_potential 1.0 expensive_potential {pot_speedup} out tmp.balance')
+    else:
+        lmps.command(f'fix b_fix all balance 100 1.2 shift xy 10 1.05')
     #---------- Define Regions for Boundary Layers ----------
-    lmps.command('region bottom_layer block INF INF $((v_ymin-2)) $((v_ymin+1)) INF INF')
-    lmps.command('region top_layer block INF INF $((v_ymax)-1) $(v_ymax+2) INF INF')
+    lmps.command(f'region bottom_layer block INF INF $((v_ymin-2)) $((v_ymin+{y_fixed_length})) INF INF')
+    lmps.command(f'region top_layer block INF INF $((v_ymax)-{y_fixed_length}) $(v_ymax+2) INF INF')
     lmps.command('region left_layer_fixed block $((v_xmin-2)) $((v_xmin+5)) INF INF INF INF')
-    lmps.command('region right_layer_fixed block $((v_xmax-3)) $((v_xmax+2)) INF INF INF INF')
+    lmps.command('region right_layer_fixed block $((v_xmax-5)) $((v_xmax+2)) INF INF INF INF')
     lmps.command(f'region left_layer_thermostat block $((v_xmin-2)) $((v_xmin+{left_damp_thickness})) INF INF INF INF')
     lmps.command(f'region right_layer_thermostat block $((v_xmax-{right_damp_thickness})) $((v_xmax+2)) INF INF INF INF')
 
