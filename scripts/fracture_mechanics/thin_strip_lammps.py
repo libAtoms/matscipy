@@ -1,4 +1,4 @@
-from matscipy.fracture_mechanics.thin_strip_utils import ThinStripBuilder, set_up_simulation_lammps
+from matscipy.fracture_mechanics.thin_strip_utils import ThinStripBuilder, set_up_simulation_lammps, write_potential_and_buffer
 from matscipy import parameter
 from matscipy.fracture_mechanics.crack import G_to_strain
 import ase.io.lammpsdata
@@ -83,7 +83,8 @@ multi_potential = parameter('multi_potential',False) #if True, use dual potentia
 if multi_potential:
     partition_type = parameter('partition_type') #get the type of partitioning to use between potentials
     pot_speedup = parameter('pot_speedup') #get the relative speedup between the two potentials
-    #if the partition type is strip, then get the strip width 
+    #if the partition type is strip, then get the strip width
+    buffer_thickness = parameter('buffer_thickness',6.0)
     if partition_type == 'strip':
         partition_width = parameter('partition_width')
     else:
@@ -131,19 +132,21 @@ if me == 0:
         tracked_array = crack_slab.arrays['tracked']
         print('Writing crack slab to file "crack.xyz"')
         crack_slab.set_velocities(np.zeros([len(crack_slab),3]))
-        #--------------- if multi potential, redraw boundaries ----------------#
+
+        #--------------- if multi potential, draw boundaries ----------------#
         if multi_potential:
             if partition_type == 'strip':
-                basic_slab = tsb.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
-                pos = basic_slab.get_positions()
-                #get the atoms within +- partition_width/2 of the centre in y
-                mid_point_y = (np.max(pos[:,1]) + np.min(pos[:,1]))/2
-                mask = (pos[:,1] > (mid_point_y - partition_width/2)) & (pos[:,1] < (mid_point_y + partition_width/2))
-                #set these atoms to be Helium, by setting chemical symbols
-                crack_slab.set_chemical_symbols(np.array(['He' if x else 'Si' for x in mask]))
-        
+                tsb.draw_strip_potential_boundary(crack_slab,partition_width,buffer_thickness,
+                                                    strip_width,strip_height,strip_thickness,vacuum)
+            else:
+                raise ValueError('Partition type not recognised')
+
         ase.io.write(f'{temp_path}/crack.xyz', crack_slab, format='extxyz')
         ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',crack_slab,velocities=True)
+        
+        if multi_potential:
+            write_potential_and_buffer(crack_slab,f'{temp_path}/crack.lj')
+
         tip_pos = crack_seed_length+strain_ramp_length+np.min(crack_slab.get_positions()[:,0])
         K_curr = initial_K
     else:
@@ -187,13 +190,16 @@ for knum,K in enumerate(kvals):
         crack_tip_positions = np.array([])
         prev_v = 0
         unique_v_vals = 0
-        unscaled_crack = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/crack.lj',atom_style='atomic')
+        #unscaled_crack = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/crack.lj',atom_style='atomic')
+        unscaled_crack = ase.io.read(f'{temp_path}/crack.xyz',format='extxyz',parallel=False)
         unscaled_crack.set_pbc([False,False,True])
 
         rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,tip_pos,approximate=approximate_strain)
         #re-write lammps data file
         ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',rescale_crack,velocities=True,masses=True)
-    
+        if multi_potential:
+            write_potential_and_buffer(crack_slab,f'{temp_path}/crack.lj')
+
     K_curr = K
     if (knum == 0) and initial_damp:
         initial_damp = True
@@ -350,17 +356,18 @@ for knum,K in enumerate(kvals):
             #--------------- if multi potential, redraw boundaries ----------------#
             if multi_potential:
                 if partition_type == 'strip':
-                    basic_slab = tsb.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
-                    pos = basic_slab.get_positions()
-                    #get the atoms within +- partition_width/2 of the centre in y
-                    mid_point_y = (np.max(pos[:,1]) + np.min(pos[:,1]))/2
-                    mask = (pos[:,1] > (mid_point_y - partition_width/2)) & (pos[:,1] < (mid_point_y + partition_width/2))
-                    #set these atoms to be Helium, by setting chemical symbols
-                    new_slab.set_chemical_symbols(np.array(['He' if x else 'Si' for x in mask]))
+                    tsb.draw_strip_potential_boundary(new_slab,partition_width,buffer_thickness,
+                                                      strip_width,strip_height,strip_thickness,vacuum)
+                else:
+                    raise ValueError('Partition type not recognised')
 
             # -------------- write file for next loop --------------- #
             #ase.io.write(f'{results_path}/new_slab_{plot_num}.xyz',new_slab,format='extxyz')
             ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',new_slab,velocities=True,masses=True)
+            if multi_potential:
+                write_potential_and_buffer(new_slab,f'{temp_path}/crack.lj')
+            #write extxyz file too in case of rescaling
+            ase.io.write(f'{temp_path}/crack.xyz', new_slab, format='extxyz')
             
             # --------------- check crack velocity --------------- #
             #finally, get the crack velocity and work out if it's reached steady state         
@@ -417,7 +424,8 @@ for knum,K in enumerate(kvals):
             if checkpointing and (i+1)%checkpoint_interval == 0:
                 cpdir = f'./{checkpoint_filename}/{cpnum}'
                 os.makedirs(cpdir, exist_ok=False)
-                ase.io.lammpsdata.write_lammps_data(f'{cpdir}/crack.lj',new_slab,velocities=True,masses=True)
+                #ase.io.lammpsdata.write_lammps_data(f'{cpdir}/crack.lj',new_slab,velocities=True,masses=True)
+                os.system(f'cp {temp_path}/crack.lj {cpdir}')
                 np.savetxt(f'{cpdir}/simulation_restart_params.txt',np.array([knum,K_curr,sim_time,plot_num,cpnum,tsb.total_added_dist,tip_pos]))
                 np.savetxt(f'{cpdir}/tracked_array.txt',tracked_array)
                 #copy all files called tracked_motion_*.txt in current directory to cpdir

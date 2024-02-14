@@ -636,6 +636,41 @@ class ThinStripBuilder:
             return cut_out_atoms, cut_base_strip
         else:
             return cut_out_atoms
+        
+    def draw_strip_potential_boundary(self,new_slab,partition_width,buffer_thickness,strip_width,strip_height,strip_thickness,vacuum):
+        basic_slab = self.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
+        pos = basic_slab.get_positions()
+        #get the atoms within +- partition_width/2 of the centre in y
+        mid_point_y = (np.max(pos[:,1]) + np.min(pos[:,1]))/2
+        mask = (pos[:,1] > (mid_point_y - partition_width/2)) & (pos[:,1] < (mid_point_y + partition_width/2))
+        #set these atoms to be expensive, by marking the potential type as 1, and make all other atoms 2
+        new_slab.arrays['potential'] = np.array([1 if x else 2 for x in mask])
+
+        #now set the buffer atoms
+        top_mask = (pos[:,1] > (mid_point_y + partition_width/2-buffer_thickness)) & (pos[:,1] < (mid_point_y + partition_width/2 + buffer_thickness))
+        bot_mask = (pos[:,1] > (mid_point_y - partition_width/2 - buffer_thickness)) & (pos[:,1] < (mid_point_y - partition_width/2 + buffer_thickness))
+        new_slab.arrays['buffer'] = np.array([1 if x else 0 for x in (top_mask|bot_mask)])
+
+def write_potential_and_buffer(atoms,lammps_filename):
+    #get the potential and buffer array from atoms
+    potential = atoms.arrays['potential']
+    buffer = atoms.arrays['buffer']
+    ids = atoms.arrays['id']
+
+    #write to file
+    #create a vertical array of ids, potential
+    pot_arr = np.vstack((ids,potential)).T
+    with open(lammps_filename, 'ab') as file:
+        file.write(b'\n\n\nEvalPotential\n\n')
+        np.savetxt(file, pot_arr, fmt='%i')
+
+    #do the same with buffer
+    #create a vertical array of ids, buffer
+    buffer_arr = np.vstack((ids,buffer)).T
+    with open(lammps_filename, 'ab') as file:
+        file.write(b'\n\n\nBufferAtoms\n\n')
+        np.savetxt(file, buffer_arr, fmt='%i')
+    return
 
 
 
@@ -654,11 +689,16 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
 
 
     #----------Read atoms------------
-    lmps.command(f'read_data {tmp_file_path}/crack.lj')
+    if multi_potential:
+        lmps.command('fix eval_pot all property/atom i_potential ghost yes')
+        lmps.command('fix eval_buffer all property/atom i_buffer ghost yes')
+        lmps.command(f'read_data {tmp_file_path}/crack.lj fix eval_pot NULL EvalPotential fix eval_buffer NULL BufferAtoms')
+    else:
+        lmps.command(f'read_data {tmp_file_path}/crack.lj')
                  
 
     #---------- Determine Lowest and Highest y-coordinates ----------
-    lmps.command('group crack type 1 2')
+    lmps.command('group crack type 1')
     lmps.command('variable ymax equal bound(crack,ymax)')
     lmps.command('variable ymin equal bound(crack,ymin)')
     lmps.command('variable xmax equal bound(crack,xmax)')
@@ -667,12 +707,6 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     lmps.command('variable ymid equal (v_ymax+v_ymin)/2')
     #----------Define potential-------
     lmps.command(f'mass 1 {atomic_mass}')
-    if multi_potential:
-        lmps.command(f'mass 2 {atomic_mass}')
-        lmps.command('group expensive_potential type 1')
-        lmps.command('group cheap_potential type 2')
-
-
 
     
     ############ set up potential ################
@@ -680,10 +714,8 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     lmps.commands_list(calc_commands)
 
     #---------- Define balance fix to spread load between processors
-    if multi_potential:
-        lmps.command(f'fix b_fix all balance 100 1.2 shift xy 10 1.05 weight group 2 cheap_potential 1.0 expensive_potential {pot_speedup} out tmp.balance')
-    else:
-        lmps.command(f'fix b_fix all balance 100 1.2 shift xy 10 1.05')
+    lmps.command(f'fix b_fix all balance 50 1.2 shift xy 10 1.05 weight time 1.1')
+
     #---------- Define Regions for Boundary Layers ----------
     lmps.command(f'region bottom_layer block INF INF $((v_ymin-2)) $((v_ymin+{y_fixed_length})) INF INF')
     lmps.command(f'region top_layer block INF INF $((v_ymax)-{y_fixed_length}) $(v_ymax+2) INF INF')
