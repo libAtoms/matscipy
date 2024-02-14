@@ -124,9 +124,7 @@ if me == 0:
     
     crack_slab = tsb.build_thin_strip_with_crack(initial_K,strip_width,strip_height,strip_thickness\
                                                ,vacuum,crack_seed_length,strain_ramp_length,track_spacing=track_spacing,apply_x_strain=False,approximate=approximate_strain)
-    print(crack_slab.get_chemical_symbols())
-    print(crack_slab.symbols.indices())
-    print(float(crack_slab[crack_slab.symbols.indices()['Si'][0]].mass))
+
     os.makedirs(temp_path,exist_ok=True)
     if not restart:
         os.makedirs(results_path, exist_ok=False)
