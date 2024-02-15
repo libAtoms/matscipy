@@ -655,7 +655,7 @@ def write_potential_and_buffer(atoms,lammps_filename):
     #get the potential and buffer array from atoms
     potential = atoms.arrays['potential']
     buffer = atoms.arrays['buffer']
-    ids = atoms.arrays['id']
+    ids = np.arange(1,len(atoms)+1)
 
     #write to file
     #create a vertical array of ids, potential
@@ -677,7 +677,7 @@ def write_potential_and_buffer(atoms,lammps_filename):
 def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
                              sim_tstep=0.001,damping_strength_right=0.1,damping_strength_left=0.1,dump_freq=100, dump_files=True,
                              dump_name='dump.lammpstrj',thermo_freq=100,left_damp_thickness=60,
-                             right_damp_thickness=60,multi_potential=False, pot_speedup=None,y_fixed_length=1):
+                             right_damp_thickness=60,multi_potential=False, y_fixed_length=1):
     """Set up the simulation by passing an active LAMMPS object a number of commands"""
     
     # ---------- Initialize Simulation --------------------- 

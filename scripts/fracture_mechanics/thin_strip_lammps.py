@@ -82,7 +82,6 @@ approximate_strain = parameter('approximate_strain',False) #if True, use approxi
 multi_potential = parameter('multi_potential',False) #if True, use dual potentials, for different regions of the crack
 if multi_potential:
     partition_type = parameter('partition_type') #get the type of partitioning to use between potentials
-    pot_speedup = parameter('pot_speedup') #get the relative speedup between the two potentials
     #if the partition type is strip, then get the strip width
     buffer_thickness = parameter('buffer_thickness',6.0)
     if partition_type == 'strip':
@@ -92,7 +91,6 @@ if multi_potential:
 else:
     partition_type = None
     partition_width = None
-    pot_speedup = None
 
 y_threshold = parameter('y_threshold',1)
 cpnum = initial_checkpoint_num
@@ -227,7 +225,7 @@ for knum,K in enumerate(kvals):
         set_up_simulation_lammps(lmp,temp_path,mass,cmds,sim_tstep=sim_tstep,damping_strength_right=damping_strength_right,damping_strength_left=damping_strength_left
                                  , dump_freq=dump_freq, dump_name=dump_name, thermo_freq=thermo_freq, dump_files=dump_files,
                                  left_damp_thickness=left_damp_thickness, right_damp_thickness=right_damp_thickness,multi_potential=multi_potential,
-                                 pot_speedup=pot_speedup,y_fixed_length=y_fixed_length)
+                                 y_fixed_length=y_fixed_length)
         if (i < initial_damping_time) and (initial_damp):
             #add a lammps command to set a thermostat for all atoms initially
             lmp.command(f'fix therm2 nve_atoms langevin 0.0 0.0 {initial_damping_strengths[i]} 1029')
