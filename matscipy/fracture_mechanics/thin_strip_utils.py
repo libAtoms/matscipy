@@ -657,6 +657,12 @@ def write_potential_and_buffer(atoms,lammps_filename):
     buffer = atoms.arrays['buffer']
     ids = np.arange(1,len(atoms)+1)
 
+    #print the number of potential and buffer atoms of each type
+    for ntype in np.unique(potential):
+        print(f'Number of potential atoms of type {ntype}: {np.sum(potential==ntype)}')
+        print(f'Number of potential atoms of type {ntype} including those in buffer: {np.sum((potential==ntype)|(buffer==1))}')
+
+
     #write to file
     #create a vertical array of ids, potential
     pot_arr = np.vstack((ids,potential)).T

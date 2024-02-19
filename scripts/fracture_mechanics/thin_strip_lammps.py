@@ -105,6 +105,10 @@ if restart and initial_damp:
     initial_damp = False
     warnings.warn('Restarting from checkpoint, initial damping will be skipped')
 
+if restart and initial_kick:
+    initial_kick = False
+    warnings.warn('Restarting from checkpoint, initial kick will be skipped')
+
 lmp = lammps()
 
 initial_K = kvals[0]
@@ -188,15 +192,15 @@ for knum,K in enumerate(kvals):
         crack_tip_positions = np.array([])
         prev_v = 0
         unique_v_vals = 0
-        #unscaled_crack = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/crack.lj',atom_style='atomic')
-        unscaled_crack = ase.io.read(f'{temp_path}/crack.xyz',format='extxyz',parallel=False)
-        unscaled_crack.set_pbc([False,False,True])
-
-        rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,tip_pos,approximate=approximate_strain)
-        #re-write lammps data file
-        ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',rescale_crack,velocities=True,masses=True)
-        if multi_potential:
-            write_potential_and_buffer(crack_slab,f'{temp_path}/crack.lj')
+        if K != K_curr: #we don't need to rescale if K is K_curr
+            #unscaled_crack = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/crack.lj',atom_style='atomic')
+            unscaled_crack = ase.io.read(f'{temp_path}/crack.xyz',format='extxyz',parallel=False)
+            unscaled_crack.set_pbc([False,False,True])
+            rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,tip_pos,approximate=approximate_strain)
+            #re-write lammps data file
+            ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',rescale_crack,velocities=True,masses=True)
+            if multi_potential:
+                write_potential_and_buffer(crack_slab,f'{temp_path}/crack.lj')
 
     K_curr = K
     if (knum == 0) and initial_damp:
