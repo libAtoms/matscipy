@@ -42,7 +42,8 @@ from ase.optimize.sciopt import OptimizerConvergenceError
 from matscipy.atomic_strain import atomic_strain
 from matscipy.elasticity import (rotate_elastic_constants,
                                  rotate_cubic_elastic_constants,
-                                 Voigt_6_to_full_3x3_stress)
+                                 Voigt_6_to_full_3x3_stress,
+                                 elastic_moduli)
 from matscipy.surface import MillerDirection, MillerPlane
 from matscipy.neighbours import neighbour_list
 from matscipy.optimize import ode12r
@@ -341,8 +342,154 @@ class RectilinearAnisotropicCrack:
         return -2 / (self.a22 * ((self.mu1 + self.mu2) /
                      (self.mu1 * self.mu2)).imag)
 
-###
+### Critical K_I for dislocation emission from (updated) Rice theory.
+    
+    def g1e(self, max_gamma):
+        """
+        Critical energy release rate for dislocation emission.
+        J. R. Rice, JMPS, (1992).
+        The critical energy release rate is the unstable stacking
+        fault energy according to J. R. Rice.
+        
+        Parameters
+        ----------
+        max_gamma: the unstable stacking fault energy of the dislocation slip system.
+        """
 
+        return max_gamma
+
+    def g1e_fcc(self, surface_energy, max_gamma):
+        """
+        Critical energy release rate for dislocation emission in fcc crystals.
+        The critical energy release rate depends both on the unstable stacking
+        fault energy and surface energyaccording to Ref. 
+        (P. Andric & W. A. Curtin, JMPS, 2017.)
+
+        Parameters
+        ----------
+        surface_energy: surface energy of the crack plane
+        max_gamma: the unstable stacking fault energy of the dislocation slip system.
+        """
+        
+        if surface_energy > 3.45*max_gamma:
+            g1e_fcc = 0.145*surface_energy + 0.5*max_gamma
+        else:
+            g1e_fcc = max_gamma
+
+        return g1e_fcc
+
+    def k1e_iso(self, max_gamma, phi, theta):
+        """
+        K1e, Rice criterion for dislocation emission from crack tip
+        in mode I fracture. J. R. Rice, JMPS, (1992).
+        The soluation is presented for isotropic elasticity.
+
+        Parameters
+        ----------
+        max_gamma: float
+            Maximum energy along the sliding path of the gamma line (maximum
+            stacking fault energy).
+        theta: float (units: rad.)
+            The angle between slip plane and crack plane.
+        phi: float (units: rad.)
+            The angle between the slip direction and a vector lying on the slip plane 
+            and perpendicular to the crack-front direction.
+
+        Returns
+        -------
+        K_ie_iso : Critical K_I for dislocation emission under mode-I loading calculated
+        using isotropic elasticity.
+        """
+        # calculate the isotropic elastic constant if not provided.
+        # mu: Shear modulus (GPa); B: bulk modulus (GPa); nu:Possion ratio
+        E, nu, Gm, B, K = elastic_moduli(self.C, l=np.array([1, 0, 0]), R=self.RotationMatrix, tol=1e-6)
+        E0 = E[0]
+        nu0 = nu[0,1]
+        G1e = 8 * max_gamma * ((1 + (1-nu0) * np.tan(phi)**2)/
+            ((1 + np.cos(theta)) * np.sin(theta)**2))
+
+        K_ie_iso = np.sqrt(1.0e-3 * G1e / self.B)
+
+        return K_ie_iso
+
+    def k1e_aniso(self, max_gamma, phi, theta):
+        """
+        K1e, Rice criterion for dislocation emission from crack tip
+        in mode I fracture according to anisotropic elasticity
+        Ref. Beltz and Rice, JMPS, (1994).
+
+        Parameters
+        ----------
+        max_gamma: float
+            Maximum energy along the sliding path of the gamma line (maximum
+            stacking fault energy).
+        theta: float (units: rad.)
+            The angle between slip plane and crack plane.
+        phi: float (units: rad.)
+            The angle between the slip direction and a vector lying on the slip plane 
+            and perpendicular to the crack-front direction.
+
+        Returns
+        -------
+        K_ie_aniso : Critical K_I for dislocation emission under mode-I loading calculated
+        using anisotropic elasticity.
+        """
+        # assmeble the elastic matrix
+        Q = np.array([[self.C[0,0], self.C[0,5], self.C[0,4]], 
+                      [self.C[0,5], self.C[5,5], self.C[4,5]], 
+                      [self.C[0,4], self.C[4,5], self.C[4,4]]])     
+
+        R = np.array([[self.C[0,5], self.C[0,1], self.C[0,3]],
+                      [self.C[5,5], self.C[1,5], self.C[3,5]],
+                      [self.C[4,5], self.C[1,4], self.C[3,4]]])
+        
+        T = np.array([[self.C[5,5], self.C[1,5], self.C[3,5]],
+                      [self.C[1,5], self.C[1,1], self.C[1,3]],
+                      [self.C[3,5], self.C[1,3], self.C[3,3]]])
+
+        N1 = np.einsum('ik,kj', -np.linalg.inv(T), np.transpose(R))
+        N2 = np.linalg.inv(T)
+        N3 = np.einsum('ik,kj,jl', R, np.linalg.inv(T), np.transpose(R)) - Q
+
+        N = np.block([[N1, N2], [N3, np.transpose(N1)]])
+        
+        # Solve the eigenvalue problem
+        Np, Nv = np.linalg.eig(N)
+
+        # Check if the roots are conjugated with each other 
+        for i in range(0,6,2):
+            if Np[i] != np.conjugate(Np[i+1]):
+                raise RuntimeError('Roots not in pairs.')
+
+        A = Nv[0:3,0::2]
+        B = Nv[3:6,0::2]
+        L = 0.5 * (1.0j * np.einsum('ik,kj', A, np.linalg.inv(B))).real
+        S = np.array([[np.cos(theta), np.sin(theta), 0.],
+                      [-np.sin(theta), np.cos(theta), 0.],
+                      [0., 0., 1.0]])
+        s0 = np.array([np.cos(phi), 0, np.sin(phi)])
+        L_t = np.dot(S, np.dot(L, np.transpose(S)))
+
+        coffe_elas = np.einsum('i,ij,j', s0, np.linalg.inv(L_t), np.transpose(s0))
+
+        ftheta_sigma_xx = ((self.mu2 / np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta)) 
+                          - self.mu1 / np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta)))  
+                          * self.mu1 * self.mu2 / (self.mu1 - self.mu2)).real
+
+        ftheta_sigma_xy = ((1/np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta)) 
+                          - 1/np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta))) 
+                          * self.mu1 * self.mu2/(self.mu1 - self.mu2)).real
+
+        ftheta_sigma_yy = ((self.mu1/np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta)) 
+                        -self.mu2/np.sqrt(np.cos(theta)+self.mu1*np.sin(theta)))/(self.mu1-self.mu2)).real
+
+        F12_theta = ((ftheta_sigma_yy - ftheta_sigma_xx) * np.sin(theta) * np.cos(theta) 
+                  + ftheta_sigma_xy * (np.cos(theta)**2 - np.sin(theta)**2))
+
+        K_ie_aniso = np.sqrt(1e-3) * np.sqrt(max_gamma * coffe_elas) / F12_theta
+
+        return K_ie_aniso
+###
 
 def displacement_residuals(r0, crack, x, y, ref_x, ref_y, kI, kII=0, power=1):
     """
