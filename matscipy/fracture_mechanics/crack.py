@@ -1011,7 +1011,7 @@ class SinclairCrack:
 
         a0 = self.atoms.copy()
         self.x0 = a0.get_positions()
-        self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
+        #self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
         a0_II_III = a0[self.regionII | self.regionIII]
         f0bar = self.calc.get_forces(a0_II_III)
         self.f0bar = f0bar[a0_II_III.arrays['region'] == 2]
@@ -1965,7 +1965,8 @@ class SinclairCrack:
         return plot_elements
 
     def animate(self, x, k1g, regions='12', rzoom=np.inf, cutoff=2.8, frames=None, callback=None,
-                plot_tip=True, regions_styles=None, atoms_args=None, bonds_args=None, tip_args=None):
+                plot_tip=True, regions_styles=None, atoms_args=None, bonds_args=None, tip_args=None,
+                ix=-2,iy=-1,axis_labels=[r'Crack position $\alpha$',r'Stress intensity factor $KI/KI_{G}$']):
         import matplotlib.pyplot as plt
         from matplotlib.animation import FuncAnimation
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 12))
@@ -1978,10 +1979,10 @@ class SinclairCrack:
         region = a.arrays['region']
 
         i = 0
-        ax1.plot(x[:, -3], x[:, -2] / k1g, 'b-')
-        (blob,) = ax1.plot([x[i, -3]], [x[i, -2] / k1g], 'rx', mew=5, ms=20)
-        ax1.set_xlabel(r'Crack position $\alpha$')
-        ax1.set_ylabel(r'Stress intensity factor $KI/KI_{G}$')
+        ax1.plot(x[:, ix], x[:, iy] / k1g, 'b-')
+        (blob,) = ax1.plot([x[i, ix]], [x[i, iy] / k1g], 'rx', mew=5, ms=20)
+        ax1.set_xlabel(axis_labels[0])
+        ax1.set_ylabel(axis_labels[1])
 
         self.set_dofs(x[i, :])
         if cutoff is None:
@@ -2001,7 +2002,7 @@ class SinclairCrack:
 
         def frame(idx):
             # move the indicator blob in left panel
-            blob.set_data([x[idx, -2]], [x[idx, -1] / k1g])
+            blob.set_data([x[idx, ix]], [x[idx, iy] / k1g])
             self.set_dofs(x[idx])
             a = self.atoms
             # update positions in right panel
@@ -2016,7 +2017,7 @@ class SinclairCrack:
                 lines = list(zip(a.positions[i, 0:2], a.positions[j, 0:2]))
                 lc.set_segments(lines)
             # update crack tip indicator
-            tip.set_data([self.cryst.cell[0, 0] / 2.0 + x[idx, -2]],
+            tip.set_data([self.cryst.cell[0, 0] / 2.0 + x[idx, ix]],
                          [self.cryst.cell[1, 1] / 2.0])
             return blob, plot_elements, lc, tip
 

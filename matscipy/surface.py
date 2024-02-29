@@ -304,6 +304,8 @@ def find_surface_energy(symbol,calc,a0,surface,size=(8,1,1),vacuum=10,fmax=0.000
         directions=[[1,1,0], [-1,1,0], [0,0,1]] #tested for bcc
     elif surface.endswith('111'):
         directions=[[1,1,1], [-2,1,1],[0,-1,1]] #tested for bcc
+    elif surface.endswith('112'):
+        directions=[[1,1,2], [1,1,-1], [-1,1,0]]
     ## Append other cell axis options here
     else:
         print('Error: Unsupported surface orientation.')
