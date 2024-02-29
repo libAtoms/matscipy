@@ -2182,15 +2182,18 @@ class AnisotropicDislocation:
         n = np.array(slip_plane) ; n =  n / np.linalg.norm(n) 
         xi = np.array(disloc_line) ; xi = xi / np.linalg.norm(xi) 
         m = np.cross(n, xi) # dislocation glide direction
-        m = m / np.linalg.norm(m)    
+        m = m / np.linalg.norm(m)  
+
+        # Angles for NCFlex 
+        slipXfront = np.cross(n, A[2]) ; slipXfront = slipXfront / np.linalg.norm(slipXfront)
+        self.phi = np.arccos( np.clip(np.dot(m, slipXfront), -1, 1) ) # this is zero if crack front and dislocation line are aligned
+        self.theta = np.arccos( np.clip(np.dot(A[0], slipXfront), -1, 1) )
         
         # Rotate vectors from dislocation system to crack coordinates
         m = np.einsum('ij,j', A, m)
         n = np.einsum('ij,j', A, n)
         xi = np.einsum('ij,j', A, xi)
         b = np.einsum('ij,j', A, burgers)
-
-        
         
         # define elastic constant in Voigt notation
         Cijkl = coalesce_elastic_constants(C11, C12, C44, C, convention="Cijkl")
@@ -2439,7 +2442,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         # Sort out elasticity matrix into 6x6 convention (as we know the system is cubic)
         self.C = coalesce_elastic_constants(C11, C12, C44, C, convention="Cij")
 
-    def init_solver(self, method="atomman"):
+    def init_solver(self, method="atomman", *args, **kwargs):
         '''
         Run the correct solver initialiser
 
@@ -2454,7 +2457,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         }
 
         # Execute init routine
-        solver_initters[method]()
+        solver_initters[method](*args, **kwargs)
     
     def get_solvers(self, method="atomman"):
         '''
@@ -2513,14 +2516,15 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         self.solvers["atomman"] = self.stroh.displacement
 
-    def init_adsl(self):
+    def init_adsl(self, axes=None):
         '''
         Init adsl (Anisotropic DiSLocation) solver
         '''
         # Extract consistent parameters
-        axes = self.axes
-        slip_plane = axes[1].copy() 
-        disloc_line = axes[2].copy() 
+        axes = self.axes if axes is None else axes
+        disloc_axes = self.axes
+        slip_plane = disloc_axes[1].copy() 
+        disloc_line = disloc_axes[2].copy() 
 
         # Setup AnistoropicDislocation object
         self.ADstroh = AnisotropicDislocation(axes, slip_plane, disloc_line, 
