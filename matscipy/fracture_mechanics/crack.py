@@ -1274,18 +1274,46 @@ class SinclairCrack:
         u += shift
         self.u = u[self.regionI]
         self.update_atoms()
+    
+    def V_axis(self, dg, axis=0):
+            V = np.zeros((len(self.cryst), 3))
+            V[:, 0] = -dg[:, axis, 0]
+            V[:, 1] = -dg[:, axis, 1]
+            V[:, axis] += 1.0
+            return V
+
+    def get_defect_force(self, V, forces=None, mask=None, full_array_output=False):
+
+        if forces is None:
+            forces = self.atoms.get_forces()
+        if mask is None:
+            if self.incl_rI_f_alpha:
+                mask = self.regionI | self.regionII
+                if self.extended_far_field:
+                    mask = self.regionI | self.regionII | self.regionIII
+            else:
+                mask = self.regionII
+                if self.extended_far_field:
+                    mask = self.regionII | self.regionIII
+        if full_array_output is True:
+            reduced_forces = forces[mask, :]
+            reduced_V = V[mask, :]
+            return np.tensordot(forces[mask, :], V[mask, :]), np.array([np.dot(
+                reduced_forces[i, :], reduced_V[i, :]) for i in range(np.shape(reduced_forces)[0])])
+        
+        return np.tensordot(forces[mask, :], V[mask, :])
 
     def get_crack_tip_force(self, forces=None, mask=None,
-                            full_array_output=False):
+                            full_array_output=False, axis=0):
+        
         # V_alpha = -\nabla_1 U_CLE(alpha)
         tip_x = self.cryst.cell.diagonal()[0] / 2.0 + self.alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
         dg = self.crk.deformation_gradient(self.cryst.positions[:, 0],
                                            self.cryst.positions[:, 1],
                                            tip_x, tip_y, self.kI, self.kII)
-        V = np.zeros((len(self.cryst), 3))
-        V[:, 0] = -(dg[:, 0, 0] - 1.0)
-        V[:, 1] = -(dg[:, 0, 1])
+        V = self.V_axis(dg, axis=axis)
+
         if self.crk.cauchy_born is not None:
             A = np.transpose(self.crk.RotationMatrix)
             nu_grad = self.crk.cauchy_born.get_shift_gradients(
@@ -1312,24 +1340,8 @@ class SinclairCrack:
         #
         # print('|V - V_fd|', np.linalg.norm(V - V_fd, np.inf))
 
-        if forces is None:
-            forces = self.atoms.get_forces()
-        if mask is None:
-            if self.incl_rI_f_alpha:
-                mask = self.regionI | self.regionII
-                if self.extended_far_field:
-                    mask = self.regionI | self.regionII | self.regionIII
-            else:
-                mask = self.regionII
-                if self.extended_far_field:
-                    mask = self.regionII | self.regionIII
-        if full_array_output is True:
-            reduced_forces = forces[mask, :]
-            reduced_V = V[mask, :]
-            return np.tensordot(forces[mask, :], V[mask, :]), np.array([np.dot(
-                reduced_forces[i, :], reduced_V[i, :]) for i in range(np.shape(reduced_forces)[0])])
-        return np.tensordot(forces[mask, :], V[mask, :])
-
+        return self.get_defect_force(V, forces=forces, mask=mask, full_array_output=full_array_output)
+        
     def get_xdot(self, x1, x2, ds=None):
         u1, alpha1, k1 = self.unpack(x1)
         u2, alpha2, k2 = self.unpack(x2)
