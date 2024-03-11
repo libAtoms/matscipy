@@ -7,7 +7,7 @@ import ase.units as units
 from matscipy.elasticity import youngs_modulus, poisson_ratio
 from matscipy.fracture_mechanics.crack import G_to_strain, thin_strip_displacement_y
 from matscipy.fracture_mechanics.clusters import set_groups
-from matscipy.fracture_mechanics.crack import find_tip_coordination
+from matscipy.fracture_mechanics.crack import find_tip_coordination, find_tip_non_centred
 import matplotlib.pyplot as plt
 from matscipy.cauchy_born import CubicCauchyBorn
 
@@ -57,7 +57,7 @@ class ThinStripBuilder:
         self.nu_xy = nu_xy
         self.nu_yx = nu_yx
 
-    def measure_energy_strain_relation(self,resolution=100):
+    def measure_energy_strain_relation(self,resolution=100,return_s_s=False):
         supercell = self.lattice(size=[1,1,1],symbol=self.el,latticeconstant=self.a0,pbc=(1,1,1),directions=self.directions)
         supercell.calc = self.calc
         strains = np.linspace(0,0.3,resolution)
@@ -88,6 +88,8 @@ class ThinStripBuilder:
         energy_strain_relation[:,0] = strains
         energy_strain_relation[:,1] = energies_per_unit_vol
         self.energy_strain_relation = energy_strain_relation
+        if return_s_s:
+            return running_strains,stresses
 
     def interpolate_energy_strain_relation(self,energy):
         #interpolate the energy strain relation to find the strain corresponding to a given energy per unit vol
@@ -240,6 +242,7 @@ class ThinStripBuilder:
         set_groups(crack_slab,[nx,ny,nz],int(nx/5),int(ny/5))
         self.group_array = crack_slab.arrays['groups']
         crack_slab.set_pbc((False,False,True))
+        self.nx,self.ny,self.nz = nx,ny,nz
         return crack_slab
 
     def build_absorbent_test_strip(self,width):
@@ -650,6 +653,48 @@ class ThinStripBuilder:
         top_mask = (pos[:,1] > (mid_point_y + partition_width/2-buffer_thickness)) & (pos[:,1] < (mid_point_y + partition_width/2 + buffer_thickness))
         bot_mask = (pos[:,1] > (mid_point_y - partition_width/2 - buffer_thickness)) & (pos[:,1] < (mid_point_y - partition_width/2 + buffer_thickness))
         new_slab.arrays['buffer'] = np.array([1 if x else 0 for x in (top_mask|bot_mask)])
+
+
+    def find_strip_crack_tip(self,final_crack_state,bondlength,bulk_nn,step_tolerant=False):
+        tmp_bondlength = bondlength
+        found_tip=False
+        final_crack_state.new_array('crack_tip',np.zeros(len(final_crack_state),dtype=int))
+        full_height = np.max(final_crack_state.positions[:,1])-np.min(final_crack_state.positions[:,1])
+        
+        check_num = 10
+        for j in range(check_num):
+            try:
+                if not step_tolerant:
+                    bond_atoms = find_tip_coordination(final_crack_state,bondlength=tmp_bondlength,bulk_nn=bulk_nn,calculate_midpoint=True)
+                else:
+                    bond_atoms = find_tip_non_centred(final_crack_state, bondlength=tmp_bondlength, bulk_nn=bulk_nn, nz=self.nz)
+                tip_pos = (final_crack_state.get_positions()[bond_atoms,:][:,0])
+                tip_pos_y = (final_crack_state.get_positions()[bond_atoms,:][:,1])
+                final_crack_state.arrays['crack_tip'][bond_atoms[0]] = 1
+                final_crack_state.arrays['crack_tip'][bond_atoms[1]] = 1
+                ase.io.write(f'crack_tip_{j}.xyz',final_crack_state)
+                #print(tip_pos[0],tip_pos[1])
+                if not step_tolerant:
+                    #crack atoms must strictly be opposite
+                    assert np.abs(tip_pos[0]-tip_pos[1]) < 1
+                else:
+                    #crack atoms must be within 2 bond lengths of each other, as things are a bit messier
+                    assert np.abs(tip_pos[0]-tip_pos[1]) < 2*bondlength
+                
+                found_tip = True
+                break
+            except AssertionError:
+                tmp_bondlength += 0.01
+                #keep trying till a crack tip is found
+    
+        #crack tip pos is the maximum of tips_found[i]
+        if not found_tip:
+            raise RuntimeError('Lost crack tip!')
+        
+
+        print(f'Found crack tip at position {tip_pos}')
+        
+        return tip_pos
 
 def write_potential_and_buffer(atoms,lammps_filename):
     #get the potential and buffer array from atoms

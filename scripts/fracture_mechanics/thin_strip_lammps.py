@@ -61,6 +61,7 @@ thermo_freq = parameter('thermo_freq',100)
 initial_damp = parameter('initial_damp', True)
 initial_damping_time = parameter('initial_damping_time',10)
 initial_damping_strengths = parameter('initial_damping_strengths',[0.1*(i+1) for i in range(initial_damping_time)])
+step_tolerant = parameter('step_tolerant',False)
 
 assert len(initial_damping_strengths) == initial_damping_time, 'initial_damping_strengths must be a list of length initial_damping_time'
 
@@ -285,24 +286,25 @@ for knum,K in enumerate(kvals):
             plt.close()
 
             # ------------- find crack tip ----------- #
-            tmp_bondlength = bondlength
-            found_tip=False
-            for j in range(10):
-                try:
-                    # print(tmp_bondlength,bulk_nn)
-                    bond_atoms = find_tip_coordination(final_crack_state,bondlength=tmp_bondlength,bulk_nn=bulk_nn,calculate_midpoint=True)
-                    tip_pos = (final_crack_state.get_positions()[bond_atoms,:][:,0])
-                    #print(tip_pos[0],tip_pos[1])
-                    assert np.abs(tip_pos[0]-tip_pos[1]) < 1
-                    found_tip=True
-                    break
-                except AssertionError:
-                    tmp_bondlength += 0.01
-                    #keep trying till a crack tip is found
-            if not found_tip:
-                raise RuntimeError('Lost crack tip!')
-            tip_pos = tip_pos[0]
-            print(f'Found crack tip at position {tip_pos}')
+            # tmp_bondlength = bondlength
+            # found_tip=False
+            # for j in range(10):
+            #     try:
+            #         # print(tmp_bondlength,bulk_nn)
+            #         bond_atoms = find_tip_coordination(final_crack_state,bondlength=tmp_bondlength,bulk_nn=bulk_nn,calculate_midpoint=True)
+            #         tip_pos = (final_crack_state.get_positions()[bond_atoms,:][:,0])
+            #         #print(tip_pos[0],tip_pos[1])
+            #         assert np.abs(tip_pos[0]-tip_pos[1]) < 1
+            #         found_tip=True
+            #         break
+            #     except AssertionError:
+            #         tmp_bondlength += 0.01
+            #         #keep trying till a crack tip is found
+            # if not found_tip:
+            #     raise RuntimeError('Lost crack tip!')
+            # tip_pos = tip_pos[0]
+            # print(f'Found crack tip at position {tip_pos}')
+            tip_pos = tsb.find_strip_crack_tip(final_crack_state,bondlength,bulk_nn,calculate_midpoint=True,step_tolerant=step_tolerant)
 
             # ------------check for an arrested crack ------------ #
             #only start checking after the first initial_damping steps

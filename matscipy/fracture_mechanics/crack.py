@@ -2609,7 +2609,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
     return params, err
 
 
-def find_tip_coordination(a, bondlength=2.6, bulk_nn=4, calculate_midpoint=False):
+def find_tip_coordination(a, bondlength=2.6, bulk_nn=4, calculate_midpoint=False, midpoint=None):
     """
     Find position of tip in crack cluster from coordination
     """
@@ -2619,11 +2619,14 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4, calculate_midpoint=False
     a.set_array('n_neighb', nn)
     g = a.get_array('groups')
     #get midpoint of atoms
-    if calculate_midpoint:
-        atom_midpoint = (np.max(a.get_positions()[:,1])+np.min(a.get_positions()[:,1]))/2
+    if midpoint is not None:
+        if calculate_midpoint:
+            atom_midpoint = (np.max(a.get_positions()[:,1])+np.min(a.get_positions()[:,1]))/2
+        else:
+            #assume crack is central in cell
+            atom_midpoint = a.cell[1, 1] / 2.0
     else:
-        #assume crack is central in cell
-        atom_midpoint = a.cell[1, 1] / 2.0
+        atom_midpoint = midpoint
     y = a.positions[:, 1]
     above = (nn < bulk_nn) & (g != 0) & (y > atom_midpoint)
     below = (nn < bulk_nn) & (g != 0) & (y < atom_midpoint)
@@ -2639,6 +2642,26 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4, calculate_midpoint=False
 
     return bond1, bond2
 
+def find_tip_non_centred(a, bondlength=2.6, bulk_nn=4,nz=1):
+    """
+    Find position of tip in crack cluster from coordination,
+    without the assumption that the tip is in the centre of the cell
+    """
+    i, j = neighbour_list("ij", a, bondlength)
+    nn = np.bincount(i, minlength=len(a))
+
+    a.set_array('n_neighb', nn)
+    g = a.get_array('groups')
+    zheight = a.cell[2,2]
+
+    crack_atom_mask = (nn < bulk_nn) & (g != 0) & (a.positions[:, 2] > zheight*((nz-1)/nz))
+
+    #get two right most atoms
+    idxs = np.argsort(a.positions[crack_atom_mask, 0])
+
+    bond1 = crack_atom_mask.nonzero()[0][idxs[-1]]
+    bond2 = crack_atom_mask.nonzero()[0][idxs[-2]]
+    return bond1,bond2
 
 def find_tip_broken_bonds(atoms, cutoff, bulk_nn=4, boundary_thickness=None):
     """
