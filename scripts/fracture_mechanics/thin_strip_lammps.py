@@ -304,8 +304,8 @@ for knum,K in enumerate(kvals):
             #     raise RuntimeError('Lost crack tip!')
             # tip_pos = tip_pos[0]
             # print(f'Found crack tip at position {tip_pos}')
-            tip_pos = tsb.find_strip_crack_tip(final_crack_state,bondlength,bulk_nn,calculate_midpoint=True,step_tolerant=step_tolerant)
-
+            tip_pos,tip_pos_y = tsb.find_strip_crack_tip(final_crack_state,bondlength,bulk_nn,step_tolerant=step_tolerant)
+            print('y pos', tip_pos_y)
             # ------------check for an arrested crack ------------ #
             #only start checking after the first initial_damping steps
             if (i >= initial_damping_time) or (not initial_damp):
@@ -340,8 +340,8 @@ for knum,K in enumerate(kvals):
                 simple_strip = tsb.build_thin_strip(strip_width,strip_height,strip_thickness,vacuum)
                 x_pos = simple_strip.get_positions()[:,0]
                 y_pos = simple_strip.get_positions()[:,1]
-                tip_x_pos = x_pos[bond_atoms[0]]
-                tip_y_pos = [y_pos[bond_atoms[0]], y_pos[bond_atoms[1]]]
+                tip_x_pos = tip_pos
+                tip_y_pos = tip_pos_y
                 full_mask = (x_pos>(tip_x_pos-10)) & (x_pos<(tip_x_pos+40))
                 
                 #mask is full mask and atoms which have a y position equal to that of the crack tip within numerical resolution
