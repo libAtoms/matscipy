@@ -694,7 +694,7 @@ class ThinStripBuilder:
 
         print(f'Found crack tip at position {tip_pos}')
         
-        return tip_pos, tip_pos_y
+        return tip_pos[0], tip_pos_y
 
 def write_potential_and_buffer(atoms,lammps_filename):
     #get the potential and buffer array from atoms
