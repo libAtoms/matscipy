@@ -114,7 +114,7 @@ class ThinStripBuilder:
             energy = initial_G/strip_height
             #interpolate the energy strain relation to find the strain corresponding to the energy
             strain = self.interpolate_energy_strain_relation(energy)
-
+        print('strain',strain)
         return strain
 
     def E_tensor_from_strain(self,strain_y,strain_x):
