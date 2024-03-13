@@ -2609,7 +2609,7 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
     return params, err
 
 
-def find_tip_coordination(a, bondlength=2.6, bulk_nn=4, calculate_midpoint=False, midpoint=None):
+def find_tip_coordination(a, bondlength=2.6, bulk_nn=4, calculate_midpoint=False):
     """
     Find position of tip in crack cluster from coordination
     """
@@ -2619,14 +2619,11 @@ def find_tip_coordination(a, bondlength=2.6, bulk_nn=4, calculate_midpoint=False
     a.set_array('n_neighb', nn)
     g = a.get_array('groups')
     #get midpoint of atoms
-    if midpoint is not None:
-        if calculate_midpoint:
-            atom_midpoint = (np.max(a.get_positions()[:,1])+np.min(a.get_positions()[:,1]))/2
-        else:
-            #assume crack is central in cell
-            atom_midpoint = a.cell[1, 1] / 2.0
+    if calculate_midpoint:
+        atom_midpoint = (np.max(a.get_positions()[:,1])+np.min(a.get_positions()[:,1]))/2
     else:
-        atom_midpoint = midpoint
+        #assume crack is central in cell
+        atom_midpoint = a.cell[1, 1] / 2.0
     y = a.positions[:, 1]
     above = (nn < bulk_nn) & (g != 0) & (y > atom_midpoint)
     below = (nn < bulk_nn) & (g != 0) & (y < atom_midpoint)
