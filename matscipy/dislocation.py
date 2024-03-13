@@ -3480,7 +3480,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         return self.left_dislocation.glide_distance_dimensionless
 
 
-    def periodic_displacements(self, positions, v1, v2, core_positions, disp_tol=1e-3, max_neighs=60, 
+    def periodic_displacements(self, positions, v1, v2, core_positions, disp_tol=1e-3, max_neighs=15, 
                                verbose="periodic", **kwargs):
         '''
         Calculate the stroh displacements for the periodic structure defined by 2D lattice vectors v1 & v2
@@ -3543,9 +3543,6 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             # Disable disloc verbosity if no self-consistent solve of disloc displacements
             # CubicCrystalDislocation.displacements doesn't print unless SCF is turned on 
             disloc_verbose = disloc_verbose * bool(kwargs["self_consistent"])
-            self_consistent = bool(kwargs[self_consistent])
-        else:
-            kwargs["self_consistent"] = self.self_consistent
 
         displacements = np.zeros_like(positions)
         disp_update = np.zeros_like(positions)
@@ -3581,8 +3578,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
                     print(f"Periodic displacements converged to r_tol={disp_tol} after {neigh_idx} iterations")
 
                 return displacements
-        warnings.warn("Periodic quadrupole displacments did not converge!")
-        return displacements
+        # Not converged, throw error
+        raise RuntimeError("Periodic quadrupole displacments did not converge!")
 
 
     def build_quadrupole(self, glide_separation=4, partial_distance=0, extension=0, verbose='periodic', 
@@ -3683,7 +3680,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             core_pos_2
         ])
 
-        if partial_distance > 0.0:
+        if isinstance(self.right_dislocation, CubicCrystalDissociatedDislocation):
             partial_core_pos = core_positions.copy()
             partial_core_pos[:, 0] += partial_vec[0]
             old_core_positions = core_positions
