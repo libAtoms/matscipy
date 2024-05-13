@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+from ase.utils.structure_comparator import SymmetryEquivalenceCheck
 
 def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
     '''
@@ -7,6 +8,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
 
     For lattice constant + symbol + crystalstructure, build a valid cubic bulk rotated into the frame defined by axes
     For cubic bulk atoms object + crystalstructure, validate structure matches expected cubic bulk geometry, and rotate to frame defined by axes
+    Also, if cubic atoms object is supplied, search for a more condensed representation than is provided by ase.build.cut
 
     a: float or ase.atoms
         EITHER lattice constant (in A), or the cubic bulk structure
@@ -111,6 +113,92 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         raise TypeError("type(a) is not a float, or an Atoms object")
 
     return alat, unit_cell
+
+
+def find_condensed_repr(atoms, precision=2):
+    '''
+    Search for a condensed representation of atoms
+    Equivalent to attempting to undo a supercell
+
+    atoms: ase Atoms object
+        structure to condense
+    precision: int
+        Number of decimal places to use in determining whether scaled positions are equal
+
+    returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms
+    '''
+    ats = atoms.copy()
+
+    for axis in range(2, -1, -1):
+        ats = find_condensed_repr_along_axis(ats, axis, precision)
+
+    return ats
+
+def find_condensed_repr_along_axis(atoms, axis=-1, precision=2):
+    '''
+    Search for a condensed representation of atoms about axis. 
+    Essentially an inverse to taking a supercell.
+
+    atoms: ase Atoms object
+        structure to condense
+    axis: int
+        axis about which to find a condensed repr
+        axis=-1 essentially will invert a (1, 1, x) supercell
+    precision: int
+        Number of decimal places to use in determining whether scaled positions are equal
+
+    returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms
+    '''
+    comp = SymmetryEquivalenceCheck()
+
+    cart_directions = [
+        [1, 2], # axis=0
+        [2, 0], # axis=1
+        [0, 1] # axis=2
+    ]
+
+    dirs = cart_directions[axis]
+
+    ats = atoms.copy()
+    
+    # Find all atoms which are in line with the 0th atom
+    p = np.round(ats.get_scaled_positions(), precision)
+
+    p_diff = (p - p[0, :]) % 1
+
+    matches = np.argwhere((p_diff[:, dirs[0]] < 10**(-precision)) * (p_diff[:, dirs[1]] < 10**(-precision)))[:, 0]
+    min_off = np.inf
+    ret_struct = ats
+
+    for match in matches:
+        if match == 0:
+            # skip i=0
+            continue
+
+        # Fractional change in positions
+        dz = (p[0, axis] - p[match, axis]) % 1.0
+        # Create a test atoms object and cut cell along in axis
+        # Test whether test atoms is equivalent to original structure
+        test_ats = ats.copy()
+        test_cell = test_ats.cell[:, :].copy()
+        test_cell[axis, :] *= dz
+        test_ats.set_cell(test_cell)
+        del_mask = test_ats.get_scaled_positions(wrap=False)[:, axis] > 1.0 - 10**(-precision)
+        test_ats = test_ats[~del_mask]
+
+        # Create a supercell of test ats, and see if it matches the original atoms
+        test_sup = [1] * 3
+        test_sup[axis] = int(1/dz)
+
+        is_equiv = comp.compare(ats, test_ats * tuple(test_sup))
+
+        if is_equiv:
+            if dz < min_off:
+                ret_struct = test_ats.copy()
+                min_off = dz
+
+    return ret_struct
+
 
 def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     '''
