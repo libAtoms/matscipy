@@ -62,6 +62,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         alat = a.cell[0, 0]
 
         ats = a.copy()
+        
 
         if crystalstructure is not None:
             # Try to validate that "a" matches expected structure given by crystalstructure
@@ -104,6 +105,10 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
 
         ats = cut(ats, a=axes[0, :], b=axes[1, :], c=axes[2, :])
         rotate(ats, ats.cell[0, :].copy(), [1, 0, 0], ats.cell[1, :].copy(), [0, 1, 0])
+        
+        # cut and rotate can result in a supercell structure. Attempt to find smaller repr 
+        ats = find_condensed_repr(ats)
+        
         unit_cell = ats.copy()
 
         unit_cell.set_pbc(pbc)
