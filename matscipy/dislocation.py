@@ -3881,7 +3881,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             )[1])
         return images
     
-    def build_kink_quadrupole(self, z_reps, layer_tol=1e-1, invert_direction=False, *args, **kwargs):
+    def build_kink_quadrupole(self, z_reps, layer_decimal_precision=2, invert_direction=False, *args, **kwargs):
         '''
         Construct a quadrupole structure providing an initial guess of the dislocation kink
         mechanism. Produces a periodic array of kinks, where each kink is 
@@ -3911,45 +3911,62 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # Need both cores to move for the infinite kink structure
         reps = self.build_glide_quadrupoles(z_reps, glide_left=True, glide_right=True, 
                                             invert_direction=invert_direction, *args, **kwargs)
-        kink_struct = reps[0]
 
         # TODO: Replace by passing bulk through build_glide_quadrupoles
         base_bulk = self.build_quadrupole(*args, **kwargs)[0]
+
+
+        for rep in reps:
+            cell = rep.cell[:, :].copy()
+            cell[2, 0] += self.glide_distance * direction / z_reps
+            rep.set_cell(cell)
+            #rep.wrap()
+
+        base_bulk.set_cell(cell)
+        #base_bulk.wrap()
         bulk = base_bulk.copy()
+        kink_struct = reps[0]
+
+        # Figure out layer spacing
+        p = bulk.get_scaled_positions()[:, 2]
+
+        layer_pos = np.unique(np.round(p, layer_decimal_precision))
+
+        layer_seps = np.diff(layer_pos)[::-1] * bulk.cell[2, 2]
         
+        n_layers = len(layer_seps)
+
         for image in reps[1:]:
             kink_struct = stack(kink_struct, image)
             bulk = stack(bulk, base_bulk)
         
-        cell = kink_struct.cell[:, :]
-
-        cell[2, 0] += self.glide_distance * direction
-
-        kink_struct.set_cell(cell)
-        kink_struct.wrap()
-
-        bulk.set_cell(cell)
-        bulk.wrap()
-
-        glide_parity = (-direction) % self.glides_per_unit_cell
-
+        cell = kink_struct.cell[:, :].copy()
+        
+        glide_parity = self.glides_per_unit_cell % 2
         if glide_parity:
             # Cell won't be periodic if multiple glides needed to complete periodicity
             # glide_parity gives number of layers required to remove
 
-            for i in range(glide_parity):
-                atom_heights = bulk.get_positions()[:, 2]
-                top_atom = np.max(atom_heights)
+            atom_heights = kink_struct.get_positions()[:, 2]
 
-                layer_mask = atom_heights >= top_atom - layer_tol
+            # Get lower bound for atomic layer, to ensure we remove all atoms
+            layer_dist = layer_seps[i%n_layers] + 0.5 * layer_seps[(i+1)%n_layers]
 
-                avg_layer_pos = np.average(atom_heights[layer_mask])
+            layer_mask = atom_heights >= cell[2, 2] - layer_dist
 
-                kink_struct = kink_struct[~layer_mask]
-                bulk = bulk[~layer_mask]
-                cell[2, 2] = avg_layer_pos
-                kink_struct.set_cell(cell)
-                kink_struct.wrap()
+            print(i, len(kink_struct), np.sum(layer_mask))
+
+            del kink_struct[layer_mask]
+            del bulk[layer_mask]
+
+            # Shorten z cell vector to shave off layer_sep[i%n_layer] from cell[2, 2] 
+            cell_frac = layer_seps[i%n_layers] / cell[2, 2]
+
+            cell[2, :] -= cell[2, :] * cell_frac
+            kink_struct.set_cell(cell)
+            bulk.set_cell(cell)
+
+        kink_struct.wrap()        
         return kink_struct
     
     def view_quad(self, system, *args, **kwargs):
