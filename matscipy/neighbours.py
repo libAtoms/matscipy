@@ -940,3 +940,18 @@ def find_common_neighbours(i_n, j_n, nat):
         cnl_i1_i2[slice1, 0] = i1
         cnl_i1_i2[slice1, 1] = i_n_2[slice2]
     return cnl_i1_i2, cnl_j1, nl_index_i1_j1, nl_index_i2_j1
+
+
+def coordination(structure, cutoff):
+    '''
+    Get coordination number of each atom in structure
+    based on the number of neighbours within cutoff
+
+    structure: ase Atoms object
+        Structure to take coordination of
+    cutoff: float
+        Radial cutoff used to determine neighbours
+    '''
+
+    i = neighbour_list("i", structure, cutoff)
+    return np.bincount(i)
