@@ -41,7 +41,7 @@ from ase.calculators.lammpslib import LAMMPSlib
 from ase.units import GPa  # unit conversion
 from ase.io import read
 
-from matscipy.neighbours import neighbour_list, mic
+from matscipy.neighbours import neighbour_list, mic, coordination
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
 from matscipy.elasticity import cubic_to_Voigt_6x6, coalesce_elastic_constants
@@ -2158,6 +2158,7 @@ def check_duplicates(atoms, distance=0.1):
     # print(f"found {duplicates.sum()} duplicates")
     return duplicates.astype(np.bool)
 
+
 class AnisotropicDislocation:
     """
     Displacement and displacement gradient field of straight dislocation 
@@ -3881,7 +3882,113 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             )[1])
         return images
     
-    def build_kink_quadrupole(self, z_reps, layer_decimal_precision=2, invert_direction=False, *args, **kwargs):
+    def _get_kink_quad_mask(self, ref_bulk, direction, precision=3):
+        '''
+        Get an atom mask and tilted cell which generates a perfect bulk structure
+        Mask is needed in building kinks to ensure continuity of atomic basis
+
+        ref bulk: ase Atoms
+            Bulk structure to use to generate mask
+        direction: int
+            Direction of kink (+1 or -1)
+        precision: int
+            Scaled precision to use when determining a step size
+            Each step is self.alat * 10**_precision Ang
+            
+
+        returns a boolean mask, and a new cell
+
+        '''
+
+        if self.left_dislocation.__class__ == BCCEdge111barDislocation:
+            raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
+
+        bulk = ref_bulk.copy()
+        tilt_bulk = ref_bulk.copy()
+        cell = tilt_bulk.cell[:, :]
+        cell[2, 0] += direction * self.glide_distance
+
+        tilt_bulk.set_cell(cell, scale_atoms=False)
+        tilt_bulk.wrap()
+
+        p = ref_bulk.get_positions()
+
+        step_size = self.alat * 10**(-precision)
+
+        # Shift bulk if atoms too close to the border
+        if any(p[:, 2] < step_size):
+            p[:, 2] += step_size
+            tilt_bulk.set_positions(p)
+            tilt_bulk.wrap()
+            p = tilt_bulk.get_positions()
+
+    
+        # 1st, 2nd, & 3rd nearest neighbour distances
+        # for each crytal structure
+        neigh_dists = {
+        "bcc" : [0.88, 1.01, 1.42],
+        "fcc" : [0.72, 1.01, 1.23],
+        "diamond" : [0.44, 0.72, 0.84]
+        }
+        cutoffs = neigh_dists[self.crystalstructure]
+
+        bulk_coord = [np.min(coordination(bulk, cutoff * self.alat)) for cutoff in cutoffs]
+
+        full_mask = np.ones((len(tilt_bulk)), dtype=bool)
+        atom_heights = np.round(p, precision)[:, 2]
+
+        for i in range(int(cell[2, 2] / step_size)):
+            # Check if tilt_bulk has same 1st, 2nd, & 3rd neighbour coordination
+            # as normal bulk
+            # TODO: This currently does not work for BCCEdge111barDislocation
+            if np.product([
+                all(coordination(tilt_bulk[full_mask], cutoff * self.alat) == bulk_coord[j])
+                for j, cutoff in enumerate(cutoffs)
+                ]):
+                return full_mask, cell
+                
+            # Else, trim the top part of the cell and retry
+            # (atoms outside the cell are also trimmed)
+            cell[2, 2] -= step_size
+            atom_mask = atom_heights > cell[2,2]
+
+            full_mask[atom_mask] = False
+
+            tilt_bulk.set_cell(cell, scale_atoms=False)
+
+        # If we end up here, all layers removed before we found a match. Raise error
+        raise RuntimeError("Could not find a valid periodic kink cell.")
+
+    def _smooth_kink_displacements(self, kink1, kink2, ref_bulk, smoothing_width, base_cell):
+        '''
+        Use a sigmoid
+        '''
+
+        cell = base_cell
+
+        dr1 = mic(kink1.positions - ref_bulk.positions, cell)
+        dr2 = mic(kink2.positions - ref_bulk.positions, cell)
+
+        dr_forward = mic(dr2 - dr1, cell)
+
+
+        kink = ref_bulk.copy()
+
+        x = ref_bulk.positions[:, 2]
+        h = kink.cell[2, 2]
+        sw = smoothing_width
+
+        # ReLU interpolation between kink1 & kink2 displacements 
+        smooth_facs = (x > h - sw) * (x + sw - h) / sw
+
+        smoothed_disp = dr1 + smooth_facs[:, np.newaxis] * dr_forward
+
+        kink.positions += smoothed_disp
+
+        return kink
+
+    def build_kink_quadrupole(self, z_reps=2, layer_decimal_precision=3, invert_direction=False, smooth_width=None,
+                                *args, **kwargs):
         '''
         Construct a quadrupole structure providing an initial guess of the dislocation kink
         mechanism. Produces a periodic array of kinks, where each kink is 
@@ -3904,70 +4011,40 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             Fed to self.build_quadrupole() & self.build_glide_quadrupoles
         
         '''
-        assert z_reps > 1
 
         direction = -1 if invert_direction else 1
 
-        # Need both cores to move for the infinite kink structure
-        reps = self.build_glide_quadrupoles(z_reps, glide_left=True, glide_right=True, 
-                                            invert_direction=invert_direction, *args, **kwargs)
+        base_bulk, _ = self.build_quadrupole(*args, **kwargs)
 
-        # TODO: Replace by passing bulk through build_glide_quadrupoles
-        base_bulk = self.build_quadrupole(*args, **kwargs)[0]
+        base_quad1, base_quad2 = self.build_glide_quadrupoles(2, glide_left=True, glide_right=True, 
+                                                 invert_direction=invert_direction, *args, **kwargs)
 
-
-        for rep in reps:
-            cell = rep.cell[:, :].copy()
-            cell[2, 0] += self.glide_distance * direction / z_reps
-            rep.set_cell(cell)
-            #rep.wrap()
-
-        base_bulk.set_cell(cell)
-        #base_bulk.wrap()
-        bulk = base_bulk.copy()
-        kink_struct = reps[0]
-
-        # Figure out layer spacing
-        p = bulk.get_scaled_positions()[:, 2]
-
-        layer_pos = np.unique(np.round(p, layer_decimal_precision))
-
-        layer_seps = np.diff(layer_pos)[::-1] * bulk.cell[2, 2]
+        kink_struct1 = base_quad1.copy() * (1, 1, z_reps)
+        kink_struct2 = base_quad2.copy() * (1, 1, z_reps)
         
-        n_layers = len(layer_seps)
+        bulk = base_bulk.copy() * (1, 1, z_reps)
 
-        for image in reps[1:]:
-            kink_struct = stack(kink_struct, image)
-            bulk = stack(bulk, base_bulk)
-        
-        cell = kink_struct.cell[:, :].copy()
-        
-        glide_parity = self.glides_per_unit_cell % 2
-        if glide_parity:
-            # Cell won't be periodic if multiple glides needed to complete periodicity
-            # glide_parity gives number of layers required to remove
+        bulk.wrap()
+        kink_struct1.wrap()
+        kink_struct2.wrap()
 
-            atom_heights = kink_struct.get_positions()[:, 2]
+        # Cell won't always be periodic, make sure we end up with something that is
+        mask, cell = self._get_kink_quad_mask(bulk, direction, layer_decimal_precision)
+        bulk = bulk[mask]
+        bulk.set_cell(cell, scale_atoms=False)
 
-            # Get lower bound for atomic layer, to ensure we remove all atoms
-            layer_dist = layer_seps[i%n_layers] + 0.5 * layer_seps[(i+1)%n_layers]
+        kink_struct1 = kink_struct1[mask]
+        kink_struct1.set_cell(cell, scale_atoms=False)
 
-            layer_mask = atom_heights >= cell[2, 2] - layer_dist
+        kink_struct2 = kink_struct2[mask]
+        kink_struct2.set_cell(cell, scale_atoms=False)
 
-            print(i, len(kink_struct), np.sum(layer_mask))
+        if smooth_width is None:
+            smooth_width = 0.5 * self.unit_cell.cell[2, 2]
 
-            del kink_struct[layer_mask]
-            del bulk[layer_mask]
-
-            # Shorten z cell vector to shave off layer_sep[i%n_layer] from cell[2, 2] 
-            cell_frac = layer_seps[i%n_layers] / cell[2, 2]
-
-            cell[2, :] -= cell[2, :] * cell_frac
-            kink_struct.set_cell(cell)
-            bulk.set_cell(cell)
-
-        kink_struct.wrap()        
-        return kink_struct
+        # Smooth displacements across the periodic boundary
+        kink = self._smooth_kink_displacements(kink_struct1, kink_struct2, bulk, smooth_width, base_bulk.cell[:, :])
+        return kink
     
     def view_quad(self, system, *args, **kwargs):
         '''
