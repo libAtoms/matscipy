@@ -2585,6 +2585,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         yreps = np.ceil(targety / (base_cell.cell[1, 1] - 1e-2)).astype(int)
 
         sup = base_cell.copy() * (xreps, yreps, 1)
+        sup.wrap()
         return sup
 
     def _build_bulk_cyl(self, radius, core_positions, fix_rad, extension,
@@ -2619,45 +2620,53 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         '''
         from matscipy.utils import radial_mask_from_polygon2D
 
-
         if self_consistent is None:
             self_consistent = self.self_consistent
 
-        if len(core_positions.shape) == 1:
-            core_positions = core_positions[np.newaxis, :]
+        # Validate core position, extension, and fixed_points args
+        errs = []
+        for argname, arg in [["core_position", core_positions], ["extension", extension], ["fixed_points", fixed_points]]:
+            if type(arg) == np.ndarray:
+                if arg.shape[-1] != 3:
+                    # Needs to be 3d vectors
+                    errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+                if len(arg.shape) == 1:
+                    # Convert all arrays to 2D
+                    arg.reshape((np.newaxis, arg.shape[-1]))
+            elif arg is not None:
+                # non-array, and not None arg provided, which is not allowed
+                errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+        if len(errs):
+            raise RuntimeError("\n".join(errs))
 
-        if len(extension.shape) == 1:
-            extension = extension[np.newaxis, :]
+        fictitious_core_positions = core_positions.copy()
 
-        if np.all(extension.shape != core_positions.shape):            
-            if extension.shape[0] < core_positions.shape[0] and \
-                extension.shape[1] == core_positions.shape[1]:
-                # Too few extensions passed, assume that the extensions are for the first N cores
-                # Pad extension with zeros
-                extension = np.vstack([extension, np.zeros((
-                    core_positions.shape[0] - extension.shape[0], core_positions.shape[1]
-                ))])
-            else:
-                raise ValueError(f"{extension.shape=} does not match {core_positions.shape=}")
+        if extension is not None:
+            if np.all(extension.shape != core_positions.shape):            
+                if extension.shape[0] < core_positions.shape[0] and \
+                    extension.shape[1] == core_positions.shape[1]:
+                    # Too few extensions passed, assume that the extensions are for the first N cores
+                    # Pad extension with zeros
+                    extension = np.vstack([extension, np.zeros((
+                        core_positions.shape[0] - extension.shape[0], core_positions.shape[1]
+                    ))])
+                else:
+                    raise ValueError(f"{extension.shape=} does not match {core_positions.shape=}")
 
-        # Only care about non-zero extensions
-        exts = extension + core_positions
-
-        # Mask out extensions that are all zeros
-        nonzero_exts = np.sum(np.abs(extension), axis=-1) > 0.0
-
-        exts = exts[nonzero_exts, :]
-
-        fictitious_core_positions = exts
+            # Only care about non-zero extensions
+            fictitious_core_positions = np.vstack([fictitious_core_positions, extension + core_positions])
 
         if fixed_points is not None:
-            fictitious_core_positions = np.vstack([fictitious_core_positions, fixed_points])
+            fictitious_core_positions = np.vstack([fictitious_core_positions, fixed_points + self.unit_cell_core_position])
+        
+        fictitious_core_positions = np.unique(fictitious_core_positions, axis=0)
 
-        xmax = np.max([np.max(core_positions[:, 0]), np.max(fictitious_core_positions[:, 0])])
-        xmin = np.min([np.min(core_positions[:, 0]), np.min(fictitious_core_positions[:, 0])])
+        # Get bounds for supercell box
+        xmax = np.max([np.max(fictitious_core_positions[:, 0])])
+        xmin = np.min([np.min(fictitious_core_positions[:, 0])])
 
-        ymax = np.max([np.max(core_positions[:, 1]), np.max(fictitious_core_positions[:, 1])])
-        ymin = np.min([np.min(core_positions[:, 1]), np.min(fictitious_core_positions[:, 1])])
+        ymax = np.max([np.max(fictitious_core_positions[:, 1])])
+        ymin = np.min([np.min(fictitious_core_positions[:, 1])])
 
         xlen = xmax - xmin + 2*radius
         ylen = ymax - ymin + 2*radius
@@ -2667,7 +2676,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         center = np.diag(sup.cell) / 2
 
         # Shift everything so that the dislocations are reasonably central
-
         shift = center - 0.5 * (np.array([xmax, ymax, 0]) + np.array([xmin, ymin, 0]))
 
         pos = sup.get_positions()
@@ -2679,13 +2687,12 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         new_core_positions += shift
 
-        if cyl_mask is None:
-            mask_positions = np.vstack([new_core_positions, fictitious_core_positions + shift])
+        # Sort positions from smallest to largest
+        idxs = np.argsort(fictitious_core_positions, axis=0)
+        fictitious_core_positions = np.take_along_axis(fictitious_core_positions, idxs, axis=0) + shift
 
-            idxs = np.argsort(mask_positions, axis=0)
-            mask_positions = np.take_along_axis(mask_positions, idxs, axis=0)
-            
-            mask = radial_mask_from_polygon2D(sup.get_positions(), mask_positions, radius, inner=True)
+        if cyl_mask is None:    
+            mask = radial_mask_from_polygon2D(sup.get_positions(), fictitious_core_positions, radius, inner=True)
         else:
             mask = cyl_mask
 
@@ -2698,7 +2705,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                                                self_consistent=self_consistent, method=method,
                                                verbose=verbose, **kwargs)
 
-        fix_mask = ~radial_mask_from_polygon2D(cyl.get_positions(), mask_positions, radius - fix_rad, inner=True)
+        # Generate FixAtoms constraint
+        fix_mask = ~radial_mask_from_polygon2D(cyl.get_positions(), fictitious_core_positions, radius - fix_rad, inner=True)
         
         if fix_rad:
             fix_atoms = FixAtoms(mask=fix_mask)
@@ -2853,7 +2861,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     def build_cylinder(self, 
                        radius,
                        core_position=np.array([0., 0., 0.]),
-                       extension=np.array([0, 0, 0]),
+                       extension=None,
                        fixed_points=None,
                        fix_width=10.0, 
                        self_consistent=None,
@@ -2986,7 +2994,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     def build_impurity_cylinder(self, disloc, impurity, radius,
                                 imp_symbol="H",
                                 core_position=np.array([0., 0., 0.]),
-                                extension=np.array([0., 0., 0.]),
+                                extension=None,
                                 self_consistent=False,
                                 extra_bulk_at_core=False,
                                 core_radius=0.5,
@@ -3101,7 +3109,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                                                           fixed_points=fixed_points, 
                                                           core_position=np.array([kink_pos * self.glide_distance, 0 , 0]),
                                                           **kwargs)[1]
-            
         kink_cyl = glide_structs[map[0]].copy()
 
         for i in map[1:]:
