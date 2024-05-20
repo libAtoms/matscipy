@@ -904,7 +904,7 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
             self.assertAtomsAlmostEqual(configs[0], ini_quad)
             self.assertAtomsAlmostEqual(configs[1], fin_quad)
 
-    @pytest.skip()
+    @pytest.mark.skip()
     def test_single_kink_quadrupole(self, disloc):
         '''
         Validate that generation of single kink structures runs without errors
