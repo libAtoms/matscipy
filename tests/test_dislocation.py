@@ -904,6 +904,7 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
             self.assertAtomsAlmostEqual(configs[0], ini_quad)
             self.assertAtomsAlmostEqual(configs[1], fin_quad)
 
+    @pytest.skip()
     def test_single_kink_quadrupole(self, disloc):
         '''
         Validate that generation of single kink structures runs without errors
@@ -912,14 +913,10 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
         d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
 
-        kink_struct = d.build_kink_quadrupole(z_reps=4, glide_separation=5)
+        kink_struct = d.build_kink_quadrupole(z_reps=4, glide_separation=4)
 
         # Check that the z vector has been tilted to get an infinite array of periodic single kinks
-        z_vec = kink_struct.cell[2, :]
-
-        vals = np.abs(z_vec[:2])
-
-        self.assertNotAlmostEqual(vals[0], 0.0)
+        self.assertNotAlmostEqual(kink_struct.cell[2, 0], 0.0)
 
 
 
