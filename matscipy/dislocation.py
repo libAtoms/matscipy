@@ -3082,10 +3082,32 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         return impurities_disloc
     
-    def build_kink_cyl(self, kink_map=[0, 1], *args, **kwargs) -> None:
+    def build_kink_cyl(self, kink_map=[0, 1], *args, **kwargs):
         map = np.array(kink_map, dtype=int)
         map -= np.min(map)
         range = np.max(map)
+
+        unique_kinks = np.sort(np.unique(map))
+
+        glide_structs = {}
+
+        fixed_points = np.array([
+            [0, 0, 0],
+            [self.glide_distance * range, 0, 0]
+        ])
+
+        for kink_pos in unique_kinks:
+            glide_structs[kink_pos] = self.build_cylinder(*args, 
+                                                          fixed_points=fixed_points, 
+                                                          core_position=np.array([kink_pos * self.glide_distance, 0 , 0]),
+                                                          **kwargs)[1]
+            
+        kink_cyl = glide_structs[map[0]].copy()
+
+        for i in map[1:]:
+            kink_cyl = stack(kink_cyl, glide_structs[i])
+
+        return kink_cyl
     
     @staticmethod
     def view_cyl(system, scale=0.5, CNA_color=True, add_bonds=False,
