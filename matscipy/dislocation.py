@@ -3089,6 +3089,36 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         impurities_disloc.cell = disloc.cell
 
         return impurities_disloc
+
+    def _smooth_kink_displacements(self, kink1, kink2, ref_bulk, smoothing_width, base_cell):
+        '''
+        Use ReLU interpolation to smooth the displacment fields across a kink boundary between kink1 and kink2.
+        Returns a copy of kink1, but with the displacement field at ref_bulk.positions[:, 2] > base_cell[2, 2] - smoothing width
+        linearly interpolated. 
+        '''
+
+        cell = base_cell
+
+        dr1 = mic(kink1.positions - ref_bulk.positions, cell)
+        dr2 = mic(kink2.positions - ref_bulk.positions, cell)
+
+        dr_forward = mic(dr2 - dr1, cell)
+
+
+        kink = ref_bulk.copy()
+
+        x = ref_bulk.positions[:, 2]
+        h = kink.cell[2, 2]
+        sw = smoothing_width
+
+        # ReLU interpolation between kink1 & kink2 displacements 
+        smooth_facs = (x > h - sw) * (x + sw - h) / sw
+
+        smoothed_disp = dr1 + smooth_facs[:, np.newaxis] * dr_forward
+
+        kink.positions += smoothed_disp
+
+        return kink
     
     def build_kink_cyl(self, kink_map=[0, 1], *args, **kwargs):
         map = np.array(kink_map, dtype=int)
@@ -4000,34 +4030,6 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         # If we end up here, all layers removed before we found a match. Raise error
         raise RuntimeError("Could not find a valid periodic kink cell.")
-
-    def _smooth_kink_displacements(self, kink1, kink2, ref_bulk, smoothing_width, base_cell):
-        '''
-        Use a sigmoid
-        '''
-
-        cell = base_cell
-
-        dr1 = mic(kink1.positions - ref_bulk.positions, cell)
-        dr2 = mic(kink2.positions - ref_bulk.positions, cell)
-
-        dr_forward = mic(dr2 - dr1, cell)
-
-
-        kink = ref_bulk.copy()
-
-        x = ref_bulk.positions[:, 2]
-        h = kink.cell[2, 2]
-        sw = smoothing_width
-
-        # ReLU interpolation between kink1 & kink2 displacements 
-        smooth_facs = (x > h - sw) * (x + sw - h) / sw
-
-        smoothed_disp = dr1 + smooth_facs[:, np.newaxis] * dr_forward
-
-        kink.positions += smoothed_disp
-
-        return kink
 
     def build_kink_quadrupole(self, z_reps=2, layer_decimal_precision=3, invert_direction=False, smooth_width=None,
                                 *args, **kwargs):
