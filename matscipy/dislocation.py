@@ -3120,29 +3120,44 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         return kink
     
-    def build_kink_cyl(self, kink_map=[0, 1], *args, **kwargs):
-        map = np.array(kink_map, dtype=int)
-        map -= np.min(map)
-        range = np.max(map)
+    def build_kink_cyl(self, kink_map=[0, 1], smooth_width=None, *args, **kwargs):
+        kmap = np.array(kink_map, dtype=int)
+        kmap -= np.min(kmap)
+        krange = np.max(kmap)
 
-        unique_kinks = np.sort(np.unique(map))
+        unique_kinks = np.sort(np.unique(kmap))
 
         glide_structs = {}
 
         fixed_points = np.array([
             [0, 0, 0],
-            [self.glide_distance * range, 0, 0]
+            [self.glide_distance * krange, 0, 0]
         ])
 
         for kink_pos in unique_kinks:
-            glide_structs[kink_pos] = self.build_cylinder(*args, 
+            ref_bulk, glide_structs[kink_pos] = self.build_cylinder(*args, 
                                                           fixed_points=fixed_points, 
                                                           core_position=np.array([kink_pos * self.glide_distance, 0 , 0]),
-                                                          **kwargs)[1]
-        kink_cyl = glide_structs[map[0]].copy()
+                                                          **kwargs)
+        
+        kink_structs = [glide_structs[midx].copy() for midx in kmap]
 
-        for i in map[1:]:
-            kink_cyl = stack(kink_cyl, glide_structs[i])
+        # Smooth displacements across kink boundaries
+        if smooth_width is None:
+            smooth_width = 0.5 * self.unit_cell.cell[2, 2]
+
+        N = len(kink_structs)
+
+        smoothed_kink_structs = []
+
+        for i in range(N):
+            smoothed_kink_structs.append(
+                self._smooth_kink_displacements(kink_structs[i], kink_structs[(i+1) % N], ref_bulk, smooth_width, ref_bulk.cell[:, :])
+            )
+
+        kink_cyl = smoothed_kink_structs[0].copy()
+        for i in range(1, N):
+            kink_cyl = stack(kink_cyl, smoothed_kink_structs[i])
 
         return kink_cyl
     
