@@ -4046,7 +4046,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # If we end up here, all layers removed before we found a match. Raise error
         raise RuntimeError("Could not find a valid periodic kink cell.")
 
-    def build_kink_quadrupole(self, z_reps=2, layer_decimal_precision=3, invert_direction=False, smooth_width=None,
+    def build_kink_quadrupole(self, z_reps=2, layer_decimal_precision=3, n_kink=1, invert_direction=False, smooth_width=None,
                                 *args, **kwargs):
         '''
         Construct a quadrupole structure providing an initial guess of the dislocation kink
@@ -4088,7 +4088,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         kink_struct2.wrap()
 
         # Cell won't always be periodic, make sure we end up with something that is
-        mask, cell = self._get_kink_quad_mask(bulk, direction, layer_decimal_precision)
+        mask, cell = self._get_kink_quad_mask(bulk, direction * n_kink, layer_decimal_precision)
         bulk = bulk[mask]
         bulk.set_cell(cell, scale_atoms=False)
 
