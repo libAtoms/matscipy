@@ -3988,7 +3988,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         '''
 
         if self.left_dislocation.__class__ == BCCEdge111barDislocation:
-            raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
+            #raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
+            pass
 
         bulk = ref_bulk.copy()
         tilt_bulk = ref_bulk.copy()
@@ -4103,6 +4104,75 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         # Smooth displacements across the periodic boundary
         kink = self._smooth_kink_displacements(kink_struct1, kink_struct2, bulk, smooth_width, base_bulk.cell[:, :])
+        return kink
+
+    def build_kink_quadrupole_network(self, kink_map=[0, 1], layer_decimal_precision=3, smooth_width=None,
+                                *args, **kwargs):
+        '''
+        Construct a quadrupole structure providing an initial guess of the dislocation kink
+        mechanism. Produces a periodic array of kinks, where each kink is 
+        z_reps * self.unit_cell[2, 2] Ang long
+
+        Parameters
+        ----------
+        z_reps: int
+            Number of replications of self.unit_cell to use per kink
+            Should be >1
+        layer_tol: float
+            Tolerance for trying to determine the top atomic layer of the cell
+            (required in order to complete periodicity)
+            Top layer is defined as any atom with z component >= max(atom_z) - layer_tol
+        invert_direction: bool
+            Invert the direction of the glide
+            invert_direction=False (default) kink in the +x direction
+            invert_direction=True kink in the -x direction
+        *args, **kwargs
+            Fed to self.build_quadrupole() & self.build_glide_quadrupoles
+        
+        '''
+
+        kmap = np.array(kink_map, dtype=int)
+        kmap -= np.min(kmap)
+        krange = np.max(kmap)
+
+        unique_kinks = np.sort(np.unique(kmap))
+
+        glide_structs = {}
+
+        for kink_pos in unique_kinks:
+            off = np.array([kink_pos * self.glide_distance, 0 , 0])
+            ref_bulk, glide_structs[kink_pos] = self.build_quadrupole(*args, 
+                                                          left_offset=off, right_offset=off,
+                                                          **kwargs)
+        
+        kink_structs = [glide_structs[midx].copy() for midx in kmap]
+
+        # Smooth displacements across kink boundaries
+        if smooth_width is None:
+            smooth_width = 0.5 * self.unit_cell.cell[2, 2]
+
+        N = len(kink_structs)
+
+        smoothed_kink_structs = []
+        # Extra copy of last struct, so last one gets correct unsmoothed displacements
+        kink_structs.append(kink_structs[-1].copy())
+        for i in range(N):
+            smoothed_kink_structs.append(
+                self._smooth_kink_displacements(kink_structs[i], kink_structs[i+1], ref_bulk, smooth_width, ref_bulk.cell[:, :])
+            )
+
+        direction = kmap[-1]
+
+        bulk = ref_bulk.copy() * (1, 1, N)
+        kink = smoothed_kink_structs[0].copy()
+        for i in range(1, N):
+            kink = stack(kink, smoothed_kink_structs[i])
+
+        # Cell won't always be periodic, make sure we end up with something that is
+        mask, cell = self._get_kink_quad_mask(bulk, direction, layer_decimal_precision)
+
+        kink = kink[mask]
+        kink.set_cell(cell, scale_atoms=False)
         return kink
     
     def view_quad(self, system, *args, **kwargs):
