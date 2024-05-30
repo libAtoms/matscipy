@@ -21,7 +21,7 @@ el              = 'Fe'
 a0_init         = 3.0
 elastic_symmetry = 'cubic'
 
-mass = 28.0855
+mass = 55.845
 yace = f'jace_castep_c0.yace'
 table = f'jace_castep_c0_pairpot.table'
 cmds = ['pair_style hybrid/overlay pace table spline 5500',
