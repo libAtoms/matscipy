@@ -2618,6 +2618,25 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Bulk cyl, cut down based on radius, complete
             with FixAtoms constraints
         '''
+
+        def enforce_arr_shape(argname, arg, errs):
+            '''
+            Enforce correct array dimensionality for 
+            
+            '''
+            if type(arg) == np.ndarray:
+                if arg.shape[-1] != 3:
+                    # Needs to be 3d vectors
+                    errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+                if len(arg.shape) == 1:
+                    # Convert all arrays to 2D
+                    arg = np.atleast_2d(arg)
+            elif arg is not None:
+                # non-array, and not None arg provided, which is not allowed
+                errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+            return arg, errs
+
+
         from matscipy.utils import radial_mask_from_polygon2D
 
         if self_consistent is None:
@@ -2625,17 +2644,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         # Validate core position, extension, and fixed_points args
         errs = []
-        for argname, arg in [["core_position", core_positions], ["extension", extension], ["fixed_points", fixed_points]]:
-            if type(arg) == np.ndarray:
-                if arg.shape[-1] != 3:
-                    # Needs to be 3d vectors
-                    errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
-                if len(arg.shape) == 1:
-                    # Convert all arrays to 2D
-                    arg.reshape((np.newaxis, arg.shape[-1]))
-            elif arg is not None:
-                # non-array, and not None arg provided, which is not allowed
-                errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+        
+        core_positions, errs = enforce_arr_shape("core_positions", core_positions, errs)
+        extension, errs = enforce_arr_shape("extension", extension, errs)
+        fixed_points, errs = enforce_arr_shape("fixed_points", fixed_points, errs)
+
         if len(errs):
             raise RuntimeError("\n".join(errs))
 
@@ -2952,6 +2965,10 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         final_core_position = np.array([self.glide_distance, 0, 0])
 
         fixed_points = np.vstack([initial_core_position, final_core_position])
+
+        if "partial_distance" in kwargs.keys():
+            # Account for dissociated glide
+            fixed_points[1, 0] += kwargs["partial_distance"] * self.glide_distance
 
         bulk_ini, disloc_ini, cyl_mask = self.build_cylinder(radius,
                                                    core_position=initial_core_position,
