@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -44,7 +44,7 @@ jobs:
           pytest -v --junitxml=report.xml --durations=20
 
       - name: report
-        uses: mikepenz/action-junit-report@v2
+        uses: mikepenz/action-junit-report@v4
         if: always()
         with:
           report_paths: "**/report.xml"

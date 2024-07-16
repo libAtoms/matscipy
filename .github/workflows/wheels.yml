@@ -42,11 +42,11 @@ jobs:
         with:
           platforms: all
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
 
@@ -58,13 +58,13 @@ jobs:
           CIBW_ENVIRONMENT_PASS_LINUX: RUNNER_OS
           CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
           name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
 
       - name: Release wheels
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: wheelhouse/*.whl
