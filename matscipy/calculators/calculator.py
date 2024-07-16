@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+
 import numpy as np
 
 from scipy.sparse.linalg import cg
@@ -243,7 +244,7 @@ class MatscipyCalculator(Calculator):
                               atoms,
                               cg_parameters={
                                   "x0": None,
-                                  "tol": 1e-5,
+                                  "rtol": 1e-5,
                                   "maxiter": None,
                                   "M": None,
                                   "callback": None,
@@ -263,8 +264,8 @@ class MatscipyCalculator(Calculator):
             x0: {array, matrix}
                 Starting guess for the solution.
 
-            tol/atol: float, optional
-                Tolerances for convergence, norm(residual) <= max(tol*norm(b), atol).
+            rtol/atol: float, optional
+                Tolerances for convergence, norm(residual) <= max(rtol*norm(b), atol).
 
             maxiter: int
                 Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.
@@ -291,7 +292,7 @@ class MatscipyCalculator(Calculator):
         return C
 
     @deprecate(new_name="elasticity.nonaffine_elastic_contribution")
-    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "tol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
+    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "rtol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
         """
         Compute the correction of non-affine displacements to the elasticity tensor.
         The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.
@@ -316,8 +317,9 @@ class MatscipyCalculator(Calculator):
             x0: {array, matrix}
                 Starting guess for the solution.
 
-            tol/atol: float, optional
-                Tolerances for convergence, norm(residual) <= max(tol*norm(b), atol).
+            rtol/atol: float, optional
+                Tolerances for convergence, norm(residual) <= max(
+                rtol*norm(b), atol).
 
             maxiter: int
                 Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.
