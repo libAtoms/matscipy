@@ -1,5 +1,5 @@
 [build-system]
-requires = ["meson>=1.0.0", "meson-python>=0.13.0", "ninja", "oldest-supported-numpy"]
+requires = ["meson>=1.0.0", "meson-python>=0.13.0", "ninja", "oldest-supported-numpy>=2.0.0"]
 build-backend = "mesonpy"
 
 [project]
@@ -18,7 +18,7 @@ classifiers = [
 requires-python = ">=3.7.0"
 dynamic = ["version"]
 dependencies = [
-    "numpy>=1.16.0",
+    "numpy>=2.0.0",
     "scipy>=1.2.3",
     "ase>=3.16.0",
     "looseversion"
