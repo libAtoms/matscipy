@@ -51,7 +51,7 @@ jobs:
           CIBW_ENVIRONMENT_PASS_LINUX: RUNNER_OS
           CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
           name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
