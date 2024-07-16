@@ -14,6 +14,7 @@ python_sources = [
     version_file,
     'angle_distribution.py',
     'atomic_strain.py',
+    'compat.py',
     'deformation.py',
     'dislocation.py',
     'drift.py',
