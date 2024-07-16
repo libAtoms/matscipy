@@ -23,7 +23,7 @@ import time
 import copy
 import re
 
-from looseversion import LooseVersion
+from packaging.version import Version
 
 import numpy as np
 import ase
@@ -359,7 +359,7 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
                 fileobj.write('%d dihedral types\n' % (len(dtypes)))
 
             # cell
-            if LooseVersion(ase_version_str) > LooseVersion('3.11.0'):
+            if Version(ase_version_str) > Version('3.11.0'):
                 p = ase.calculators.lammpsrun.Prism(atoms.get_cell())
             else:
                 p = ase.calculators.lammpsrun.prism(atoms.get_cell())
@@ -385,9 +385,9 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
                 molid = [1] * len(atoms)
 
             pos = ase.calculators.lammpsrun.convert(atoms.get_positions(), 'distance', 'ASE', units)
-            if LooseVersion(ase_version_str) > LooseVersion('3.17.0'):
+            if Version(ase_version_str) > Version('3.17.0'):
                 positions_lammps_str = p.vector_to_lammps(pos).astype(str)
-            elif LooseVersion(ase_version_str) > LooseVersion('3.13.0'):
+            elif Version(ase_version_str) > Version('3.13.0'):
                 positions_lammps_str = p.positions_to_lammps_strs(pos)
             else:
                 positions_lammps_str = map(p.pos_to_lammps_str, pos)

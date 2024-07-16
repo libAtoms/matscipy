@@ -31,8 +31,7 @@ from ..elasticity import (
     nonaffine_elastic_contribution,
 )
 
-from ..numerical import numerical_nonaffine_forces
-
+from ..compat import compat_cg_parameters
 from ..numpy_tricks import mabincount
 
 
@@ -367,6 +366,8 @@ class MatscipyCalculator(Calculator):
         warnings.warn(
             "This function is deprecated and will be removed in the future. Use 'elasticity.nonaffine_elastic_contribution' instead.",
             DeprecationWarning)
+
+        cg_parameters = compat_cg_parameters(cg_parameters)
 
         nat = len(atoms)
 
