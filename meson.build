@@ -2,6 +2,7 @@
 project(
     'matscipy', # Project name
     'c', 'cpp', # Project type. We need a C and C++ compiler.
+    default_options : ['cpp_std=c++11'],
     version: run_command('python3', 'discover_version.py', check: true).stdout().strip(), # Project version
 )
 

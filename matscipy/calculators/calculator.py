@@ -19,11 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import warnings
+
 import numpy as np
 
 from scipy.sparse.linalg import cg
 from ase.calculators.calculator import Calculator
-from numpy import deprecate
 
 from ..elasticity import (
     Voigt_6_to_full_3x3_stress,
@@ -70,12 +71,12 @@ class MatscipyCalculator(Calculator):
             'nonaffine_forces': self.get_nonaffine_forces,
             'born_constants': self.get_born_elastic_constants,
             'stress_elastic_contribution':
-            self.get_stress_contribution_to_elastic_constants,
+                self.get_stress_contribution_to_elastic_constants,
             'birch_coefficients': self.get_birch_coefficients,
             'nonaffine_elastic_contribution':
-            self.get_non_affine_contribution_to_elastic_constants,
+                self.get_non_affine_contribution_to_elastic_constants,
             'elastic_constants':
-            self.get_elastic_constants
+                self.get_elastic_constants
         }
 
         for prop in filter(lambda p: p in properties, properties_map):
@@ -187,10 +188,10 @@ class MatscipyCalculator(Calculator):
         stress_contribution = 0.5 * sum(
             np.einsum(einsum, stress_ab, delta_ab)
             for einsum in (
-                    'am,bn',
-                    'an,bm',
-                    'bm,an',
-                    'bn,am',
+                'am,bn',
+                'an,bm',
+                'bm,an',
+                'bn,am',
             )
         )
 
@@ -291,8 +292,10 @@ class MatscipyCalculator(Calculator):
 
         return C
 
-    @deprecate(new_name="elasticity.nonaffine_elastic_contribution")
-    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None, pc_parameters=None, cg_parameters={"x0": None, "rtol": 1e-5, "maxiter": None, "M": None, "callback": None, "atol": 1e-5}):
+    def get_non_affine_contribution_to_elastic_constants(self, atoms, eigenvalues=None, eigenvectors=None,
+                                                         pc_parameters=None,
+                                                         cg_parameters={"x0": None, "rtol": 1e-5, "maxiter": None,
+                                                                        "M": None, "callback": None, "atol": 1e-5}):
         """
         Compute the correction of non-affine displacements to the elasticity tensor.
         The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.
@@ -361,6 +364,10 @@ class MatscipyCalculator(Calculator):
                 Dictionary containing additional expert options to SuperLU.
         """
 
+        warnings.warn(
+            "This function is deprecated and will be removed in the future. Use 'elasticity.nonaffine_elastic_contribution' instead.",
+            DeprecationWarning)
+
         nat = len(atoms)
 
         calc = self
@@ -368,10 +375,10 @@ class MatscipyCalculator(Calculator):
         if (eigenvalues is not None) and (eigenvectors is not None):
             naforces_icab = calc.get_nonaffine_forces(atoms)
 
-            G_incc = (eigenvectors.T).reshape(-1, 3*nat, 1, 1) * naforces_icab.reshape(1, 3*nat, 3, 3)
-            G_incc = (G_incc.T/np.sqrt(eigenvalues)).T
-            G_icc  = np.sum(G_incc, axis=1)
-            C_abab = np.sum(G_icc.reshape(-1,3,3,1,1) * G_icc.reshape(-1,1,1,3,3), axis=0)
+            G_incc = (eigenvectors.T).reshape(-1, 3 * nat, 1, 1) * naforces_icab.reshape(1, 3 * nat, 3, 3)
+            G_incc = (G_incc.T / np.sqrt(eigenvalues)).T
+            G_icc = np.sum(G_incc, axis=1)
+            C_abab = np.sum(G_icc.reshape(-1, 3, 3, 1, 1) * G_icc.reshape(-1, 1, 1, 3, 3), axis=0)
 
         else:
             H_nn = calc.get_hessian(atoms)
@@ -386,33 +393,19 @@ class MatscipyCalculator(Calculator):
                 operator_Hinv = LinearOperator(H_nn.shape, approx_Hinv.solve)
                 cg_parameters["M"] = operator_Hinv
 
-            D_iab = np.zeros((3*nat, 3, 3))
+            D_iab = np.zeros((3 * nat, 3, 3))
             for i in range(3):
                 for j in range(3):
                     x, info = cg(H_nn, naforces_icab[:, :, i, j].flatten(), **cg_parameters)
                     if info != 0:
                         print("info: ", info)
-                        raise RuntimeError(" info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
-                    D_iab[:,i,j] = x
+                        raise RuntimeError(
+                            " info > 0: CG tolerance not achieved, info < 0: Exceeded number of iterations.")
+                    D_iab[:, i, j] = x
 
-            C_abab = np.sum(naforces_icab.reshape(3*nat, 3, 3, 1, 1) * D_iab.reshape(3*nat, 1, 1, 3, 3), axis=0)
+            C_abab = np.sum(naforces_icab.reshape(3 * nat, 3, 3, 1, 1) * D_iab.reshape(3 * nat, 1, 1, 3, 3), axis=0)
 
         # Symmetrize
         C_abab = (C_abab + C_abab.swapaxes(0, 1) + C_abab.swapaxes(2, 3) + C_abab.swapaxes(0, 1).swapaxes(2, 3)) / 4
 
-        return -C_abab/atoms.get_volume()
-
-    @deprecate(new_name='numerical.numerical_nonaffine_forces')
-    def get_numerical_non_affine_forces(self, atoms, d=1e-6):
-        """
-
-        Calculate numerical non-affine forces using central finite differences.
-        This is done by deforming the box, rescaling atoms and measure the force.
-
-        Parameters
-        ----------
-        atoms: ase.Atoms
-            Atomic configuration in a local or global minima.
-
-        """
-        return numerical_nonaffine_forces(atoms, d=d)
+        return -C_abab / atoms.get_volume()

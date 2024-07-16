@@ -22,6 +22,7 @@
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
 #define NO_IMPORT_ARRAY
+#define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #include <numpy/arrayobject.h>
 
 #include "tools.h"

@@ -22,7 +22,7 @@
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
 #define NO_IMPORT_ARRAY
-#define NPY_NO_DEPRECATED_API NPY_1_5_API_VERSION
+#define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #include <numpy/arrayobject.h>
 
 #include <algorithm>
@@ -122,9 +122,9 @@ py_distances_on_graph(PyObject *self, PyObject *args)
         return NULL;
 
     /* Make sure our arrays are contiguous */
-    py_i = PyArray_FROMANY(py_i, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    py_i = PyArray_FROMANY(py_i, NPY_INT, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_i) return NULL;
-    py_j = PyArray_FROMANY(py_j, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    py_j = PyArray_FROMANY(py_j, NPY_INT, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_j) return NULL;
 
     /* Check array shapes. */
@@ -135,7 +135,7 @@ py_distances_on_graph(PyObject *self, PyObject *args)
     }
 
     /* Get total number of atoms */
-    npy_int *i = (npy_int *) PyArray_DATA(py_i);
+    npy_int *i = (npy_int *) PyArray_DATA((PyArrayObject *) py_i);
     int nat = *std::max_element(i, i+nneigh)+1;
 
     /* Construct seed array */
@@ -147,8 +147,8 @@ py_distances_on_graph(PyObject *self, PyObject *args)
     dims[1] = nat;
     PyObject *py_dist = PyArray_ZEROS(2, dims, NPY_INT, 0);
 
-    if (!distances_on_graph(nat, seed, (npy_int *) PyArray_DATA(py_j),
-                            (npy_int *) PyArray_DATA(py_dist), NULL)) {
+    if (!distances_on_graph(nat, seed, (npy_int *) PyArray_DATA((PyArrayObject *) py_j),
+                            (npy_int *) PyArray_DATA((PyArrayObject *) py_dist), NULL)) {
         Py_DECREF(py_dist);
         return NULL;
     }
@@ -407,13 +407,13 @@ py_find_sp_rings(PyObject *self, PyObject *args)
         return NULL;
 
     /* Make sure our arrays are contiguous */
-    py_i = PyArray_FROMANY(py_i, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    py_i = PyArray_FROMANY(py_i, NPY_INT, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_i) return NULL;
-    py_j = PyArray_FROMANY(py_j, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    py_j = PyArray_FROMANY(py_j, NPY_INT, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_j) return NULL;
-    py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_C_CONTIGUOUS);
+    py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_r) return NULL;
-    py_dist = PyArray_FROMANY(py_dist, NPY_INT, 2, 2, NPY_C_CONTIGUOUS);
+    py_dist = PyArray_FROMANY(py_dist, NPY_INT, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_dist) return NULL;
 
     /* Check array shapes. */
@@ -433,7 +433,7 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     }
 
     /* Get total number of atoms */
-    npy_int *i = (npy_int *) PyArray_DATA(py_i);
+    npy_int *i = (npy_int *) PyArray_DATA((PyArrayObject *) py_i);
     int nat = *std::max_element(i, i+nneigh)+1;
 
     /* Check shape of distance map */
@@ -457,9 +457,9 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     first_neighbours(nat, nneigh, i, seed.data());
 
     std::vector<npy_int> ringstat;
-    if (!find_sp_ring_vertices(nat, seed, nneigh, (int *) PyArray_DATA(py_j),
-                               (npy_double *) PyArray_DATA(py_r),
-                               (npy_int *) PyArray_DATA(py_dist),
+    if (!find_sp_ring_vertices(nat, seed, nneigh, (int *) PyArray_DATA((PyArrayObject *) py_j),
+                               (npy_double *) PyArray_DATA((PyArrayObject *) py_r),
+                               (npy_int *) PyArray_DATA((PyArrayObject *) py_dist),
                                maxlength, ringstat)) {
         return NULL;
     }
@@ -467,7 +467,7 @@ py_find_sp_rings(PyObject *self, PyObject *args)
     npy_intp ringstat_size = ringstat.size();
     PyObject *py_ringstat = PyArray_ZEROS(1, &ringstat_size, NPY_INT, 0);
     std::copy(ringstat.begin(), ringstat.end(),
-              (npy_int *) PyArray_DATA(py_ringstat));
+              (npy_int *) PyArray_DATA((PyArrayObject *) py_ringstat));
 
     return py_ringstat;
 }

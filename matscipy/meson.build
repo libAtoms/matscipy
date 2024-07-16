@@ -20,7 +20,6 @@ python_sources = [
     'elasticity.py',
     'ffi.py',
     'gamma_surface.py',
-    'hessian_finite_differences.py',
     'hydrogenate.py',
     'logger.py',
     'molecules.py',
