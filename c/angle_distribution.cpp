@@ -25,10 +25,8 @@
 #define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #include <numpy/arrayobject.h>
 
-#ifdef _MSC_VER
 #define _USE_MATH_DEFINES
 #include <cmath>
-#endif
 
 #include "angle_distribution.h"
 
@@ -76,7 +74,6 @@ py_angle_distribution(PyObject *self, PyObject *args)
   PyObject *tmp_arr = PyArray_ZEROS(1, &dim, NPY_INT, 1);
 
   npy_int *i = (npy_int*)PyArray_DATA((PyArrayObject *) i_arr);
-  npy_int *j = (npy_int*)PyArray_DATA((PyArrayObject *) j_arr);
   double *r = (double*)PyArray_DATA((PyArrayObject *) r_arr);
   npy_int *h = (npy_int*)PyArray_DATA((PyArrayObject *) h_arr);
   npy_int *tmp = (npy_int*)PyArray_DATA((PyArrayObject *) tmp_arr);
