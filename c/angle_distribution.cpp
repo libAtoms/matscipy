@@ -25,10 +25,9 @@
 #define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #include <numpy/arrayobject.h>
 
-#define _USE_MATH_DEFINES
-#include <cmath>
-
 #include "angle_distribution.h"
+
+#define	M_PI ((double)3.14159265358979323846) /* pi */
 
 /*
  * Compute bond angle distribution
