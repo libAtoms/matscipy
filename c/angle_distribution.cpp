@@ -22,15 +22,12 @@
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
 #define NO_IMPORT_ARRAY
-#define NPY_NO_DEPRECATED_API NPY_1_5_API_VERSION
+#define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #include <numpy/arrayobject.h>
 
-#ifdef _MSC_VER
-#define _USE_MATH_DEFINES
-#include <cmath>
-#endif
-
 #include "angle_distribution.h"
+
+#define	M_PI ((double)3.14159265358979323846) /* pi */
 
 /*
  * Compute bond angle distribution
@@ -47,25 +44,25 @@ py_angle_distribution(PyObject *self, PyObject *args)
                         &j_arr, &PyArray_Type, &r_arr, &nbins, &cutoff))
     return NULL;
 
-  if (PyArray_NDIM(i_arr) != 1 || PyArray_TYPE(i_arr) != NPY_INT) {
+  if (PyArray_NDIM((PyArrayObject *) i_arr) != 1 || PyArray_TYPE((PyArrayObject *) i_arr) != NPY_INT) {
     PyErr_SetString(PyExc_TypeError, "First argument needs to be one-dimensional "
                     "integer array.");
     return NULL;
   }
-  if (PyArray_NDIM(j_arr) != 1 || PyArray_TYPE(j_arr) != NPY_INT) {
+  if (PyArray_NDIM((PyArrayObject *) j_arr) != 1 || PyArray_TYPE((PyArrayObject *) j_arr) != NPY_INT) {
     PyErr_SetString(PyExc_TypeError, "Second argument needs to be one-dimensional "
                     "integer array.");
     return NULL;
   }
-  if (PyArray_NDIM(r_arr) != 2 || PyArray_DIM(r_arr, 1) != 3 ||
-      PyArray_TYPE(r_arr) != NPY_DOUBLE) {
+  if (PyArray_NDIM((PyArrayObject *) r_arr) != 2 || PyArray_DIM((PyArrayObject *) r_arr, 1) != 3 ||
+      PyArray_TYPE((PyArrayObject *) r_arr) != NPY_DOUBLE) {
     PyErr_SetString(PyExc_TypeError, "Third argument needs to be two-dimensional "
                     "double array.");
     return NULL;
   }
 
-  npy_intp npairs = PyArray_DIM(i_arr, 0);
-  if (PyArray_DIM(j_arr, 0) != npairs || PyArray_DIM(r_arr, 0) != npairs) {
+  npy_intp npairs = PyArray_DIM((PyArrayObject *) i_arr, 0);
+  if (PyArray_DIM((PyArrayObject *) j_arr, 0) != npairs || PyArray_DIM((PyArrayObject *) r_arr, 0) != npairs) {
     PyErr_SetString(PyExc_RuntimeError, "First three arguments need to be arrays of "
                     "identical length.");
     return NULL;
@@ -75,11 +72,10 @@ py_angle_distribution(PyObject *self, PyObject *args)
   PyObject *h_arr = PyArray_ZEROS(1, &dim, NPY_INT, 1);
   PyObject *tmp_arr = PyArray_ZEROS(1, &dim, NPY_INT, 1);
 
-  npy_int *i = (npy_int*)PyArray_DATA(i_arr);
-  npy_int *j = (npy_int*)PyArray_DATA(j_arr);
-  double *r = (double*)PyArray_DATA(r_arr);
-  npy_int *h = (npy_int*)PyArray_DATA(h_arr);
-  npy_int *tmp = (npy_int*)PyArray_DATA(tmp_arr);
+  npy_int *i = (npy_int*)PyArray_DATA((PyArrayObject *) i_arr);
+  double *r = (double*)PyArray_DATA((PyArrayObject *) r_arr);
+  npy_int *h = (npy_int*)PyArray_DATA((PyArrayObject *) h_arr);
+  npy_int *tmp = (npy_int*)PyArray_DATA((PyArrayObject *) tmp_arr);
 
   npy_int last_i = i[0], i_start = 0;
   memset(tmp, 0, nbins*sizeof(npy_int));

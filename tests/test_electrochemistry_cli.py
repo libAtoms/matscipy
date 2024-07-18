@@ -29,7 +29,7 @@ import subprocess
 import tempfile
 import unittest
 
-from looseversion import LooseVersion
+from packaging.version import Version
 
 
 class ElectrochemistryCliTest(matscipytest.MatSciPyTestCase):
@@ -116,7 +116,7 @@ class ElectrochemistryCliTest(matscipytest.MatSciPyTestCase):
                 == self.ref_xyz.get_initial_charges() ).all() )
             self.assertTrue( ( xyz.cell == self.ref_xyz.cell ).all() )
 
-    @unittest.skipUnless(LooseVersion(ase.__version__) > LooseVersion('3.19.0'),
+    @unittest.skipUnless(Version(ase.__version__) > Version('3.19.0'),
         """ LAMMPS data file won't work for ASE version up until 3.18.1,
             LAMMPS data file input broken in ASE 3.19.0, skipped""")
     def test_c2d_input_format_npz_output_format_lammps(self):
