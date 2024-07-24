@@ -4,3 +4,11 @@
     "config:recommended"
   ]
 }
+{
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["nglview"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
