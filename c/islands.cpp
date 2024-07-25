@@ -22,6 +22,7 @@
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
 #define NO_IMPORT_ARRAY
+#define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #include <numpy/arrayobject.h>
 
 #include <math.h>
@@ -107,14 +108,14 @@ py_count_islands(PyObject *self, PyObject *args)
 
   if (py_stencil) {
     py_long_stencil =  PyArray_FROMANY(py_stencil, NPY_LONG, 2, 2,
-                                       NPY_C_CONTIGUOUS);
+                                       NPY_ARRAY_C_CONTIGUOUS);
     if (!py_long_stencil)
       return NULL;
 
-    sx = PyArray_DIM(py_long_stencil, 0);
-    npy_intp sy = PyArray_DIM(py_long_stencil, 1);
+    sx = PyArray_DIM((PyArrayObject *) py_long_stencil, 0);
+    npy_intp sy = PyArray_DIM((PyArrayObject *) py_long_stencil, 1);
 
-    stencil = (npy_long*) PyArray_DATA(py_long_stencil);
+    stencil = (npy_long*) PyArray_DATA((PyArrayObject *) py_long_stencil);
 
     if (sy != 2) {
       PyErr_SetString(PyExc_TypeError, "Stencil must have dimension 2 in the "
@@ -126,21 +127,21 @@ py_count_islands(PyObject *self, PyObject *args)
     stencil = default_stencil;
   }
 
-  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
   if (!py_bool_map)
     return NULL;
 
-  npy_intp nx = PyArray_DIM(py_bool_map, 0);
-  npy_intp ny = PyArray_DIM(py_bool_map, 1);
+  npy_intp nx = PyArray_DIM((PyArrayObject *) py_bool_map, 0);
+  npy_intp ny = PyArray_DIM((PyArrayObject *) py_bool_map, 1);
 
-  npy_bool *map = (npy_bool*) PyArray_DATA(py_bool_map);
+  npy_bool *map = (npy_bool*) PyArray_DATA((PyArrayObject *) py_bool_map);
 
   npy_intp dims[2] = { nx, ny };
 
   PyObject *py_id = PyArray_ZEROS(2, dims, NPY_INT, 0);
   if (!py_id)
     return NULL;
-  npy_int *id = (npy_int *) PyArray_DATA(py_id);
+  npy_int *id = (npy_int *) PyArray_DATA((PyArrayObject *) py_id);
 
   int i, j, k = 0;
   npy_int p = 0;
@@ -213,21 +214,21 @@ py_count_segments(PyObject *self, PyObject *args)
     return NULL;
 
   PyObject *py_bool_map = NULL;
-  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
   if (!py_bool_map)
     return NULL;
 
-  npy_intp nx = PyArray_DIM(py_bool_map, 0);
-  npy_intp ny = PyArray_DIM(py_bool_map, 1);
+  npy_intp nx = PyArray_DIM((PyArrayObject *) py_bool_map, 0);
+  npy_intp ny = PyArray_DIM((PyArrayObject *) py_bool_map, 1);
 
-  npy_bool *map = (npy_bool*) PyArray_DATA(py_bool_map);
+  npy_bool *map = (npy_bool*) PyArray_DATA((PyArrayObject *) py_bool_map);
 
   npy_intp dims[2] = { nx, ny };
 
   PyObject *py_id = PyArray_ZEROS(2, dims, NPY_INT, 0);
   if (!py_id)
     return NULL;
-  npy_int *id = (npy_int *) PyArray_DATA(py_id);
+  npy_int *id = (npy_int *) PyArray_DATA((PyArrayObject *) py_id);
 
   int i, j, k = 0;
   npy_int p = 0;
@@ -263,40 +264,40 @@ py_shortest_distance(PyObject *self, PyObject *args)
   PyObject *py_bool_fromc = NULL, *py_bool_fromp = NULL;
   PyObject *py_bool_to = NULL;
 
-  py_bool_fromc = PyArray_FROMANY(py_fromc, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_fromc = PyArray_FROMANY(py_fromc, NPY_BOOL, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
   if (!py_bool_fromc)
     return NULL;
-  py_bool_fromp = PyArray_FROMANY(py_fromp, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_fromp = PyArray_FROMANY(py_fromp, NPY_BOOL, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
   if (!py_bool_fromp)
     return NULL;
-  py_bool_to = PyArray_FROMANY(py_to, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_to = PyArray_FROMANY(py_to, NPY_BOOL, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
   if (!py_bool_to)
     return NULL;
 
-  npy_intp nx = PyArray_DIM(py_bool_fromc, 0);
-  npy_intp ny = PyArray_DIM(py_bool_fromc, 1);
+  npy_intp nx = PyArray_DIM((PyArrayObject *) py_bool_fromc, 0);
+  npy_intp ny = PyArray_DIM((PyArrayObject *) py_bool_fromc, 1);
 
-  if (PyArray_DIM(py_bool_fromp, 0) != nx || 
-      PyArray_DIM(py_bool_fromp, 1) != ny) {
+  if (PyArray_DIM((PyArrayObject *) py_bool_fromp, 0) != nx || 
+      PyArray_DIM((PyArrayObject *) py_bool_fromp, 1) != ny) {
     PyErr_SetString(PyExc_TypeError,
                     "All three maps need to have identical dimensions.");
     return NULL;
   }
-  if (PyArray_DIM(py_bool_to, 0) != nx || PyArray_DIM(py_bool_to, 1) != ny) {
+  if (PyArray_DIM((PyArrayObject *) py_bool_to, 0) != nx || PyArray_DIM((PyArrayObject *) py_bool_to, 1) != ny) {
     PyErr_SetString(PyExc_TypeError,
                     "All three maps need to have identical dimensions.");
     return NULL;
   }
 
-  npy_bool *fromc = (npy_bool*) PyArray_DATA(py_bool_fromc);
-  npy_bool *fromp = (npy_bool*) PyArray_DATA(py_bool_fromp);
-  npy_bool *to = (npy_bool*) PyArray_DATA(py_bool_to);
+  npy_bool *fromc = (npy_bool*) PyArray_DATA((PyArrayObject *) py_bool_fromc);
+  npy_bool *fromp = (npy_bool*) PyArray_DATA((PyArrayObject *) py_bool_fromp);
+  npy_bool *to = (npy_bool*) PyArray_DATA((PyArrayObject *) py_bool_to);
 
   npy_intp dims[2] = { nx, ny };
   PyObject *py_dist = PyArray_ZEROS(2, dims, NPY_DOUBLE, 0);
   if (!py_dist)
     return NULL;
-  npy_double *dist = (npy_double *) PyArray_DATA(py_dist);
+  npy_double *dist = (npy_double *) PyArray_DATA((PyArrayObject *) py_dist);
 
   /*
    * Make sure there is something to find
@@ -502,27 +503,27 @@ py_distance_map(PyObject *self, PyObject *args)
   PyObject *py_bool_map_xy = NULL;
 
   py_bool_map_xy = PyArray_FROMANY(py_map_xy, NPY_BOOL, 2, 2,
-                                   NPY_C_CONTIGUOUS);
+                                   NPY_ARRAY_C_CONTIGUOUS);
   if (!py_bool_map_xy)
     return NULL;
 
-  npy_intp nx = PyArray_DIM(py_bool_map_xy, 0);
-  npy_intp ny = PyArray_DIM(py_bool_map_xy, 1);
+  npy_intp nx = PyArray_DIM((PyArrayObject *) py_bool_map_xy, 0);
+  npy_intp ny = PyArray_DIM((PyArrayObject *) py_bool_map_xy, 1);
 
-  npy_bool *map_xy = (npy_bool*) PyArray_DATA(py_bool_map_xy);
+  npy_bool *map_xy = (npy_bool*) PyArray_DATA((PyArrayObject *) py_bool_map_xy);
 
   /* This stores the distance to the closest point on the contour */
   npy_intp dims[2] = { nx, ny };
   PyObject *py_dist_xy = PyArray_ZEROS(2, dims, NPY_DOUBLE, 0);
   if (!py_dist_xy)
     return NULL;
-  npy_double *dist_xy = (npy_double *) PyArray_DATA(py_dist_xy);
+  npy_double *dist_xy = (npy_double *) PyArray_DATA((PyArrayObject *) py_dist_xy);
 
   /* This stores the index of the closest point */
   PyObject *py_next_xy = PyArray_ZEROS(2, dims, NPY_INT, 0);
   if (!py_next_xy)
     return NULL;
-  npy_int *next_xy = (npy_int *) PyArray_DATA(py_next_xy);
+  npy_int *next_xy = (npy_int *) PyArray_DATA((PyArrayObject *) py_next_xy);
 
   /*
    * Fill map with maximum distance
@@ -567,25 +568,25 @@ py_correlation_function(PyObject *self, PyObject *args)
   PyObject *py_double_map1 = NULL, *py_double_map2 = NULL;
 
   py_double_map1 = PyArray_FROMANY(py_map1, NPY_DOUBLE, 2, 2,
-                                   NPY_C_CONTIGUOUS);
+                                   NPY_ARRAY_C_CONTIGUOUS);
   if (!py_double_map1)
     return NULL;
   py_double_map2 = PyArray_FROMANY(py_map2, NPY_DOUBLE, 2, 2,
-                                   NPY_C_CONTIGUOUS);
+                                   NPY_ARRAY_C_CONTIGUOUS);
   if (!py_double_map2)
     return NULL;
 
-  npy_intp nx = PyArray_DIM(py_double_map1, 0);
-  npy_intp ny = PyArray_DIM(py_double_map1, 1);
+  npy_intp nx = PyArray_DIM((PyArrayObject *) py_double_map1, 0);
+  npy_intp ny = PyArray_DIM((PyArrayObject *) py_double_map1, 1);
 
-  if (PyArray_DIM(py_double_map2, 0) != nx ||
-      PyArray_DIM(py_double_map2, 1) != ny) {
+  if (PyArray_DIM((PyArrayObject *) py_double_map2, 0) != nx ||
+      PyArray_DIM((PyArrayObject *) py_double_map2, 1) != ny) {
     PyErr_SetString(PyExc_TypeError,
                     "Both maps need to have the identical dimensions.");
   }
 
-  npy_double *map1 = (npy_double*) PyArray_DATA(py_double_map1);
-  npy_double *map2 = (npy_double*) PyArray_DATA(py_double_map2);
+  npy_double *map1 = (npy_double*) PyArray_DATA((PyArrayObject *) py_double_map1);
+  npy_double *map2 = (npy_double*) PyArray_DATA((PyArrayObject *) py_double_map2);
 
   /*
    * Correlation function
@@ -594,7 +595,7 @@ py_correlation_function(PyObject *self, PyObject *args)
   PyObject *py_c = PyArray_ZEROS(1, dims, NPY_DOUBLE, 0);
   if (!py_c)
     return NULL;
-  npy_double *c = (npy_double*) PyArray_DATA(py_c);
+  npy_double *c = (npy_double*) PyArray_DATA((PyArrayObject *) py_c);
 
   /*
    * Number of points found at a certain distance
@@ -602,7 +603,7 @@ py_correlation_function(PyObject *self, PyObject *args)
   PyObject *py_n = PyArray_ZEROS(1, dims, NPY_INT, 0);
   if (!py_n)
     return NULL;
-  npy_int *n = (npy_int*) PyArray_DATA(py_n);
+  npy_int *n = (npy_int*) PyArray_DATA((PyArrayObject *) py_n);
 
   /*
    * Fill with zeros
@@ -659,17 +660,17 @@ py_correlation_function(PyObject *self, PyObject *args)
   PyObject *py_r = PyArray_ZEROS(1, dims, NPY_DOUBLE, 0);
   if (!py_r)
     return NULL;
-  npy_double *r = (npy_double*) PyArray_DATA(py_r);
+  npy_double *r = (npy_double*) PyArray_DATA((PyArrayObject *) py_r);
   /* Correlation function */
   PyObject *py_cc = PyArray_ZEROS(1, dims, NPY_DOUBLE, 0);
   if (!py_cc)
     return NULL;
-  npy_double *cc = (npy_double*) PyArray_DATA(py_cc);
+  npy_double *cc = (npy_double*) PyArray_DATA((PyArrayObject *) py_cc);
   /* Integrated correlation function */
   PyObject *py_Icc = PyArray_ZEROS(1, dims, NPY_DOUBLE, 0);
   if (!py_Icc)
     return NULL;
-  npy_double *Icc = (npy_double*) PyArray_DATA(py_Icc);
+  npy_double *Icc = (npy_double*) PyArray_DATA((PyArrayObject *) py_Icc);
 
   /*
    * Normalize and integrate
@@ -778,14 +779,14 @@ py_perimeter_length(PyObject *self, PyObject *args)
 
   PyObject *py_bool_map = NULL;
 
-  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_C_CONTIGUOUS);
+  py_bool_map = PyArray_FROMANY(py_map, NPY_BOOL, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
   if (!py_bool_map)
     return NULL;
 
-  npy_intp nx = PyArray_DIM(py_bool_map, 0);
-  npy_intp ny = PyArray_DIM(py_bool_map, 1);
+  npy_intp nx = PyArray_DIM((PyArrayObject *) py_bool_map, 0);
+  npy_intp ny = PyArray_DIM((PyArrayObject *) py_bool_map, 1);
 
-  npy_bool *map = (npy_bool*) PyArray_DATA(py_bool_map);
+  npy_bool *map = (npy_bool*) PyArray_DATA((PyArrayObject *) py_bool_map);
 
   double length = 0.0;
 

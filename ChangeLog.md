@@ -1,8 +1,14 @@
 Change log
 ==========
 
-v1.0.0 (24Jan24)
+v1.1.0 (not yet released)
 -------------------------
+
+- Fixes for recent ASE and numpy 2.0
+- Fix correct number of cores for quad of dissociated dislocations
+
+v1.0.0 (24Jan24)
+----------------
 
 - JOSS paper!
 - Significant updates documentation packages

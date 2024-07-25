@@ -211,9 +211,13 @@ def test_committeeuncertainty_calculate(committee_calibrated):
     test_data = ase.io.read(os.path.join(f'{os.path.dirname(__file__)}/committee_data/test_data.xyz'), ':')
     for atoms_i in test_data:
         calculator.calculate(atoms=atoms_i, properties=['energy', 'forces'])
-        for prop_j in ['energy', 'energy_uncertainty']:
+        for prop_j in ['energy', 'forces']:
+            # energy and forces are read into the results dictionary of a SinglePointCalculator
+            np.testing.assert_array_almost_equal(calculator.results[prop_j], atoms_i.calc.results[prop_j], decimal=6,
+                                                 err_msg=f'Missmatch in property \'{prop_j}\'')
+        for prop_j in ['energy_uncertainty']:
             np.testing.assert_array_almost_equal(calculator.results[prop_j], atoms_i.info[prop_j], decimal=6,
                                                  err_msg=f'Missmatch in property \'{prop_j}\'')
-        for prop_j in ['forces', 'forces_uncertainty']:
+        for prop_j in ['forces_uncertainty']:
             np.testing.assert_array_almost_equal(calculator.results[prop_j], atoms_i.arrays[prop_j], decimal=6,
                                                  err_msg=f'Missmatch in property \'{prop_j}\'')

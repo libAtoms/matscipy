@@ -54,7 +54,7 @@ def B(x):
 
 
 # "lazy" Ansatz for approximating Jacobian
-def jacobian(f, x0, dx=np.NaN):
+def jacobian(f, x0, dx=np.nan):
     """Naive way to construct N x N Jacobin Fij from N-valued function
     f of N-valued vector x0.
 

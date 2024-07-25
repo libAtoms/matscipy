@@ -21,7 +21,7 @@
 
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
-#define NPY_NO_DEPRECATED_API NPY_1_5_API_VERSION
+#define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #include <numpy/arrayobject.h>
 
 #include <stdbool.h>

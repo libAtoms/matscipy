@@ -1,6 +1,8 @@
 # An All-Atom Force Field for Dry and Water-Lubricated Carbon Tribological Interfaces
 # Thomas Reichenbach, Severin Sylla, Leonhard Mayrhofer, Pedro Antonio Romero, Paul Schwarz, Michael Moseler, Gianpietro Moras
-# DATE: 2023-12-22
+# J. Phys. Chem. C 128, 11, 4699-4721 (2024)
+# https://doi.org/10.1021/acs.jpcc.3c07471
+# DATE: 2024-03-24
 #
 # Parameters adopted from the literature:
 # H1 charge: W. Jorgensen et al., J. Am. Chem. Soc. 118, 45, 11225 (1996); https://doi.org/10.1021/ja9621760 - RH alkanes
