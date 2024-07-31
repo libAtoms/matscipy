@@ -37,6 +37,8 @@ from scipy.sparse.linalg import cg, spilu, LinearOperator
 import ase.units as units
 from ase.atoms import Atoms
 
+from .compat import compat_cg_parameters
+
 ###
 
 # The indices of the full stiffness matrix of (orthorhombic) interest
@@ -1334,6 +1336,8 @@ def nonaffine_elastic_contribution(atoms,
         """Symmetrize Hooke tensor."""
         symmetry_group = [(0, 1, 2, 3), (1, 0, 2, 3), (0, 1, 3, 2), (1, 0, 3, 2)]
         return 0.25 * np.add.reduce([C_abab.transpose(s) for s in symmetry_group])
+
+    cg_parameters = compat_cg_parameters(cg_parameters)
 
     nat = len(atoms)
     naforces_icab = atoms.calc.get_property('nonaffine_forces')

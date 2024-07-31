@@ -22,7 +22,7 @@
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL MATSCIPY_ARRAY_API
 #define NO_IMPORT_ARRAY
-#define NPY_NO_DEPRECATED_API NPY_1_5_API_VERSION
+#define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
 #include <numpy/arrayobject.h>
 
 #include <limits.h>
@@ -116,20 +116,20 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
     /* Make sure our arrays are contiguous */
     py_cell_origin = PyArray_FROMANY(py_cell_origin, NPY_DOUBLE, 1, 1,
-                                     NPY_C_CONTIGUOUS);
+                                     NPY_ARRAY_C_CONTIGUOUS);
     if (!py_cell_origin) return NULL;
     py_cell = PyArray_FROMANY(py_cell, NPY_DOUBLE, 2, 2,
-                              NPY_C_CONTIGUOUS);
+                              NPY_ARRAY_C_CONTIGUOUS);
     if (!py_cell) return NULL;
     py_inv_cell = PyArray_FROMANY(py_inv_cell, NPY_DOUBLE, 2, 2,
-                                  NPY_C_CONTIGUOUS);
+                                  NPY_ARRAY_C_CONTIGUOUS);
     if (!py_inv_cell) return NULL;
-    py_pbc = PyArray_FROMANY(py_pbc, NPY_BOOL, 1, 1, NPY_C_CONTIGUOUS);
+    py_pbc = PyArray_FROMANY(py_pbc, NPY_BOOL, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_pbc) return NULL;
-    py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_C_CONTIGUOUS);
+    py_r = PyArray_FROMANY(py_r, NPY_DOUBLE, 2, 2, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_r) return NULL;
     if (py_types) {
-        py_types = PyArray_FROMANY(py_types, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+        py_types = PyArray_FROMANY(py_types, NPY_INT, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
         if (!py_types) return NULL;
     }
 
@@ -149,7 +149,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
 
         /* This must be an array of cutoffs */
         py_cutoffs = PyArray_FROMANY(py_cutoffs, NPY_DOUBLE, 1, 2,
-                                     NPY_C_CONTIGUOUS);
+                                     NPY_ARRAY_C_CONTIGUOUS);
         if (!py_cutoffs) return NULL;
         ncutoffdims = PyArray_NDIM((PyArrayObject *) py_cutoffs);
         ncutoffs = PyArray_DIM((PyArrayObject *) py_cutoffs, 0);
@@ -688,7 +688,7 @@ py_first_neighbours(PyObject *self, PyObject *args)
         return NULL;
 
     /* Make sure our arrays are contiguous */
-    py_i = PyArray_FROMANY(py_i, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    py_i = PyArray_FROMANY(py_i, NPY_INT, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_i) return NULL;
 
     /* Neighbour list size */
@@ -699,7 +699,7 @@ py_first_neighbours(PyObject *self, PyObject *args)
     PyObject *py_seed = PyArray_ZEROS(1, &n1, NPY_INT, 0);
 
     /* Construct seed array */
-    first_neighbours(n, nn, PyArray_DATA(py_i), PyArray_DATA(py_seed));
+    first_neighbours(n, nn, PyArray_DATA((PyArrayObject *) py_i), PyArray_DATA((PyArrayObject *) py_seed));
 
     return py_seed;
 }
@@ -722,7 +722,7 @@ py_triplet_list(PyObject *self, PyObject *args)
 
     npy_int *fi = NULL, *ij_t = NULL, *ik_t = NULL, *jk_t = NULL;
 
-    py_fi = PyArray_FROMANY(py_fi, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    py_fi = PyArray_FROMANY(py_fi, NPY_INT, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
     fi = PyArray_DATA((PyArrayObject *) py_fi);
 
     if (!fi) return NULL;
@@ -736,7 +736,7 @@ py_triplet_list(PyObject *self, PyObject *args)
     	    return NULL;
     	}
         py_absdist = PyArray_FROMANY(py_absdist, NPY_DOUBLE,
-				         1, 1, NPY_C_CONTIGUOUS);
+				         1, 1, NPY_ARRAY_C_CONTIGUOUS);
        	if (!py_absdist) {
             PyErr_SetString(PyExc_TypeError, "Distances must be an "
                                              "array of floats.");
@@ -756,7 +756,7 @@ py_triplet_list(PyObject *self, PyObject *args)
     }
 
     /* guess initial triplet list size */
-    npy_intp dim = (int) PyArray_SIZE(py_fi);
+    npy_intp dim = (int) PyArray_SIZE((PyArrayObject *) py_fi);
     dim *= 2;
 
     /* initialize triplet lists */
@@ -765,7 +765,7 @@ py_triplet_list(PyObject *self, PyObject *args)
     PyObject *py_ik_t = PyArray_ZEROS(1, &dim, NPY_INT, 0);
     ik_t = PyArray_DATA((PyArrayObject *) py_ik_t);
 
-    int init_length = (int) PyArray_SIZE(py_fi);
+    int init_length = (int) PyArray_SIZE((PyArrayObject *) py_fi);
 
     /* compute the triplet list */
     int index_trip = 0;
@@ -773,7 +773,7 @@ py_triplet_list(PyObject *self, PyObject *args)
         for (int ij= fi[r]; ij < fi[r+1]; ij++) {
             for (int ik = fi[r]; ik < fi[r+1]; ik++) {
                 /* resize array if necessary */
-                int length_trip = (int) PyArray_SIZE(py_ij_t);
+                int length_trip = (int) PyArray_SIZE((PyArrayObject *) py_ij_t);
                 if (index_trip >= length_trip) {
                     length_trip *= 2;
                     if (py_ij_t && !(ij_t = resize_array(py_ij_t, length_trip)))
@@ -798,7 +798,7 @@ py_triplet_list(PyObject *self, PyObject *args)
     if (py_ij_t && !(ij_t = resize_array(py_ij_t, index_trip))) goto fail;
     if (py_ik_t && !(ik_t = resize_array(py_ik_t, index_trip))) goto fail;
 
-    npy_intp d1 = (int) PyArray_SIZE(py_ij_t);
+    npy_intp d1 = (int) PyArray_SIZE((PyArrayObject *) py_ij_t);
     PyObject *py_jk_t = PyArray_ZEROS(1, &d1, NPY_INT, 0);
     jk_t = PyArray_DATA((PyArrayObject *) py_jk_t);
     index_trip++;
@@ -840,11 +840,11 @@ py_get_jump_indicies(PyObject *self, PyObject *args)
         return NULL;
 
     /* Make sure our arrays are contiguous */
-    py_sorted = PyArray_FROMANY(py_sorted, NPY_INT, 1, 1, NPY_C_CONTIGUOUS);
+    py_sorted = PyArray_FROMANY(py_sorted, NPY_INT, 1, 1, NPY_ARRAY_C_CONTIGUOUS);
     if (!py_sorted) return NULL;
 
     /* sorted imput array size */
-    int nn = (int) PyArray_SIZE(py_sorted);
+    int nn = (int) PyArray_SIZE((PyArrayObject *) py_sorted);
 
     /* calculate number of jumps */
     npy_int *sorted = PyArray_DATA((PyArrayObject *) py_sorted);
@@ -861,7 +861,7 @@ py_get_jump_indicies(PyObject *self, PyObject *args)
     PyObject *py_seed = PyArray_ZEROS(1, &n1, NPY_INT, 0);
 
     /* Construct seed array */
-    first_neighbours(n, nn, sorted, PyArray_DATA(py_seed));
+    first_neighbours(n, nn, sorted, PyArray_DATA((PyArrayObject *) py_seed));
 
     return py_seed;
 }

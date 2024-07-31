@@ -13,7 +13,7 @@ from numpy.testing import assert_allclose
 from ase.build import bulk
 from ase.optimize.precon import PreconLBFGS
 from ase.optimize import ODE12r, LBFGS
-from ase.neb import NEB, NEBOptimizer
+from ase.mep.neb import NEB, NEBOptimizer
 from ase.geometry.geometry import get_distances
 
 
