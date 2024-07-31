@@ -133,7 +133,6 @@ def find_condensed_repr(atoms, precision=2):
     returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms
     '''
     ats = atoms.copy()
-
     for axis in range(2, -1, -1):
         ats = find_condensed_repr_along_axis(ats, axis, precision)
 
@@ -165,37 +164,44 @@ def find_condensed_repr_along_axis(atoms, axis=-1, precision=2):
     dirs = cart_directions[axis]
 
     ats = atoms.copy()
+    ats.wrap()
+
+    # Choose an origin atom, closest to cell origin
+    origin_idx = np.argmin(np.linalg.norm(ats.positions, axis=-1))
     
-    # Find all atoms which are in line with the 0th atom
+    # Find all atoms which are in line with the origin_idx th atom
     p = np.round(ats.get_scaled_positions(), precision)
 
-    p_diff = (p - p[0, :]) % 1
+    p_diff = (p - p[origin_idx, :]) % 1
 
     matches = np.argwhere((p_diff[:, dirs[0]] < 10**(-precision)) * (p_diff[:, dirs[1]] < 10**(-precision)))[:, 0]
     min_off = np.inf
     ret_struct = ats
 
     for match in matches:
-        if match == 0:
-            # skip i=0
+        if match == origin_idx:
+            # skip i=origin_idx
             continue
 
         # Fractional change in positions
-        dz = (p[0, axis] - p[match, axis]) % 1.0
+        dz = (p[origin_idx, axis] - p[match, axis]) % 1.0
         # Create a test atoms object and cut cell along in axis
         # Test whether test atoms is equivalent to original structure
         test_ats = ats.copy()
         test_cell = test_ats.cell[:, :].copy()
         test_cell[axis, :] *= dz
         test_ats.set_cell(test_cell)
-        del_mask = test_ats.get_scaled_positions(wrap=False)[:, axis] > 1.0 - 10**(-precision)
+
+        sp = np.round(test_ats.get_scaled_positions(wrap=False), precision)
+
+        del_mask = sp[:, axis] > 1.0 - 10**(-precision)
         test_ats = test_ats[~del_mask]
 
         # Create a supercell of test ats, and see if it matches the original atoms
         test_sup = [1] * 3
         test_sup[axis] = int(1/dz)
 
-        is_equiv = comp.compare(ats, test_ats * tuple(test_sup))
+        is_equiv = comp.compare(ats.copy(), test_ats * tuple(test_sup))
 
         if is_equiv:
             if dz < min_off:
