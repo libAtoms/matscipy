@@ -3137,13 +3137,14 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         return kink
     
-    def build_kink_cyl(self, kink_map=None, smooth_width=None, *args, **kwargs):
+    def build_kink_glide_structs(self, kink_map=None, *args, **kwargs):
         """
-        Build a cylindrical cell with a dislocation kink network, defined by kink_map
+        Build a reference bulk and a minimal set of glide structures required to build a kink structure of the given kink map (default [0, 1]).
+        Does not actually build the kink structure, this is handled by self.kink_from_glide_cyls.
 
-        kink_map: iterable of ints
+        kink_map: iterable of ints or None
             Map of the location of the dislocation core in units of the glide vector
-            Default is a kink map of [0, 1]
+            Default (kink_map=None) is a kink map of [0, 1]
             See examples for more details.
         smooth_width: float
             Size (in Ang) of the region for displacement smoothing at each kink site.
@@ -3162,6 +3163,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         kmap -= np.min(kmap)
         krange = np.max(kmap)
 
+        assert len(kmap) > 0
+
         unique_kinks = np.sort(np.unique(kmap))
 
         glide_structs = {}
@@ -3176,9 +3179,38 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                                                           fixed_points=fixed_points, 
                                                           core_position=np.array([kink_pos * self.glide_distance, 0 , 0]),
                                                           **kwargs)
-        
-        kink_structs = [glide_structs[midx].copy() for midx in kmap]
+        return ref_bulk, glide_structs
+    
+    def kink_from_glide_cyls(self, kink_map, ref_bulk, glide_structs, smooth_width=None):
+        """
+        Build a kink cylinder cell from the given kink map, using the structures contained in glide_structs
 
+        kink_map: iterable of ints or None
+            Map of the location of the dislocation core in units of the glide vector
+            Default (kink_map=None) is a kink map of [0, 1]
+            See examples for more details.
+        ref_bulk: ase Atoms object
+            Reference bulk structure, as returned by self.build_kink_glide_structs
+        glide_structs: list of ase Atoms
+            Glide structures e.g. those produced by self.build_kink_glide_structs.
+            The kink structure is constructed using glide_structs[kink_map[i]] for the ith cell.
+        smooth_width: float
+            Size (in Ang) of the region for displacement smoothing at each kink site.
+            Larger smoothing width assumes a broader kink structure.
+            Default is 0.5 * self.unit_cell.cell[2, 2]
+        
+        """
+        # Deal with default kink_map value
+        if kink_map is None:
+            kink_map = [0, 1]
+
+        kmap = np.array(kink_map, dtype=int)
+        kmap -= np.min(kmap)
+
+        assert np.max(kmap) == len(glide_structs)
+
+        kink_structs = [glide_structs[midx].copy() for midx in kmap]
+        
         # Smooth displacements across kink boundaries
         if smooth_width is None:
             smooth_width = 0.5 * self.unit_cell.cell[2, 2]
@@ -3197,6 +3229,27 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             kink_cyl = stack(kink_cyl, smoothed_kink_structs[i])
 
         return kink_cyl
+    
+    def build_kink_cyl(self, kink_map=None, smooth_width=None, *args, **kwargs):
+        """
+        Build a cylindrical cell with a dislocation kink network, defined by kink_map
+
+        kink_map: iterable of ints or None
+            Map of the location of the dislocation core in units of the glide vector
+            Default (kink_map=None) is a kink map of [0, 1]
+            See examples for more details.
+        smooth_width: float
+            Size (in Ang) of the region for displacement smoothing at each kink site.
+            Larger smoothing width assumes a broader kink structure.
+            Default is 0.5 * self.unit_cell.cell[2, 2]
+
+        *args, **kwargs
+            Extra arguments sent to self.build_cylinder
+        
+        """
+        ref_bulk, glide_structs = self.build_kink_glide_structs(kink_map, *args, **kwargs)
+
+        return self.kink_from_glide_cyls(kink_map, ref_bulk, glide_structs, smooth_width)
     
     @staticmethod
     def view_cyl(system, scale=0.5, CNA_color=True, add_bonds=False,
