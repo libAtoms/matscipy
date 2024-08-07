@@ -45,7 +45,7 @@ from matscipy.neighbours import neighbour_list, mic, coordination
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
 from matscipy.elasticity import cubic_to_Voigt_6x6, coalesce_elastic_constants
-from matscipy.utils import validate_cubic_cell, points_in_polygon2D
+from matscipy.utils import validate_cubic_cell, points_in_polygon2D, classproperty
 
 
 def make_screw_cyl(alat, C11, C12, C44,
@@ -2610,7 +2610,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             core_positions[i, :] + extension[i, :], for the 
             purposes of adding extra atoms
         cyl_mask: array of bool
-            Optional ovverride for atomic mask to convert supercell into cyl
+            Optional override for atomic mask to convert supercell into cyl
 
         Returns
         -------
@@ -3137,7 +3137,27 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         return kink
     
-    def build_kink_cyl(self, kink_map=[0, 1], smooth_width=None, *args, **kwargs):
+    def build_kink_cyl(self, kink_map=None, smooth_width=None, *args, **kwargs):
+        """
+        Build a cylindrical cell with a dislocation kink network, defined by kink_map
+
+        kink_map: iterable of ints
+            Map of the location of the dislocation core in units of the glide vector
+            Default is a kink map of [0, 1]
+            See examples for more details.
+        smooth_width: float
+            Size (in Ang) of the region for displacement smoothing at each kink site.
+            Larger smoothing width assumes a broader kink structure.
+            Default is 0.5 * self.unit_cell.cell[2, 2]
+
+        *args, **kwargs
+            Extra arguments sent to self.build_cylinder
+        
+        """
+        # Deal with default kink_map value
+        if kink_map is None:
+            kink_map = [0, 1]
+
         kmap = np.array(kink_map, dtype=int)
         kmap -= np.min(kmap)
         krange = np.max(kmap)
@@ -3431,39 +3451,46 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
     # Used so e.g. cls.crystalstructure is setup prior to __init__
     # as is the case with CubicCrystalDislocation
 
-    @classmethod
-    @property
+    # @classmethod
+    # @property
+    @classproperty
     def crystalstructure(cls):
         return cls.left_dislocation.crystalstructure
     
-    @classmethod
-    @property
+    # @classmethod
+    # @property
+    @classproperty
     def axes(cls):
         return cls.left_dislocation.axes
     
-    @classmethod
-    @property
+    # @classmethod
+    # @property
+    @classproperty
     def unit_cell_core_position_dimensionless(cls):
         return cls.left_dislocation.unit_cell_core_position_dimensionless
     
-    @classmethod
-    @property
+    # @classmethod
+    # @property
+    @classproperty
     def parity(cls):
         return cls.left_dislocation.parity
     
     
-    @classmethod
-    @property
+    # @classmethod
+    # @property
+    @classproperty
     def n_planes(cls):
         return cls.left_dislocation.n_planes
     
-    @classmethod
-    @property
+    # @classmethod
+    # @property
+    @classproperty
     def self_consistent(cls):
         return cls.left_dislocation.self_consistent
     
-    @classmethod
-    @property
+    # @classmethod
+    # @property
+    @classproperty
     def glide_distance_dimensionless(cls):
         return cls.left_dislocation.glide_distance_dimensionless
     
@@ -4046,7 +4073,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             # Check if tilt_bulk has same 1st, 2nd, & 3rd neighbour coordination
             # as normal bulk
             # TODO: This currently does not work for BCCEdge111barDislocation
-            if np.product([
+            if np.prod([
                 all(coordination(tilt_bulk[full_mask], cutoff * self.alat) == bulk_coord[j])
                 for j, cutoff in enumerate(cutoffs)
                 ]):

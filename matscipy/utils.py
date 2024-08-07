@@ -1,9 +1,24 @@
+import functools
 import warnings
 import numpy as np
 from ase.utils.structure_comparator import SymmetryEquivalenceCheck
 
-def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
+
+class classproperty:
     '''
+    Decorator class to replace classmethod property decorators
+    '''
+    def __init__(self, method):
+        self.method = method
+        functools.update_wrapper(self, method)
+    def __get__(self, obj, cls=None):
+        if cls is None:
+            cls = type(obj)
+        return self.method(cls)
+
+
+def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
+    """
     Provide uniform interface for generating rotated atoms objects through two main methods:
 
     For lattice constant + symbol + crystalstructure, build a valid cubic bulk rotated into the frame defined by axes
@@ -20,7 +35,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         Base Structure of bulk system, currently supported: fcc, bcc, diamond
     pbc: list of bool
         Periodic Boundary Conditions in x, y, z
-    '''
+    """
 
     from ase.lattice.cubic import FaceCenteredCubic, BodyCenteredCubic, Diamond
     from ase.atoms import Atoms
@@ -121,7 +136,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
 
 
 def find_condensed_repr(atoms, precision=2):
-    '''
+    """
     Search for a condensed representation of atoms
     Equivalent to attempting to undo a supercell
 
@@ -131,7 +146,7 @@ def find_condensed_repr(atoms, precision=2):
         Number of decimal places to use in determining whether scaled positions are equal
 
     returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms
-    '''
+    """
     ats = atoms.copy()
     for axis in range(2, -1, -1):
         ats = find_condensed_repr_along_axis(ats, axis, precision)
@@ -139,7 +154,7 @@ def find_condensed_repr(atoms, precision=2):
     return ats
 
 def find_condensed_repr_along_axis(atoms, axis=-1, precision=2):
-    '''
+    """
     Search for a condensed representation of atoms about axis. 
     Essentially an inverse to taking a supercell.
 
@@ -152,7 +167,7 @@ def find_condensed_repr_along_axis(atoms, axis=-1, precision=2):
         Number of decimal places to use in determining whether scaled positions are equal
 
     returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms
-    '''
+    """
     comp = SymmetryEquivalenceCheck()
 
     cart_directions = [
@@ -172,7 +187,8 @@ def find_condensed_repr_along_axis(atoms, axis=-1, precision=2):
     # Find all atoms which are in line with the origin_idx th atom
     p = np.round(ats.get_scaled_positions(), precision)
 
-    p_diff = (p - p[origin_idx, :]) % 1
+    # MIC distance vector from origin atom, in scaled coordinates
+    p_diff = (p - p[origin_idx, :]) % 1.0
 
     matches = np.argwhere((p_diff[:, dirs[0]] < 10**(-precision)) * (p_diff[:, dirs[1]] < 10**(-precision)))[:, 0]
     min_off = np.inf
@@ -212,7 +228,7 @@ def find_condensed_repr_along_axis(atoms, axis=-1, precision=2):
 
 
 def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
-    '''
+    """
     Generate a complete (v1, v2, v3) orthogonal basis in 3D from v1 and an optional v2
 
     (V1, V2, V3) is always right-handed.
@@ -236,7 +252,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     V1, V2, V3: np.arrays
         Complete orthogonal basis, optionally normalised
         dtype of arrays is int with normalise=False, float with normalise=True
-    '''
+    """
 
     def _v2_search(v1, nmax, tol):
         for i in range(nmax):
@@ -349,7 +365,7 @@ def get_structure_types(structure, diamond_structure=False):
     return atom_labels, structure_names, hex_colors
 
 def line_intersect_2D(p1, p2, x1, x2):
-    '''
+    """
     Test if 2D finite line defined by points p1 & p2 intersects with the finite line defined by x1 & x2.
     Essentially a Python conversion of the ray casting algorithm suggested in: 
     https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
@@ -358,7 +374,7 @@ def line_intersect_2D(p1, p2, x1, x2):
 
     p1, p2, x1, x2: np.array
         2D points defining lines
-    '''
+    """
 
     # Convert from pointwise p1, p2 form to ax + by + c = 0 form
     a_p = p2[1] - p1[1]
@@ -402,7 +418,7 @@ def line_intersect_2D(p1, p2, x1, x2):
     return True
 
 def points_in_polygon2D(p, poly_points):
-    '''
+    """
     Test if points lies within the closed 2D polygon defined by poly_points
     Uses ray casting algorithm, as suggested by:
     https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
@@ -416,7 +432,7 @@ def points_in_polygon2D(p, poly_points):
     -------
     mask: np.array
         Boolean mask. True for points inside the poylgon
-    '''
+    """
     if len(p.shape) == 1:
         # Single point provided
         points = p.copy()[np.newaxis, :]
@@ -448,7 +464,7 @@ def points_in_polygon2D(p, poly_points):
     return mask.astype(bool)
 
 def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -> np.array:
-    '''
+    """
     Get shortest distance between a test point and a polygon defined by polygon_points
         (i.e. the shortest distance between each point and the lines of the polygon)
     
@@ -458,13 +474,13 @@ def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -
         2D Points to get distances for
     polygon_points: np.array
         Coordinates defining the points of the polygon
-    '''
+    """
 
     def get_dist(p, v, w):
-        '''
+        """
         Gets distance between point p, and the line segment defined by v and w
         From https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
-        '''
+        """
         denominator = np.linalg.norm(v - w)
 
         if denominator == 0.0:
@@ -490,7 +506,7 @@ def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -
     return distances
 
 def radial_mask_from_polygon2D(test_points:np.array, polygon_points:np.array, radius:float, inner:bool=True) -> np.array:
-    '''
+    """
     Get a boolean mask of all test_points within a radius of any edge of the polygon defined by polygon_points
 
     test_points: np.array
@@ -501,7 +517,7 @@ def radial_mask_from_polygon2D(test_points:np.array, polygon_points:np.array, ra
         Radius to use as cutoff for mask
     inner: bool
         Whether test_points inside the polygon should always be masked as True, regardless of radius
-    '''
+    """
 
     distances = get_distance_from_polygon2D(test_points, polygon_points)
 
