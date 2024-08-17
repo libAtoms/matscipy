@@ -3203,19 +3203,19 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         return ref_bulk, glide_structs
     
-    def build_kink_from_glide_cyls(self, kink_map, ref_bulk, glide_structs, smooth_width=None):
+    def build_kink_from_glide_cyls(self, ref_bulk, glide_structs, kink_map=None, smooth_width=None):
         """
         Build a kink cylinder cell from the given kink map, using the structures contained in glide_structs
 
-        kink_map: iterable of ints or None
-            Map of the location of the dislocation core in units of the glide vector
-            Default (kink_map=None) is a kink map of [0, 1]
-            See examples for more details.
         ref_bulk: ase Atoms object
             Reference bulk structure, as returned by self.build_kink_glide_structs
         glide_structs: list of ase Atoms
             Glide structures e.g. those produced by self.build_kink_glide_structs.
             The kink structure is constructed using glide_structs[kink_map[i]] for the ith cell.
+        kink_map: iterable of ints or None
+            Map of the location of the dislocation core in units of the glide vector
+            Default (kink_map=None) is a kink map of [0, 1]
+            See examples for more details.
         smooth_width: float
             Size (in Ang) of the region for displacement smoothing at each kink site.
             Larger smoothing width assumes a broader kink structure.
@@ -3711,7 +3711,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         if return_fix_mask:
             out.append(fix_mask)
 
-        return out
+        return tuple(out)
 
 class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
     burgers_dimensionless = np.zeros(3)
@@ -4206,19 +4206,19 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
                                                           **kwargs)
         return ref_bulk, glide_structs
 
-    def build_kink_quadrupole_from_glide_structs(self, kink_map, ref_bulk, glide_structs, smooth_width=None, layer_decimal_precision=3):
+    def build_kink_quadrupole_from_glide_structs(self, ref_bulk, glide_structs, kink_map=None, smooth_width=None, layer_decimal_precision=3):
         """
         Build a kink cylinder cell from the given kink map, using the structures contained in glide_structs
 
-        kink_map: iterable of ints or None
-            Map of the location of the dislocation core in units of the glide vector
-            Default (kink_map=None) is a kink map of [0, 1]
-            See examples for more details.
         ref_bulk: ase Atoms object
             Reference bulk structure, as returned by self.build_kink_quadrupole_glide_structs
         glide_structs: list of ase Atoms
             Glide structures e.g. those produced by self.build_kink_quadrupole_glide_structs.
             The kink structure is constructed using glide_structs[kink_map[i]] for the ith cell.
+        kink_map: iterable of ints or None
+            Map of the location of the dislocation core in units of the glide vector
+            Default (kink_map=None) is a kink map of [0, 1]
+            See examples for more details.
         smooth_width: float
             Size (in Ang) of the region for displacement smoothing at each kink site.
             Larger smoothing width assumes a broader kink structure.
@@ -4332,7 +4332,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         kink = self._smooth_kink_displacements(kink_struct1, kink_struct2, bulk, smooth_width, base_bulk.cell[:, :])
         return kink
 
-    def build_kink_quadrupole(self, kink_map=[0, 1], layer_decimal_precision=3, smooth_width=None,
+    def build_kink_quadrupole(self, kink_map=None, layer_decimal_precision=3, smooth_width=None,
                                 *args, **kwargs):
         '''
         Construct a quadrupole structure providing an initial guess of the dislocation kink
