@@ -4124,7 +4124,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         '''
 
         if self.left_dislocation.__class__ == BCCEdge111barDislocation:
-            #raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
+            raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
             pass
 
         bulk = ref_bulk.copy()
@@ -4371,7 +4371,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         ref_bulk, glide_structs = self.build_kink_quadrupole_glide_structs(kink_map, *args, **kwargs)
 
-        return self.build_kink_quadrupole_from_glide_structs(kink_map, ref_bulk, glide_structs,
+        return self.build_kink_quadrupole_from_glide_structs(ref_bulk, glide_structs, kink_map,
                                                              smooth_width, layer_decimal_precision)
     
     def view_quad(self, system, *args, **kwargs):
