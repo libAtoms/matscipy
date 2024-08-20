@@ -24,6 +24,7 @@
 
 """Tools for studying structure and movement of dislocations."""
 
+from ctypes import ArgumentError
 import numpy as np
 
 from abc import ABCMeta
@@ -3681,11 +3682,21 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         partial_distance_Angstrom = np.array(
             [self.glide_distance * partial_distance, 0.0, 0.0])
             
-
-        core_positions = np.array([
-            core_position + self.unit_cell_core_position,
-            core_position + self.unit_cell_core_position + partial_distance_Angstrom
-        ])
+        if np.atleast_2d(core_position).shape[0] == 1:
+            # Core positions for only one core specified
+            # Use partial distance argument to find second core
+            core_positions = np.array([
+                core_position + self.unit_cell_core_position,
+                core_position + self.unit_cell_core_position + partial_distance_Angstrom
+            ])
+        else:
+            # Two core positions specified
+            if partial_distance != 0:
+                # Strange input specifying both core positions, plus a partial distance
+                raise ArgumentError("Core positions for both cores and a partial distance were both specified.\n" + 
+                                    "Either specify both core positions directly with the core_position argument\n" + 
+                                    "or specify the position of the left core, and a partial distance")
+            core_positions = core_position + self.unit_cell_core_position
 
         bulk, disloc, core_positions, cyl_mask, fix_mask = self._build_bulk_cyl(radius, core_positions, fix_width, extension,
                                                             fixed_points, self_consistent, method, verbose, cyl_mask=cyl_mask, **kwargs)
