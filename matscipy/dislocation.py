@@ -3174,7 +3174,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         ])
 
         for kink_pos in unique_kinks:
-            print(kink_pos, krange)
             ref_bulk, glide_structs[kink_pos] = self.build_cylinder(*args, 
                                                           fixed_points=fixed_points, 
                                                           core_position=np.array([kink_pos * self.glide_distance, 0 , 0]),
@@ -3280,7 +3279,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         """
         ref_bulk, glide_structs = self.build_kink_glide_structs(kink_map, *args, **kwargs)
 
-        return self.build_kink_from_glide_cyls(kink_map, ref_bulk, glide_structs, smooth_width)
+        return self.build_kink_from_glide_cyls(ref_bulk, glide_structs, kink_map, smooth_width)
     
     @staticmethod
     def view_cyl(system, scale=0.5, CNA_color=True, add_bonds=False,
