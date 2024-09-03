@@ -2118,7 +2118,6 @@ def ovito_dxa_straight_dislo_info(disloc, structure="BCC", replicate_z=3):
 
     return results
 
-
 def get_centering_mask(atoms, radius,
                        core_position=[0., 0., 0.],
                        extension=[0., 0., 0.],):
@@ -3281,9 +3280,309 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         return self.build_kink_from_glide_cyls(ref_bulk, glide_structs, kink_map, smooth_width)
     
-    @staticmethod
-    def view_cyl(system, scale=0.5, CNA_color=True, add_bonds=False,
-                     line_color=[0, 1, 0], disloc_names=None, hide_arrows=False):
+    def ovito_dxa(self, disloc):
+        """
+        General interface for ovito dxa analysis.
+        dxa requires 3b thick cells at minimum, so uses ovito replicate if given structure is insufficient
+
+        Parameters
+        ----------
+        disloc: ase.Atoms
+            Atoms object containing the atomic configuration to analyse
+
+        Returns
+        -------
+        data: ovito DataCollection object. 
+            See https://www.ovito.org/docs/current/python/modules/ovito_data.html#ovito.data.DataCollection
+            data.dislocations.segments is a list of all discovered dislocation segments
+
+        """
+        from ovito.io.ase import ase_to_ovito
+        from ovito.modifiers import ReplicateModifier, DislocationAnalysisModifier
+        from ovito.pipeline import StaticSource, Pipeline
+
+        dxa_disloc = disloc.copy()
+        if 'fix_mask' in dxa_disloc.arrays:
+            del dxa_disloc.arrays['fix_mask']
+        
+        input_crystal_structures = {"bcc": DislocationAnalysisModifier.Lattice.BCC,
+                                    "fcc": DislocationAnalysisModifier.Lattice.FCC,
+                                    "diamond": DislocationAnalysisModifier.Lattice.CubicDiamond}
+        
+        data = ase_to_ovito(dxa_disloc)
+        pipeline = Pipeline(source=StaticSource(data=data))
+        
+        # Ensure disloc structure is at least 3b thick
+        cell_scale = int(disloc.cell[2, 2] // self.unit_cell.cell[2, 2])
+        
+        if cell_scale < 3:
+            replicate_z = int(np.ceil(3 / cell_scale))
+        else:
+            replicate_z = 1
+        
+        pipeline.modifiers.append(ReplicateModifier(num_z=replicate_z))
+        
+        # Setup DXA pipeline
+        dxa = DislocationAnalysisModifier(
+                input_crystal_structure=input_crystal_structures[self.crystalstructure.lower()])
+        pipeline.modifiers.append(dxa)
+        
+        data = pipeline.compute()
+
+        return data
+
+
+    def _plot_CLE_disloc_line(self, view, disloc, z_length, disloc_names=None, color=[0, 1, 0]):
+        '''Add dislocation line to the view as a cylinder and two cones.
+        The cylinder is hollow by default so the second cylinder is needed to close it.
+        In case partial distance is provided, two dislocation lines are added and are shifter accordingly.
+        
+        Parameters
+        ----------
+        view: NGLview
+            NGLview plot of the atomic structure
+        disloc: ase Atoms
+            Dislocation structure
+        disloc_names: str
+            Custom names for the dislocations 
+        color: list
+            [R, G, B] colour of the dislocation line
+        '''
+
+        # Check system contains all keys in structure.info we need to plot the dislocations
+        for expected_key in ["core_positions", "burgers_vectors", "dislocation_types", "dislocation_classes"]:
+            
+            if not expected_key in disloc.info.keys():
+                warnings.warn(f"{expected_key} not found in system.info, skipping plot of dislocation line")
+        
+        
+        # Validate line_color arg
+        if type(color) in [list, np.array, tuple]:
+            if type(color[0]) in [list, np.array, tuple]:
+                # Given an RGB value per dislocation
+                colours = color
+            else:
+                # Assume we're given a single RBG value for all dislocs
+                colours = [color] * len(disloc.info["dislocation_types"])
+        
+        if disloc_names is None:
+            disloc_names = [name + " dislocation line" for name in disloc.info["dislocation_types"]]
+
+        disloc_pos = disloc.info["core_positions"]
+
+        if type(disloc_names) in (list, tuple, np.array):
+            if len(disloc_names) != len(disloc_pos):
+                raise RuntimeError("Number of dislocation positions is not equal to number of dislocation types/names")
+
+        for i in range(len(disloc_pos)):
+            view.shape.add_cylinder((disloc_pos[i][0], disloc_pos[i][1], -2.0), 
+                                    (disloc_pos[i][0], disloc_pos[i][1], z_length - 0.5),
+                                    colours,
+                                    [0.3],
+                                    disloc_names[i])
+            
+            view.shape.add_cone((disloc_pos[i][0], disloc_pos[i][1], -2.0), 
+                                (disloc_pos[i][0], disloc_pos[i][1], 0.5),
+                                colours,
+                                [0.3],
+                                disloc_names[i])
+            
+            view.shape.add_cone((disloc_pos[i][0], disloc_pos[i][1], z_length - 0.5), 
+                                (disloc_pos[i][0], disloc_pos[i][1], z_length + 1.0),
+                                colours,
+                                [0.55],
+                                disloc_names[i])
+        return view
+
+    def _plot_DXA_disloc_line(self, view, disloc, disloc_names=None, color=None):
+        def inf_line_transform(p, z_max):
+            """
+            Find the dislocation line spanning 0<=p[:, 2]<=z_max from points which may lie outside the cell
+
+            Parameters
+            ----------
+            p: np.array
+                Points to transform
+            z_max: float
+                cell[2, 2] component.
+
+            Returns
+            -------
+            points: np.array
+                Transformed points
+            
+            """
+            points = []
+            
+            # Start by translating by z_max (periodicity) such that there are points below the cell
+            n = np.ceil(np.min(p[:, 2]) / z_max)
+            p_off = n * z_max
+            p[:, 2] -= p_off
+
+            # Now start from the point with negative z closest to z=0
+            z_tmp = p[:, 2].copy()
+            z_tmp[z_tmp > 0] = 100
+            argstart = np.argmin(np.abs(z_tmp))
+
+            # Next point will be above z=0
+            # Generate the line segment from z=0 to this point
+            p1 = p[argstart, :]
+            p2 = p[argstart+1, :]
+            dp = p2 - p1
+            dz = dp[2]
+
+            p_intercept = p1 + dp * (0 - p1[2]) / dz # z=0 intercept point
+            points.append(p_intercept.copy())
+
+            for i in range(argstart+1, p.shape[0]):
+                p2 = p[i, :]
+                p1 = p[i-1, :]
+
+                if p2[2] > z_max:
+                    # Current point is off the end of the cell
+                    # Generate the line segment between p1 and this intercept
+                    dp = p2 - p1
+                    dz = dp[2]
+                
+                    p_intercept = p1 + dp * (z_max - p1[2]) / dz # z=z_max intercept point
+                    points.append(p_intercept)
+
+                    # Can stop now, as we have points spanning the full cell
+                    return np.array(points)
+                    
+                points.append(p2)
+            
+            if p[-1, 2] < z_max:
+                # Missing the line segment(s) wrapping over the periodic boundary
+                for i in range(argstart+1):
+                    p1 = p[i, :].copy()
+                    p2 = p[i+1, :].copy()
+                    p1[2] += z_max
+                    p2[2] += z_max
+
+                    points.append(p1)
+                    
+                    if p2[2] > z_max:
+                        # Again crossing the boundary
+                        # Generate line segment up to z_max
+                        dp = p2 - p1
+                        dz = dp[2]
+                    
+                        p_intercept = p1 + dp * (z_max - p1[2]) / dz # z=z_max intercept point
+                        points.append(p_intercept)
+            
+                        # Can stop now, as we have points spanning the full cell
+                        return np.array(points)
+                return np.array(points)
+        from fractions import Fraction
+        
+        # Ovito colours for dislocation lines (as of v 3.10.1) 
+        disloc_colours = {
+            "diamond" : {
+                "default" : [230, 51, 51], # Red
+                "1/2 1/2 0" : [51, 51, 255], # Dark Blue; Screw, 60 degree
+                "1/3 1/6 1/6" : [0, 255, 0], # Green; 30 & 90 degree Partials
+                "1/6 1/6 0" : [255, 0, 255], # Pink
+                "1/3 1/3 1/3" : [0, 255, 255] # Light Blue
+            }
+        }
+
+        z_max = disloc.cell[2, 2]
+        
+        data = self.ovito_dxa(disloc)
+
+        nseg = len(data.dislocations.segments)
+
+        if disloc_names is not None:
+            if len(disloc_names) != nseg:
+                warnings.warn(f"{len(disloc_names)} names specified, but found {nseg} dislocation segments. Skipping plot of dislocation line")
+                return view
+        
+        if color is not None:
+            if len(color) != nseg and (len(color) != 3 or (type(color[0]) not in (int, float))):
+                # Not enough colours specified, and colour is not a universal RGB
+                warnings.warn(f"{len(disloc_names)} names specified, but found {nseg} dislocation segments. Skipping plot of dislocation line")
+                return view
+            elif (len(color) == 3 and (type(color[0]) in (int, float))):
+                # Universal color for all segments
+                color = [color for i in range(nseg)]
+
+        for idx, segment in enumerate(data.dislocations.segments):
+            b = segment.true_burgers_vector
+            points = segment.points
+
+            if segment.is_infinite_line:
+                # Infinite dislocation line
+                # Points are likely to leave the cell
+                # Especially if we had to replicate
+                points = inf_line_transform(points, z_max)
+    
+                # Make sure points are unique to 2dp
+                _, idxs = np.unique(np.round(points.copy(), 2), return_index=True, axis=0)
+                points = points[idxs, :]
+                idxs = np.argsort(points[:, 2])
+                points = points[idxs, :]
+    
+            b_sorted = sorted(np.abs(b))[::-1]
+    
+            # Use burgers vector to get a key for the dislocation line colour
+            # Sorting and abs remove the rotational dependance, reducing the number of possible keys
+            colour_key = " ".join([str(Fraction(elem).limit_denominator(10)) for elem in b_sorted])
+
+            if color is None:
+                if colour_key in disloc_colours[self.crystalstructure.lower()]:
+                    colour = disloc_colours[self.crystalstructure.lower()][colour_key]
+                else:
+                    colour = disloc_colours[self.crystalstructure.lower()]["default"]
+                colour = np.array(colour) / 255
+            else:
+                colour = color[idx]
+
+            if disloc_names is None:
+                seg_name = f"b=[" + " ".join([str(Fraction(elem).limit_denominator(10)) for elem in b]) + "]"
+            else:
+                seg_name = disloc_names[idx]
+
+            for i in range(points.shape[0] - 1):
+                P1 = points[i, :]
+                P2 = points[i+1, :]
+            
+                view.shape.add_cylinder(P1, P2, colour, 0.3, seg_name)
+
+            # Add a cone on the end of the dislocation line, based on the burgers vector
+            # Helps to visualise dislocation quadrupoles
+
+            if segment.spatial_burgers_vector @ np.array([1, 1, 1]) >= 0:
+                # "Positive" burgers vector, arrow on top
+                p1 = points[-2, :]
+                p2 = points[-1, :]
+            else:
+                # "Negative" burgers vector, arrow on bottom
+                p1 = points[1, :]
+                p2 = points[0, :]
+
+            if not ((p2[2] - 0) **2 < 1e-3 or (p2[2] - z_max)**2 < 1e-3):
+                # p2 is not on either border, therefore the current segment shouldn't have an arrow drawn
+                continue
+
+            startpoint = p2
+
+            extension = 3.0
+            cone_length = 1.0
+            
+            dp = p2 - p1
+            dz = dp[2]
+        
+            endpoint = p2 + dp * (extension) / np.abs(dz)
+            coneendpoint = p2 + dp * (extension + cone_length) / np.abs(dz)
+
+            view.shape.add_cylinder(startpoint, endpoint, colour, 0.3, seg_name)
+            view.shape.add_cone(endpoint, coneendpoint, colour, 0.6, seg_name)
+        return view
+
+    def view_cyl(self, system, scale=0.5, CNA_color=True, add_bonds=False,
+                     line_color=[0, 1, 0], disloc_names=None, hide_arrows=False,
+                     mode="dxa"):
         '''
         NGLview-based visualisation tool for structures generated from the dislocation class
 
@@ -3305,41 +3604,12 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             (see structure.info["dislocation_types"] for defaults)
         hide_arrows: bool
             Hide arrows for placed on the dislocation lines
+        mode: str
+            Mode for plotting dislocation line
+            mode="dxa" uses ovito dxa to plot an exact line
+            mode="cle" uses the cle solution used to generate the structure (if the dislocation line is straight)
         '''
 
-        def _plot_disloc_line(view, disloc_pos, disloc_name, z_length, color=[0, 1, 0]):
-            '''Add dislocation line to the view as a cylinder and two cones.
-            The cylinder is hollow by default so the second cylinder is needed to close it.
-            In case partial distance is provided, two dislocation lines are added and are shifter accordingly.
-            
-            Parameters
-            ----------
-            view: NGLview
-                NGLview plot of the atomic structure
-            disloc_pos: list or array
-                Position of the dislocation core
-            color: list
-                [R, G, B] colour of the dislocation line
-            '''
-
-            view.shape.add_cylinder((disloc_pos[0], disloc_pos[1], -2.0), 
-                                    (disloc_pos[0], disloc_pos[1], z_length - 0.5),
-                                    color,
-                                    [0.3],
-                                    disloc_name)
-            
-            view.shape.add_cone((disloc_pos[0], disloc_pos[1], -2.0), 
-                                (disloc_pos[0], disloc_pos[1], 0.5),
-                                color,
-                                [0.3],
-                                disloc_name)
-            
-            view.shape.add_cone((disloc_pos[0], disloc_pos[1], z_length - 0.5), 
-                                (disloc_pos[0], disloc_pos[1], z_length + 1.0),
-                                color,
-                                [0.55],
-                                disloc_name)
-    
         from nglview import show_ase, ASEStructure
         from matscipy.utils import get_structure_types
         # custom tooltip for nglview to avoid showing molecule and residue names
@@ -3366,36 +3636,12 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                             }
                         });
                         """
-        
-        
-        # Check system contains all keys in structure.info we need to plot the dislocations
-        for expected_key in ["core_positions", "burgers_vectors", "dislocation_types", "dislocation_classes"]:
-            
-            if not expected_key in system.info.keys():
-                raise RuntimeError(f"{expected_key} not found in system.info, regenerate system from self.build_cylinder()")
-        
-        # Validate line_color arg
-        if type(line_color) in [list, np.array, tuple]:
-            if type(line_color[0]) in [list, np.array, tuple]:
-                # Given an RGB value per dislocation
-                colours = line_color
-            else:
-                # Assume we're given a single RBG value for all dislocs
-                colours = [line_color] * len(system.info["dislocation_types"])
                 
         # Check if system contains a diamond dislocation (e.g. DiamondGlideScrew, Diamond90degreePartial)
-        diamond_structure = "Diamond" in system.info["dislocation_classes"][0]
+        diamond_structure = "diamond" in self.crystalstructure.lower()
 
         atom_labels, structure_names, colors = get_structure_types(system, 
                                                                 diamond_structure=diamond_structure)
-        if disloc_names is None:
-            disloc_names = system.info["dislocation_types"]
-
-        disloc_positions = system.info["core_positions"]
-
-        if len(disloc_names) != len(disloc_positions):
-            raise RuntimeError("Number of dislocation positions is not equal to number of dislocation types/names")
-
         view = show_ase(system)
         view.hide([0])
         
@@ -3422,12 +3668,14 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                         
         component.add_unitcell()
 
-        # Plot dislocation lines
-        z_length = system.cell[2, 2]
 
         if not hide_arrows:
-            for i in range(len(disloc_positions)):
-                _plot_disloc_line(view, disloc_positions[i], disloc_names[i] + " dislocation line", z_length, colours[i])
+            if mode.lower() == "cle":
+                # Plot CLE dislocation lines
+                z_length = system.cell[2, 2]
+                self._plot_CLE_disloc_line(view, system, z_length, disloc_names, line_color)
+            elif mode.lower() == "dxa":
+                self._plot_DXA_disloc_line(view, system, disloc_names, line_color)
 
         view.camera = 'orthographic'
         view.parameters = {"clipDist": 0}
