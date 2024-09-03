@@ -212,7 +212,7 @@ def make_screw_cyl(alat, C11, C12, C44,
 def make_edge_cyl(alat, C11, C12, C44,
                   cylinder_r=10, cutoff=5.5,
                   symbol='W'):
-    '''
+    """
     makes edge dislocation using atomman library
 
     cylinder_r - radius of cylinder of unconstrained atoms around the
@@ -223,7 +223,7 @@ def make_edge_cyl(alat, C11, C12, C44,
     symbol : string
         Symbol of the element to pass to ase.lattice.cubic.SimpleCubicFactory
         default is "W" for tungsten
-    '''
+    """
     from atomman import ElasticConstants
     from atomman.defect import Stroh
     # Create a Stroh object with junk data
@@ -2333,9 +2333,9 @@ class AnisotropicDislocation:
 
 
 class CubicCrystalDislocation(metaclass=ABCMeta):
-    '''
+    """
     Abstract base class for modelling a single dislocation
-    '''
+    """
 
     # Mandatory Attributes of CubicCrystalDislocation with no defaults
     # These should be set by the child dislocation class, or by CubicCrystalDislocation.__init__
@@ -2441,14 +2441,14 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         self.C = coalesce_elastic_constants(C11, C12, C44, C, convention="Cij")
 
     def init_solver(self, method="atomman"):
-        '''
+        """
         Run the correct solver initialiser
 
         Solver init should take only the self arg, and set self.solver[method] to point to the function 
         to calculate displacements
 
         e.g. self.solvers["atomman"] = self.stroh.displacement
-        '''
+        """
         solver_initters = {
             "atomman" : self.init_atomman,
             "adsl" : self.init_adsl
@@ -2458,7 +2458,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         solver_initters[method]()
     
     def get_solvers(self, method="atomman"):
-        '''
+        """
         Get list of dislocation displacement solvers
 
         As CubicCrystalDislocation models a single core, there is only one solver,
@@ -2474,7 +2474,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         -------
         solvers: list
             List of functions f(positions) = displacements
-        '''
+        """
         has_atomman = False if self.atomman is None else True
 
         if type(method) != str:
@@ -2506,18 +2506,18 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return [self.solvers[method]]
 
     def init_atomman(self):
-        '''
+        """
         Init atomman stroh solution solver (requires atomman)
-        '''
+        """
         c = self.atomman.ElasticConstants(Cij=self.C)
         self.stroh = self.atomman.defect.Stroh(c, burgers=self.burgers, axes=self.axes)
 
         self.solvers["atomman"] = self.stroh.displacement
 
     def init_adsl(self):
-        '''
+        """
         Init adsl (Anisotropic DiSLocation) solver
-        '''
+        """
         # Extract consistent parameters
         axes = self.axes
         slip_plane = axes[1].copy() 
@@ -2542,9 +2542,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         self.burgers = burgers
 
     def invert_burgers(self):
-        '''
+        """
         Modify dislocation to produce same dislocation with opposite burgers vector
-        '''
+        """
         self.burgers_dimensionless *= -1
 
     @property
@@ -2564,7 +2564,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         self.glide_distance_dimensionless = distance / self.alat
 
     def _build_supercell(self, targetx, targety):
-        '''
+        """
         Build supercell in 2D from self.unit_cell, with target dimensions (targetx, targety), specified in Angstrom.
         Supercell is constructed to have cell lengths >= the target value (i.e. cell[0, 0] >= targetx)
 
@@ -2577,7 +2577,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         
         Returns a supercell of self.unit_cell with cell[0, 0] >= targetx and cell[1, 1] >= targety
-        '''
+        """
 
         base_cell = self.unit_cell
 
@@ -2590,7 +2590,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     def _build_bulk_cyl(self, radius, core_positions, fix_rad, extension,
                         fixed_points, self_consistent, method, verbose, cyl_mask=None, **kwargs):
-        '''
+        """
         Build bulk cylinder config from args supplied by self.build_cylinder
 
         Parameters
@@ -2617,13 +2617,13 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         cyl: ase.Atoms
             Bulk cyl, cut down based on radius, complete
             with FixAtoms constraints
-        '''
+        """
 
         def enforce_arr_shape(argname, arg, errs):
-            '''
+            """
             Enforce correct array dimensionality for 
             
-            '''
+            """
             if type(arg) == np.ndarray:
                 if arg.shape[-1] != 3:
                     # Needs to be 3d vectors
@@ -2760,7 +2760,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     def self_consistent_displacements(self, solvers, bulk_positions, core_positions, 
                                       tol=1e-6, max_iter=100, verbose=True, mixing=0.8):
-        '''
+        """
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
         Each dislocation core uses a separate solver, which computes the displacements associated with positions 
         relative to that core (i.e. that the core is treated as lying at [0, 0, 0])
@@ -2789,7 +2789,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         the dislocation structure
 
         Raises a RuntimeError if max_iter is reached without convergence
-        '''
+        """
         if len(core_positions.shape) == 1:
             core_positions = core_positions[np.newaxis, :]
 
@@ -2826,7 +2826,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     def displacements(self, bulk_positions, core_positions, method="atomman",
                       self_consistent=True, tol=1e-6, max_iter=100, verbose=True, mixing=0.5):
-        '''
+        """
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
         Each dislocation core uses a separate solver, which computes the displacements associated with positions 
         relative to that core (i.e. that the core is treated as lying at [0, 0, 0])
@@ -2858,7 +2858,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         the dislocation structure
 
         Raises a RuntimeError if max_iter is reached without convergence
-        '''
+        """
         
         solvers = self.get_solvers(method)
 
@@ -2884,7 +2884,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                        return_fix_mask=False,
                        cyl_mask=None,
                        **kwargs):
-        '''
+        """
         Build dislocation cylinder for single dislocation system
 
         Parameters
@@ -2928,7 +2928,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             to cylinders of correct shape
         fix_mask: np.array
             If return_fix_mask=True, return the mask used for the FixAtoms constraint
-        '''
+        """
 
         core_positions = np.array([
             core_position + self.unit_cell_core_position
@@ -3108,11 +3108,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return impurities_disloc
 
     def _smooth_kink_displacements(self, kink1, kink2, ref_bulk, smoothing_width, base_cell):
-        '''
+        """
         Use ReLU interpolation to smooth the displacment fields across a kink boundary between kink1 and kink2.
         Returns a copy of kink1, but with the displacement field at ref_bulk.positions[:, 2] > base_cell[2, 2] - smoothing width
         linearly interpolated. 
-        '''
+        """
 
         cell = base_cell
 
@@ -3333,7 +3333,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
 
     def _plot_CLE_disloc_line(self, view, disloc, z_length, disloc_names=None, color=[0, 1, 0]):
-        '''Add dislocation line to the view as a cylinder and two cones.
+        """Add dislocation line to the view as a cylinder and two cones.
         The cylinder is hollow by default so the second cylinder is needed to close it.
         In case partial distance is provided, two dislocation lines are added and are shifter accordingly.
         
@@ -3347,7 +3347,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Custom names for the dislocations 
         color: list
             [R, G, B] colour of the dislocation line
-        '''
+        """
 
         # Check system contains all keys in structure.info we need to plot the dislocations
         for expected_key in ["core_positions", "burgers_vectors", "dislocation_types", "dislocation_classes"]:
@@ -3583,7 +3583,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     def view_cyl(self, system, scale=0.5, CNA_color=True, add_bonds=False,
                      line_color=[0, 1, 0], disloc_names=None, hide_arrows=False,
                      mode="dxa"):
-        '''
+        """
         NGLview-based visualisation tool for structures generated from the dislocation class
 
         Parameters
@@ -3608,7 +3608,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Mode for plotting dislocation line
             mode="dxa" uses ovito dxa to plot an exact line
             mode="cle" uses the cle solution used to generate the structure (if the dislocation line is straight)
-        '''
+        """
 
         from nglview import show_ase, ASEStructure
         from matscipy.utils import get_structure_types
@@ -3690,9 +3690,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
 
 class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCMeta):
-    '''
+    """
     Abstract base class for modelling dissociated dislocation systems
-    '''
+    """
     # Inherits all slots from CubicCrystalDislocation as well
     __slots__ = ("left_dislocation", "right_dislocation")
 
@@ -3834,9 +3834,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         return self.left_dislocation.unit_cell
 
     def invert_burgers(self):
-        '''
+        """
         Modify dislocation to produce same dislocation with opposite burgers vector
-        '''
+        """
         self.burgers_dimensionless *= -1
 
         self.left_dislocation.invert_burgers()
@@ -3846,7 +3846,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         self.left_dislocation, self.right_dislocation = self.right_dislocation, self.left_dislocation
 
     def get_solvers(self, method="atomman"):
-        '''
+        """
         Overload of CubicCrystalDislocation.get_solvers
         Get list of dislocation displacement solvers
 
@@ -3860,7 +3860,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         -------
         solvers: list
             List of functions f(positions) = displacements
-        '''
+        """
         solvers = self.left_dislocation.get_solvers(method)
 
         solvers.extend(
@@ -3974,7 +3974,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
     burgers_dimensionless = np.zeros(3)
     def __init__(self, disloc_class, *args, **kwargs):
-        '''
+        """
         Initialise dislocation quadrupole class
 
         Arguments
@@ -3984,7 +3984,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         *args, **kwargs
             Parameters fed to CubicCrystalDislocation.__init__()
-        '''
+        """
 
         if isinstance(disloc_class, CubicCrystalDislocation):
             disloc_cls = disloc_class.__class__
@@ -4035,7 +4035,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
     def periodic_displacements(self, positions, v1, v2, core_positions, disp_tol=1e-3, max_neighs=15, 
                                verbose="periodic", **kwargs):
-        '''
+        """
         Calculate the stroh displacements for the periodic structure defined by 2D lattice vectors v1 & v2
         given the core positions.
 
@@ -4062,7 +4062,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         -------
         disps: np.array
             displacements
-        '''
+        """
 
         ncores = core_positions.shape[0]
 
@@ -4137,7 +4137,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
     def build_quadrupole(self, glide_separation=4, partial_distance=0, extension=0, verbose='periodic', 
                          left_offset=None, right_offset=None, **kwargs):
-        '''
+        """
         Build periodic quadrupole cell
 
         Parameters
@@ -4160,7 +4160,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             Translational offset (in Angstrom) for the left and right dislocation cores 
             (i.e. for the +b and -b cores)
         
-        '''
+        """
 
         if left_offset is None:
             left_offset = np.zeros(3)
@@ -4302,7 +4302,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
     
     def build_glide_quadrupoles(self, nims, invert_direction=False, glide_left=True, glide_right=True, 
                                 left_offset=None, right_offset=None, *args, **kwargs):
-        '''
+        """
         Construct a sequence of quadrupole structures providing an initial guess of the dislocation glide
         trajectory
 
@@ -4320,7 +4320,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         *args, **kwargs
             Fed to self.build_quadrupole()
         
-        '''
+        """
         
         glide_offsets = np.linspace(0, self.glide_distance, nims, endpoint=True)
 
@@ -4355,7 +4355,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         return images
     
     def _get_kink_quad_mask(self, ref_bulk, direction, precision=3):
-        '''
+        """
         Get an atom mask and tilted cell which generates a perfect bulk structure
         Mask is needed in building kinks to ensure continuity of atomic basis
 
@@ -4369,7 +4369,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             
         returns a boolean mask, and a new cell
 
-        '''
+        """
 
         if self.left_dislocation.__class__ == BCCEdge111barDislocation:
             raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
@@ -4530,50 +4530,47 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         return kink_quad
     
-    #TODO: Fix this
-    def build_minimal_kink_quadrupole(self, n_kink=1, layer_decimal_precision=3, invert_direction=False, smooth_width=None,
+    def build_minimal_kink_quadrupole(self, n_kink=1, layer_decimal_precision=3, smooth_width=None,
                                 *args, **kwargs):
-        '''
+        """
         Construct a quadrupole structure providing an initial guess of the dislocation kink
         mechanism. Produces a periodic array of kinks, where each kink is 
-        z_reps * self.unit_cell[2, 2] Ang long
+        <= self.unit_cell[2, 2] Ang long
 
         Parameters
         ----------
-        z_reps: int
-            Number of replications of self.unit_cell to use per kink
-            Should be >1
-        layer_tol: float
+        n_kink: int
+            Number of glide distances to kink out.
+            n_kink=1 for single kink in +x, n_kink=-2 for kink by two glide distances in -x.
+        layer_decimal_precision: float
             Tolerance for trying to determine the top atomic layer of the cell
-            (required in order to complete periodicity)
-            Top layer is defined as any atom with z component >= max(atom_z) - layer_tol
-        invert_direction: bool
-            Invert the direction of the glide
-            invert_direction=False (default) kink in the +x direction
-            invert_direction=True kink in the -x direction
+            (required in order to ensure complete periodicity)
+            Top layer is defined as any atom with z component >= max(atom_z) - 10**(-layer_tol)
+            in fractional coordinates
+        smooth_width: float
+            Size (in Ang) of the region for displacement smoothing at each kink site.
+            Larger smoothing width assumes a broader kink structure.
+            Default is 0.5 * self.unit_cell.cell[2, 2]
         *args, **kwargs
-            Fed to self.build_quadrupole() & self.build_glide_quadrupoles
-        
-        '''
-
-        direction = -1 if invert_direction else 1
+            Fed to self.build_quadrupole()
+        """
 
         base_bulk, _ = self.build_quadrupole(*args, **kwargs)
 
         base_quad1, base_quad2 = self.build_glide_quadrupoles(2, glide_left=True, glide_right=True, 
-                                                 invert_direction=invert_direction, *args, **kwargs)
+                                                 invert_direction=False, *args, **kwargs)
 
-        kink_struct1 = base_quad1.copy() * (1, 1, z_reps)
-        kink_struct2 = base_quad2.copy() * (1, 1, z_reps)
+        kink_struct1 = base_quad1.copy()
+        kink_struct2 = base_quad2.copy()
         
-        bulk = base_bulk.copy() * (1, 1, z_reps)
+        bulk = base_bulk.copy()
 
         bulk.wrap()
         kink_struct1.wrap()
         kink_struct2.wrap()
 
         # Cell won't always be periodic, make sure we end up with something that is
-        mask, cell = self._get_kink_quad_mask(bulk, direction * n_kink, layer_decimal_precision)
+        mask, cell = self._get_kink_quad_mask(bulk, n_kink, layer_decimal_precision)
         bulk = bulk[mask]
         bulk.set_cell(cell, scale_atoms=False)
 
@@ -4592,7 +4589,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
     def build_kink_quadrupole(self, kink_map=None, layer_decimal_precision=3, smooth_width=None,
                                 *args, **kwargs):
-        '''
+        """
         Construct a quadrupole structure providing an initial guess of the dislocation kink
         mechanism. Produces a periodic array of kinks, where each kink is 
         z_reps * self.unit_cell[2, 2] Ang long
@@ -4615,7 +4612,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         *args, **kwargs
             Fed to self.build_quadrupole()
         
-        '''
+        """
 
         ref_bulk, glide_structs = self.build_kink_quadrupole_glide_structs(kink_map, *args, **kwargs)
 
@@ -4623,12 +4620,12 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
                                                              smooth_width, layer_decimal_precision)
     
     def view_quad(self, system, *args, **kwargs):
-        '''
+        """
         Specialised wrapper of view_cyl for showing quadrupoles, as the quadrupole cell 
         causes the plot to be rotated erroneously
         
         Takes the same args and kwargs as view_cyl
-        '''
+        """
 
         view = self.view_cyl(system, hide_arrows=True, *args, **kwargs)
 
