@@ -4371,7 +4371,6 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         if self.left_dislocation.__class__ == BCCEdge111barDislocation:
             raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
-            pass
 
         bulk = ref_bulk.copy()
         tilt_bulk = ref_bulk.copy()
@@ -4534,7 +4533,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         kink_quad = kink_quad[mask]
         kink_quad.set_cell(cell, scale_atoms=False)
 
-        return kink_quad
+        return bulk, kink_quad
     
     def build_minimal_kink_quadrupole(self, n_kink=1, layer_decimal_precision=3, smooth_width=None,
                                 *args, **kwargs):
