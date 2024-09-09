@@ -794,6 +794,41 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
                 except AssertionError as e:
 
                     raise AssertionError(f"Displacements from {method} did not match {base_method}")
+                
+    def test_kink_round_trip(self, disloc, subtests):
+        self.set_up_cls(disloc)
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+
+        kink_map = [0, 1]
+
+        ref_bulk, glide_structs, struct_map = d.build_kink_glide_structs(kink_map=kink_map, radius=30)
+        bulk, kink1 = d.build_kink_from_glide_cyls(ref_bulk, glide_structs, struct_map)
+
+        bulk, kink2 = d.build_kink_cylinder(kink_map=kink_map, radius=30)
+
+        assert len(kink1) == len(kink2)
+        assert len(bulk) == len(kink2)
+
+        np.testing.assert_array_almost_equal(kink1.positions, kink2.positions)
+    
+    def test_kink_equiv_maps(self, disloc, subtests):
+        self.set_up_cls(disloc)
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+
+        equiv_kinks = [
+            [[0, 1], [-1, 0]],
+            [[0, 2], [-1, 1]]
+        ]
+
+        for kmap1, kmap2 in equiv_kinks:
+            with subtests.test(f"Comparing equivalent kink maps {kmap1} and {kmap2}"):
+                bulk, kc1 = d.build_kink_cylinder(kink_map=kmap1, radius=30)
+                bulk, kc2 = d.build_kink_cylinder(kink_map=kmap2, radius=30)
+
+                assert len(kc1) == len(kc2)
+                assert len(bulk) == len(kc2)
+
+                np.testing.assert_array_almost_equal(kc1.positions, kc2.positions)
 
 @pytest.mark.parametrize("disloc", cubic_perfect_dislocs())
 class TestCubicCrystalDislocation(BaseTestCubicCrystalDislocation):
@@ -904,19 +939,73 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
             self.assertAtomsAlmostEqual(configs[0], ini_quad)
             self.assertAtomsAlmostEqual(configs[1], fin_quad)
 
-    @pytest.mark.skip()
-    def test_single_kink_quadrupole(self, disloc):
-        '''
-        Validate that generation of single kink structures runs without errors
-        '''
+    def test_quad_kink_round_trip(self, disloc, subtests):
         self.set_up_cls(disloc)
         d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
 
+        kink_map = [0, 1]
 
-        kink_struct = d.build_kink_quadrupole(z_reps=4, glide_separation=4)
+        is_111bar = disloc.name == "1/2<11-1> edge" and disloc.crystalstructure.lower() == "bcc"
 
-        # Check that the z vector has been tilted to get an infinite array of periodic single kinks
-        self.assertNotAlmostEqual(kink_struct.cell[2, 0], 0.0)
+        if is_111bar:
+            # Check RuntimeError is raised for BCC 111bar disloc
+            with pytest.raises(RuntimeError):
+                bulk, kc1 = d.build_kink_quadrupole(kink_map=[0, 1], glide_separation=8)
+        else:
+            ref_bulk, glide_structs, struct_map = d.build_kink_quadrupole_glide_structs(kink_map=kink_map, glide_separation=8)
+            bulk, kink1 = d.build_kink_quadrupole_from_glide_structs(ref_bulk, glide_structs, kink_map, struct_map)
+            
+            bulk, kink2 = d.build_kink_quadrupole(kink_map=kink_map, glide_separation=8)
+            
+
+            assert len(kink1) == len(kink2)
+            assert len(bulk) == len(kink2)
+
+            np.testing.assert_array_almost_equal(kink1.positions, kink2.positions)
+    
+    def test_quad_kink_equiv_maps(self, disloc, subtests):
+        self.set_up_cls(disloc)
+        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+
+        equiv_kinks = [
+            [[0, 1], [-1, 0]],
+            [[0, 2], [-1, 1]]
+        ]
+
+        is_111bar = disloc.name == "1/2<11-1> edge" and disloc.crystalstructure.lower() == "bcc"
+
+        if is_111bar:
+            # Check RuntimeError is raised for BCC 111bar disloc
+            with pytest.raises(RuntimeError):
+                bulk, kc1 = d.build_kink_quadrupole(kink_map=[0, 1], glide_separation=8)
+        else:
+            for kmap1, kmap2 in equiv_kinks:
+                with subtests.test(f"Comparing equivalent kink maps {kmap1} and {kmap2}"):
+                    bulk, kc1 = d.build_kink_quadrupole(kink_map=kmap1, glide_separation=8)
+                    bulk, kc2 = d.build_kink_quadrupole(kink_map=kmap2, glide_separation=8)
+                    
+                    assert len(kc1) == len(kc2)
+                    assert len(bulk) == len(kc2)
+
+                    np.testing.assert_array_almost_equal(kc1.positions, kc2.positions)
+
+    def test_quad_minimal_kink(self, disloc, subtests):
+        self.set_up_cls(disloc)
+        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+
+        n_kinks = np.arange(-2, 2)
+
+        is_111bar = disloc.name == "1/2<11-1> edge" and disloc.crystalstructure.lower() == "bcc"
+
+        if is_111bar:
+            # Check RuntimeError is raised for BCC 111bar disloc
+            with pytest.raises(RuntimeError):
+                bulk, kc1 = d.build_kink_quadrupole(kink_map=[0, 1], glide_separation=8)
+        else:
+            for n_kink in n_kinks:
+                with subtests.test(f"Building minimal {n_kink=} cell"):
+                    bulk, kink = d.build_minimal_kink_quadrupole(n_kink, glide_separation=8)
+                    assert len(bulk) == len(kink)
 
 
 
