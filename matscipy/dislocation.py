@@ -3234,13 +3234,13 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         if smooth_width is None:
             smooth_width = 0.5 * self.unit_cell.cell[2, 2]
 
-        N = len(kink_structs)
+        N = len(struct_map)
 
         smoothed_kink_structs = []
 
         for i in range(N):
             smoothed_kink_structs.append(
-                self._smooth_kink_displacements(kink_structs[i], kink_structs[(i+1) % N], ref_bulk, smooth_width, ref_bulk.cell[:, :])
+                self._smooth_kink_displacements(kink_structs[struct_map[i]], kink_structs[struct_map[(i+1) % N]], ref_bulk, smooth_width, ref_bulk.cell[:, :])
             )
 
         kink_cyl = smoothed_kink_structs[0].copy()
@@ -3255,7 +3255,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             FixAtoms(mask=fix_mask)
         )
 
-        return bulk, kink_cyl
+        return ref_bulk * (1, 1, N), kink_cyl
     
     def build_kink_cylinder(self, kink_map=None, smooth_width=None, *args, **kwargs):
         """
@@ -4508,13 +4508,13 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         if smooth_width is None:
             smooth_width = 0.5 * self.unit_cell.cell[2, 2]
 
-        N = len(kink_structs)
+        N = len(struct_map)
 
         smoothed_kink_structs = []
 
         for i in range(N):
             smoothed_kink_structs.append(
-                self._smooth_kink_displacements(kink_structs[i], kink_structs[(i+1) % N], ref_bulk, smooth_width, ref_bulk.cell[:, :])
+                self._smooth_kink_displacements(kink_structs[struct_map[i]], kink_structs[struct_map[(i+1) % N]], ref_bulk, smooth_width, ref_bulk.cell[:, :])
             )
 
         kink_quad = smoothed_kink_structs[0].copy()
@@ -4530,6 +4530,9 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # Cell won't always be periodic, make sure we end up with something that is
         mask, cell = self._get_kink_quad_mask(bulk, direction, layer_decimal_precision)
 
+        bulk = bulk[mask]
+        bulk.set_cell(cell)
+        
         kink_quad = kink_quad[mask]
         kink_quad.set_cell(cell, scale_atoms=False)
 
