@@ -3255,7 +3255,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             FixAtoms(mask=fix_mask)
         )
 
-        return kink_cyl
+        return bulk, kink_cyl
     
     def build_kink_cylinder(self, kink_map=None, smooth_width=None, *args, **kwargs):
         """
@@ -4591,7 +4591,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         # Smooth displacements across the periodic boundary
         kink = self._smooth_kink_displacements(kink_struct1, kink_struct2, bulk, smooth_width, base_bulk.cell[:, :])
-        return kink
+        return bulk, kink
 
     def build_kink_quadrupole(self, kink_map=None, layer_decimal_precision=3, smooth_width=None,
                                 *args, **kwargs):
