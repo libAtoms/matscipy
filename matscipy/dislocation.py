@@ -3165,19 +3165,25 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         unique_kinks = np.sort(np.unique(kmap))
 
         # Make an empty list of the correct length
-        glide_structs = [0] * (krange+1)
+        glide_structs = [0] * len(unique_kinks)
+        
+        struct_map = []
 
+            
         fixed_points = np.array([
             [0, 0, 0],
             [self.glide_distance * krange, 0, 0]
         ])
 
-        for kink_pos in unique_kinks:
-            ref_bulk, glide_structs[kink_pos] = self.build_cylinder(*args, 
+        for i in range(len(kmap)):
+            struct_map.append(np.argmax(unique_kinks == kmap[i]))
+
+        for i, kink_pos in enumerate(unique_kinks):
+            ref_bulk, glide_structs[i] = self.build_cylinder(*args, 
                                                           fixed_points=fixed_points, 
                                                           core_position=np.array([kink_pos * self.glide_distance, 0 , 0]),
                                                           **kwargs)
-            
+
         # Deal with small displacements in boundary conditions caused by differences in disloc positions
         # by taking the average of the extremes
         fix_mask = glide_structs[0].arrays["fix_mask"]
@@ -3200,9 +3206,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 FixAtoms(mask=fix_mask)
             )
 
-        return ref_bulk, glide_structs
+        return ref_bulk, glide_structs, struct_map
     
-    def build_kink_from_glide_cyls(self, ref_bulk, glide_structs, kink_map=None, smooth_width=None):
+    def build_kink_from_glide_cyls(self, ref_bulk, glide_structs, struct_map, smooth_width=None):
         """
         Build a kink cylinder cell from the given kink map, using the structures contained in glide_structs
 
@@ -3211,26 +3217,18 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         glide_structs: list of ase Atoms
             Glide structures e.g. those produced by self.build_kink_glide_structs.
             The kink structure is constructed using glide_structs[kink_map[i]] for the ith cell.
-        kink_map: iterable of ints or None
-            Map of the location of the dislocation core in units of the glide vector
-            Default (kink_map=None) is a kink map of [0, 1]
-            See examples for more details.
+        struct_map: iterable of ints
+            Map of glide_structs back onto kink profile
+            Obtained by a call to build_kink_glide_structs
         smooth_width: float
             Size (in Ang) of the region for displacement smoothing at each kink site.
             Larger smoothing width assumes a broader kink structure.
             Default is 0.5 * self.unit_cell.cell[2, 2]
         
         """
-        # Deal with default kink_map value
-        if kink_map is None:
-            kink_map = [0, 1]
+        assert np.max(struct_map) == len(glide_structs) - 1
 
-        kmap = np.array(kink_map, dtype=int)
-        kmap -= np.min(kmap)
-
-        assert np.max(kmap) == len(glide_structs) - 1
-
-        kink_structs = [glide_structs[midx].copy() for midx in kmap]
+        kink_structs = [glide_structs[midx].copy() for midx in struct_map]
         
         # Smooth displacements across kink boundaries
         if smooth_width is None:
@@ -3251,7 +3249,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             kink_cyl = stack(kink_cyl, smoothed_kink_structs[i])
 
         # Add the correct FixAtoms constraint by concatenating glide struct fix masks in the correct order
-        fix_mask = np.array(sum([list(glide_structs[midx].arrays["fix_mask"]) for midx in kmap], []), dtype=bool)
+        fix_mask = np.array(sum([list(glide_structs[midx].arrays["fix_mask"]) for midx in struct_map], []), dtype=bool)
         kink_cyl.arrays["fix_mask"] = fix_mask
         kink_cyl.set_constraint(
             FixAtoms(mask=fix_mask)
@@ -3276,9 +3274,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Extra arguments sent to self.build_cylinder
         
         """
-        ref_bulk, glide_structs = self.build_kink_glide_structs(kink_map, *args, **kwargs)
-
-        return self.build_kink_from_glide_cyls(ref_bulk, glide_structs, kink_map, smooth_width)
+        ref_bulk, glide_structs, struct_map = self.build_kink_glide_structs(kink_map, *args, **kwargs)
+        
+        return self.build_kink_from_glide_cyls(ref_bulk, glide_structs, struct_map, smooth_width=smooth_width)
     
     def ovito_dxa(self, disloc):
         """
@@ -4455,16 +4453,21 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         unique_kinks = np.sort(np.unique(kmap))
 
-        glide_structs = [0] * (krange+1)
+        struct_map = []
 
-        for kink_pos in unique_kinks:
+        glide_structs = [0] * len(unique_kinks)
+
+        for i in range(len(kmap)):
+            struct_map.append(np.argmax(unique_kinks == kmap[i]))
+
+        for i, kink_pos in enumerate(unique_kinks):
             off = np.array([kink_pos * self.glide_distance, 0 , 0])
-            ref_bulk, glide_structs[kink_pos] = self.build_quadrupole(*args, 
+            ref_bulk, glide_structs[i] = self.build_quadrupole(*args, 
                                                           left_offset=off, right_offset=off,
                                                           **kwargs)
-        return ref_bulk, glide_structs
+        return ref_bulk, glide_structs, struct_map
 
-    def build_kink_quadrupole_from_glide_structs(self, ref_bulk, glide_structs, kink_map=None, smooth_width=None, layer_decimal_precision=3):
+    def build_kink_quadrupole_from_glide_structs(self, ref_bulk, glide_structs, kink_map, struct_map, smooth_width=None, layer_decimal_precision=3):
         """
         Build a kink cylinder cell from the given kink map, using the structures contained in glide_structs
 
@@ -4475,8 +4478,10 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             The kink structure is constructed using glide_structs[kink_map[i]] for the ith cell.
         kink_map: iterable of ints or None
             Map of the location of the dislocation core in units of the glide vector
-            Default (kink_map=None) is a kink map of [0, 1]
-            See examples for more details.
+            Use the same kink_map as the call to build_kink_quadrupole_glide_structs
+        struct_map: iterable of ints
+            Map of glide_structs back onto kink profile
+            Obtained by a call to build_kink_quadrupole_glide_structs
         smooth_width: float
             Size (in Ang) of the region for displacement smoothing at each kink site.
             Larger smoothing width assumes a broader kink structure.
@@ -4488,6 +4493,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             in fractional coordinates
         
         """
+
         # Deal with default kink_map value
         if kink_map is None:
             kink_map = [0, 1]
@@ -4495,9 +4501,9 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         kmap = np.array(kink_map, dtype=int)
         kmap -= np.min(kmap)
 
-        assert np.max(kmap) == len(glide_structs) - 1
+        assert np.max(struct_map) == len(glide_structs) - 1
 
-        kink_structs = [glide_structs[midx].copy() for midx in kmap]
+        kink_structs = [glide_structs[midx].copy() for midx in struct_map]
         
         # Smooth displacements across kink boundaries
         if smooth_width is None:
@@ -4614,9 +4620,9 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         
         """
 
-        ref_bulk, glide_structs = self.build_kink_quadrupole_glide_structs(kink_map, *args, **kwargs)
+        ref_bulk, glide_structs, struct_map = self.build_kink_quadrupole_glide_structs(kink_map, *args, **kwargs)
 
-        return self.build_kink_quadrupole_from_glide_structs(ref_bulk, glide_structs, kink_map,
+        return self.build_kink_quadrupole_from_glide_structs(ref_bulk, glide_structs, kink_map, struct_map,
                                                              smooth_width, layer_decimal_precision)
     
     def view_quad(self, system, *args, **kwargs):
