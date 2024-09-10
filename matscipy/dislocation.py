@@ -3234,13 +3234,13 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         if smooth_width is None:
             smooth_width = 0.5 * self.unit_cell.cell[2, 2]
 
-        N = len(struct_map)
+        N = len(kink_structs)
 
         smoothed_kink_structs = []
 
         for i in range(N):
             smoothed_kink_structs.append(
-                self._smooth_kink_displacements(kink_structs[struct_map[i]], kink_structs[struct_map[(i+1) % N]], ref_bulk, smooth_width, ref_bulk.cell[:, :])
+                self._smooth_kink_displacements(kink_structs[i], kink_structs[(i+1) % N], ref_bulk, smooth_width, ref_bulk.cell[:, :])
             )
 
         kink_cyl = smoothed_kink_structs[0].copy()
@@ -4524,13 +4524,13 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         if smooth_width is None:
             smooth_width = 0.5 * self.unit_cell.cell[2, 2]
 
-        N = len(struct_map)
+        N = len(kink_structs)
 
         smoothed_kink_structs = []
 
         for i in range(N):
             smoothed_kink_structs.append(
-                self._smooth_kink_displacements(kink_structs[struct_map[i]], kink_structs[struct_map[(i+1) % N]], ref_bulk, smooth_width, ref_bulk.cell[:, :])
+                self._smooth_kink_displacements(kink_structs[i], kink_structs[(i+1) % N], ref_bulk, smooth_width, ref_bulk.cell[:, :])
             )
 
         kink_quad = smoothed_kink_structs[0].copy()
