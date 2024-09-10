@@ -3474,7 +3474,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 return np.array(points)
         from fractions import Fraction
         
-        # Ovito colours for dislocation lines (as of v 3.10.1) 
+        # Ovito colours for dislocation lines (as of v 3.10.1)
+        # Keys are abs of burgers as fractions, sorted in descending order
+        # (to collapse rotational symmetries) 
         disloc_colours = {
             "diamond" : {
                 "default" : [230, 51, 51], # Red
@@ -3482,6 +3484,20 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 "1/3 1/6 1/6" : [0, 255, 0], # Green; 30 & 90 degree Partials
                 "1/6 1/6 0" : [255, 0, 255], # Pink
                 "1/3 1/3 1/3" : [0, 255, 255] # Light Blue
+            },
+            "bcc" : {
+                "default" : [230, 51, 51], # Red
+                "1/2 1/2 1/2" : [0, 255, 0], # Green; Screw/Edge 111
+                "1 0 0" : [255, 77, 204], # Pink; Edge 100
+                "1 1 0" : [51, 128, 255] # Blue
+            },
+            "fcc" : {
+                "default" : [230, 51, 51], # Red
+                "1/2 1/2 0" : [51, 51, 255], # Blue; Screw/Edge 110
+                "1/3 1/6 1/6" : [0, 255, 0], # Green; Shockley Partials
+                "1/6 1/6 0" : [255, 0, 255], # Pink; Stair Rod
+                "1/3 0 0" : [255, 255, 0], # Yellow; Hirth
+                "1/3 1/3 1/3" : [0, 255, 255] # Cyan; Frank
             }
         }
 
@@ -4532,7 +4548,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         bulk = bulk[mask]
         bulk.set_cell(cell)
-        
+
         kink_quad = kink_quad[mask]
         kink_quad.set_cell(cell, scale_atoms=False)
 
