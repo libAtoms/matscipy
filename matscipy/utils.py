@@ -1,12 +1,29 @@
+import functools
 import warnings
 import numpy as np
+from ase.utils.structure_comparator import SymmetryEquivalenceCheck
+
+
+class classproperty:
+    '''
+    Decorator class to replace classmethod property decorators
+    '''
+    def __init__(self, method):
+        self.method = method
+        functools.update_wrapper(self, method)
+    def __get__(self, obj, cls=None):
+        if cls is None:
+            cls = type(obj)
+        return self.method(cls)
+
 
 def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
-    '''
+    """
     Provide uniform interface for generating rotated atoms objects through two main methods:
 
     For lattice constant + symbol + crystalstructure, build a valid cubic bulk rotated into the frame defined by axes
     For cubic bulk atoms object + crystalstructure, validate structure matches expected cubic bulk geometry, and rotate to frame defined by axes
+    Also, if cubic atoms object is supplied, search for a more condensed representation than is provided by ase.build.cut
 
     a: float or ase.atoms
         EITHER lattice constant (in A), or the cubic bulk structure
@@ -18,7 +35,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         Base Structure of bulk system, currently supported: fcc, bcc, diamond
     pbc: list of bool
         Periodic Boundary Conditions in x, y, z
-    '''
+    """
 
     from ase.lattice.cubic import FaceCenteredCubic, BodyCenteredCubic, Diamond
     from ase.atoms import Atoms
@@ -60,6 +77,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         alat = a.cell[0, 0]
 
         ats = a.copy()
+        
 
         if crystalstructure is not None:
             # Try to validate that "a" matches expected structure given by crystalstructure
@@ -102,6 +120,10 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
 
         ats = cut(ats, a=axes[0, :], b=axes[1, :], c=axes[2, :])
         rotate(ats, ats.cell[0, :].copy(), [1, 0, 0], ats.cell[1, :].copy(), [0, 1, 0])
+        
+        # cut and rotate can result in a supercell structure. Attempt to find smaller repr 
+        ats = find_condensed_repr(ats)
+        
         unit_cell = ats.copy()
 
         unit_cell.set_pbc(pbc)
@@ -112,8 +134,101 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
 
     return alat, unit_cell
 
+
+def find_condensed_repr(atoms, precision=2):
+    """
+    Search for a condensed representation of atoms
+    Equivalent to attempting to undo a supercell
+
+    atoms: ase Atoms object
+        structure to condense
+    precision: int
+        Number of decimal places to use in determining whether scaled positions are equal
+
+    returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms
+    """
+    ats = atoms.copy()
+    for axis in range(2, -1, -1):
+        ats = find_condensed_repr_along_axis(ats, axis, precision)
+
+    return ats
+
+def find_condensed_repr_along_axis(atoms, axis=-1, precision=2):
+    """
+    Search for a condensed representation of atoms about axis. 
+    Essentially an inverse to taking a supercell.
+
+    atoms: ase Atoms object
+        structure to condense
+    axis: int
+        axis about which to find a condensed repr
+        axis=-1 essentially will invert a (1, 1, x) supercell
+    precision: int
+        Number of decimal places to use in determining whether scaled positions are equal
+
+    returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms
+    """
+    comp = SymmetryEquivalenceCheck()
+
+    cart_directions = [
+        [1, 2], # axis=0
+        [2, 0], # axis=1
+        [0, 1] # axis=2
+    ]
+
+    dirs = cart_directions[axis]
+
+    ats = atoms.copy()
+    ats.wrap()
+
+    # Choose an origin atom, closest to cell origin
+    origin_idx = np.argmin(np.linalg.norm(ats.positions, axis=-1))
+    
+    # Find all atoms which are in line with the origin_idx th atom
+    p = np.round(ats.get_scaled_positions(), precision)
+
+    # MIC distance vector from origin atom, in scaled coordinates
+    p_diff = (p - p[origin_idx, :]) % 1.0
+
+    matches = np.argwhere((p_diff[:, dirs[0]] < 10**(-precision)) * (p_diff[:, dirs[1]] < 10**(-precision)))[:, 0]
+    min_off = np.inf
+    ret_struct = ats
+
+    for match in matches:
+        if match == origin_idx:
+            # skip i=origin_idx
+            continue
+
+        # Fractional change in positions
+        dz = (p[origin_idx, axis] - p[match, axis]) % 1.0
+        # Create a test atoms object and cut cell along in axis
+        # Test whether test atoms is equivalent to original structure
+        test_ats = ats.copy()
+        test_cell = test_ats.cell[:, :].copy()
+        test_cell[axis, :] *= dz
+        test_ats.set_cell(test_cell)
+
+        sp = np.round(test_ats.get_scaled_positions(wrap=False), precision)
+
+        del_mask = sp[:, axis] > 1.0 - 10**(-precision)
+        test_ats = test_ats[~del_mask]
+
+        # Create a supercell of test ats, and see if it matches the original atoms
+        test_sup = [1] * 3
+        test_sup[axis] = int(1/dz)
+
+        is_equiv = comp.compare(ats.copy(), test_ats * tuple(test_sup))
+
+        if is_equiv:
+            if dz < min_off:
+                ret_struct = test_ats.copy()
+                min_off = dz
+
+    return ret_struct
+
+
 def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
-    '''
+    """
     Generate a complete (v1, v2, v3) orthogonal basis in 3D from v1 and an optional v2
 
     (V1, V2, V3) is always right-handed.
@@ -137,7 +252,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     V1, V2, V3: np.arrays
         Complete orthogonal basis, optionally normalised
         dtype of arrays is int with normalise=False, float with normalise=True
-    '''
+    """
 
     def _v2_search(v1, nmax, tol):
         for i in range(nmax):
@@ -250,7 +365,7 @@ def get_structure_types(structure, diamond_structure=False):
     return atom_labels, structure_names, hex_colors
 
 def line_intersect_2D(p1, p2, x1, x2):
-    '''
+    """
     Test if 2D finite line defined by points p1 & p2 intersects with the finite line defined by x1 & x2.
     Essentially a Python conversion of the ray casting algorithm suggested in: 
     https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
@@ -259,7 +374,7 @@ def line_intersect_2D(p1, p2, x1, x2):
 
     p1, p2, x1, x2: np.array
         2D points defining lines
-    '''
+    """
 
     # Convert from pointwise p1, p2 form to ax + by + c = 0 form
     a_p = p2[1] - p1[1]
@@ -303,7 +418,7 @@ def line_intersect_2D(p1, p2, x1, x2):
     return True
 
 def points_in_polygon2D(p, poly_points):
-    '''
+    """
     Test if points lies within the closed 2D polygon defined by poly_points
     Uses ray casting algorithm, as suggested by:
     https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
@@ -317,7 +432,7 @@ def points_in_polygon2D(p, poly_points):
     -------
     mask: np.array
         Boolean mask. True for points inside the poylgon
-    '''
+    """
     if len(p.shape) == 1:
         # Single point provided
         points = p.copy()[np.newaxis, :]
@@ -349,7 +464,7 @@ def points_in_polygon2D(p, poly_points):
     return mask.astype(bool)
 
 def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -> np.array:
-    '''
+    """
     Get shortest distance between a test point and a polygon defined by polygon_points
         (i.e. the shortest distance between each point and the lines of the polygon)
     
@@ -359,13 +474,13 @@ def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -
         2D Points to get distances for
     polygon_points: np.array
         Coordinates defining the points of the polygon
-    '''
+    """
 
     def get_dist(p, v, w):
-        '''
+        """
         Gets distance between point p, and the line segment defined by v and w
         From https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
-        '''
+        """
         denominator = np.linalg.norm(v - w)
 
         if denominator == 0.0:
@@ -391,7 +506,7 @@ def get_distance_from_polygon2D(test_points:np.array, polygon_points:np.array) -
     return distances
 
 def radial_mask_from_polygon2D(test_points:np.array, polygon_points:np.array, radius:float, inner:bool=True) -> np.array:
-    '''
+    """
     Get a boolean mask of all test_points within a radius of any edge of the polygon defined by polygon_points
 
     test_points: np.array
@@ -402,7 +517,7 @@ def radial_mask_from_polygon2D(test_points:np.array, polygon_points:np.array, ra
         Radius to use as cutoff for mask
     inner: bool
         Whether test_points inside the polygon should always be masked as True, regardless of radius
-    '''
+    """
 
     distances = get_distance_from_polygon2D(test_points, polygon_points)
 
