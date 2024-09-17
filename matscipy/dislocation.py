@@ -2910,7 +2910,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         else:
             # Only treat atoms within r_sc of polygon formed by dislocation cores self-consistently
             disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
-                                                    tol, verbose, mixing, max_iter=0)
+                                                    tol, max_iter=0, verbose=verbose, mixing=mixing)
 
             sc_mask = radial_mask_from_polygon2D(bulk_positions, core_positions, r_sc)
 
