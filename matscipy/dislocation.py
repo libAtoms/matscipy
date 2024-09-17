@@ -2852,7 +2852,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                             f'did not converge in {max_iter} cycles')
 
     def displacements(self, bulk_positions, core_positions, method="atomman",
-                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True, mixing=0.5):
+                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True, 
+                      mixing=0.5, r_sc=None):
         """
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
         Each dislocation core uses a separate solver, which computes the displacements associated with positions 
@@ -2880,6 +2881,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Enable/Disable printing progress of the self-consistent cycle each iteration
         mixing: float
             Mixing parameter between self-consistent displacement iterations (if self_consistent=True)
+        r_sc: float | None
+            Optional cutoff for the self-consistent region. If r_sc=None, treat all displacements self-consistently.
+            Atoms within r_sc radius of any dislocation core will be selected for the self-consistent treatment. Useful if
+            displacement calculations are slow (i.e. for very large systems), or if the self-consistency creates issues in the 
+            dislocation structure (see https://github.com/libAtoms/matscipy/issues/265).
 
         Returns
         -------
@@ -2895,10 +2901,24 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         if not self_consistent:
             max_iter = 0
 
-        disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
-                                                  tol, max_iter, verbose, mixing)
+        if r_sc is None:
+            # Normal mode, treat everything self-consistently
+            disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
+                                                    tol, max_iter, verbose, mixing)
 
-        return disp
+            return disp
+        else:
+            # Only treat atoms within r_sc of polygon formed by dislocation cores self-consistently
+            disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
+                                                    tol, verbose, mixing, max_iter=0)
+
+            sc_mask = radial_mask_from_polygon2D(bulk_positions, core_positions, r_sc)
+
+            disp_sc = self.self_consistent_displacements(solvers, bulk_positions[sc_mask, :], core_positions, 
+                                                    tol, max_iter, verbose, mixing)
+
+            disp[sc_mask] = disp_sc
+            return disp
     
 
     def build_cylinder(self, 
