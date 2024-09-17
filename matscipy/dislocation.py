@@ -46,7 +46,7 @@ from matscipy.neighbours import neighbour_list, mic, coordination
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
 from matscipy.elasticity import cubic_to_Voigt_6x6, coalesce_elastic_constants
-from matscipy.utils import validate_cubic_cell, points_in_polygon2D, classproperty
+from matscipy.utils import validate_cubic_cell, radial_mask_from_polygon2D, classproperty
 
 
 def make_screw_cyl(alat, C11, C12, C44,
@@ -2493,9 +2493,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         Parameters
         ----------
-        use_atomman: bool
-            Use the Stroh solver included in atomman (requires atomman package) to
-            solve for displacements, or use the AnisotropicDislocation class
+        method: str
+            Method to use when calculating the Continuum Linear Elastic (CLE) dislocation displacements.
+            See self.avail_methods for a list of accepted methods
 
         Returns
         -------
@@ -2663,9 +2663,6 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
             return arg, errs
 
-
-        from matscipy.utils import radial_mask_from_polygon2D
-
         if self_consistent is None:
             self_consistent = self.self_consistent
 
@@ -2806,8 +2803,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         max_iter: int
             Maximum number of iterations of the self-consistent cycle to run before throwing 
             an exception
+            If max_iter == 0, return the displacements from the first (0th) iteration with no error.
         verbose: bool
             Enable/Disable printing progress of the self-consistent cycle each iteration
+        mixing: float
+            Mixing parameter between self-consistent displacement iterations (if self_consistent=True)
 
         Returns
         -------
@@ -2864,9 +2864,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             (N, 3) array of positions of atoms in the bulk configuration
         core_positions: np.array
             Positions of each dislocation core (shape = (ncores, 3))
-        use_atomman: bool
-            Use the Stroh solver included in atomman (requires atomman package) to
-            solve for displacements, or use the AnisotropicDislocation class
+        method: str
+            Method to use when calculating the Continuum Linear Elastic (CLE) dislocation displacements.
+            See self.avail_methods for a list of accepted methods
         self_consistent: bool
             Whether to detemine the dislocation displacements in a self-consistent manner
             (self_consistent=False is equivalent to max_iter=0)
@@ -2875,8 +2875,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         max_iter: int
             Maximum number of iterations of the self-consistent cycle to run before throwing 
             an exception
+            If max_iter == 0, return the displacements from the first (0th) iteration with no error.
         verbose: bool
             Enable/Disable printing progress of the self-consistent cycle each iteration
+        mixing: float
+            Mixing parameter between self-consistent displacement iterations (if self_consistent=True)
 
         Returns
         -------
@@ -3893,9 +3896,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 
         Parameters
         ----------
-        use_atomman: bool
-            Use the Stroh solver included in atomman (requires atomman package) to
-            solve for displacements, or use the AnisotropicDislocation class
+        method: str
+            Method to use when calculating the Continuum Linear Elastic (CLE) dislocation displacements.
+            See self.avail_methods for a list of accepted methods
 
         Returns
         -------
