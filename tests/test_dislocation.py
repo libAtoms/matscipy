@@ -731,6 +731,17 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
         # err = angle - ref_angle
         # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
         # assert abs(err) < tol
+
+    def test_displacement_r_sc(self, disloc, subtests):
+        self.set_up_cls(disloc)      
+
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+
+        _, ref_disloc = d.build_cylinder(80.0, method=self.default_method, verbose=False)
+
+        _, r_sc_disloc = d.build_cylinder(80.0, method=self.default_method, verbose=False, r_sc=60)
+
+        np.testing.assert_almost_equal(ref_disloc.positions, r_sc_disloc.positions, decimal=2)
         
     def test_glide_configs(self, disloc, subtests):  
         self.set_up_cls(disloc)      
