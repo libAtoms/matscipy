@@ -4084,6 +4084,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         self.glides_per_unit_cell = np.floor((self.unit_cell.cell[0, 0] + self.unit_cell.cell[1, 0]) 
                                               / (self.glide_distance - 1e-2)).astype(int)
+        
+        self.name = self.left_dislocation.name + " Quadrupole"
 
     # Overload all of the classmethod properties from CubicCrystalDissociatedDislocation, as these cannot be
     # known at class level (don't know which disloc to make a quadrupole of, so can't know what axes should be)
