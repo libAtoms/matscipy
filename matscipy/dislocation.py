@@ -3666,7 +3666,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     def view_cyl(self, system, scale=0.5, CNA_color=True, add_bonds=False,
                      line_color=[0, 1, 0], disloc_names=None, hide_arrows=False,
-                     mode="dxa"):
+                     mode="dxa", hide_bulk=False):
         """
         NGLview-based visualisation tool for structures generated from the dislocation class
 
@@ -3690,8 +3690,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Hide arrows for placed on the dislocation lines
         mode: str
             Mode for plotting dislocation line
-            mode="dxa" uses ovito dxa to plot an exact line
+            mode="dxa" uses ovito dxa to plot an exact dislocation line
             mode="cle" uses the cle solution used to generate the structure (if the dislocation line is straight)
+        hide_bulk: bool
+            Use structure analysis to mask out the bulk atoms from the system
+
         """
 
         from nglview import show_ase, ASEStructure
@@ -3726,7 +3729,17 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         atom_labels, structure_names, colors = get_structure_types(system, 
                                                                 diamond_structure=diamond_structure)
-        view = show_ase(system)
+        
+        if hide_bulk:
+            struct_type_mask = [i for i in range(len(structure_names)) if self.crystalstructure.lower() 
+                                in structure_names[i] and "neighbor" not in structure_names[i]][0]
+            
+            ats_mask = [i for i in range(len(atom_labels)) if atom_labels[i] != struct_type_mask]
+
+            view = show_ase(system[ats_mask])
+        else:
+            struct_type_mask = None
+            view = show_ase(system)
         view.hide([0])
         
         if add_bonds: # add bonds between all atoms to have bonds between structures
@@ -3736,6 +3749,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         # Add structure and struct colours
         for structure_type in np.unique(atom_labels):
             # every structure type is a different component
+
+            if struct_type_mask == structure_type:
+                continue
             mask = atom_labels == structure_type
             component = view.add_component(ASEStructure(system[mask]), 
                                         default_representation=False, name=str(structure_names[structure_type]))
