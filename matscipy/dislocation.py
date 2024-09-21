@@ -3210,28 +3210,41 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         kmap -= np.min(kmap)
         krange = np.max(kmap)
 
-        assert len(kmap) > 0
+        # Enforce 2d structure of kmap
+        if len(kmap.shape) == 1:
+            kmap = kmap[:, np.newaxis]
 
-        unique_kinks = np.sort(np.unique(kmap))
+        # Make sure we have enough kink positions, for every dislocation core
+        assert kmap.shape[0] > 0
+        assert kmap.shape[1] == len(self.get_solvers())
+
+        unique_kinks = np.sort(np.unique(kmap, axis=0))
 
         # Make an empty list of the correct length
-        glide_structs = [0] * len(unique_kinks)
+        glide_structs = [0] * unique_kinks.shape[0]
         
         struct_map = []
 
-            
+        # Extrema of the core positions
+        # Fixed points ensure that size of cylinder is consistent between glide_structs
         fixed_points = np.array([
             [0, 0, 0],
             [self.glide_distance * krange, 0, 0]
         ])
 
-        for i in range(len(kmap)):
-            struct_map.append(np.argmax(unique_kinks == kmap[i]))
 
-        for i, kink_pos in enumerate(unique_kinks):
+        for i in range(kmap.shape[0]):
+            # Create a mapping from the kmap onto the minimal set of glide structs
+            struct_map.append(np.argmin(np.linalg.norm(unique_kinks - kmap[i, :], axis=-1)))
+
+        for i in range(unique_kinks.shape[0]):
+            kink_pos = list(unique_kinks[i, :])
+
+            # Calculate real-space core positions for each core
+            core_positions = np.array([[kink_pos[i] * self.glide_distance, 0, 0] for i in range(len(kink_pos))])
             ref_bulk, glide_structs[i] = self.build_cylinder(*args, 
-                                                          fixed_points=fixed_points, 
-                                                          core_position=np.array([kink_pos * self.glide_distance, 0 , 0]),
+                                                          fixed_points=fixed_points,
+                                                          core_position=core_positions,
                                                           **kwargs)
 
         # Deal with small displacements in boundary conditions caused by differences in disloc positions
@@ -3246,6 +3259,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             # Guarantee that the fix masks are all identical
             struct.arrays["fix_mask"] = fix_mask
 
+            # Guarantee that fixed atomic positions are also identical
             p = struct.positions
             p[fix_mask, :] = av_pos
             struct.set_positions(p)
