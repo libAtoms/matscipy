@@ -3214,9 +3214,15 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         if len(kmap.shape) == 1:
             kmap = kmap[:, np.newaxis]
 
+        n_cores = len(self.get_solvers())
+
+        if kmap.shape[1] == 1 and n_cores > 1:
+            # Single kink map for both cores, make sure this is shared
+            kmap = np.repeat(kmap, n_cores, axis=1)
+
         # Make sure we have enough kink positions, for every dislocation core
         assert kmap.shape[0] > 0
-        assert kmap.shape[1] == len(self.get_solvers())
+        assert kmap.shape[1] == n_cores
 
         unique_kinks = np.sort(np.unique(kmap, axis=0))
 
