@@ -3400,7 +3400,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return data
 
 
-    def _plot_CLE_disloc_line(self, view, disloc, z_length, disloc_names=None, color=[0, 1, 0]):
+    def _plot_CLE_disloc_line(self, view, disloc, z_length, disloc_names=None, color=None):
         """Add dislocation line to the view as a cylinder and two cones.
         The cylinder is hollow by default so the second cylinder is needed to close it.
         In case partial distance is provided, two dislocation lines are added and are shifter accordingly.
@@ -3425,7 +3425,10 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         
         
         # Validate line_color arg
-        if type(color) in [list, np.array, tuple]:
+        if color is None:
+            default_colour = [0, 1, 0] # Green
+            colours = [default_colour] * len(disloc.info["dislocation_types"])
+        elif type(color) in [list, np.array, tuple]:
             if type(color[0]) in [list, np.array, tuple]:
                 # Given an RGB value per dislocation
                 colours = color
@@ -3665,7 +3668,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return view
 
     def view_cyl(self, system, scale=0.5, CNA_color=True, add_bonds=False,
-                     line_color=[0, 1, 0], disloc_names=None, hide_arrows=False,
+                     line_color=None, disloc_names=None, hide_arrows=False,
                      mode="dxa", hide_bulk=False):
         """
         NGLview-based visualisation tool for structures generated from the dislocation class
