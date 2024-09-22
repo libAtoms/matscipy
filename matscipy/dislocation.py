@@ -3669,7 +3669,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     def view_cyl(self, system, scale=0.5, CNA_color=True, add_bonds=False,
                      line_color=None, disloc_names=None, hide_arrows=False,
-                     mode="dxa", hide_bulk=False):
+                     mode="dxa", hide_bulk=False, hide_fixmask=True):
         """
         NGLview-based visualisation tool for structures generated from the dislocation class
 
@@ -3697,6 +3697,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             mode="cle" uses the cle solution used to generate the structure (if the dislocation line is straight)
         hide_bulk: bool
             Use structure analysis to mask out the bulk atoms from the system
+        hide_fixmask: bool
+            If hide_bulk is True, also hide any atoms included in the fix_mask (system.arrays["fix_mask"]), if it is present
 
         """
 
@@ -3733,11 +3735,15 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         atom_labels, structure_names, colors = get_structure_types(system, 
                                                                 diamond_structure=diamond_structure)
         
+        fix_mask = np.zeros(len(system), dtype=bool)
         if hide_bulk:
+            if hide_fixmask and "fix_mask" in system.arrays.keys():
+                fix_mask = system.arrays["fix_mask"]
             struct_type_mask = [i for i in range(len(structure_names)) if self.crystalstructure.lower() 
                                 in structure_names[i] and "neighbor" not in structure_names[i]][0]
             
-            ats_mask = [i for i in range(len(atom_labels)) if atom_labels[i] != struct_type_mask]
+            # Include atom indeces if not the bulk structure type, and not included in the fix_mask
+            ats_mask = [i for i in range(len(atom_labels)) if atom_labels[i] != struct_type_mask and not fix_mask[i]]
 
             view = show_ase(system[ats_mask])
         else:
@@ -3755,7 +3761,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
             if struct_type_mask == structure_type:
                 continue
-            mask = atom_labels == structure_type
+
+            mask = (atom_labels == structure_type) * (~fix_mask)
             component = view.add_component(ASEStructure(system[mask]), 
                                         default_representation=False, name=str(structure_names[structure_type]))
             if CNA_color:
