@@ -2369,7 +2369,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     # (see https://stackoverflow.com/questions/472000/usage-of-slots for more details on __slots__)
     __slots__ = ("burgers_dimensionless", "unit_cell_core_position_dimensionless",
                  "glide_distance_dimensionless", "crystalstructure", "axes",
-                 "C", "alat", "unit_cell", "name")
+                 "C", "alat", "unit_cell", "name", "N_cores")
 
     # Attributes with defaults
     # These may be overridden by child classes
@@ -2445,6 +2445,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         crystalstructure : str
             Name of basic structure defining atomic geometry ("fcc", "bcc", "diamond")
         """
+
+        self.N_cores = 1
 
         # Create copies of immutable class attributes
         # Prevents side effects when E.G. changing burgers vector of an instance
@@ -3843,6 +3845,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         right_dislocation = self.right_dislocation
 
         super().__init__(a, C11, C12, C44, C, symbol)
+        self.N_cores = self.left_dislocation.N_cores + self.right_dislocation.N_cores
 
         # Validation of disloc inputs
         try:
