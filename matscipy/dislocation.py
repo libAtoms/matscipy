@@ -2648,7 +2648,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             with FixAtoms constraints
         """
 
-        def enforce_arr_shape(argname, arg, errs):
+        def enforce_arr_shape(argname, arg, errs, match_ncores):
             """
             Enforce correct array dimensionality for 
             
@@ -2656,13 +2656,18 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             if type(arg) == np.ndarray:
                 if arg.shape[-1] != 3:
                     # Needs to be 3d vectors
-                    errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+                    errs.append(f"{argname} has incorrect shape. Expected ({self.N_cores}, 3), got {arg.shape}")
                 if len(arg.shape) == 1:
                     # Convert all arrays to 2D
-                    arg = np.atleast_2d(arg)
+                    arg = arg[np.newaxis, :]
+                    if match_ncores:
+                        # Enforce the correct number of cores are represented
+                        arg = np.repeat(arg, self.N_cores, axis=0)
+                elif arg.shape[0] != self.N_cores and match_ncores:
+                    errs.append(f"{argname} has incorrect shape. Expected ({self.N_cores}, 3), got {arg.shape}")
             elif arg is not None:
                 # non-array, and not None arg provided, which is not allowed
-                errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+                errs.append(f"Array expected for arg {argname}, got {type(arg)}")
             return arg, errs
 
         if self_consistent is None:
@@ -2671,9 +2676,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         # Validate core position, extension, and fixed_points args
         errs = []
         
-        core_positions, errs = enforce_arr_shape("core_positions", core_positions, errs)
-        extension, errs = enforce_arr_shape("extension", extension, errs)
-        fixed_points, errs = enforce_arr_shape("fixed_points", fixed_points, errs)
+        core_positions, errs = enforce_arr_shape("core_positions", core_positions, errs, match_ncores=True)
+        extension, errs = enforce_arr_shape("extension", extension, errs, match_ncores=True)
+        fixed_points, errs = enforce_arr_shape("fixed_points", fixed_points, errs, match_ncores=False)
 
         if len(errs):
             raise RuntimeError("\n".join(errs))
@@ -2696,7 +2701,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             fictitious_core_positions = np.vstack([fictitious_core_positions, extension + core_positions])
 
         if fixed_points is not None:
-            fictitious_core_positions = np.vstack([fictitious_core_positions, fixed_points + self.unit_cell_core_position])
+            fictitious_core_positions = np.concatenate([fictitious_core_positions, fixed_points + self.unit_cell_core_position], axis=0)
         
         fictitious_core_positions = np.unique(fictitious_core_positions, axis=0)
 
@@ -2982,9 +2987,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             If return_fix_mask=True, return the mask used for the FixAtoms constraint
         """
 
-        core_positions = np.array([
-            core_position + self.unit_cell_core_position
-        ])
+        core_positions = np.array(core_position) + self.unit_cell_core_position
 
         bulk, disloc, core_positions, cyl_mask, fix_mask = self._build_bulk_cyl(radius, core_positions, fix_width,
                                                             extension, fixed_points, self_consistent, method, verbose, cyl_mask=cyl_mask, **kwargs)
@@ -3216,7 +3219,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         if len(kmap.shape) == 1:
             kmap = kmap[:, np.newaxis]
 
-        n_cores = len(self.get_solvers())
+        n_cores = self.N_cores
 
         if kmap.shape[1] == 1 and n_cores > 1:
             # Single kink map for both cores, make sure this is shared
@@ -3986,8 +3989,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                        radius, 
                        partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
-                       extension=np.array([[0., 0., 0.],
-                                          [0., 0., 0.]]),
+                       extension=np.array([0., 0., 0.]),
                        fixed_points=None,
                        fix_width=10.0, 
                        self_consistent=None,

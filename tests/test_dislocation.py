@@ -889,6 +889,26 @@ class TestCubicCrystalDissociatedDislocation(BaseTestCubicCrystalDislocation):
 
         assert (max_err / self.alat) <= (percent_tol / 100.0)
 
+    def test_dissoc_kink_equiv_maps(self, disloc, subtests):
+        self.set_up_cls(disloc)
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+
+        kmap1 = np.array(
+              [[0, 0]] * 2
+            + [[0, 1]] * 2
+        )
+
+        kmap2 = kmap1 - 1
+
+        bulk, kc1 = d.build_kink_cylinder(kink_map=kmap1, radius=30)
+        bulk, kc2 = d.build_kink_cylinder(kink_map=kmap2, radius=30)
+
+        assert len(kc1) == len(kc2)
+        assert len(bulk) == len(kc2)
+
+        np.testing.assert_array_almost_equal(kc1.positions, kc2.positions)
+
+
 class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture):
     has_atomman = "atomman" in sys.modules
     has_ovito = "ovito" in sys.modules
