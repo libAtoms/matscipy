@@ -3752,12 +3752,13 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
             view = show_ase(system[ats_mask])
         else:
+            ats_mask = np.ones(len(system), dtype=bool) 
             struct_type_mask = None
             view = show_ase(system)
         view.hide([0])
         
         if add_bonds: # add bonds between all atoms to have bonds between structures
-            component = view.add_component(ASEStructure(system), default_representation=False, name='between structures')
+            component = view.add_component(ASEStructure(system[ats_mask]), default_representation=False, name='between structures')
             component.add_ball_and_stick(cylinderOnly=True, radiusType='covalent', radiusScale=scale, aspectRatio=0.1)
         
         # Add structure and struct colours
