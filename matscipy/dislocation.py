@@ -4513,7 +4513,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
     
         # 1st, 2nd, & 3rd nearest neighbour distances
-        # for each crytal structure
+        # for each crystal structure
         neigh_dists = {
         "bcc" : [0.88, 1.01, 1.42],
         "fcc" : [0.72, 1.01, 1.23],
