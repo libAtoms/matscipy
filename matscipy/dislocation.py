@@ -46,7 +46,7 @@ from matscipy.neighbours import neighbour_list, mic, coordination
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
 from matscipy.elasticity import cubic_to_Voigt_6x6, coalesce_elastic_constants
-from matscipy.utils import validate_cubic_cell, points_in_polygon2D, classproperty
+from matscipy.utils import validate_cubic_cell, radial_mask_from_polygon2D, classproperty
 
 
 def make_screw_cyl(alat, C11, C12, C44,
@@ -2369,7 +2369,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
     # (see https://stackoverflow.com/questions/472000/usage-of-slots for more details on __slots__)
     __slots__ = ("burgers_dimensionless", "unit_cell_core_position_dimensionless",
                  "glide_distance_dimensionless", "crystalstructure", "axes",
-                 "C", "alat", "unit_cell", "name")
+                 "C", "alat", "unit_cell", "name", "N_cores")
 
     # Attributes with defaults
     # These may be overridden by child classes
@@ -2446,6 +2446,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Name of basic structure defining atomic geometry ("fcc", "bcc", "diamond")
         """
 
+        self.N_cores = 1
+
         # Create copies of immutable class attributes
         # Prevents side effects when E.G. changing burgers vector of an instance
         # Also makes changing cls.var and instance.var work as expected for these variables
@@ -2493,9 +2495,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         Parameters
         ----------
-        use_atomman: bool
-            Use the Stroh solver included in atomman (requires atomman package) to
-            solve for displacements, or use the AnisotropicDislocation class
+        method: str
+            Method to use when calculating the Continuum Linear Elastic (CLE) dislocation displacements.
+            See self.avail_methods for a list of accepted methods
 
         Returns
         -------
@@ -2646,7 +2648,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             with FixAtoms constraints
         """
 
-        def enforce_arr_shape(argname, arg, errs):
+        def enforce_arr_shape(argname, arg, errs, match_ncores):
             """
             Enforce correct array dimensionality for 
             
@@ -2654,17 +2656,19 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             if type(arg) == np.ndarray:
                 if arg.shape[-1] != 3:
                     # Needs to be 3d vectors
-                    errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+                    errs.append(f"{argname} has incorrect shape. Expected ({self.N_cores}, 3), got {arg.shape}")
                 if len(arg.shape) == 1:
                     # Convert all arrays to 2D
-                    arg = np.atleast_2d(arg)
+                    arg = arg[np.newaxis, :]
+                    if match_ncores:
+                        # Enforce the correct number of cores are represented
+                        arg = np.repeat(arg, self.N_cores, axis=0)
+                elif arg.shape[0] != self.N_cores and match_ncores:
+                    errs.append(f"{argname} has incorrect shape. Expected ({self.N_cores}, 3), got {arg.shape}")
             elif arg is not None:
                 # non-array, and not None arg provided, which is not allowed
-                errs.append(f"Argument {argname} misspecified. Should be an array of shape (N, 3)")
+                errs.append(f"Array expected for arg {argname}, got {type(arg)}")
             return arg, errs
-
-
-        from matscipy.utils import radial_mask_from_polygon2D
 
         if self_consistent is None:
             self_consistent = self.self_consistent
@@ -2672,9 +2676,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         # Validate core position, extension, and fixed_points args
         errs = []
         
-        core_positions, errs = enforce_arr_shape("core_positions", core_positions, errs)
-        extension, errs = enforce_arr_shape("extension", extension, errs)
-        fixed_points, errs = enforce_arr_shape("fixed_points", fixed_points, errs)
+        core_positions, errs = enforce_arr_shape("core_positions", core_positions, errs, match_ncores=True)
+        extension, errs = enforce_arr_shape("extension", extension, errs, match_ncores=True)
+        fixed_points, errs = enforce_arr_shape("fixed_points", fixed_points, errs, match_ncores=False)
 
         if len(errs):
             raise RuntimeError("\n".join(errs))
@@ -2697,7 +2701,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             fictitious_core_positions = np.vstack([fictitious_core_positions, extension + core_positions])
 
         if fixed_points is not None:
-            fictitious_core_positions = np.vstack([fictitious_core_positions, fixed_points + self.unit_cell_core_position])
+            fictitious_core_positions = np.concatenate([fictitious_core_positions, fixed_points + self.unit_cell_core_position], axis=0)
         
         fictitious_core_positions = np.unique(fictitious_core_positions, axis=0)
 
@@ -2806,8 +2810,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         max_iter: int
             Maximum number of iterations of the self-consistent cycle to run before throwing 
             an exception
+            If max_iter == 0, return the displacements from the first (0th) iteration with no error.
         verbose: bool
             Enable/Disable printing progress of the self-consistent cycle each iteration
+        mixing: float
+            Mixing parameter between self-consistent displacement iterations (if self_consistent=True)
 
         Returns
         -------
@@ -2852,7 +2859,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                             f'did not converge in {max_iter} cycles')
 
     def displacements(self, bulk_positions, core_positions, method="atomman",
-                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True, mixing=0.5):
+                      self_consistent=True, tol=1e-6, max_iter=100, verbose=True, 
+                      mixing=0.5, r_sc=None):
         """
         Compute dislocation displacements self-consistently, with max_iter capping the number of iterations
         Each dislocation core uses a separate solver, which computes the displacements associated with positions 
@@ -2864,9 +2872,9 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             (N, 3) array of positions of atoms in the bulk configuration
         core_positions: np.array
             Positions of each dislocation core (shape = (ncores, 3))
-        use_atomman: bool
-            Use the Stroh solver included in atomman (requires atomman package) to
-            solve for displacements, or use the AnisotropicDislocation class
+        method: str
+            Method to use when calculating the Continuum Linear Elastic (CLE) dislocation displacements.
+            See self.avail_methods for a list of accepted methods
         self_consistent: bool
             Whether to detemine the dislocation displacements in a self-consistent manner
             (self_consistent=False is equivalent to max_iter=0)
@@ -2875,8 +2883,16 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         max_iter: int
             Maximum number of iterations of the self-consistent cycle to run before throwing 
             an exception
+            If max_iter == 0, return the displacements from the first (0th) iteration with no error.
         verbose: bool
             Enable/Disable printing progress of the self-consistent cycle each iteration
+        mixing: float
+            Mixing parameter between self-consistent displacement iterations (if self_consistent=True)
+        r_sc: float | None
+            Optional cutoff for the self-consistent region. If r_sc=None, treat all displacements self-consistently.
+            Atoms within r_sc radius of any dislocation core will be selected for the self-consistent treatment. Useful if
+            displacement calculations are slow (i.e. for very large systems), or if the self-consistency creates issues in the 
+            dislocation structure (see https://github.com/libAtoms/matscipy/issues/265).
 
         Returns
         -------
@@ -2892,10 +2908,24 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         if not self_consistent:
             max_iter = 0
 
-        disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
-                                                  tol, max_iter, verbose, mixing)
+        if r_sc is None:
+            # Normal mode, treat everything self-consistently
+            disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
+                                                    tol, max_iter, verbose, mixing)
 
-        return disp
+            return disp
+        else:
+            # Only treat atoms within r_sc of polygon formed by dislocation cores self-consistently
+            disp = self.self_consistent_displacements(solvers, bulk_positions, core_positions, 
+                                                    tol, max_iter=0, verbose=verbose, mixing=mixing)
+
+            sc_mask = radial_mask_from_polygon2D(bulk_positions, core_positions, r_sc)
+
+            disp_sc = self.self_consistent_displacements(solvers, bulk_positions[sc_mask, :], core_positions, 
+                                                    tol, max_iter, verbose, mixing)
+
+            disp[sc_mask] = disp_sc
+            return disp
     
 
     def build_cylinder(self, 
@@ -2957,9 +2987,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             If return_fix_mask=True, return the mask used for the FixAtoms constraint
         """
 
-        core_positions = np.array([
-            core_position + self.unit_cell_core_position
-        ])
+        core_positions = np.array(core_position) + self.unit_cell_core_position
 
         bulk, disloc, core_positions, cyl_mask, fix_mask = self._build_bulk_cyl(radius, core_positions, fix_width,
                                                             extension, fixed_points, self_consistent, method, verbose, cyl_mask=cyl_mask, **kwargs)
@@ -3187,28 +3215,47 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         kmap -= np.min(kmap)
         krange = np.max(kmap)
 
-        assert len(kmap) > 0
+        # Enforce 2d structure of kmap
+        if len(kmap.shape) == 1:
+            kmap = kmap[:, np.newaxis]
 
-        unique_kinks = np.sort(np.unique(kmap))
+        n_cores = self.N_cores
+
+        if kmap.shape[1] == 1 and n_cores > 1:
+            # Single kink map for both cores, make sure this is shared
+            kmap = np.repeat(kmap, n_cores, axis=1)
+
+        # Make sure we have enough kink positions, for every dislocation core
+        assert kmap.shape[0] > 0
+        assert kmap.shape[1] == n_cores
+
+        unique_kinks = np.sort(np.unique(kmap, axis=0))
 
         # Make an empty list of the correct length
-        glide_structs = [0] * len(unique_kinks)
+        glide_structs = [0] * unique_kinks.shape[0]
         
         struct_map = []
 
-            
+        # Extrema of the core positions
+        # Fixed points ensure that size of cylinder is consistent between glide_structs
         fixed_points = np.array([
             [0, 0, 0],
             [self.glide_distance * krange, 0, 0]
         ])
 
-        for i in range(len(kmap)):
-            struct_map.append(np.argmax(unique_kinks == kmap[i]))
 
-        for i, kink_pos in enumerate(unique_kinks):
+        for i in range(kmap.shape[0]):
+            # Create a mapping from the kmap onto the minimal set of glide structs
+            struct_map.append(np.argmin(np.linalg.norm(unique_kinks - kmap[i, :], axis=-1)))
+
+        for i in range(unique_kinks.shape[0]):
+            kink_pos = list(unique_kinks[i, :])
+
+            # Calculate real-space core positions for each core
+            core_positions = np.array([[kink_pos[i] * self.glide_distance, 0, 0] for i in range(len(kink_pos))])
             ref_bulk, glide_structs[i] = self.build_cylinder(*args, 
-                                                          fixed_points=fixed_points, 
-                                                          core_position=np.array([kink_pos * self.glide_distance, 0 , 0]),
+                                                          fixed_points=fixed_points,
+                                                          core_position=core_positions,
                                                           **kwargs)
 
         # Deal with small displacements in boundary conditions caused by differences in disloc positions
@@ -3223,6 +3270,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             # Guarantee that the fix masks are all identical
             struct.arrays["fix_mask"] = fix_mask
 
+            # Guarantee that fixed atomic positions are also identical
             p = struct.positions
             p[fix_mask, :] = av_pos
             struct.set_positions(p)
@@ -3357,7 +3405,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return data
 
 
-    def _plot_CLE_disloc_line(self, view, disloc, z_length, disloc_names=None, color=[0, 1, 0]):
+    def _plot_CLE_disloc_line(self, view, disloc, z_length, disloc_names=None, color=None):
         """Add dislocation line to the view as a cylinder and two cones.
         The cylinder is hollow by default so the second cylinder is needed to close it.
         In case partial distance is provided, two dislocation lines are added and are shifter accordingly.
@@ -3382,7 +3430,10 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         
         
         # Validate line_color arg
-        if type(color) in [list, np.array, tuple]:
+        if color is None:
+            default_colour = [0, 1, 0] # Green
+            colours = [default_colour] * len(disloc.info["dislocation_types"])
+        elif type(color) in [list, np.array, tuple]:
             if type(color[0]) in [list, np.array, tuple]:
                 # Given an RGB value per dislocation
                 colours = color
@@ -3622,8 +3673,8 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return view
 
     def view_cyl(self, system, scale=0.5, CNA_color=True, add_bonds=False,
-                     line_color=[0, 1, 0], disloc_names=None, hide_arrows=False,
-                     mode="dxa"):
+                     line_color=None, disloc_names=None, hide_arrows=False,
+                     mode="dxa", hide_bulk=False, hide_fixmask=True):
         """
         NGLview-based visualisation tool for structures generated from the dislocation class
 
@@ -3647,8 +3698,13 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             Hide arrows for placed on the dislocation lines
         mode: str
             Mode for plotting dislocation line
-            mode="dxa" uses ovito dxa to plot an exact line
+            mode="dxa" uses ovito dxa to plot an exact dislocation line
             mode="cle" uses the cle solution used to generate the structure (if the dislocation line is straight)
+        hide_bulk: bool
+            Use structure analysis to mask out the bulk atoms from the system
+        hide_fixmask: bool
+            If hide_bulk is True, also hide any atoms included in the fix_mask (system.arrays["fix_mask"]), if it is present
+
         """
 
         from nglview import show_ase, ASEStructure
@@ -3683,17 +3739,36 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
         atom_labels, structure_names, colors = get_structure_types(system, 
                                                                 diamond_structure=diamond_structure)
-        view = show_ase(system)
+        
+        fix_mask = np.zeros(len(system), dtype=bool)
+        if hide_bulk:
+            if hide_fixmask and "fix_mask" in system.arrays.keys():
+                fix_mask = system.arrays["fix_mask"]
+            struct_type_mask = [i for i in range(len(structure_names)) if self.crystalstructure.lower() 
+                                in structure_names[i] and "neighbor" not in structure_names[i]][0]
+            
+            # Include atom indeces if not the bulk structure type, and not included in the fix_mask
+            ats_mask = [i for i in range(len(atom_labels)) if atom_labels[i] != struct_type_mask and not fix_mask[i]]
+
+            view = show_ase(system[ats_mask])
+        else:
+            ats_mask = np.ones(len(system), dtype=bool) 
+            struct_type_mask = None
+            view = show_ase(system)
         view.hide([0])
         
         if add_bonds: # add bonds between all atoms to have bonds between structures
-            component = view.add_component(ASEStructure(system), default_representation=False, name='between structures')
+            component = view.add_component(ASEStructure(system[ats_mask]), default_representation=False, name='between structures')
             component.add_ball_and_stick(cylinderOnly=True, radiusType='covalent', radiusScale=scale, aspectRatio=0.1)
         
         # Add structure and struct colours
         for structure_type in np.unique(atom_labels):
             # every structure type is a different component
-            mask = atom_labels == structure_type
+
+            if struct_type_mask == structure_type:
+                continue
+
+            mask = (atom_labels == structure_type) * (~fix_mask)
             component = view.add_component(ASEStructure(system[mask]), 
                                         default_representation=False, name=str(structure_names[structure_type]))
             if CNA_color:
@@ -3774,6 +3849,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         right_dislocation = self.right_dislocation
 
         super().__init__(a, C11, C12, C44, C, symbol)
+        self.N_cores = self.left_dislocation.N_cores + self.right_dislocation.N_cores
 
         # Validation of disloc inputs
         try:
@@ -3893,9 +3969,9 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 
         Parameters
         ----------
-        use_atomman: bool
-            Use the Stroh solver included in atomman (requires atomman package) to
-            solve for displacements, or use the AnisotropicDislocation class
+        method: str
+            Method to use when calculating the Continuum Linear Elastic (CLE) dislocation displacements.
+            See self.avail_methods for a list of accepted methods
 
         Returns
         -------
@@ -3914,8 +3990,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                        radius, 
                        partial_distance=0,
                        core_position=np.array([0., 0., 0.]),
-                       extension=np.array([[0., 0., 0.],
-                                          [0., 0., 0.]]),
+                       extension=np.array([0., 0., 0.]),
                        fixed_points=None,
                        fix_width=10.0, 
                        self_consistent=None,
@@ -4041,6 +4116,8 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         self.glides_per_unit_cell = np.floor((self.unit_cell.cell[0, 0] + self.unit_cell.cell[1, 0]) 
                                               / (self.glide_distance - 1e-2)).astype(int)
+        
+        self.name = self.left_dislocation.name + " Quadrupole"
 
     # Overload all of the classmethod properties from CubicCrystalDissociatedDislocation, as these cannot be
     # known at class level (don't know which disloc to make a quadrupole of, so can't know what axes should be)
@@ -4436,7 +4513,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
     
         # 1st, 2nd, & 3rd nearest neighbour distances
-        # for each crytal structure
+        # for each crystal structure
         neigh_dists = {
         "bcc" : [0.88, 1.01, 1.42],
         "fcc" : [0.72, 1.01, 1.23],

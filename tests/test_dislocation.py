@@ -21,6 +21,7 @@
 #
 import os
 import unittest
+from matscipy.neighbours import coordination
 import matscipytest
 import pytest
 import sys
@@ -30,7 +31,7 @@ import numpy as np
 
 from ase.calculators.lammpslib import LAMMPSlib
 from matscipy.calculators.eam import EAM
-from matscipy.dislocation import DiamondGlide90degreePartial, get_elastic_constants
+from matscipy.dislocation import BCCEdge100Dislocation, DiamondGlide90degreePartial, get_elastic_constants
 from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber,\
                                                                 Holland_Marder_PRL_80_746_Si
 from matscipy.calculators.manybody import Manybody
@@ -731,6 +732,61 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
         # err = angle - ref_angle
         # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
         # assert abs(err) < tol
+
+    def test_displacement_r_sc(self, disloc, subtests):
+        '''
+        Test whether the r_sc parameter can fix the vacancy issue reported in https://github.com/libAtoms/matscipy/issues/265
+        
+        '''
+
+        allowed_disloc_classes = [
+            BCCEdge100Dislocation
+        ]
+
+        if disloc.__class__ not in allowed_disloc_classes:
+            self.skipTest()
+
+        self.set_up_cls(disloc)      
+
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        
+        # This ref disloc should have a "vacancy" in it
+        # (Similar to #265)
+        ref_bulk, ref_disloc = d.build_cylinder(200.0, method=self.default_method, verbose=False)
+
+        # Get mask of all unfixed atoms (to exclude surfaces from coordination analysis)
+        outer_mask = ~ref_disloc.arrays["fix_mask"]
+
+        # Get mask of non-core atoms
+        p = ref_bulk.positions - ref_disloc.info["core_positions"][0]
+        inner_mask = np.linalg.norm(p[:, :2], axis=-1) > 15.0
+
+        full_mask = inner_mask * outer_mask
+
+        # Overestimates of 1st nearest neighbour distances
+        # for each crystal structure (to allow for some elasticity)
+        neigh_dists = {
+        "bcc" : 0.89,
+        "fcc" : 0.73,
+        "diamond" : 0.45,
+        }
+
+        ref_coord, ref_counts = np.unique(coordination(ref_disloc, self.alat * neigh_dists[disloc.crystalstructure])[full_mask], return_counts=True)
+
+        # This disloc should not
+        _, r_sc_disloc = d.build_cylinder(200.0, method=self.default_method, verbose=False, r_sc=100)
+        
+        r_sc_coord, r_sc_counts = np.unique(coordination(r_sc_disloc, self.alat * neigh_dists[disloc.crystalstructure])[full_mask], return_counts=True)
+
+        bulk_coord = {
+            "bcc" : 8,
+            "fcc" : 12,
+            "diamond" : 4 
+        }
+        
+        # Check that more atoms are bulk coordinated in r_sc_disloc than in ref_disloc
+        # (i.e. that the "vacancy" has been removed due to the more stable SC displacments)
+        assert ref_counts[ref_coord==bulk_coord[disloc.crystalstructure]] < r_sc_counts[r_sc_coord==bulk_coord[disloc.crystalstructure]]
         
     def test_glide_configs(self, disloc, subtests):  
         self.set_up_cls(disloc)      
@@ -877,6 +933,26 @@ class TestCubicCrystalDissociatedDislocation(BaseTestCubicCrystalDislocation):
         percent_tol = 1.0
 
         assert (max_err / self.alat) <= (percent_tol / 100.0)
+
+    def test_dissoc_kink_equiv_maps(self, disloc, subtests):
+        self.set_up_cls(disloc)
+        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+
+        kmap1 = np.array(
+              [[0, 0]] * 2
+            + [[0, 1]] * 2
+        )
+
+        kmap2 = kmap1 - 1
+
+        bulk, kc1 = d.build_kink_cylinder(kink_map=kmap1, radius=30)
+        bulk, kc2 = d.build_kink_cylinder(kink_map=kmap2, radius=30)
+
+        assert len(kc1) == len(kc2)
+        assert len(bulk) == len(kc2)
+
+        np.testing.assert_array_almost_equal(kc1.positions, kc2.positions)
+
 
 class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture):
     has_atomman = "atomman" in sys.modules

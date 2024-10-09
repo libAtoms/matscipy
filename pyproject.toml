@@ -55,6 +55,9 @@ docs = [
 cli = [
     "argcomplete"
 ]
+all = [
+    "matscipy[test,docs,cli]"
+]
 
 # https://packaging.python.org/en/latest/specifications/pyproject-toml/#entry-points
 [project.scripts]
