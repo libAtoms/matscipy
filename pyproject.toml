@@ -39,7 +39,7 @@ test = [
     "sympy"
 ]
 dislocation = [
-    "nglview==3.0.8"  # resolves https://github.com/libAtoms/matscipy/issues/222
+    "nglview==3.0.8",  # resolves https://github.com/libAtoms/matscipy/issues/222
     "ovito",
     "atomman"
 ]
