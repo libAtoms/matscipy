@@ -35,22 +35,24 @@ test = [
     "pytest",
     "pytest-subtests",
     "pytest-timeout",
-    "sympy",
-    "atomman",
-    "ovito"
+    "matscipy[dislocation]",
+    "sympy"
+]
+dislocation = [
+    "nglview==3.0.8"  # resolves https://github.com/libAtoms/matscipy/issues/222
+    "ovito",
+    "atomman"
 ]
 docs = [
+    "matscipy[dislocation]",
     "sphinx",
     "myst_nb",
     "numpydoc",
-    "atomman",
-    "ovito",
     "sphinx_copybutton",
     "sphinx_rtd_theme",
     "sphinxcontrib-spelling",
     "pydata-sphinx-theme",
-    "jupytext",
-    "nglview==3.0.8"  # resolves https://github.com/libAtoms/matscipy/issues/222
+    "jupytext"
 ]
 cli = [
     "argcomplete"
