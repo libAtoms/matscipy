@@ -4064,7 +4064,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         bulk, disloc, core_positions, cyl_mask, fix_mask = self._build_bulk_cyl(radius, core_positions, fix_width, extension,
                                                             fixed_points, self_consistent, method, verbose, cyl_mask=cyl_mask, **kwargs)
 
-        if partial_distance > 0:
+        if not np.allclose(core_positions[0, :], core_positions[1, :]):
             # Specify left & right dislocation separately
             disloc.info["core_positions"] = [list(core_positions[0, :]), list(core_positions[1, :])]
             disloc.info["burgers_vectors"] = [list(self.left_dislocation.burgers), list(self.right_dislocation.burgers)]
