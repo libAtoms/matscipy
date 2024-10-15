@@ -284,6 +284,7 @@ texinfo_documents = [
 # Raise Error (not default Warning) when a notebook execution fails
 # (due to code error, timeout, etc.)
 nb_execution_raise_on_error = True
+nb_execution_show_tb = True
 nb_execution_timeout = 90
 
 # -- Extension configuration -------------------------------------------------
