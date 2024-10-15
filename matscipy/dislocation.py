@@ -3493,6 +3493,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             # Start by translating by z_max (periodicity) such that there are points below the cell
             n = np.ceil(np.min(p[:, 2]) / z_max)
             p_off = n * z_max
+            p = np.copy(p) # Needed as sphinx-build/myst_nb was making `p` read-only for some reason.
             p[:, 2] -= p_off
 
             # Now start from the point with negative z closest to z=0
