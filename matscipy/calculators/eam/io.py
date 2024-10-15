@@ -148,11 +148,11 @@ def read_eam(eam_file, kind="eam/alloy"):
     supported_kinds = ["eam", "eam/alloy", "eam/fs"]
     if kind not in supported_kinds: 
         raise ValueError(f"EAM kind {kind} not supported")
-    with open(eam_file, 'r') as file:
-        eam = file.readlines()
+    # with open(eam_file, 'r') as file:
+    #     eam = file.readlines()
 
     if kind == "eam":
-        with open(eam_file, 'r') as file:
+        with open(eam_file, 'r', encoding='utf-8') as file:
             # ignore comment characters on first line but strip them from subsequent lines
             lines = [file.readline()]
             lines.extend(_strip_comments_from_line(line) for line in file.readlines())
