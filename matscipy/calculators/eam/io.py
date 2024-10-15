@@ -575,7 +575,7 @@ def write_eam(source, parameters, F, f, rep, out_file, kind="eam"):
         # parameters unpacked
         potheader = f"# Mixed EAM alloy potential from :\n# {source} \n# \n"
         # --- Writing new EAM alloy pot file --- #
-        potfile = open(out_file,'wb', encoding='utf-8')
+        potfile = open(out_file,'wb')
         # write header and file parameters
         np.savetxt(
             potfile, elements, fmt="%s", newline=' ', 
@@ -598,7 +598,7 @@ def write_eam(source, parameters, F, f, rep, out_file, kind="eam"):
         # parameters unpacked
         potheader = f"# Mixed EAM fs potential from :\n# {source} \n# \n"
         # --- Writing new EAM alloy pot file --- #
-        potfile = open(out_file,'wb', encoding='utf-8')
+        potfile = open(out_file,'wb')
         # write header and file parameters
         np.savetxt(
             potfile, elements, fmt="%s", newline=' ', 
