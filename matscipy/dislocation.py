@@ -3493,6 +3493,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
             # Start by translating by z_max (periodicity) such that there are points below the cell
             n = np.ceil(np.min(p[:, 2]) / z_max)
             p_off = n * z_max
+            p = np.copy(p) # Needed as sphinx-build/myst_nb was making `p` read-only for some reason.
             p[:, 2] -= p_off
 
             # Now start from the point with negative z closest to z=0
@@ -4064,7 +4065,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         bulk, disloc, core_positions, cyl_mask, fix_mask = self._build_bulk_cyl(radius, core_positions, fix_width, extension,
                                                             fixed_points, self_consistent, method, verbose, cyl_mask=cyl_mask, **kwargs)
 
-        if partial_distance > 0:
+        if not np.allclose(core_positions[0, :], core_positions[1, :]):
             # Specify left & right dislocation separately
             disloc.info["core_positions"] = [list(core_positions[0, :]), list(core_positions[1, :])]
             disloc.info["burgers_vectors"] = [list(self.left_dislocation.burgers), list(self.right_dislocation.burgers)]
