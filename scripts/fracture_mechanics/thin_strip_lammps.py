@@ -124,7 +124,7 @@ if me == 0:
     tsb = ThinStripBuilder(el,a0,C,calc,lattice,directions,multilattice=multilattice,cb=cb,switch_sublattices=True)
     tsb.y_buffer_unit_cells = int(y_buffer_unit_cells)
     if not approximate_strain:
-        tsb.measure_energy_strain_relation(resolution=1000)
+        tsb.measure_energy_strain_relation(resolution=100)
     
     crack_slab = tsb.build_thin_strip_with_crack(initial_K,strip_width,strip_height,strip_thickness\
                                                ,vacuum,crack_seed_length,strain_ramp_length,track_spacing=track_spacing,
