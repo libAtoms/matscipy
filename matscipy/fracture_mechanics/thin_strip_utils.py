@@ -673,7 +673,7 @@ class ThinStripBuilder:
                 tip_pos_y = (final_crack_state.get_positions()[bond_atoms,:][:,1])
                 final_crack_state.arrays['crack_tip'][bond_atoms[0]] = 1
                 final_crack_state.arrays['crack_tip'][bond_atoms[1]] = 1
-                ase.io.write(f'crack_tip_{j}.xyz',final_crack_state)
+                #ase.io.write(f'crack_tip_{j}.xyz',final_crack_state)
                 #print(tip_pos[0],tip_pos[1])
                 if not step_tolerant:
                     #crack atoms must strictly be opposite
@@ -828,17 +828,75 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     # Specify the output frequency for thermo data
     lmps.command(f'thermo {thermo_freq}')
 
-#C = parameter('C')
-#a0 = parameter('a0')
-#directions = [parameter('crack_direction'),
-#              parameter('cleavage_plane'),
-#              parameter('crack_front')]
-#el = parameter('el')
 
-#tsb = thin_strip_builder(el,a0,C,directions)
-#tsb.build_thin_strip_with_strain(0.05,300,100,8)
-#cracked_slab = tsb.build_thin_strip_with_crack(0.05,300,100,8,200,10)
+def set_up_eq_crack_simulation(lmps,tmp_file_path,atomic_mass,calc_commands,
+                             sim_tstep=0.001,dump_freq=100, dump_files=True,
+                             dump_name='dump.lammpstrj',thermo_freq=100,T=100,
+                             damping_strength=0.1,rseed=1029):
+    """Set up the simulation by passing an active LAMMPS object a number of commands"""
+    
+    # ---------- Initialize Simulation --------------------- 
+    lmps.command('clear') 
+    lmps.command('dimension 3')
+    lmps.command('boundary s s p')
+    lmps.command('atom_style atomic')
+    lmps.command('units metal')
 
-#for i in range(10):
-#    cracked_slab = tsb.paste_atoms_into_strip(0.05,300,100,8,cracked_slab,1)
-#    ase.io.write(f'{i}.xyz',cracked_slab)
+
+    lmps.command(f'read_data {tmp_file_path}/crack.lj')
+                 
+
+    #---------- Determine Lowest and Highest y-coordinates ----------
+    lmps.command('group crack type 1')
+    lmps.command('variable ymax equal bound(crack,ymax)')
+    lmps.command('variable ymin equal bound(crack,ymin)')
+    lmps.command('variable xmax equal bound(crack,xmax)')
+    lmps.command('variable xmin equal bound(crack,xmin)')
+    #define a variable for average y position of crack atoms using ymax and ymin
+    lmps.command('variable ymid equal (v_ymax+v_ymin)/2')
+    #----------Define potential-------
+    lmps.command(f'mass 1 {atomic_mass}')
+
+    
+    ############ set up potential ################
+    #set up both potentials, ensuring that interactions between types are defined
+    lmps.commands_list(calc_commands)
+
+    #---------- Define balance fix to spread load between processors
+    lmps.command(f'fix b_fix all balance 50 1.2 shift xy 10 1.05 weight time 1.1')
+
+    #---------- Define Regions for Boundary Layers ----------
+    lmps.command(f'region bottom_layer block INF INF $((v_ymin-2)) $((v_ymin)) INF INF')
+    lmps.command(f'region top_layer block INF INF $((v_ymax)) $(v_ymax+2) INF INF')
+    lmps.command('region left_layer_fixed block $((v_xmin-2)) $((v_xmin+5)) INF INF INF INF')
+    lmps.command('region right_layer_fixed block $((v_xmax-5)) $((v_xmax+2)) INF INF INF INF')
+
+    #---------- Set groups for boundary layers ----------
+    lmps.command('group top_atoms region top_layer')
+    lmps.command('group bottom_atoms region bottom_layer')
+    lmps.command('group left_atoms region left_layer_fixed')
+    lmps.command('group right_atoms region right_layer_fixed')
+    lmps.command('group non_fixed_atoms subtract all top_atoms left_atoms bottom_atoms right_atoms')
+
+    # --------- Fix the edge atoms to prevent movement -----------
+    lmps.command('fix 1 top_atoms setforce 0.0 0.0 NULL')
+    lmps.command('fix 2 bottom_atoms setforce 0.0 0.0 NULL')
+    lmps.command('fix 3 left_atoms setforce 0.0 0.0 NULL')
+    lmps.command('fix 4 right_atoms setforce 0.0 0.0 NULL')
+
+    # ---------- set timestep length -------------
+    lmps.command(f'timestep {sim_tstep}')
+
+    # ---------- Apply a thermostat to control the temperature ------------
+    lmps.command('fix 5 non_fixed_atoms nve')
+    lmps.command(f'fix therm non_fixed_atoms langevin {T} {T} {damping_strength} {rseed}')
+
+
+    # Add a dump command to save .lammpstrj files every 100 timesteps during equilibration
+    if dump_files:
+        #lmps.command(f'dump myDump all atom {dump_freq} {tmp_file_path}/{dump_name}')
+        lmps.command(f'dump myDump all custom {dump_freq} {tmp_file_path}/{dump_name} id type xs ys zs vx vy vz')
+        #lmps.command('dump_modify myDump append yes')
+
+    # Specify the output frequency for thermo data
+    lmps.command(f'thermo {thermo_freq}')
