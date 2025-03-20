@@ -10,6 +10,7 @@ from matscipy.fracture_mechanics.clusters import set_groups
 from matscipy.fracture_mechanics.crack import find_tip_coordination, find_tip_non_centred
 import matplotlib.pyplot as plt
 from matscipy.cauchy_born import CubicCauchyBorn
+import warnings
 
 class ThinStripBuilder:
 
@@ -682,6 +683,8 @@ class ThinStripBuilder:
                     assert np.abs(tip_pos[0]-tip_pos[1]) < 2*bondlength
                 
                 found_tip = True
+                crack_tip_position_x = np.mean(tip_pos)
+                crack_tip_position_y = np.mean(tip_pos_y)
                 break
             except AssertionError:
                 tmp_bondlength += 0.01
@@ -689,12 +692,18 @@ class ThinStripBuilder:
     
         #crack tip pos is the maximum of tips_found[i]
         if not found_tip:
-            raise RuntimeError('Lost crack tip!')
+            if not step_tolerant:
+                raise RuntimeError('Lost crack tip!')
+            else:
+                warnings.warn("No well-defined crack tip; things are messy! Guessing at furthest right low-coordinated atom")
+                crack_tip_position_x = np.max(tip_pos)
+                crack_tip_position_y = np.mean(tip_pos_y)
+
         
 
         print(f'Found crack tip at position {tip_pos}')
         
-        return tip_pos[0], tip_pos_y[0], bond_atoms
+        return crack_tip_position, crack_tip_position_y, bond_atoms
 
 def write_potential_and_buffer(atoms,lammps_filename):
     #get the potential and buffer array from atoms
@@ -737,7 +746,7 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     lmps.command('boundary s s p')
     lmps.command('atom_style atomic')
     lmps.command('units metal')
-
+    lmps.command('atom_modify map yes')
 
     #----------Read atoms------------
     if multi_potential:
