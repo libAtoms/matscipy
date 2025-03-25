@@ -16,7 +16,6 @@ import params
 import ase.units as units
 import warnings
 
-
 me = MPI.COMM_WORLD.Get_rank()
 nprocs = MPI.COMM_WORLD.Get_size()
 strip_height = parameter('strip_height')
@@ -55,8 +54,11 @@ sim_tstep = parameter('sim_tstep',0.001) #ps
 temp_path = parameter('temp_path','./temp')
 damping_strength_right = parameter('damping_strength_right', 0.1)
 damping_strength_left = parameter('damping_strength_left', 0.1)
+weak_damp_thickness_ratio= parameter('weak_damp_thickness_ratio',0)
+weak_damp_factor= parameter('weak_damp_factor',1)
 dump_freq = parameter('dump_freq',100)
 dump_name = parameter('dump_name','dump.lammpstrj')
+dump_surface_atoms = parameter('dump_surface_atoms',False)
 thermo_freq = parameter('thermo_freq',100)
 initial_damp = parameter('initial_damp', True)
 initial_damping_time = parameter('initial_damping_time',10)
@@ -93,6 +95,12 @@ else:
     partition_type = None
     partition_width = None
 
+
+bond_topology = parameter('bond_topology',False) #if True, use bond topology to find crack tip
+if bond_topology:
+    set_bonds_func = parameter('set_bonds_func')
+    set_bonds_cutoff = parameter('set_bonds_cutoff')
+
 y_threshold = parameter('y_threshold',1)
 cpnum = initial_checkpoint_num
 
@@ -109,6 +117,16 @@ if restart and initial_damp:
 if restart and initial_kick:
     initial_kick = False
     warnings.warn('Restarting from checkpoint, initial kick will be skipped')
+
+
+def write_for_lammps(name, atoms, exclude_mask_top=None, exclude_mask_bot=None):
+    if bond_topology:
+        atoms = set_bonds_func(atoms,set_bonds_cutoff, exclude_mask_top=exclude_mask_top, exclude_mask_bot=exclude_mask_bot)
+        ase.io.lammpsdata.write_lammps_data(name,atoms,velocities=True,atom_style='full',masses=True)
+    else:
+        ase.io.lammpsdata.write_lammps_data(name,atoms,velocities=True,masses=True)
+    
+
 
 lmp = lammps()
 
@@ -145,8 +163,7 @@ if me == 0:
                 raise ValueError('Partition type not recognised')
 
         ase.io.write(f'{temp_path}/crack.xyz', crack_slab, format='extxyz')
-        ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',crack_slab,velocities=True)
-        
+        write_for_lammps(f'{temp_path}/crack.lj',crack_slab)
         if multi_potential:
             write_potential_and_buffer(crack_slab,f'{temp_path}/crack.lj')
 
@@ -171,7 +188,12 @@ if me == 0:
         restart_knum = int(restart_knum)
         plot_num = int(plot_num)
         cpnum = int(cpnum)+1
-        assert (kvals[restart_knum] == K_restart), 'K value in restart file does not match K value in kvals list'
+        print("restart knum", restart_knum)
+        print("kvals restart num", kvals[restart_knum])
+        print("K_restart", K_restart)
+        assert np.isclose(kvals[restart_knum],K_restart), 'K value in restart file does not match K value in kvals list'
+        if kvals[restart_knum] != K_restart:
+            kvals[restart_knum] = K_restart
         #assert that cpdir/cpnum does not exist
         assert not os.path.exists(f'./{checkpoint_filename}/{cpnum}'), f'The next checkpoint directory ./{checkpoint_filename}/{cpnum} already exists, please change checkpoint directory'
         #shorten kvals list to start from the restart_knum entry
@@ -179,9 +201,11 @@ if me == 0:
         K_curr = K_restart
     
     y_fixed_length = y_buffer_unit_cells*tsb.single_cell_height + 1
+    top_surface_array = np.where(crack_slab.arrays['trackable'] == 1)[0]
 else:
     tracked_array = None
     y_fixed_length = 0
+    top_surface_array = None
 
 ######################################################################################################
 
@@ -199,7 +223,7 @@ for knum,K in enumerate(kvals):
             unscaled_crack.set_pbc([False,False,True])
             rescale_crack = tsb.rescale_K(unscaled_crack,K_curr,K,strip_height,tip_pos,approximate=approximate_strain)
             #re-write lammps data file
-            ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',rescale_crack,velocities=True,masses=True)
+            write_for_lammps(f'{temp_path}/crack.lj',rescale_crack)
             if multi_potential:
                 write_potential_and_buffer(crack_slab,f'{temp_path}/crack.lj')
 
@@ -230,10 +254,12 @@ for knum,K in enumerate(kvals):
         set_up_simulation_lammps(lmp,temp_path,mass,cmds,sim_tstep=sim_tstep,damping_strength_right=damping_strength_right,damping_strength_left=damping_strength_left
                                  , dump_freq=dump_freq, dump_name=dump_name, thermo_freq=thermo_freq, dump_files=dump_files,
                                  left_damp_thickness=left_damp_thickness, right_damp_thickness=right_damp_thickness,multi_potential=multi_potential,
-                                 y_fixed_length=y_fixed_length)
+                                 y_fixed_length=y_fixed_length, bond_topology=bond_topology, weak_damp_thickness_ratio=weak_damp_thickness_ratio,
+                                 weak_damp_factor=weak_damp_factor)
         if (i < initial_damping_time) and (initial_damp):
             #add a lammps command to set a thermostat for all atoms initially
             lmp.command(f'fix therm2 nve_atoms langevin 0.0 0.0 {initial_damping_strengths[i]} 1029')
+        # lmp.command(f'fix therm2 nve_atoms langevin 0.0 0.0 5.0 1029')
         atom_ids = np.where(tracked_array>0)[0]
         #make a string of atom ids to pass to lammps
         #atom_id_string = ' '.join1([str(x) for x in atom_ids])
@@ -244,6 +270,13 @@ for knum,K in enumerate(kvals):
             lmp.command(f'dump track_dump_{track_group} tracked_{track_group} atom {track_tstep} {temp_path}/tracked_{track_group}.lammpstrj')
             fnames.append(f'{temp_path}/tracked_{track_group}.lammpstrj')
         #run for 1000 timesteps
+        if bond_topology:
+            lmp.command(f'fix break_bonds all bond/break 1 1 {set_bonds_cutoff}')
+
+        if dump_surface_atoms:
+            top_surface_array = MPI.COMM_WORLD.bcast(top_surface_array,root=0)
+            lmp.command(f'group top_surface_atoms id {" ".join(map(str, top_surface_array + 1))}')
+            lmp.command(f'dump top_surface_dump top_surface_atoms custom 1 {temp_path}/top_surface_atoms.lammpstrj id type x y z')
         lmp.command(f'run {n_steps_per_loop}')
         #write temp output file
         lmp.command(f'write_data {temp_path}/simulation_output.temp nocoeff nofix nolabelmap')
@@ -271,7 +304,10 @@ for knum,K in enumerate(kvals):
                     np.savetxt(f,tracked_motion_dict[key])
             
             # -------------- read in simulation output file --------------- #
-            final_crack_state = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/simulation_output.temp',atom_style='atomic')
+            if bond_topology:
+                final_crack_state = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/simulation_output.temp',atom_style='full')
+            else:
+                final_crack_state = ase.io.lammpsdata.read_lammps_data(f'{temp_path}/simulation_output.temp',atom_style='atomic')
             final_crack_state.set_pbc([False,False,True])
             final_crack_state.new_array('groups',crack_slab.arrays['groups'])
             final_crack_state.new_array('tracked',tracked_array)
@@ -331,14 +367,16 @@ for knum,K in enumerate(kvals):
                 #mask is full mask and atoms which have a y position equal to that of the crack tip within numerical resolution
                 top_mask = full_mask & (np.round(y_pos,decimals=3) == np.round(tip_y_pos[0],decimals=3))
                 bot_mask = full_mask & (np.round(y_pos,decimals=3) == np.round(tip_y_pos[1],decimals=3))
-
                 print('Delivering kick.........')
-                #set bond_atoms[0] velocity to -2 and bond_atoms[1] velocity to 2
-                velocities = new_slab.get_velocities()
-                velocities[:,1][top_mask] += 0.3
-                velocities[:,1][bot_mask] += -0.3
-                initial_kick = False
-                new_slab.set_velocities(velocities)
+
+                if not bond_topology:
+                    # if not using bonds, then kick with a velocity
+                    #set bond_atoms[0] velocity to -2 and bond_atoms[1] velocity to 2
+                    velocities = new_slab.get_velocities()
+                    velocities[:,1][top_mask] += 0.3
+                    velocities[:,1][bot_mask] += -0.3
+                    initial_kick = False
+                    new_slab.set_velocities(velocities)
 
 
             #--------------- if multi potential, redraw boundaries ----------------#
@@ -351,7 +389,10 @@ for knum,K in enumerate(kvals):
 
             # -------------- write file for next loop --------------- #
             #ase.io.write(f'{results_path}/new_slab_{plot_num}.xyz',new_slab,format='extxyz')
-            ase.io.lammpsdata.write_lammps_data(f'{temp_path}/crack.lj',new_slab,velocities=True,masses=True)
+            if initial_kick and bond_topology and (i+1 == kick_timestep):
+                write_for_lammps(f'{temp_path}/crack.lj',new_slab,exclude_mask_top=top_mask,exclude_mask_bot=bot_mask)
+            else:
+                write_for_lammps(f'{temp_path}/crack.lj',new_slab)
             if multi_potential:
                 write_potential_and_buffer(new_slab,f'{temp_path}/crack.lj')
             #write extxyz file too in case of rescaling
@@ -363,6 +404,8 @@ for knum,K in enumerate(kvals):
             print(f'CRACK TIP POS:{tip_pos}')
             print(f'SHIFTED CRACK TIP POS:{tip_pos-steady_state_check_dist}')
             print(f'MASK LEN:{len(np.where(mask)[0])}')
+            final_crack_state.arrays['mask'] = mask
+            # ase.io.write('final_crack_state.xyz',final_crack_state,format='extxyz')
             if len(np.where(mask)[0])>=2:
                 prev_2_tracked_idx = np.argsort(final_crack_state.get_positions()[mask,0])[-2:]
                 atom_ids = np.where(mask)[0][prev_2_tracked_idx]
@@ -412,7 +455,6 @@ for knum,K in enumerate(kvals):
             if checkpointing and (i+1)%checkpoint_interval == 0:
                 cpdir = f'./{checkpoint_filename}/{cpnum}'
                 os.makedirs(cpdir, exist_ok=False)
-                #ase.io.lammpsdata.write_lammps_data(f'{cpdir}/crack.lj',new_slab,velocities=True,masses=True)
                 os.system(f'cp {temp_path}/crack.lj {cpdir}')
                 np.savetxt(f'{cpdir}/simulation_restart_params.txt',np.array([knum,K_curr,sim_time,plot_num,cpnum,tsb.total_added_dist,tip_pos]))
                 np.savetxt(f'{cpdir}/tracked_array.txt',tracked_array)

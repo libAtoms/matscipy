@@ -175,7 +175,10 @@ class ThinStripBuilder:
         if self.multilattice:
             self.cb.set_sublattices(unit_slab, self.A)
 
+        # ase.io.write('unit_slab.xyz',unit_slab)
         # center vertically half way along the vertical bond between atoms 0 and 1
+        if len(unit_slab) == 1:
+            unit_slab *= (1, 2, 1)
         unit_slab.positions[:, 1] += (unit_slab.positions[1, 1] -
                                     unit_slab.positions[0, 1]) / 2.0
 
@@ -189,14 +192,25 @@ class ThinStripBuilder:
         nx = int(width / unit_slab.cell[0, 0])
         ny = int(height/ unit_slab.cell[1, 1])
         nz = int(thickness/ unit_slab.cell[2, 2])
+        if nz == 0:
+            nz = 1
         #add additional unit cells to the top and bottom of the slab
         ny += 2*self.y_buffer_unit_cells
         print('nx ny nz', nx,ny,nz)
         #ase.io.write('unitslab.xyz',unit_slab)
-        self.single_cell_width = unit_slab.cell[0,0]
-        self.single_cell_height = unit_slab.cell[1,1]
-        self.min_x_pos_dist = np.min(unit_slab.get_positions()[:,0])
-        self.max_x_pos_dist = self.single_cell_width - np.max(unit_slab.get_positions()[:,0])
+        copy_slab = unit_slab.copy()
+        # rectangularise copy_cell
+        copy_slab_cell = copy_slab.get_cell()
+        if (abs(copy_slab_cell[0, 1]) < 0.01 or abs(copy_slab_cell[1, 0]) < 0.01):
+            copy_slab_cell[0, 1] = 0.0
+            copy_slab_cell[1, 0] = 0.0
+            copy_slab.set_cell(copy_slab_cell)
+            copy_slab.wrap()
+        
+        self.single_cell_width = copy_slab.cell[0,0]
+        self.single_cell_height = copy_slab.cell[1,1]
+        self.min_x_pos_dist = np.min(copy_slab.get_positions()[:,0])
+        self.max_x_pos_dist = self.single_cell_width - np.max(copy_slab.get_positions()[:,0])
         #print('min x pos', self.min_x_pos_dist)
         #print('max x pos', self.max_x_pos_dist)
         # make sure ny is even so slab is centered on a bond
@@ -219,6 +233,17 @@ class ThinStripBuilder:
         crack_slab = crack_slab * (nx, 1, 1)
         crack_slab.positions += [1,0.1,0]
         crack_slab.wrap()
+        # check if cell is square
+        # set any off diagonal components of cell vector to 0
+        cell = crack_slab.get_cell()
+        if (abs(cell[0, 1]) < 0.01 or abs(cell[1, 0]) < 0.01):
+            warnings.warn('Non-square thin strip detected, creating square...')
+            cell[0, 1] = 0.0
+            cell[1, 0] = 0.0
+            crack_slab.set_cell(cell)
+            crack_slab.wrap()
+
+
         # open up the cell along x and y by introducing some vaccum
         crack_slab.center(vacuum, axis=0)
         crack_slab.center(vacuum, axis=1)
@@ -410,7 +435,10 @@ class ThinStripBuilder:
         #take a set of atom and sort by x, y and z
         pos = atoms.get_positions()
         x, y, z = pos[:,0],pos[:,1], pos[:,2]
-        order = np.lexsort((z, y, x))
+        order = np.lexsort((z, x, y))
+        # z x y seems to work well as a stable sort order
+        # in most cases (including triangle lattice)
+        #(z, y, x)
         return order
         
         
@@ -446,8 +474,11 @@ class ThinStripBuilder:
         crop = paste_num_cells*self.single_cell_width
         
         x_strain = new_strip.info['x_strain']
+        print('x_strain',x_strain)
         max_x_pos_dist = self.max_x_pos_dist + (self.max_x_pos_dist*x_strain)
+        print('max x pos dist',max_x_pos_dist)
         min_x_pos_dist = self.min_x_pos_dist + (self.min_x_pos_dist*x_strain)
+        print('min x pos dist',min_x_pos_dist)
         crop += x_strain*crop
         #right_hand_edge_dist -= self.nu*strain*right_hand_edge_dist
         #crop += right_hand_edge_dist
@@ -461,15 +492,15 @@ class ThinStripBuilder:
         #ase.io.write('new_strip_init.xyz',new_strip)
         #make a copy of the old_atoms
         old_atoms_non_shifted = old_atoms.copy()
-        #ase.io.write('old_atoms_1.xyz',old_atoms)
+        # ase.io.write('old_atoms_1.xyz',old_atoms)
         #shift all the old_atoms positions backwards by crop
         old_atoms.positions[:,0] -= crop
-        #ase.io.write('old_atoms_2.xyz',old_atoms)
+        # ase.io.write('old_atoms_2.xyz',old_atoms)
         diff = (np.max(pos[:,0][pos[:,0]<(right_edge_pos-crop)])-np.max(old_atoms.positions[:,0][pos[:,0]<right_edge_pos]))
-        print('diff',diff)
+        # print('diff',diff)
         old_atoms_non_shifted.positions[:,0] += diff
         old_atoms.positions[:,0] += diff
-        #ase.io.write('old_atoms_3.xyz',old_atoms)
+        # ase.io.write('old_atoms_3.xyz',old_atoms)
         
         print('minmax',min_x_pos_dist, max_x_pos_dist)
         min_crop = np.min(pos[:,0]) + crop - min_x_pos_dist - 0.05
@@ -482,7 +513,7 @@ class ThinStripBuilder:
         crop_arr = new_strip_copy.arrays['crop']
         crop_arr[pos[:,0]<(max_crop-right_hand_edge_dist)] += 1 
         crop_arr[((pos[:,0]>min_crop)&(pos[:,0]<right_edge_pos))] += 1
-        #ase.io.write('crop_arrfile.xyz',new_strip_copy)
+        # ase.io.write('crop_arrfile.xyz',new_strip_copy)
 
         new_pos = new_strip.get_positions()
         old_pos = old_atoms.get_positions()
@@ -490,10 +521,18 @@ class ThinStripBuilder:
         old_tracked = old_atoms.arrays['tracked']
         new_strip.new_array('tracked',np.zeros(len(new_strip),dtype=int))
         new_v = np.zeros_like(old_v)
-
+        # ase.io.write('old_atoms_4.xyz',old_atoms)
         #shift the atoms getting tracked backwards
+        # new_strip.arrays['pos_less_than_max_crop'] = np.zeros(len(new_strip),dtype=bool)
+        # new_strip.arrays['pos_less_than_max_crop'][pos[:,0]<max_crop] = True
+        # new_strip.arrays['pos_greater_than_min_crop'] = np.zeros(len(new_strip),dtype=bool)
+        # new_strip.arrays['pos_greater_than_min_crop'][pos[:,0]>min_crop] = True
+        # new_strip.arrays['old_tracked'] = old_tracked
         new_strip.arrays['tracked'][pos[:,0]<max_crop] = old_tracked[pos[:,0]>min_crop]
-
+        # assert that all tracked atoms are also trackable atoms
+        # ase.io.write('new_strip_temp.xyz',new_strip)
+        #print(new_strip.arrays['trackable'][new_strip.arrays['tracked']>0])
+        assert np.all(new_strip.arrays['trackable'][new_strip.arrays['tracked']>0]), 'Not all tracked atoms are trackable - sort order issue?'
         #add new atoms for tracking if necessary
         if track_spacing>0:
             new_atoms_to_track=[]
@@ -673,7 +712,7 @@ class ThinStripBuilder:
                 tip_pos_y = (final_crack_state.get_positions()[bond_atoms,:][:,1])
                 final_crack_state.arrays['crack_tip'][bond_atoms[0]] = 1
                 final_crack_state.arrays['crack_tip'][bond_atoms[1]] = 1
-                #ase.io.write(f'crack_tip_{j}.xyz',final_crack_state)
+                # ase.io.write(f'crack_tip_{j}.xyz',final_crack_state)
                 #print(tip_pos[0],tip_pos[1])
                 if not step_tolerant:
                     #crack atoms must strictly be opposite
@@ -703,7 +742,7 @@ class ThinStripBuilder:
 
         print(f'Found crack tip at position {tip_pos}')
         
-        return crack_tip_position, crack_tip_position_y, bond_atoms
+        return crack_tip_position_x, crack_tip_position_y, bond_atoms
 
 def write_potential_and_buffer(atoms,lammps_filename):
     #get the potential and buffer array from atoms
@@ -737,14 +776,18 @@ def write_potential_and_buffer(atoms,lammps_filename):
 def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
                              sim_tstep=0.001,damping_strength_right=0.1,damping_strength_left=0.1,dump_freq=100, dump_files=True,
                              dump_name='dump.lammpstrj',thermo_freq=100,left_damp_thickness=60,
-                             right_damp_thickness=60,multi_potential=False, y_fixed_length=1):
+                             right_damp_thickness=60,multi_potential=False, y_fixed_length=1,
+                             bond_topology=False, weak_damp_thickness_ratio=0, weak_damp_factor=1):
     """Set up the simulation by passing an active LAMMPS object a number of commands"""
     
     # ---------- Initialize Simulation --------------------- 
     lmps.command('clear') 
     lmps.command('dimension 3')
     lmps.command('boundary s s p')
-    lmps.command('atom_style atomic')
+    if bond_topology:
+        lmps.command('atom_style full')
+    else:
+        lmps.command('atom_style atomic')
     lmps.command('units metal')
     lmps.command('atom_modify map yes')
 
@@ -781,8 +824,11 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     lmps.command(f'region top_layer block INF INF $((v_ymax)-{y_fixed_length}) $(v_ymax+2) INF INF')
     lmps.command('region left_layer_fixed block $((v_xmin-2)) $((v_xmin+5)) INF INF INF INF')
     lmps.command('region right_layer_fixed block $((v_xmax-5)) $((v_xmax+2)) INF INF INF INF')
-    lmps.command(f'region left_layer_thermostat block $((v_xmin-2)) $((v_xmin+{left_damp_thickness})) INF INF INF INF')
-    lmps.command(f'region right_layer_thermostat block $((v_xmax-{right_damp_thickness})) $((v_xmax+2)) INF INF INF INF')
+    lmps.command(f'region left_layer_thermostat_strong block $((v_xmin-2)) $((v_xmin+{left_damp_thickness/(weak_damp_thickness_ratio+1)})) INF INF INF INF')
+    lmps.command(f'region right_layer_thermostat_strong block $((v_xmax-{right_damp_thickness/(weak_damp_thickness_ratio+1)})) $((v_xmax+2)) INF INF INF INF')
+
+    lmps.command(f'region left_layer_thermostat_weak block $((v_xmin+{left_damp_thickness/(weak_damp_thickness_ratio+1)})) $((v_xmin+{left_damp_thickness})) INF INF INF INF')
+    lmps.command(f'region right_layer_thermostat_weak block $((v_xmax-{right_damp_thickness})) $((v_xmax-{right_damp_thickness/(weak_damp_thickness_ratio+1)})) INF INF INF INF')
 
     #---------- Set groups for boundary layers ----------
     # Identify atoms within 1 unit of the top and bottom boundaries
@@ -790,8 +836,10 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     lmps.command('group bottom_atoms region bottom_layer')
     lmps.command('group left_atoms region left_layer_fixed')
     lmps.command('group right_atoms region right_layer_fixed')
-    lmps.command('group left_thermo region left_layer_thermostat')
-    lmps.command('group right_thermo region right_layer_thermostat')
+    lmps.command('group left_thermo_weak region left_layer_thermostat_weak')
+    lmps.command('group right_thermo_weak region right_layer_thermostat_weak')
+    lmps.command('group left_thermo_strong region left_layer_thermostat_strong')
+    lmps.command('group right_thermo_strong region right_layer_thermostat_strong')
     #lmps.command('group top_atoms subtract top_atoms_full right_atoms')
     #lmps.command('group bottom_atoms subtract bottom_atoms_full right_atoms')
 
@@ -800,7 +848,7 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     lmps.command('fix 2 bottom_atoms setforce 0.0 0.0 NULL')
     lmps.command('fix 3 left_atoms setforce 0.0 0.0 NULL')
     lmps.command('fix 4 right_atoms setforce 0.0 0.0 NULL')
-
+    lmps.command('velocity left_atoms set 0.0 0.0 0.0')
     # --------- Turn right edge atoms into a rigid body to prevent any curvature -------------
     #lmps.command(f'fix 4 right_atoms rigid single force 1 on off off torque 1 off off off langevin 0.0 0.0 {damping_strength_right} 1029')
 
@@ -814,8 +862,10 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
 
     # ---------- Apply a thermostat to control the temperature ------------
     lmps.command('fix 5 nve_atoms nve')
-    lmps.command(f'fix therm_left left_thermo langevin 0.0 0.0 {damping_strength_left} 1029')
-    lmps.command(f'fix therm_right right_thermo langevin 0.0 0.0 {damping_strength_right} 1029')
+    lmps.command(f'fix therm_weak_left left_thermo_weak langevin 0.0 0.0 {damping_strength_left*weak_damp_factor} 1029')
+    lmps.command(f'fix therm_weak_right right_thermo_weak langevin 0.0 0.0 {damping_strength_right*weak_damp_factor} 1029')
+    lmps.command(f'fix therm_strong_left left_thermo_strong langevin 0.0 0.0 {damping_strength_left} 1029')
+    lmps.command(f'fix therm_strong_right right_thermo_strong langevin 0.0 0.0 {damping_strength_right} 1029')
 
 
 
@@ -881,7 +931,7 @@ def set_up_eq_crack_simulation(lmps,tmp_file_path,atomic_mass,calc_commands,
     # --------- Fix the edge atoms to prevent movement -----------
     lmps.command('fix 1 top_atoms setforce 0.0 0.0 NULL')
     lmps.command('fix 2 bottom_atoms setforce 0.0 0.0 NULL')
-    lmps.command('fix 3 left_atoms setforce 0.0 0.0 NULL')
+    # lmps.command('fix 3 left_atoms setforce 0.0 0.0 NULL')
     lmps.command('fix 4 right_atoms setforce 0.0 0.0 NULL')
 
     # ---------- set timestep length -------------
