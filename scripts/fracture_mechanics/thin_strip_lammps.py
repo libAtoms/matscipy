@@ -64,7 +64,7 @@ initial_damp = parameter('initial_damp', True)
 initial_damping_time = parameter('initial_damping_time',10)
 initial_damping_strengths = parameter('initial_damping_strengths',[0.1*(i+1) for i in range(initial_damping_time)])
 step_tolerant = parameter('step_tolerant',False)
-
+step_tol_v_spacing = parameter('step_tol_v_spacing',5)
 assert len(initial_damping_strengths) == initial_damping_time, 'initial_damping_strengths must be a list of length initial_damping_time'
 
 n_steps_per_loop = parameter('n_steps_per_loop',1000)
@@ -136,7 +136,6 @@ if cb == 'None':
 
 sim_time = 0
 plot_num = 0
-
 ######################SET UP SIMULATION OR RESTART FROM CHECKPOINT FILES##############################
 if me == 0:
     tsb = ThinStripBuilder(el,a0,C,calc,lattice,directions,multilattice=multilattice,cb=cb,switch_sublattices=True)
@@ -215,6 +214,7 @@ y_fixed_length = MPI.COMM_WORLD.bcast(y_fixed_length,root=0)
 for knum,K in enumerate(kvals):
     if me == 0:
         crack_tip_positions = np.array([])
+        crack_tip_sim_times = np.array([])
         prev_v = 0
         unique_v_vals = 0
         if K != K_curr: #we don't need to rescale if K is K_curr
@@ -242,9 +242,13 @@ for knum,K in enumerate(kvals):
     i = -1
     final_v = -1 #set to -1 so that if steady state is not reached, it is obvious
     final_v_std = 100 #set to 100 so that if steady state is not reached, it is obvious
+    if initial_damp:
+        max_loop = max_loop_number + initial_damping_time
+    else:
+        max_loop = max_loop_number
     while not at_steady_state:
         i += 1
-        if i>max_loop_number:
+        if i>max_loop:
             break
         #communicate the tracked_array numpy array to all processes
         tracked_array = MPI.COMM_WORLD.bcast(tracked_array,root=0)
@@ -331,6 +335,7 @@ for knum,K in enumerate(kvals):
             if (i >= initial_damping_time) or (not initial_damp):
                 crack_tip_positions = np.append(crack_tip_positions,tip_pos+tsb.total_added_dist)
                 #if the crack tip has not moved in the last 10 loops, then it is arrested
+                crack_tip_sim_times = np.append(crack_tip_sim_times,sim_time)
                 if len(crack_tip_positions) > 10:
                     if np.max(crack_tip_positions[-10:]) - np.min(crack_tip_positions[-10:]) < 1:
                         at_steady_state = True
@@ -406,49 +411,58 @@ for knum,K in enumerate(kvals):
             print(f'MASK LEN:{len(np.where(mask)[0])}')
             final_crack_state.arrays['mask'] = mask
             # ase.io.write('final_crack_state.xyz',final_crack_state,format='extxyz')
-            if len(np.where(mask)[0])>=2:
+            if ((len(np.where(mask)[0])>=2) and ((i >= initial_damping_time) or (not initial_damp))):
                 prev_2_tracked_idx = np.argsort(final_crack_state.get_positions()[mask,0])[-2:]
                 atom_ids = np.where(mask)[0][prev_2_tracked_idx]
                 #print(atom_ids)
                 #read numpy arrays from files
                 atom_1_traj = np.loadtxt(f'{results_path}/tracked_motion_{tracked_array[atom_ids[0]]}.txt')
                 atom_2_traj = np.loadtxt(f'{results_path}/tracked_motion_{tracked_array[atom_ids[1]]}.txt')
-                #calculate crack velocity and check if it's steady
-                v, ss_c = tsb.check_steady_state(atom_1_traj,atom_2_traj,y_threshold=y_threshold)
+                if not step_tolerant:
+                    # if not step tolerant, get velocity from analysis of tracked atoms
+                    #calculate crack velocity and check if it's steady
+                    v, ss_c = tsb.check_steady_state(atom_1_traj,atom_2_traj,y_threshold=y_threshold)
+                else:
+                    # if step tolerant, get velocity instead directly from difference in crack tip position
+                    _, ss_c = tsb.check_steady_state(atom_1_traj,atom_2_traj,y_threshold=y_threshold)
+                    if ((len(crack_tip_positions) > step_tol_v_spacing) and ((i >= initial_damping_time+step_tol_v_spacing) or (not initial_damp))):
+                        v = ((crack_tip_positions[-1] - crack_tip_positions[-step_tol_v_spacing])/(crack_tip_sim_times[-1] - crack_tip_sim_times[-step_tol_v_spacing]))/10
+                    else:
+                        v = None
 
                 # -------------- if it's a new velocity, write to files --------------- #
-                if np.round(v,decimals=6) != np.round(prev_v,decimals=6): 
-                    #use numpy to write to file along with current timestep
-                    with open(f'{results_path}/steady_state.txt','ab') as f:
-                        np.savetxt(f,np.reshape(np.array([sim_time,v,ss_c]),[1,3]))
-                        #read the txt and plot
-                    
-                    steady_state_data = np.reshape(np.loadtxt(f'{results_path}/steady_state.txt'),[-1,3])
-                    plt.figure()
-                    plt.plot((steady_state_data[:,0]/(10**3)),steady_state_data[:,1],'o')
-                    plt.xlabel('Time (ns)')
-                    plt.ylabel('Measured crack velocity (km/s)')
-                    plt.savefig(f'{results_path}/velocity_steady_state.png')
-                    plt.close()
-                    plt.figure()
-                    plt.plot((steady_state_data[:,0]/(10**3)),steady_state_data[:,2],'o')
-                    plt.xlabel('Time (ns)')
-                    plt.ylabel('Steady state measure')
-                    plt.savefig(f'{results_path}/steady_state_measure.png')
-                    plt.close()
-                    final_v = np.mean(steady_state_data[-n_v_compare:,1])
-                    final_v_std = np.std(steady_state_data[-n_v_compare:,1])
-                    # check the range of the last n values of velocity. If it's within user defined tol of mean, then steady state is reached
-                    unique_v_vals += 1
+                if v is not None:
+                    if np.round(v,decimals=6) != np.round(prev_v,decimals=6): 
+                        #use numpy to write to file along with current timestep
+                        with open(f'{results_path}/steady_state.txt','ab') as f:
+                            np.savetxt(f,np.reshape(np.array([sim_time,v,ss_c]),[1,3]))
+                            #read the txt and plot
+                        
+                        steady_state_data = np.reshape(np.loadtxt(f'{results_path}/steady_state.txt'),[-1,3])
+                        plt.figure()
+                        plt.plot((steady_state_data[:,0]/(10**3)),steady_state_data[:,1],'o')
+                        plt.xlabel('Time (ns)')
+                        plt.ylabel('Measured crack velocity (km/s)')
+                        plt.savefig(f'{results_path}/velocity_steady_state.png')
+                        plt.close()
+                        plt.figure()
+                        plt.plot((steady_state_data[:,0]/(10**3)),steady_state_data[:,2],'o')
+                        plt.xlabel('Time (ns)')
+                        plt.ylabel('Steady state measure')
+                        plt.savefig(f'{results_path}/steady_state_measure.png')
+                        plt.close()
+                        final_v = np.mean(steady_state_data[-n_v_compare:,1])
+                        final_v_std = np.std(steady_state_data[-n_v_compare:,1])
+                        # check the range of the last n values of velocity. If it's within user defined tol of mean, then steady state is reached
+                        unique_v_vals += 1
 
-                    # -------------- check for steady state --------------- #
-                    if unique_v_vals >= n_v_compare:
-                        if np.max(steady_state_data[-n_v_compare:,1]) - np.min(steady_state_data[-n_v_compare:,1]) < ss_tol*np.mean(steady_state_data[-n_v_compare:,1]):
-                            at_steady_state = True
-                            #set final velocity to be the mean of the last n values, with a standard deviation
-                            print(f'Final crack velocity: {final_v} +/- {final_v_std} km/s')
-                prev_v = v
-            #check for copy-pasting
+                        # -------------- check for steady state --------------- #
+                        if unique_v_vals >= n_v_compare:
+                            if np.max(steady_state_data[-n_v_compare:,1]) - np.min(steady_state_data[-n_v_compare:,1]) < ss_tol*np.mean(steady_state_data[-n_v_compare:,1]):
+                                at_steady_state = True
+                                #set final velocity to be the mean of the last n values, with a standard deviation
+                                print(f'Final crack velocity: {final_v} +/- {final_v_std} km/s')
+                    prev_v = v
 
             # -------------- write to checkpoint files --------------- #
             tracked_array = new_slab.arrays['tracked']

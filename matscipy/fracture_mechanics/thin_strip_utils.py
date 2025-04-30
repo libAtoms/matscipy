@@ -436,6 +436,7 @@ class ThinStripBuilder:
         pos = atoms.get_positions()
         x, y, z = pos[:,0],pos[:,1], pos[:,2]
         order = np.lexsort((z, x, y))
+        #order = np.lexsort((z, y, x))
         # z x y seems to work well as a stable sort order
         # in most cases (including triangle lattice)
         #(z, y, x)
@@ -717,13 +718,17 @@ class ThinStripBuilder:
                 if not step_tolerant:
                     #crack atoms must strictly be opposite
                     assert np.abs(tip_pos[0]-tip_pos[1]) < 1
-                else:
-                    #crack atoms must be within 2 bond lengths of each other, as things are a bit messier
-                    assert np.abs(tip_pos[0]-tip_pos[1]) < 2*bondlength
+                # else:
+                #     #crack atoms must be within 2 bond lengths of each other, as things are a bit messier
+                #     # assert np.abs(tip_pos[0]-tip_pos[1]) < 2*bondlength
                 
                 found_tip = True
-                crack_tip_position_x = np.mean(tip_pos)
-                crack_tip_position_y = np.mean(tip_pos_y)
+                if not step_tolerant:
+                    crack_tip_position_x = np.mean(tip_pos)
+                    crack_tip_position_y = np.mean(tip_pos_y)
+                else:
+                    crack_tip_position_x = np.max(tip_pos)
+                    crack_tip_position_y = np.mean(tip_pos_y)
                 break
             except AssertionError:
                 tmp_bondlength += 0.01
@@ -731,16 +736,16 @@ class ThinStripBuilder:
     
         #crack tip pos is the maximum of tips_found[i]
         if not found_tip:
-            if not step_tolerant:
-                raise RuntimeError('Lost crack tip!')
-            else:
-                warnings.warn("No well-defined crack tip; things are messy! Guessing at furthest right low-coordinated atom")
-                crack_tip_position_x = np.max(tip_pos)
-                crack_tip_position_y = np.mean(tip_pos_y)
+            # if not step_tolerant:
+            raise RuntimeError('Lost crack tip!')
+            # else:
+            #     warnings.warn("No well-defined crack tip; things are messy! Guessing at furthest right low-coordinated atom")
+            #     crack_tip_position_x = np.max(tip_pos)
+            #     crack_tip_position_y = np.mean(tip_pos_y)
 
         
 
-        print(f'Found crack tip at position {tip_pos}')
+        print(f'Found crack tip at position {crack_tip_position_x}')
         
         return crack_tip_position_x, crack_tip_position_y, bond_atoms
 
