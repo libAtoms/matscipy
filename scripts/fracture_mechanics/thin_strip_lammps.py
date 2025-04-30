@@ -425,9 +425,15 @@ for knum,K in enumerate(kvals):
                 else:
                     # if step tolerant, get velocity instead directly from difference in crack tip position
                     _, ss_c = tsb.check_steady_state(atom_1_traj,atom_2_traj,y_threshold=y_threshold)
+                    print("length of crack tip positions", len(crack_tip_positions))
+                    print("step_tol_v_spacing", step_tol_v_spacing)
+                    print("i", i)
                     if ((len(crack_tip_positions) > step_tol_v_spacing) and ((i >= initial_damping_time+step_tol_v_spacing) or (not initial_damp))):
+                        print("calculating velocity")
                         v = ((crack_tip_positions[-1] - crack_tip_positions[-step_tol_v_spacing])/(crack_tip_sim_times[-1] - crack_tip_sim_times[-step_tol_v_spacing]))/10
+                        print("v", v)
                     else:
+                        print("not enough crack tip positions to calculate velocity")
                         v = None
 
                 # -------------- if it's a new velocity, write to files --------------- #
