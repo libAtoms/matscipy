@@ -1,14 +1,18 @@
 """
 Minimal implementation of an embedded atom method (EAM) potential
 """
-import jax
-
-jax.config.update("jax_enable_x64", True)
 
 import numpy as np
-import jax.numpy as jnp
-# import numpy as jnp
 from ase.build import bulk
+
+if True:
+    import jax
+    import jax.numpy as jnp
+
+    jax.config.update("jax_enable_x64", True)
+else:
+    jax = None
+    import numpy as jnp
 
 from matscipy.neighbours import neighbour_list
 
@@ -42,14 +46,16 @@ def energy_and_forces(atoms, cutoff=10.0):
     # Construct neighbor list
     i_p, j_p, d_p, D_pc = neighbour_list("ijdD", atoms, cutoff)
 
-    @jax.jit
     def calculate(density_i, i_p, d_p, D_pc):
         energy = F(density_i).sum() + rep(d_p).sum() / 2
         df_pc = -((dF(density_i[i_p]) * df(d_p) + drep(d_p) / 2) * D_pc.T / d_p).T
         return energy, df_pc
 
     density_i = jnp.bincount(i_p, weights=f(d_p), minlength=len(atoms))
-    energy, df_pc = calculate(density_i, i_p, d_p, D_pc)
+    if jax is not None:
+        energy, df_pc = jax.jit(calculate)(density_i, i_p, d_p, D_pc)
+    else:
+        energy, df_pc = calculate(density_i, i_p, d_p, D_pc)
 
     fx_i = jnp.bincount(j_p, weights=df_pc[:, 0], minlength=len(atoms)) - \
            jnp.bincount(i_p, weights=df_pc[:, 0], minlength=len(atoms))
