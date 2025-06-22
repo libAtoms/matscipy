@@ -5,4 +5,5 @@ Interatomic potentials
 
 .. toctree::
 
+   eam
    manybody

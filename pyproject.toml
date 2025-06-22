@@ -24,7 +24,7 @@ classifiers = [
 requires-python = ">=3.8.0"
 dynamic = ["version"]
 dependencies = [
-    "numpy>=1.16.0, <2.0.0",
+    "numpy>=1.16.0",
     "scipy>=1.2.3",
     "ase>=3.23.0",
     "packaging"

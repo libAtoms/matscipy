@@ -20,10 +20,10 @@
 
 import itertools
 
-import numpy as np
+import numpy
 
 
-def mabincount(x, weights, minlength, axis=0):
+def mabincount(x, weights, minlength, axis=0, np=numpy):
     """
     Multi-axis bin count. Executes a bin count online a long a specific axis.
     (`numpy.bincount` only works on flattened arrays.)
