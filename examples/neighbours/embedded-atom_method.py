@@ -6,8 +6,8 @@ import jax
 jax.config.update("jax_enable_x64", True)
 
 import numpy as np
-# import jax.numpy as jnp
-import numpy as jnp
+import jax.numpy as jnp
+# import numpy as jnp
 from ase.build import bulk
 
 from matscipy.neighbours import neighbour_list
@@ -42,7 +42,7 @@ def energy_and_forces(atoms, cutoff=10.0):
     # Construct neighbor list
     i_p, j_p, d_p, D_pc = neighbour_list("ijdD", atoms, cutoff)
 
-    # @jax.jit
+    @jax.jit
     def calculate(density_i, i_p, d_p, D_pc):
         energy = F(density_i).sum() + rep(d_p).sum() / 2
         df_pc = -((dF(density_i[i_p]) * df(d_p) + drep(d_p) / 2) * D_pc.T / d_p).T
