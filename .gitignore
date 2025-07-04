@@ -66,3 +66,6 @@ docs/_build/
 .DS_Store
 .eggs/README.txt
 .mesonpy-native-file.ini
+
+# Jupyter autosaves
+.ipynb_checkpoints/
