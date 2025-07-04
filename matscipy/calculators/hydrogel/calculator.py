@@ -1,5 +1,6 @@
 from ase.calculators.calculator import Calculator
 
+
 class Hydrogel(Calculator):
     implemented_properties = ['energy', 'stress', 'forces']
     default_parameters = {}

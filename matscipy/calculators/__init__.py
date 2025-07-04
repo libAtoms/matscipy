@@ -30,6 +30,7 @@ from .supercell_calculator import SupercellCalculator
 from .polydisperse import Polydisperse
 from .manybody import Manybody
 from .ewald import Ewald
+from .hydrogel import Hydrogel
 
 try:
     import scipy.sparse as sp
