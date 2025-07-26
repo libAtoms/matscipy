@@ -72,7 +72,7 @@ def bravais_to_miller(vec):
     return retvec
 
 
-def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
+def validate_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
     """
     Provide uniform interface for generating rotated atoms objects through two main methods:
 
@@ -80,14 +80,15 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
     For cubic bulk atoms object + crystalstructure, validate structure matches expected cubic bulk geometry, and rotate to frame defined by axes
     Also, if cubic atoms object is supplied, search for a more condensed representation than is provided by ase.build.cut
 
-    a: float or ase.atoms
-        EITHER lattice constant (in A), or the cubic bulk structure
+    a: float, tuple or ase.atoms
+        EITHER lattice constant (in A), or the bulk structure
+        For HCP: tuple of lattice constants (a, c), or the bulk structure
     symbol: str
         Elemental symbol, passed to relevant crystalstructure generator when a is float
     axes: np.array
-        Axes transform to apply to bulk cell
+        Axes transform to apply to bulk cell, in miller or miller-bravais indexes
     crystalstructure: str
-        Base Structure of bulk system, currently supported: fcc, bcc, diamond
+        Base Structure of bulk system, currently supported: fcc, bcc, diamond, hcp
     pbc: list of bool
         Periodic Boundary Conditions in x, y, z
     """
@@ -105,6 +106,15 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         "hcp" : HexagonalClosedPacked
     }
 
+    if axes.shape[-1] == 3:
+        # Given 3D cubic miller index axes
+        axes_miller = axes
+        axes_bravais = miller_to_bravais(axes)
+    else:
+        # Given 4D miller-bravais index axes
+        axes_bravais = axes
+        axes_miller = bravais_to_miller(axes)
+
     # Choose correct ase.lattice.cubic constructor given crystalstructure
     try:
         if crystalstructure is not None:
@@ -119,27 +129,44 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
             # AttributeError when type(crystalstructure) doesn't support .lower() (not a valid input type)
             raise TypeError(f"crystalstructure should be one of {constructors.keys()}")
 
-    if np.issubdtype(type(a), np.floating) or np.issubdtype(type(a), np.integer):
+    if np.issubdtype(type(a), np.floating) or np.issubdtype(type(a), np.integer) or type(a) in [list, tuple, np.array]:
         # Reproduce legacy behaviour with a==alat
         alat = a
+
+        if crystalstructure == "hcp":
+            ax = axes_bravais
+        else:
+            ax = axes_miller
 
         if cell_builder is None:
             raise AssertionError("crystalstructure must be given when 'a' argument is a lattice parameter")
             
-        unit_cell = cell_builder(symbol, directions=axes.tolist(),
+        unit_cell = cell_builder(symbol, directions=ax.tolist(),
                                  pbc=pbc,
                                  latticeconstant=alat)
     elif isinstance(a, Atoms):
         # New behaviour for arbitrary cubic unit cells (Zincblende, L12, ...)
+
         alat = a.cell[0, 0]
 
         ats = a.copy()
         
 
         if crystalstructure is not None:
+
             # Try to validate that "a" matches expected structure given by crystalstructure
             tol = 1e-3
-            ref_ats = cell_builder("C", directions=np.eye(3).astype(int).tolist(),
+            
+            conventional_frame = np.eye(3) # Conventional miller index representation [100] [010] [001...]
+
+            if crystalstructure == "hcp":
+                conventional_frame = miller_to_bravais(conventional_frame)
+
+                alat = np.array([a.cell[0, 0], a.cell[2, 2]])
+            else:
+                alat = a.cell[0, 0]
+
+            ref_ats = cell_builder("C",
                                 latticeconstant=alat)
 
             # Check that number of atoms in ats is an integer multiple of ref_ats
@@ -160,6 +187,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
             # Check fractional coords match expectation
             frac_match = True
             sup_size = int(rel_size**(1/3))
+
             if not skip_fractional_check:
                 ref_supercell = ref_ats * (sup_size, sup_size, sup_size)
 
@@ -175,7 +203,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
 
             alat /= sup_size # Account for larger supercells having multiple internal core sites
 
-        ats = cut(ats, a=axes[0, :], b=axes[1, :], c=axes[2, :])
+        ats = cut(ats, a=axes_miller[0, :], b=axes_miller[1, :], c=axes_miller[2, :])
         rotate(ats, ats.cell[0, :].copy(), [1, 0, 0], ats.cell[1, :].copy(), [0, 1, 0])
         
         # cut and rotate can result in a supercell structure. Attempt to find smaller repr 
@@ -190,6 +218,8 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         raise TypeError("type(a) is not a float, or an Atoms object")
 
     return alat, unit_cell
+
+validate_cubic_cell = validate_cell # compatibility
 
 
 def find_condensed_repr(atoms, precision=2):
