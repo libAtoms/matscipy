@@ -16,6 +16,61 @@ class classproperty:
             cls = type(obj)
         return self.method(cls)
 
+def miller_to_bravais(vec):
+    '''
+    Convert 3D miller indexes to the 4D miller-bravais basis
+    (i.e. for cubic -> HCP coordinates)
+
+    vec: np.array
+        1D or 2D vector/matrix of miller indexes
+    '''
+    reduce_dims = False
+
+    if len(vec.shape) == 1:
+        reduce_dims = True
+        vec = vec[np.newaxis, :]
+    assert vec.shape[-1] == 3
+    h = vec[:, 0][:, np.newaxis]
+    k = vec[:, 1][:, np.newaxis]
+    l = vec[:, 2][:, np.newaxis]
+
+    i = -h -k
+
+    retvec = np.hstack((h, k, i, l))
+
+    if reduce_dims:
+        retvec = retvec[0, :]
+
+    return retvec
+
+
+def bravais_to_miller(vec):
+    '''
+    Convert 4D miller-bravais indexes to the 3D miller basis
+    (i.e. for HCP -> cubic coordinates)
+
+    vec: np.array
+        1D or 2D vector/matrix of miller-bravais indexes
+    '''
+    reduce_dims = False
+
+    if len(vec.shape) == 1:
+        reduce_dims = True
+        vec = vec[np.newaxis, :]
+
+    assert vec.shape[-1] == 4
+
+    h = vec[:, 0][:, np.newaxis]
+    k = vec[:, 1][:, np.newaxis]
+    l = vec[:, 3][:, np.newaxis]
+
+    retvec = np.hstack((h, k, l))
+
+    if reduce_dims:
+        retvec = retvec[0, :]
+
+    return retvec
+
 
 def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
     """
@@ -38,6 +93,7 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
     """
 
     from ase.lattice.cubic import FaceCenteredCubic, BodyCenteredCubic, Diamond
+    from ase.lattice.hexagonal import HexagonalClosedPacked
     from ase.atoms import Atoms
     from ase.build import cut, rotate
     from warnings import warn
@@ -45,7 +101,8 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
     constructors = {
         "fcc": FaceCenteredCubic,
         "bcc": BodyCenteredCubic,
-        "diamond": Diamond
+        "diamond": Diamond,
+        "hcp" : HexagonalClosedPacked
     }
 
     # Choose correct ase.lattice.cubic constructor given crystalstructure
@@ -283,7 +340,7 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
     if v2 is None:
         V2 = _v2_search(v1, nmax, tol)
         sgns = [np.sign(x) for x in V2 if x != 0]
-        V2 *= sgns[0] #np.sign(V2[0])
+        V2 *= sgns[0]
         V2 = V2.astype(int)
     else:
         V2 = np.array(v2).copy().astype(int)
@@ -294,6 +351,8 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
         warnings.warn(msg, RuntimeWarning, stacklevel=2)
     
     V3 = np.cross(V1, V2)
+    sgns = [np.sign(x) for x in V3 if x != 0]
+    V3 *= sgns[0]
 
     if normalise:
         V1 = V1.astype(np.float64) / np.linalg.norm(V1)
