@@ -170,26 +170,26 @@ def validate_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
                                 latticeconstant=alat)
 
             # Check that number of atoms in ats is an integer multiple of ref_ats
-            # (ats has to be the cubic primitive, or a supercell of the cubic primitive)
-            # Also check that the structure is cubic
+            # and that the cells match expectation
             rel_size = len(ats) / len(ref_ats)
+            sup_size = int(rel_size**(1/3))
+            ref_supercell = ref_ats * (sup_size, sup_size, sup_size)
+
             skip_fractional_check = False
             try:
                 # Integer multiple of ats test
                 assert abs(rel_size - np.floor(rel_size)) < tol
 
-                # Cubic cell test: cell = a*I_3x3
-                assert np.allclose(ats.cell[:, :], np.eye(3) * ats.cell[0, 0], atol=tol)
+                # Check cells match closely
+                assert np.allclose(ats.cell[:, :], ref_ats.cell[:, :], atol=tol)
             except AssertionError:
                 # Test failed, skip next test + warn user
                 skip_fractional_check = True
                 
             # Check fractional coords match expectation
             frac_match = True
-            sup_size = int(rel_size**(1/3))
 
             if not skip_fractional_check:
-                ref_supercell = ref_ats * (sup_size, sup_size, sup_size)
 
                 try:
                     apos = np.sort(ats.get_scaled_positions(), axis=0)
