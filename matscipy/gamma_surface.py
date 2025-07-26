@@ -286,7 +286,7 @@ class GammaSurface():
         base_struct = self.cut_at * (1, 1, z_reps)
 
         # Atom offset
-        offset = z_offset + self.offset
+        offset = z_offset #+ self.offset
         pos = base_struct.get_positions()
         pos[:, 2] += offset
         base_struct.set_positions(pos)
