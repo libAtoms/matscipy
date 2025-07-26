@@ -282,7 +282,8 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
 
     if v2 is None:
         V2 = _v2_search(v1, nmax, tol)
-        V2 *= np.sign(V2[0])
+        sgns = [np.sign(x) for x in V2 if x != 0]
+        V2 *= sgns[0] #np.sign(V2[0])
         V2 = V2.astype(int)
     else:
         V2 = np.array(v2).copy().astype(int)
