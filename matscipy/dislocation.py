@@ -46,7 +46,7 @@ from matscipy.neighbours import neighbour_list, mic, coordination
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
 from matscipy.elasticity import cubic_to_Voigt_6x6, coalesce_elastic_constants
-from matscipy.utils import validate_cubic_cell, radial_mask_from_polygon2D, classproperty
+from matscipy.utils import validate_cubic_cell, radial_mask_from_polygon2D, classproperty, bravais_to_miller, miller_to_bravais
 
 
 def make_screw_cyl(alat, C11, C12, C44,
@@ -4774,6 +4774,35 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 # interface to make "Quadrupole" work for both
 Quadrupole = CubicCrystalDislocationQuadrupole
 
+
+class HexagonalDislocation(CubicCrystalDislocation, metaclass=ABCMeta):
+    @property 
+    def bravais_burgers_dimensionless(self):
+        return miller_to_bravais(self.burgers_dimensionless)
+    
+    @property 
+    def axes(self):
+        return miller_to_bravais(self.axes)
+
+class HCPScrewDislocation(HexagonalDislocation):
+    # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
+    # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+
+    axes = np.array([
+        [0, 0, 1],
+        [1, 0, 0],
+        [0, 1, 0]
+    ])
+
+    burgers_dimensionless = np.array([-1, 2, 0]) * np.sqrt(2)/3
+
+    unit_cell_core_position_dimensionless = np.array([1/4, 3/4, 0])
+
+    glide_distance_dimensionless = 1.0
+
+    crystalstructure = "hcp"
+
+    name = "HCP Screw"
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
     crystalstructure = "bcc"

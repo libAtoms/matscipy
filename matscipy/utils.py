@@ -201,6 +201,9 @@ def validate_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
             if not frac_match or skip_fractional_check:
                 warn(f"Input bulk does not appear to match bulk {crystalstructure}.", stacklevel=2)
 
+            if crystalstructure == "hcp":
+                alat = alat[0] # TODO: Fix dislocations for variable c
+
             alat /= sup_size # Account for larger supercells having multiple internal core sites
 
         ats = cut(ats, a=axes_miller[0, :], b=axes_miller[1, :], c=axes_miller[2, :])
