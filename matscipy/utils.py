@@ -2,6 +2,7 @@ import functools
 import warnings
 import numpy as np
 from ase.utils.structure_comparator import SymmetryEquivalenceCheck
+from torch import Value
 
 
 class classproperty:
@@ -72,7 +73,7 @@ def bravais_to_miller(vec):
     return retvec
 
 
-def validate_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
+def validate_cell(a, symbol="W", axes=None, crystalstructure=None, pbc=True):
     """
     Provide uniform interface for generating rotated atoms objects through two main methods:
 
@@ -99,12 +100,19 @@ def validate_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
     from ase.build import cut, rotate
     from warnings import warn
 
+    alat = None
+    ref_ats = None
+
     constructors = {
         "fcc": FaceCenteredCubic,
         "bcc": BodyCenteredCubic,
         "diamond": Diamond,
         "hcp" : HexagonalClosedPacked
     }
+
+    if axes is None:
+        axes = np.eye(3)
+
 
     if axes.shape[-1] == 3:
         # Given 3D cubic miller index axes
@@ -129,45 +137,60 @@ def validate_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
             # AttributeError when type(crystalstructure) doesn't support .lower() (not a valid input type)
             raise TypeError(f"crystalstructure should be one of {constructors.keys()}")
 
-    if np.issubdtype(type(a), np.floating) or np.issubdtype(type(a), np.integer) or type(a) in [list, tuple, np.array]:
-        # Reproduce legacy behaviour with a==alat
-        alat = a
+    if crystalstructure == "hcp":
+        ref_lat = [1.0, 1.0]
+    else:
+        ref_lat = 1.0
 
-        if crystalstructure == "hcp":
-            ax = axes_bravais
-        else:
-            ax = axes_miller
-
-        if cell_builder is None:
-            raise AssertionError("crystalstructure must be given when 'a' argument is a lattice parameter")
-            
-        unit_cell = cell_builder(symbol, directions=ax.tolist(),
-                                 pbc=pbc,
-                                 latticeconstant=alat)
-    elif isinstance(a, Atoms):
-        # New behaviour for arbitrary cubic unit cells (Zincblende, L12, ...)
-
-        alat = a.cell[0, 0]
-
-        ats = a.copy()
+    if cell_builder is not None:
+        # Make a reference atoms object of the correct system 
+        ref_ats = cell_builder(symbol,
+                            pbc=pbc,
+                            latticeconstant=ref_lat)
         
 
-        if crystalstructure is not None:
+    if np.issubdtype(type(a), np.floating) or np.issubdtype(type(a), np.integer) or type(a) in [list, tuple, np.array]:
+        # a is a float or int (for alat = [a, a, a]), or is an iterable to specify unequal lattice parameters
+        if type(a) in [list, tuple, np.array]:
+            if len(a) == 2:
+                # Assume a, a, c specification for HCP
+                alat = np.array([a[0], a[0], a[1]])
+            elif len(a) == 3:
+                # Full a, b, c specification
+                alat = np.array(a)
+            elif len(a) == 1:
+                # Assume a, a, a specification
+                alat = np.ones(3) * a
+            else:
+                raise ValueError("Unrecognised length of a parameter. Specify either [a], [a, c], or [a, b, c].")
+        else:
+            # Assume a, a, a specification
+            alat = np.ones(3) * a
+
+        if ref_ats is None:
+            # ref_ats constructed beforehand if crystalstructure is not None, 
+            # and we use it to build the correct crystalstructure next
+            raise AssertionError("crystalstructure must be given when 'a' argument is a lattice parameter")
+
+        # Make an atoms object of the correct system 
+        a = ref_ats.copy()
+        
+        cell = a.cell[:, :].copy()
+        for i in range(3):
+            cell[i, :] *= alat[i]
+
+        a.set_cell(cell, scale_atoms=True)
+
+    if isinstance(a, Atoms):
+        # Should always be triggered in normal usage. The else is to catch invalid a arguments.
+        # New behaviour for arbitrary cubic unit cells (Zincblende, L12, ...)
+
+        ats = a.copy()
+
+        if crystalstructure is not None and ref_ats is not None:
 
             # Try to validate that "a" matches expected structure given by crystalstructure
-            tol = 1e-3
-            
-            conventional_frame = np.eye(3) # Conventional miller index representation [100] [010] [001...]
-
-            if crystalstructure == "hcp":
-                conventional_frame = miller_to_bravais(conventional_frame)
-
-                alat = np.array([a.cell[0, 0], a.cell[2, 2]])
-            else:
-                alat = a.cell[0, 0]
-
-            ref_ats = cell_builder("C",
-                                latticeconstant=alat)
+            tol = 1e-3 # Tolerance on the fractional positions
 
             # Check that number of atoms in ats is an integer multiple of ref_ats
             # and that the cells match expectation
@@ -201,8 +224,7 @@ def validate_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
             if not frac_match or skip_fractional_check:
                 warn(f"Input bulk does not appear to match bulk {crystalstructure}.", stacklevel=2)
 
-            if crystalstructure == "hcp":
-                alat = alat[0] # TODO: Fix dislocations for variable c
+            alat = np.linalg.norm(a.cell[:, :], axis=-1)
 
             alat /= sup_size # Account for larger supercells having multiple internal core sites
 
