@@ -2558,17 +2558,23 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         
         self.solvers["adsl"] = self.ADstroh.displacement
 
+    @property
+    def _alat(self):
+        # effective lattice constants for each self.axes direction
+        A = np.abs(self.axes)
+        return (A @ self.alat) / np.sum(A, axis=-1)
+
     # @property & @var.setter decorators used to ensure var and var_dimensionless don't get out of sync
     @property
     def burgers(self):
         return self.burgers_dimensionless * self.alat
     
-    @burgers.setter
-    def burgers(self, burgers):
-        self.burgers_dimensionless = burgers / self.alat
+    # @burgers.setter
+    # def burgers(self, burgers):
+    #     self.burgers_dimensionless = burgers / self.alat
 
-    def set_burgers(self, burgers):
-        self.burgers = burgers
+    # def set_burgers(self, burgers):
+    #     self.burgers = burgers
 
     def invert_burgers(self):
         """
@@ -2578,19 +2584,19 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     @property
     def unit_cell_core_position(self):
-        return self.unit_cell_core_position_dimensionless * self.alat
+        return self.unit_cell_core_position_dimensionless * self._alat
     
-    @unit_cell_core_position.setter
-    def unit_cell_core_position(self, position):
-        self.unit_cell_core_position_dimensionless = position / self.alat
+    # @unit_cell_core_position.setter
+    # def unit_cell_core_position(self, position):
+    #     self.unit_cell_core_position_dimensionless = position / self.alat
 
     @property
     def glide_distance(self):
-        return self.glide_distance_dimensionless * self.alat
+        return self.glide_distance_dimensionless * self._alat[0]
     
-    @glide_distance.setter
-    def glide_distance(self, distance):
-        self.glide_distance_dimensionless = distance / self.alat
+    # @glide_distance.setter
+    # def glide_distance(self, distance):
+    #     self.glide_distance_dimensionless = distance / self.alat
 
     def _build_supercell(self, targetx, targety):
         """
@@ -4781,7 +4787,7 @@ class HexagonalDislocation(CubicCrystalDislocation, metaclass=ABCMeta):
         return miller_to_bravais(self.burgers_dimensionless)
     
     @property 
-    def axes(self):
+    def bravais_axes(self):
         return miller_to_bravais(self.axes)
 
 class HCPScrewDislocation(HexagonalDislocation):
@@ -4789,16 +4795,16 @@ class HCPScrewDislocation(HexagonalDislocation):
     # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
 
     axes = np.array([
-        [0, 0, 1],
         [1, 0, 0],
+        [0, 0, 1],
         [0, 1, 0]
     ])
 
-    burgers_dimensionless = np.array([-1, 2, 0]) * np.sqrt(2)/3
+    burgers_dimensionless = np.array([-1, 2, 0]) / 3
 
-    unit_cell_core_position_dimensionless = np.array([1/4, 3/4, 0])
+    unit_cell_core_position_dimensionless = np.array([1/2, 1/4, 0])
 
-    glide_distance_dimensionless = 1.0
+    glide_distance_dimensionless = 1/2
 
     crystalstructure = "hcp"
 
