@@ -2,7 +2,6 @@ import functools
 import warnings
 import numpy as np
 from ase.utils.structure_comparator import SymmetryEquivalenceCheck
-from torch import Value
 
 
 class classproperty:
