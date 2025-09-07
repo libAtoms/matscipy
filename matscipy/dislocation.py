@@ -4886,9 +4886,10 @@ class HCPScrewDislocation(HexagonalDissociatedDislocation):
     # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
     # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
 
-    burgers_dimensionless = np.array([-1, -1, 2, 0]) / 3
+    burgers_dimensionless = np.array([1, 1, -2, 0]) / 3
 
-    new_left_burgers = np.array([-1, 0, 1, 0])/3
+    new_left_burgers = np.array([1, 0, -1, 0]) / 3
+    new_right_burgers = np.array([0, 1, -1, 0]) / 3
     
     left_dislocation = HCP30degreePartial
     right_dislocation = HCP30degreePartial
@@ -4898,9 +4899,10 @@ class HCP60DegreeDislocation(HexagonalDissociatedDislocation):
     # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
     # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
 
-    burgers_dimensionless = np.array([-2, 1, 1, 0]) / 3
+    burgers_dimensionless = np.array([2, -1, -1, 0]) / 3
 
-    new_left_burgers = np.array([-1, 0, 1, 0]) / 3
+    new_left_burgers = np.array([1, 0, -1, 0]) / 3
+    new_right_burgers = np.array([1, -1, 0, 0]) / 3
     
     left_dislocation = HCP30degreePartial
     right_dislocation = HCP90degreePartial
