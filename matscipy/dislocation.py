@@ -3871,7 +3871,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         # checking that parameters of
         # left and right dislocations are the same
         try:
-            assert left_dislocation.alat == right_dislocation.alat
+            assert np.allclose(left_dislocation.alat, right_dislocation.alat)
             assert np.allclose(left_dislocation.C, right_dislocation.C)
 
             np.testing.assert_equal(left_dislocation.unit_cell.get_chemical_symbols(),
@@ -4781,18 +4781,65 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 Quadrupole = CubicCrystalDislocationQuadrupole
 
 
+def hexagonal_burgers(self):
+    # Overload from CubicCrystalDislocation
+
+    # HCP cell when a=b=c=1
+    C = np.array([
+        [1, 0, 0],
+        [np.cos(2*np.pi/3), np.sin(2*np.pi/3), 0],
+        [0, 0, 1]
+    ])
+
+    # Rescale with lattice constants
+    for i in range(3):
+        C[i, :] *= self.alat[i]
+
+    # Convert to miller-bravais vectors
+    C = miller_to_bravais(C)
+
+    C_bravais = np.zeros((4, 4))
+    C_bravais[0, :] = C[0, :] # [100]
+    C_bravais[1, :] = C[1, :] # [010]
+    C_bravais[2, :] = -C[0, :] -C[1, :] # [-1-10]
+    C_bravais[3, :] = C[2, :] # [001]
+
+
+    return C_bravais.T @ self.burgers_dimensionless
+
 class HexagonalDislocation(CubicCrystalDislocation, metaclass=ABCMeta):
-    @property 
-    def bravais_burgers_dimensionless(self):
-        return miller_to_bravais(self.burgers_dimensionless)
+    @property
+    def burgers_bravais(self):
+        return hexagonal_burgers(self)
+
+    @property
+    def burgers(self):
+        return bravais_to_miller(self.burgers_bravais)
     
     @property 
     def bravais_axes(self):
         return miller_to_bravais(self.axes)
 
-class HCPScrewDislocation(HexagonalDislocation):
+class HexagonalDissociatedDislocation(CubicCrystalDissociatedDislocation, metaclass=ABCMeta):
+    @property
+    def burgers_bravais(self):
+        return hexagonal_burgers(self)
+
+    @property
+    def burgers(self):
+        return bravais_to_miller(self.burgers_bravais)
+    
+    @property 
+    def bravais_axes(self):
+        return miller_to_bravais(self.axes)
+
+class HCP90degreePartial(HexagonalDislocation):
     # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
     # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+    
+    # Kou, Zongde et.al. (2023). Stress-induced phase transformation and phase 
+    # boundary sliding in Ti: An atomically resolved in-situ analysis. 
+    # Journal of Materials Science & Technology. 152. 10.1016/j.jmst.2022.12.029. 
 
     axes = np.array([
         [1, 0, 0],
@@ -4800,7 +4847,7 @@ class HCPScrewDislocation(HexagonalDislocation):
         [0, 1, 0]
     ])
 
-    burgers_dimensionless = np.array([-1, 2, 0]) / 3
+    burgers_dimensionless = np.array([-1, 1, 0, 0]) / 3
 
     unit_cell_core_position_dimensionless = np.array([1/2, 1/4, 0])
 
@@ -4808,7 +4855,56 @@ class HCPScrewDislocation(HexagonalDislocation):
 
     crystalstructure = "hcp"
 
+    name = "HCP Screw Partial"
+
+    
+class HCP30degreePartial(HexagonalDislocation):
+    # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
+    # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+    
+    # Kou, Zongde et.al. (2023). Stress-induced phase transformation and phase 
+    # boundary sliding in Ti: An atomically resolved in-situ analysis. 
+    # Journal of Materials Science & Technology. 152. 10.1016/j.jmst.2022.12.029. 
+
+    axes = np.array([
+        [1, 0, 0],
+        [0, 0, 1],
+        [0, 1, 0]
+    ])
+
+    burgers_dimensionless = np.array([0, -1, 1, 0]) / 3
+
+    unit_cell_core_position_dimensionless = np.array([1/2, 1/4, 0])
+
+    glide_distance_dimensionless = 1/2
+
+    crystalstructure = "hcp"
+
+    name = "HCP Screw Partial"
+
+class HCPScrewDislocation(HexagonalDissociatedDislocation):
+    # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
+    # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+
+    burgers_dimensionless = np.array([-1, -1, 2, 0]) / 3
+
+    new_left_burgers = np.array([-1, 0, 1, 0])/3
+    
+    left_dislocation = HCP30degreePartial
+    right_dislocation = HCP30degreePartial
     name = "HCP Screw"
+
+class HCP60DegreeDislocation(HexagonalDissociatedDislocation):
+    # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
+    # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+
+    burgers_dimensionless = np.array([-2, 1, 1, 0]) / 3
+
+    new_left_burgers = np.array([-1, 0, 1, 0]) / 3
+    
+    left_dislocation = HCP30degreePartial
+    right_dislocation = HCP90degreePartial
+    name = "HCP 60degree"
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
     crystalstructure = "bcc"
