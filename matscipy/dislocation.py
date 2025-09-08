@@ -4855,7 +4855,7 @@ class HCP90degreePartial(HexagonalDislocation):
 
     crystalstructure = "hcp"
 
-    name = "HCP Screw Partial"
+    name = "1/3<1100> 90 degree partial"
 
     
 class HCP30degreePartial(HexagonalDislocation):
@@ -4880,7 +4880,7 @@ class HCP30degreePartial(HexagonalDislocation):
 
     crystalstructure = "hcp"
 
-    name = "HCP Screw Partial"
+    name = "1/3<0110> 30 degree partial"
 
 class HCPScrewDislocation(HexagonalDissociatedDislocation):
     # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
@@ -4893,7 +4893,7 @@ class HCPScrewDislocation(HexagonalDissociatedDislocation):
     
     left_dislocation = HCP30degreePartial
     right_dislocation = HCP30degreePartial
-    name = "HCP Screw"
+    name = "1/3<1120> Screw"
 
 class HCP60DegreeDislocation(HexagonalDissociatedDislocation):
     # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
@@ -4906,7 +4906,7 @@ class HCP60DegreeDislocation(HexagonalDissociatedDislocation):
     
     left_dislocation = HCP30degreePartial
     right_dislocation = HCP90degreePartial
-    name = "HCP 60degree"
+    name = "1/3<2110> 60 degree"
 
 class BCCScrew111Dislocation(CubicCrystalDislocation):
     crystalstructure = "bcc"
