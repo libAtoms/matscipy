@@ -3583,6 +3583,14 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 "1/6 1/6 0" : [255, 0, 255], # Pink; Stair Rod
                 "1/3 0 0" : [255, 255, 0], # Yellow; Hirth
                 "1/3 1/3 1/3" : [0, 255, 255] # Cyan; Frank
+            },
+            "hcp" : {
+                "default" : [230, 51, 51], # Red
+                "2/3 1/3 1/3 0" : [0, 255, 0], # Green; Screw, 60 degree
+                "1 0 0 0" : [51, 51, 255], # Blue
+                "1 1 0 0" : [255, 0, 255], # Pink
+                "1/3 1/3 0 0" : [255, 128, 0], # Orange/Brown; 30 & 90 degree partials
+                "1 2/3 1/3 1/3" : [255, 255, 0] # Yellow
             }
         }
 
