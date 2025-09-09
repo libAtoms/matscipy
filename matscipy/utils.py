@@ -195,6 +195,7 @@ def validate_cell(a, symbol="W", axes=None, crystalstructure=None, pbc=True):
             # and that the cells match expectation
             rel_size = len(ats) / len(ref_ats)
             sup_size = int(rel_size**(1/3))
+            alat = np.linalg.norm(a.cell[:, :], axis=-1) / sup_size # Account for larger supercells having multiple internal core sites
             ref_supercell = ref_ats * (sup_size, sup_size, sup_size)
 
             skip_fractional_check = False
@@ -203,11 +204,13 @@ def validate_cell(a, symbol="W", axes=None, crystalstructure=None, pbc=True):
                 assert abs(rel_size - np.floor(rel_size)) < tol
 
                 # Check cells match closely
-                assert np.allclose(ats.cell[:, :], ref_ats.cell[:, :], atol=tol)
+                for i in range(3):
+                    assert np.allclose(ats.cell[i, :], ref_supercell.cell[i, :] * alat[i], atol=tol)
             except AssertionError:
                 # Test failed, skip next test + warn user
                 skip_fractional_check = True
                 
+
             # Check fractional coords match expectation
             frac_match = True
 
@@ -221,11 +224,9 @@ def validate_cell(a, symbol="W", axes=None, crystalstructure=None, pbc=True):
                     frac_match = False
 
             if not frac_match or skip_fractional_check:
+                print("Frac Match:", frac_match)
+                print("Frac Check:", skip_fractional_check)
                 warn(f"Input bulk does not appear to match bulk {crystalstructure}.", stacklevel=2)
-
-            alat = np.linalg.norm(a.cell[:, :], axis=-1)
-
-            alat /= sup_size # Account for larger supercells having multiple internal core sites
 
         ats = cut(ats, a=axes_miller[0, :], b=axes_miller[1, :], c=axes_miller[2, :])
         rotate(ats, ats.cell[0, :].copy(), [1, 0, 0], ats.cell[1, :].copy(), [0, 1, 0])
