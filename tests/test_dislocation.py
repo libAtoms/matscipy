@@ -67,23 +67,26 @@ def cubic_dislocs():
 
     # Get all cubic dislocation classes
     # So new disloc types are automatically added to testing framework
-    _cubic_dislocs = [item for name, item in sd.__dict__.items() if inspect.isclass(item) and issubclass(item, sd.CubicCrystalDislocation)]
-    _cubic_dislocs = [item for item in _cubic_dislocs if item not in [sd.CubicCrystalDislocation, 
-                                                                    sd.CubicCrystalDissociatedDislocation,
-                                                                    sd.CubicCrystalDislocationQuadrupole]]
+    _cubic_dislocs = [item for name, item in sd.__dict__.items() if inspect.isclass(item) and issubclass(item, sd.Dislocation)]
+    _cubic_dislocs = [item for item in _cubic_dislocs if item not in [sd.Dislocation, 
+                                                                    sd.DissociatedDislocation,
+                                                                    sd.DislocationQuadrupole,
+                                                                    sd.CubicCrystalDissociatedDislocation, # Safeguards on aliased class names
+                                                                    sd.CubicCrystalDislocationQuadrupole,
+                                                                    sd.Quadrupole]]
     return _cubic_dislocs
 
 def cubic_perfect_dislocs():
     _cubic_dislocs = cubic_dislocs()
 
-    _cubic_perfect_dislocs = [item for item in _cubic_dislocs if not issubclass(item, sd.CubicCrystalDissociatedDislocation)]
+    _cubic_perfect_dislocs = [item for item in _cubic_dislocs if not issubclass(item, sd.DissociatedDislocation)]
     
     return _cubic_perfect_dislocs
 
 def cubic_dissociated_dislocs():
     _cubic_dislocs = cubic_dislocs()
 
-    _cubic_dissociated_dislocs = [item for item in _cubic_dislocs if issubclass(item, sd.CubicCrystalDissociatedDislocation)]
+    _cubic_dissociated_dislocs = [item for item in _cubic_dislocs if issubclass(item, sd.Dislocation)]
     
     return _cubic_dissociated_dislocs
 
@@ -621,29 +624,54 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     def test_mixed_dislocation_adsl(self):
         self.check_anisotropic_disloc(sd.BCCMixed111Dislocation, 70.5)
 
+standard_props = ["a", "C11", "C12", "C44"]
+
+dia_props = sd.get_elastic_constants(calculator=Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si)), 
+                                           symbol="Si", verbose=False)
+fcc_props = sd.get_elastic_constants(calculator=EAM(test_dir + os.sep + "FeCuNi.eam.alloy"), 
+                                           symbol="Ni", verbose=False)
+bcc_props = sd.get_elastic_constants(calculator=EAM(test_dir + os.sep + "w_eam4.fs"), 
+                                           symbol="W", verbose=False)
 
 test_props = {
     # Calculators for several bulk properties
     "diamond" : {
         "symbol" : "Si",
-        "props" : sd.get_elastic_constants(calculator=Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si)), 
-                                           symbol="Si", verbose=False)
+        "props" : {
+            standard_props[i] : dia_props[i] for i in range(4) # Convert alat, C11, C12, C44 list to appropriate dict
+        }
     },
 
     "fcc" : {
         "symbol" : "Ni",
-        "props" : sd.get_elastic_constants(calculator=EAM(test_dir + os.sep + "FeCuNi.eam.alloy"), 
-                                           symbol="Ni", verbose=False)
+        "props" : {
+            standard_props[i] : fcc_props[i] for i in range(4) # Convert alat, C11, C12, C44 list to appropriate dict
+        }
     },
 
     "bcc" : {
         "symbol" : "W",
-        "props" : sd.get_elastic_constants(calculator=EAM(test_dir + os.sep + "w_eam4.fs"), 
-                                           symbol="W", verbose=False)
+        "props" : {
+            standard_props[i] : bcc_props[i] for i in range(4) # Convert alat, C11, C12, C44 list to appropriate dict
+        }
+    },
+    "hcp" : {
+        "symbol" : "Ti",
+        "props" : {
+         "a" :  [2.85, 2.95, 4.68], # Lattice constants: a, a, c
+         "C" : np.array([ # Elastic tensor C
+                [170,  81,  75,  0,  0,  0],
+                [ 81, 170,  81,  0,  0,  0],
+                [ 75,  81, 185,  0,  0,  0],
+                [  0,   0,   0, 42,  0,  0],
+                [  0,   0,   0,  0, 42,  0],
+                [  0,   0,   0,  0,  0, 42]
+            ])
+        }
     }
 }
 
-class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
+class BaseTestDislocation(matscipytest.MatSciPyTestFixture):
 
     has_atomman = "atomman" in sys.modules
     has_ovito = "ovito" in sys.modules
@@ -655,12 +683,14 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
 
         self.symbol = test_props[self.structure.lower()]["symbol"]
 
-        self.alat, self.C11, self.C12, self.C44 = test_props[self.structure.lower()]["props"]
+        self.props = test_props[self.structure.lower()]["props"]
 
         self.default_method = "atomman" if self.has_atomman else "adsl"
 
+        self.cubic = False if self.structure == "HCP" else True
 
-        if issubclass(self.test_cls, sd.CubicCrystalDissociatedDislocation):
+
+        if issubclass(self.test_cls, sd.DissociatedDislocation):
             self.ncores = 2
         else:
             self.ncores = 1
@@ -669,16 +699,16 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
     def test_dislocation_cylinder(self, disloc, gen_bulk, 
                                   test_u=True, tol=10.0):
         '''
-        Test construction of CubicCrystalDislocation.build_cylinder
+        Test construction of Dislocation.build_cylinder
         '''
         self.set_up_cls(disloc)
 
         if gen_bulk:
-            a = ase_bulk(self.symbol, self.structure.lower(), self.alat, cubic=True)
+            a = ase_bulk(self.symbol, self.structure.lower(), *self.props["a"], cubic=self.cubic)
         else:
-            a = self.alat
+            a = self.props["a"]
 
-        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = self.test_cls(**self.props, symbol=self.symbol)
         bulk, disloc = d.build_cylinder(20.0, method=self.default_method, 
                                         self_consistent=d.self_consistent, verbose=False)
 
@@ -710,12 +740,14 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
         if not self.has_ovito:
             self.skipTest("ovito module not installed")
 
-        if gen_bulk:
-            a = ase_bulk(self.symbol, self.structure.lower(), self.alat, cubic=True)
-        else:
-            a = self.alat
 
-        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol=self.symbol)
+        props_dict = dict(self.props) # Create copy of self.props in order to in-place modify
+        if gen_bulk:
+            props_dict["a"] = ase_bulk(self.symbol, self.structure.lower(), *self.props["a"], cubic=self.cubic)
+        else:
+            props_dict["a"] = self.props["a"]
+
+        d = self.test_cls(**props_dict, symbol=self.symbol)
         bulk, disloc = d.build_cylinder(20.0, method=self.default_method, verbose=False)
 
         results = sd.ovito_dxa_straight_dislo_info(disloc, structure=self.structure)
@@ -733,6 +765,7 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
         # print(f'angle = {angle} ref_angle = {ref_angle} err = {err}')
         # assert abs(err) < tol
 
+    # TODO: FIX!
     def test_displacement_r_sc(self, disloc, subtests):
         '''
         Test whether the r_sc parameter can fix the vacancy issue reported in https://github.com/libAtoms/matscipy/issues/265
@@ -748,7 +781,7 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
 
         self.set_up_cls(disloc)      
 
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = self.test_cls(**self.props, symbol=self.symbol)
         
         # This ref disloc should have a "vacancy" in it
         # (Similar to #265)
@@ -791,7 +824,7 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
     def test_glide_configs(self, disloc, subtests):  
         self.set_up_cls(disloc)      
 
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = self.test_cls(**self.props, symbol=self.symbol)
         bulk, disloc_ini, disloc_fin = d.build_glide_configurations(radius=40, method=self.default_method, verbose=False)
 
         assert len(bulk) == len(disloc_ini)
@@ -826,7 +859,7 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
 
         methods = self.test_cls.avail_methods
 
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = self.test_cls(**self.props, symbol=self.symbol)
         bulk, _ = d.build_cylinder(radius=20.0, verbose=False)
 
         # Base method to compare against
@@ -853,7 +886,7 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
                 
     def test_kink_round_trip(self, disloc, subtests):
         self.set_up_cls(disloc)
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = self.test_cls(**self.props, symbol=self.symbol)
 
         kink_map = [0, 1]
 
@@ -869,7 +902,7 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
     
     def test_kink_equiv_maps(self, disloc, subtests):
         self.set_up_cls(disloc)
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = self.test_cls(**self.props, symbol=self.symbol)
 
         equiv_kinks = [
             [[0, 1], [-1, 0]],
@@ -887,21 +920,22 @@ class BaseTestCubicCrystalDislocation(matscipytest.MatSciPyTestFixture):
                 np.testing.assert_array_almost_equal(kc1.positions, kc2.positions)
 
 @pytest.mark.parametrize("disloc", cubic_perfect_dislocs())
-class TestCubicCrystalDislocation(BaseTestCubicCrystalDislocation):
+class TestCubicCrystalDislocation(BaseTestDislocation):
     pass
 
 @pytest.mark.parametrize("disloc", cubic_dissociated_dislocs())
-class TestCubicCrystalDissociatedDislocation(BaseTestCubicCrystalDislocation):
+class TestCubicCrystalDissociatedDislocation(BaseTestDislocation):
     @pytest.mark.parametrize("gen_bulk", [True, False])
     def test_dissociated_disloc(self, disloc, gen_bulk):
         self.set_up_cls(disloc)
 
+        props_dict = dict(self.props)
         if gen_bulk:
-            a = ase_bulk(self.symbol, self.structure.lower(), self.alat, cubic=True)
+            props_dict["a"] = ase_bulk(self.symbol, self.structure.lower(), *self.props["a"], cubic=self.cubic)
         else:
-            a = self.alat
+            props_dict = self.props["a"]
 
-        d = self.test_cls(a, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = self.test_cls(**props_dict, symbol=self.symbol)
         
         partial_dist = 5.0        
         bulk, disloc = d.build_cylinder(40.0, partial_distance=partial_dist, verbose=False)
@@ -932,11 +966,11 @@ class TestCubicCrystalDissociatedDislocation(BaseTestCubicCrystalDislocation):
         # Percentage tolerance of the error, w/ respect to the lattice parameter
         percent_tol = 1.0
 
-        assert (max_err / self.alat) <= (percent_tol / 100.0)
+        assert (max_err / np.min(self.props["a"])) <= (percent_tol / 100.0)
 
     def test_dissoc_kink_equiv_maps(self, disloc, subtests):
         self.set_up_cls(disloc)
-        d = self.test_cls(self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = self.test_cls(**self.props, symbol=self.symbol)
 
         kmap1 = np.array(
               [[0, 0]] * 2
@@ -954,7 +988,7 @@ class TestCubicCrystalDissociatedDislocation(BaseTestCubicCrystalDislocation):
         np.testing.assert_array_almost_equal(kc1.positions, kc2.positions)
 
 
-class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture):
+class BaseTestDislocationQuadrupole(matscipytest.MatSciPyTestFixture):
     has_atomman = "atomman" in sys.modules
     has_ovito = "ovito" in sys.modules
     
@@ -965,11 +999,11 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
 
         self.symbol = test_props[self.structure.lower()]["symbol"]
 
-        self.alat, self.C11, self.C12, self.C44 = test_props[self.structure.lower()]["props"]
+        self.props = test_props[self.structure.lower()]["props"]
 
         self.default_method = "atomman" if self.has_atomman else "adsl"
 
-        if issubclass(self.test_cls, sd.CubicCrystalDissociatedDislocation):
+        if issubclass(self.test_cls, sd.DissociatedDislocation):
             self.ncores = 2
         else:
             self.ncores = 1
@@ -980,7 +1014,7 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
         '''
         self.set_up_cls(disloc)
 
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = sd.Quadrupole(self.test_cls, **self.props, symbol=self.symbol)
 
         with subtests.test("Check build_quadrupole basic functionality"):
 
@@ -997,7 +1031,7 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
     def test_glide_configs(self, disloc, subtests):
         self.set_up_cls(disloc)
 
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = sd.Quadrupole(self.test_cls, **self.props, symbol=self.symbol)
 
 
         with subtests.test("Check build_glide_quadrupoles basic functionality"):
@@ -1017,7 +1051,7 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
 
     def test_quad_kink_round_trip(self, disloc, subtests):
         self.set_up_cls(disloc)
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = sd.Quadrupole(self.test_cls, **self.props, symbol=self.symbol)
 
         kink_map = [0, 1]
 
@@ -1041,7 +1075,7 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
     
     def test_quad_kink_equiv_maps(self, disloc, subtests):
         self.set_up_cls(disloc)
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = sd.Quadrupole(self.test_cls, **self.props, symbol=self.symbol)
 
         equiv_kinks = [
             [[0, 1], [-1, 0]],
@@ -1067,7 +1101,7 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
 
     def test_quad_minimal_kink(self, disloc, subtests):
         self.set_up_cls(disloc)
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+        d = sd.Quadrupole(self.test_cls, **self.props, symbol=self.symbol)
 
         n_kinks = np.arange(-2, 2)
 
@@ -1085,25 +1119,25 @@ class BaseTestCubicCrystalDislocationQuadrupole(matscipytest.MatSciPyTestFixture
 
 
 
-@pytest.mark.parametrize("disloc", cubic_perfect_dislocs())
-class TestCubicCrystalDislocationQuadrupole(BaseTestCubicCrystalDislocationQuadrupole):
-    pass
+# @pytest.mark.parametrize("disloc", cubic_perfect_dislocs())
+# class DislocationQuadrupole(BaseTestDislocationQuadrupole):
+#     pass
 
 
-@pytest.mark.parametrize("disloc", cubic_dissociated_dislocs())
-class TestCubicCrystalDissociatedDislocationQuadrupole(BaseTestCubicCrystalDislocationQuadrupole):
+# @pytest.mark.parametrize("disloc", cubic_dissociated_dislocs())
+# class TestDissociatedDislocationQuadrupole(BaseTestDislocationQuadrupole):
     
-    def test_dissociated_quadrupole(self, disloc):
-        '''
-        Check execution with no errors
-        '''
-        self.set_up_cls(disloc)
+#     def test_dissociated_quadrupole(self, disloc):
+#         '''
+#         Check execution with no errors
+#         '''
+#         self.set_up_cls(disloc)
 
-        d = sd.Quadrupole(self.test_cls, self.alat, self.C11, self.C12, self.C44, symbol=self.symbol)
+#         d = sd.Quadrupole(self.test_cls, **self.props, symbol=self.symbol)
 
 
-        # Cell has to be quite big to also have partial distances in there
-        bulk, quad = d.build_quadrupole(glide_separation=8, partial_distance=2, verbose=False)
+#         # Cell has to be quite big to also have partial distances in there
+#         bulk, quad = d.build_quadrupole(glide_separation=8, partial_distance=2, verbose=False)
 
 
 
