@@ -86,7 +86,7 @@ def cubic_perfect_dislocs():
 def cubic_dissociated_dislocs():
     _cubic_dislocs = cubic_dislocs()
 
-    _cubic_dissociated_dislocs = [item for item in _cubic_dislocs if issubclass(item, sd.Dislocation)]
+    _cubic_dissociated_dislocs = [item for item in _cubic_dislocs if issubclass(item, sd.DissociatedDislocation)]
     
     return _cubic_dissociated_dislocs
 
@@ -683,11 +683,15 @@ class BaseTestDislocation(matscipytest.MatSciPyTestFixture):
 
         self.symbol = test_props[self.structure.lower()]["symbol"]
 
-        self.props = test_props[self.structure.lower()]["props"]
+        self.props = dict(test_props[self.structure.lower()]["props"])
 
         self.default_method = "atomman" if self.has_atomman else "adsl"
 
-        self.cubic = False if self.structure == "HCP" else True
+        self.cubic = False if self.structure.lower() == "hcp" else True
+
+        if not type(self.props["a"]) == list:
+            a = self.props["a"]
+            self.props["a"] = [a, a, a]
 
 
         if issubclass(self.test_cls, sd.DissociatedDislocation):
@@ -744,8 +748,6 @@ class BaseTestDislocation(matscipytest.MatSciPyTestFixture):
         props_dict = dict(self.props) # Create copy of self.props in order to in-place modify
         if gen_bulk:
             props_dict["a"] = ase_bulk(self.symbol, self.structure.lower(), *self.props["a"], cubic=self.cubic)
-        else:
-            props_dict["a"] = self.props["a"]
 
         d = self.test_cls(**props_dict, symbol=self.symbol)
         bulk, disloc = d.build_cylinder(20.0, method=self.default_method, verbose=False)
@@ -932,8 +934,6 @@ class TestCubicCrystalDissociatedDislocation(BaseTestDislocation):
         props_dict = dict(self.props)
         if gen_bulk:
             props_dict["a"] = ase_bulk(self.symbol, self.structure.lower(), *self.props["a"], cubic=self.cubic)
-        else:
-            props_dict = self.props["a"]
 
         d = self.test_cls(**props_dict, symbol=self.symbol)
         
@@ -1119,25 +1119,25 @@ class BaseTestDislocationQuadrupole(matscipytest.MatSciPyTestFixture):
 
 
 
-# @pytest.mark.parametrize("disloc", cubic_perfect_dislocs())
-# class DislocationQuadrupole(BaseTestDislocationQuadrupole):
-#     pass
+@pytest.mark.parametrize("disloc", cubic_perfect_dislocs())
+class DislocationQuadrupole(BaseTestDislocationQuadrupole):
+    pass
 
 
-# @pytest.mark.parametrize("disloc", cubic_dissociated_dislocs())
-# class TestDissociatedDislocationQuadrupole(BaseTestDislocationQuadrupole):
+@pytest.mark.parametrize("disloc", cubic_dissociated_dislocs())
+class TestDissociatedDislocationQuadrupole(BaseTestDislocationQuadrupole):
     
-#     def test_dissociated_quadrupole(self, disloc):
-#         '''
-#         Check execution with no errors
-#         '''
-#         self.set_up_cls(disloc)
+    def test_dissociated_quadrupole(self, disloc):
+        '''
+        Check execution with no errors
+        '''
+        self.set_up_cls(disloc)
 
-#         d = sd.Quadrupole(self.test_cls, **self.props, symbol=self.symbol)
+        d = sd.Quadrupole(self.test_cls, **self.props, symbol=self.symbol)
 
 
-#         # Cell has to be quite big to also have partial distances in there
-#         bulk, quad = d.build_quadrupole(glide_separation=8, partial_distance=2, verbose=False)
+        # Cell has to be quite big to also have partial distances in there
+        bulk, quad = d.build_quadrupole(glide_separation=8, partial_distance=2, verbose=False)
 
 
 

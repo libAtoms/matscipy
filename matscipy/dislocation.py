@@ -4120,6 +4120,7 @@ class DissociatedDislocation(Dislocation, metaclass=ABCMeta):
 
 class DislocationQuadrupole(DissociatedDislocation):
     burgers_dimensionless = np.zeros(3)
+    burgers = np.zeros(3)
     def __init__(self, disloc_class, *args, **kwargs):
         """
         Initialise dislocation quadrupole class
@@ -4552,7 +4553,7 @@ class DislocationQuadrupole(DissociatedDislocation):
         }
         cutoffs = neigh_dists[self.crystalstructure]
 
-        bulk_coord = [np.min(coordination(bulk, cutoff * self.alat)) for cutoff in cutoffs]
+        bulk_coord = [np.min(coordination(bulk, cutoff * np.average(self.alat))) for cutoff in cutoffs]
 
         full_mask = np.ones((len(tilt_bulk)), dtype=bool)
         atom_heights = np.round(p, precision)[:, 2]
@@ -4562,7 +4563,7 @@ class DislocationQuadrupole(DissociatedDislocation):
             # as normal bulk
             # TODO: This currently does not work for BCCEdge111barDislocation
             if np.prod([
-                all(coordination(tilt_bulk[full_mask], cutoff * self.alat) == bulk_coord[j])
+                all(coordination(tilt_bulk[full_mask], cutoff * np.average(self.alat)) == bulk_coord[j])
                 for j, cutoff in enumerate(cutoffs)
                 ]):
                 return full_mask, cell
@@ -4816,12 +4817,12 @@ class HCP90degreePartial(Dislocation):
     # Journal of Materials Science & Technology. 152. 10.1016/j.jmst.2022.12.029. 
 
     axes = np.array([
-        [1, 0, 0],
+        [-1, 0, 0],
         [0, 0, 1],
         [0, 1, 0]
     ])
 
-    burgers_dimensionless = np.array([-1, 1, 0, 0]) / 3
+    burgers_dimensionless = np.array([1, -1, 0, 0]) / 3
 
     unit_cell_core_position_dimensionless = np.array([1/2, 1/4, 0])
 
@@ -4841,12 +4842,12 @@ class HCP30degreePartial(Dislocation):
     # Journal of Materials Science & Technology. 152. 10.1016/j.jmst.2022.12.029. 
 
     axes = np.array([
-        [1, 0, 0],
+        [-1, 0, 0],
         [0, 0, 1],
         [0, 1, 0]
     ])
 
-    burgers_dimensionless = np.array([0, -1, 1, 0]) / 3
+    burgers_dimensionless = np.array([0, 1, -1, 0]) / 3
 
     unit_cell_core_position_dimensionless = np.array([1/2, 1/4, 0])
 

@@ -126,7 +126,9 @@ class GammaSurface():
         alat, self.cut_at = validate_cubic_cell(a, axes=ax, 
                                                 crystalstructure=crystalstructure,
                                                 symbol=symbol)
-        self.offset *= alat
+        
+        if alat is not None: # Case when crystalstructure is defined, meaning we have a dislocation passed
+            self.offset *= alat
 
     def _vec_to_miller(self, vec, latex=True, brackets="["):
         '''
