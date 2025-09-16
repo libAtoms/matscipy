@@ -1,10 +1,10 @@
 [build-system]
 requires = [
-    "meson>=1.0.0",
-    "meson-python>=0.13.0",
+    "meson>=1.9.0",
+    "meson-python>=0.18.0",
     "ninja",
     "oldest-supported-numpy; python_version=='3.8'",
-    "numpy>=2.0.0; python_version>='3.9'"
+    "numpy>=2.0.0; python_version>='3.8'"
 ]
 build-backend = "mesonpy"
 
