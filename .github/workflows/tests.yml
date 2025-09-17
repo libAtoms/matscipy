@@ -36,8 +36,9 @@ jobs:
         run: |
           python3 -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip
-          pip install --upgrade meson ninja meson-python
+          pip install --upgrade pip uv
+          uv pip compile --extra test pyproject.toml > requirements.txt
+          pip install -r requirements.txt
 
       - name: Build and install package
         run: |
