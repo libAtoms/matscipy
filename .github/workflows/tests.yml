@@ -42,7 +42,7 @@ jobs:
       - name: Build and install package
         run: |
           source venv/bin/activate
-          pip install -no-build-isolation .[test]
+          pip install --no-build-isolation .[test]
 
       - name: Test with pytest
         run: |
