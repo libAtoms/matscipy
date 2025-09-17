@@ -37,7 +37,7 @@ jobs:
           python3 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
-          pip install --upgrade meson ninja
+          pip install --upgrade meson ninja meson-python
 
       - name: Build and install package
         run: |
