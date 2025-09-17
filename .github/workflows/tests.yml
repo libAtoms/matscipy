@@ -36,7 +36,7 @@ jobs:
         run: |
           python3 -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip uv
+          pip install --upgrade pip uv meson meson-python ninja 
           uv pip compile --extra test pyproject.toml > requirements.txt
           pip install -r requirements.txt
 
