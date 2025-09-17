@@ -36,7 +36,7 @@ jobs:
 
       - name: build_c
         run: |
-          sudo pip install -vvvv .[test]
+          sudo pip install -no-build-isolation .[test]
 
       - name: pytest
         run: |

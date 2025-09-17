@@ -35,7 +35,7 @@ jobs:
 
       - name: install_package
         run: |
-          sudo pip install -vvvv .[docs]
+          sudo pip install -no-build-isolation .[docs]
 
       # Standard drop-in approach that should work for most people.
       - name: build_doc
