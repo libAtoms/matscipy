@@ -30,7 +30,7 @@ jobs:
         - [macos-12, macosx, arm64]
         - [windows-2025, win, AMD64]
 
-        python: ["cp38", "cp39", "cp310", "cp311", "cp312"]
+        python: ["cp39", "cp310", "cp311", "cp312"]
       fail-fast: false
 
     env:
@@ -48,7 +48,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.9'
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2

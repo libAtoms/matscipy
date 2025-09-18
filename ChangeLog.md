@@ -5,6 +5,7 @@ v1.2.0 (16Sep25)
 ----------------
 
 - Dropped support for numpy < 2
+- Dropped support for Python < 3.9
 
 v1.1.1 (16Oct24)
 ----------------

@@ -3,8 +3,8 @@ requires = [
     "meson>=1.9.0",
     "meson-python>=0.18.0",
     "ninja",
-    "oldest-supported-numpy; python_version=='3.8'",
-    "numpy>=2.0.0; python_version>='3.8'"
+    "oldest-supported-numpy; python_version=='3.9'",
+    "numpy>=2.0.0; python_version>='3.9'"
 ]
 build-backend = "mesonpy"
 
@@ -21,7 +21,7 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python"
 ]
-requires-python = ">=3.8.0"
+requires-python = ">=3.9.0"
 dynamic = ["version"]
 dependencies = [
     "numpy>=2.0.0",
