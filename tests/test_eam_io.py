@@ -42,46 +42,40 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
+import os
 import unittest
 
-import numpy as np
+from matscipy.calculators.eam.io import mix_eam, read_eam, write_eam
 
-import os
-from matscipy.calculators.eam.io import (read_eam,
-                                         write_eam,
-                                         mix_eam)
 try:
     from scipy import interpolate
+
     from matscipy.calculators.eam import EAM
-except:
-    print('Warning: No scipy')
+except ModuleNotFoundError:
+    print("Warning: No scipy")
     interpolate = False
 
-
-import ase.io as io
-from ase.calculators.test import numeric_force
+import matscipytest
 from ase.constraints import StrainFilter, UnitCellFilter
-from ase.lattice.compounds import B1, B2, L1_0, L1_2
+from ase.lattice.compounds import B1, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.optimize import FIRE
 
-import matscipytest
-
 ###
 
-class TestEAMIO(matscipytest.MatSciPyTestCase):
 
+class TestEAMIO(matscipytest.MatSciPyTestCase):
     tol = 1e-6
 
     def test_eam_read_write(self):
-        source,parameters,F,f,rep = read_eam("Au_u3.eam",kind="eam")
-        write_eam(source,parameters,F,f,rep,"Au_u3_copy.eam",kind="eam")
-        source1,parameters1,F1,f1,rep1 = read_eam("Au_u3_copy.eam",kind="eam")
+        source, parameters, F, f, rep = read_eam("Au_u3.eam", kind="eam")
+        write_eam(source, parameters, F, f, rep, "Au_u3_copy.eam", kind="eam")
+        source1, parameters1, F1, f1, rep1 = read_eam("Au_u3_copy.eam", kind="eam")
         os.remove("Au_u3_copy.eam")
-        for i,p in enumerate(parameters):
+        for i, p in enumerate(parameters):
             try:
                 diff = p - parameters1[i]
-            except:
+            except IndexError:
                 diff = None
             if diff is None:
                 self.assertTrue(p == parameters1[i])
@@ -91,115 +85,154 @@ class TestEAMIO(matscipytest.MatSciPyTestCase):
         self.assertTrue((F == F1).all())
         self.assertTrue((f == f1).all())
         self.assertArrayAlmostEqual(rep, rep1)
-    
+
     def test_eam_alloy_read_write(self):
-        source,parameters,F,f,rep = read_eam("CuAgNi_Zhou.eam.alloy",kind="eam/alloy")
-        write_eam(source,parameters,F,f,rep,"CuAgNi_Zhou.eam.alloy_copy",kind="eam/alloy")
-        source1,parameters1,F1,f1,rep1 = read_eam("CuAgNi_Zhou.eam.alloy_copy",kind="eam/alloy")
+        source, parameters, F, f, rep = read_eam(
+            "CuAgNi_Zhou.eam.alloy", kind="eam/alloy"
+        )
+        write_eam(
+            source,
+            parameters,
+            F,
+            f,
+            rep,
+            "CuAgNi_Zhou.eam.alloy_copy",
+            kind="eam/alloy",
+        )
+        source1, parameters1, F1, f1, rep1 = read_eam(
+            "CuAgNi_Zhou.eam.alloy_copy", kind="eam/alloy"
+        )
         os.remove("CuAgNi_Zhou.eam.alloy_copy")
         fail = 0
-        for i,p in enumerate(parameters):
+        for i, p in enumerate(parameters):
             try:
-              for j,d in enumerate(p):
-                  if d != parameters[i][j]:
-                      fail+=1
-            except:
+                for j, d in enumerate(p):
+                    if d != parameters[i][j]:
+                        fail += 1
+            except IndexError:
                 if p != parameters[i]:
-                    fail +=1
+                    fail += 1
         self.assertTrue(fail == 0)
         self.assertTrue((F == F1).all())
         self.assertTrue((f == f1).all())
         for i in range(len(rep)):
             for j in range(len(rep)):
-                if j < i :
-                    self.assertTrue((rep[i,j,:] == rep1[i,j,:]).all())
-                    
+                if j < i:
+                    self.assertTrue((rep[i, j, :] == rep1[i, j, :]).all())
+
     def test_eam_fs_read_write(self):
-        source,parameters,F,f,rep = read_eam("CuZr_mm.eam.fs",kind="eam/fs")
-        write_eam(source,parameters,F,f,rep,"CuZr_mm.eam.fs_copy",kind="eam/fs")
-        source1,parameters1,F1,f1,rep1 = read_eam("CuZr_mm.eam.fs_copy",kind="eam/fs")
+        source, parameters, F, f, rep = read_eam("CuZr_mm.eam.fs", kind="eam/fs")
+        write_eam(source, parameters, F, f, rep, "CuZr_mm.eam.fs_copy", kind="eam/fs")
+        source1, parameters1, F1, f1, rep1 = read_eam(
+            "CuZr_mm.eam.fs_copy", kind="eam/fs"
+        )
         os.remove("CuZr_mm.eam.fs_copy")
         fail = 0
-        for i,p in enumerate(parameters):
+        for i, p in enumerate(parameters):
             try:
-              for j,d in enumerate(p):
-                  if d != parameters[i][j]:
-                      fail+=1
-            except:
+                for j, d in enumerate(p):
+                    if d != parameters[i][j]:
+                        fail += 1
+            except IndexError:
                 if p != parameters[i]:
-                    fail +=1
+                    fail += 1
         self.assertTrue(fail == 0)
         self.assertTrue((F == F1).all())
         for i in range(f.shape[0]):
             for j in range(f.shape[0]):
-                self.assertTrue((f[i,j,:] == f1[i,j,:]).all())
+                self.assertTrue((f[i, j, :] == f1[i, j, :]).all())
         for i in range(len(rep)):
             for j in range(len(rep)):
-                if j < i :
-                    self.assertTrue((rep[i,j,:] == rep1[i,j,:]).all())
-         
+                if j < i:
+                    self.assertTrue((rep[i, j, :] == rep1[i, j, :]).all())
+
     def test_mix_eam_alloy(self):
         if False:
-            source,parameters,F,f,rep = read_eam("CuAu_Zhou.eam.alloy",kind="eam/alloy")
-            source1,parameters1,F1,f1,rep1 = mix_eam(["Cu_Zhou.eam.alloy","Au_Zhou.eam.alloy"],"eam/alloy","weight")
-            write_eam(source1,parameters1,F1,f1,rep1,"CuAu_mixed.eam.alloy",kind="eam/alloy")
+            source, parameters, F, f, rep = read_eam(
+                "CuAu_Zhou.eam.alloy", kind="eam/alloy"
+            )
+            source1, parameters1, F1, f1, rep1 = mix_eam(
+                ["Cu_Zhou.eam.alloy", "Au_Zhou.eam.alloy"], "eam/alloy", "weight"
+            )
+            write_eam(
+                source1,
+                parameters1,
+                F1,
+                f1,
+                rep1,
+                "CuAu_mixed.eam.alloy",
+                kind="eam/alloy",
+            )
 
-            calc0 = EAM('CuAu_Zhou.eam.alloy')
-            calc1 = EAM('CuAu_mixed.eam.alloy')
-       
-            a = FaceCenteredCubic('Cu', size=[2,2,2])
-            a.set_calculator(calc0)
-            FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e0 = a.get_potential_energy()/len(a)
-            a = FaceCenteredCubic('Cu', size=[2,2,2])
-            a.set_calculator(calc1)
-            FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e1 = a.get_potential_energy()/len(a)
-            self.assertTrue(e0-e1 < 0.0005)
+            calc0 = EAM("CuAu_Zhou.eam.alloy")
+            calc1 = EAM("CuAu_mixed.eam.alloy")
 
-            a = FaceCenteredCubic('Au', size=[2,2,2])
+            a = FaceCenteredCubic("Cu", size=[2, 2, 2])
             a.set_calculator(calc0)
-            FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e0 = a.get_potential_energy()/len(a)
-            a = FaceCenteredCubic('Au', size=[2,2,2])
+            FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+            e0 = a.get_potential_energy() / len(a)
+            a = FaceCenteredCubic("Cu", size=[2, 2, 2])
             a.set_calculator(calc1)
-            FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e1 = a.get_potential_energy()/len(a)
-            self.assertTrue(e0-e1 < 0.0005)
+            FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+            e1 = a.get_potential_energy() / len(a)
+            self.assertTrue(e0 - e1 < 0.0005)
 
-            a = L1_2(['Au', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+            a = FaceCenteredCubic("Au", size=[2, 2, 2])
             a.set_calculator(calc0)
-            FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e0 = a.get_potential_energy()/len(a)
-            a = L1_2(['Au', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+            FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+            e0 = a.get_potential_energy() / len(a)
+            a = FaceCenteredCubic("Au", size=[2, 2, 2])
             a.set_calculator(calc1)
-            FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e1 = a.get_potential_energy()/len(a)
-            self.assertTrue(e0-e1 < 0.0005)
+            FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+            e1 = a.get_potential_energy() / len(a)
+            self.assertTrue(e0 - e1 < 0.0005)
 
-            a = L1_2(['Cu', 'Au'], size=[2,2,2], latticeconstant=4.0)
+            a = L1_2(["Au", "Cu"], size=[2, 2, 2], latticeconstant=4.0)
             a.set_calculator(calc0)
-            FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e0 = a.get_potential_energy()/len(a)
-            a = L1_2(['Cu', 'Au'], size=[2,2,2], latticeconstant=4.0)
+            FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(
+                fmax=0.001
+            )
+            e0 = a.get_potential_energy() / len(a)
+            a = L1_2(["Au", "Cu"], size=[2, 2, 2], latticeconstant=4.0)
             a.set_calculator(calc1)
-            FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e1 = a.get_potential_energy()/len(a)
-            self.assertTrue(e0-e1 < 0.0005)
+            FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(
+                fmax=0.001
+            )
+            e1 = a.get_potential_energy() / len(a)
+            self.assertTrue(e0 - e1 < 0.0005)
 
-            a = B1(['Au', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+            a = L1_2(["Cu", "Au"], size=[2, 2, 2], latticeconstant=4.0)
             a.set_calculator(calc0)
-            FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e0 = a.get_potential_energy()/len(a)
-            a = B1(['Au', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+            FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(
+                fmax=0.001
+            )
+            e0 = a.get_potential_energy() / len(a)
+            a = L1_2(["Cu", "Au"], size=[2, 2, 2], latticeconstant=4.0)
             a.set_calculator(calc1)
-            FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-            e1 = a.get_potential_energy()/len(a)
-            self.assertTrue(e0-e1 < 0.0005)
-          
+            FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(
+                fmax=0.001
+            )
+            e1 = a.get_potential_energy() / len(a)
+            self.assertTrue(e0 - e1 < 0.0005)
+
+            a = B1(["Au", "Cu"], size=[2, 2, 2], latticeconstant=4.0)
+            a.set_calculator(calc0)
+            FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(
+                fmax=0.001
+            )
+            e0 = a.get_potential_energy() / len(a)
+            a = B1(["Au", "Cu"], size=[2, 2, 2], latticeconstant=4.0)
+            a.set_calculator(calc1)
+            FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(
+                fmax=0.001
+            )
+            e1 = a.get_potential_energy() / len(a)
+            self.assertTrue(e0 - e1 < 0.0005)
+
             os.remove("CuAu_mixed.eam.alloy")
-            
+
+
 ###
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
