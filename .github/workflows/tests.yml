@@ -13,16 +13,18 @@ jobs:
   tests:
 
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install Python
-        run: |
-          sudo apt-get update -qy
-          sudo apt-get install -y python3-dev python3-pip python3-venv libxml2-dev libxslt-dev zlib1g-dev
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
 
       # needs fenics only to run test_poisson_nernst_planck_solver_fenics
       # - name: Install FENICS
@@ -32,18 +34,11 @@ jobs:
       #    sudo apt-get update -qy
       #    sudo apt-get install -y fenics python3-dolfin python3-mshr
 
-      - name: Create virtual environment
+      - name: Create virtual environment and install package
         run: |
           python3 -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip uv meson meson-python ninja 
-          uv pip compile --extra test pyproject.toml > requirements.txt
-          pip install -r requirements.txt
-
-      - name: Build and install package
-        run: |
-          source venv/bin/activate
-          pip install --no-build-isolation .[test]
+          pip install .[test]
 
       - name: Test with pytest
         run: |
