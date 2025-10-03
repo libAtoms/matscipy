@@ -4524,61 +4524,96 @@ class DislocationQuadrupole(DissociatedDislocation):
         if self.left_dislocation.__class__ == BCCEdge111barDislocation:
             raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
 
-        bulk = ref_bulk.copy()
-        tilt_bulk = ref_bulk.copy()
-        cell = tilt_bulk.cell[:, :]
-        cell[2, 0] += direction * self.glide_distance
+        
+        c = np.sum(self.unit_cell.cell[:, :], axis=0)[2]
 
-        tilt_bulk.set_cell(cell, scale_atoms=False)
-        tilt_bulk.wrap()
+        assert c > 0 # Method doesn't work if z lattice vector points down, should point up
 
-        p = ref_bulk.get_positions()
 
-        step_size = self._alat[2] * 10**(-precision)
+        ref_bulk.wrap()
 
-        # Shift bulk if atoms too close to the border
-        if any(p[:, 2] < step_size):
-            p[:, 2] += step_size
-            tilt_bulk.set_positions(p)
-            tilt_bulk.wrap()
-            p = tilt_bulk.get_positions()
+        if np.min(ref_bulk.positions[:, 2]) < 0.01:
+            # Atoms too close to boundary, push up
+            ref_bulk.positions[:, 2] += 0.05
+            ref_bulk.wrap()
 
-    
-        # 1st, 2nd, & 3rd nearest neighbour distances
-        # for each crystal structure
-        neigh_dists = {
-        "bcc" : [0.88, 1.01, 1.42],
-        "fcc" : [0.72, 1.01, 1.23],
-        "diamond" : [0.44, 0.72, 0.84]
-        }
-        cutoffs = neigh_dists[self.crystalstructure]
+        spec_list = np.array(ref_bulk.get_chemical_symbols())
+        unique_specs = np.unique(spec_list)
 
-        bulk_coord = [np.min(coordination(bulk, cutoff * np.average(self.alat))) for cutoff in cutoffs]
+        spec_counts = np.array([np.sum(spec_list == spec) for spec in unique_specs])
 
-        full_mask = np.ones((len(tilt_bulk)), dtype=bool)
-        atom_heights = np.round(p, precision)[:, 2]
+        # Find most common species (to ensure we have maximum chance of finding same-species neighbours)
+        target_spec = unique_specs[np.argmax(spec_counts)]
 
-        for i in range(int(cell[2, 2] / step_size)):
-            # Check if tilt_bulk has same 1st, 2nd, & 3rd neighbour coordination
-            # as normal bulk
-            # TODO: This currently does not work for BCCEdge111barDislocation
-            if np.prod([
-                all(coordination(tilt_bulk[full_mask], cutoff * np.average(self.alat)) == bulk_coord[j])
-                for j, cutoff in enumerate(cutoffs)
-                ]):
-                return full_mask, cell
-                
-            # Else, trim the top part of the cell and retry
-            # (atoms outside the cell are also trimmed)
-            cell[2, 2] -= step_size
-            atom_mask = atom_heights > cell[2,2]
+        z = ref_bulk.positions[:, 2]
 
-            full_mask[atom_mask] = False
+        # Mask only atoms at the top and/or bottom of the cell, saves on neighbourlist computations
+        # Also restrict to only the most common atom species (as we want same-species neighbours)
+        # Need to ensure we can still find 2nd neighbours across the cell, so need to keep
+        # 2*c border on top and  1*c on bottom to guarantee that 2nd neighbours exist upwards of top layer.
+        mask = np.array((z <= c) + (z >= (np.sum(ref_bulk.cell[:, :], axis=0)[2] - 2*c))) * (spec_list == target_spec)
+        mask = mask > 0
 
-            tilt_bulk.set_cell(cell, scale_atoms=False)
+        mask_ats = ref_bulk[mask]
 
-        # If we end up here, all layers removed before we found a match. Raise error
-        raise RuntimeError("Could not find a valid periodic kink cell.")
+        # Pick an atom index to start at, close to the bottom of the cell
+        start_idx = np.argmin(z[mask])
+        start_species = mask_ats.get_chemical_symbols()[start_idx]
+
+        # Look for all same-species nearest-neighbour bonds, which must be within a distance of c
+        i, j, D = neighbour_list("ijD", mask_ats, cutoff={(start_species, start_species) : 2*c})
+
+
+        # Identify neighbours of start_idx, with displacements which cross the cell
+        # (start_idx was chosen to be the lowest atom, so anything with D[:, 2] < 0 must cross the cell boundary)
+        mask = (i==start_idx) * (D[:, 2] < 0) * (np.abs(D[:, 0]) > 0.1)
+        jstart = j[mask]
+        Dstart = D[mask, :]
+
+        # If multiple neighbours found, pick the closest
+        k = np.argmin(np.linalg.norm(Dstart, axis=-1))
+        neigh_idx = jstart[k]
+        Dtarget = Dstart[k, :].copy()
+
+        nplanes = int(np.round(c / -Dtarget[2])) # Number of planes in cell
+
+        new_cell = ref_bulk.cell[:, :].copy()
+        new_cell[2, 0] += direction * self.glide_distance
+
+        new_bulk = mask_ats.copy()
+        new_bulk.set_cell(new_cell, scale_atoms=False)
+
+        for iplane in range(nplanes):
+            # Repeat neighbourlist & indentification of neighbour in shifted cell
+            i, j, D = neighbour_list("ijD", new_bulk, cutoff={(start_species, start_species) : 2*c})
+
+            mask = (i==start_idx) * (D[:, 2] < 0)
+
+            Dstart = D[mask, :]
+
+            # Find neighbour which matches target displacement best
+            k = np.argmin(np.linalg.norm(Dstart - Dtarget, axis=-1))
+            Dfnd = Dstart[k, :].copy()
+
+            diff = np.linalg.norm(Dfnd - Dtarget)
+            
+            eps = 0.1
+
+            if diff < eps:
+                # New neighbour after shift closely matches target vector, 
+                # therefore shifted bulk should still be the right crystalstructure
+                break # Leave nplanes loop
+
+            # diff test not met, cut out a layer of atoms and repeat
+            new_cell[2, 2] -= np.abs(Dtarget[2])
+            mask = new_bulk.positions[:, 2] <= new_cell[2, 2]
+            new_bulk = new_bulk[mask]
+            new_bulk.set_cell(new_cell, scale_atoms=False)
+
+        # Left nplanes loop, therefore bulk structure found
+        # Generate overall cell and mask from initial bulk structure
+        mask = ref_bulk.positions[:, 2] <= new_cell[2, 2]
+        return mask, new_cell
 
     def build_kink_quadrupole_glide_structs(self, kink_map=None, *args, **kwargs):
         """
@@ -4728,6 +4763,11 @@ class DislocationQuadrupole(DissociatedDislocation):
         bulk.wrap()
         kink_struct1.wrap()
         kink_struct2.wrap()
+
+        # Replicate in z, as planes will be cut from the top - need to guarantee we have enough bulk remaining
+        bulk = bulk * (1, 1, 2)
+        kink_struct1 = kink_struct1 * (1, 1, 2)
+        kink_struct2 = kink_struct2 * (1, 1, 2)
 
         # Cell won't always be periodic, make sure we end up with something that is
         mask, cell = self._get_kink_quad_mask(bulk, n_kink, layer_decimal_precision)
