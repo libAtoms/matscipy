@@ -1,5 +1,6 @@
 #
-# Copyright 2016-2017, 2023 Andreas Klemenz (Fraunhofer IWM)
+# Copyright 2016-2025 Andreas Klemenz (Fraunhofer IWM)
+#           2025 Thomas Reichenbach (Fraunhofer IWM)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
@@ -659,8 +660,9 @@ class OPLSStructure(ase.Atoms):
                 raise RuntimeError(f'Cutoff {iname}-{jname} not found')
         cut = tags2cutoffs[tags[ni], tags[nj]]
 
-        self.ibond = ni[dr <= cut]
-        self.jbond = nj[dr <= cut]
+        self.ibond   = ni[dr <= cut]
+        self.jbond   = nj[dr <= cut]
+        self.first_n = np.searchsorted(self.ibond, range(len(atoms)+1))
 
     def set_atom_data(self, atom_data):
         """
@@ -852,8 +854,9 @@ class OPLSStructure(ase.Atoms):
 
         if not hasattr(self, 'ibond'):
             self.get_neighbors()
-        ibond = self.ibond
-        jbond = self.jbond
+        ibond   = self.ibond
+        jbond   = self.jbond
+        first_n = self.first_n
 
         if angles:
             self.angles = angles
@@ -871,7 +874,7 @@ class OPLSStructure(ase.Atoms):
         for i in range(len(self)):
             iname = types[tags[i]]
 
-            ineigh = jbond[ibond == i]
+            ineigh = jbond[first_n[i]:first_n[i+1]]
             n_ineigh = np.shape(ineigh)[0]
 
             if n_ineigh not in self._combinations.keys():
@@ -973,8 +976,9 @@ class OPLSStructure(ase.Atoms):
 
         if not hasattr(self, 'ibond'):
             self.get_neighbors()
-        ibond = self.ibond
-        jbond = self.jbond
+        ibond   = self.ibond
+        jbond   = self.jbond
+        first_n = self.first_n
 
         dihedrals_undef_lists = {}
 
@@ -983,8 +987,8 @@ class OPLSStructure(ase.Atoms):
                 jname = types[tags[j]]
                 kname = types[tags[k]]
 
-                i_dihed = jbond[ibond == j]
-                l_dihed = jbond[ibond == k]
+                i_dihed = jbond[first_n[j]:first_n[j+1]]
+                l_dihed = jbond[first_n[k]:first_n[k+1]]
                 i_dihed = i_dihed[i_dihed != k]
                 l_dihed = l_dihed[l_dihed != j]
 
