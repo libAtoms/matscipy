@@ -198,6 +198,11 @@ def read_parameter_file(filename):
         for name in nonbonded.get_particle_names():
             nonbonded.charges[name] = 0.
 
+    try:
+        nonbonded.weighting = read_block(filename, 'Weighting')
+    except RuntimeError:
+        print('No weighting definitions found in parameter file %s.' % (filename))
+
     bonds     = matscipy.opls.BondData(read_block(filename, 'Bonds'))
     angles    = matscipy.opls.AnglesData(read_block(filename, 'Angles'))
     dihedrals = matscipy.opls.DihedralsData(read_block(filename, 'Dihedrals'))
@@ -497,7 +502,18 @@ def write_lammps_definitions(prefix, atoms):
                 else:
                     fileobj.write(' %s' % (str(int_cutoff)))
             fileobj.write('\n')
-            fileobj.write('special_bonds lj/coul 0.0 0.0 0.5\n')
+
+            if len(atoms.nonbonded.weighting.keys()) == 0:
+                fileobj.write('special_bonds lj/coul 0.0 0.0 0.0\n')
+            else:
+                fileobj.write('special_bonds lj/coul 1.0e-100 1.0e-100 1.0e-100\n')
+                for interaction in atoms.nonbonded.weighting:
+                    fileobj.write('pair_modify pair %s special' % (interaction))
+                    for value in atoms.nonbonded.weighting[interaction]:
+                        fileobj.write(' %s' % (str(value)))
+                    fileobj.write('\n')
+
+            fileobj.write('pair_modify shift yes\n')
 
             for ia, atype in enumerate(atoms.types):
                 for ib, btype in enumerate(atoms.types):
@@ -507,8 +523,6 @@ def write_lammps_definitions(prefix, atoms):
                             if value != 'cutoff':
                                 fileobj.write(' ' + str(value))
                         fileobj.write(' # ' + atoms.nonbonded.get_name(atype, btype) + '\n')
-
-            fileobj.write('pair_modify shift yes mix geometric\n')
 
             # Charges
             fileobj.write('\n# charges\n')

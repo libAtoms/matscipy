@@ -201,6 +201,7 @@ class CutoffList(BondData):
 class NonBondData(BondData):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.weighting = {}
         self.charges = {}
 
 
