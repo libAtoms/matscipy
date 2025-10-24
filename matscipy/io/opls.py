@@ -19,9 +19,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import sys
 import time
 import copy
 import re
+import itertools
 
 from packaging.version import Version
 
@@ -144,7 +146,11 @@ def read_block(filename, name):
                             if word[0] == '#':
                                 break
                             else:
-                                data[symbol].append(float(word))
+                                try:
+                                    word = float(word)
+                                except:
+                                    pass
+                                data[symbol].append(word)
                         if len(data[symbol]) == 1:
                             data[symbol] = data[symbol][0]
 
@@ -180,83 +186,25 @@ def read_cutoffs(filename):
 
 
 def read_parameter_file(filename):
-    """
-    Read the parameters of a non-reactive potential from a file. An
-    example for the file structure is given below. The blocks are
-    separated by empty lines, comments begin with ``#``. For more
-    information about the potentials, refer to the documentation of
-    the LAMMPS commands ``bond_style harmonic``,
-    ``angle_style harmonic``, ``dihedral_style harmonic``. The default
-    global cutoffs for Lennard-Jones and Coulomb interactions are 10.0
-    and 7.4 A. They can be overridden with the optional
-    ``Cutoffs-LJ-Coulomb`` block. By default, geometric mixing is
-    applied between Lennard-Jones parameters of different particle types
-    and the global cutoff is used for all pairs. This behavior can be
-    overridden using the optional ``LJ-pairs`` block.
-    ::
-      # Element
-      C1 0.001 3.5 -0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)
-      H1 0.001 2.5  0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)
 
-      # Cutoffs-LJ-Coulomb (this block is optional)
-      LJ 10.0  # distance (A)
-      C  10.0  # distance (A)
-    
-      # LJ-pairs (this block is optional)
-      C1-H1 0.002 2.1 12.0  # name, epsilon (eV), sigma (A), cutoff (A)
-
-      # Bonds
-      C1-C1 10.0 1.0  # name, spring constant*2 (eV/A**2), distance (A)
-
-      # Angles
-      H1-C1-C1 1.0 100.0  # name, spring constant*2 (eV), equilibrium angle
-
-      # Dihedrals
-      H1-C1-C1-H1 0.0 0.0 0.01 0.0  # name, energy (eV), energy (eV), ...
-
-      # Cutoffs
-      C1-C1 1.85  # name, cutoff (A)
-      C1-H1 1.15  # name, cutoff (A)
-
-    Parameters
-    ----------
-    filename : str
-        Name of the file to read from.
-
-    Returns
-    -------
-    cutoffs : matscipy.opls.CutoffList
-        Cutoffs.
-    ljq : matscipy.opls.LJQData
-        Lennard-Jones data and atomic charges.
-    bonds : matscipy.opls.BondData
-        Bond coefficients, i.e. spring constants and
-        equilibrium distances.
-    angles : matscipy.opls.AnglesData
-        Angle coefficients.
-    dihedrals : matscipy.opls.DihedralsData
-        Dihedral coefficients.
-    """
-    ljq = matscipy.opls.LJQData(read_block(filename, 'Element'))
+    nonbonded = matscipy.opls.NonBondData()
+    nonbonded = matscipy.opls.NonBondData(read_block(filename, 'Nonbonded-Interactions'))
 
     try:
-        ljq_cut = read_block(filename, 'Cutoffs-LJ-Coulomb')
-        ljq.lj_cutoff = ljq_cut['LJ']
-        ljq.c_cutoff = ljq_cut['C']
-    except:
-        pass
-
-    try:
-        ljq.lj_pairs = read_block(filename, 'LJ-pairs')
-    except:
-        pass
+        nonbonded.charges = read_block(filename, 'Charges')
+    except RuntimeError:
+        print('No charge definitions found in parameter file %s.' % (filename))
+        print('Using 0.0 for each particle.')
+        for name in nonbonded.get_particle_names():
+            nonbonded.charges[name] = 0.
 
     bonds     = matscipy.opls.BondData(read_block(filename, 'Bonds'))
     angles    = matscipy.opls.AnglesData(read_block(filename, 'Angles'))
     dihedrals = matscipy.opls.DihedralsData(read_block(filename, 'Dihedrals'))
     cutoffs   = matscipy.opls.CutoffList(read_block(filename, 'Cutoffs'))
 
-    return cutoffs, ljq, bonds, angles, dihedrals
+    return cutoffs, nonbonded, bonds, angles, dihedrals
+
 
 def write_lammps(prefix, atoms):
     """
@@ -392,8 +340,9 @@ def write_lammps_atoms(prefix, atoms, units='metal'):
             else:
                 positions_lammps_str = map(p.pos_to_lammps_str, pos)
 
+            charges = atoms.get_charges()
             for i, r in enumerate(positions_lammps_str):
-                q = ase.calculators.lammpsrun.convert(atoms.atom_data[types[tags[i]]][2], 'charge', 'ASE', units)
+                q = ase.calculators.lammpsrun.convert(charges[i], 'charge', 'ASE', units)
                 fileobj.write('%6d %3d %3d %s %s %s %s' % ((i + 1, molid[i],
                                                             tags[i] + 1,
                                                             q)
@@ -481,7 +430,7 @@ def write_lammps_definitions(prefix, atoms):
     """
     if isinstance(prefix, str):
         with open(prefix + '.opls', 'w') as fileobj:
-            fileobj.write('# OPLS potential\n')
+            fileobj.write('# Non-reactive potential\n')
             fileobj.write('# write_lammps ' +
                           str(time.asctime(
                         time.localtime(time.time()))))
@@ -522,31 +471,42 @@ def write_lammps_definitions(prefix, atoms):
                         fileobj.write(' ' + str(value))
                     fileobj.write(' # ' + name + '\n')
 
-            # Lennard Jones settings
-            fileobj.write('\n# L-J parameters\n')
-            fileobj.write('pair_style lj/cut/coul/long %10.8f %10.8f\n' %
-                          (atoms.atom_data.lj_cutoff, atoms.atom_data.c_cutoff))
+            # Non-bonded settings
+            interactions = {}  # potential to cutoff(s)
+
+            for pairs in atoms.nonbonded.nvh:
+                int_str = atoms.nonbonded.nvh[pairs][0]
+                for i, value in enumerate(atoms.nonbonded.nvh[pairs]):
+                    if value == 'cutoff':
+                        int_cutoff = atoms.nonbonded.nvh[pairs][i+1:]
+                        break
+                if int_str not in interactions.keys():
+                    interactions[int_str] = int_cutoff
+                else:
+                    interactions[int_str] = np.max((int_cutoff, interactions[int_str]), axis=0)
+
+            fileobj.write('\n# Non-bonded parameters\n')
+            fileobj.write('pair_style ')
+            if len(interactions.keys()) > 1:
+                fileobj.write('hybrid')
+            for int_str, int_cutoff in interactions.items():
+                fileobj.write(' %s' % (int_str))
+                if type(int_cutoff) not in (float, np.float64):
+                    for value in int_cutoff:
+                        fileobj.write(' %s' % (str(value)))
+                else:
+                    fileobj.write(' %s' % (str(int_cutoff)))
+            fileobj.write('\n')
             fileobj.write('special_bonds lj/coul 0.0 0.0 0.5\n')
+
             for ia, atype in enumerate(atoms.types):
                 for ib, btype in enumerate(atoms.types):
-                    if len(atype) < 2:
-                        atype = atype + ' '
-                    if len(btype) < 2:
-                        btype = btype + ' '
-                    pair = atype + '-' + btype
-                    if pair in atoms.atom_data.lj_pairs:
-                        if ia < ib:
-                            fileobj.write('pair_coeff %3d %3d' % (ia + 1, ib + 1))
-                        else:
-                            fileobj.write('pair_coeff %3d %3d' % (ib + 1, ia + 1))
-                        for value in atoms.atom_data.lj_pairs[pair]:
-                            fileobj.write(' ' + str(value))
-                        fileobj.write(' # ' + pair + '\n')
-                    elif atype == btype:
+                    if ia <= ib:
                         fileobj.write('pair_coeff %3d %3d' % (ia + 1, ib + 1))
-                        for value in atoms.atom_data[atype][:2]:
-                            fileobj.write(' ' + str(value))
-                        fileobj.write(' # ' + atype + '\n')
+                        for value in atoms.nonbonded.get_value(atype, btype):
+                            if value != 'cutoff':
+                                fileobj.write(' ' + str(value))
+                        fileobj.write(' # ' + atoms.nonbonded.get_name(atype, btype) + '\n')
 
             fileobj.write('pair_modify shift yes mix geometric\n')
 
@@ -556,7 +516,7 @@ def write_lammps_definitions(prefix, atoms):
                 if len(atype) < 2:
                     atype = atype + ' '
                 fileobj.write('set type ' + str(ia + 1))
-                fileobj.write(' charge ' + str(atoms.atom_data[atype][2]))
+                fileobj.write(' charge ' + str(atoms.nonbonded.charges[atype]))
                 fileobj.write(' # ' + atype + '\n')
 
 

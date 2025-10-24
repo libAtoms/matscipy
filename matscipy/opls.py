@@ -48,39 +48,6 @@ def twochar(name):
         return name + ' '
 
 
-class LJQData(dict):
-    """
-    Store Lennard-Jones parameters and charges for each particle type. In
-    the simplest version, each particle type has one set of Lennard-Jones
-    parameters, with geometric mixing applied between parameters of
-    different types. Parameters for individual pairs of particle types can
-    be specified in the ``lj_pairs`` dictionary.
-
-    Example:
-    Set the Lennard-Jones and Coulomb cutoffs to 12 and 8 Angstroms, geometric
-    mixing of the Lennard-Jones parameters for particles ``C1`` and ``C2`` and
-    between ``C2`` and ``C3``, custom parameters and cutoff for the interaction
-    between ``C1`` and ``C3``:
-    ::
-      LJQData.lj_cutoff = 12.0
-      LJQData.c_cutoff  =  8.0
-
-      LJQData['C1'] = [LJ-epsilon (eV), LJ-sigma (A), charge (e)]
-      LJQData['C2'] = [LJ-epsilon (eV), LJ-sigma (A), charge (e)]
-      LJQData['C3'] = [LJ-epsilon (eV), LJ-sigma (A), charge (e)]
-
-      LJQData.lj_pairs['C1-C3'] = [epsilon (eV), sigma (A), cutoff (A)]
-    """
-    def __init__(self, args):
-        dict.__init__(self, args)
-
-        # default cutoffs
-        self.lj_cutoff = 10.0
-        self.c_cutoff = 7.4
-
-        self.lj_pairs = {}
-
-
 class BondData:
     """
     Store spring constants and equilibrium distances for harmonic potentials
@@ -100,6 +67,22 @@ class BondData:
         if name_value_hash:
             self.nvh = name_value_hash
             self.set_names(name_value_hash.keys())
+
+    def get_particle_names(self):
+        """
+        Get a set of all particle names for which in any pair
+        interaction is defined.
+
+        Returns
+        ----------
+        names : set
+            Set of particle names.
+        """
+        names = set()
+        for item in self.nvh.keys():
+            names.add(item.split('-')[0])
+            names.add(item.split('-')[1])
+        return names
 
     def set_names(self, names):
         """
@@ -213,6 +196,12 @@ class CutoffList(BondData):
 
     def max(self):
         return max(self.nvh.values())
+
+
+class NonBondData(BondData):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.charges = {}
 
 
 class AnglesData:
@@ -664,22 +653,26 @@ class OPLSStructure(ase.Atoms):
         self.jbond   = nj[dr <= cut]
         self.first_n = np.searchsorted(self.ibond, range(len(atoms)+1))
 
-    def set_atom_data(self, atom_data):
+    def set_nonbonded(self, nonbonded):
         """
-        Set Lennard-Jones parameters and atomic charges. Notice that each
-        atom has exactly one set of Lennard-Jones parameters. Parameters
-        for interactions between different types of atoms are calculated
-        by geometric mixing. See documentation of the LAMMPS
-        ``pair_modify`` command for details.
+        Set non-bonded parameters and atomic charges. Notice that each
+        particle has exactly one set of non-bonded parameters. Mixing is
+        not supported! For each combination a set of parameters has to be
+        specified explicitly.
 
         Parameters
         ----------
-        atom_data : dict
-            Dictionary containing Lennard-Jones parameters and charges for
-            each particle type. key: ``Particle type``, one or two
-            characters, value: ``[LJ-epsilon, LJ-sigma, charge]``.
+        nonbonded : opls.NonBondData
+            Charges and pairwise potential parameters for non-bonded
+            interactions.
         """
-        self.atom_data = atom_data
+        self.nonbonded = nonbonded
+
+        for aname in self.nonbonded.get_particle_names():
+            for bname in self.nonbonded.get_particle_names():
+                if self.nonbonded.get_value(aname, bname) is None:
+                    print('ERROR: Pair potential %s-%s not found' % (aname, bname))
+                    raise RuntimeError('Undefined pair potentials.')
 
     def get_charges(self):
         """
@@ -696,7 +689,7 @@ class OPLSStructure(ase.Atoms):
         self.charges = np.zeros(len(self), dtype=float)
 
         for i, itype in enumerate(self.types):
-            self.charges[self.get_tags() == i] = self.atom_data[itype][2]
+            self.charges[self.get_tags() == i] = self.nonbonded.charges[itype]
 
         return self.charges
 
