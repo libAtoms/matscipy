@@ -23,7 +23,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Build documentation
-        run: pip install -e .[docs] && sphinx-build -W docs docs/_build/html
+        run: pip install --no-build-isolation -e .[docs] && sphinx-build -W docs docs/_build/html
         env:
           MPLBACKEND: Agg
 

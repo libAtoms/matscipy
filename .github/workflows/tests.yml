@@ -27,7 +27,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install and test
-        run: pip install -e .[test] && pytest tests/ -v --junitxml=report.xml --durations=20 --timeout=300
+        run: pip install --no-build-isolation -e .[test] && pytest tests/ -v --junitxml=report.xml --durations=20 --timeout=300
 
       - name: Upload test results
         uses: mikepenz/action-junit-report@v4

@@ -50,6 +50,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}-*
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
+          CIBW_BUILD_FRONTEND: build
 
       - uses: actions/upload-artifact@v4
         with:
