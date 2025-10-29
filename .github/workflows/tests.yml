@@ -26,9 +26,9 @@ jobs:
 
       - name: Compile and install dependencies
         run: |
-          pip install --upgrade --system pip uv
+          pip install --upgrade pip uv
           uv pip compile --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml --extra test
-          pip install --system -r requirements-test.txt
+          pip install -r requirements-test.txt
 
       - name: Install matscipy
         run: pip install --no-build-isolation -e .
