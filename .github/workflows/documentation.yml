@@ -19,14 +19,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: pip
-          cache-dependency-path: pyproject.toml
 
-      - name: Install meson and build dependencies
-        run: pip install meson meson-python ninja numpy jupyter_packaging
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Compile and install dependencies
+        run: |
+          uv pip compile --python-version=3.12 -o requirements-docs.txt pyproject.toml --extra docs
+          uv pip install --system -r requirements-docs.txt
+
+      - name: Install matscipy
+        run: pip install --no-build-isolation -e .
 
       - name: Build documentation
-        run: pip install --no-build-isolation -e .[docs] && sphinx-build -W docs docs/_build/html
+        run: sphinx-build -W docs docs/_build/html
         env:
           MPLBACKEND: Agg
 

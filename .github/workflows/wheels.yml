@@ -51,7 +51,7 @@ jobs:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
           CIBW_BUILD_FRONTEND: build
-          CIBW_BEFORE_BUILD: pip install meson meson-python ninja numpy jupyter_packaging
+          CIBW_BEFORE_BUILD: pip install meson meson-python ninja
 
       - uses: actions/upload-artifact@v4
         with:

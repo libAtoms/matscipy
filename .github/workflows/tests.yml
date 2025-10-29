@@ -23,14 +23,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-          cache: pip
-          cache-dependency-path: pyproject.toml
 
-      - name: Install meson and build dependencies
-        run: pip install meson meson-python ninja numpy jupyter_packaging
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
 
-      - name: Install and test
-        run: pip install --no-build-isolation -e .[test] && pytest tests/ -v --junitxml=report.xml --durations=20 --timeout=300
+      - name: Compile and install dependencies
+        run: |
+          uv pip compile --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml --extra test
+          uv pip install --system -r requirements-test.txt
+
+      - name: Install matscipy
+        run: pip install --no-build-isolation -e .
+
+      - name: Run tests
+        run: pytest tests/ -v --junitxml=report.xml --durations=20 --timeout=300
 
       - name: Upload test results
         uses: mikepenz/action-junit-report@v4
