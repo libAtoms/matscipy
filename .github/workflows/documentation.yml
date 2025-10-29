@@ -20,14 +20,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
-
       - name: Compile and install dependencies
         run: |
+          pip install --upgrade --system pip uv
           uv pip compile --python-version=3.12 -o requirements-docs.txt pyproject.toml --extra docs
-          uv pip install --system -r requirements-docs.txt
+          pip install --system -r requirements-docs.txt
 
       - name: Install matscipy
         run: pip install --no-build-isolation -e .

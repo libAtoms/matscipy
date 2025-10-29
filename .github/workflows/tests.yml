@@ -24,14 +24,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
-
       - name: Compile and install dependencies
         run: |
+          pip install --upgrade --system pip uv
           uv pip compile --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml --extra test
-          uv pip install --system -r requirements-test.txt
+          pip install --system -r requirements-test.txt
 
       - name: Install matscipy
         run: pip install --no-build-isolation -e .
