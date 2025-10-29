@@ -26,7 +26,7 @@ jobs:
 
       - name: Compile and install dependencies
         run: |
-          pip install --upgrade pip uv
+          pip install --upgrade pip uv meson-python ninja numpy
           uv pip compile --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml --extra test
           pip install -r requirements-test.txt
 
