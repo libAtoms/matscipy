@@ -23,7 +23,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install meson and build dependencies
-        run: pip install meson meson-python ninja
+        run: pip install meson meson-python ninja numpy
 
       - name: Build documentation
         run: pip install --no-build-isolation -e .[docs] && sphinx-build -W docs docs/_build/html

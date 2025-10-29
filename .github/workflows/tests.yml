@@ -27,7 +27,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install meson and build dependencies
-        run: pip install meson meson-python ninja
+        run: pip install meson meson-python ninja numpy
 
       - name: Install and test
         run: pip install --no-build-isolation -e .[test] && pytest tests/ -v --junitxml=report.xml --durations=20 --timeout=300
