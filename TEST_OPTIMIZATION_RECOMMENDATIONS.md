@@ -206,17 +206,42 @@ def test_dynamical_matrix(self):
 **Impact**: Near-linear speedup with number of CPU cores (usually 2-4x)
 **Risk**: None - tests should be independent
 
+### Cache apt packages for FEniCS installation
+
+FEniCS is only used by 1 test (`test_poisson_nernst_planck_solver_fenics`) but takes significant time to install.
+
+```yaml
+# In .github/workflows/tests.yml and documentation.yml
+- name: Cache apt packages
+  uses: actions/cache@v4
+  with:
+    path: |
+      /var/cache/apt/archives
+      /var/lib/apt/lists
+    key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/tests.yml') }}
+    restore-keys: |
+      ${{ runner.os }}-apt-
+```
+
+**Impact**:
+- First run: Same time (~2-3 minutes for FEniCS)
+- Subsequent runs: <10 seconds (cache hit)
+- Average speedup: ~2 minutes saved per CI run
+
+**Risk**: None - cache automatically invalidates when workflow changes
+
 ---
 
 ## 5. Implementation Priority
 
-### Phase 1: Quick Wins (Implement First)
+### Phase 1: Quick Wins (Implemented)
 1. ✅ Reduce amorphous system size (460→100 atoms) - **Highest impact**
-2. ✅ Add pytest markers for slow tests
-3. ✅ Enable pytest-xdist parallelization
-4. ✅ Reduce Ewald parameter sweep (3→2 values)
+2. ✅ Enable pytest-xdist parallelization
+3. ✅ Reduce Ewald parameter sweep (3→2 values)
+4. ✅ Reduce NEB system size and images
+5. ✅ Cache apt packages for FEniCS
 
-**Expected speedup: 50-60%** with Phase 1 alone
+**Expected speedup: 60-70%** with Phase 1 (3x faster overall)
 
 ### Phase 2: Moderate Changes
 5. Reduce monoatomic hessian test cases (6→3)
