@@ -19,6 +19,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives
+            /var/lib/apt/lists
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/tests.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
       - name: install_python
         run: |
           sudo apt-get update -qy
@@ -26,7 +36,7 @@ jobs:
           # Upgrade to latest meson and ninja
           sudo pip install --upgrade meson ninja
 
-      # needs fenics only to run test_poisson_nernst_planck_solver_fenics
+      # needs fenics only to run test_poisson_nernst_planck_solver_fenics (1 test)
       - name: install_fenics
         run: |
           sudo apt-get install -y --no-install-recommends software-properties-common
