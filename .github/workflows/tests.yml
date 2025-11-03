@@ -41,7 +41,7 @@ jobs:
       - name: pytest
         run: |
           cd tests
-          pytest -v --junitxml=report.xml --durations=20 --timeout=300
+          pytest -v --junitxml=report.xml --durations=20 --timeout=300 -n auto
 
       - name: report
         uses: mikepenz/action-junit-report@v4
