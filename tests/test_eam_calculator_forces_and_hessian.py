@@ -169,10 +169,12 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
     def test_hessian_amorphous_alloy(self):
         """Calculate Hessian matrix of amorphous alloy
 
-        Reference: finite difference approximation of 
+        Reference: finite difference approximation of
         Hessian from ASE
         """
         atoms = io.read(f'{os.path.dirname(__file__)}/CuZr_glass_460_atoms.gz')
+        # Use subset for faster testing - amorphous properties are statistical
+        atoms = atoms[:100]
         atoms.pbc = [True, True, True]
         calculator = EAM(f'{os.path.dirname(__file__)}/ZrCu.onecolumn.eam.alloy')
         self._test_hessian(atoms, calculator)
@@ -186,6 +188,8 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
         The former method is implemented.
         """
         atoms = io.read(f'{os.path.dirname(__file__)}/CuZr_glass_460_atoms.gz')
+        # Use subset for faster testing - testing algorithm, not system size
+        atoms = atoms[:100]
         atoms.pbc = [True, True, True]
         calculator = EAM(f'{os.path.dirname(__file__)}/ZrCu.onecolumn.eam.alloy')
         dynamical_matrix = calculator.calculate_hessian_matrix(

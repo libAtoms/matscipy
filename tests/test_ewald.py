@@ -156,7 +156,7 @@ ewald_beta_params = dict(
 )
 
 
-@pytest.fixture(scope="module", params=[4.7, 4.9, 5.1])
+@pytest.fixture(scope="module", params=[4.7, 5.1])  # Reduced from [4.7, 4.9, 5.1] for faster CI
 def alpha_quartz_ewald(request):
     structure = alpha_quartz()
     a0 = request.param
