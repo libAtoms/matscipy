@@ -55,7 +55,9 @@ except ModuleNotFoundError:
     print("Warning: No scipy")
     interpolate = False
 
-import matscipytest
+
+import ase.io as io
+from ase.calculators.test import calculate_numerical_forces
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.lattice.compounds import B1, L1_2
 from ase.lattice.cubic import FaceCenteredCubic

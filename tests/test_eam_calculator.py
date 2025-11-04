@@ -27,9 +27,7 @@ import os.path
 import unittest
 
 import ase.io as io
-import matscipytest
-import numpy as np
-from ase.calculators.fd import calculate_numerical_forces
+from ase.calculators.test import calculate_numerical_forces
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.lattice.compounds import B1, B2, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
@@ -57,8 +55,10 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
             a.calc = calc
             f = a.get_forces()
             for i in range(9):
-                atindex = i * 100
-                fn = calculate_numerical_forces(a, self.disp, iatoms=[atindex])
+                atindex = i*100
+                fn = [calculate_numerical_forces(a, atindex, 0, self.disp),
+                      calculate_numerical_forces(a, atindex, 1, self.disp),
+                      calculate_numerical_forces(a, atindex, 2, self.disp)]
                 self.assertArrayAlmostEqual(f[atindex], fn, tol=self.tol)
 
     def test_stress(self):
