@@ -384,7 +384,9 @@ class GammaSurface():
             opt = optimiser(cell_filter, logfile=logfile)
             opt.run(ftol, steps=steps)
 
-            if not opt.converged():
+            # ASE Optimizer.converged() now requires forces as argument
+            forces = cell_filter.get_forces().reshape(-1)
+            if not opt.converged(forces):
                 raise RuntimeError("An image relaxation failed to converge")
 
     def get_energy_densities(self, calculator=None,
