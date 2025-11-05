@@ -57,11 +57,19 @@ jobs:
           source .venv/bin/activate
           pip install .[test] pytest-split
 
+      - name: Cache test durations
+        uses: actions/cache@v4
+        with:
+          path: tests/.test_durations
+          key: test-durations-${{ github.run_id }}
+          restore-keys: |
+            test-durations-
+
       - name: pytest
         run: |
           source .venv/bin/activate
           cd tests
-          pytest -v --junitxml=report-${{ matrix.split-group }}.xml --durations=20 --timeout=600 --splits 4 --group ${{ matrix.split-group }} -n auto
+          pytest -v --junitxml=report-${{ matrix.split-group }}.xml --durations=20 --timeout=600 --splits 4 --group ${{ matrix.split-group }} --store-durations --durations-path=.test_durations -n auto
 
       - name: report
         uses: mikepenz/action-junit-report@v4
