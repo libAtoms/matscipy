@@ -60,9 +60,9 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
             f = a.get_forces()
             for i in range(9):
                 atindex = i*100
-                fn = [calculate_numerical_forces(a, atindex, 0, self.disp),
-                      calculate_numerical_forces(a, atindex, 1, self.disp),
-                      calculate_numerical_forces(a, atindex, 2, self.disp)]
+                # New ASE API: calculate_numerical_forces(atoms, eps, iatoms, icarts)
+                # Returns array with shape (len(iatoms), len(icarts))
+                fn = calculate_numerical_forces(a, eps=self.disp, iatoms=[atindex], icarts=[0, 1, 2])[0]
                 self.assertArrayAlmostEqual(f[atindex], fn, tol=self.tol)
 
     def test_stress(self):

@@ -45,6 +45,7 @@ import os.path
 import unittest
 
 import numpy as np
+import pytest
 
 import ase
 import ase.io as io
@@ -229,6 +230,7 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
                     self.assertTrue(abs(dd) < 1e-10)
                     self.assertTrue(not (c2 - c).any())
 
+    @pytest.mark.xdist_group("serial")
     def test_wrong_number_of_cutoffs(self):
         nat = 10
         atoms = ase.Atoms(numbers=range(nat),
