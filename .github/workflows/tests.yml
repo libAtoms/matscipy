@@ -13,6 +13,10 @@ jobs:
   tests:
 
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        split-group: [1, 2, 3, 4]
 
     steps:
       - uses: actions/checkout@v4
@@ -51,16 +55,16 @@ jobs:
       - name: build_c
         run: |
           source .venv/bin/activate
-          pip install .[test]
+          pip install .[test] pytest-split
 
       - name: pytest
         run: |
           source .venv/bin/activate
           cd tests
-          pytest -v --junitxml=report.xml --durations=20 --timeout=600 -n auto
+          pytest -v --junitxml=report-${{ matrix.split-group }}.xml --durations=20 --timeout=600 --splits 4 --group ${{ matrix.split-group }} -n auto
 
       - name: report
         uses: mikepenz/action-junit-report@v4
         if: always()
         with:
-          report_paths: "**/report.xml"
+          report_paths: "**/report-*.xml"
