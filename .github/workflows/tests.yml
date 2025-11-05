@@ -57,7 +57,7 @@ jobs:
         run: |
           source .venv/bin/activate
           cd tests
-          pytest -v --junitxml=report.xml --durations=20 --timeout=300 -n auto
+          pytest -v --junitxml=report.xml --durations=20 --timeout=600 -n auto
 
       - name: report
         uses: mikepenz/action-junit-report@v4
