@@ -6,16 +6,22 @@ name: Build wheels
 
 # Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Only build wheels for master branch and tags (releases)
   push:
     branches: [ master ]
     tags:
       - '*'
-  pull_request:
-    branches: [ master ]
+
+  # Removed pull_request trigger to avoid unnecessary wheel builds
+  # PRs don't need wheels - only releases do
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+
+# Cancel old runs when new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   build_wheels:
