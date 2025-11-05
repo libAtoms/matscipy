@@ -23,28 +23,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            /var/cache/apt/archives
-            /var/lib/apt/lists
-          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/tests.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
-
       - name: install_python
         run: |
           sudo apt-get update -qy
           sudo apt-get install -y python3-dev python3-pip python3-venv libxml2-dev libxslt-dev zlib1g-dev
-
-      # needs fenics only to run test_poisson_nernst_planck_solver_fenics (1 test)
-      - name: install_fenics
-        run: |
-          sudo apt-get install -y --no-install-recommends software-properties-common
-          sudo add-apt-repository -y ppa:fenics-packages/fenics
-          sudo apt-get update -qy
-          sudo apt-get install -y fenics python3-dolfin python3-mshr
 
       - name: create_venv
         run: |
