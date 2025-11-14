@@ -442,8 +442,17 @@ def write_lammps_definitions(prefix, atoms):
 
             # bonds
             if len(atoms.bond_types):
+                bond_styles = []
+                for bond_type in atoms.bond_types:
+                    if atoms.bonds.nvh[bond_type][0] not in bond_styles:
+                        bond_styles.append(atoms.bonds.nvh[bond_type][0])
+
                 fileobj.write('\n# bonds\n')
-                fileobj.write('bond_style      harmonic\n')
+                if len(bond_styles) == 1:
+                    fileobj.write('bond_style      %s\n' % (bond_styles[0]))
+                else:
+                    fileobj.write('bond_style      hybrid %s\n' % (' '.join(bond_styles)))
+
                 for ib, btype in enumerate(atoms.bond_types):
                     fileobj.write('bond_coeff %6d' % (ib + 1))
                     itype, jtype = btype.split('-')
@@ -454,8 +463,17 @@ def write_lammps_definitions(prefix, atoms):
 
             # angles
             if len(atoms.ang_types):
+                ang_styles = []
+                for ang_type in atoms.ang_types:
+                    if atoms.angles.nvh[ang_type][0] not in ang_styles:
+                        ang_styles.append(atoms.angles.nvh[ang_type][0])
+
                 fileobj.write('\n# angles\n')
-                fileobj.write('angle_style      harmonic\n')
+                if len(ang_styles) == 1:
+                    fileobj.write('angle_style      %s\n' % (ang_styles[0]))
+                else:
+                    fileobj.write('angle_style      hybrid %s\n' % (' '.join(ang_styles)))
+
                 for ia, atype in enumerate(atoms.ang_types):
                     fileobj.write('angle_coeff %6d' % (ia + 1))
                     itype, jtype, ktype = atype.split('-')
@@ -466,8 +484,17 @@ def write_lammps_definitions(prefix, atoms):
 
             # dihedrals
             if len(atoms.dih_types):
+                dih_styles = []
+                for dih_type in atoms.dih_types:
+                    if atoms.dihedrals.nvh[dih_type][0] not in dih_styles:
+                        dih_styles.append(atoms.dihedrals.nvh[dih_type][0])
+
                 fileobj.write('\n# dihedrals\n')
-                fileobj.write('dihedral_style      opls\n')
+                if len(dih_styles) == 1:
+                    fileobj.write('dihedral_style      %s\n' % (dih_styles[0]))
+                else:
+                    fileobj.write('dihedral_style      hybrid %s\n' % (' '.join(dih_styles)))
+
                 for id, dtype in enumerate(atoms.dih_types):
                     fileobj.write('dihedral_coeff %6d' % (id + 1))
                     itype, jtype, ktype, ltype = dtype.split('-')
