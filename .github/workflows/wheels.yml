@@ -3,9 +3,10 @@ name: Build wheels
 on:
   # Only build wheels for master branch and tags (releases)
   push:
-    # branches: [ master ]
-    tags:
-      - '*'
+    branches: [ master ]
+    tags: [ '*' ]
+  pull_request:
+    branches: [ master ]
 
   # Removed pull_request trigger to avoid unnecessary wheel builds
   # PRs don't need wheels - only releases do
