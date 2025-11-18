@@ -25,22 +25,18 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Compile and install dependencies
-        run: |
-          pip install --upgrade pip uv meson-python ninja numpy
-          uv pip compile --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml --extra test
-          pip install -r requirements-test.txt
-
-      - name: create_venv
+      - name: Create virtual environment
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install --upgrade pip meson ninja
+          pip install --upgrade pip uv meson-python ninja numpy pytest-split
+          uv pip compile --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml --extra test
+          pip install -r requirements-test.txt
 
-      - name: build_c
+      - name: Build and install matscipy
         run: |
           source .venv/bin/activate
-          pip install .[test] pytest-split
+          pip install .[test]
 
       - name: Cache test durations
         uses: actions/cache@v4
@@ -58,7 +54,7 @@ jobs:
           # Collect tests for this split group
           pytest --collect-only --splits 4 --group ${{ matrix.split-group }} --durations-path=.test_durations -q 2>/dev/null | grep -q "fenics" && echo "needed=true" >> $GITHUB_OUTPUT || echo "needed=false" >> $GITHUB_OUTPUT
 
-      - name: install_fenics
+      - name: Install FEniCS
         if: steps.check_fenics.outputs.needed == 'true'
         run: |
           sudo apt-get install -y --no-install-recommends software-properties-common
