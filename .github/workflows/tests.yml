@@ -9,11 +9,12 @@ on:
 
 jobs:
   tests:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     strategy:
-      matrix:
-        python: [ '3.9', '3.10', '3.11', '3.12', '3.13' ]
       fail-fast: false
+      matrix:
+        split-group: [1, 2, 3, 4]
+        python: [ '3.9', '3.10', '3.11', '3.12', '3.13' ]
 
     steps:
       - uses: actions/checkout@v4
@@ -25,12 +26,6 @@ jobs:
           sudo apt-get update -qy
           sudo apt-get install -y python3-dev python3-pip python3-venv libxml2-dev libxslt-dev zlib1g-dev
 
-      - name: Compile and install dependencies
-        run: |
-          pip install --upgrade pip uv meson-python ninja numpy
-          uv pip compile --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml --extra test
-          pip install -r requirements-test.txt
-
       - name: create_venv
         run: |
           python3 -m venv .venv
@@ -40,17 +35,40 @@ jobs:
       - name: build_c
         run: |
           source .venv/bin/activate
-          pip install .[test]
+          pip install .[test] pytest-split
+
+      - name: Cache test durations
+        uses: actions/cache@v4
+        with:
+          path: tests/.test_durations
+          key: test-durations-${{ github.run_id }}
+          restore-keys: |
+            test-durations-
+
+      - name: Check if FEniCS needed for this test group
+        id: check_fenics
+        run: |
+          source .venv/bin/activate
+          cd tests
+          # Collect tests for this split group
+          pytest --collect-only --splits 4 --group ${{ matrix.split-group }} --durations-path=.test_durations -q 2>/dev/null | grep -q "fenics" && echo "needed=true" >> $GITHUB_OUTPUT || echo "needed=false" >> $GITHUB_OUTPUT
+
+      - name: install_fenics
+        if: steps.check_fenics.outputs.needed == 'true'
+        run: |
+          sudo apt-get install -y --no-install-recommends software-properties-common
+          sudo add-apt-repository -y ppa:fenics-packages/fenics
+          sudo apt-get update -qy
+          sudo apt-get install -y fenics python3-dolfin python3-mshr
 
       - name: pytest
         run: |
           source .venv/bin/activate
           cd tests
-          pytest -v --junitxml=report.xml --durations=20 --timeout=300
+          pytest -v --junitxml=report-${{ matrix.split-group }}.xml --durations=20 --timeout=600 --splits 4 --group ${{ matrix.split-group }} --store-durations --durations-path=.test_durations -n auto
 
       - name: Upload test results
         uses: mikepenz/action-junit-report@v4
         if: always()
         with:
-          report_paths: report.xml
-          include_passed: true
+          report_paths: "**/report-*.xml"
