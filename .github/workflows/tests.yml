@@ -29,8 +29,8 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install --upgrade pip uv meson-python ninja numpy pytest-split
-          uv pip compile --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml --extra test
+          pip install --upgrade pip uv meson-python ninja numpy
+          uv pip compile --all-extras --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml
           pip install -r requirements-test.txt
 
       - name: Build and install matscipy

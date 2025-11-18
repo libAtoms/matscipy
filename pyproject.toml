@@ -36,6 +36,7 @@ test = [
     "pytest-subtests",
     "pytest-timeout",
     "pytest-xdist",  # Parallel test execution
+    "pytest-split",
     "matscipy[dislocation]",
     "sympy"
 ]
