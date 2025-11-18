@@ -49,6 +49,7 @@ import ase.io as io
 import ase.lattice.hexagonal
 import matscipytest
 import numpy as np
+import pytest
 from ase.build import bulk, molecule
 
 from matscipy.fracture_mechanics.idealbrittlesolid import \
