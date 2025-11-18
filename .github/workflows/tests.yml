@@ -29,14 +29,14 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install --upgrade pip uv meson-python ninja numpy pipes
+          pip install --upgrade pip uv meson-python ninja numpy
           uv pip compile --all-extras --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml
           pip install -r requirements-test.txt
 
       - name: Build and install matscipy
         run: |
           source .venv/bin/activate
-          pip install .[test]
+          pip install --no-build-isolation .[test]
 
       - name: Cache test durations
         uses: actions/cache@v4
