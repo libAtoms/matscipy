@@ -26,7 +26,7 @@ dynamic = ["version"]
 dependencies = [
     "numpy>=2.0.0",
     "scipy>=1.2.3",
-    "ase>=3.24.0",
+    "ase>=3.26.0",
     "packaging"
 ]
 

@@ -58,10 +58,8 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
             f = a.get_forces()
             for i in range(9):
                 atindex = i*100
-                fn = [calculate_numerical_forces(a, atindex, 0, self.disp),
-                      calculate_numerical_forces(a, atindex, 1, self.disp),
-                      calculate_numerical_forces(a, atindex, 2, self.disp)]
-                self.assertArrayAlmostEqual(f[atindex], fn, tol=self.tol)
+                fn = calculate_numerical_forces(a, self.disp, [atindex])
+                self.assertArrayAlmostEqual(f[atindex], fn[0], tol=self.tol)
 
     def test_stress(self):
         a = FaceCenteredCubic("Au", size=[2, 2, 2])
