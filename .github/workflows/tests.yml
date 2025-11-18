@@ -27,15 +27,15 @@ jobs:
 
       - name: Create virtual environment
         run: |
-          python3 -m venv .venv
-          source .venv/bin/activate
+          python3 -m venv ../venv
+          source ../venv/bin/activate
           pip install --upgrade pip uv meson-python ninja numpy
           uv pip compile --extra=test --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml
           pip install -r requirements-test.txt
 
       - name: Build and install matscipy
         run: |
-          source .venv/bin/activate
+          source ../venv/bin/activate
           pip install --no-build-isolation .[test]
 
       - name: Cache test durations
@@ -49,7 +49,7 @@ jobs:
       - name: Check if FEniCS needed for this test group
         id: check_fenics
         run: |
-          source .venv/bin/activate
+          source ../venv/bin/activate
           cd tests
           # Collect tests for this split group
           pytest --collect-only --splits 4 --group ${{ matrix.split-group }} --durations-path=.test_durations -q 2>/dev/null | grep -q "fenics" && echo "needed=true" >> $GITHUB_OUTPUT || echo "needed=false" >> $GITHUB_OUTPUT
@@ -64,7 +64,7 @@ jobs:
 
       - name: pytest
         run: |
-          source .venv/bin/activate
+          source ../venv/bin/activate
           cd tests
           pytest -v --junitxml=report-${{ matrix.split-group }}.xml --durations=20 --timeout=600 --splits 4 --group ${{ matrix.split-group }} --store-durations --durations-path=.test_durations -n auto
 
