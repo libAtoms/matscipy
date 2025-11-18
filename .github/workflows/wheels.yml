@@ -21,7 +21,8 @@ jobs:
           - { os: ubuntu-24.04, python: cp312, arch: x86_64 }
           - { os: ubuntu-24.04, python: cp313, arch: x86_64 }
           # - { os: ubuntu-24.04, python: cp314, arch: x86_64 }
-          - { os: ubuntu-24.04, python: cp39, arch: aarch64 }
+          # There are no scipy wheels for Python 3.9 on aarch64
+          # - { os: ubuntu-24.04, python: cp39, arch: aarch64 }
           - { os: ubuntu-24.04, python: cp310, arch: aarch64 }
           - { os: ubuntu-24.04, python: cp311, arch: aarch64 }
           - { os: ubuntu-24.04, python: cp312, arch: aarch64 }
