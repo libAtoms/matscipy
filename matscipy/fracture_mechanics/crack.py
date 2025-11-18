@@ -106,7 +106,7 @@ class RectilinearAnisotropicCrack:
         self.a12 = b12 - (b13 * b23) / b33
         self.a16 = b16 - (b13 * b36) / b33
         self.a26 = b26 - (b23 * b36) / b33
-        self.a66 = b66
+        self.a66 = b66 - (b36 * b36) / b33
 
         self._init_crack()
 
