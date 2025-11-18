@@ -20,31 +20,31 @@ jobs:
           - { os: ubuntu-24.04, python: cp311, arch: x86_64 }
           - { os: ubuntu-24.04, python: cp312, arch: x86_64 }
           - { os: ubuntu-24.04, python: cp313, arch: x86_64 }
-          - { os: ubuntu-24.04, python: cp314, arch: x86_64 }
+          # - { os: ubuntu-24.04, python: cp314, arch: x86_64 }
           - { os: ubuntu-24.04, python: cp39, arch: aarch64 }
           - { os: ubuntu-24.04, python: cp310, arch: aarch64 }
           - { os: ubuntu-24.04, python: cp311, arch: aarch64 }
           - { os: ubuntu-24.04, python: cp312, arch: aarch64 }
           - { os: ubuntu-24.04, python: cp313, arch: aarch64 }
-          - { os: ubuntu-24.04, python: cp314, arch: aarch64 }
+          # - { os: ubuntu-24.04, python: cp314, arch: aarch64 }
           - { os: macos-14, python: cp39, arch: x86_64 }
           - { os: macos-14, python: cp310, arch: x86_64 }
           - { os: macos-14, python: cp311, arch: x86_64 }
           - { os: macos-14, python: cp312, arch: x86_64 }
           - { os: macos-14, python: cp313, arch: x86_64 }
-          - { os: macos-14, python: cp314, arch: x86_64 }
+          # - { os: macos-14, python: cp314, arch: x86_64 }
           - { os: macos-14, python: cp39, arch: arm64 }
           - { os: macos-14, python: cp310, arch: arm64 }
           - { os: macos-14, python: cp311, arch: arm64 }
           - { os: macos-14, python: cp312, arch: arm64 }
           - { os: macos-14, python: cp313, arch: arm64 }
-          - { os: macos-14, python: cp314, arch: arm64 }
+          # - { os: macos-14, python: cp314, arch: arm64 }
           - { os: windows-2022, python: cp39, arch: AMD64 }
           - { os: windows-2022, python: cp310, arch: AMD64 }
           - { os: windows-2022, python: cp311, arch: AMD64 }
           - { os: windows-2022, python: cp312, arch: AMD64 }
           - { os: windows-2022, python: cp313, arch: AMD64 }
-          - { os: windows-2022, python: cp314, arch: AMD64 }
+          # - { os: windows-2022, python: cp314, arch: AMD64 }
       fail-fast: false
 
     steps:
