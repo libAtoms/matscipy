@@ -1,8 +1,10 @@
 """Fixtures for Manybody potentials."""
 import inspect
-import pytest
-import matscipy.calculators.manybody.potentials as potentials
+
 import numpy as np
+import pytest
+
+import matscipy.calculators.manybody.potentials as potentials
 
 _classes = inspect.getmembers(potentials, inspect.isclass)
 
@@ -127,9 +129,10 @@ _default_arguments = {
 # Filtering out sympy classes
 if getattr(potentials, 'SymPhi', None) is not None:
     for m in _impl_potentials:
-        for i, c in enumerate(_impl_potentials[m]):
-            if issubclass(c, (potentials.SymPhi, potentials.SymTheta)):
-                del _impl_potentials[m][i]
+        _impl_potentials[m] = [
+            c for c in _impl_potentials[m]
+            if not issubclass(c, (potentials.SymPhi, potentials.SymTheta))
+        ]
 
 # Marking expected failures / TODO fix the following classes
 xfails = [
@@ -137,13 +140,12 @@ xfails = [
     potentials.TersoffBrennerPair, potentials.BornMayerCut,
 ]
 
-for fail in xfails:
-    for m in _impl_potentials:
-        classes = _impl_potentials[m]
-        if fail in classes:
-            classes[classes.index(fail)] = \
-                pytest.param(fail,
-                             marks=pytest.mark.xfail(reason="Not implemented"))
+for m in _impl_potentials:
+    classes = _impl_potentials[m]
+    for i, cls in enumerate(classes):
+        if cls in xfails:
+            classes[i] = pytest.param(cls,
+                                      marks=pytest.mark.xfail(reason="Not implemented"))
 
 
 class FiniteDiff:
@@ -190,21 +192,17 @@ def three_body_potential(request):
 
 
 try:
-    from matscipy.calculators.manybody.potentials import (
-        SymPhi,
-        SymTheta,
-        HarmonicPair,
-        HarmonicAngle,
-        LennardJones,
-        ZeroPair,
-        BornMayerCut,
-        TersoffBrennerPair,
-        TersoffBrennerAngle,
-    )
-
-    from sympy import symbols, acos, sqrt, pi, exp, cos
+    from sympy import Piecewise, acos, cos, exp, pi, sqrt, symbols
     from sympy.abc import R, xi
-    from sympy import Piecewise
+
+    from matscipy.calculators.manybody.potentials import (BornMayerCut,
+                                                          HarmonicAngle,
+                                                          HarmonicPair,
+                                                          LennardJones, SymPhi,
+                                                          SymTheta,
+                                                          TersoffBrennerAngle,
+                                                          TersoffBrennerPair,
+                                                          ZeroPair)
 
     has_sympy = True
 
@@ -228,8 +226,7 @@ try:
                   (sqrt(R) >= 2.7) | (sqrt(R) < 3)),
                  (0, sqrt(R) >= 3)
              ) * (
-                 exp(- sqrt(R)) - 1 / sqrt(1 + xi) * exp(- sqrt(R))
-         )), (R, xi))),
+                 exp(- sqrt(R)) - 1 / sqrt(1 + xi) * exp(- sqrt(R)))), (R, xi))),
     ]
 
     _analytical_triplet_potentials = [
