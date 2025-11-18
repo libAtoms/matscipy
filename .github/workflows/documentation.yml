@@ -46,7 +46,7 @@ jobs:
           make html SPHINXOPTS="-j auto"
           cd ..
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           path: docs/_build/html
           name: documentation
