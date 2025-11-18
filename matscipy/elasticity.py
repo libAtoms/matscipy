@@ -1471,7 +1471,7 @@ def nonaffine_elastic_contribution(
     pc_parameters=None,
     cg_parameters={
         "x0": None,
-        "tol": 1e-5,
+        "rtol": 1e-5,
         "maxiter": None,
         "M": None,
         "callback": None,
