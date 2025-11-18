@@ -3,7 +3,7 @@ name: Build wheels
 on:
   # Only build wheels for master branch and tags (releases)
   push:
-    branches: [ master ]
+    # branches: [ master ]
     tags:
       - '*'
 
