@@ -29,7 +29,7 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install --upgrade pip uv meson-python ninja numpy
+          pip install --upgrade pip uv meson-python ninja numpy pipes
           uv pip compile --all-extras --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml
           pip install -r requirements-test.txt
 
