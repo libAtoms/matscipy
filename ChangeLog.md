@@ -1,8 +1,8 @@
 Change log
 ==========
 
-v1.2.0 (16Sep25)
-----------------
+v1.2.0 (not yet released)
+-------------------------
 
 - Dropped support for numpy < 2
 - Dropped support for Python < 3.9
