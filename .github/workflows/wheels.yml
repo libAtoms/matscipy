@@ -32,7 +32,7 @@ jobs:
         - [macos-14, macosx, arm64]
         - [windows-2022, win, AMD64]
 
-        python: ["cp38", "cp39", "cp310", "cp311", "cp312", "cp313"]
+        python: ["cp39", "cp310", "cp311", "cp312", "cp313"]
 
         exclude:
           # No scipy wheels for Python 3.9 on Linux aarch64
