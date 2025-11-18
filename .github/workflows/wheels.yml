@@ -20,8 +20,8 @@ concurrency:
 
 jobs:
   build:
-    name: Build ${{ matrix.python }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.python }} on ${{ matrix.buildplat[0] }}
+    runs-on: ${{ matrix.buildplat[0] }}
     strategy:
       matrix:
         buildplat:
@@ -32,6 +32,11 @@ jobs:
         - [windows-2022, win, AMD64]
 
         python: ["cp38", "cp39", "cp310", "cp311", "cp312", "cp313"]
+
+        exclude:
+          # No scipy wheels for Python 3.9 on Linux aarch64
+          - buildplat: [ubuntu-22.04, manylinux, aarch64]
+            python: "cp39"
       fail-fast: false
 
     steps:
@@ -39,14 +44,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - if: matrix.arch == 'aarch64'
+      - if: matrix.buildplat[2] == 'aarch64'
         uses: docker/setup-qemu-action@v3
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
         env:
           CIBW_BUILD: ${{ matrix.python }}-*
-          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_ARCHS: ${{ matrix.buildplat[2] }}
           CIBW_TEST_COMMAND: python {project}/tests/test_ffi.py
           CIBW_BUILD_FRONTEND: build
           CIBW_BEFORE_BUILD: pip install meson meson-python ninja
@@ -54,7 +59,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: wheelhouse/*.whl
-          name: wheels-${{ matrix.os }}-${{ matrix.python }}-${{ matrix.arch }}
+          name: wheels-${{ matrix.buildplat[0] }}-${{ matrix.python }}-${{ matrix.buildplat[2] }}
 
   publish:
     needs: build
