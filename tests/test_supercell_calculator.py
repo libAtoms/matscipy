@@ -40,33 +40,44 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-import unittest
-
+import numpy as np
 from ase.build import bulk
 
-import matscipytest
 from matscipy.calculators import EAM, SupercellCalculator
 
-###
 
-class TestSupercellCalculator(matscipytest.MatSciPyTestCase):
+def test_eam(datafile_directory):
+    """Test that SupercellCalculator gives identical results to base calculator.
 
-    def test_eam(self):
-        for calc in [EAM('Au-Grochola-JCP05.eam.alloy')]:
-            a = bulk('Au')
-            a *= (2, 2, 2)
-            a.rattle(0.1)
-            a.calc = calc
-            e = a.get_potential_energy()
-            f = a.get_forces()
-            s = a.get_stress()
+    Verifies that wrapping an EAM calculator with SupercellCalculator produces
+    the same energy, forces, and stress as the original calculator.
+    """
+    for calc in [EAM(f"{datafile_directory}/Au-Grochola-JCP05.eam.alloy")]:
+        # Create test system
+        a = bulk("Au")
+        a *= (2, 2, 2)
+        a.rattle(0.1)
 
-            a.set_calculator(SupercellCalculator(calc, (3, 3, 3)))
-            self.assertAlmostEqual(e, a.get_potential_energy())
-            self.assertArrayAlmostEqual(f, a.get_forces())
-            self.assertArrayAlmostEqual(s, a.get_stress())
+        # Calculate with base calculator
+        a.calc = calc
+        e = a.get_potential_energy()
+        f = a.get_forces()
+        s = a.get_stress()
 
-###
+        # Calculate with supercell calculator wrapper
+        a.set_calculator(SupercellCalculator(calc, (3, 3, 3)))
 
-if __name__ == '__main__':
-    unittest.main()
+        # Verify results match
+        assert (
+            abs(e - a.get_potential_energy()) < 1e-7
+        ), f"Energy mismatch: {e} vs {a.get_potential_energy()}"
+
+        f_new = a.get_forces()
+        assert np.allclose(
+            f, f_new, atol=1e-7
+        ), f"Forces differ: max difference = {np.abs(f - f_new).max()}"
+
+        s_new = a.get_stress()
+        assert np.allclose(
+            s, s_new, atol=1e-7
+        ), f"Stress differs: max difference = {np.abs(s - s_new).max()}"

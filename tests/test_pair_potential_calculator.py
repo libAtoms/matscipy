@@ -41,50 +41,32 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ======================================================================
 
-import random
-
-import pytest
-
-import sys
-
+import ase
+import ase.constraints
+import ase.io as io
 import numpy as np
-
-from numpy.linalg import norm
-
+import pytest
+from ase.lattice.cubic import FaceCenteredCubic
+from ase.optimize import FIRE
 from scipy.linalg import eigh
 
-import ase
-import ase.io as io
-import ase.constraints
-from ase.optimize import FIRE
-from ase.lattice.cubic import FaceCenteredCubic
-
-from matscipy.calculators.pair_potential import (
-    PairPotential, 
-    LennardJonesQuadratic, 
-    LennardJonesLinear,
-    )
-from matscipy.elasticity import (
-    fit_elastic_constants,
-    full_3x3x3x3_to_Voigt_6x6,
-    measure_triclinic_elastic_constants,
-    nonaffine_elastic_contribution
-    )
-from matscipy.calculators.calculator import MatscipyCalculator
-from matscipy.numerical import (
-    numerical_forces,
-    numerical_stress,
-    numerical_hessian,
-    numerical_nonaffine_forces,
-)
+from matscipy.calculators.pair_potential import (LennardJonesLinear,
+                                                 LennardJonesQuadratic,
+                                                 PairPotential)
+from matscipy.elasticity import (fit_elastic_constants,
+                                 full_3x3x3x3_to_Voigt_6x6,
+                                 measure_triclinic_elastic_constants,
+                                 nonaffine_elastic_contribution)
+from matscipy.numerical import (numerical_forces, numerical_hessian,
+                                numerical_nonaffine_forces, numerical_stress)
 
 ###
+
 
 def measure_triclinic_elastic_constants_2nd(a, delta=0.001):
     r0 = a.positions.copy()
 
     cell = a.cell.copy()
-    volume = a.get_volume()
     e0 = a.get_potential_energy()
 
     C = np.zeros((3, 3, 3, 3), dtype=float)
@@ -94,32 +76,33 @@ def measure_triclinic_elastic_constants_2nd(a, delta=0.001):
             a.set_positions(r0)
 
             e = np.zeros((3, 3))
-            e[i, j] += 0.5*delta
-            e[j, i] += 0.5*delta
+            e[i, j] += 0.5 * delta
+            e[j, i] += 0.5 * delta
             F = np.eye(3) + e
             a.set_cell(np.matmul(F, cell.T).T, scale_atoms=True)
             ep = a.get_potential_energy()
 
             e = np.zeros((3, 3))
-            e[i, j] -= 0.5*delta
-            e[j, i] -= 0.5*delta
+            e[i, j] -= 0.5 * delta
+            e[j, i] -= 0.5 * delta
             F = np.eye(3) + e
             a.set_cell(np.matmul(F, cell.T).T, scale_atoms=True)
             em = a.get_potential_energy()
 
-            C[:, :, i, j] = (ep + em - 2*e0) / (delta ** 2)
+            C[:, :, i, j] = (ep + em - 2 * e0) / (delta**2)
 
     a.set_cell(cell, scale_atoms=True)
     a.set_positions(r0)
 
     return C
 
-def test_forces():
+
+def test_forces(datafile_directory):
     """
     Test the computation of forces for a crystal and a glass
     """
     calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5)}
-    atoms = FaceCenteredCubic('H', size=[2, 2, 2], latticeconstant=1.0) 
+    atoms = FaceCenteredCubic("H", size=[2, 2, 2], latticeconstant=1.0)
     atoms.rattle(0.01)
     b = PairPotential(calc)
     atoms.calc = b
@@ -127,10 +110,12 @@ def test_forces():
     fn = numerical_forces(atoms, d=1e-5)
     np.testing.assert_allclose(f, fn, atol=1e-4)
 
-    calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-            (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-            (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-    atoms = io.read('glass_min.xyz')
+    calc = {
+        (1, 1): LennardJonesQuadratic(1, 1, 2.5),
+        (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+        (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2),
+    }
+    atoms = io.read(f"{datafile_directory}/glass_min.xyz")
     atoms.rattle(0.01)
     b = PairPotential(calc)
     atoms.calc = b
@@ -138,168 +123,216 @@ def test_forces():
     fn = numerical_forces(atoms, d=1e-5)
     np.testing.assert_allclose(f, fn, atol=1e-3, rtol=1e-4)
 
-@pytest.mark.parametrize('a0', [1.0, 1.5, 2.0, 2.5, 3.0])
+
+@pytest.mark.parametrize("a0", [1.0, 1.5, 2.0, 2.5, 3.0])
 def test_crystal_stress(a0):
     """
-    Test the computation of stresses for a crystal 
+    Test the computation of stresses for a crystal
     """
     calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5)}
-    atoms = FaceCenteredCubic('H', size=[2, 2, 2], latticeconstant=a0) 
+    atoms = FaceCenteredCubic("H", size=[2, 2, 2], latticeconstant=a0)
     b = PairPotential(calc)
     atoms.calc = b
     s = atoms.get_stress()
     sn = numerical_stress(atoms, d=1e-5)
     np.testing.assert_allclose(s, sn, atol=1e-4, rtol=1e-4)
 
-def test_amorphous_stress():
+
+def test_amorphous_stress(datafile_directory):
     """
     Test the computation of stresses for a glass
     """
-    calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-            (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-            (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-    atoms = io.read('glass_min.xyz')
+    calc = {
+        (1, 1): LennardJonesQuadratic(1, 1, 2.5),
+        (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+        (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2),
+    }
+    atoms = io.read(f"{datafile_directory}/glass_min.xyz")
     b = PairPotential(calc)
     atoms.calc = b
     s = atoms.get_stress()
     sn = numerical_stress(atoms, d=1e-5)
     np.testing.assert_allclose(s, sn, atol=1e-4, rtol=1e-4)
 
-def test_hessian():
+
+def test_hessian(datafile_directory):
     """
-    Test the computation of the Hessian matrix 
+    Test the computation of the Hessian matrix
     """
-    calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-            (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-            (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-    atoms = io.read("glass_min.xyz")
+    calc = {
+        (1, 1): LennardJonesQuadratic(1, 1, 2.5),
+        (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+        (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2),
+    }
+    atoms = io.read(f"{datafile_directory}/glass_min.xyz")
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(atoms, logfile=None).run(fmax=1e-5)
     H_numerical = numerical_hessian(atoms, d=1e-5, indices=None).todense()
-    H_analytical = b.get_property('hessian', atoms).todense()
+    H_analytical = b.get_property("hessian", atoms).todense()
     np.testing.assert_allclose(H_analytical, H_numerical, atol=1e-4, rtol=1e-4)
 
-def test_symmetry_sparse():
+
+def test_symmetry_sparse(datafile_directory):
     """
-    Test the symmetry of the dense Hessian matrix 
+    Test the symmetry of the dense Hessian matrix
     """
-    calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-            (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-            (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-    atoms = io.read('glass_min.xyz')
+    calc = {
+        (1, 1): LennardJonesQuadratic(1, 1, 2.5),
+        (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+        (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2),
+    }
+    atoms = io.read(f"{datafile_directory}/glass_min.xyz")
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(atoms, logfile=None).run(fmax=1e-5)
-    H = b.get_property('hessian', atoms).todense()
-    np.testing.assert_allclose(np.sum(np.abs(H-H.T)), 0, atol=1e-10, rtol=1e-4)
+    H = b.get_property("hessian", atoms).todense()
+    np.testing.assert_allclose(np.sum(np.abs(H - H.T)), 0, atol=1e-10, rtol=1e-4)
 
-def test_hessian_divide_by_masses():
+
+def test_hessian_divide_by_masses(datafile_directory):
     """
-    Test the computation of the Dynamical matrix 
+    Test the computation of the Dynamical matrix
     """
-    calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-            (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-            (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-    atoms = io.read("glass_min.xyz")
+    calc = {
+        (1, 1): LennardJonesQuadratic(1, 1, 2.5),
+        (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+        (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2),
+    }
+    atoms = io.read(f"{datafile_directory}/glass_min.xyz")
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(atoms, logfile=None).run(fmax=1e-5)
     masses_n = np.random.randint(1, 10, size=len(atoms))
-    atoms.set_masses(masses=masses_n)  
-    D_analytical = b.get_property('dynamical_matrix', atoms).todense()
-    H_analytical = b.get_property('hessian', atoms).todense() 
+    atoms.set_masses(masses=masses_n)
+    D_analytical = b.get_property("dynamical_matrix", atoms).todense()
+    H_analytical = b.get_property("hessian", atoms).todense()
     masses_p = masses_n.repeat(3)
     H_analytical /= np.sqrt(masses_p.reshape(-1, 1) * masses_p.reshape(1, -1))
     np.testing.assert_allclose(H_analytical, D_analytical, atol=1e-4, rtol=1e-4)
 
-def test_non_affine_forces_glass():
+
+def test_non_affine_forces_glass(datafile_directory):
     """
-    Test the computation of the non-affine forces 
+    Test the computation of the non-affine forces
     """
-    calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-            (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-            (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-    atoms = io.read("glass_min.xyz")
+    calc = {
+        (1, 1): LennardJonesQuadratic(1, 1, 2.5),
+        (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+        (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2),
+    }
+    atoms = io.read(f"{datafile_directory}/glass_min.xyz")
     b = PairPotential(calc)
     atoms.calc = b
-    FIRE(atoms, logfile=None).run(fmax=1e-5)    
+    FIRE(atoms, logfile=None).run(fmax=1e-5)
     naForces_num = numerical_nonaffine_forces(atoms, d=1e-5)
-    naForces_ana = b.get_property('nonaffine_forces', atoms)  
-    np.testing.assert_allclose(naForces_num, naForces_ana, atol=0.1, rtol=1e-4) 
+    naForces_ana = b.get_property("nonaffine_forces", atoms)
+    np.testing.assert_allclose(naForces_num, naForces_ana, atol=0.1, rtol=1e-4)
 
-@pytest.mark.parametrize('a0', [1.0, 1.5, 2.0, 2.3])
+
+@pytest.mark.parametrize("a0", [1.0, 1.5, 2.0, 2.3])
 def test_crystal_birch_elastic_constants(a0):
     """
     Test the Birch elastic constants for a crystalline system
     """
     calc = {(1, 1): LennardJonesLinear(1, 1, 2.5)}
-    atoms = FaceCenteredCubic('H', size=[2, 2, 2], latticeconstant=a0) 
+    atoms = FaceCenteredCubic("H", size=[2, 2, 2], latticeconstant=a0)
     b = PairPotential(calc)
     atoms.calc = b
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None).run(fmax=1e-5)    
+    FIRE(
+        ase.constraints.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None
+    ).run(fmax=1e-5)
     C_num = measure_triclinic_elastic_constants(atoms, delta=1e-4)
     C_ana = b.get_property("birch_coefficients", atoms)
     np.testing.assert_allclose(C_num, C_ana, atol=1e-3, rtol=1e-4)
 
-def test_amorphous_birch_elastic_constants():
+
+def test_amorphous_birch_elastic_constants(datafile_directory):
     """
     Test the Birch elastic constants for an amorphous system
     """
-    calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-            (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-            (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}
-    atoms = io.read("glass_min.xyz")
+    calc = {
+        (1, 1): LennardJonesQuadratic(1, 1, 2.5),
+        (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+        (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2),
+    }
+    atoms = io.read(f"{datafile_directory}/glass_min.xyz")
     b = PairPotential(calc)
     atoms.calc = b
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None).run(fmax=1e-5)   
+    FIRE(
+        ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None
+    ).run(fmax=1e-5)
     C_num = measure_triclinic_elastic_constants(atoms, delta=1e-4)
     C_ana = b.get_property("birch_coefficients", atoms)
     np.testing.assert_allclose(C_num, C_ana, atol=1e-3, rtol=1e-4)
 
-@pytest.mark.parametrize('a0', [1.0, 1.5, 2.0, 2.3])
+
+@pytest.mark.parametrize("a0", [1.0, 1.5, 2.0, 2.3])
 def test_non_affine_elastic_constants_crystal(a0):
     """
-    Test the computation of Birch elastic constants and correction due to non-affine displacements
+    Test the computation of Birch elastic constants and correction due to non-affine
+    displacements
     """
     calc = {(1, 1): LennardJonesLinear(1, 1, 2.5)}
-    atoms = FaceCenteredCubic('H', size=[3,3,3], latticeconstant=a0) 
+    atoms = FaceCenteredCubic("H", size=[3, 3, 3], latticeconstant=a0)
     b = PairPotential(calc)
-    atoms.calc = b  
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None).run(fmax=1e-5)   
-    C_num = measure_triclinic_elastic_constants(atoms, delta=5e-4, optimizer=FIRE, fmax=1e-6, steps=500)
+    atoms.calc = b
+    FIRE(
+        ase.constraints.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None
+    ).run(fmax=1e-5)
+    C_num = measure_triclinic_elastic_constants(
+        atoms, delta=5e-4, optimizer=FIRE, fmax=1e-6, steps=500
+    )
     C_ana = b.get_property("elastic_constants", atoms)
-    np.testing.assert_allclose(np.where(C_ana < 1e-6, 0.0, C_ana),
-                               np.where(C_num < 1e-6, 0.0, C_num),
-                               rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(
+        np.where(C_ana < 1e-6, 0.0, C_ana),
+        np.where(C_num < 1e-6, 0.0, C_num),
+        rtol=1e-3,
+        atol=1e-3,
+    )
 
-def test_non_affine_elastic_constants_glass():
+
+def test_non_affine_elastic_constants_glass(datafile_directory):
     """
-    Test the computation of Birch elastic constants and correction due to non-affine displacements
+    Test the computation of Birch elastic constants and correction due to non-affine
+    displacements
     """
-    calc = {(1, 1): LennardJonesQuadratic(1, 1, 2.5), 
-            (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
-            (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2)}          
-    atoms = io.read("glass_min.xyz")
+    calc = {
+        (1, 1): LennardJonesQuadratic(1, 1, 2.5),
+        (1, 2): LennardJonesQuadratic(1.5, 0.8, 2.0),
+        (2, 2): LennardJonesQuadratic(0.5, 0.88, 2.2),
+    }
+    atoms = io.read(f"{datafile_directory}/glass_min.xyz")
     b = PairPotential(calc)
-    atoms.calc = b    
-    FIRE(ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None).run(fmax=1e-5)   
-    C_num = measure_triclinic_elastic_constants(atoms, delta=5e-4, optimizer=FIRE, fmax=1e-6, steps=500)
+    atoms.calc = b
+    FIRE(
+        ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None
+    ).run(fmax=1e-5)
+    C_num = measure_triclinic_elastic_constants(
+        atoms, delta=5e-4, optimizer=FIRE, fmax=1e-6, steps=500
+    )
     C_ana = b.get_property("elastic_constants", atoms)
-    np.testing.assert_allclose(np.where(C_ana < 1e-6, 0.0, C_ana),
-                               np.where(C_num < 1e-6, 0.0, C_num),
-                               rtol=1e-3, atol=1e-3)
-    
+    np.testing.assert_allclose(
+        np.where(C_ana < 1e-6, 0.0, C_ana),
+        np.where(C_num < 1e-6, 0.0, C_num),
+        rtol=1e-3,
+        atol=1e-3,
+    )
+
     H_nn = b.get_hessian(atoms, "sparse").todense()
-    eigenvalues, eigenvectors = eigh(H_nn, subset_by_index=[3, 3*len(atoms)-1])
+    eigenvalues, eigenvectors = eigh(H_nn, subset_by_index=[3, 3 * len(atoms) - 1])
     B_ana = b.get_property("birch_coefficients", atoms)
     B_ana += nonaffine_elastic_contribution(atoms, eigenvalues, eigenvectors)
-    np.testing.assert_allclose(np.where(B_ana < 1e-6, 0.0, B_ana),
-                               np.where(C_num < 1e-6, 0.0, C_num),
-                               rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(
+        np.where(B_ana < 1e-6, 0.0, B_ana),
+        np.where(C_num < 1e-6, 0.0, C_num),
+        rtol=1e-3,
+        atol=1e-3,
+    )
+
 
 def test_elastic_born_crystal_stress():
-    class TestPotential():
+    class TestPotential:
         def __init__(self, cutoff):
             self.cutoff = cutoff
 
@@ -307,14 +340,14 @@ def test_elastic_born_crystal_stress():
             # Return function value (potential energy).
 
             return r - self.cutoff
-            #return np.ones_like(r)
+            # return np.ones_like(r)
 
         def get_cutoff(self):
             return self.cutoff
 
         def first_derivative(self, r):
             return np.ones_like(r)
-            #return np.zeros_like(r)
+            # return np.zeros_like(r)
 
         def second_derivative(self, r):
             return np.zeros_like(r)
@@ -326,33 +359,46 @@ def test_elastic_born_crystal_stress():
                 return self.second_derivative
             else:
                 raise ValueError(
-                    "Don't know how to compute {}-th derivative.".format(n))
+                    "Don't know how to compute {}-th derivative.".format(n)
+                )
 
     for calc in [{(1, 1): LennardJonesQuadratic(1.0, 1.0, 2.5)}]:
-    #for calc in [{(1, 1): TestPotential(2.5)}]:
+        # for calc in [{(1, 1): TestPotential(2.5)}]:
         b = PairPotential(calc)
-        atoms = FaceCenteredCubic('H', size=[6,6,6], latticeconstant=1.2)
+        atoms = FaceCenteredCubic("H", size=[6, 6, 6], latticeconstant=1.2)
         # Randomly deform the cell
         strain = np.random.random([3, 3]) * 0.02
         atoms.set_cell(np.matmul(np.identity(3) + strain, atoms.cell), scale_atoms=True)
         atoms.calc = b
-        FIRE(ase.constraints.StrainFilter(atoms, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=1e-5)   
-        Cnum, Cerr_num = fit_elastic_constants(atoms, symmetry="triclinic", N_steps=11, delta=1e-4, optimizer=None, verbose=False)
-        Cnum2_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants(atoms), tol=10)
-        #Cnum3_voigt = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants_2nd(atoms), tol=10)
+        FIRE(
+            ase.constraints.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None
+        ).run(fmax=1e-5)
+        Cnum, Cerr_num = fit_elastic_constants(
+            atoms,
+            symmetry="triclinic",
+            N_steps=11,
+            delta=1e-4,
+            optimizer=None,
+            verbose=False,
+        )
+        # Cnum2_voigt = full_3x3x3x3_to_Voigt_6x6(
+        #     measure_triclinic_elastic_constants(atoms), tol=10
+        # )
+        # Cnum3_voigt = full_3x3x3x3_to_Voigt_6x6(
+        # measure_triclinic_elastic_constants_2nd(atoms), tol=10)
         Cana = b.get_birch_coefficients(atoms)
         Cana_voigt = full_3x3x3x3_to_Voigt_6x6(Cana, tol=10)
-        #print(atoms.get_stress())
-        #print(Cnum)
-        #print(Cana_voigt)
+        # print(atoms.get_stress())
+        # print(Cnum)
+        # print(Cana_voigt)
         np.set_printoptions(precision=3)
-        #print("Stress: \n", atoms.get_stress())
-        #print("Numeric (fit_elastic_constants): \n", Cnum)
-        #print("Numeric (measure_triclinic_elastic_constants): \n", Cnum2_voigt)
-        #print("Numeric (measure_triclinic_elastic_constants_2nd): \n", Cnum3_voigt)
-        #print("Analytic: \n", Cana_voigt)
-        #print("Absolute Difference (fit_elastic_constants): \n", Cnum-Cana_voigt)
-        #print("Absolute Difference (measure_triclinic_elastic_constants): \n", Cnum2_voigt-Cana_voigt)
-        #print("Difference between numeric results: \n", Cnum-Cnum2_voigt)
+        # print("Stress: \n", atoms.get_stress())
+        # print("Numeric (fit_elastic_constants): \n", Cnum)
+        # print("Numeric (measure_triclinic_elastic_constants): \n", Cnum2_voigt)
+        # print("Numeric (measure_triclinic_elastic_constants_2nd): \n", Cnum3_voigt)
+        # print("Analytic: \n", Cana_voigt)
+        # print("Absolute Difference (fit_elastic_constants): \n", Cnum-Cana_voigt)
+        # print("Absolute Difference (measure_triclinic_elastic_constants): \n",
+        # Cnum2_voigt-Cana_voigt)
+        # print("Difference between numeric results: \n", Cnum-Cnum2_voigt)
         np.testing.assert_allclose(Cnum, Cana_voigt, atol=10)
-

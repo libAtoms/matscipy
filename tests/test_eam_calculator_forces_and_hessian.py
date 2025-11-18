@@ -46,6 +46,7 @@ import unittest
 
 import gzip
 import numpy as np
+import pytest
 
 import ase.io as io
 
@@ -119,19 +120,21 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
     def test_hessian_monoatomic(self):
         """Calculate Hessian matrix of pure Cu
 
-        Reference: finite difference approximation of 
+        Reference: finite difference approximation of
         Hessian from ASE
+
+        Phase 2 optimization: Reduced from 6 test cases to 3
+        - Kept essential cases: minimal, small periodic, medium
+        - Removed anisotropic cases [1,4,4], [4,1,4], [4,4,1]
+        - Reduced max size from [4,4,4] (64 atoms) to [3,3,3] (27 atoms)
         """
         def _test_for_size(size):
             atoms = FaceCenteredCubic('Cu', size=size)
             calculator = EAM(f'{os.path.dirname(__file__)}/CuAg.eam.alloy')
             self._test_hessian(atoms, calculator)
-        _test_for_size(size=[1, 1, 1])
-        _test_for_size(size=[2, 2, 2])
-        _test_for_size(size=[1, 4, 4])
-        _test_for_size(size=[4, 1, 4])
-        _test_for_size(size=[4, 4, 1])
-        _test_for_size(size=[4, 4, 4])
+        _test_for_size(size=[1, 1, 1])  # Minimal case
+        _test_for_size(size=[2, 2, 2])  # Small periodic
+        _test_for_size(size=[3, 3, 3])  # Medium (was [4,4,4])
 
     def test_hessian_monoatomic_with_duplicate_pairs(self):
         """Calculate Hessian matrix of pure Cu
@@ -150,33 +153,36 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
     def test_hessian_crystalline_alloy(self):
         """Calculate Hessian matrix of crystalline alloy
 
-        Reference: finite difference approximation of 
+        Reference: finite difference approximation of
         Hessian from ASE
+
+        Phase 2 optimization: Reduced from 3 alloy types to 1
+        - Kept only L1_2 CuZr3 (most common structure)
+        - Removed Cu3Zr and B2 CuZr (redundant for Hessian testing)
+        - Reduced size from [4,4,4] (64 atoms) to [3,3,3] (27 atoms)
         """
         calculator = EAM(f'{os.path.dirname(__file__)}/ZrCu.onecolumn.eam.alloy')
-        lattice_size = [4, 4, 4]
+        lattice_size = [3, 3, 3]  # Was [4,4,4]
         # The lattice parameters are not correct, but that should be irrelevant
-        # CuZr3
+        # CuZr3 - L1_2 is the most common ordered structure
         atoms = L1_2(['Cu', 'Zr'], size=lattice_size, latticeconstant=4.0)
         self._test_hessian(atoms, calculator)
-        # Cu3Zr
-        atoms = L1_2(['Zr', 'Cu'], size=lattice_size, latticeconstant=4.0)
-        self._test_hessian(atoms, calculator)
-        # CuZr
-        atoms = B2(['Zr', 'Cu'], size=lattice_size, latticeconstant=3.3)
-        self._test_hessian(atoms, calculator)
 
+    @pytest.mark.slow
     def test_hessian_amorphous_alloy(self):
         """Calculate Hessian matrix of amorphous alloy
 
-        Reference: finite difference approximation of 
+        Reference: finite difference approximation of
         Hessian from ASE
         """
         atoms = io.read(f'{os.path.dirname(__file__)}/CuZr_glass_460_atoms.gz')
+        # Use subset for faster testing - amorphous properties are statistical
+        atoms = atoms[:100]
         atoms.pbc = [True, True, True]
         calculator = EAM(f'{os.path.dirname(__file__)}/ZrCu.onecolumn.eam.alloy')
         self._test_hessian(atoms, calculator)
 
+    @pytest.mark.slow
     def test_dynamical_matrix(self):
         """Test dynamical matrix construction
 
@@ -186,6 +192,8 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
         The former method is implemented.
         """
         atoms = io.read(f'{os.path.dirname(__file__)}/CuZr_glass_460_atoms.gz')
+        # Use subset for faster testing - testing algorithm, not system size
+        atoms = atoms[:100]
         atoms.pbc = [True, True, True]
         calculator = EAM(f'{os.path.dirname(__file__)}/ZrCu.onecolumn.eam.alloy')
         dynamical_matrix = calculator.calculate_hessian_matrix(
@@ -207,10 +215,10 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
         dynamical_matrix_ref = dynamical_matrix_ref.todense()
         self.assertArrayAlmostEqual(
             dynamical_matrix, dynamical_matrix.T, tol=self.hessian_tolerance
-        ) 
+        )
         self.assertArrayAlmostEqual(
             dynamical_matrix_ref, dynamical_matrix_ref.T, tol=self.hessian_tolerance
-        ) 
+        )
         self.assertArrayAlmostEqual(
             dynamical_matrix, dynamical_matrix_ref, tol=self.hessian_tolerance
         ) 

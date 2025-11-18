@@ -1,3 +1,2 @@
-include versioneer.py
 include matscipy/_version.py
 include LICENSE

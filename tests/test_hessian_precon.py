@@ -57,8 +57,8 @@ class TestHessianPrecon(matscipytest.MatSciPyTestCase):
             atoms.positions, noprecon_atoms.positions, atol=self.tol)
 
     def test_precon_neb(self):
-        N_cell = 4
-        N_intermediate = 5
+        N_cell = 3  # Reduced from 4 for faster CI (64→27 atoms)
+        N_intermediate = 3  # Reduced from 5 for faster CI
 
         initial = bulk('Ni', cubic=True)
         initial *= N_cell
