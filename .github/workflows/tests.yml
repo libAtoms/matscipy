@@ -1,22 +1,20 @@
-name: Run tests
+name: Tests
 
 on:
   push:
-    branches:
-      - '**'
-    tags:
-      - '**'
+    branches: [ master ]
+    tags: [ '*' ]
   pull_request:
     branches: [ master ]
 
 jobs:
   tests:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         split-group: [1, 2, 3, 4]
+        python: [ '3.9', '3.10', '3.11', '3.12', '3.13' ]
 
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +67,7 @@ jobs:
           cd tests
           pytest -v --junitxml=report-${{ matrix.split-group }}.xml --durations=20 --timeout=600 --splits 4 --group ${{ matrix.split-group }} --store-durations --durations-path=.test_durations -n auto
 
-      - name: report
+      - name: Upload test results
         uses: mikepenz/action-junit-report@v4
         if: always()
         with:

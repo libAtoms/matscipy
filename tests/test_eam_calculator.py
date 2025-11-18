@@ -26,165 +26,186 @@ import gzip
 import os.path
 import unittest
 
-import numpy as np
-from numpy.linalg import norm
-
-
 import ase.io as io
+import matscipytest
+import numpy as np
 from ase.calculators.test import calculate_numerical_forces
 from ase.constraints import StrainFilter, UnitCellFilter
-from ase.lattice.compounds import B1, B2, L1_0, L1_2
+from ase.lattice.compounds import B1, B2, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.lattice.hexagonal import HexagonalClosedPacked
 from ase.optimize import FIRE
 from ase.units import GPa
+from numpy.linalg import norm
 
-import matscipytest
-from matscipy.elasticity import fit_elastic_constants, Voigt_6x6_to_cubic
+from matscipy.calculators.eam import EAM
+from matscipy.elasticity import Voigt_6x6_to_cubic, fit_elastic_constants
 from matscipy.neighbours import neighbour_list
 from matscipy.numerical import numerical_stress
-from matscipy.calculators.eam import EAM
 
 ###
 
-class TestEAMCalculator(matscipytest.MatSciPyTestCase):
 
+class TestEAMCalculator(matscipytest.MatSciPyTestCase):
     disp = 1e-6
     tol = 2e-6
 
     def test_forces(self):
-        for calc in [EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')]:
-            a = io.read(f'{os.path.dirname(__file__)}/Au_923.xyz')
+        for calc in [EAM(f"{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy")]:
+            a = io.read(f"{os.path.dirname(__file__)}/Au_923.xyz")
             a.center(vacuum=10.0)
             a.calc = calc
             f = a.get_forces()
             for i in range(9):
                 atindex = i*100
-                # New ASE API: calculate_numerical_forces(atoms, eps, iatoms, icarts)
-                # Returns array with shape (len(iatoms), len(icarts))
-                fn = calculate_numerical_forces(a, eps=self.disp, iatoms=[atindex], icarts=[0, 1, 2])[0]
-                self.assertArrayAlmostEqual(f[atindex], fn, tol=self.tol)
+                fn = calculate_numerical_forces(a, self.disp, [atindex])
+                self.assertArrayAlmostEqual(f[atindex], fn[0], tol=self.tol)
 
     def test_stress(self):
-        a = FaceCenteredCubic('Au', size=[2,2,2])
-        calc = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
+        a = FaceCenteredCubic("Au", size=[2, 2, 2])
+        calc = EAM(f"{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy")
         a.calc = calc
         self.assertArrayAlmostEqual(a.get_stress(), numerical_stress(a), tol=self.tol)
 
         sx, sy, sz = a.cell.diagonal()
-        a.set_cell([sx, 0.9*sy, 1.2*sz], scale_atoms=True)
+        a.set_cell([sx, 0.9 * sy, 1.2 * sz], scale_atoms=True)
         self.assertArrayAlmostEqual(a.get_stress(), numerical_stress(a), tol=self.tol)
 
-        a.set_cell([[sx, 0.1*sx, 0], [0, 0.9*sy, 0], [0, -0.1*sy, 1.2*sz]], scale_atoms=True)
+        a.set_cell(
+            [[sx, 0.1 * sx, 0], [0, 0.9 * sy, 0], [0, -0.1 * sy, 1.2 * sz]],
+            scale_atoms=True,
+        )
         self.assertArrayAlmostEqual(a.get_stress(), numerical_stress(a), tol=self.tol)
 
     def test_Grochola(self):
-        a = FaceCenteredCubic('Au', size=[2,2,2])
-        calc = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
+        a = FaceCenteredCubic("Au", size=[2, 2, 2])
+        calc = EAM(f"{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy")
         a.calc = calc
-        FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-        a0 = a.cell.diagonal().mean()/2
-        self.assertTrue(abs(a0-4.0701)<2e-5)
-        self.assertTrue(abs(a.get_potential_energy()/len(a)+3.924)<0.0003)
-        C, C_err = fit_elastic_constants(a, symmetry='cubic', verbose=False)
+        FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+        a0 = a.cell.diagonal().mean() / 2
+        self.assertTrue(abs(a0 - 4.0701) < 2e-5)
+        self.assertTrue(abs(a.get_potential_energy() / len(a) + 3.924) < 0.0003)
+        C, C_err = fit_elastic_constants(a, symmetry="cubic", verbose=False)
         C11, C12, C44 = Voigt_6x6_to_cubic(C)
-        self.assertTrue(abs((C11-C12)/GPa-32.07)<0.7)
-        self.assertTrue(abs(C44/GPa-45.94)<0.5)
+        self.assertTrue(abs((C11 - C12) / GPa - 32.07) < 0.7)
+        self.assertTrue(abs(C44 / GPa - 45.94) < 0.5)
 
     def test_direct_evaluation(self):
-        a = FaceCenteredCubic('Au', size=[2,2,2])
+        a = FaceCenteredCubic("Au", size=[2, 2, 2])
         a.rattle(0.1)
-        calc = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
+        calc = EAM(f"{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy")
         a.calc = calc
         f = a.get_forces()
 
-        calc2 = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
-        i_n, j_n, dr_nc, abs_dr_n = neighbour_list('ijDd', a, cutoff=calc2.cutoff)
-        epot, virial, f2 = calc2.energy_virial_and_forces(a.numbers, i_n, j_n, dr_nc, abs_dr_n)
+        calc2 = EAM(f"{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy")
+        i_n, j_n, dr_nc, abs_dr_n = neighbour_list("ijDd", a, cutoff=calc2.cutoff)
+        epot, virial, f2 = calc2.energy_virial_and_forces(
+            a.numbers, i_n, j_n, dr_nc, abs_dr_n
+        )
         self.assertArrayAlmostEqual(f, f2)
 
-        a = FaceCenteredCubic('Cu', size=[2,2,2])
-        calc = EAM(f'{os.path.dirname(__file__)}/CuAg.eam.alloy')
+        a = FaceCenteredCubic("Cu", size=[2, 2, 2])
+        calc = EAM(f"{os.path.dirname(__file__)}/CuAg.eam.alloy")
         a.calc = calc
-        FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-        e_Cu = a.get_potential_energy()/len(a)
+        FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+        e_Cu = a.get_potential_energy() / len(a)
 
-        a = FaceCenteredCubic('Ag', size=[2,2,2])
+        a = FaceCenteredCubic("Ag", size=[2, 2, 2])
         a.calc = calc
-        FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-        e_Ag = a.get_potential_energy()/len(a)
-        self.assertTrue(abs(e_Ag+2.85)<1e-6)
+        FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+        e_Ag = a.get_potential_energy() / len(a)
+        self.assertTrue(abs(e_Ag + 2.85) < 1e-6)
 
-        a = L1_2(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+        a = L1_2(["Ag", "Cu"], size=[2, 2, 2], latticeconstant=4.0)
         a.calc = calc
-        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
         e = a.get_potential_energy()
         syms = np.array(a.get_chemical_symbols())
-        self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
-                               (syms=='Ag').sum()*e_Ag)/len(a)-0.096)<0.0005)
+        self.assertTrue(
+            abs(
+                (e - (syms == "Cu").sum() * e_Cu - (syms == "Ag").sum() * e_Ag) / len(a)
+                - 0.096
+            )
+            < 0.0005
+        )
 
-        a = B1(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+        a = B1(["Ag", "Cu"], size=[2, 2, 2], latticeconstant=4.0)
         a.calc = calc
-        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
         e = a.get_potential_energy()
         syms = np.array(a.get_chemical_symbols())
-        self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
-                               (syms=='Ag').sum()*e_Ag)/len(a)-0.516)<0.0005)
+        self.assertTrue(
+            abs(
+                (e - (syms == "Cu").sum() * e_Cu - (syms == "Ag").sum() * e_Ag) / len(a)
+                - 0.516
+            )
+            < 0.0005
+        )
 
-        a = B2(['Ag', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+        a = B2(["Ag", "Cu"], size=[2, 2, 2], latticeconstant=4.0)
         a.calc = calc
-        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
         e = a.get_potential_energy()
         syms = np.array(a.get_chemical_symbols())
-        self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
-                               (syms=='Ag').sum()*e_Ag)/len(a)-0.177)<0.0003)
+        self.assertTrue(
+            abs(
+                (e - (syms == "Cu").sum() * e_Cu - (syms == "Ag").sum() * e_Ag) / len(a)
+                - 0.177
+            )
+            < 0.0003
+        )
 
-        a = L1_2(['Cu', 'Ag'], size=[2,2,2], latticeconstant=4.0)
+        a = L1_2(["Cu", "Ag"], size=[2, 2, 2], latticeconstant=4.0)
         a.calc = calc
-        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
+        FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
         e = a.get_potential_energy()
         syms = np.array(a.get_chemical_symbols())
-        self.assertTrue(abs((e-(syms=='Cu').sum()*e_Cu-
-                                (syms=='Ag').sum()*e_Ag)/len(a)-0.083)<0.0005)
+        self.assertTrue(
+            abs(
+                (e - (syms == "Cu").sum() * e_Cu - (syms == "Ag").sum() * e_Ag) / len(a)
+                - 0.083
+            )
+            < 0.0005
+        )
 
     def test_CuZr(self):
         # This is a test for the potential published in:
         # Mendelev, Sordelet, Kramer, J. Appl. Phys. 102, 043501 (2007)
-        a = FaceCenteredCubic('Cu', size=[2,2,2])
-        calc = EAM(f'{os.path.dirname(__file__)}/CuZr_mm.eam.fs', kind='eam/fs')
+        a = FaceCenteredCubic("Cu", size=[2, 2, 2])
+        calc = EAM(f"{os.path.dirname(__file__)}/CuZr_mm.eam.fs", kind="eam/fs")
         a.calc = calc
-        FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-        a_Cu = a.cell.diagonal().mean()/2
-        #print('a_Cu (3.639) = ', a_Cu)
+        FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+        a_Cu = a.cell.diagonal().mean() / 2
+        # print('a_Cu (3.639) = ', a_Cu)
         self.assertAlmostEqual(a_Cu, 3.639, 3)
 
-        a = HexagonalClosedPacked('Zr', size=[2,2,2])
+        a = HexagonalClosedPacked("Zr", size=[2, 2, 2])
         a.calc = calc
-        FIRE(StrainFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=1e-3)
-        a, b, c = a.cell/2
-        print('a_Zr (3.220) = ', norm(a), norm(b))
-        print('c_Zr (5.215) = ', norm(c))
+        FIRE(StrainFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=1e-3)
+        a, b, c = a.cell / 2
+        print("a_Zr (3.220) = ", norm(a), norm(b))
+        print("c_Zr (5.215) = ", norm(c))
         self.assertAlmostEqual(norm(a), 3.220, 3)
         self.assertAlmostEqual(norm(b), 3.220, 3)
         self.assertAlmostEqual(norm(c), 5.215, 3)
 
         # CuZr3
-        a = L1_2(['Cu', 'Zr'], size=[2,2,2], latticeconstant=4.0)
+        a = L1_2(["Cu", "Zr"], size=[2, 2, 2], latticeconstant=4.0)
         a.calc = calc
-        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-        self.assertAlmostEqual(a.cell.diagonal().mean()/2, 4.324, 3)
+        FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+        self.assertAlmostEqual(a.cell.diagonal().mean() / 2, 4.324, 3)
 
         # Cu3Zr
-        a = L1_2(['Zr', 'Cu'], size=[2,2,2], latticeconstant=4.0)
+        a = L1_2(["Zr", "Cu"], size=[2, 2, 2], latticeconstant=4.0)
         a.calc = calc
-        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-        self.assertAlmostEqual(a.cell.diagonal().mean()/2, 3.936, 3)
+        FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+        self.assertAlmostEqual(a.cell.diagonal().mean() / 2, 3.936, 3)
 
         # CuZr
-        a = B2(['Zr', 'Cu'], size=[2,2,2], latticeconstant=3.3)
+        a = B2(["Zr", "Cu"], size=[2, 2, 2], latticeconstant=3.3)
         a.calc = calc
-        FIRE(UnitCellFilter(a, mask=[1,1,1,0,0,0]), logfile=None).run(fmax=0.001)
-        self.assertAlmostEqual(a.cell.diagonal().mean()/2, 3.237, 3)
+        FIRE(UnitCellFilter(a, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.001)
+        self.assertAlmostEqual(a.cell.diagonal().mean() / 2, 3.237, 3)
 
     def test_forces_CuZr_glass(self):
         """Calculate interatomic forces in CuZr glass
@@ -214,23 +235,32 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
                 id type x y z fx fy fz &
                 modify sort id format float "%.14g"
         """
-        format = "lammps-dump" if "lammps-dump" in io.formats.all_formats.keys() else "lammps-dump-text"
-        atoms = io.read(f"{os.path.dirname(__file__)}/CuZr_glass_460_atoms_forces.lammps.dump.gz", format=format)
+        format = (
+            "lammps-dump"
+            if "lammps-dump" in io.formats.all_formats.keys()
+            else "lammps-dump-text"
+        )
+        atoms = io.read(
+            f"{os.path.dirname(__file__)}/CuZr_glass_460_atoms_forces.lammps.dump.gz",
+            format=format,
+        )
         old_atomic_numbers = atoms.get_atomic_numbers()
-        sel, = np.where(old_atomic_numbers == 1)
+        (sel,) = np.where(old_atomic_numbers == 1)
         new_atomic_numbers = np.zeros_like(old_atomic_numbers)
-        new_atomic_numbers[sel] = 40 # Zr
-        sel, = np.where(old_atomic_numbers == 2)
-        new_atomic_numbers[sel] = 29 # Cu
+        new_atomic_numbers[sel] = 40  # Zr
+        (sel,) = np.where(old_atomic_numbers == 2)
+        new_atomic_numbers[sel] = 29  # Cu
         atoms.set_atomic_numbers(new_atomic_numbers)
-        calculator = EAM(f'{os.path.dirname(__file__)}/ZrCu.onecolumn.eam.alloy')
+        calculator = EAM(f"{os.path.dirname(__file__)}/ZrCu.onecolumn.eam.alloy")
         atoms.calc = calculator
         atoms.pbc = [True, True, True]
         forces = atoms.get_forces()
         # Read tabulated forces and compare
-        with gzip.open(f"{os.path.dirname(__file__)}/CuZr_glass_460_atoms_forces.lammps.dump.gz") as file:
+        with gzip.open(
+            f"{os.path.dirname(__file__)}/CuZr_glass_460_atoms_forces.lammps.dump.gz"
+        ) as file:
             for line in file:
-                if line.startswith(b"ITEM: ATOMS "): # ignore header
+                if line.startswith(b"ITEM: ATOMS "):  # ignore header
                     break
             dump = np.loadtxt(file)
         forces_dump = dump[:, 5:8]
@@ -269,13 +299,17 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
         The reference data was calculated using Lammps
         (git commit a73f1d4f037f670cd4295ecc1a576399a31680d2).
         """
-        da   = 0.02775
+        da = 0.02775
         amin = 2.29888527117067752084
-        amax = 5.55 * np.sqrt(2.0)
         for i in range(1, 202):
             latticeconstant = amin + i * da
-            atoms = FaceCenteredCubic(symbol='Au', size=[5,5,5], pbc=(1,1,1), latticeconstant=latticeconstant)
-            calc = EAM(f'{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy')
+            atoms = FaceCenteredCubic(
+                symbol="Au",
+                size=[5, 5, 5],
+                pbc=(1, 1, 1),
+                latticeconstant=latticeconstant,
+            )
+            calc = EAM(f"{os.path.dirname(__file__)}/Au-Grochola-JCP05.eam.alloy")
             atoms.calc = calc
             energy = atoms.get_potential_energy()
             print(energy)
@@ -283,5 +317,5 @@ class TestEAMCalculator(matscipytest.MatSciPyTestCase):
 
 ###
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

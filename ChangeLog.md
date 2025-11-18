@@ -1,11 +1,46 @@
 Change log
 ==========
 
-v1.1.0 (not yet released)
+v1.2.0 (not yet released)
 -------------------------
 
-- Fixes for recent ASE and numpy 2.0
-- Fix correct number of cores for quad of dissociated dislocations
+- Dropped support for numpy < 2
+- Dropped support for Python < 3.9
+
+v1.1.1 (16Oct24)
+----------------
+
+- Optionally return the dislocation core fit error. by @imaliyov in #247
+- WIP: Disloc kink structure generation by @thomas-rocke in #244
+- Disloc self_consistency bugfix & generalised kink mapping by @thomas-rocke in #266
+- MAINT: Upper bound numpy version <2.0.0 by @thomas-rocke in #270
+
+v1.1.0 (9Aug24)
+---------------
+
+- DOC: Changed isbn to correct issn by @pastewka in #230
+- DOC: Removed duplicate Jana2019 entry by @pastewka in #231
+- JOSS: Fix affiliation for Lei Zhang by @jameskermode in #232
+- DOC: Fixed references by @pastewka in #233
+- Use UTF-8 instead of inline Math by @xuanxu in #235
+- DOC: minor fixes in paper by @threich in #237
+- DOC: Typos, reference fixes by @pastewka in #236
+- DOC: typos by @threich in #238
+- Create CITATION.cff by @threich in #239
+- Add JOSS badge and citation guide by @threich in #240
+- Hotfix for quadrupoles of CCDDs with no partial distance by @thomas-rocke in #241
+- Configure Renovate by @renovate in #250
+- DOC: update reference in non-reactive potential files by @threich in #242
+- Update dependency docs/nglview to v3.1.2 by @renovate in #251
+- Update dependency nglview to v3.1.2 by @renovate in #252
+- Update softprops/action-gh-release action to v2 by @renovate in #260
+- Update mikepenz/action-junit-report action to v4 by @renovate in #259
+- Update actions/upload-artifact action to v4 by @renovate in #258
+- Update actions/setup-python action to v5 - autoclosed by @renovate in #257
+- Update actions/checkout action to v4 by @renovate in #256
+- Update pypa/cibuildwheel action to v2.19.2 - autoclosed by @renovate in #255
+- Modernization: CI and numpy 2.0 by @pastewka in #254
+- DOC: fixes the interactive visualisations by @pgrigorev in #262
 
 v1.0.0 (24Jan24)
 ----------------
