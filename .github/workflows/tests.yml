@@ -21,21 +21,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: install_python
-        run: |
-          sudo apt-get update -qy
-          sudo apt-get install -y python3-dev python3-pip python3-venv libxml2-dev libxslt-dev zlib1g-dev
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
 
-      - name: create_venv
+      - name: Create virtual environment
         run: |
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install --upgrade pip meson ninja
+          python3 -m venv ../venv
+          source ../venv/bin/activate
+          pip install --upgrade pip uv meson-python ninja numpy
+          uv pip compile --extra=test --python-version=${{ matrix.python }} -o requirements-test.txt pyproject.toml
+          pip install -r requirements-test.txt
 
-      - name: build_c
+      - name: Build and install matscipy
         run: |
-          source .venv/bin/activate
-          pip install .[test] pytest-split
+          source ../venv/bin/activate
+          pip install --no-build-isolation .[test]
 
       - name: Cache test durations
         uses: actions/cache@v4
@@ -48,12 +49,12 @@ jobs:
       - name: Check if FEniCS needed for this test group
         id: check_fenics
         run: |
-          source .venv/bin/activate
+          source ../venv/bin/activate
           cd tests
           # Collect tests for this split group
           pytest --collect-only --splits 4 --group ${{ matrix.split-group }} --durations-path=.test_durations -q 2>/dev/null | grep -q "fenics" && echo "needed=true" >> $GITHUB_OUTPUT || echo "needed=false" >> $GITHUB_OUTPUT
 
-      - name: install_fenics
+      - name: Install FEniCS
         if: steps.check_fenics.outputs.needed == 'true'
         run: |
           sudo apt-get install -y --no-install-recommends software-properties-common
@@ -63,7 +64,7 @@ jobs:
 
       - name: pytest
         run: |
-          source .venv/bin/activate
+          source ../venv/bin/activate
           cd tests
           pytest -v --junitxml=report-${{ matrix.split-group }}.xml --durations=20 --timeout=600 --splits 4 --group ${{ matrix.split-group }} --store-durations --durations-path=.test_durations -n auto
 

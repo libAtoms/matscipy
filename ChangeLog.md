@@ -1,11 +1,12 @@
 Change log
 ==========
 
-v1.2.0 (not yet released)
--------------------------
+v1.2.0 (18Nov2025)
+------------------
 
-- Dropped support for numpy < 2
-- Dropped support for Python < 3.9
+- MAINT: Dropped support for numpy < 2
+- MAINT: Dropped support for Python < 3.9
+- BUG: Fixed bug in rectilinear anisotropic crack
 
 v1.1.1 (16Oct24)
 ----------------

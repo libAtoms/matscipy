@@ -36,11 +36,12 @@ test = [
     "pytest-subtests",
     "pytest-timeout",
     "pytest-xdist",  # Parallel test execution
+    "pytest-split",
     "matscipy[dislocation]",
     "sympy"
 ]
 dislocation = [
-    "nglview==3.0.8",  # resolves https://github.com/libAtoms/matscipy/issues/222
+    "nglview",  # unpinned, see https://github.com/libAtoms/matscipy/issues/222
     "ovito",
     "atomman"
 ]
