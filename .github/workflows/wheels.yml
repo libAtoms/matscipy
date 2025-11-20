@@ -82,9 +82,10 @@ jobs:
         with:
           path: dist
           pattern: wheels-*
+          merge-multiple: true
 
       - name: Build source distribution
-        run: pip install build && python -m build --sdist
+        run: pip install build && python -m build --sdist --outdir dist
 
       - name: Publish to PyPI
         run: pip install twine && twine upload dist/**/*.{whl,tar.gz}
