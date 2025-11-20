@@ -16,8 +16,63 @@ class classproperty:
             cls = type(obj)
         return self.method(cls)
 
+def miller_to_bravais(vec):
+    '''
+    Convert 3D miller indexes to the 4D miller-bravais basis
+    (i.e. for cubic -> HCP coordinates)
 
-def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=True):
+    vec: np.array
+        1D or 2D vector/matrix of miller indexes
+    '''
+    reduce_dims = False
+
+    if len(vec.shape) == 1:
+        reduce_dims = True
+        vec = vec[np.newaxis, :]
+    assert vec.shape[-1] == 3
+    h = vec[:, 0][:, np.newaxis]
+    k = vec[:, 1][:, np.newaxis]
+    l = vec[:, 2][:, np.newaxis]
+
+    i = -h -k
+
+    retvec = np.hstack((h, k, i, l))
+
+    if reduce_dims:
+        retvec = retvec[0, :]
+
+    return retvec
+
+
+def bravais_to_miller(vec):
+    '''
+    Convert 4D miller-bravais indexes to the 3D miller basis
+    (i.e. for HCP -> cubic coordinates)
+
+    vec: np.array
+        1D or 2D vector/matrix of miller-bravais indexes
+    '''
+    reduce_dims = False
+
+    if len(vec.shape) == 1:
+        reduce_dims = True
+        vec = vec[np.newaxis, :]
+
+    assert vec.shape[-1] == 4
+
+    h = vec[:, 0][:, np.newaxis]
+    k = vec[:, 1][:, np.newaxis]
+    l = vec[:, 3][:, np.newaxis]
+
+    retvec = np.hstack((h, k, l))
+
+    if reduce_dims:
+        retvec = retvec[0, :]
+
+    return retvec
+
+
+def validate_cell(a, symbol="W", axes=None, crystalstructure=None, pbc=True):
     """
     Provide uniform interface for generating rotated atoms objects through two main methods:
 
@@ -25,28 +80,47 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
     For cubic bulk atoms object + crystalstructure, validate structure matches expected cubic bulk geometry, and rotate to frame defined by axes
     Also, if cubic atoms object is supplied, search for a more condensed representation than is provided by ase.build.cut
 
-    a: float or ase.atoms
-        EITHER lattice constant (in A), or the cubic bulk structure
+    a: float, tuple or ase.atoms
+        EITHER lattice constant (in A), or the bulk structure
+        For HCP: tuple of lattice constants (a, c), or the bulk structure
     symbol: str
         Elemental symbol, passed to relevant crystalstructure generator when a is float
     axes: np.array
-        Axes transform to apply to bulk cell
+        Axes transform to apply to bulk cell, in miller or miller-bravais indexes
     crystalstructure: str
-        Base Structure of bulk system, currently supported: fcc, bcc, diamond
+        Base Structure of bulk system, currently supported: fcc, bcc, diamond, hcp
     pbc: list of bool
         Periodic Boundary Conditions in x, y, z
     """
 
     from ase.lattice.cubic import FaceCenteredCubic, BodyCenteredCubic, Diamond
+    from ase.lattice.hexagonal import HexagonalClosedPacked
     from ase.atoms import Atoms
     from ase.build import cut, rotate
     from warnings import warn
 
+    alat = None
+    ref_ats = None
+
     constructors = {
         "fcc": FaceCenteredCubic,
         "bcc": BodyCenteredCubic,
-        "diamond": Diamond
+        "diamond": Diamond,
+        "hcp" : HexagonalClosedPacked
     }
+
+    if axes is None:
+        axes = np.eye(3)
+
+
+    if axes.shape[-1] == 3:
+        # Given 3D cubic miller index axes
+        axes_miller = axes
+        axes_bravais = miller_to_bravais(axes)
+    else:
+        # Given 4D miller-bravais index axes
+        axes_bravais = axes
+        axes_miller = bravais_to_miller(axes)
 
     # Choose correct ase.lattice.cubic constructor given crystalstructure
     try:
@@ -62,49 +136,85 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
             # AttributeError when type(crystalstructure) doesn't support .lower() (not a valid input type)
             raise TypeError(f"crystalstructure should be one of {constructors.keys()}")
 
-    if np.issubdtype(type(a), np.floating) or np.issubdtype(type(a), np.integer):
-        # Reproduce legacy behaviour with a==alat
-        alat = a
+    if crystalstructure == "hcp":
+        ref_lat = [1.0, 1.0]
+    else:
+        ref_lat = 1.0
 
-        if cell_builder is None:
-            raise AssertionError("crystalstructure must be given when 'a' argument is a lattice parameter")
-            
-        unit_cell = cell_builder(symbol, directions=axes.tolist(),
-                                 pbc=pbc,
-                                 latticeconstant=alat)
-    elif isinstance(a, Atoms):
-        # New behaviour for arbitrary cubic unit cells (Zincblende, L12, ...)
-        alat = a.cell[0, 0]
-
-        ats = a.copy()
+    if cell_builder is not None:
+        # Make a reference atoms object of the correct system 
+        ref_ats = cell_builder(symbol,
+                            pbc=pbc,
+                            latticeconstant=ref_lat)
         
 
-        if crystalstructure is not None:
+    if np.issubdtype(type(a), np.floating) or np.issubdtype(type(a), np.integer) or type(a) in [list, tuple, np.array]:
+        # a is a float or int (for alat = [a, a, a]), or is an iterable to specify unequal lattice parameters
+        if type(a) in [list, tuple, np.array]:
+            if len(a) == 2:
+                # Assume a, a, c specification for HCP
+                alat = np.array([a[0], a[0], a[1]])
+            elif len(a) == 3:
+                # Full a, b, c specification
+                alat = np.array(a)
+            elif len(a) == 1:
+                # Assume a, a, a specification
+                alat = np.ones(3) * a
+            else:
+                raise ValueError("Unrecognised length of a parameter. Specify either [a], [a, c], or [a, b, c].")
+        else:
+            # Assume a, a, a specification
+            alat = np.ones(3) * a
+
+        if ref_ats is None:
+            # ref_ats constructed beforehand if crystalstructure is not None, 
+            # and we use it to build the correct crystalstructure next
+            raise AssertionError("crystalstructure must be given when 'a' argument is a lattice parameter")
+
+        # Make an atoms object of the correct system 
+        a = ref_ats.copy()
+        
+        cell = a.cell[:, :].copy()
+        for i in range(3):
+            cell[i, :] *= alat[i]
+
+        a.set_cell(cell, scale_atoms=True)
+
+    if isinstance(a, Atoms):
+        # Should always be triggered in normal usage. The else is to catch invalid a arguments.
+        # New behaviour for arbitrary cubic unit cells (Zincblende, L12, ...)
+
+        ats = a.copy()
+
+        if crystalstructure is not None and ref_ats is not None:
+
             # Try to validate that "a" matches expected structure given by crystalstructure
-            tol = 1e-3
-            ref_ats = cell_builder("C", directions=np.eye(3).astype(int).tolist(),
-                                latticeconstant=alat)
+            tol = 1e-3 # Tolerance on the fractional positions
 
             # Check that number of atoms in ats is an integer multiple of ref_ats
-            # (ats has to be the cubic primitive, or a supercell of the cubic primitive)
-            # Also check that the structure is cubic
+            # and that the cells match expectation
             rel_size = len(ats) / len(ref_ats)
+            sup_size = int(rel_size**(1/3))
+            alat = np.linalg.norm(a.cell[:, :], axis=-1) / sup_size # Account for larger supercells having multiple internal core sites
+            ref_supercell = ref_ats * (sup_size, sup_size, sup_size)
+
             skip_fractional_check = False
             try:
                 # Integer multiple of ats test
                 assert abs(rel_size - np.floor(rel_size)) < tol
 
-                # Cubic cell test: cell = a*I_3x3
-                assert np.allclose(ats.cell[:, :], np.eye(3) * ats.cell[0, 0], atol=tol)
+                # Check cells match closely
+                for i in range(3):
+                    assert np.allclose(ats.cell[i, :], ref_supercell.cell[i, :] * alat[i], atol=tol)
             except AssertionError:
                 # Test failed, skip next test + warn user
                 skip_fractional_check = True
                 
+
             # Check fractional coords match expectation
             frac_match = True
-            sup_size = int(rel_size**(1/3))
+
             if not skip_fractional_check:
-                ref_supercell = ref_ats * (sup_size, sup_size, sup_size)
 
                 try:
                     apos = np.sort(ats.get_scaled_positions(), axis=0)
@@ -114,11 +224,11 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
                     frac_match = False
 
             if not frac_match or skip_fractional_check:
+                print("Frac Match:", frac_match)
+                print("Frac Check:", skip_fractional_check)
                 warn(f"Input bulk does not appear to match bulk {crystalstructure}.", stacklevel=2)
 
-            alat /= sup_size # Account for larger supercells having multiple internal core sites
-
-        ats = cut(ats, a=axes[0, :], b=axes[1, :], c=axes[2, :])
+        ats = cut(ats, a=axes_miller[0, :], b=axes_miller[1, :], c=axes_miller[2, :])
         rotate(ats, ats.cell[0, :].copy(), [1, 0, 0], ats.cell[1, :].copy(), [0, 1, 0])
         
         # cut and rotate can result in a supercell structure. Attempt to find smaller repr 
@@ -133,6 +243,8 @@ def validate_cubic_cell(a, symbol="w", axes=None, crystalstructure=None, pbc=Tru
         raise TypeError("type(a) is not a float, or an Atoms object")
 
     return alat, unit_cell
+
+validate_cubic_cell = validate_cell # compatibility
 
 
 def find_condensed_repr(atoms, precision=2):
@@ -282,7 +394,8 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
 
     if v2 is None:
         V2 = _v2_search(v1, nmax, tol)
-        V2 *= np.sign(V2[0])
+        sgns = [np.sign(x) for x in V2 if x != 0]
+        V2 *= sgns[0]
         V2 = V2.astype(int)
     else:
         V2 = np.array(v2).copy().astype(int)
@@ -293,6 +406,8 @@ def complete_basis(v1, v2=None, normalise=False, nmax=5, tol=1E-6):
         warnings.warn(msg, RuntimeWarning, stacklevel=2)
     
     V3 = np.cross(V1, V2)
+    sgns = [np.sign(x) for x in V3 if x != 0]
+    V3 *= sgns[0]
 
     if normalise:
         V1 = V1.astype(np.float64) / np.linalg.norm(V1)
