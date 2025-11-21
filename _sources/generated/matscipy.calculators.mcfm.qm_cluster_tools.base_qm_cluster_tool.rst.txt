@@ -1,0 +1,12 @@
+matscipy.calculators.mcfm.qm\_cluster\_tools.base\_qm\_cluster\_tool
+====================================================================
+
+.. automodule:: matscipy.calculators.mcfm.qm_cluster_tools.base_qm_cluster_tool
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BaseQMClusterTool
+   

@@ -1,0 +1,17 @@
+matscipy.calculators.manybody.explicit\_forms.tersoff\_brenner
+==============================================================
+
+.. automodule:: matscipy.calculators.manybody.explicit_forms.tersoff_brenner
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      TersoffBrenner
+      mix
+      mix_arithmetic
+      mix_geometric
+      pair_index
+      triplet_index
+   

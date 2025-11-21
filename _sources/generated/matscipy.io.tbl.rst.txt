@@ -1,0 +1,13 @@
+matscipy.io.tbl
+===============
+
+.. automodule:: matscipy.io.tbl
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      loadtbl
+      savetbl
+   

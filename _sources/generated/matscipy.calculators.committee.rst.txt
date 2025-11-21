@@ -1,0 +1,15 @@
+matscipy.calculators.committee
+==============================
+
+.. automodule:: matscipy.calculators.committee
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   committee
+   log
+   utils

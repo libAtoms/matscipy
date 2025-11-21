@@ -1,0 +1,18 @@
+matscipy.calculators.mcfm
+=========================
+
+.. automodule:: matscipy.calculators.mcfm
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   calculator
+   cluster_data
+   mcfm_parallel
+   neighbour_list_mcfm
+   qm_cluster
+   qm_cluster_tools

@@ -1,0 +1,32 @@
+matscipy.socketcalc
+===================
+
+.. automodule:: matscipy.socketcalc
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      pack_atoms_to_reftraj_str
+      pack_atoms_to_xyz_str
+      pack_results_to_reftraj_output_str
+      unpack_reftraj_output_str_to_results
+      unpack_reftraj_str_to_atoms
+      unpack_xyz_str_to_results
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AtomsRequestHandler
+      AtomsServer
+      AtomsServerAsync
+      AtomsServerSync
+      CastepClient
+      Client
+      QMClient
+      QUIPClient
+      SocketCalculator
+      VaspClient
+   

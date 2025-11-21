@@ -1,0 +1,64 @@
+matscipy.dislocation
+====================
+
+.. automodule:: matscipy.dislocation
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      check_duplicates
+      compare_configurations
+      cost_function
+      dipole_displacement_angle
+      fit_core_position
+      fit_core_position_images
+      gamma_line
+      get_centering_mask
+      get_elastic_constants
+      get_u_img
+      make_barrier_configurations
+      make_edge_cyl
+      make_edge_cyl_001_100
+      make_screw_cyl
+      make_screw_cyl_kink
+      make_screw_quadrupole
+      make_screw_quadrupole_kink
+      ovito_dxa_straight_dislo_info
+      plot_bulk
+      plot_vitek
+      read_dislo_QMMM
+      screw_cyl_octahedral
+      screw_cyl_tetrahedral
+      show_NEB_configurations
+      show_configuration
+      slice_long_dislo
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AnisotropicDislocation
+      BCCEdge100110Dislocation
+      BCCEdge100Dislocation
+      BCCEdge111Dislocation
+      BCCEdge111barDislocation
+      BCCMixed111Dislocation
+      BCCScrew111Dislocation
+      BodyCenteredCubicOctahedralFactory
+      BodyCenteredCubicTetrahedralFactory
+      CubicCrystalDislocation
+      CubicCrystalDislocationQuadrupole
+      CubicCrystalDissociatedDislocation
+      DiamondGlide30degreePartial
+      DiamondGlide60Degree
+      DiamondGlide90degreePartial
+      DiamondGlideScrew
+      FCCEdge110Dislocation
+      FCCEdgeShockleyPartial
+      FCCScrew110Dislocation
+      FCCScrewShockleyPartial
+      FixedLineAtoms
+      Quadrupole
+   

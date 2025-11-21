@@ -1,0 +1,12 @@
+matscipy.compat
+===============
+
+.. automodule:: matscipy.compat
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      compat_cg_parameters
+   

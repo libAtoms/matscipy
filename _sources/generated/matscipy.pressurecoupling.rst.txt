@@ -1,0 +1,17 @@
+matscipy.pressurecoupling
+=========================
+
+.. automodule:: matscipy.pressurecoupling
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AutoDamping
+      FixedDamping
+      FixedMassCriticalDamping
+      SlideLog
+      SlideLogger
+      SlideWithNormalPressureCuboidCell
+   

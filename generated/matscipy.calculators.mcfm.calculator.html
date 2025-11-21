@@ -1,0 +1,743 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.calculators.mcfm.calculator &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.calculators.mcfm.cluster_data" href="matscipy.calculators.mcfm.cluster_data.html" />
+    <link rel="prev" title="matscipy.calculators.mcfm" href="matscipy.calculators.mcfm.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.calculator.html">matscipy.calculators.calculator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.committee.html">matscipy.calculators.committee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.eam.html">matscipy.calculators.eam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.ewald.html">matscipy.calculators.ewald</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.fitting.html">matscipy.calculators.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.manybody.html">matscipy.calculators.manybody</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.html#matscipy.calculators.mcfm.MultiClusterForceMixingPotential"><code class="docutils literal notranslate"><span class="pre">MultiClusterForceMixingPotential</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.calculators.mcfm.calculator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.cluster_data.html">matscipy.calculators.mcfm.cluster_data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.mcfm_parallel.html">matscipy.calculators.mcfm.mcfm_parallel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.neighbour_list_mcfm.html">matscipy.calculators.mcfm.neighbour_list_mcfm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.qm_cluster.html">matscipy.calculators.mcfm.qm_cluster</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.qm_cluster_tools.html">matscipy.calculators.mcfm.qm_cluster_tools</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.pair_potential.html">matscipy.calculators.pair_potential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.polydisperse.html">matscipy.calculators.polydisperse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.supercell_calculator.html">matscipy.calculators.supercell_calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a></li>
+      <li class="breadcrumb-item active">matscipy.calculators.mcfm.calculator</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.calculators.mcfm.calculator.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.calculators.mcfm.calculator">
+<span id="matscipy-calculators-mcfm-calculator"></span><h1>matscipy.calculators.mcfm.calculator<a class="headerlink" href="#module-matscipy.calculators.mcfm.calculator" title="Link to this heading"></a></h1>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiClusterForceMixingPotential</span></code></a>([atoms, ...])</p></td>
+<td><p>Subclass of ASE.Calculator facilitating a support for multiple QM clusters.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.mcfm.calculator.</span></span><span class="sig-name descname"><span class="pre">MultiClusterForceMixingPotential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classical_calculator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qm_calculator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qm_cluster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forced_qm_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">change_bonds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calculate_errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calculation_always_required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer_hops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_check_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Calculator</span></code></p>
+<p>Subclass of ASE.Calculator facilitating a support for multiple
+QM clusters. It utilizes the given classical_calculator and qm_calculator to initialize
+an instace of ForceMixingPotential</p>
+<dl class="simple">
+<dt>Extends:</dt><dd><p>Calculator</p>
+</dd>
+<dt>Variables:</dt><dd><p>implemented_properties {list} – [“energy”, “forces”, “potential_energies”, “stress”]
+all_changes {list} – [‘positions’, ‘numbers’, ‘cell’, ‘pbc’]</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>directory</strong></dt><dd></dd>
+<dt><strong>label</strong></dt><dd></dd>
+<dt><strong>name</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.attach_hybrid_data" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.attach_hybrid_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">attach_hybrid_data</span></code></a>([atoms, ...])</p></td>
+<td><p>Mark atoms that are treated quantm mmechanically for more comprehensive ooutput</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.band_structure" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.band_structure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">band_structure</span></code></a>()</p></td>
+<td><p>Create band-structure object for plotting.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate</span></code></a>([atoms, properties, system_changes])</p></td>
+<td><p>Calculate selected properties of the given Atoms object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_numerical_forces" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_numerical_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_forces</span></code></a>(atoms[, d])</p></td>
+<td><p>Calculate numerical forces using finite difference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_numerical_stress" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_numerical_stress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_stress</span></code></a>(atoms[, d, voigt])</p></td>
+<td><p>Calculate numerical stress using finite difference.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_properties" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_properties</span></code></a>(atoms, properties)</p></td>
+<td><p>This method is experimental; currently for internal use.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.check_state" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.check_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_state</span></code></a>(atoms[, tol])</p></td>
+<td><p>Check for any system changes since last calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.combine_qm_mm_forces" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.combine_qm_mm_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">combine_qm_mm_forces</span></code></a>([atoms, forces, ...])</p></td>
+<td><p>This combines QM and MM forces</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.compute_stress" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.compute_stress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_stress</span></code></a>(atoms, forces)</p></td>
+<td><p>Compute total stresses using viral theorem.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.evaluate_errors" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.evaluate_errors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_errors</span></code></a>([atoms, heavy_only, r_force])</p></td>
+<td><p>Use the forces and reference forces to get errors on hybrid atom force evaluations</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.evaluate_qm_cluster_serial" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.evaluate_qm_cluster_serial"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_qm_cluster_serial</span></code></a>([atoms, cluster, ...])</p></td>
+<td><p>Evaluate forces for a single QM cluster given the buffer hops</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_magnetic_moments" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_magnetic_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_magnetic_moments</span></code></a>([atoms])</p></td>
+<td><p>Calculate magnetic moments projected onto atoms.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_property" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_property</span></code></a>(name[, atoms, allow_calculation])</p></td>
+<td><p>Get the named property.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_stresses" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_stresses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stresses</span></code></a>([atoms])</p></td>
+<td><p>the calculator should return intensive stresses, i.e., such that stresses.sum(axis=0) == stress</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.print_message" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.print_message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_message</span></code></a>(message[, limit])</p></td>
+<td><p>Print a message if the calculators verbosity level is above the given threshold</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.produce_classical_results" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.produce_classical_results"><code class="xref py py-obj docutils literal notranslate"><span class="pre">produce_classical_results</span></code></a>([atoms])</p></td>
+<td><p>Call the classical potential ot obtain forces, potential energy and potential energies per atom</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.produce_qm_clusters" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.produce_qm_clusters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">produce_qm_clusters</span></code></a>(atoms[, potential_energies])</p></td>
+<td><p>Update qm clusters based on potential energies per atom</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.read" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read</span></code></a>(label)</p></td>
+<td><p>Read atoms, parameters and calculated properties from output file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.reset" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Clear all information from old calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>(**kwargs)</p></td>
+<td><p>Set parameters like set(key1=value1, key2=value2, ...).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set_label" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set_label"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_label</span></code></a>(label)</p></td>
+<td><p>Set label and convert label to directory and prefix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set_qm_atoms" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set_qm_atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_qm_atoms</span></code></a>(qm_list[, atoms])</p></td>
+<td><p>Force a certian set of clusters for qmmm evaluation, If forced_qm_list is assigned, the cluster list is not updated throughout the run</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.todict" title="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.todict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">todict</span></code></a>([skip_default])</p></td>
+<td><p>Obtain a dictionary of parameter information</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>calculation_required</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>export_properties</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_atoms</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_charges</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_default_parameters</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_dipole_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_forces</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_magnetic_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_potential_energies</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_potential_energy</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_stress</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>read_atoms</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.implemented_properties">
+<span class="sig-name descname"><span class="pre">implemented_properties</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['energy',</span> <span class="pre">'forces',</span> <span class="pre">'potential_energies',</span> <span class="pre">'stress']</span></em><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.implemented_properties" title="Link to this definition"></a></dt>
+<dd><p>Properties calculator can handle (energy, forces, …)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.all_changes">
+<span class="sig-name descname"><span class="pre">all_changes</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['positions',</span> <span class="pre">'numbers',</span> <span class="pre">'cell',</span> <span class="pre">'pbc']</span></em><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.all_changes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classical_calculator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qm_calculator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qm_cluster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forced_qm_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">change_bonds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calculate_errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calculation_always_required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer_hops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_check_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize a generic ASE potential without any calculating power,
+This is only to have access to the necessary functions, all the
+evaluations will be performes in self.mm_pot and self.qm_calculator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE.atoms</em>) – atoms object</p></li>
+<li><p><strong>classical_calculator</strong> (<em>AE.calculator</em>) – classical calculator</p></li>
+<li><p><strong>qm_calculator</strong> (<em>ASE.calculator</em>) – qm calculator</p></li>
+<li><p><strong>qm_cluster</strong> (<em>matscipy.calculators.mcfm.qm_cluster</em>) – flagging/cluster carving utility</p></li>
+<li><p><strong>forced_qm_list</strong> (<em>list</em>) – add this list to enforce a set of atoms for qm treatment</p></li>
+<li><p><strong>change_bonds</strong> (<em>bool</em>) – call the classical potential to update topology</p></li>
+<li><p><strong>calculate_errors</strong> (<em>bool</em>) – evaluate errors after each step</p></li>
+<li><p><strong>calculation_always_required</strong> (<em>bool</em>) – as name</p></li>
+<li><p><strong>buffer_hops</strong> (<em>int</em>) – number of neighbours hop used to construct the core QM region</p></li>
+<li><p><strong>verbose</strong> (<em>int</em>) – For now verbose levels are:
+0 - nothing is printed
+1 - More data is added to Atoms object
+10 - Calculate steps are listed
+100 - Information about specific QM clusters
+(the default is 0)</p></li>
+<li><p><strong>enable_check_state</strong> (<em>bool</em>) – Save the atoms after each evaluation to enable meth::check_state</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate">
+<span class="sig-name descname"><span class="pre">calculate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['energy']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_changes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['positions',</span> <span class="pre">'numbers',</span> <span class="pre">'cell',</span> <span class="pre">'pbc']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate" title="Link to this definition"></a></dt>
+<dd><p>Calculate selected properties of the given Atoms object.
+Initially, a classical potential is called to evaluate potential
+energies for each atom and afterwards a qm_cluster object is employed
+to analyze them. If no atom is flagged for QM treatment, classical forces
+are returned. In case some atoms are flagged for QM treatment
+each Qm cluster is independently send to a qmmm potential to evaluate
+more accurate forces. The results of qmmm evaluations are used to modify
+the classical forces and the final array is given</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.produce_classical_results">
+<span class="sig-name descname"><span class="pre">produce_classical_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.produce_classical_results" title="Link to this definition"></a></dt>
+<dd><p>Call the classical potential ot obtain forces, potential energy
+and potential energies per atom</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ASE.atoms</em>) – atoms object</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>forces</strong> (<em>np.array</em>) – Atomic forces</p></li>
+<li><p><strong>potential_energy</strong> (<em>np.array</em>) – Potential energy of the system</p></li>
+<li><p><strong>potential_energies</strong> (<em>np.array</em>) – Per atom potential energies</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.produce_qm_clusters">
+<span class="sig-name descname"><span class="pre">produce_qm_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">potential_energies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.produce_qm_clusters" title="Link to this definition"></a></dt>
+<dd><p>Update qm clusters based on potential energies per atom</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE.atoms</em>) – atoms object</p></li>
+<li><p><strong>potential_energies</strong> (<em>np.array</em>) – Per atom potential energies</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.evaluate_qm_cluster_serial">
+<span class="sig-name descname"><span class="pre">evaluate_qm_cluster_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clusterNumber</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.evaluate_qm_cluster_serial" title="Link to this definition"></a></dt>
+<dd><p>Evaluate forces for a single QM cluster given the buffer hops</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE.atoms</em>) – atoms object</p></li>
+<li><p><strong>cluster</strong> (<em>list</em>) – list of core qm atoms</p></li>
+<li><p><strong>clusterNumber</strong> (<em>int</em>) – cluster number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>Cluster</strong> –</p>
+<dl class="simple">
+<dt>object with forces</dt><dd><p>qm_atoms mark
+core qm list</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>cluster_data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.combine_qm_mm_forces">
+<span class="sig-name descname"><span class="pre">combine_qm_mm_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_data_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.combine_qm_mm_forces" title="Link to this definition"></a></dt>
+<dd><p>This combines QM and MM forces</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE.atoms</em>) – atoms object</p></li>
+<li><p><strong>forces</strong> (<em>np.array</em>) – atomic forces</p></li>
+<li><p><strong>cluster_data_list</strong> (<em>list</em><em> of </em><em>matscipy.calculators.mcfm.ClusterData</em>) – information about the clusters</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>forces</strong> – atomic forces</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.attach_hybrid_data">
+<span class="sig-name descname"><span class="pre">attach_hybrid_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_qm_atoms_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.attach_hybrid_data" title="Link to this definition"></a></dt>
+<dd><p>Mark atoms that are treated quantm mmechanically
+for more comprehensive ooutput</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE.atoms</em>) – atoms object</p></li>
+<li><p><strong>full_qm_atoms_mask</strong> (<em>list</em>) – list of all qm atoms</p></li>
+<li><p><strong>cluster_data_list</strong> (<em>list</em><em> of </em><em>matscipy.calculators.mcfm.ClusterData</em>) – information about the clusters</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.band_structure">
+<span class="sig-name descname"><span class="pre">band_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.band_structure" title="Link to this definition"></a></dt>
+<dd><p>Create band-structure object for plotting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_numerical_forces">
+<span class="sig-name descname"><span class="pre">calculate_numerical_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_numerical_forces" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical forces using finite difference.</p>
+<p>All atoms will be displaced by +d and -d in all directions.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_numerical_stress">
+<span class="sig-name descname"><span class="pre">calculate_numerical_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voigt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_numerical_stress" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical stress using finite difference.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_properties">
+<span class="sig-name descname"><span class="pre">calculate_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculate_properties" title="Link to this definition"></a></dt>
+<dd><p>This method is experimental; currently for internal use.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculation_required">
+<span class="sig-name descname"><span class="pre">calculation_required</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.calculation_required" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.check_state">
+<span class="sig-name descname"><span class="pre">check_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.check_state" title="Link to this definition"></a></dt>
+<dd><p>Check for any system changes since last calculation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.default_parameters">
+<span class="sig-name descname"><span class="pre">default_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.default_parameters" title="Link to this definition"></a></dt>
+<dd><p>Default parameters</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.directory">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">directory</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.discard_results_on_any_change">
+<span class="sig-name descname"><span class="pre">discard_results_on_any_change</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.discard_results_on_any_change" title="Link to this definition"></a></dt>
+<dd><p>Whether we purge the results following any change in the set() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.export_properties">
+<span class="sig-name descname"><span class="pre">export_properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.export_properties" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_atoms">
+<span class="sig-name descname"><span class="pre">get_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_charges">
+<span class="sig-name descname"><span class="pre">get_charges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_charges" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_default_parameters">
+<span class="sig-name descname"><span class="pre">get_default_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_default_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_dipole_moment">
+<span class="sig-name descname"><span class="pre">get_dipole_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_dipole_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_forces">
+<span class="sig-name descname"><span class="pre">get_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_forces" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_magnetic_moment">
+<span class="sig-name descname"><span class="pre">get_magnetic_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_magnetic_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_magnetic_moments">
+<span class="sig-name descname"><span class="pre">get_magnetic_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_magnetic_moments" title="Link to this definition"></a></dt>
+<dd><p>Calculate magnetic moments projected onto atoms.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_potential_energies">
+<span class="sig-name descname"><span class="pre">get_potential_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_potential_energies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_potential_energy">
+<span class="sig-name descname"><span class="pre">get_potential_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_consistent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_potential_energy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_property">
+<span class="sig-name descname"><span class="pre">get_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_calculation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_property" title="Link to this definition"></a></dt>
+<dd><p>Get the named property.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_stress">
+<span class="sig-name descname"><span class="pre">get_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_stress" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_stresses">
+<span class="sig-name descname"><span class="pre">get_stresses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.get_stresses" title="Link to this definition"></a></dt>
+<dd><p>the calculator should return intensive stresses, i.e., such that
+stresses.sum(axis=0) == stress</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.ignored_changes">
+<span class="sig-name descname"><span class="pre">ignored_changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.ignored_changes" title="Link to this definition"></a></dt>
+<dd><p>Properties of Atoms which we ignore for the purposes of cache</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.label">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">label</span></span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.label" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.name">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.read" title="Link to this definition"></a></dt>
+<dd><p>Read atoms, parameters and calculated properties from output file.</p>
+<p>Read result from self.label file.  Raise ReadError if the file
+is not there.  If the file is corrupted or contains an error
+message from the calculation, a ReadError should also be
+raised.  In case of succes, these attributes must set:</p>
+<dl class="simple">
+<dt>atoms: Atoms object</dt><dd><p>The state of the atoms from last calculation.</p>
+</dd>
+<dt>parameters: Parameters object</dt><dd><p>The parameter dictionary.</p>
+</dd>
+<dt>results: dict</dt><dd><p>Calculated properties like energy and forces.</p>
+</dd>
+</dl>
+<p>The FileIOCalculator.read() method will typically read atoms
+and parameters and get the results dict by calling the
+read_results() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.read_atoms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restart</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.read_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.reset" title="Link to this definition"></a></dt>
+<dd><p>Clear all information from old calculation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set" title="Link to this definition"></a></dt>
+<dd><p>Set parameters like set(key1=value1, key2=value2, …).</p>
+<p>A dictionary containing the parameters that have been changed
+is returned.</p>
+<p>Subclasses must implement a set() method that will look at the
+chaneged parameters and decide if a call to reset() is needed.
+If the changed parameters are harmless, like a change in
+verbosity, then there is no need to call reset().</p>
+<p>The special keyword ‘parameters’ can be used to read
+parameters from a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set_label">
+<span class="sig-name descname"><span class="pre">set_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set_label" title="Link to this definition"></a></dt>
+<dd><p>Set label and convert label to directory and prefix.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>label=’abc’: (directory=’.’, prefix=’abc’)</p></li>
+<li><p>label=’dir1/abc’: (directory=’dir1’, prefix=’abc’)</p></li>
+<li><p>label=None: (directory=’.’, prefix=None)</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.todict">
+<span class="sig-name descname"><span class="pre">todict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.todict" title="Link to this definition"></a></dt>
+<dd><p>Obtain a dictionary of parameter information</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.evaluate_errors">
+<span class="sig-name descname"><span class="pre">evaluate_errors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heavy_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.evaluate_errors" title="Link to this definition"></a></dt>
+<dd><p>Use the forces and reference forces to get errors on hybrid atom
+force evaluations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE.atoms</em>) – atoms object</p></li>
+<li><p><strong>heavy_only</strong> (<em>bool</em>) – Do not evaluate errors on hydrogens</p></li>
+<li><p><strong>r_force</strong> (<em>np.array</em>) – array with reference forces</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set_qm_atoms">
+<span class="sig-name descname"><span class="pre">set_qm_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qm_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.set_qm_atoms" title="Link to this definition"></a></dt>
+<dd><p>Force a certian set of clusters for qmmm evaluation,
+If forced_qm_list is assigned, the cluster list is not updated
+throughout the run</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qm_list</strong> (<em>list</em>) – list of atoms</p></li>
+<li><p><strong>atoms</strong> (<em>ASE.atoms</em>) – atoms object</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.compute_stress">
+<span class="sig-name descname"><span class="pre">compute_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forces</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.compute_stress" title="Link to this definition"></a></dt>
+<dd><p>Compute total stresses using viral theorem.
+WARNING: only works for non-PBC structures</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.print_message">
+<span class="sig-name descname"><span class="pre">print_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.calculator.MultiClusterForceMixingPotential.print_message" title="Link to this definition"></a></dt>
+<dd><p>Print a message if the calculators verbosity level is above the
+given threshold</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.calculators.mcfm.html" class="btn btn-neutral float-left" title="matscipy.calculators.mcfm" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.calculators.mcfm.cluster_data.html" class="btn btn-neutral float-right" title="matscipy.calculators.mcfm.cluster_data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

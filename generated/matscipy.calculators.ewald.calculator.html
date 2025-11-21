@@ -1,0 +1,897 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.calculators.ewald.calculator &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.calculators.fitting" href="matscipy.calculators.fitting.html" />
+    <link rel="prev" title="matscipy.calculators.ewald" href="matscipy.calculators.ewald.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.calculator.html">matscipy.calculators.calculator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.committee.html">matscipy.calculators.committee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.eam.html">matscipy.calculators.eam</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.calculators.ewald.html">matscipy.calculators.ewald</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.calculators.ewald.calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.fitting.html">matscipy.calculators.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.manybody.html">matscipy.calculators.manybody</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.pair_potential.html">matscipy.calculators.pair_potential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.polydisperse.html">matscipy.calculators.polydisperse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.supercell_calculator.html">matscipy.calculators.supercell_calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.calculators.ewald.html">matscipy.calculators.ewald</a></li>
+      <li class="breadcrumb-item active">matscipy.calculators.ewald.calculator</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.calculators.ewald.calculator.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.calculators.ewald.calculator">
+<span id="matscipy-calculators-ewald-calculator"></span><h1>matscipy.calculators.ewald.calculator<a class="headerlink" href="#module-matscipy.calculators.ewald.calculator" title="Link to this heading"></a></h1>
+<p>Pair potential + Ewald summation</p>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald" title="matscipy.calculators.ewald.calculator.Ewald"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Ewald</span></code></a>()</p></td>
+<td><p>Ewal summation calculator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.EwaldShortRange" title="matscipy.calculators.ewald.calculator.EwaldShortRange"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EwaldShortRange</span></code></a>(alpha, cutoff)</p></td>
+<td><p>Short range term of Ewald summation.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.EwaldShortRange">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.ewald.calculator.</span></span><span class="sig-name descname"><span class="pre">EwaldShortRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.EwaldShortRange" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="matscipy.calculators.pair_potential.calculator.html#matscipy.calculators.pair_potential.calculator.CutoffInteraction" title="matscipy.calculators.pair_potential.calculator.CutoffInteraction"><code class="xref py py-class docutils literal notranslate"><span class="pre">CutoffInteraction</span></code></a></p>
+<p>Short range term of Ewald summation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.cutoff" title="matscipy.calculators.ewald.calculator.EwaldShortRange.cutoff"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cutoff</span></code></a></dt><dd><p>Physical cutoff distance for pair interaction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(r, qi, qj)</p></td>
+<td><p>Compute interaction energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.derivative" title="matscipy.calculators.ewald.calculator.EwaldShortRange.derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">derivative</span></code></a>([n])</p></td>
+<td><p>Return specified derivative.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.first_derivative" title="matscipy.calculators.ewald.calculator.EwaldShortRange.first_derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">first_derivative</span></code></a>(r, qi, qj)</p></td>
+<td><p>Compute derivative w/r to distance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.get_cutoff" title="matscipy.calculators.ewald.calculator.EwaldShortRange.get_cutoff"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cutoff</span></code></a>()</p></td>
+<td><p>Get cutoff.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.second_derivative" title="matscipy.calculators.ewald.calculator.EwaldShortRange.second_derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">second_derivative</span></code></a>(r, qi, qj)</p></td>
+<td><p>Compute second derivative w/r to distance.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.EwaldShortRange.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize with cutoff.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.EwaldShortRange.first_derivative">
+<span class="sig-name descname"><span class="pre">first_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.first_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute derivative w/r to distance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.EwaldShortRange.second_derivative">
+<span class="sig-name descname"><span class="pre">second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute second derivative w/r to distance.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.EwaldShortRange.cutoff">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cutoff</span></span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.cutoff" title="Link to this definition"></a></dt>
+<dd><p>Physical cutoff distance for pair interaction.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.EwaldShortRange.derivative">
+<span class="sig-name descname"><span class="pre">derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.derivative" title="Link to this definition"></a></dt>
+<dd><p>Return specified derivative.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.EwaldShortRange.get_cutoff">
+<span class="sig-name descname"><span class="pre">get_cutoff</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.EwaldShortRange.get_cutoff" title="Link to this definition"></a></dt>
+<dd><p>Get cutoff. Deprecated.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.ewald.calculator.</span></span><span class="sig-name descname"><span class="pre">Ewald</span></span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="matscipy.calculators.pair_potential.calculator.html#matscipy.calculators.pair_potential.calculator.PairPotential" title="matscipy.calculators.pair_potential.calculator.PairPotential"><code class="xref py py-class docutils literal notranslate"><span class="pre">PairPotential</span></code></a></p>
+<p>Ewal summation calculator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.alpha" title="matscipy.calculators.ewald.calculator.Ewald.alpha"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpha</span></code></a></dt><dd><p>Get alpha.</p>
+</dd>
+<dt><strong>directory</strong></dt><dd></dd>
+<dt><strong>label</strong></dt><dd></dd>
+<dt><strong>short_range</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.allowed_wave_vectors" title="matscipy.calculators.ewald.calculator.Ewald.allowed_wave_vectors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">allowed_wave_vectors</span></code></a>(cell, km, a, nk)</p></td>
+<td><p>Compute allowed wave vectors and the prefactor I</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.band_structure" title="matscipy.calculators.ewald.calculator.Ewald.band_structure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">band_structure</span></code></a>()</p></td>
+<td><p>Create band-structure object for plotting.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.calculate" title="matscipy.calculators.ewald.calculator.Ewald.calculate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate</span></code></a>(atoms, properties, system_changes)</p></td>
+<td><p>Compute Coulomb interactions with Ewald summation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.calculate_numerical_forces" title="matscipy.calculators.ewald.calculator.Ewald.calculate_numerical_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_forces</span></code></a>(atoms[, d])</p></td>
+<td><p>Calculate numerical forces using finite difference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.calculate_numerical_stress" title="matscipy.calculators.ewald.calculator.Ewald.calculate_numerical_stress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_stress</span></code></a>(atoms[, d, voigt])</p></td>
+<td><p>Calculate numerical stress using finite difference.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.calculate_properties" title="matscipy.calculators.ewald.calculator.Ewald.calculate_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_properties</span></code></a>(atoms, properties)</p></td>
+<td><p>This method is experimental; currently for internal use.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.check_state" title="matscipy.calculators.ewald.calculator.Ewald.check_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_state</span></code></a>(atoms[, tol])</p></td>
+<td><p>Check for any system changes since last calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.determine_alpha" title="matscipy.calculators.ewald.calculator.Ewald.determine_alpha"><code class="xref py py-obj docutils literal notranslate"><span class="pre">determine_alpha</span></code></a>(charge, acc, cutoff, cell)</p></td>
+<td><p>Determine an estimate for alpha on the basis of the cell, cutoff and desired accuracy (Adopted from LAMMPS)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.determine_kc" title="matscipy.calculators.ewald.calculator.Ewald.determine_kc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">determine_kc</span></code></a>(cell, nk)</p></td>
+<td><p>Determine maximal wave vector based in a given integer triplet</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.determine_nk" title="matscipy.calculators.ewald.calculator.Ewald.determine_nk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">determine_nk</span></code></a>(charge, cell, acc, a, natoms)</p></td>
+<td><p>Determine the maximal number of points in reciprocal space for each direction, and the cutoff in reciprocal space</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.first_derivative_kspace" title="matscipy.calculators.ewald.calculator.Ewald.first_derivative_kspace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">first_derivative_kspace</span></code></a>(charge, natoms, vol, ...)</p></td>
+<td><p>Return the kspace part of the force.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_birch_coefficients" title="matscipy.calculators.ewald.calculator.Ewald.get_birch_coefficients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_birch_coefficients</span></code></a>(atoms)</p></td>
+<td><p>Compute the Birch coefficients (Effective elastic constants at non-zero stress).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_born_elastic_constants" title="matscipy.calculators.ewald.calculator.Ewald.get_born_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_born_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the Born elastic constants.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_dynamical_matrix" title="matscipy.calculators.ewald.calculator.Ewald.get_dynamical_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dynamical_matrix</span></code></a>(atoms)</p></td>
+<td><p>Compute dynamical matrix (=mass weighted Hessian).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_elastic_constants" title="matscipy.calculators.ewald.calculator.Ewald.get_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_elastic_constants</span></code></a>(atoms[, cg_parameters])</p></td>
+<td><p>Compute the elastic constants at zero temperature.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_hessian" title="matscipy.calculators.ewald.calculator.Ewald.get_hessian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_hessian</span></code></a>(atoms[, format])</p></td>
+<td><p>Compute the real space + kspace Hessian</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_magnetic_moments" title="matscipy.calculators.ewald.calculator.Ewald.get_magnetic_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_magnetic_moments</span></code></a>([atoms])</p></td>
+<td><p>Calculate magnetic moments projected onto atoms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_non_affine_contribution_to_elastic_constants" title="matscipy.calculators.ewald.calculator.Ewald.get_non_affine_contribution_to_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_non_affine_contribution_to_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the correction of non-affine displacements to the elasticity tensor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_nonaffine_forces" title="matscipy.calculators.ewald.calculator.Ewald.get_nonaffine_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nonaffine_forces</span></code></a>(atoms)</p></td>
+<td><p>Compute the non-affine forces which result from an affine deformation of atoms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_property" title="matscipy.calculators.ewald.calculator.Ewald.get_property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_property</span></code></a>(name[, atoms, allow_calculation])</p></td>
+<td><p>Get the named property.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_stress_contribution_to_elastic_constants" title="matscipy.calculators.ewald.calculator.Ewald.get_stress_contribution_to_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stress_contribution_to_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the correction to the elastic constants due to non-zero stress in the configuration.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.get_stresses" title="matscipy.calculators.ewald.calculator.Ewald.get_stresses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stresses</span></code></a>([atoms])</p></td>
+<td><p>the calculator should return intensive stresses, i.e., such that stresses.sum(axis=0) == stress</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.kspace_energy" title="matscipy.calculators.ewald.calculator.Ewald.kspace_energy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kspace_energy</span></code></a>(charge, pos, vol, I, k)</p></td>
+<td><p>Return the energy from the reciprocal space contribution</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.kspace_properties" title="matscipy.calculators.ewald.calculator.Ewald.kspace_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kspace_properties</span></code></a>(atoms[, prop, ...])</p></td>
+<td><p>Calculate the recirprocal contributiom to the Hessian, the non-affine forces and the Born elastic constants</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.read" title="matscipy.calculators.ewald.calculator.Ewald.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read</span></code></a>(label)</p></td>
+<td><p>Read atoms, parameters and calculated properties from output file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.reset" title="matscipy.calculators.ewald.calculator.Ewald.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Clear all information from old calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.reset_kspace" title="matscipy.calculators.ewald.calculator.Ewald.reset_kspace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_kspace</span></code></a>(atoms)</p></td>
+<td><p>Reset kspace setup.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.rms_kspace" title="matscipy.calculators.ewald.calculator.Ewald.rms_kspace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rms_kspace</span></code></a>(km, l, n, a, q2)</p></td>
+<td><p>Compute the root mean square error of the force in reciprocal space</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.rms_rspace" title="matscipy.calculators.ewald.calculator.Ewald.rms_rspace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rms_rspace</span></code></a>(charge, cell, a, rc)</p></td>
+<td><p>Compute the root mean square error of the force in real space</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.self_energy" title="matscipy.calculators.ewald.calculator.Ewald.self_energy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">self_energy</span></code></a>(charge, a)</p></td>
+<td><p>Return the self energy</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.set" title="matscipy.calculators.ewald.calculator.Ewald.set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>(**kwargs)</p></td>
+<td><p>Set parameters like set(key1=value1, key2=value2, ...).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.set_label" title="matscipy.calculators.ewald.calculator.Ewald.set_label"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_label</span></code></a>(label)</p></td>
+<td><p>Set label and convert label to directory and prefix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.stress_kspace" title="matscipy.calculators.ewald.calculator.Ewald.stress_kspace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stress_kspace</span></code></a>(charge, pos, vol, a, I, k)</p></td>
+<td><p>Return the stress contribution of the long-range Coulomb part.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.ewald.calculator.Ewald.todict" title="matscipy.calculators.ewald.calculator.Ewald.todict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">todict</span></code></a>([skip_default])</p></td>
+<td><p>Obtain a dictionary of parameter information</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>calculation_required</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>export_properties</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_atoms</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_charges</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_default_parameters</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_dipole_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_forces</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_magnetic_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_potential_energies</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_potential_energy</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_stress</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>read_atoms</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Ewald'</span></em><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.default_parameters">
+<span class="sig-name descname"><span class="pre">default_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'accuracy':</span> <span class="pre">1e-06,</span> <span class="pre">'cutoff':</span> <span class="pre">3,</span> <span class="pre">'kspace':</span> <span class="pre">{},</span> <span class="pre">'verbose':</span> <span class="pre">True}</span></em><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.default_parameters" title="Link to this definition"></a></dt>
+<dd><p>Default parameters</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.__init__" title="Link to this definition"></a></dt>
+<dd><p>Construct calculator.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.short_range">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">short_range</span></span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.short_range" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.alpha">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">alpha</span></span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.alpha" title="Link to this definition"></a></dt>
+<dd><p>Get alpha.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.set" title="Link to this definition"></a></dt>
+<dd><p>Set parameters like set(key1=value1, key2=value2, …).</p>
+<p>A dictionary containing the parameters that have been changed
+is returned.</p>
+<p>Subclasses must implement a set() method that will look at the
+chaneged parameters and decide if a call to reset() is needed.
+If the changed parameters are harmless, like a change in
+verbosity, then there is no need to call reset().</p>
+<p>The special keyword ‘parameters’ can be used to read
+parameters from a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.reset" title="Link to this definition"></a></dt>
+<dd><p>Clear all information from old calculation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.determine_alpha">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">determine_alpha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">charge</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.determine_alpha" title="Link to this definition"></a></dt>
+<dd><p>Determine an estimate for alpha on the basis of the cell, cutoff and desired accuracy
+(Adopted from LAMMPS)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.determine_nk">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">determine_nk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">charge</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">natoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.determine_nk" title="Link to this definition"></a></dt>
+<dd><p>Determine the maximal number of points in reciprocal space for each direction,
+and the cutoff in reciprocal space</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.determine_kc">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">determine_kc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nk</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.determine_kc" title="Link to this definition"></a></dt>
+<dd><p>Determine maximal wave vector based in a given integer triplet</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.rms_kspace">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rms_kspace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">km</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.rms_kspace" title="Link to this definition"></a></dt>
+<dd><p>Compute the root mean square error of the force in reciprocal space</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.rms_rspace">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rms_rspace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">charge</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.rms_rspace" title="Link to this definition"></a></dt>
+<dd><p>Compute the root mean square error of the force in real space</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.allowed_wave_vectors">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">allowed_wave_vectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">km</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nk</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.allowed_wave_vectors" title="Link to this definition"></a></dt>
+<dd><p>Compute allowed wave vectors and the prefactor I</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.self_energy">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">self_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">charge</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.self_energy" title="Link to this definition"></a></dt>
+<dd><p>Return the self energy</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.kspace_energy">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">kspace_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">charge</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.kspace_energy" title="Link to this definition"></a></dt>
+<dd><p>Return the energy from the reciprocal space contribution</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.first_derivative_kspace">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">first_derivative_kspace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">charge</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">natoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.first_derivative_kspace" title="Link to this definition"></a></dt>
+<dd><p>Return the kspace part of the force.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.stress_kspace">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stress_kspace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">charge</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.stress_kspace" title="Link to this definition"></a></dt>
+<dd><p>Return the stress contribution of the long-range Coulomb part.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.reset_kspace">
+<span class="sig-name descname"><span class="pre">reset_kspace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.reset_kspace" title="Link to this definition"></a></dt>
+<dd><p>Reset kspace setup.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.calculate">
+<span class="sig-name descname"><span class="pre">calculate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_changes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.calculate" title="Link to this definition"></a></dt>
+<dd><p>Compute Coulomb interactions with Ewald summation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.kspace_properties">
+<span class="sig-name descname"><span class="pre">kspace_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Hessian'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">divide_by_masses</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.kspace_properties" title="Link to this definition"></a></dt>
+<dd><p>Calculate the recirprocal contributiom to the Hessian, the non-affine
+forces and the Born elastic constants</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>prop</strong> (<em>&quot;Hessian&quot;</em><em>, </em><em>&quot;Born&quot;</em><em> or </em><em>&quot;Naforces&quot;</em>) – Compute either the Hessian/Dynamical matrix, the Born constants
+or the non-affine forces.</p></li>
+<li><p><strong>divide_by_masses</strong> (<em>bool</em>) – if true return the dynamic matrix else Hessian matrix</p></li>
+<li><p><strong>Restrictions</strong></p></li>
+<li><p><strong>----------</strong></p></li>
+<li><p><strong>systems</strong> (<em>This method is currently only implemented for three dimensional</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_hessian">
+<span class="sig-name descname"><span class="pre">get_hessian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_hessian" title="Link to this definition"></a></dt>
+<dd><p>Compute the real space + kspace Hessian</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_nonaffine_forces">
+<span class="sig-name descname"><span class="pre">get_nonaffine_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_nonaffine_forces" title="Link to this definition"></a></dt>
+<dd><p>Compute the non-affine forces which result from an affine deformation of atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.band_structure">
+<span class="sig-name descname"><span class="pre">band_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.band_structure" title="Link to this definition"></a></dt>
+<dd><p>Create band-structure object for plotting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.calculate_numerical_forces">
+<span class="sig-name descname"><span class="pre">calculate_numerical_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.calculate_numerical_forces" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical forces using finite difference.</p>
+<p>All atoms will be displaced by +d and -d in all directions.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.calculate_numerical_stress">
+<span class="sig-name descname"><span class="pre">calculate_numerical_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voigt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.calculate_numerical_stress" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical stress using finite difference.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.calculate_properties">
+<span class="sig-name descname"><span class="pre">calculate_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.calculate_properties" title="Link to this definition"></a></dt>
+<dd><p>This method is experimental; currently for internal use.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.calculation_required">
+<span class="sig-name descname"><span class="pre">calculation_required</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.calculation_required" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.check_state">
+<span class="sig-name descname"><span class="pre">check_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.check_state" title="Link to this definition"></a></dt>
+<dd><p>Check for any system changes since last calculation.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.directory">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">directory</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.discard_results_on_any_change">
+<span class="sig-name descname"><span class="pre">discard_results_on_any_change</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.discard_results_on_any_change" title="Link to this definition"></a></dt>
+<dd><p>Whether we purge the results following any change in the set() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.export_properties">
+<span class="sig-name descname"><span class="pre">export_properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.export_properties" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_atoms">
+<span class="sig-name descname"><span class="pre">get_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_birch_coefficients">
+<span class="sig-name descname"><span class="pre">get_birch_coefficients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_birch_coefficients" title="Link to this definition"></a></dt>
+<dd><p>Compute the Birch coefficients (Effective elastic constants at non-zero stress).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_born_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_born_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_born_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the Born elastic constants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_charges">
+<span class="sig-name descname"><span class="pre">get_charges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_charges" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_default_parameters">
+<span class="sig-name descname"><span class="pre">get_default_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_default_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_dipole_moment">
+<span class="sig-name descname"><span class="pre">get_dipole_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_dipole_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_dynamical_matrix">
+<span class="sig-name descname"><span class="pre">get_dynamical_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_dynamical_matrix" title="Link to this definition"></a></dt>
+<dd><p>Compute dynamical matrix (=mass weighted Hessian).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cg_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'M':</span> <span class="pre">None,</span> <span class="pre">'atol':</span> <span class="pre">1e-05,</span> <span class="pre">'callback':</span> <span class="pre">None,</span> <span class="pre">'maxiter':</span> <span class="pre">None,</span> <span class="pre">'rtol':</span> <span class="pre">1e-05,</span> <span class="pre">'x0':</span> <span class="pre">None}</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the elastic constants at zero temperature.
+These are sum of the born, the non-affine and the stress contribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>cg_parameters</strong> (<em>dict</em>) – <p>Dictonary for the conjugate-gradient solver.</p>
+<dl class="simple">
+<dt>x0: {array, matrix}</dt><dd><p>Starting guess for the solution.</p>
+</dd>
+<dt>rtol/atol: float, optional</dt><dd><p>Tolerances for convergence, norm(residual) &lt;= max(rtol*norm(b), atol).</p>
+</dd>
+<dt>maxiter: int</dt><dd><p>Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.</p>
+</dd>
+<dt>M: {sparse matrix, dense matrix, LinearOperator}</dt><dd><p>Preconditioner for A.</p>
+</dd>
+<dt>callback: function</dt><dd><p>User-supplied function to call after each iteration.</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_forces">
+<span class="sig-name descname"><span class="pre">get_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_forces" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_magnetic_moment">
+<span class="sig-name descname"><span class="pre">get_magnetic_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_magnetic_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_magnetic_moments">
+<span class="sig-name descname"><span class="pre">get_magnetic_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_magnetic_moments" title="Link to this definition"></a></dt>
+<dd><p>Calculate magnetic moments projected onto atoms.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_non_affine_contribution_to_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_non_affine_contribution_to_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigenvalues</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigenvectors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cg_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'M':</span> <span class="pre">None,</span> <span class="pre">'atol':</span> <span class="pre">1e-05,</span> <span class="pre">'callback':</span> <span class="pre">None,</span> <span class="pre">'maxiter':</span> <span class="pre">None,</span> <span class="pre">'rtol':</span> <span class="pre">1e-05,</span> <span class="pre">'x0':</span> <span class="pre">None}</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_non_affine_contribution_to_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the correction of non-affine displacements to the elasticity tensor.
+The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.</p>
+<p>If eigenvalues and and eigenvectors are given the inverse of the Hessian can be easily computed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>eigenvalues</strong> (<em>array</em>) – Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
+If given, use eigenvalues and eigenvectors to compute non-affine contribution.</p></li>
+<li><p><strong>eigenvectors</strong> (<em>array</em>) – Eigenvectors corresponding to eigenvalues.</p></li>
+<li><p><strong>cg_parameters</strong> (<em>dict</em>) – <p>Dictonary for the conjugate-gradient solver.</p>
+<dl class="simple">
+<dt>x0: {array, matrix}</dt><dd><p>Starting guess for the solution.</p>
+</dd>
+<dt>rtol/atol: float, optional</dt><dd><p>Tolerances for convergence, norm(residual) &lt;= max(
+rtol*norm(b), atol).</p>
+</dd>
+<dt>maxiter: int</dt><dd><p>Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.</p>
+</dd>
+<dt>M: {sparse matrix, dense matrix, LinearOperator}</dt><dd><p>Preconditioner for A.</p>
+</dd>
+<dt>callback: function</dt><dd><p>User-supplied function to call after each iteration.</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>pc_parameters</strong> (<em>dict</em>) – <p>Dictonary for the incomplete LU decomposition of the Hessian.</p>
+<dl class="simple">
+<dt>A: array_like</dt><dd><p>Sparse matrix to factorize.</p>
+</dd>
+<dt>drop_tol: float</dt><dd><p>Drop tolerance for an incomplete LU decomposition.</p>
+</dd>
+<dt>fill_factor: float</dt><dd><p>Specifies the fill ratio upper bound.</p>
+</dd>
+<dt>drop_rule: str</dt><dd><p>Comma-separated string of drop rules to use.</p>
+</dd>
+<dt>permc_spec: str</dt><dd><p>How to permute the columns of the matrix for sparsity.</p>
+</dd>
+<dt>diag_pivot_thresh: float</dt><dd><p>Threshold used for a diagonal entry to be an acceptable pivot.</p>
+</dd>
+<dt>relax: int</dt><dd><p>Expert option for customizing the degree of relaxing supernodes.</p>
+</dd>
+<dt>panel_size: int</dt><dd><p>Expert option for customizing the panel size.</p>
+</dd>
+<dt>options: dict</dt><dd><p>Dictionary containing additional expert options to SuperLU.</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_potential_energies">
+<span class="sig-name descname"><span class="pre">get_potential_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_potential_energies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_potential_energy">
+<span class="sig-name descname"><span class="pre">get_potential_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_consistent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_potential_energy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_property">
+<span class="sig-name descname"><span class="pre">get_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_calculation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_property" title="Link to this definition"></a></dt>
+<dd><p>Get the named property.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_stress">
+<span class="sig-name descname"><span class="pre">get_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_stress" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_stress_contribution_to_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_stress_contribution_to_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_stress_contribution_to_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the correction to the elastic constants due to non-zero stress in the configuration.
+Stress term  results from working with the Cauchy stress.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.get_stresses">
+<span class="sig-name descname"><span class="pre">get_stresses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.get_stresses" title="Link to this definition"></a></dt>
+<dd><p>the calculator should return intensive stresses, i.e., such that
+stresses.sum(axis=0) == stress</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.ignored_changes">
+<span class="sig-name descname"><span class="pre">ignored_changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.ignored_changes" title="Link to this definition"></a></dt>
+<dd><p>Properties of Atoms which we ignore for the purposes of cache</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.implemented_properties">
+<span class="sig-name descname"><span class="pre">implemented_properties</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['energy',</span> <span class="pre">'free_energy',</span> <span class="pre">'stress',</span> <span class="pre">'forces',</span> <span class="pre">'hessian',</span> <span class="pre">'dynamical_matrix',</span> <span class="pre">'nonaffine_forces',</span> <span class="pre">'birch_coefficients',</span> <span class="pre">'nonaffine_elastic_contribution',</span> <span class="pre">'stress_elastic_contribution',</span> <span class="pre">'born_constants',</span> <span class="pre">'elastic_constants']</span></em><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.implemented_properties" title="Link to this definition"></a></dt>
+<dd><p>Properties calculator can handle (energy, forces, …)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.label">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">label</span></span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.label" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.read" title="Link to this definition"></a></dt>
+<dd><p>Read atoms, parameters and calculated properties from output file.</p>
+<p>Read result from self.label file.  Raise ReadError if the file
+is not there.  If the file is corrupted or contains an error
+message from the calculation, a ReadError should also be
+raised.  In case of succes, these attributes must set:</p>
+<dl class="simple">
+<dt>atoms: Atoms object</dt><dd><p>The state of the atoms from last calculation.</p>
+</dd>
+<dt>parameters: Parameters object</dt><dd><p>The parameter dictionary.</p>
+</dd>
+<dt>results: dict</dt><dd><p>Calculated properties like energy and forces.</p>
+</dd>
+</dl>
+<p>The FileIOCalculator.read() method will typically read atoms
+and parameters and get the results dict by calling the
+read_results() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.read_atoms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restart</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.read_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.set_label">
+<span class="sig-name descname"><span class="pre">set_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.set_label" title="Link to this definition"></a></dt>
+<dd><p>Set label and convert label to directory and prefix.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>label=’abc’: (directory=’.’, prefix=’abc’)</p></li>
+<li><p>label=’dir1/abc’: (directory=’dir1’, prefix=’abc’)</p></li>
+<li><p>label=None: (directory=’.’, prefix=None)</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.ewald.calculator.Ewald.todict">
+<span class="sig-name descname"><span class="pre">todict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.ewald.calculator.Ewald.todict" title="Link to this definition"></a></dt>
+<dd><p>Obtain a dictionary of parameter information</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.calculators.ewald.html" class="btn btn-neutral float-left" title="matscipy.calculators.ewald" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.calculators.fitting.html" class="btn btn-neutral float-right" title="matscipy.calculators.fitting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

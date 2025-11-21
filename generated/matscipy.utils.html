@@ -1,0 +1,394 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.utils &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="matscipy.surface_reconstruction" href="matscipy.surface_reconstruction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.html">matscipy</a></li>
+      <li class="breadcrumb-item active">matscipy.utils</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.utils">
+<span id="matscipy-utils"></span><h1>matscipy.utils<a class="headerlink" href="#module-matscipy.utils" title="Link to this heading"></a></h1>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.utils.complete_basis" title="matscipy.utils.complete_basis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">complete_basis</span></code></a>(v1[, v2, normalise, nmax, tol])</p></td>
+<td><p>Generate a complete (v1, v2, v3) orthogonal basis in 3D from v1 and an optional v2</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.utils.find_condensed_repr" title="matscipy.utils.find_condensed_repr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_condensed_repr</span></code></a>(atoms[, precision])</p></td>
+<td><p>Search for a condensed representation of atoms Equivalent to attempting to undo a supercell</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.utils.find_condensed_repr_along_axis" title="matscipy.utils.find_condensed_repr_along_axis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_condensed_repr_along_axis</span></code></a>(atoms[, ...])</p></td>
+<td><p>Search for a condensed representation of atoms about axis.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.utils.get_distance_from_polygon2D" title="matscipy.utils.get_distance_from_polygon2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_distance_from_polygon2D</span></code></a>(test_points, ...)</p></td>
+<td><p>Get shortest distance between a test point and a polygon defined by polygon_points</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.utils.get_structure_types" title="matscipy.utils.get_structure_types"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_structure_types</span></code></a>(structure[, ...])</p></td>
+<td><p>Get the results of Common Neighbor Analysis and</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.utils.line_intersect_2D" title="matscipy.utils.line_intersect_2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">line_intersect_2D</span></code></a>(p1, p2, x1, x2)</p></td>
+<td><p>Test if 2D finite line defined by points p1 &amp; p2 intersects with the finite line defined by x1 &amp; x2.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.utils.points_in_polygon2D" title="matscipy.utils.points_in_polygon2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">points_in_polygon2D</span></code></a>(p, poly_points)</p></td>
+<td><p>Test if points lies within the closed 2D polygon defined by poly_points Uses ray casting algorithm, as suggested by: <a class="reference external" href="https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon">https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon</a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.utils.radial_mask_from_polygon2D" title="matscipy.utils.radial_mask_from_polygon2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_mask_from_polygon2D</span></code></a>(test_points, ...)</p></td>
+<td><p>Get a boolean mask of all test_points within a radius of any edge of the polygon defined by polygon_points</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.utils.validate_cubic_cell" title="matscipy.utils.validate_cubic_cell"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_cubic_cell</span></code></a>(a[, symbol, axes, ...])</p></td>
+<td><p>Provide uniform interface for generating rotated atoms objects through two main methods:</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.utils.classproperty" title="matscipy.utils.classproperty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">classproperty</span></code></a>(method)</p></td>
+<td><p>Decorator class to replace classmethod property decorators</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.utils.classproperty">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">classproperty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.classproperty" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Decorator class to replace classmethod property decorators</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.utils.classproperty.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.classproperty.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.validate_cubic_cell">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">validate_cubic_cell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crystalstructure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pbc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.validate_cubic_cell" title="Link to this definition"></a></dt>
+<dd><p>Provide uniform interface for generating rotated atoms objects through two main methods:</p>
+<p>For lattice constant + symbol + crystalstructure, build a valid cubic bulk rotated into the frame defined by axes
+For cubic bulk atoms object + crystalstructure, validate structure matches expected cubic bulk geometry, and rotate to frame defined by axes
+Also, if cubic atoms object is supplied, search for a more condensed representation than is provided by ase.build.cut</p>
+<dl class="simple">
+<dt>a: float or ase.atoms</dt><dd><p>EITHER lattice constant (in A), or the cubic bulk structure</p>
+</dd>
+<dt>symbol: str</dt><dd><p>Elemental symbol, passed to relevant crystalstructure generator when a is float</p>
+</dd>
+<dt>axes: np.array</dt><dd><p>Axes transform to apply to bulk cell</p>
+</dd>
+<dt>crystalstructure: str</dt><dd><p>Base Structure of bulk system, currently supported: fcc, bcc, diamond</p>
+</dd>
+<dt>pbc: list of bool</dt><dd><p>Periodic Boundary Conditions in x, y, z</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.find_condensed_repr">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">find_condensed_repr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.find_condensed_repr" title="Link to this definition"></a></dt>
+<dd><p>Search for a condensed representation of atoms
+Equivalent to attempting to undo a supercell</p>
+<dl class="simple">
+<dt>atoms: ase Atoms object</dt><dd><p>structure to condense</p>
+</dd>
+<dt>precision: int</dt><dd><p>Number of decimal places to use in determining whether scaled positions are equal</p>
+</dd>
+</dl>
+<p>returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.find_condensed_repr_along_axis">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">find_condensed_repr_along_axis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.find_condensed_repr_along_axis" title="Link to this definition"></a></dt>
+<dd><p>Search for a condensed representation of atoms about axis.
+Essentially an inverse to taking a supercell.</p>
+<dl class="simple">
+<dt>atoms: ase Atoms object</dt><dd><p>structure to condense</p>
+</dd>
+<dt>axis: int</dt><dd><p>axis about which to find a condensed repr
+axis=-1 essentially will invert a (1, 1, x) supercell</p>
+</dd>
+<dt>precision: int</dt><dd><p>Number of decimal places to use in determining whether scaled positions are equal</p>
+</dd>
+</dl>
+<p>returns a condensed copy of atoms, if such a condensed representation is found. Else returns a copy of atoms</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.complete_basis">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">complete_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.complete_basis" title="Link to this definition"></a></dt>
+<dd><p>Generate a complete (v1, v2, v3) orthogonal basis in 3D from v1 and an optional v2</p>
+<p>(V1, V2, V3) is always right-handed.</p>
+<dl>
+<dt>v1: np.array</dt><dd><p>len(3) array giving primary axis</p>
+</dd>
+<dt>v2: np.array | None</dt><dd><p>len(3) array giving secondary axis
+If None, a search for a “sensible” secondary axis will occur, raising a RuntimeError if unsuccessful</p>
+<blockquote>
+<div><p>(Searches for vectors perpendicular to v1 with small integer indices)</p>
+</div></blockquote>
+<p>If v2 is given and is not orthogonal to v1, raises a warning</p>
+</dd>
+<dt>normalise: bool</dt><dd><p>return an float orthonormal basis, rather than integer orthogonal basis</p>
+</dd>
+<dt>nmax: int</dt><dd><p>Maximum integer index for v2 search</p>
+</dd>
+<dt>tol: float</dt><dd><p>Tolerance for checking orthogonality between v1 and v2</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>V1, V2, V3</strong> – Complete orthogonal basis, optionally normalised
+dtype of arrays is int with normalise=False, float with normalise=True</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.arrays</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.get_structure_types">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">get_structure_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">structure</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diamond_structure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.get_structure_types" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Get the results of Common Neighbor Analysis and</dt><dd><p>Identify Diamond modifiers from Ovito
+(Requires Ovito python module)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>structure</strong> (<em>ase.atoms</em>) – input structure</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>per atom labels of the structure types
+structure_names (list of strings): names of the structure types
+colors (list of strings): colors of the structure types in hex format</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>atom_labels (array of ints)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.line_intersect_2D">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">line_intersect_2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.line_intersect_2D" title="Link to this definition"></a></dt>
+<dd><p>Test if 2D finite line defined by points p1 &amp; p2 intersects with the finite line defined by x1 &amp; x2.
+Essentially a Python conversion of the ray casting algorithm suggested in:
+<a class="reference external" href="https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon">https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon</a></p>
+<p>Returns True if lines intersect (including if they are collinear)</p>
+<dl class="simple">
+<dt>p1, p2, x1, x2: np.array</dt><dd><p>2D points defining lines</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.points_in_polygon2D">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">points_in_polygon2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poly_points</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.utils.points_in_polygon2D" title="Link to this definition"></a></dt>
+<dd><p>Test if points lies within the closed 2D polygon defined by poly_points
+Uses ray casting algorithm, as suggested by:
+<a class="reference external" href="https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon">https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon</a></p>
+<dl class="simple">
+<dt>p: np.array</dt><dd><p>(n, 2) array of points to test</p>
+</dd>
+<dt>poly_points: np.array</dt><dd><p>Points defining the 2D polygon</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mask</strong> – Boolean mask. True for points inside the poylgon</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.get_distance_from_polygon2D">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">get_distance_from_polygon2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polygon_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">array</span></span></span><a class="headerlink" href="#matscipy.utils.get_distance_from_polygon2D" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Get shortest distance between a test point and a polygon defined by polygon_points</dt><dd><p>(i.e. the shortest distance between each point and the lines of the polygon)</p>
+</dd>
+</dl>
+<p>Uses formula from <a class="reference external" href="https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_two_points">https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_two_points</a></p>
+<dl class="simple">
+<dt>test_points: np.array</dt><dd><p>2D Points to get distances for</p>
+</dd>
+<dt>polygon_points: np.array</dt><dd><p>Coordinates defining the points of the polygon</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.utils.radial_mask_from_polygon2D">
+<span class="sig-prename descclassname"><span class="pre">matscipy.utils.</span></span><span class="sig-name descname"><span class="pre">radial_mask_from_polygon2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polygon_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">array</span></span></span><a class="headerlink" href="#matscipy.utils.radial_mask_from_polygon2D" title="Link to this definition"></a></dt>
+<dd><p>Get a boolean mask of all test_points within a radius of any edge of the polygon defined by polygon_points</p>
+<dl class="simple">
+<dt>test_points: np.array</dt><dd><p>2D Points to get mask for</p>
+</dd>
+<dt>polygon_points: np.array</dt><dd><p>Coordinates defining the points of the polygon</p>
+</dd>
+<dt>radius: float</dt><dd><p>Radius to use as cutoff for mask</p>
+</dd>
+<dt>inner: bool</dt><dd><p>Whether test_points inside the polygon should always be masked as True, regardless of radius</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.surface_reconstruction.html" class="btn btn-neutral float-left" title="matscipy.surface_reconstruction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,173 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Dislocation Quadrupoles\n",
+    "## Quadrupoles in Si Diamond\n",
+    "Dislocation Quadrupoles are structures designed with the goal of enabling the study of dislocation systems in periodic cells. In order for the system to be periodic, the cell must have a net Burgers vector of zero. To achieve this, we place two dislocations with Burgers vectors of equal magnitude and opposite sign (i.e. $+\\textbf{b}$ and $-\\textbf{b}$) in the structure.\n",
+    "\n",
+    "The code is designed to allow the generation of these structures in as small a structure is required for a given separation of the dislocations along the glide direction.\n",
+    "\n",
+    "To start, lets look at the $90^\\circ$ partial dislocation in Diamond, using a dislocation cylinder approach documented in earlier docs and the same potential by [D. Holland and M. Marder](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.746):"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import DiamondGlide90degreePartial, get_elastic_constants\n",
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber,\\\n",
+    "                                                                Holland_Marder_PRL_80_746_Si\n",
+    "from matscipy.calculators.manybody import Manybody\n",
+    "calc = Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si))\n",
+    "\n",
+    "alat, C11, C12, C44 = get_elastic_constants(calculator=calc, symbol=\"Si\", verbose=False)\n",
+    "\n",
+    "\n",
+    "Si_disloc = DiamondGlide90degreePartial(alat, C11, C12, C44, symbol=\"Si\")\n",
+    "\n",
+    "bulk, disloc = Si_disloc.build_cylinder(radius=20)\n",
+    "\n",
+    "Si_disloc.view_cyl(disloc, scale=0.3, add_bonds=True)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "To build dislocation quadrupoles, we can use the `Quadrupole` class. The `__init__()` method of the class takes a dislocation class (e.g. `DiamondGlide90degreePartial`), followed by args and/or kwargs used to initialise that dislocation class (i.e, `C11`, `C12`, `C44`, and either `alat` or a bulk structure). From here, there are many class methods which generate different kinds of structures. Let's first look at the basic quadrupole structure, using `build_quadrupole`"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import Quadrupole\n",
+    "\n",
+    "quad = Quadrupole(DiamondGlide90degreePartial, alat, C11, C12, C44, symbol=\"Si\")\n",
+    "\n",
+    "quad_bulk, quad_disloc = quad.build_quadrupole(glide_separation=4)\n",
+    "\n",
+    "view = quad.view_quad(quad_disloc, scale=0.3, add_bonds=True)\n",
+    "view.control.zoom(0.2)\n",
+    "view"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "`glide_separation` is the most important argument to `build_quadrupole`, as it controls how far apart (in terms of glide distances) the quadrupole cores are, and thus controls the size of the quadrupole cell. \n",
+    "\n",
+    "By default, the cell is constructed such that each dislocation core is surrounded by four cores of opposite sign, and the periodicity of the system tries to make the distances between the central core and it's opposites as equal as possible (i.e. that the cores form two sublattices with square packing)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Quadrupoles in other systems\n",
+    "The code has many other features to the general purpose methods described above, which are intended to support some common choices and desires which arise in other dislocation systems. Below are a few curated examples of dislocation systems, and how the output can be modified by additional parameters.\n",
+    "\n",
+    "### Screw in BCC W\n",
+    "Taking the perfect screw dislocation example in BCC W (and using the same Embedded Atom Potential from [Marinica _et. al._ 2013 paper](http://dx.doi.org/10.1088/0953-8984/25/39/395502) (version EAM4) as was used in previous dislocation documentation), we can see that the default behaviour of the code is to produce what can be called an \"easy-hard\" quadrupole, which is to say that one dislocation is in the \"easy\" core (with 3 atoms in white), and the other dislocation is in the \"hard\" core (with 6 atoms in white)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.calculators.eam import EAM\n",
+    "from matscipy.dislocation import BCCScrew111Dislocation\n",
+    "eam_calc = EAM(\"../../tests/w_eam4.fs\")\n",
+    "alat, C11, C12, C44 = get_elastic_constants(calculator=eam_calc, symbol=\"W\", verbose=False)\n",
+    "\n",
+    "quad = Quadrupole(BCCScrew111Dislocation, alat, C11, C12, C44, symbol=\"W\")\n",
+    "\n",
+    "W_bulk, W_quad = quad.build_quadrupole(glide_separation=8, verbose=False)\n",
+    "\n",
+    "quad.view_quad(W_quad)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Whilst this kind of structure contains a lot of information about both kinds of cores, typically the \"easy\" core is much lower in energy, and thus it may be desirable to model an \"easy-easy\" quadrupole. To do this, we can just add an offset to the left core (half the glide distance in this case), using the `left_offset` parameter. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "W_bulk, W_quad = quad.build_quadrupole(glide_separation=8, verbose=False,\n",
+    "                                       left_offset=np.array([quad.glide_distance/2, 0, 0]))\n",
+    "\n",
+    "quad.view_quad(W_quad)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Dissociated Screw dislocations in FCC Ni\n",
+    "Dissociation of dislocation cores is another phenomenon that may be desirable in a quadrupole structure, especially as quadrupoles of just the partials can't give much insight into the physics controlling when the partial cores are very close. \n",
+    "\n",
+    "We can build quadrupole structures containing these dissociated cores by passing the `partial_distance` argument to `build_quadrupole`, similarly to how we would when building a cylinder for that dissociated system."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import FCCScrew110Dislocation\n",
+    "\n",
+    "eam_calc = EAM(\"../../tests/FeCuNi.eam.alloy\")\n",
+    "\n",
+    "# the function accepts any ASE type of calculator\n",
+    "alat, C11, C12, C44 = get_elastic_constants(calculator=eam_calc, symbol=\"Ni\", verbose=False)\n",
+    "\n",
+    "quad = Quadrupole(FCCScrew110Dislocation, alat, C11, C12, C44, symbol=\"Ni\")\n",
+    "\n",
+    "bulk, Ni_quad = quad.build_quadrupole(glide_separation=14, partial_distance=4, \n",
+    "                                      disp_tol=1e-2) # Lower the tolerance for the periodic displacement convergence\n",
+    "\n",
+    "quad.view_quad(Ni_quad)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

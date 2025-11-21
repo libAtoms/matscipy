@@ -1,0 +1,12 @@
+matscipy.numpy\_tricks
+======================
+
+.. automodule:: matscipy.numpy_tricks
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      mabincount
+   

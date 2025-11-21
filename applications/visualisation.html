@@ -1,0 +1,194 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>&lt;no title&gt; &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script type="application/vnd.jupyter.widget-state+json">{"state": {"d2fdb72515f74a63b67f50f8efedc7e7": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "a6c844f93575489abcdf6f23ca9460d6": {"model_name": "ColormakerRegistryModel", "model_module": "nglview-js-widgets", "model_module_version": "3.1.5", "state": {"_dom_classes": [], "_model_module": "nglview-js-widgets", "_model_module_version": "3.1.5", "_model_name": "ColormakerRegistryModel", "_msg_ar": [], "_msg_q": [], "_ready": false, "_view_count": null, "_view_module": "nglview-js-widgets", "_view_module_version": "3.1.5", "_view_name": "ColormakerRegistryView", "layout": "IPY_MODEL_d2fdb72515f74a63b67f50f8efedc7e7", "tabbable": null, "tooltip": null}}}, "version_major": 2, "version_minor": 0}</script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script crossorigin="anonymous" data-jupyter-widgets-cdn="https://cdn.jsdelivr.net/npm/" src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@1.0.6/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">&lt;no title&gt;</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/visualisation.py.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Tools for converting plots into formats viewable in the sphinx HTML documentation</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="c1"># interactive visualisation  inside the notebook with nglview</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTML</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">nglview</span><span class="w"> </span><span class="kn">import</span> <span class="n">show_ase</span><span class="p">,</span> <span class="n">ASEStructure</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">show_HTML</span><span class="p">(</span><span class="n">anim</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Convert matplotlib.animation.FuncAnimation </span>
+<span class="sd">    (e.g. from GammaSurface.show()) to HTML viewable object.</span>
+
+<span class="sd">    anim: matplotlib.animation.FuncAnimation object</span>
+<span class="sd">        Animation to convert to HTML</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="n">anim</span><span class="o">.</span><span class="n">to_jshtml</span><span class="p">()</span>
+    <span class="c1"># center the animation according to the width of the page</span>
+    <span class="c1"># does not affect the size of the figure</span>
+    <span class="n">output_html</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">        &lt;div style=&quot;display: flex; justify-content: center;&quot;&gt;</span>
+<span class="s1">        </span><span class="si">{</span><span class="n">html</span><span class="si">}</span>
+<span class="s1">        &lt;/div&gt;</span>
+<span class="s1">        &#39;&#39;&#39;</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">gcf</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">HTML</span><span class="p">(</span><span class="n">output_html</span><span class="p">)</span>    
+
+<span class="k">def</span><span class="w"> </span><span class="nf">interactive_view</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="n">tooltip_js</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    this.stage.mouseControls.add(&#39;hoverPick&#39;, (stage, pickingProxy) =&gt; {</span>
+<span class="s2">                        let tooltip = this.stage.tooltip;</span>
+<span class="s2">                        if(pickingProxy &amp;&amp; pickingProxy.atom &amp;&amp; !pickingProxy.bond){</span>
+<span class="s2">                            let atom = pickingProxy.atom;</span>
+<span class="s2">                            if (atom.structure.name.length &gt; 0){</span>
+<span class="s2">                                tooltip.innerText = atom.atomname + &quot; atom: &quot; + atom.structure.name;</span>
+<span class="s2">                            } else {</span>
+<span class="s2">                                tooltip.innerText = atom.atomname + &quot; atom&quot;;</span>
+<span class="s2">                            }</span>
+<span class="s2">                        } else if (pickingProxy &amp;&amp; pickingProxy.bond){</span>
+<span class="s2">                            let bond = pickingProxy.bond;</span>
+<span class="s2">                            if (bond.structure.name.length &gt; 0){</span>
+<span class="s2">                            tooltip.innerText = bond.atom1.atomname + &quot;-&quot; + bond.atom2.atomname + &quot; bond: &quot; + bond.structure.name;</span>
+<span class="s2">                            } else {</span>
+<span class="s2">                                tooltip.innerText = bond.atom1.atomname + &quot;-&quot; + bond.atom2.atomname + &quot; bond&quot;;</span>
+<span class="s2">                            }</span>
+<span class="s2">                        } else if (pickingProxy &amp;&amp; pickingProxy.unitcell){</span>
+<span class="s2">                            tooltip.innerText = &quot;Unit cell&quot;;</span>
+<span class="s2">                        }</span>
+<span class="s2">                    });</span>
+<span class="s2">                    &quot;&quot;&quot;</span>
+    
+    <span class="n">view</span> <span class="o">=</span> <span class="n">show_ase</span><span class="p">(</span><span class="n">system</span><span class="p">)</span>
+    <span class="n">view</span><span class="o">.</span><span class="n">_remove_representation</span><span class="p">()</span>
+    <span class="n">component</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">ASEStructure</span><span class="p">(</span><span class="n">system</span><span class="p">),</span> 
+                                   <span class="n">default_representation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">component</span><span class="o">.</span><span class="n">add_spacefill</span><span class="p">(</span><span class="n">radiusType</span><span class="o">=</span><span class="s1">&#39;covalent&#39;</span><span class="p">,</span> <span class="n">radiusScale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+    <span class="n">view</span><span class="o">.</span><span class="n">add_unitcell</span><span class="p">()</span>
+    <span class="n">view</span><span class="o">.</span><span class="n">update_spacefill</span><span class="p">(</span><span class="n">radiusType</span><span class="o">=</span><span class="s1">&#39;covalent&#39;</span><span class="p">,</span>
+                          <span class="n">radiusScale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+
+    <span class="n">view</span><span class="o">.</span><span class="n">camera</span> <span class="o">=</span> <span class="s1">&#39;orthographic&#39;</span>
+    <span class="n">view</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;clipDist&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+    <span class="n">view</span><span class="o">.</span><span class="n">center</span><span class="p">()</span>
+    <span class="c1">#view._remote_call(&quot;setSize&quot;, target=&quot;Widget&quot;, args=[&quot;300px&quot;, &quot;300px&quot;])</span>
+    <span class="n">view</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="s1">&#39;100%&#39;</span>
+    <span class="n">view</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="s1">&#39;300px&#39;</span>
+    <span class="n">view</span><span class="o">.</span><span class="n">_js</span><span class="p">(</span><span class="n">tooltip_js</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">view</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"version_major": 2, "version_minor": 0, "model_id": "a6c844f93575489abcdf6f23ca9460d6"}</script></div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+matscipy.calculators.committee.utils
+====================================
+
+.. automodule:: matscipy.calculators.committee.utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      subsample
+   

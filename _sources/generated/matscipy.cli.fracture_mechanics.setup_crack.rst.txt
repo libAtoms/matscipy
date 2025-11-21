@@ -1,0 +1,12 @@
+matscipy.cli.fracture\_mechanics.setup\_crack
+=============================================
+
+.. automodule:: matscipy.cli.fracture_mechanics.setup_crack
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      setup_crack
+   

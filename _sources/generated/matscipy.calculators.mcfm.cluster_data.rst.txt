@@ -1,0 +1,12 @@
+matscipy.calculators.mcfm.cluster\_data
+=======================================
+
+.. automodule:: matscipy.calculators.mcfm.cluster_data
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ClusterData
+   

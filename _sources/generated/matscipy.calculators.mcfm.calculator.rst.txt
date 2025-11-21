@@ -1,0 +1,12 @@
+matscipy.calculators.mcfm.calculator
+====================================
+
+.. automodule:: matscipy.calculators.mcfm.calculator
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      MultiClusterForceMixingPotential
+   

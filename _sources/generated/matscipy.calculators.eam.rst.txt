@@ -1,0 +1,15 @@
+matscipy.calculators.eam
+========================
+
+.. automodule:: matscipy.calculators.eam
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   average_atom
+   calculator
+   io

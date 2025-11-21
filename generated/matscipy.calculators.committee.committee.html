@@ -1,0 +1,779 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.calculators.committee.committee &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.calculators.committee.log" href="matscipy.calculators.committee.log.html" />
+    <link rel="prev" title="matscipy.calculators.committee" href="matscipy.calculators.committee.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.calculator.html">matscipy.calculators.calculator</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.calculators.committee.html">matscipy.calculators.committee</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.calculators.committee.committee</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.committee.log.html">matscipy.calculators.committee.log</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.committee.utils.html">matscipy.calculators.committee.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.eam.html">matscipy.calculators.eam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.ewald.html">matscipy.calculators.ewald</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.fitting.html">matscipy.calculators.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.manybody.html">matscipy.calculators.manybody</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.pair_potential.html">matscipy.calculators.pair_potential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.polydisperse.html">matscipy.calculators.polydisperse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.supercell_calculator.html">matscipy.calculators.supercell_calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.calculators.committee.html">matscipy.calculators.committee</a></li>
+      <li class="breadcrumb-item active">matscipy.calculators.committee.committee</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.calculators.committee.committee.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.calculators.committee.committee">
+<span id="matscipy-calculators-committee-committee"></span><h1>matscipy.calculators.committee.committee<a class="headerlink" href="#module-matscipy.calculators.committee.committee" title="Link to this heading"></a></h1>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee" title="matscipy.calculators.committee.committee.Committee"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Committee</span></code></a>([members])</p></td>
+<td><p>Instances of this class represent a committee of models.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeMember" title="matscipy.calculators.committee.committee.CommitteeMember"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CommitteeMember</span></code></a>(calculator[, training_data])</p></td>
+<td><p>Lightweight class defining a member (i.e. a sub-model) of a committee model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty" title="matscipy.calculators.committee.committee.CommitteeUncertainty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CommitteeUncertainty</span></code></a>(committee[, atoms])</p></td>
+<td><p>Calculator for a committee of machine learned interatomic potentials (MLIP).</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.committee.committee.</span></span><span class="sig-name descname"><span class="pre">CommitteeUncertainty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">committee</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Calculator</span></code></p>
+<p>Calculator for a committee of machine learned interatomic potentials (MLIP).</p>
+<p>The class assumes individual members of the committee already exist (i.e. their
+training is performed externally). Instances of this class are initialized with
+these committee members and results (energy, forces) are calculated as average
+over these members. In addition to these values, also the uncertainty (standard
+deviation) is calculated.</p>
+<p>The idea for this Calculator class is based on the following publication:
+Musil et al., J. Chem. Theory Comput. 15, 906−915 (2019)
+<a class="reference external" href="https://pubs.acs.org/doi/full/10.1021/acs.jctc.8b00959">https://pubs.acs.org/doi/full/10.1021/acs.jctc.8b00959</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>directory</strong></dt><dd></dd>
+<dt><strong>label</strong></dt><dd></dd>
+<dt><strong>name</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.band_structure" title="matscipy.calculators.committee.committee.CommitteeUncertainty.band_structure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">band_structure</span></code></a>()</p></td>
+<td><p>Create band-structure object for plotting.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculate" title="matscipy.calculators.committee.committee.CommitteeUncertainty.calculate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate</span></code></a>([atoms, properties, system_changes])</p></td>
+<td><p>Calculates committee (mean) values and variances.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_numerical_forces" title="matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_numerical_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_forces</span></code></a>(atoms[, d])</p></td>
+<td><p>Calculate numerical forces using finite difference.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_numerical_stress" title="matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_numerical_stress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_stress</span></code></a>(atoms[, d, voigt])</p></td>
+<td><p>Calculate numerical stress using finite difference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_properties" title="matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_properties</span></code></a>(atoms, properties)</p></td>
+<td><p>This method is experimental; currently for internal use.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.check_state" title="matscipy.calculators.committee.committee.CommitteeUncertainty.check_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_state</span></code></a>(atoms[, tol])</p></td>
+<td><p>Check for any system changes since last calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_magnetic_moments" title="matscipy.calculators.committee.committee.CommitteeUncertainty.get_magnetic_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_magnetic_moments</span></code></a>([atoms])</p></td>
+<td><p>Calculate magnetic moments projected onto atoms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_property" title="matscipy.calculators.committee.committee.CommitteeUncertainty.get_property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_property</span></code></a>(name[, atoms, allow_calculation])</p></td>
+<td><p>Get the named property.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_stresses" title="matscipy.calculators.committee.committee.CommitteeUncertainty.get_stresses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stresses</span></code></a>([atoms])</p></td>
+<td><p>the calculator should return intensive stresses, i.e., such that stresses.sum(axis=0) == stress</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.read" title="matscipy.calculators.committee.committee.CommitteeUncertainty.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read</span></code></a>(label)</p></td>
+<td><p>Read atoms, parameters and calculated properties from output file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.reset" title="matscipy.calculators.committee.committee.CommitteeUncertainty.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Clear all information from old calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.set" title="matscipy.calculators.committee.committee.CommitteeUncertainty.set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>(**kwargs)</p></td>
+<td><p>Set parameters like set(key1=value1, key2=value2, ...).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.set_label" title="matscipy.calculators.committee.committee.CommitteeUncertainty.set_label"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_label</span></code></a>(label)</p></td>
+<td><p>Set label and convert label to directory and prefix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.todict" title="matscipy.calculators.committee.committee.CommitteeUncertainty.todict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">todict</span></code></a>([skip_default])</p></td>
+<td><p>Obtain a dictionary of parameter information</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>calculation_required</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>export_properties</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_atoms</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_charges</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_default_parameters</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_dipole_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_forces</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_magnetic_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_potential_energies</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_potential_energy</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_stress</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>read_atoms</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">committee</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.__init__" title="Link to this definition"></a></dt>
+<dd><p>Basic calculator implementation.</p>
+<dl class="simple">
+<dt>restart: str</dt><dd><p>Prefix for restart file.  May contain a directory. Default
+is None: don’t restart.</p>
+</dd>
+<dt>ignore_bad_restart_file: bool</dt><dd><p>Deprecated, please do not use.
+Passing more than one positional argument to Calculator()
+is deprecated and will stop working in the future.
+Ignore broken or missing restart file.  By default, it is an
+error if the restart file is missing or broken.</p>
+</dd>
+<dt>directory: str or PurePath</dt><dd><p>Working directory in which to read and write files and
+perform calculations.</p>
+</dd>
+<dt>label: str</dt><dd><p>Name used for all files.  Not supported by all calculators.
+May contain a directory, but please use the directory parameter
+for that instead.</p>
+</dd>
+<dt>atoms: Atoms object</dt><dd><p>Optional Atoms object to which the calculator will be
+attached.  When restarting, atoms will get its positions and
+unit-cell updated from file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.implemented_properties">
+<span class="sig-name descname"><span class="pre">implemented_properties</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.implemented_properties" title="Link to this definition"></a></dt>
+<dd><p>Properties calculator can handle (energy, forces, …)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.calculate">
+<span class="sig-name descname"><span class="pre">calculate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['energy',</span> <span class="pre">'forces',</span> <span class="pre">'stress']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_changes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['positions',</span> <span class="pre">'numbers',</span> <span class="pre">'cell',</span> <span class="pre">'pbc',</span> <span class="pre">'initial_charges',</span> <span class="pre">'initial_magmoms']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculate" title="Link to this definition"></a></dt>
+<dd><p>Calculates committee (mean) values and variances.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.band_structure">
+<span class="sig-name descname"><span class="pre">band_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.band_structure" title="Link to this definition"></a></dt>
+<dd><p>Create band-structure object for plotting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_numerical_forces">
+<span class="sig-name descname"><span class="pre">calculate_numerical_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_numerical_forces" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical forces using finite difference.</p>
+<p>All atoms will be displaced by +d and -d in all directions.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_numerical_stress">
+<span class="sig-name descname"><span class="pre">calculate_numerical_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voigt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_numerical_stress" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical stress using finite difference.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_properties">
+<span class="sig-name descname"><span class="pre">calculate_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculate_properties" title="Link to this definition"></a></dt>
+<dd><p>This method is experimental; currently for internal use.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.calculation_required">
+<span class="sig-name descname"><span class="pre">calculation_required</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.calculation_required" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.check_state">
+<span class="sig-name descname"><span class="pre">check_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.check_state" title="Link to this definition"></a></dt>
+<dd><p>Check for any system changes since last calculation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.default_parameters">
+<span class="sig-name descname"><span class="pre">default_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.default_parameters" title="Link to this definition"></a></dt>
+<dd><p>Default parameters</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.directory">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">directory</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.discard_results_on_any_change">
+<span class="sig-name descname"><span class="pre">discard_results_on_any_change</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.discard_results_on_any_change" title="Link to this definition"></a></dt>
+<dd><p>Whether we purge the results following any change in the set() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.export_properties">
+<span class="sig-name descname"><span class="pre">export_properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.export_properties" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_atoms">
+<span class="sig-name descname"><span class="pre">get_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_charges">
+<span class="sig-name descname"><span class="pre">get_charges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_charges" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_default_parameters">
+<span class="sig-name descname"><span class="pre">get_default_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_default_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_dipole_moment">
+<span class="sig-name descname"><span class="pre">get_dipole_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_dipole_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_forces">
+<span class="sig-name descname"><span class="pre">get_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_forces" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_magnetic_moment">
+<span class="sig-name descname"><span class="pre">get_magnetic_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_magnetic_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_magnetic_moments">
+<span class="sig-name descname"><span class="pre">get_magnetic_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_magnetic_moments" title="Link to this definition"></a></dt>
+<dd><p>Calculate magnetic moments projected onto atoms.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_potential_energies">
+<span class="sig-name descname"><span class="pre">get_potential_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_potential_energies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_potential_energy">
+<span class="sig-name descname"><span class="pre">get_potential_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_consistent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_potential_energy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_property">
+<span class="sig-name descname"><span class="pre">get_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_calculation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_property" title="Link to this definition"></a></dt>
+<dd><p>Get the named property.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_stress">
+<span class="sig-name descname"><span class="pre">get_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_stress" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.get_stresses">
+<span class="sig-name descname"><span class="pre">get_stresses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.get_stresses" title="Link to this definition"></a></dt>
+<dd><p>the calculator should return intensive stresses, i.e., such that
+stresses.sum(axis=0) == stress</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.ignored_changes">
+<span class="sig-name descname"><span class="pre">ignored_changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.ignored_changes" title="Link to this definition"></a></dt>
+<dd><p>Properties of Atoms which we ignore for the purposes of cache</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.label">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">label</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.label" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.name">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.read" title="Link to this definition"></a></dt>
+<dd><p>Read atoms, parameters and calculated properties from output file.</p>
+<p>Read result from self.label file.  Raise ReadError if the file
+is not there.  If the file is corrupted or contains an error
+message from the calculation, a ReadError should also be
+raised.  In case of succes, these attributes must set:</p>
+<dl class="simple">
+<dt>atoms: Atoms object</dt><dd><p>The state of the atoms from last calculation.</p>
+</dd>
+<dt>parameters: Parameters object</dt><dd><p>The parameter dictionary.</p>
+</dd>
+<dt>results: dict</dt><dd><p>Calculated properties like energy and forces.</p>
+</dd>
+</dl>
+<p>The FileIOCalculator.read() method will typically read atoms
+and parameters and get the results dict by calling the
+read_results() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.read_atoms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restart</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.read_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.reset" title="Link to this definition"></a></dt>
+<dd><p>Clear all information from old calculation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.set" title="Link to this definition"></a></dt>
+<dd><p>Set parameters like set(key1=value1, key2=value2, …).</p>
+<p>A dictionary containing the parameters that have been changed
+is returned.</p>
+<p>Subclasses must implement a set() method that will look at the
+chaneged parameters and decide if a call to reset() is needed.
+If the changed parameters are harmless, like a change in
+verbosity, then there is no need to call reset().</p>
+<p>The special keyword ‘parameters’ can be used to read
+parameters from a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.set_label">
+<span class="sig-name descname"><span class="pre">set_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.set_label" title="Link to this definition"></a></dt>
+<dd><p>Set label and convert label to directory and prefix.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>label=’abc’: (directory=’.’, prefix=’abc’)</p></li>
+<li><p>label=’dir1/abc’: (directory=’dir1’, prefix=’abc’)</p></li>
+<li><p>label=None: (directory=’.’, prefix=None)</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeUncertainty.todict">
+<span class="sig-name descname"><span class="pre">todict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeUncertainty.todict" title="Link to this definition"></a></dt>
+<dd><p>Obtain a dictionary of parameter information</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.committee.committee.</span></span><span class="sig-name descname"><span class="pre">Committee</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">members</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Instances of this class represent a committee of models.</p>
+<p>It’s use is to store the <a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">`</span></a>CommitteeMember```s representing the committee model
+and to calibrate the obtained uncertainties (required when sub-sampling is used
+to create the training data of the committee members).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.alphas" title="matscipy.calculators.committee.committee.Committee.alphas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alphas</span></code></a></dt><dd><p>(Linear) scaling factors for committee uncertainties.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.atoms" title="matscipy.calculators.committee.committee.Committee.atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">atoms</span></code></a></dt><dd><p>Combined Atoms/samples in the committee.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.calibrated_for" title="matscipy.calculators.committee.committee.Committee.calibrated_for"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calibrated_for</span></code></a></dt><dd><p>Set of properties the committee has been calibrated for.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.id_counter" title="matscipy.calculators.committee.committee.Committee.id_counter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">id_counter</span></code></a></dt><dd><p>Counter-object for identifier appearances in the committee.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.id_to_atoms" title="matscipy.calculators.committee.committee.Committee.id_to_atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">id_to_atoms</span></code></a></dt><dd><p>Dictionary to translate identifiers to Atoms-objects.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.ids" title="matscipy.calculators.committee.committee.Committee.ids"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ids</span></code></a></dt><dd><p>Identifiers of atoms/samples in the committee.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.members" title="matscipy.calculators.committee.committee.Committee.members"><code class="xref py py-obj docutils literal notranslate"><span class="pre">members</span></code></a></dt><dd><p>List with committee members.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.number" title="matscipy.calculators.committee.committee.Committee.number"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number</span></code></a></dt><dd><p>Number of committee members.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.validation_set" title="matscipy.calculators.committee.committee.Committee.validation_set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validation_set</span></code></a></dt><dd><p>List of Atoms-objects.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.add_member" title="matscipy.calculators.committee.committee.Committee.add_member"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_member</span></code></a>(member)</p></td>
+<td><p>Extend committee by new <code class="docutils literal notranslate"><span class="pre">`member`</span></code> (i.e. <code class="docutils literal notranslate"><span class="pre">`CommitteeMember`</span></code>-instance).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.calibrate" title="matscipy.calculators.committee.committee.Committee.calibrate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calibrate</span></code></a>(prop, key, location[, system_changes])</p></td>
+<td><p>Obtain parameters to properly scale committee uncertainties and make them available as an attribute (<code class="docutils literal notranslate"><span class="pre">`alphas`</span></code>) with another associated attribute (<code class="docutils literal notranslate"><span class="pre">`calibrated_for`</span></code>) providing information about the property for which the uncertainty will be scaled by it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.is_calibrated_for" title="matscipy.calculators.committee.committee.Committee.is_calibrated_for"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_calibrated_for</span></code></a>(prop)</p></td>
+<td><p>Check whether committee has been calibrated for <code class="docutils literal notranslate"><span class="pre">`prop`</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.scale_uncertainty" title="matscipy.calculators.committee.committee.Committee.scale_uncertainty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale_uncertainty</span></code></a>(value, prop)</p></td>
+<td><p>Scale uncertainty <code class="docutils literal notranslate"><span class="pre">`value`</span></code> obtained with the committee according to the calibration for the corresponding property (<code class="docutils literal notranslate"><span class="pre">`prop`</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.Committee.set_internal_validation_set" title="matscipy.calculators.committee.committee.Committee.set_internal_validation_set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_internal_validation_set</span></code></a>(appearance_threshold)</p></td>
+<td><p>Define a validation set based on the Atoms-objects of sub-sampled committee training sets.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">members</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.members">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">members</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.members" title="Link to this definition"></a></dt>
+<dd><p>List with committee members.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.number">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">number</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.number" title="Link to this definition"></a></dt>
+<dd><p>Number of committee members.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.atoms">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">atoms</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.atoms" title="Link to this definition"></a></dt>
+<dd><p>Combined Atoms/samples in the committee.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.ids">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ids</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.ids" title="Link to this definition"></a></dt>
+<dd><p>Identifiers of atoms/samples in the committee.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.id_to_atoms">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">id_to_atoms</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.id_to_atoms" title="Link to this definition"></a></dt>
+<dd><p>Dictionary to translate identifiers to Atoms-objects.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.id_counter">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">id_counter</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.id_counter" title="Link to this definition"></a></dt>
+<dd><p>Counter-object for identifier appearances in the committee.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.alphas">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">alphas</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.alphas" title="Link to this definition"></a></dt>
+<dd><p>(Linear) scaling factors for committee uncertainties.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.calibrated_for">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">calibrated_for</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.calibrated_for" title="Link to this definition"></a></dt>
+<dd><p>Set of properties the committee has been calibrated for.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.validation_set">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">validation_set</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.validation_set" title="Link to this definition"></a></dt>
+<dd><p>List of Atoms-objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.add_member">
+<span class="sig-name descname"><span class="pre">add_member</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">member</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.add_member" title="Link to this definition"></a></dt>
+<dd><p>Extend committee by new <code class="docutils literal notranslate"><span class="pre">`member`</span></code> (i.e. <code class="docutils literal notranslate"><span class="pre">`CommitteeMember`</span></code>-instance).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.set_internal_validation_set">
+<span class="sig-name descname"><span class="pre">set_internal_validation_set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">appearance_threshold</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.set_internal_validation_set" title="Link to this definition"></a></dt>
+<dd><p>Define a validation set based on the Atoms-objects of sub-sampled committee training sets.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.calibrate">
+<span class="sig-name descname"><span class="pre">calibrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_changes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['positions',</span> <span class="pre">'numbers',</span> <span class="pre">'cell',</span> <span class="pre">'pbc',</span> <span class="pre">'initial_charges',</span> <span class="pre">'initial_magmoms']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.calibrate" title="Link to this definition"></a></dt>
+<dd><p>Obtain parameters to properly scale committee uncertainties and make
+them available as an attribute (<code class="docutils literal notranslate"><span class="pre">`alphas`</span></code>) with another associated
+attribute (<code class="docutils literal notranslate"><span class="pre">`calibrated_for`</span></code>) providing information about the property
+for which the uncertainty will be scaled by it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.is_calibrated_for">
+<span class="sig-name descname"><span class="pre">is_calibrated_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.is_calibrated_for" title="Link to this definition"></a></dt>
+<dd><p>Check whether committee has been calibrated for <code class="docutils literal notranslate"><span class="pre">`prop`</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.Committee.scale_uncertainty">
+<span class="sig-name descname"><span class="pre">scale_uncertainty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.Committee.scale_uncertainty" title="Link to this definition"></a></dt>
+<dd><p>Scale uncertainty <code class="docutils literal notranslate"><span class="pre">`value`</span></code> obtained with the committee according to the calibration
+for the corresponding property (<code class="docutils literal notranslate"><span class="pre">`prop`</span></code>).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeMember">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.committee.committee.</span></span><span class="sig-name descname"><span class="pre">CommitteeMember</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeMember" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Lightweight class defining a member (i.e. a sub-model) of a committee model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeMember.atoms" title="matscipy.calculators.committee.committee.CommitteeMember.atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">atoms</span></code></a></dt><dd><p>Atoms/samples in the committee member.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeMember.calculator" title="matscipy.calculators.committee.committee.CommitteeMember.calculator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculator</span></code></a></dt><dd><p>Model of the committee member.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeMember.filename" title="matscipy.calculators.committee.committee.CommitteeMember.filename"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filename</span></code></a></dt><dd><p>Path to the atoms/samples in the committee member.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeMember.ids" title="matscipy.calculators.committee.committee.CommitteeMember.ids"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ids</span></code></a></dt><dd><p>Identifiers of atoms/samples in the committee member.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeMember.is_sample_in_atoms" title="matscipy.calculators.committee.committee.CommitteeMember.is_sample_in_atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_sample_in_atoms</span></code></a>(sample)</p></td>
+<td><p>Check if passed Atoms-object is part of this committee member (by comparing identifiers).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.committee.committee.CommitteeMember.set_training_data" title="matscipy.calculators.committee.committee.CommitteeMember.set_training_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_training_data</span></code></a>(training_data)</p></td>
+<td><p>Read in and store the training data of this committee members from the passed <code class="docutils literal notranslate"><span class="pre">`filename`</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeMember.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeMember.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeMember.calculator">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">calculator</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeMember.calculator" title="Link to this definition"></a></dt>
+<dd><p>Model of the committee member.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeMember.filename">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">filename</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeMember.filename" title="Link to this definition"></a></dt>
+<dd><p>Path to the atoms/samples in the committee member.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeMember.atoms">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">atoms</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeMember.atoms" title="Link to this definition"></a></dt>
+<dd><p>Atoms/samples in the committee member.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeMember.ids">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ids</span></span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeMember.ids" title="Link to this definition"></a></dt>
+<dd><p>Identifiers of atoms/samples in the committee member.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeMember.set_training_data">
+<span class="sig-name descname"><span class="pre">set_training_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">training_data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeMember.set_training_data" title="Link to this definition"></a></dt>
+<dd><p>Read in and store the training data of this committee members from the passed <code class="docutils literal notranslate"><span class="pre">`filename`</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.committee.committee.CommitteeMember.is_sample_in_atoms">
+<span class="sig-name descname"><span class="pre">is_sample_in_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.committee.committee.CommitteeMember.is_sample_in_atoms" title="Link to this definition"></a></dt>
+<dd><p>Check if passed Atoms-object is part of this committee member (by comparing identifiers).</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.calculators.committee.html" class="btn btn-neutral float-left" title="matscipy.calculators.committee" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.calculators.committee.log.html" class="btn btn-neutral float-right" title="matscipy.calculators.committee.log" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

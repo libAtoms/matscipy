@@ -1,0 +1,15 @@
+matscipy.cli.electrochemistry
+=============================
+
+.. automodule:: matscipy.cli.electrochemistry
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   continuous2discrete
+   poisson_nernst_planck_solver
+   stericify

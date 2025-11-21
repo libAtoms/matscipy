@@ -1,0 +1,12 @@
+matscipy.cli.electrochemistry.poisson\_nernst\_planck\_solver
+=============================================================
+
+.. automodule:: matscipy.cli.electrochemistry.poisson_nernst_planck_solver
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      main
+   

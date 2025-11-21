@@ -1,0 +1,158 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fracture Mechanics &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Quasi static fracture simulations" href="quasi_static_crack.html" />
+    <link rel="prev" title="Advanced Features of gamma_surface.py" href="gamma_surface_advanced.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Application domains</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="elastic_constants.html">Elastic Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plasticity.html">Plasticity</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Fracture Mechanics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quasi_static_crack.html">Quasi static fracture simulations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry.html">Electrochemistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tribology.html">Tribology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Application domains</a></li>
+      <li class="breadcrumb-item active">Fracture Mechanics</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/fracture_mechanics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fracture-mechanics">
+<h1>Fracture Mechanics<a class="headerlink" href="#fracture-mechanics" title="Link to this heading"></a></h1>
+<p>Cracking is the process of generating new surface area by splitting the material
+apart. The module <a class="reference internal" href="../generated/matscipy.fracture_mechanics.html#module-matscipy.fracture_mechanics" title="matscipy.fracture_mechanics"><code class="xref py py-mod docutils literal notranslate"><span class="pre">matscipy.fracture_mechanics</span></code></a> provides functionality for
+calculating continuum linear elastic displacement fields near crack tips,
+including support for anisotropy in the elastic response.</p>
+<p>The module also implements generation of atomic structures that are deformed
+according to this near-tip field. This functionality has been used to quantify
+lattice trapping, which is the pinning of cracks due to the discreteness of the
+atomic lattice, and to compare simulations with experimental measurements of
+crack speeds in silicon. An example of this is provided in the
+quasi-static fracture tutorial linked below.</p>
+<p>Finally, there is support for flexible boundary conditions in fracture simulations
+using the formalism proposed by Sinclair, where the finite atomistic domain is
+coupled to an infinite elastic continuum. We also provide an extension of this
+approach to give a flexible boundary scheme that uses numerical continuation to
+obtain full solution paths for cracks.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quasi_static_crack.html">Quasi static fracture simulations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quasi_static_crack.html#basic-usage">Basic usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quasi_static_crack.html#bulk-and-elastic-properties">Bulk and Elastic properties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quasi_static_crack.html#build-crack-system">Build crack system</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quasi_static_crack.html#apply-initial-strain-field">Apply initial strain field</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gamma_surface_advanced.html" class="btn btn-neutral float-left" title="Advanced Features of gamma_surface.py" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quasi_static_crack.html" class="btn btn-neutral float-right" title="Quasi static fracture simulations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

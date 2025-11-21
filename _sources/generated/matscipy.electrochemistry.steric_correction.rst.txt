@@ -1,0 +1,28 @@
+matscipy.electrochemistry.steric\_correction
+============================================
+
+.. automodule:: matscipy.electrochemistry.steric_correction
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      apply_steric_correction
+      box_constraint
+      box_constraint_with_gradient
+      brute_force_closest_pair
+      brute_force_target_function
+      neigh_list_based_target_function
+      numpy_only_target_function
+      planar_closest_pair
+      recursive_closest_pair
+      scipy_distance_based_closest_pair
+      scipy_distance_based_target_function
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      DeferredMessage
+   

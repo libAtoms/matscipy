@@ -1,0 +1,16 @@
+matscipy.calculators.manybody
+=============================
+
+.. automodule:: matscipy.calculators.manybody
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   calculator
+   explicit_forms
+   newmb
+   potentials

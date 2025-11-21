@@ -1,0 +1,23 @@
+matscipy.fracture\_mechanics.idealbrittlesolid
+==============================================
+
+.. automodule:: matscipy.fracture_mechanics.idealbrittlesolid
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      extend_strip
+      find_crack_tip
+      find_triangles_2d
+      set_constraints
+      set_initial_velocities
+      triangular_lattice_slab
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      IdealBrittleSolid
+   

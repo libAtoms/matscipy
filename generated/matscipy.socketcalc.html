@@ -1,0 +1,1899 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.socketcalc &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.surface" href="matscipy.surface.html" />
+    <link rel="prev" title="matscipy.precon" href="matscipy.precon.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.html">matscipy</a></li>
+      <li class="breadcrumb-item active">matscipy.socketcalc</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.socketcalc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.socketcalc">
+<span id="matscipy-socketcalc"></span><h1>matscipy.socketcalc<a class="headerlink" href="#module-matscipy.socketcalc" title="Link to this heading"></a></h1>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.pack_atoms_to_reftraj_str" title="matscipy.socketcalc.pack_atoms_to_reftraj_str"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pack_atoms_to_reftraj_str</span></code></a>(at, label)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.pack_atoms_to_xyz_str" title="matscipy.socketcalc.pack_atoms_to_xyz_str"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pack_atoms_to_xyz_str</span></code></a>(at, label)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.pack_results_to_reftraj_output_str" title="matscipy.socketcalc.pack_results_to_reftraj_output_str"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pack_results_to_reftraj_output_str</span></code></a>(at)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.unpack_reftraj_output_str_to_results" title="matscipy.socketcalc.unpack_reftraj_output_str_to_results"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpack_reftraj_output_str_to_results</span></code></a>(data)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.unpack_reftraj_str_to_atoms" title="matscipy.socketcalc.unpack_reftraj_str_to_atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpack_reftraj_str_to_atoms</span></code></a>(data)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.unpack_xyz_str_to_results" title="matscipy.socketcalc.unpack_xyz_str_to_results"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpack_xyz_str_to_results</span></code></a>(data)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsRequestHandler" title="matscipy.socketcalc.AtomsRequestHandler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomsRequestHandler</span></code></a>(request, client_address, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServer" title="matscipy.socketcalc.AtomsServer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomsServer</span></code></a></p></td>
+<td><p>alias of <a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync" title="matscipy.socketcalc.AtomsServerAsync"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomsServerAsync</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync" title="matscipy.socketcalc.AtomsServerAsync"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomsServerAsync</span></code></a>(server_address, ...[, ...])</p></td>
+<td><p>Asynchronous (threaded) version of AtomsServer</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync" title="matscipy.socketcalc.AtomsServerSync"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomsServerSync</span></code></a>(server_address, ...[, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient" title="matscipy.socketcalc.CastepClient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CastepClient</span></code></a>(client_id, exe[, env, npj, ...])</p></td>
+<td><p>Subclass of Client for running CASTEP calculations.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client" title="matscipy.socketcalc.Client"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Client</span></code></a>(client_id, exe[, env, npj, ppn, ...])</p></td>
+<td><p>Represents a single Client job</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient" title="matscipy.socketcalc.QMClient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QMClient</span></code></a>(client_id, exe[, env, npj, ppn, ...])</p></td>
+<td><p>Abstract subclass of Client for QM calculations</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient" title="matscipy.socketcalc.QUIPClient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QUIPClient</span></code></a>(client_id, exe[, env, npj, ppn, ...])</p></td>
+<td><p>Subclass of Client for running QUIP calculations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator" title="matscipy.socketcalc.SocketCalculator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SocketCalculator</span></code></a>(client[, ip, atoms, port, ...])</p></td>
+<td><p>ASE-compatible calculator which communicates with remote force engines via sockets using a (synchronous) AtomsServer.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient" title="matscipy.socketcalc.VaspClient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VaspClient</span></code></a>(client_id, exe[, env, npj, ppn, ...])</p></td>
+<td><p>Subclass of Client for running VASP calculations.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.socketcalc.pack_atoms_to_reftraj_str">
+<span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">pack_atoms_to_reftraj_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.pack_atoms_to_reftraj_str" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.socketcalc.pack_atoms_to_xyz_str">
+<span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">pack_atoms_to_xyz_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.pack_atoms_to_xyz_str" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.socketcalc.unpack_reftraj_str_to_atoms">
+<span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">unpack_reftraj_str_to_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.unpack_reftraj_str_to_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.socketcalc.pack_results_to_reftraj_output_str">
+<span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">pack_results_to_reftraj_output_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.pack_results_to_reftraj_output_str" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.socketcalc.unpack_reftraj_output_str_to_results">
+<span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">unpack_reftraj_output_str_to_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.unpack_reftraj_output_str_to_results" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.socketcalc.unpack_xyz_str_to_results">
+<span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">unpack_xyz_str_to_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.unpack_xyz_str_to_results" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">AtomsRequestHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StreamRequestHandler</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>timeout</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>finish</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>handle</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>setup</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler.handle">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler.handle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler.disable_nagle_algorithm">
+<span class="sig-name descname"><span class="pre">disable_nagle_algorithm</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler.disable_nagle_algorithm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler.finish">
+<span class="sig-name descname"><span class="pre">finish</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler.finish" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler.rbufsize">
+<span class="sig-name descname"><span class="pre">rbufsize</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-1</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler.rbufsize" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler.setup">
+<span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler.setup" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler.timeout">
+<span class="sig-name descname"><span class="pre">timeout</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler.timeout" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsRequestHandler.wbufsize">
+<span class="sig-name descname"><span class="pre">wbufsize</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsRequestHandler.wbufsize" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">AtomsServerSync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RequestHandlerClass</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clients</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bind_and_activate=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_attempts=3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bgq=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TCPServer</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>timeout</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.close_request" title="matscipy.socketcalc.AtomsServerSync.close_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">close_request</span></code></a>(request)</p></td>
+<td><p>Called to clean up an individual request.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.fileno" title="matscipy.socketcalc.AtomsServerSync.fileno"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fileno</span></code></a>()</p></td>
+<td><p>Return socket file number.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.finish_request" title="matscipy.socketcalc.AtomsServerSync.finish_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finish_request</span></code></a>(request, client_address)</p></td>
+<td><p>Finish one request by instantiating RequestHandlerClass.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.get_request" title="matscipy.socketcalc.AtomsServerSync.get_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_request</span></code></a>()</p></td>
+<td><p>Get the request and client address from the socket.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.handle_error" title="matscipy.socketcalc.AtomsServerSync.handle_error"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_error</span></code></a>(request, client_address)</p></td>
+<td><p>Handle an error gracefully.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.handle_request" title="matscipy.socketcalc.AtomsServerSync.handle_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_request</span></code></a>()</p></td>
+<td><p>Handle one request, possibly blocking.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.handle_timeout" title="matscipy.socketcalc.AtomsServerSync.handle_timeout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_timeout</span></code></a>()</p></td>
+<td><p>Called if no new request arrives within self.timeout.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.process_request" title="matscipy.socketcalc.AtomsServerSync.process_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">process_request</span></code></a>(request, client_address)</p></td>
+<td><p>Call finish_request.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.serve_forever" title="matscipy.socketcalc.AtomsServerSync.serve_forever"><code class="xref py py-obj docutils literal notranslate"><span class="pre">serve_forever</span></code></a>([poll_interval])</p></td>
+<td><p>Handle one request at a time until shutdown.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.server_activate" title="matscipy.socketcalc.AtomsServerSync.server_activate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">server_activate</span></code></a>()</p></td>
+<td><p>Called by constructor to activate the server.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.server_bind" title="matscipy.socketcalc.AtomsServerSync.server_bind"><code class="xref py py-obj docutils literal notranslate"><span class="pre">server_bind</span></code></a>()</p></td>
+<td><p>Called by constructor to bind the socket.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.server_close" title="matscipy.socketcalc.AtomsServerSync.server_close"><code class="xref py py-obj docutils literal notranslate"><span class="pre">server_close</span></code></a>()</p></td>
+<td><p>Called to clean-up the server.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.service_actions" title="matscipy.socketcalc.AtomsServerSync.service_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">service_actions</span></code></a>()</p></td>
+<td><p>Called by the serve_forever() loop.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.shutdown" title="matscipy.socketcalc.AtomsServerSync.shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown</span></code></a>()</p></td>
+<td><p>Stops the serve_forever loop.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.shutdown_request" title="matscipy.socketcalc.AtomsServerSync.shutdown_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown_request</span></code></a>(request)</p></td>
+<td><p>Called to shutdown and close an individual request.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync.verify_request" title="matscipy.socketcalc.AtomsServerSync.verify_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verify_request</span></code></a>(request, client_address)</p></td>
+<td><p>Verify the request.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>get_results</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>join_all</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>put</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>shutdown_clients</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.allow_reuse_address">
+<span class="sig-name descname"><span class="pre">allow_reuse_address</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.allow_reuse_address" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RequestHandlerClass</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clients</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bind_and_activate=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_attempts=3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bgq=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.__init__" title="Link to this definition"></a></dt>
+<dd><p>Constructor.  May be extended, do not override.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.request_queue_size">
+<span class="sig-name descname"><span class="pre">request_queue_size</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.request_queue_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.server_activate">
+<span class="sig-name descname"><span class="pre">server_activate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.server_activate" title="Link to this definition"></a></dt>
+<dd><p>Called by constructor to activate the server.</p>
+<p>May be overridden.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.shutdown_clients">
+<span class="sig-name descname"><span class="pre">shutdown_clients</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.shutdown_clients" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Stops the serve_forever loop.</p>
+<p>Blocks until the loop has finished. This must be called while
+serve_forever() is running in another thread, or it will
+deadlock.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.put">
+<span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.put" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.join_all">
+<span class="sig-name descname"><span class="pre">join_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.join_all" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.get_results">
+<span class="sig-name descname"><span class="pre">get_results</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.get_results" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.address_family">
+<span class="sig-name descname"><span class="pre">address_family</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.address_family" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.allow_reuse_port">
+<span class="sig-name descname"><span class="pre">allow_reuse_port</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.allow_reuse_port" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.close_request">
+<span class="sig-name descname"><span class="pre">close_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.close_request" title="Link to this definition"></a></dt>
+<dd><p>Called to clean up an individual request.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.fileno">
+<span class="sig-name descname"><span class="pre">fileno</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.fileno" title="Link to this definition"></a></dt>
+<dd><p>Return socket file number.</p>
+<p>Interface required by selector.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.finish_request">
+<span class="sig-name descname"><span class="pre">finish_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.finish_request" title="Link to this definition"></a></dt>
+<dd><p>Finish one request by instantiating RequestHandlerClass.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.get_request">
+<span class="sig-name descname"><span class="pre">get_request</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.get_request" title="Link to this definition"></a></dt>
+<dd><p>Get the request and client address from the socket.</p>
+<p>May be overridden.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.handle_error">
+<span class="sig-name descname"><span class="pre">handle_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.handle_error" title="Link to this definition"></a></dt>
+<dd><p>Handle an error gracefully.  May be overridden.</p>
+<p>The default is to print a traceback and continue.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.handle_request">
+<span class="sig-name descname"><span class="pre">handle_request</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.handle_request" title="Link to this definition"></a></dt>
+<dd><p>Handle one request, possibly blocking.</p>
+<p>Respects self.timeout.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.handle_timeout">
+<span class="sig-name descname"><span class="pre">handle_timeout</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.handle_timeout" title="Link to this definition"></a></dt>
+<dd><p>Called if no new request arrives within self.timeout.</p>
+<p>Overridden by ForkingMixIn.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.process_request">
+<span class="sig-name descname"><span class="pre">process_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.process_request" title="Link to this definition"></a></dt>
+<dd><p>Call finish_request.</p>
+<p>Overridden by ForkingMixIn and ThreadingMixIn.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.serve_forever">
+<span class="sig-name descname"><span class="pre">serve_forever</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.serve_forever" title="Link to this definition"></a></dt>
+<dd><p>Handle one request at a time until shutdown.</p>
+<p>Polls for shutdown every poll_interval seconds. Ignores
+self.timeout. If you need to do periodic tasks, do them in
+another thread.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.server_bind">
+<span class="sig-name descname"><span class="pre">server_bind</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.server_bind" title="Link to this definition"></a></dt>
+<dd><p>Called by constructor to bind the socket.</p>
+<p>May be overridden.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.server_close">
+<span class="sig-name descname"><span class="pre">server_close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.server_close" title="Link to this definition"></a></dt>
+<dd><p>Called to clean-up the server.</p>
+<p>May be overridden.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.service_actions">
+<span class="sig-name descname"><span class="pre">service_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.service_actions" title="Link to this definition"></a></dt>
+<dd><p>Called by the serve_forever() loop.</p>
+<p>May be overridden by a subclass / Mixin to implement any code that
+needs to be run during the loop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.shutdown_request">
+<span class="sig-name descname"><span class="pre">shutdown_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.shutdown_request" title="Link to this definition"></a></dt>
+<dd><p>Called to shutdown and close an individual request.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.socket_type">
+<span class="sig-name descname"><span class="pre">socket_type</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.socket_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.timeout">
+<span class="sig-name descname"><span class="pre">timeout</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.timeout" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerSync.verify_request">
+<span class="sig-name descname"><span class="pre">verify_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerSync.verify_request" title="Link to this definition"></a></dt>
+<dd><p>Verify the request.  May be overridden.</p>
+<p>Return True if we should proceed with this request.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">AtomsServerAsync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RequestHandlerClass</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clients</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bind_and_activate=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_attempts=3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bgq=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#matscipy.socketcalc.AtomsServerSync" title="matscipy.socketcalc.AtomsServerSync"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomsServerSync</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ThreadingMixIn</span></code></p>
+<p>Asynchronous (threaded) version of AtomsServer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>timeout</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.close_request" title="matscipy.socketcalc.AtomsServerAsync.close_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">close_request</span></code></a>(request)</p></td>
+<td><p>Called to clean up an individual request.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.fileno" title="matscipy.socketcalc.AtomsServerAsync.fileno"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fileno</span></code></a>()</p></td>
+<td><p>Return socket file number.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.finish_request" title="matscipy.socketcalc.AtomsServerAsync.finish_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finish_request</span></code></a>(request, client_address)</p></td>
+<td><p>Finish one request by instantiating RequestHandlerClass.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.get_request" title="matscipy.socketcalc.AtomsServerAsync.get_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_request</span></code></a>()</p></td>
+<td><p>Get the request and client address from the socket.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.handle_error" title="matscipy.socketcalc.AtomsServerAsync.handle_error"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_error</span></code></a>(request, client_address)</p></td>
+<td><p>Handle an error gracefully.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.handle_request" title="matscipy.socketcalc.AtomsServerAsync.handle_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_request</span></code></a>()</p></td>
+<td><p>Handle one request, possibly blocking.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.handle_timeout" title="matscipy.socketcalc.AtomsServerAsync.handle_timeout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_timeout</span></code></a>()</p></td>
+<td><p>Called if no new request arrives within self.timeout.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.process_request" title="matscipy.socketcalc.AtomsServerAsync.process_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">process_request</span></code></a>(request, client_address)</p></td>
+<td><p>Call finish_request.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.process_request_thread" title="matscipy.socketcalc.AtomsServerAsync.process_request_thread"><code class="xref py py-obj docutils literal notranslate"><span class="pre">process_request_thread</span></code></a>(request, client_address)</p></td>
+<td><p>Same as in BaseServer but as a thread.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.serve_forever" title="matscipy.socketcalc.AtomsServerAsync.serve_forever"><code class="xref py py-obj docutils literal notranslate"><span class="pre">serve_forever</span></code></a>([poll_interval])</p></td>
+<td><p>Handle one request at a time until shutdown.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.server_activate" title="matscipy.socketcalc.AtomsServerAsync.server_activate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">server_activate</span></code></a>()</p></td>
+<td><p>Called by constructor to activate the server.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.server_bind" title="matscipy.socketcalc.AtomsServerAsync.server_bind"><code class="xref py py-obj docutils literal notranslate"><span class="pre">server_bind</span></code></a>()</p></td>
+<td><p>Called by constructor to bind the socket.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.server_close" title="matscipy.socketcalc.AtomsServerAsync.server_close"><code class="xref py py-obj docutils literal notranslate"><span class="pre">server_close</span></code></a>()</p></td>
+<td><p>Called to clean-up the server.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.service_actions" title="matscipy.socketcalc.AtomsServerAsync.service_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">service_actions</span></code></a>()</p></td>
+<td><p>Called by the serve_forever() loop.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.shutdown" title="matscipy.socketcalc.AtomsServerAsync.shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown</span></code></a>()</p></td>
+<td><p>Stops the serve_forever loop.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.shutdown_request" title="matscipy.socketcalc.AtomsServerAsync.shutdown_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown_request</span></code></a>(request)</p></td>
+<td><p>Called to shutdown and close an individual request.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync.verify_request" title="matscipy.socketcalc.AtomsServerAsync.verify_request"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verify_request</span></code></a>(request, client_address)</p></td>
+<td><p>Verify the request.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>get_results</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>join_all</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>put</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>shutdown_clients</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Stops the serve_forever loop.</p>
+<p>Blocks until the loop has finished. This must be called while
+serve_forever() is running in another thread, or it will
+deadlock.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.shutdown_clients">
+<span class="sig-name descname"><span class="pre">shutdown_clients</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.shutdown_clients" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RequestHandlerClass</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clients</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bind_and_activate=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_attempts=3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bgq=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.__init__" title="Link to this definition"></a></dt>
+<dd><p>Constructor.  May be extended, do not override.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.address_family">
+<span class="sig-name descname"><span class="pre">address_family</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.address_family" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.allow_reuse_address">
+<span class="sig-name descname"><span class="pre">allow_reuse_address</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.allow_reuse_address" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.allow_reuse_port">
+<span class="sig-name descname"><span class="pre">allow_reuse_port</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.allow_reuse_port" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.block_on_close">
+<span class="sig-name descname"><span class="pre">block_on_close</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.block_on_close" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.close_request">
+<span class="sig-name descname"><span class="pre">close_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.close_request" title="Link to this definition"></a></dt>
+<dd><p>Called to clean up an individual request.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.daemon_threads">
+<span class="sig-name descname"><span class="pre">daemon_threads</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.daemon_threads" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.fileno">
+<span class="sig-name descname"><span class="pre">fileno</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.fileno" title="Link to this definition"></a></dt>
+<dd><p>Return socket file number.</p>
+<p>Interface required by selector.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.finish_request">
+<span class="sig-name descname"><span class="pre">finish_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.finish_request" title="Link to this definition"></a></dt>
+<dd><p>Finish one request by instantiating RequestHandlerClass.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.get_request">
+<span class="sig-name descname"><span class="pre">get_request</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.get_request" title="Link to this definition"></a></dt>
+<dd><p>Get the request and client address from the socket.</p>
+<p>May be overridden.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.get_results">
+<span class="sig-name descname"><span class="pre">get_results</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.get_results" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.handle_error">
+<span class="sig-name descname"><span class="pre">handle_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.handle_error" title="Link to this definition"></a></dt>
+<dd><p>Handle an error gracefully.  May be overridden.</p>
+<p>The default is to print a traceback and continue.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.handle_request">
+<span class="sig-name descname"><span class="pre">handle_request</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.handle_request" title="Link to this definition"></a></dt>
+<dd><p>Handle one request, possibly blocking.</p>
+<p>Respects self.timeout.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.handle_timeout">
+<span class="sig-name descname"><span class="pre">handle_timeout</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.handle_timeout" title="Link to this definition"></a></dt>
+<dd><p>Called if no new request arrives within self.timeout.</p>
+<p>Overridden by ForkingMixIn.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.join_all">
+<span class="sig-name descname"><span class="pre">join_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.join_all" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.process_request">
+<span class="sig-name descname"><span class="pre">process_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.process_request" title="Link to this definition"></a></dt>
+<dd><p>Call finish_request.</p>
+<p>Overridden by ForkingMixIn and ThreadingMixIn.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.process_request_thread">
+<span class="sig-name descname"><span class="pre">process_request_thread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.process_request_thread" title="Link to this definition"></a></dt>
+<dd><p>Same as in BaseServer but as a thread.</p>
+<p>In addition, exception handling is done here.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.put">
+<span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.put" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.request_queue_size">
+<span class="sig-name descname"><span class="pre">request_queue_size</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.request_queue_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.serve_forever">
+<span class="sig-name descname"><span class="pre">serve_forever</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.serve_forever" title="Link to this definition"></a></dt>
+<dd><p>Handle one request at a time until shutdown.</p>
+<p>Polls for shutdown every poll_interval seconds. Ignores
+self.timeout. If you need to do periodic tasks, do them in
+another thread.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.server_activate">
+<span class="sig-name descname"><span class="pre">server_activate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.server_activate" title="Link to this definition"></a></dt>
+<dd><p>Called by constructor to activate the server.</p>
+<p>May be overridden.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.server_bind">
+<span class="sig-name descname"><span class="pre">server_bind</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.server_bind" title="Link to this definition"></a></dt>
+<dd><p>Called by constructor to bind the socket.</p>
+<p>May be overridden.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.server_close">
+<span class="sig-name descname"><span class="pre">server_close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.server_close" title="Link to this definition"></a></dt>
+<dd><p>Called to clean-up the server.</p>
+<p>May be overridden.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.service_actions">
+<span class="sig-name descname"><span class="pre">service_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.service_actions" title="Link to this definition"></a></dt>
+<dd><p>Called by the serve_forever() loop.</p>
+<p>May be overridden by a subclass / Mixin to implement any code that
+needs to be run during the loop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.shutdown_request">
+<span class="sig-name descname"><span class="pre">shutdown_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.shutdown_request" title="Link to this definition"></a></dt>
+<dd><p>Called to shutdown and close an individual request.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.socket_type">
+<span class="sig-name descname"><span class="pre">socket_type</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.socket_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.timeout">
+<span class="sig-name descname"><span class="pre">timeout</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.timeout" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServerAsync.verify_request">
+<span class="sig-name descname"><span class="pre">verify_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.AtomsServerAsync.verify_request" title="Link to this definition"></a></dt>
+<dd><p>Verify the request.  May be overridden.</p>
+<p>Return True if we should proceed with this request.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.AtomsServer">
+<span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">AtomsServer</span></span><a class="headerlink" href="#matscipy.socketcalc.AtomsServer" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="#matscipy.socketcalc.AtomsServerAsync" title="matscipy.socketcalc.AtomsServerAsync"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomsServerAsync</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">Client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=0.001</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents a single Client job</p>
+<p>Used by AtomsServer to start, restart and shutdown clients
+running on the Compute Nodes.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client.extra_args" title="matscipy.socketcalc.Client.extra_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extra_args</span></code></a>([label])</p></td>
+<td><p>Return list of additional command line arguments to be passed to client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client.is_compatible" title="matscipy.socketcalc.Client.is_compatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_compatible</span></code></a>(old_at, new_at, label)</p></td>
+<td><p>Check if new_at and old_at are compatible.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client.postprocess" title="matscipy.socketcalc.Client.postprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">postprocess</span></code></a>(at, label)</p></td>
+<td><p>Post-process results of calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client.preprocess" title="matscipy.socketcalc.Client.preprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">preprocess</span></code></a>(at, label[, force_restart])</p></td>
+<td><p>Prepare client for a calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client.shutdown" title="matscipy.socketcalc.Client.shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown</span></code></a>([block])</p></td>
+<td><p>Request a client to shutdown.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client.start" title="matscipy.socketcalc.Client.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>([label])</p></td>
+<td><p>Start an individual client.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client.start_or_restart" title="matscipy.socketcalc.Client.start_or_restart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start_or_restart</span></code></a>(at, label[, restart])</p></td>
+<td><p>Start or restart a client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.Client.wait_for_shutdown" title="matscipy.socketcalc.Client.wait_for_shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wait_for_shutdown</span></code></a>()</p></td>
+<td><p>Block until a client has shutdown.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>write_input_files</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=0.001</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.extra_args">
+<span class="sig-name descname"><span class="pre">extra_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.extra_args" title="Link to this definition"></a></dt>
+<dd><p>Return list of additional command line arguments to be passed to client</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.start" title="Link to this definition"></a></dt>
+<dd><p>Start an individual client.</p>
+<p>Raises RuntimeError if this client is already running.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Request a client to shutdown.</p>
+<p>If block=True, does not return until shutdown is complete.  If
+block=False, waits for the client to shutdown in a new
+thread. Check self.waits_thread.isAlive() to see when shutdown
+has finished. (This function also returns a handle to the wait
+thread when block=False).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.wait_for_shutdown">
+<span class="sig-name descname"><span class="pre">wait_for_shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.wait_for_shutdown" title="Link to this definition"></a></dt>
+<dd><p>Block until a client has shutdown.</p>
+<p>Typically called automatically by shutdown() or
+start_or_restart().</p>
+<p>Shutdown should previously have been initiated by queuing a
+‘shutdown’ or ‘restart’ request. Waits CLIENT_TIMEOUT for
+graceful shutdown. If client is still alive, a SIGTERM signal
+is sent. If this has had no effect after a further
+CLIENT_TIMEOUT, then a SIGKILL is sent. Does not return until
+the SIGKILL has taken effect.</p>
+<p>This function also marks shutdown task as complete in
+servers’s input_q for this client.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.start_or_restart">
+<span class="sig-name descname"><span class="pre">start_or_restart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.start_or_restart" title="Link to this definition"></a></dt>
+<dd><p>Start or restart a client</p>
+<p>If restart=True, wait for previous client to shutdown first.
+Calls write_input_files() followed by start().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.preprocess">
+<span class="sig-name descname"><span class="pre">preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.preprocess" title="Link to this definition"></a></dt>
+<dd><p>Prepare client for a calculation.</p>
+<p>Starts client if this is the first task for it, or schedules a
+restart if new configuration is not compatible with the last
+one submitted to the queue (see is_compatible() method).</p>
+<p>Many be extended in subclasses to e.g. sort the atoms by
+atomic number. If Atoms object needs to be changed, a copy
+should be returned rather than updating it inplace.</p>
+<p>Returns (at, first_time).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.postprocess" title="Link to this definition"></a></dt>
+<dd><p>Post-process results of calculation.</p>
+<p>May be overrriden in subclasses to e.g. reverse sort order
+applied in preprocess().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.is_compatible">
+<span class="sig-name descname"><span class="pre">is_compatible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.is_compatible" title="Link to this definition"></a></dt>
+<dd><p>Check if new_at and old_at are compatible.</p>
+<p>Returns True if calculation can be continued, or False
+if client must be restarted before it can process new_at.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.Client.write_input_files">
+<span class="sig-name descname"><span class="pre">write_input_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.Client.write_input_files" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">QUIPClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=0.001,</span> <span class="pre">param_files=None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#matscipy.socketcalc.Client" title="matscipy.socketcalc.Client"><code class="xref py py-class docutils literal notranslate"><span class="pre">Client</span></code></a></p>
+<p>Subclass of Client for running QUIP calculations.</p>
+<p>Initial input files are written in extended XYZ format, and
+subsequent communication is via sockets, in either REFTRAJ
+or XYZ format.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient.extra_args" title="matscipy.socketcalc.QUIPClient.extra_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extra_args</span></code></a>([label])</p></td>
+<td><p>Return list of additional command line arguments to be passed to client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient.is_compatible" title="matscipy.socketcalc.QUIPClient.is_compatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_compatible</span></code></a>(old_at, new_at, label)</p></td>
+<td><p>Check if new_at and old_at are compatible.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient.postprocess" title="matscipy.socketcalc.QUIPClient.postprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">postprocess</span></code></a>(at, label)</p></td>
+<td><p>Post-process results of calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient.preprocess" title="matscipy.socketcalc.QUIPClient.preprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">preprocess</span></code></a>(at, label[, force_restart])</p></td>
+<td><p>Prepare client for a calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient.shutdown" title="matscipy.socketcalc.QUIPClient.shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown</span></code></a>([block])</p></td>
+<td><p>Request a client to shutdown.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient.start" title="matscipy.socketcalc.QUIPClient.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>([label])</p></td>
+<td><p>Start an individual client.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient.start_or_restart" title="matscipy.socketcalc.QUIPClient.start_or_restart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start_or_restart</span></code></a>(at, label[, restart])</p></td>
+<td><p>Start or restart a client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QUIPClient.wait_for_shutdown" title="matscipy.socketcalc.QUIPClient.wait_for_shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wait_for_shutdown</span></code></a>()</p></td>
+<td><p>Block until a client has shutdown.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>write_input_files</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=0.001,</span> <span class="pre">param_files=None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.write_input_files">
+<span class="sig-name descname"><span class="pre">write_input_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.write_input_files" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.extra_args">
+<span class="sig-name descname"><span class="pre">extra_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.extra_args" title="Link to this definition"></a></dt>
+<dd><p>Return list of additional command line arguments to be passed to client</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.is_compatible">
+<span class="sig-name descname"><span class="pre">is_compatible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.is_compatible" title="Link to this definition"></a></dt>
+<dd><p>Check if new_at and old_at are compatible.</p>
+<p>Returns True if calculation can be continued, or False
+if client must be restarted before it can process new_at.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.postprocess" title="Link to this definition"></a></dt>
+<dd><p>Post-process results of calculation.</p>
+<p>May be overrriden in subclasses to e.g. reverse sort order
+applied in preprocess().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.preprocess">
+<span class="sig-name descname"><span class="pre">preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.preprocess" title="Link to this definition"></a></dt>
+<dd><p>Prepare client for a calculation.</p>
+<p>Starts client if this is the first task for it, or schedules a
+restart if new configuration is not compatible with the last
+one submitted to the queue (see is_compatible() method).</p>
+<p>Many be extended in subclasses to e.g. sort the atoms by
+atomic number. If Atoms object needs to be changed, a copy
+should be returned rather than updating it inplace.</p>
+<p>Returns (at, first_time).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Request a client to shutdown.</p>
+<p>If block=True, does not return until shutdown is complete.  If
+block=False, waits for the client to shutdown in a new
+thread. Check self.waits_thread.isAlive() to see when shutdown
+has finished. (This function also returns a handle to the wait
+thread when block=False).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.start" title="Link to this definition"></a></dt>
+<dd><p>Start an individual client.</p>
+<p>Raises RuntimeError if this client is already running.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.start_or_restart">
+<span class="sig-name descname"><span class="pre">start_or_restart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.start_or_restart" title="Link to this definition"></a></dt>
+<dd><p>Start or restart a client</p>
+<p>If restart=True, wait for previous client to shutdown first.
+Calls write_input_files() followed by start().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QUIPClient.wait_for_shutdown">
+<span class="sig-name descname"><span class="pre">wait_for_shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QUIPClient.wait_for_shutdown" title="Link to this definition"></a></dt>
+<dd><p>Block until a client has shutdown.</p>
+<p>Typically called automatically by shutdown() or
+start_or_restart().</p>
+<p>Shutdown should previously have been initiated by queuing a
+‘shutdown’ or ‘restart’ request. Waits CLIENT_TIMEOUT for
+graceful shutdown. If client is still alive, a SIGTERM signal
+is sent. If this has had no effect after a further
+CLIENT_TIMEOUT, then a SIGKILL is sent. Does not return until
+the SIGKILL has taken effect.</p>
+<p>This function also marks shutdown task as complete in
+servers’s input_q for this client.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">QMClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=0.001</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#matscipy.socketcalc.Client" title="matscipy.socketcalc.Client"><code class="xref py py-class docutils literal notranslate"><span class="pre">Client</span></code></a></p>
+<p>Abstract subclass of Client for QM calculations</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient.extra_args" title="matscipy.socketcalc.QMClient.extra_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extra_args</span></code></a>([label])</p></td>
+<td><p>Return list of additional command line arguments to be passed to client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient.is_compatible" title="matscipy.socketcalc.QMClient.is_compatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_compatible</span></code></a>(old_at, new_at, label)</p></td>
+<td><p>Check if new_at and old_at are compatible.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient.postprocess" title="matscipy.socketcalc.QMClient.postprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">postprocess</span></code></a>(at, label)</p></td>
+<td><p>Post-process results of calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient.preprocess" title="matscipy.socketcalc.QMClient.preprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">preprocess</span></code></a>(at, label[, force_restart])</p></td>
+<td><p>Prepare client for a calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient.shutdown" title="matscipy.socketcalc.QMClient.shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown</span></code></a>([block])</p></td>
+<td><p>Request a client to shutdown.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient.start" title="matscipy.socketcalc.QMClient.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>([label])</p></td>
+<td><p>Start an individual client.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient.start_or_restart" title="matscipy.socketcalc.QMClient.start_or_restart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start_or_restart</span></code></a>(at, label[, restart])</p></td>
+<td><p>Start or restart a client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.QMClient.wait_for_shutdown" title="matscipy.socketcalc.QMClient.wait_for_shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wait_for_shutdown</span></code></a>()</p></td>
+<td><p>Block until a client has shutdown.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>write_input_files</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.is_compatible">
+<span class="sig-name descname"><span class="pre">is_compatible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.is_compatible" title="Link to this definition"></a></dt>
+<dd><p>Check if new_at and old_at are compatible.</p>
+<p>Returns True if calculation can be continued, or False
+if client must be restarted before it can process new_at.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=0.001</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.extra_args">
+<span class="sig-name descname"><span class="pre">extra_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.extra_args" title="Link to this definition"></a></dt>
+<dd><p>Return list of additional command line arguments to be passed to client</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.postprocess" title="Link to this definition"></a></dt>
+<dd><p>Post-process results of calculation.</p>
+<p>May be overrriden in subclasses to e.g. reverse sort order
+applied in preprocess().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.preprocess">
+<span class="sig-name descname"><span class="pre">preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.preprocess" title="Link to this definition"></a></dt>
+<dd><p>Prepare client for a calculation.</p>
+<p>Starts client if this is the first task for it, or schedules a
+restart if new configuration is not compatible with the last
+one submitted to the queue (see is_compatible() method).</p>
+<p>Many be extended in subclasses to e.g. sort the atoms by
+atomic number. If Atoms object needs to be changed, a copy
+should be returned rather than updating it inplace.</p>
+<p>Returns (at, first_time).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Request a client to shutdown.</p>
+<p>If block=True, does not return until shutdown is complete.  If
+block=False, waits for the client to shutdown in a new
+thread. Check self.waits_thread.isAlive() to see when shutdown
+has finished. (This function also returns a handle to the wait
+thread when block=False).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.start" title="Link to this definition"></a></dt>
+<dd><p>Start an individual client.</p>
+<p>Raises RuntimeError if this client is already running.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.start_or_restart">
+<span class="sig-name descname"><span class="pre">start_or_restart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.start_or_restart" title="Link to this definition"></a></dt>
+<dd><p>Start or restart a client</p>
+<p>If restart=True, wait for previous client to shutdown first.
+Calls write_input_files() followed by start().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.wait_for_shutdown">
+<span class="sig-name descname"><span class="pre">wait_for_shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.wait_for_shutdown" title="Link to this definition"></a></dt>
+<dd><p>Block until a client has shutdown.</p>
+<p>Typically called automatically by shutdown() or
+start_or_restart().</p>
+<p>Shutdown should previously have been initiated by queuing a
+‘shutdown’ or ‘restart’ request. Waits CLIENT_TIMEOUT for
+graceful shutdown. If client is still alive, a SIGTERM signal
+is sent. If this has had no effect after a further
+CLIENT_TIMEOUT, then a SIGKILL is sent. Does not return until
+the SIGKILL has taken effect.</p>
+<p>This function also marks shutdown task as complete in
+servers’s input_q for this client.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.QMClient.write_input_files">
+<span class="sig-name descname"><span class="pre">write_input_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.QMClient.write_input_files" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">VaspClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=0.001,</span> <span class="pre">**vasp_args</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#matscipy.socketcalc.QMClient" title="matscipy.socketcalc.QMClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">QMClient</span></code></a></p>
+<p>Subclass of Client for running VASP calculations.</p>
+<p>Initial input files are written in POSCAR, INCAR, POTCAR and KPOINTS
+formats, and subsequent communicatin is via sockets in REFTRAJ format.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient.extra_args" title="matscipy.socketcalc.VaspClient.extra_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extra_args</span></code></a>([label])</p></td>
+<td><p>Return list of additional command line arguments to be passed to client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient.is_compatible" title="matscipy.socketcalc.VaspClient.is_compatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_compatible</span></code></a>(old_at, new_at, label)</p></td>
+<td><p>Check if new_at and old_at are compatible.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient.postprocess" title="matscipy.socketcalc.VaspClient.postprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">postprocess</span></code></a>(at, label)</p></td>
+<td><p>Post-process results of calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient.preprocess" title="matscipy.socketcalc.VaspClient.preprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">preprocess</span></code></a>(at, label[, force_restart])</p></td>
+<td><p>Prepare client for a calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient.shutdown" title="matscipy.socketcalc.VaspClient.shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown</span></code></a>([block])</p></td>
+<td><p>Request a client to shutdown.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient.start" title="matscipy.socketcalc.VaspClient.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>([label])</p></td>
+<td><p>Start an individual client.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient.start_or_restart" title="matscipy.socketcalc.VaspClient.start_or_restart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start_or_restart</span></code></a>(at, label[, restart])</p></td>
+<td><p>Start or restart a client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.VaspClient.wait_for_shutdown" title="matscipy.socketcalc.VaspClient.wait_for_shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wait_for_shutdown</span></code></a>()</p></td>
+<td><p>Block until a client has shutdown.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>write_input_files</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=0.001,</span> <span class="pre">**vasp_args</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.preprocess">
+<span class="sig-name descname"><span class="pre">preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.preprocess" title="Link to this definition"></a></dt>
+<dd><p>Prepare client for a calculation.</p>
+<p>Starts client if this is the first task for it, or schedules a
+restart if new configuration is not compatible with the last
+one submitted to the queue (see is_compatible() method).</p>
+<p>Many be extended in subclasses to e.g. sort the atoms by
+atomic number. If Atoms object needs to be changed, a copy
+should be returned rather than updating it inplace.</p>
+<p>Returns (at, first_time).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.postprocess" title="Link to this definition"></a></dt>
+<dd><p>Post-process results of calculation.</p>
+<p>May be overrriden in subclasses to e.g. reverse sort order
+applied in preprocess().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.write_input_files">
+<span class="sig-name descname"><span class="pre">write_input_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.write_input_files" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.extra_args">
+<span class="sig-name descname"><span class="pre">extra_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.extra_args" title="Link to this definition"></a></dt>
+<dd><p>Return list of additional command line arguments to be passed to client</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.is_compatible">
+<span class="sig-name descname"><span class="pre">is_compatible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.is_compatible" title="Link to this definition"></a></dt>
+<dd><p>Check if new_at and old_at are compatible.</p>
+<p>Returns True if calculation can be continued, or False
+if client must be restarted before it can process new_at.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Request a client to shutdown.</p>
+<p>If block=True, does not return until shutdown is complete.  If
+block=False, waits for the client to shutdown in a new
+thread. Check self.waits_thread.isAlive() to see when shutdown
+has finished. (This function also returns a handle to the wait
+thread when block=False).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.start" title="Link to this definition"></a></dt>
+<dd><p>Start an individual client.</p>
+<p>Raises RuntimeError if this client is already running.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.start_or_restart">
+<span class="sig-name descname"><span class="pre">start_or_restart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.start_or_restart" title="Link to this definition"></a></dt>
+<dd><p>Start or restart a client</p>
+<p>If restart=True, wait for previous client to shutdown first.
+Calls write_input_files() followed by start().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.VaspClient.wait_for_shutdown">
+<span class="sig-name descname"><span class="pre">wait_for_shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.VaspClient.wait_for_shutdown" title="Link to this definition"></a></dt>
+<dd><p>Block until a client has shutdown.</p>
+<p>Typically called automatically by shutdown() or
+start_or_restart().</p>
+<p>Shutdown should previously have been initiated by queuing a
+‘shutdown’ or ‘restart’ request. Waits CLIENT_TIMEOUT for
+graceful shutdown. If client is still alive, a SIGTERM signal
+is sent. If this has had no effect after a further
+CLIENT_TIMEOUT, then a SIGKILL is sent. Does not return until
+the SIGKILL has taken effect.</p>
+<p>This function also marks shutdown task as complete in
+servers’s input_q for this client.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">CastepClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=1.0,</span> <span class="pre">**castep_args</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#matscipy.socketcalc.QMClient" title="matscipy.socketcalc.QMClient"><code class="xref py py-class docutils literal notranslate"><span class="pre">QMClient</span></code></a></p>
+<p>Subclass of Client for running CASTEP calculations.</p>
+<p>Initial input files are written in .cell and .param
+formats, and subsequent communication is via sockets in REFTRAJ format.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient.extra_args" title="matscipy.socketcalc.CastepClient.extra_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extra_args</span></code></a>([label])</p></td>
+<td><p>Return list of additional command line arguments to be passed to client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient.is_compatible" title="matscipy.socketcalc.CastepClient.is_compatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_compatible</span></code></a>(old_at, new_at, label)</p></td>
+<td><p>Check if new_at and old_at are compatible.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient.postprocess" title="matscipy.socketcalc.CastepClient.postprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">postprocess</span></code></a>(at, label)</p></td>
+<td><p>Post-process results of calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient.preprocess" title="matscipy.socketcalc.CastepClient.preprocess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">preprocess</span></code></a>(at, label[, force_restart])</p></td>
+<td><p>Prepare client for a calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient.shutdown" title="matscipy.socketcalc.CastepClient.shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shutdown</span></code></a>([block])</p></td>
+<td><p>Request a client to shutdown.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient.start" title="matscipy.socketcalc.CastepClient.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>([label])</p></td>
+<td><p>Start an individual client.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient.start_or_restart" title="matscipy.socketcalc.CastepClient.start_or_restart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start_or_restart</span></code></a>(at, label[, restart])</p></td>
+<td><p>Start or restart a client</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.CastepClient.wait_for_shutdown" title="matscipy.socketcalc.CastepClient.wait_for_shutdown"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wait_for_shutdown</span></code></a>()</p></td>
+<td><p>Block until a client has shutdown.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>write_input_files</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">client_id,</span> <span class="pre">exe,</span> <span class="pre">env=None,</span> <span class="pre">npj=1,</span> <span class="pre">ppn=1,</span> <span class="pre">block=None,</span> <span class="pre">corner=None,</span> <span class="pre">shape=None,</span> <span class="pre">jobname='socketcalc',</span> <span class="pre">rundir=None,</span> <span class="pre">fmt='REFTRAJ',</span> <span class="pre">parmode=None,</span> <span class="pre">mpirun='mpirun',</span> <span class="pre">mpirun_args=['-np'],</span> <span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;,</span> <span class="pre">max_pos_diff=1.0,</span> <span class="pre">max_cell_diff=1.0,</span> <span class="pre">**castep_args</span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.preprocess">
+<span class="sig-name descname"><span class="pre">preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.preprocess" title="Link to this definition"></a></dt>
+<dd><p>Prepare client for a calculation.</p>
+<p>Starts client if this is the first task for it, or schedules a
+restart if new configuration is not compatible with the last
+one submitted to the queue (see is_compatible() method).</p>
+<p>Many be extended in subclasses to e.g. sort the atoms by
+atomic number. If Atoms object needs to be changed, a copy
+should be returned rather than updating it inplace.</p>
+<p>Returns (at, first_time).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.postprocess" title="Link to this definition"></a></dt>
+<dd><p>Post-process results of calculation.</p>
+<p>May be overrriden in subclasses to e.g. reverse sort order
+applied in preprocess().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.write_input_files">
+<span class="sig-name descname"><span class="pre">write_input_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.write_input_files" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.extra_args">
+<span class="sig-name descname"><span class="pre">extra_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.extra_args" title="Link to this definition"></a></dt>
+<dd><p>Return list of additional command line arguments to be passed to client</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.is_compatible">
+<span class="sig-name descname"><span class="pre">is_compatible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.is_compatible" title="Link to this definition"></a></dt>
+<dd><p>Check if new_at and old_at are compatible.</p>
+<p>Returns True if calculation can be continued, or False
+if client must be restarted before it can process new_at.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Request a client to shutdown.</p>
+<p>If block=True, does not return until shutdown is complete.  If
+block=False, waits for the client to shutdown in a new
+thread. Check self.waits_thread.isAlive() to see when shutdown
+has finished. (This function also returns a handle to the wait
+thread when block=False).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.start" title="Link to this definition"></a></dt>
+<dd><p>Start an individual client.</p>
+<p>Raises RuntimeError if this client is already running.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.start_or_restart">
+<span class="sig-name descname"><span class="pre">start_or_restart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">at</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.start_or_restart" title="Link to this definition"></a></dt>
+<dd><p>Start or restart a client</p>
+<p>If restart=True, wait for previous client to shutdown first.
+Calls write_input_files() followed by start().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.CastepClient.wait_for_shutdown">
+<span class="sig-name descname"><span class="pre">wait_for_shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.CastepClient.wait_for_shutdown" title="Link to this definition"></a></dt>
+<dd><p>Block until a client has shutdown.</p>
+<p>Typically called automatically by shutdown() or
+start_or_restart().</p>
+<p>Shutdown should previously have been initiated by queuing a
+‘shutdown’ or ‘restart’ request. Waits CLIENT_TIMEOUT for
+graceful shutdown. If client is still alive, a SIGTERM signal
+is sent. If this has had no effect after a further
+CLIENT_TIMEOUT, then a SIGKILL is sent. Does not return until
+the SIGKILL has taken effect.</p>
+<p>This function also marks shutdown task as complete in
+servers’s input_q for this client.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.socketcalc.</span></span><span class="sig-name descname"><span class="pre">SocketCalculator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bgq=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Calculator</span></code></p>
+<p>ASE-compatible calculator which communicates with remote
+force engines via sockets using a (synchronous) AtomsServer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>directory</strong></dt><dd></dd>
+<dt><strong>label</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.band_structure" title="matscipy.socketcalc.SocketCalculator.band_structure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">band_structure</span></code></a>()</p></td>
+<td><p>Create band-structure object for plotting.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.calculate" title="matscipy.socketcalc.SocketCalculator.calculate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate</span></code></a>(atoms, properties, system_changes)</p></td>
+<td><p>Do the calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.calculate_numerical_forces" title="matscipy.socketcalc.SocketCalculator.calculate_numerical_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_forces</span></code></a>(atoms[, d])</p></td>
+<td><p>Calculate numerical forces using finite difference.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.calculate_numerical_stress" title="matscipy.socketcalc.SocketCalculator.calculate_numerical_stress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_stress</span></code></a>(atoms[, d, voigt])</p></td>
+<td><p>Calculate numerical stress using finite difference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.calculate_properties" title="matscipy.socketcalc.SocketCalculator.calculate_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_properties</span></code></a>(atoms, properties)</p></td>
+<td><p>This method is experimental; currently for internal use.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.check_state" title="matscipy.socketcalc.SocketCalculator.check_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_state</span></code></a>(atoms[, tol])</p></td>
+<td><p>Check for any system changes since last calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.get_magnetic_moments" title="matscipy.socketcalc.SocketCalculator.get_magnetic_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_magnetic_moments</span></code></a>([atoms])</p></td>
+<td><p>Calculate magnetic moments projected onto atoms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.get_property" title="matscipy.socketcalc.SocketCalculator.get_property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_property</span></code></a>(name[, atoms, allow_calculation])</p></td>
+<td><p>Get the named property.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.get_stresses" title="matscipy.socketcalc.SocketCalculator.get_stresses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stresses</span></code></a>([atoms])</p></td>
+<td><p>the calculator should return intensive stresses, i.e., such that stresses.sum(axis=0) == stress</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.read" title="matscipy.socketcalc.SocketCalculator.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read</span></code></a>(label)</p></td>
+<td><p>Read atoms, parameters and calculated properties from output file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.reset" title="matscipy.socketcalc.SocketCalculator.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Clear all information from old calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.set" title="matscipy.socketcalc.SocketCalculator.set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>(**kwargs)</p></td>
+<td><p>Set parameters like set(key1=value1, key2=value2, ...).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.set_label" title="matscipy.socketcalc.SocketCalculator.set_label"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_label</span></code></a>(label)</p></td>
+<td><p>Set label and convert label to directory and prefix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.socketcalc.SocketCalculator.todict" title="matscipy.socketcalc.SocketCalculator.todict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">todict</span></code></a>([skip_default])</p></td>
+<td><p>Obtain a dictionary of parameter information</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>calculation_required</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>export_properties</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_atoms</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_charges</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_default_parameters</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_dipole_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_forces</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_magnetic_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_potential_energies</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_potential_energy</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_stress</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>read_atoms</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>shutdown</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.implemented_properties">
+<span class="sig-name descname"><span class="pre">implemented_properties</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['energy',</span> <span class="pre">'forces',</span> <span class="pre">'stress']</span></em><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.implemented_properties" title="Link to this definition"></a></dt>
+<dd><p>Properties calculator can handle (energy, forces, …)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.default_parameters">
+<span class="sig-name descname"><span class="pre">default_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.default_parameters" title="Link to this definition"></a></dt>
+<dd><p>Default parameters</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'SocketCalculator'</span></em><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger=&lt;matscipy.logger.Logger</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bgq=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.__init__" title="Link to this definition"></a></dt>
+<dd><p>Basic calculator implementation.</p>
+<dl class="simple">
+<dt>restart: str</dt><dd><p>Prefix for restart file.  May contain a directory. Default
+is None: don’t restart.</p>
+</dd>
+<dt>ignore_bad_restart_file: bool</dt><dd><p>Deprecated, please do not use.
+Passing more than one positional argument to Calculator()
+is deprecated and will stop working in the future.
+Ignore broken or missing restart file.  By default, it is an
+error if the restart file is missing or broken.</p>
+</dd>
+<dt>directory: str or PurePath</dt><dd><p>Working directory in which to read and write files and
+perform calculations.</p>
+</dd>
+<dt>label: str</dt><dd><p>Name used for all files.  Not supported by all calculators.
+May contain a directory, but please use the directory parameter
+for that instead.</p>
+</dd>
+<dt>atoms: Atoms object</dt><dd><p>Optional Atoms object to which the calculator will be
+attached.  When restarting, atoms will get its positions and
+unit-cell updated from file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.calculate">
+<span class="sig-name descname"><span class="pre">calculate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_changes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.calculate" title="Link to this definition"></a></dt>
+<dd><p>Do the calculation.</p>
+<dl class="simple">
+<dt>properties: list of str</dt><dd><p>List of what needs to be calculated.  Can be any combination
+of ‘energy’, ‘forces’, ‘stress’, ‘dipole’, ‘charges’, ‘magmom’
+and ‘magmoms’.</p>
+</dd>
+<dt>system_changes: list of str</dt><dd><p>List of what has changed since last calculation.  Can be
+any combination of these six: ‘positions’, ‘numbers’, ‘cell’,
+‘pbc’, ‘initial_charges’ and ‘initial_magmoms’.</p>
+</dd>
+</dl>
+<p>Subclasses need to implement this, but can ignore properties
+and system_changes if they want.  Calculated properties should
+be inserted into results dictionary like shown in this dummy
+example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;energy&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="s1">&#39;forces&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">)),</span>
+                <span class="s1">&#39;stress&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">6</span><span class="p">),</span>
+                <span class="s1">&#39;dipole&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+                <span class="s1">&#39;charges&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">)),</span>
+                <span class="s1">&#39;magmom&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="s1">&#39;magmoms&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">))}</span>
+</pre></div>
+</div>
+<p>The subclass implementation should first call this
+implementation to set the atoms attribute and create any missing
+directories.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.band_structure">
+<span class="sig-name descname"><span class="pre">band_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.band_structure" title="Link to this definition"></a></dt>
+<dd><p>Create band-structure object for plotting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.calculate_numerical_forces">
+<span class="sig-name descname"><span class="pre">calculate_numerical_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.calculate_numerical_forces" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical forces using finite difference.</p>
+<p>All atoms will be displaced by +d and -d in all directions.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.calculate_numerical_stress">
+<span class="sig-name descname"><span class="pre">calculate_numerical_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voigt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.calculate_numerical_stress" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical stress using finite difference.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.calculate_properties">
+<span class="sig-name descname"><span class="pre">calculate_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.calculate_properties" title="Link to this definition"></a></dt>
+<dd><p>This method is experimental; currently for internal use.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.calculation_required">
+<span class="sig-name descname"><span class="pre">calculation_required</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.calculation_required" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.check_state">
+<span class="sig-name descname"><span class="pre">check_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.check_state" title="Link to this definition"></a></dt>
+<dd><p>Check for any system changes since last calculation.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.directory">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">directory</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.discard_results_on_any_change">
+<span class="sig-name descname"><span class="pre">discard_results_on_any_change</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.discard_results_on_any_change" title="Link to this definition"></a></dt>
+<dd><p>Whether we purge the results following any change in the set() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.export_properties">
+<span class="sig-name descname"><span class="pre">export_properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.export_properties" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_atoms">
+<span class="sig-name descname"><span class="pre">get_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_charges">
+<span class="sig-name descname"><span class="pre">get_charges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_charges" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_default_parameters">
+<span class="sig-name descname"><span class="pre">get_default_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_default_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_dipole_moment">
+<span class="sig-name descname"><span class="pre">get_dipole_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_dipole_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_forces">
+<span class="sig-name descname"><span class="pre">get_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_forces" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_magnetic_moment">
+<span class="sig-name descname"><span class="pre">get_magnetic_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_magnetic_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_magnetic_moments">
+<span class="sig-name descname"><span class="pre">get_magnetic_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_magnetic_moments" title="Link to this definition"></a></dt>
+<dd><p>Calculate magnetic moments projected onto atoms.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_potential_energies">
+<span class="sig-name descname"><span class="pre">get_potential_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_potential_energies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_potential_energy">
+<span class="sig-name descname"><span class="pre">get_potential_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_consistent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_potential_energy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_property">
+<span class="sig-name descname"><span class="pre">get_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_calculation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_property" title="Link to this definition"></a></dt>
+<dd><p>Get the named property.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_stress">
+<span class="sig-name descname"><span class="pre">get_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_stress" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.get_stresses">
+<span class="sig-name descname"><span class="pre">get_stresses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.get_stresses" title="Link to this definition"></a></dt>
+<dd><p>the calculator should return intensive stresses, i.e., such that
+stresses.sum(axis=0) == stress</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.ignored_changes">
+<span class="sig-name descname"><span class="pre">ignored_changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.ignored_changes" title="Link to this definition"></a></dt>
+<dd><p>Properties of Atoms which we ignore for the purposes of cache</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.label">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">label</span></span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.label" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.read" title="Link to this definition"></a></dt>
+<dd><p>Read atoms, parameters and calculated properties from output file.</p>
+<p>Read result from self.label file.  Raise ReadError if the file
+is not there.  If the file is corrupted or contains an error
+message from the calculation, a ReadError should also be
+raised.  In case of succes, these attributes must set:</p>
+<dl class="simple">
+<dt>atoms: Atoms object</dt><dd><p>The state of the atoms from last calculation.</p>
+</dd>
+<dt>parameters: Parameters object</dt><dd><p>The parameter dictionary.</p>
+</dd>
+<dt>results: dict</dt><dd><p>Calculated properties like energy and forces.</p>
+</dd>
+</dl>
+<p>The FileIOCalculator.read() method will typically read atoms
+and parameters and get the results dict by calling the
+read_results() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.read_atoms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restart</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.read_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.reset" title="Link to this definition"></a></dt>
+<dd><p>Clear all information from old calculation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.set" title="Link to this definition"></a></dt>
+<dd><p>Set parameters like set(key1=value1, key2=value2, …).</p>
+<p>A dictionary containing the parameters that have been changed
+is returned.</p>
+<p>Subclasses must implement a set() method that will look at the
+chaneged parameters and decide if a call to reset() is needed.
+If the changed parameters are harmless, like a change in
+verbosity, then there is no need to call reset().</p>
+<p>The special keyword ‘parameters’ can be used to read
+parameters from a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.set_label">
+<span class="sig-name descname"><span class="pre">set_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.set_label" title="Link to this definition"></a></dt>
+<dd><p>Set label and convert label to directory and prefix.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>label=’abc’: (directory=’.’, prefix=’abc’)</p></li>
+<li><p>label=’dir1/abc’: (directory=’dir1’, prefix=’abc’)</p></li>
+<li><p>label=None: (directory=’.’, prefix=None)</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.shutdown" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.socketcalc.SocketCalculator.todict">
+<span class="sig-name descname"><span class="pre">todict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.socketcalc.SocketCalculator.todict" title="Link to this definition"></a></dt>
+<dd><p>Obtain a dictionary of parameter information</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.precon.html" class="btn btn-neutral float-left" title="matscipy.precon" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.surface.html" class="btn btn-neutral float-right" title="matscipy.surface" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

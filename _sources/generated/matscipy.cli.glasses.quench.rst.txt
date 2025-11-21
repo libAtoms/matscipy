@@ -1,0 +1,14 @@
+matscipy.cli.glasses.quench
+===========================
+
+.. automodule:: matscipy.cli.glasses.quench
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      handle_sigusr2
+      main
+      random_solid
+   

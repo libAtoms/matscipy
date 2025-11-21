@@ -1,0 +1,12 @@
+matscipy.calculators.eam.calculator
+===================================
+
+.. automodule:: matscipy.calculators.eam.calculator
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      EAM
+   

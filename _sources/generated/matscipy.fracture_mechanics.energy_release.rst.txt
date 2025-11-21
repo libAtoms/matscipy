@@ -1,0 +1,12 @@
+matscipy.fracture\_mechanics.energy\_release
+============================================
+
+.. automodule:: matscipy.fracture_mechanics.energy_release
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      J_integral
+   

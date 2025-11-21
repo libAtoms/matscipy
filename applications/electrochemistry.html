@@ -1,0 +1,185 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electrochemistry &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="One-dimensional Poisson-Nernst-Planck systems" href="electrochemistry_1.html" />
+    <link rel="prev" title="Quasi static fracture simulations" href="quasi_static_crack.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Application domains</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="elastic_constants.html">Elastic Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plasticity.html">Plasticity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fracture_mechanics.html">Fracture Mechanics</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Electrochemistry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_1.html">One-dimensional Poisson-Nernst-Planck systems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_1.html#from-continuous-double-layer-theory-to-discrete-coordinate-sets">From continuous double layer theory to discrete coordinate sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_3.html">Steric correction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#acknowledgements">Acknowledgements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tribology.html">Tribology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Application domains</a></li>
+      <li class="breadcrumb-item active">Electrochemistry</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/electrochemistry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="electrochemistry">
+<h1>Electrochemistry<a class="headerlink" href="#electrochemistry" title="Link to this heading"></a></h1>
+<p>The electrochemistry module provides three components for preparing atomistic
+configurations usually encountered in the context of soluted electrolytes.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="electrochemistry_1.html">One-dimensional Poisson-Nernst-Planck systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_1.html#the-inert-electrode">The inert electrode</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_1.html#preparations">Preparations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_1.html#solving-with-dirichlet-and-zero-flux-boundary-conditions">Solving with Dirichlet and zero flux boundary conditions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_1.html#validation-analytical-half-space-solution-vs-numerical-finite-interval-pnp-system">Validation: Analytical half-space solution vs. numerical finite-interval PNP system</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_1.html#the-electrochemical-cell">The electrochemical cell</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_1.html#id1">Solving with Dirichlet and zero flux boundary conditions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_1.html#visualization">Visualization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="electrochemistry_1.html#from-continuous-double-layer-theory-to-discrete-coordinate-sets">From continuous double layer theory to discrete coordinate sets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_1.html#poisson-nernst-planck-system-with-stern-layer-boundary-conditions">Poisson-Nernst-Planck-System with Stern layer boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_1.html#solving-with-robin-and-zero-flux-boundary-conditions">Solving with Robin and zero flux boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_1.html#id2">Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_1.html#sampling-from-continuous-distributions">Sampling from continuous distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_1.html#coordinates-export">Coordinates export</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_1.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="electrochemistry_3.html">Steric correction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_3.html#step-1-generating-continuous-concentration-distributions">Step 1: generating continuous concentration distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_3.html#step-2-sampling-from-distributions">Step 2: sampling from distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_3.html#step-3-enforcing-steric-radii">Step 3: enforcing steric radii</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_3.html#inspect-the-initial-coordinate-sample">Inspect the initial coordinate sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_3.html#apply-the-steric-correction">Apply the steric correction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_3.html#visualize-the-applied-corrections">Visualize the applied corrections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_3.html#export-initial-and-steric-configurations">Export initial and steric configurations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry_3.html#references">References</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="acknowledgements">
+<h2>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Link to this heading"></a></h2>
+<p>We thank Lukas Elflein for supporting the development of
+<cite>matscipy.electrochemistry</cite> and the according example notebooks, Christian
+Seidl for early experimentation with the module’s functionality, Andreas
+Greiner for discussions and inspirations on solving transport problems with
+controlled-volume and finte-elements methods, as well as Meng Yonggang and
+Zhang Jun for posing an interesting tribological problem that sparked the
+development of this module initially.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quasi_static_crack.html" class="btn btn-neutral float-left" title="Quasi static fracture simulations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="electrochemistry_1.html" class="btn btn-neutral float-right" title="One-dimensional Poisson-Nernst-Planck systems" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

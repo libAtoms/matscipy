@@ -1,0 +1,15 @@
+matscipy.calculators.manybody.explicit\_forms.harmonic
+======================================================
+
+.. automodule:: matscipy.calculators.manybody.explicit_forms.harmonic
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      HarmonicAngle
+      HarmonicBond
+      ZeroPair
+      ZeroTriplet
+   

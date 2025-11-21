@@ -1,0 +1,562 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tribology &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Analysis tools" href="../tools/index.html" />
+    <link rel="prev" title="Steric correction" href="electrochemistry_3.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Application domains</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="elastic_constants.html">Elastic Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plasticity.html">Plasticity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fracture_mechanics.html">Fracture Mechanics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry.html">Electrochemistry</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Tribology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#system-setup">System setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#initial-pressure-equilibration">Initial pressure equilibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#restarting-a-pressure-equilibration">Restarting a pressure equilibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sliding-simulation">Sliding simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#restarting-a-sliding-simulation">Restarting a sliding simulation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Application domains</a></li>
+      <li class="breadcrumb-item active">Tribology</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/tribology.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="tribology">
+<h1>Tribology<a class="headerlink" href="#tribology" title="Link to this heading"></a></h1>
+<p>Tribology is the study of two interfaces sliding relative to one another, as encountered in frictional sliding or adhesion. Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain
+insights into the atomistic mechanisms underlying friction and wear. The module <a class="reference internal" href="../generated/matscipy.pressurecoupling.html#module-matscipy.pressurecoupling" title="matscipy.pressurecoupling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">matscipy.pressurecoupling</span></code></a> provides tools to perform such simulations under a constant normal load and sliding velocity.</p>
+<p>The example below shows how to perform an initial fast pressure equilibration of an interface prior to sliding.
+Afterwards, during sliding, we apply the pressure coupling by <a class="reference external" href="https://doi.org/10.1007/s11249-009-9566-8">Pastewka et al.</a> to dynamically adjust the distance between the two surfaces according to the local pressure. The algorithm ensures
+mechanical boundary conditions that account for the inertia of the bulk material which
+is not explicitly included in the simulation.</p>
+<section id="system-setup">
+<h2>System setup<a class="headerlink" href="#system-setup" title="Link to this heading"></a></h2>
+<p>Let’s first create an exemplary sliding interface consisting of two silicon crystals:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.lattice.cubic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Diamond</span>
+
+<span class="c1"># create two slabs</span>
+<span class="n">slab1</span> <span class="o">=</span> <span class="n">Diamond</span><span class="p">(</span><span class="n">directions</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;Si&#39;</span><span class="p">,</span>
+                <span class="n">pbc</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">latticeconstant</span><span class="o">=</span><span class="mf">5.431</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+<span class="n">slab2</span> <span class="o">=</span> <span class="n">slab1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+<span class="c1"># merge them</span>
+<span class="n">slab2</span><span class="o">.</span><span class="n">translate</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">slab1</span><span class="o">.</span><span class="n">get_cell</span><span class="p">()[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1.2</span><span class="p">])</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">slab1</span> <span class="o">+</span> <span class="n">slab2</span>
+
+<span class="c1"># remove pbc along z direction</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">vacuum</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_pbc</span><span class="p">([</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="initial-pressure-equilibration">
+<h2>Initial pressure equilibration<a class="headerlink" href="#initial-pressure-equilibration" title="Link to this heading"></a></h2>
+<p>To apply a normal load along the <em>z</em> direction to this system, we will fix the two lowest atomic layers of the lower crystal. The corresponding atoms are defined with the mask (<code class="docutils literal notranslate"><span class="pre">bottom_mask</span></code>). The two topmost atomic layers of the upper crystal will be treated rigidly (<code class="docutils literal notranslate"><span class="pre">top_mask</span></code>). The <em>z</em> position of this rigid region can adapt according to the normal pressure. To reuse the masks in subsequent simulation runs (sliding or restarts), we save them in files.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">bottom_mask</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_positions</span><span class="p">()[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1.4</span>  <span class="c1"># mask for lower fixed atoms</span>
+<span class="n">top_mask</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_positions</span><span class="p">()[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_cell</span><span class="p">()[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.4</span>  <span class="c1"># mask for upper rigid atoms</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;bottom_mask.txt&quot;</span><span class="p">,</span> <span class="n">bottom_mask</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;top_mask.txt&quot;</span><span class="p">,</span> <span class="n">top_mask</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We now specify the numerical parameters of the MD simulation. A Langevin thermostat will be used in the <em>y</em> direction along which neither the normal load nor the sliding motion are applied. For simplicity, we will thermalize all atoms which are not part of the constraint regions. This makes sense for small systems which cannot have a dedicated thermostat region.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPa</span><span class="p">,</span> <span class="n">fs</span>
+
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># MD time step</span>
+<span class="n">C11</span> <span class="o">=</span> <span class="mf">166.0</span> <span class="o">*</span> <span class="n">GPa</span>  <span class="c1"># material constant</span>
+<span class="n">M_factor</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># scaling factor for lid mass during equilibration,</span>
+<span class="c1"># 1.0 will give fast equilibration for expensive calculators</span>
+
+<span class="n">Pdir</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># index of cell axis along which the normal pressure is applied</span>
+<span class="n">P</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">GPa</span>  <span class="c1"># target normal pressure</span>
+<span class="n">v</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># no sliding yet, only apply pressure</span>
+<span class="n">vdir</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># index of cell axis along which sliding happens</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mf">300.0</span>  <span class="c1"># target temperature for thermostat in K</span>
+
+<span class="n">t_langevin</span> <span class="o">=</span> <span class="mf">75.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># time constant for Langevin thermostat</span>
+<span class="n">gamma_langevin</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">t_langevin</span>  <span class="c1"># derived Langevin parameter</span>
+<span class="n">t_integrate</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># simulation time</span>
+<span class="n">steps_integrate</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t_integrate</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>  <span class="c1"># number of simulation steps</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Next, we set up the calculation by attaching the constraint and a calculator to the atoms object. For the initial pressure equilibration, we critically damp the motion of the upper rigid layer while not increasing its mass. This is useful for a fast pressure equilibration.
+Interatomic interactions are modelled with the Stillinger-Weber potential for silicon. For a fast temperature convergence, since we typically start from a local minimum, we also set the initial temperature of the system to twice the target temperature.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.manybody.explicit_forms.stillinger_weber</span><span class="w"> </span><span class="kn">import</span> <span class="n">StillingerWeber</span><span class="p">,</span> <span class="n">Stillinger_Weber_PRB_31_5262_Si</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.manybody</span><span class="w"> </span><span class="kn">import</span> <span class="n">Manybody</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">pressurecoupling</span> <span class="k">as</span> <span class="n">pc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.md.velocitydistribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">MaxwellBoltzmannDistribution</span>
+
+<span class="n">damp</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">FixedMassCriticalDamping</span><span class="p">(</span><span class="n">C11</span><span class="p">,</span> <span class="n">M_factor</span><span class="p">)</span>  <span class="c1"># specifies the critical damping with a fixed mass </span>
+<span class="n">slider</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideWithNormalPressureCuboidCell</span><span class="p">(</span><span class="n">top_mask</span><span class="p">,</span> <span class="n">bottom_mask</span><span class="p">,</span> <span class="n">Pdir</span><span class="p">,</span>
+                                              <span class="n">P</span><span class="p">,</span> <span class="n">vdir</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">damp</span><span class="p">)</span>  <span class="c1"># ASE constraint for pressure coupling</span>
+
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_constraint</span><span class="p">(</span><span class="n">slider</span><span class="p">)</span>  <span class="c1"># attach constraint to atoms object</span>
+
+<span class="n">MaxwellBoltzmannDistribution</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">temperature_K</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>  <span class="c1"># initialize temperature</span>
+
+<span class="c1"># clear momenta in constraint regions, otherwise upper rigid region might run away</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">arrays</span><span class="p">[</span><span class="s1">&#39;momenta&#39;</span><span class="p">][</span><span class="n">top_mask</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">arrays</span><span class="p">[</span><span class="s1">&#39;momenta&#39;</span><span class="p">][</span><span class="n">bottom_mask</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="n">calc</span> <span class="o">=</span> <span class="n">Manybody</span><span class="p">(</span><span class="o">**</span><span class="n">StillingerWeber</span><span class="p">(</span><span class="n">Stillinger_Weber_PRB_31_5262_Si</span><span class="p">))</span>  <span class="c1"># specify calculator</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_calculator</span><span class="p">(</span><span class="n">calc</span><span class="p">)</span>  <span class="c1"># attach calculator</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/tmp/ipykernel_4448/829096581.py:19: FutureWarning: Please use atoms.calc = calc
+  atoms.set_calculator(calc)  # attach calculator
+</pre></div>
+</div>
+</div>
+</div>
+<p>Finally, we setup the integrator and run the simulation. This will create an ASE trajectory file of the MD run and a log file that tracks the current status of the simulation in terms of the system temperature, the system height, the shear stress etc.
+The log file can be read using the class (<a class="reference internal" href="../generated/matscipy.pressurecoupling.html#matscipy.pressurecoupling.SlideLog" title="matscipy.pressurecoupling.SlideLog"><code class="xref py py-class docutils literal notranslate"><span class="pre">SlideLog</span></code></a>).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trajectory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.md.langevin</span><span class="w"> </span><span class="kn">import</span> <span class="n">Langevin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="nb">open</span>
+
+<span class="c1"># only thermalize middle region in one direction</span>
+<span class="n">temps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">temps</span><span class="p">[</span><span class="n">slider</span><span class="o">.</span><span class="n">middle_mask</span><span class="p">,</span> <span class="n">slider</span><span class="o">.</span><span class="n">Tdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+<span class="n">gammas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">gammas</span><span class="p">[</span><span class="n">slider</span><span class="o">.</span><span class="n">middle_mask</span><span class="p">,</span> <span class="n">slider</span><span class="o">.</span><span class="n">Tdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">gamma_langevin</span>
+
+<span class="c1"># set up integrator</span>
+<span class="n">integrator</span> <span class="o">=</span> <span class="n">Langevin</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">temperature_K</span><span class="o">=</span><span class="n">temps</span><span class="p">,</span>
+                      <span class="n">friction</span><span class="o">=</span><span class="n">gammas</span><span class="p">,</span> <span class="n">fixcm</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># set up trajectory file</span>
+<span class="n">trajectory</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="s1">&#39;equilibrate_pressure_01.traj&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span> 
+
+<span class="c1"># set up logger</span>
+<span class="n">log_handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;log_equilibrate_01.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>  <span class="c1"># 1 means line buffered,</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideLogger</span><span class="p">(</span><span class="n">log_handle</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">slider</span><span class="p">,</span> <span class="n">integrator</span><span class="p">)</span>
+
+<span class="n">logger</span><span class="o">.</span><span class="n">write_header</span><span class="p">()</span>  <span class="c1"># write header of log file</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>  <span class="c1"># attach logger to integrator</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)</span>  <span class="c1"># attach trajectory to integrator</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">steps_integrate</span><span class="p">)</span>  <span class="c1"># run the simulation</span>
+<span class="n">log_handle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">trajectory</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="restarting-a-pressure-equilibration">
+<h2>Restarting a pressure equilibration<a class="headerlink" href="#restarting-a-pressure-equilibration" title="Link to this heading"></a></h2>
+<p>To restart the pressure equilibration, we start by specifying the parameters of the MD simulation, read the previous trajectory to initialize the current status of the system, and read the masks for the constraint regions.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPa</span><span class="p">,</span> <span class="n">fs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.manybody.explicit_forms.stillinger_weber</span><span class="w"> </span><span class="kn">import</span> <span class="n">StillingerWeber</span><span class="p">,</span> <span class="n">Stillinger_Weber_PRB_31_5262_Si</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.manybody</span><span class="w"> </span><span class="kn">import</span> <span class="n">Manybody</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">pressurecoupling</span> <span class="k">as</span> <span class="n">pc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># MD time step</span>
+<span class="n">C11</span> <span class="o">=</span> <span class="mf">166.0</span> <span class="o">*</span> <span class="n">GPa</span>  <span class="c1"># material constant</span>
+<span class="n">M_factor</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># scaling factor for lid mass during equilibration</span>
+
+<span class="n">Pdir</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># index of cell axis along normal pressure is applied</span>
+<span class="n">P</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">GPa</span>  <span class="c1"># target normal pressure</span>
+<span class="n">v</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># no sliding yet, only apply pressure</span>
+<span class="n">vdir</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># index of cell axis along sliding happens</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mf">300.0</span>  <span class="c1"># target temperature for the thermostat</span>
+
+<span class="n">t_langevin</span> <span class="o">=</span> <span class="mf">75.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># time constant for Langevin thermostat</span>
+<span class="n">gamma_langevin</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">t_langevin</span>  <span class="c1"># derived Langevin parameter</span>
+<span class="n">t_integrate</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># simulation time</span>
+<span class="n">steps_integrate</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t_integrate</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>  <span class="c1"># number of simulation steps</span>
+
+<span class="c1"># get atoms from trajectory to also initialize correct velocities</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;equilibrate_pressure_01.traj&#39;</span><span class="p">)</span>
+
+<span class="n">bottom_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s2">&quot;bottom_mask.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+<span class="n">top_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s2">&quot;top_mask.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+
+<span class="n">damp</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">FixedMassCriticalDamping</span><span class="p">(</span><span class="n">C11</span><span class="p">,</span> <span class="n">M_factor</span><span class="p">)</span>
+<span class="n">slider</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideWithNormalPressureCuboidCell</span><span class="p">(</span><span class="n">top_mask</span><span class="p">,</span> <span class="n">bottom_mask</span><span class="p">,</span>
+                                              <span class="n">Pdir</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">vdir</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">damp</span><span class="p">)</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_constraint</span><span class="p">(</span><span class="n">slider</span><span class="p">)</span>
+
+<span class="n">calc</span> <span class="o">=</span> <span class="n">Manybody</span><span class="p">(</span><span class="o">**</span><span class="n">StillingerWeber</span><span class="p">(</span><span class="n">Stillinger_Weber_PRB_31_5262_Si</span><span class="p">))</span>  <span class="c1"># specify calculator</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_calculator</span><span class="p">(</span><span class="n">calc</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/tmp/ipykernel_4448/3486272778.py:35: FutureWarning: Please use atoms.calc = calc
+  atoms.set_calculator(calc)
+</pre></div>
+</div>
+</div>
+</div>
+<p>Next, we again initialize the integrator.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.md.langevin</span><span class="w"> </span><span class="kn">import</span> <span class="n">Langevin</span>
+
+<span class="n">temps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">temps</span><span class="p">[</span><span class="n">slider</span><span class="o">.</span><span class="n">middle_mask</span><span class="p">,</span> <span class="n">slider</span><span class="o">.</span><span class="n">Tdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+<span class="n">gammas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">gammas</span><span class="p">[</span><span class="n">slider</span><span class="o">.</span><span class="n">middle_mask</span><span class="p">,</span> <span class="n">slider</span><span class="o">.</span><span class="n">Tdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">gamma_langevin</span>
+<span class="n">integrator</span> <span class="o">=</span> <span class="n">Langevin</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">temperature_K</span><span class="o">=</span><span class="n">temps</span><span class="p">,</span>
+                      <span class="n">friction</span><span class="o">=</span><span class="n">gammas</span><span class="p">,</span> <span class="n">fixcm</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We specify the trajectory file and the log file and run the simulation. Note that ASE automatically writes the initial step of a run, i.e., if you choose to append to the previous trajectory and log files, both will contain the information about the initial configuration twice, since this configuration has already been written to the files at the end of the previous run.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trajectory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="nb">open</span>
+
+<span class="n">trajectory</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="s1">&#39;equilibrate_pressure_02.traj&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;log_equilibrate_01.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">log_handle</span><span class="p">:</span>
+    <span class="n">step_offset</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideLog</span><span class="p">(</span><span class="n">log_handle</span><span class="p">)</span><span class="o">.</span><span class="n">step</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># read last step</span>
+
+<span class="n">log_handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;log_equilibrate_02.txt&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>  <span class="c1"># line buffered</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideLogger</span><span class="p">(</span><span class="n">log_handle</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">slider</span><span class="p">,</span> <span class="n">integrator</span><span class="p">,</span> <span class="n">step_offset</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">write_header</span><span class="p">()</span>  <span class="c1"># write header of log file</span>
+
+<span class="n">integrator</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">steps_integrate</span><span class="p">)</span>
+<span class="n">log_handle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">trajectory</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="sliding-simulation">
+<h2>Sliding simulation<a class="headerlink" href="#sliding-simulation" title="Link to this heading"></a></h2>
+<p>After the pressure equilibration, we can start to apply a shear deformation to the system by applying a constant sliding velocity to the upper rigid layer. First, we specify the parameters of the MD simulation, read the equilibration trajectory to initialize the current status of the system, and read the masks for the constraint regions.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPa</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.manybody.explicit_forms.stillinger_weber</span><span class="w"> </span><span class="kn">import</span> <span class="n">StillingerWeber</span><span class="p">,</span> <span class="n">Stillinger_Weber_PRB_31_5262_Si</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.manybody</span><span class="w"> </span><span class="kn">import</span> <span class="n">Manybody</span>
+
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># MD time step</span>
+<span class="n">C11</span> <span class="o">=</span> <span class="mf">166.0</span> <span class="o">*</span> <span class="n">GPa</span>  <span class="c1"># material constant</span>
+<span class="n">p_c</span> <span class="o">=</span> <span class="mf">0.20</span>  <span class="c1"># empirical cutoff parameter value to remove high-frequency oscillations of the system </span>
+
+<span class="n">Pdir</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># index of cell axis along normal pressure is applied</span>
+<span class="n">P</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">GPa</span>  <span class="c1"># target normal pressure</span>
+<span class="n">v</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">m</span> <span class="o">/</span> <span class="n">s</span>  <span class="c1"># constant sliding speed</span>
+<span class="n">vdir</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># index of cell axis along sliding happens</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mf">300.0</span>  <span class="c1"># target temperature for thermostat</span>
+
+<span class="n">t_langevin</span> <span class="o">=</span> <span class="mf">75.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># time constant for Langevin thermostat</span>
+<span class="n">gamma_langevin</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">t_langevin</span>  <span class="c1"># derived Langevin parameter</span>
+<span class="n">t_integrate</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># simulation time</span>
+<span class="n">steps_integrate</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t_integrate</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>  <span class="c1"># number of simulation steps</span>
+
+<span class="c1"># get atoms from trajectory to also initialize correct velocities</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;equilibrate_pressure_02.traj&#39;</span><span class="p">)</span>
+
+<span class="n">bottom_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s2">&quot;bottom_mask.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+<span class="n">top_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s2">&quot;top_mask.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+
+<span class="n">calc</span> <span class="o">=</span> <span class="n">Manybody</span><span class="p">(</span><span class="o">**</span><span class="n">StillingerWeber</span><span class="p">(</span><span class="n">Stillinger_Weber_PRB_31_5262_Si</span><span class="p">))</span>  <span class="c1"># specify calculator</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_calculator</span><span class="p">(</span><span class="n">calc</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/tmp/ipykernel_4448/1365514820.py:29: FutureWarning: Please use atoms.calc = calc
+  atoms.set_calculator(calc)
+</pre></div>
+</div>
+</div>
+</div>
+<p>Since we change the pressure coupling algorithm, we need to reset the velocities of the upper rigid layer.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">velocities</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_velocities</span><span class="p">()</span>
+<span class="n">velocities</span><span class="p">[</span><span class="n">top_mask</span><span class="p">,</span> <span class="n">Pdir</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_velocities</span><span class="p">(</span><span class="n">velocities</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>In analogy to the pressure equilibration, we set up the constraint for the simulation, but this time we use the pressure coupling algorithm of <a class="reference external" href="https://doi.org/10.1007/s11249-009-9566-8">Pastewka et al.</a> rather than critical damping with a fixed mass.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">pressurecoupling</span> <span class="k">as</span> <span class="n">pc</span>
+
+<span class="n">damp</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">AutoDamping</span><span class="p">(</span><span class="n">C11</span><span class="p">,</span> <span class="n">p_c</span><span class="p">)</span>  <span class="c1"># Damping by Pastewka et al.</span>
+<span class="n">slider</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideWithNormalPressureCuboidCell</span><span class="p">(</span><span class="n">top_mask</span><span class="p">,</span> <span class="n">bottom_mask</span><span class="p">,</span>
+                                              <span class="n">Pdir</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">vdir</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">damp</span><span class="p">)</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_constraint</span><span class="p">(</span><span class="n">slider</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Afterwards, in analogy to the pressure equilibration, we initialize the integrator, the trajectory and log files, and run the simulation.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trajectory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.md.langevin</span><span class="w"> </span><span class="kn">import</span> <span class="n">Langevin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="nb">open</span>
+
+<span class="n">temps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">temps</span><span class="p">[</span><span class="n">slider</span><span class="o">.</span><span class="n">middle_mask</span><span class="p">,</span> <span class="n">slider</span><span class="o">.</span><span class="n">Tdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+<span class="n">gammas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">gammas</span><span class="p">[</span><span class="n">slider</span><span class="o">.</span><span class="n">middle_mask</span><span class="p">,</span> <span class="n">slider</span><span class="o">.</span><span class="n">Tdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">gamma_langevin</span>
+<span class="n">integrator</span> <span class="o">=</span> <span class="n">Langevin</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">temperature_K</span><span class="o">=</span><span class="n">temps</span><span class="p">,</span>
+                      <span class="n">friction</span><span class="o">=</span><span class="n">gammas</span><span class="p">,</span> <span class="n">fixcm</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">trajectory</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="s1">&#39;slide_01.traj&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span>
+<span class="n">log_handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;log_slide_01.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>  <span class="c1"># line buffered</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideLogger</span><span class="p">(</span><span class="n">log_handle</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">slider</span><span class="p">,</span> <span class="n">integrator</span><span class="p">)</span>
+<span class="c1"># log can be read using pc.SlideLog (see docstring there)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">write_header</span><span class="p">()</span>
+
+<span class="n">integrator</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">steps_integrate</span><span class="p">)</span>
+<span class="n">log_handle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">trajectory</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="restarting-a-sliding-simulation">
+<h2>Restarting a sliding simulation<a class="headerlink" href="#restarting-a-sliding-simulation" title="Link to this heading"></a></h2>
+<p>To restart the sliding simulation, the following script could be used.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trajectory</span><span class="p">,</span> <span class="n">read</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPa</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.md.langevin</span><span class="w"> </span><span class="kn">import</span> <span class="n">Langevin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">pressurecoupling</span> <span class="k">as</span> <span class="n">pc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="nb">open</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.manybody.explicit_forms.stillinger_weber</span><span class="w"> </span><span class="kn">import</span> <span class="n">StillingerWeber</span><span class="p">,</span> <span class="n">Stillinger_Weber_PRB_31_5262_Si</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.manybody</span><span class="w"> </span><span class="kn">import</span> <span class="n">Manybody</span>
+
+<span class="c1"># Parameters</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># MD time step</span>
+<span class="n">C11</span> <span class="o">=</span> <span class="mf">166.0</span> <span class="o">*</span> <span class="n">GPa</span>  <span class="c1"># material constant</span>
+<span class="n">p_c</span> <span class="o">=</span> <span class="mf">0.20</span>  <span class="c1"># empirical cutoff parameter value to remove high-frequency oscillations of the system</span>
+
+<span class="n">Pdir</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># index of cell axis along which normal pressure is applied</span>
+<span class="n">P</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">GPa</span>  <span class="c1"># target normal pressure</span>
+<span class="n">v</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">m</span> <span class="o">/</span> <span class="n">s</span>  <span class="c1"># constant sliding speed</span>
+<span class="n">vdir</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># index of cell axis along which sliding happens</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mf">300.0</span>  <span class="c1"># target temperature for thermostat</span>
+
+<span class="n">t_langevin</span> <span class="o">=</span> <span class="mf">75.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># time constant for Langevin thermostat</span>
+<span class="n">gamma_langevin</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">t_langevin</span>  <span class="c1"># derived Langevin parameter</span>
+<span class="n">t_integrate</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">fs</span>  <span class="c1"># simulation time</span>
+<span class="n">steps_integrate</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t_integrate</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>  <span class="c1"># number of simulation steps</span>
+
+<span class="c1"># get atoms from trajectory to also initialize correct velocities</span>
+<span class="n">atoms</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s1">&#39;slide_01.traj&#39;</span><span class="p">)</span>
+
+<span class="n">bottom_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s2">&quot;bottom_mask.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+<span class="n">top_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s2">&quot;top_mask.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+
+<span class="c1"># set up sliding constraints</span>
+<span class="n">damp</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">AutoDamping</span><span class="p">(</span><span class="n">C11</span><span class="p">,</span> <span class="n">p_c</span><span class="p">)</span>
+<span class="n">slider</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideWithNormalPressureCuboidCell</span><span class="p">(</span><span class="n">top_mask</span><span class="p">,</span> <span class="n">bottom_mask</span><span class="p">,</span>
+                                              <span class="n">Pdir</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">vdir</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">damp</span><span class="p">)</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_constraint</span><span class="p">(</span><span class="n">slider</span><span class="p">)</span>
+
+<span class="c1"># set up calculator</span>
+<span class="n">calc</span> <span class="o">=</span> <span class="n">Manybody</span><span class="p">(</span><span class="o">**</span><span class="n">StillingerWeber</span><span class="p">(</span><span class="n">Stillinger_Weber_PRB_31_5262_Si</span><span class="p">))</span>
+<span class="n">atoms</span><span class="o">.</span><span class="n">set_calculator</span><span class="p">(</span><span class="n">calc</span><span class="p">)</span>
+
+<span class="c1"># set up integrator</span>
+<span class="n">temps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">temps</span><span class="p">[</span><span class="n">slider</span><span class="o">.</span><span class="n">middle_mask</span><span class="p">,</span> <span class="n">slider</span><span class="o">.</span><span class="n">Tdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span>
+<span class="n">gammas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">gammas</span><span class="p">[</span><span class="n">slider</span><span class="o">.</span><span class="n">middle_mask</span><span class="p">,</span> <span class="n">slider</span><span class="o">.</span><span class="n">Tdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">gamma_langevin</span>
+<span class="n">integrator</span> <span class="o">=</span> <span class="n">Langevin</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">temperature_K</span><span class="o">=</span><span class="n">temps</span><span class="p">,</span>
+                      <span class="n">friction</span><span class="o">=</span><span class="n">gammas</span><span class="p">,</span> <span class="n">fixcm</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># specify log file and trajectory file and run the simulation</span>
+<span class="n">trajectory</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="s1">&#39;slide_02.traj&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;log_slide_01.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">log_handle</span><span class="p">:</span>
+    <span class="n">step_offset</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideLog</span><span class="p">(</span><span class="n">log_handle</span><span class="p">)</span><span class="o">.</span><span class="n">step</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># read last step</span>
+
+<span class="n">log_handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;log_slide_02.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span>
+                  <span class="mi">1</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>  <span class="c1"># line buffered</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">SlideLogger</span><span class="p">(</span><span class="n">log_handle</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">slider</span><span class="p">,</span> <span class="n">integrator</span><span class="p">,</span> <span class="n">step_offset</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">write_header</span><span class="p">()</span>
+
+<span class="n">integrator</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)</span>
+<span class="n">integrator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">steps_integrate</span><span class="p">)</span>
+<span class="n">log_handle</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">trajectory</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/tmp/ipykernel_4448/2714859955.py:40: FutureWarning: Please use atoms.calc = calc
+  atoms.set_calculator(calc)
+</pre></div>
+</div>
+</div>
+</div>
+<p>To remove all simulation files created during this tutorial, you can use the following code.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="k">for</span> <span class="n">tmp_file</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;log_equilibrate_01.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;log_equilibrate_02.txt&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;log_slide_01.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;log_slide_02.txt&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;equilibrate_pressure_01.traj&#39;</span><span class="p">,</span> <span class="s1">&#39;equilibrate_pressure_02.traj&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;slide_01.traj&#39;</span><span class="p">,</span> <span class="s1">&#39;slide_02.traj&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;top_mask.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;bottom_mask.txt&#39;</span><span class="p">]:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tmp_file</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">continue</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="electrochemistry_3.html" class="btn btn-neutral float-left" title="Steric correction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../tools/index.html" class="btn btn-neutral float-right" title="Analysis tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

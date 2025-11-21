@@ -1,0 +1,13 @@
+matscipy.calculators.polydisperse
+=================================
+
+.. automodule:: matscipy.calculators.polydisperse
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   calculator

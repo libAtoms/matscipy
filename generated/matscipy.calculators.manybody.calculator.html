@@ -1,0 +1,1438 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.calculators.manybody.calculator &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.calculators.manybody.explicit_forms" href="matscipy.calculators.manybody.explicit_forms.html" />
+    <link rel="prev" title="matscipy.calculators.manybody" href="matscipy.calculators.manybody.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.calculator.html">matscipy.calculators.calculator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.committee.html">matscipy.calculators.committee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.eam.html">matscipy.calculators.eam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.ewald.html">matscipy.calculators.ewald</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.fitting.html">matscipy.calculators.fitting</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.calculators.manybody.html">matscipy.calculators.manybody</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.calculators.manybody.calculator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.manybody.explicit_forms.html">matscipy.calculators.manybody.explicit_forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.manybody.newmb.html">matscipy.calculators.manybody.newmb</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.manybody.potentials.html">matscipy.calculators.manybody.potentials</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.pair_potential.html">matscipy.calculators.pair_potential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.polydisperse.html">matscipy.calculators.polydisperse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.supercell_calculator.html">matscipy.calculators.supercell_calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.calculators.manybody.html">matscipy.calculators.manybody</a></li>
+      <li class="breadcrumb-item active">matscipy.calculators.manybody.calculator</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.calculators.manybody.calculator.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.calculators.manybody.calculator">
+<span id="matscipy-calculators-manybody-calculator"></span><h1>matscipy.calculators.manybody.calculator<a class="headerlink" href="#module-matscipy.calculators.manybody.calculator" title="Link to this heading"></a></h1>
+<p>Generic Many body potential.</p>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody" title="matscipy.calculators.manybody.calculator.Manybody"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Manybody</span></code></a>(atom_type, pair_type, F, G, d1F, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody" title="matscipy.calculators.manybody.calculator.NiceManybody"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NiceManybody</span></code></a>(F, G, neighbourhood)</p></td>
+<td><p>Manybody calculator with nicer API.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.manybody.calculator.</span></span><span class="sig-name descname"><span class="pre">Manybody</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d1F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d2F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d11F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d22F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d12F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d1G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d11G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d2G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d22G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d12G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbourhood</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="matscipy.neighbours.html#matscipy.neighbours.Neighbourhood" title="matscipy.neighbours.Neighbourhood"><span class="pre">Neighbourhood</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="matscipy.calculators.calculator.html#matscipy.calculators.calculator.MatscipyCalculator" title="matscipy.calculators.calculator.MatscipyCalculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">MatscipyCalculator</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>directory</strong></dt><dd></dd>
+<dt><strong>label</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.band_structure" title="matscipy.calculators.manybody.calculator.Manybody.band_structure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">band_structure</span></code></a>()</p></td>
+<td><p>Create band-structure object for plotting.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.calculate" title="matscipy.calculators.manybody.calculator.Manybody.calculate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate</span></code></a>(atoms, properties, system_changes)</p></td>
+<td><p>Calculate system properties.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.calculate_numerical_forces" title="matscipy.calculators.manybody.calculator.Manybody.calculate_numerical_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_forces</span></code></a>(atoms[, d])</p></td>
+<td><p>Calculate numerical forces using finite difference.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.calculate_numerical_stress" title="matscipy.calculators.manybody.calculator.Manybody.calculate_numerical_stress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_stress</span></code></a>(atoms[, d, voigt])</p></td>
+<td><p>Calculate numerical stress using finite difference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.calculate_properties" title="matscipy.calculators.manybody.calculator.Manybody.calculate_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_properties</span></code></a>(atoms, properties)</p></td>
+<td><p>This method is experimental; currently for internal use.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.check_state" title="matscipy.calculators.manybody.calculator.Manybody.check_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_state</span></code></a>(atoms[, tol])</p></td>
+<td><p>Check for any system changes since last calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_birch_coefficients" title="matscipy.calculators.manybody.calculator.Manybody.get_birch_coefficients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_birch_coefficients</span></code></a>(atoms)</p></td>
+<td><p>Compute the Birch coefficients (Effective elastic constants at non-zero stress).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_born_elastic_constants" title="matscipy.calculators.manybody.calculator.Manybody.get_born_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_born_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the Born elastic constants.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_cutoff" title="matscipy.calculators.manybody.calculator.Manybody.get_cutoff"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cutoff</span></code></a>(atoms)</p></td>
+<td><p>Return a valid cutoff.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_dynamical_matrix" title="matscipy.calculators.manybody.calculator.Manybody.get_dynamical_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dynamical_matrix</span></code></a>(atoms)</p></td>
+<td><p>Compute dynamical matrix (=mass weighted Hessian).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_elastic_constants" title="matscipy.calculators.manybody.calculator.Manybody.get_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_elastic_constants</span></code></a>(atoms[, cg_parameters])</p></td>
+<td><p>Compute the elastic constants at zero temperature.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_hessian" title="matscipy.calculators.manybody.calculator.Manybody.get_hessian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_hessian</span></code></a>(atoms[, format, divide_by_masses])</p></td>
+<td><p>Calculate the Hessian matrix for a generic many-body potential.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_hessian_from_second_derivative" title="matscipy.calculators.manybody.calculator.Manybody.get_hessian_from_second_derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_hessian_from_second_derivative</span></code></a>(atoms)</p></td>
+<td><p>Compute the Hessian matrix from second derivatives.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_magnetic_moments" title="matscipy.calculators.manybody.calculator.Manybody.get_magnetic_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_magnetic_moments</span></code></a>([atoms])</p></td>
+<td><p>Calculate magnetic moments projected onto atoms.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_non_affine_contribution_to_elastic_constants" title="matscipy.calculators.manybody.calculator.Manybody.get_non_affine_contribution_to_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_non_affine_contribution_to_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the correction of non-affine displacements to the elasticity tensor.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_non_affine_forces_from_second_derivative" title="matscipy.calculators.manybody.calculator.Manybody.get_non_affine_forces_from_second_derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_non_affine_forces_from_second_derivative</span></code></a>(atoms)</p></td>
+<td><p>Compute the analytical non-affine forces.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_nonaffine_forces" title="matscipy.calculators.manybody.calculator.Manybody.get_nonaffine_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nonaffine_forces</span></code></a>(atoms)</p></td>
+<td><p>Compute the non-affine forces which result from an affine deformation of atoms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_property" title="matscipy.calculators.manybody.calculator.Manybody.get_property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_property</span></code></a>(name[, atoms, allow_calculation])</p></td>
+<td><p>Get the named property.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_second_derivative" title="matscipy.calculators.manybody.calculator.Manybody.get_second_derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_second_derivative</span></code></a>(atoms, drda_pc, drdb_pc)</p></td>
+<td><p>Calculate the second derivative of the energy with respect to arbitrary variables a and b.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_stress_contribution_to_elastic_constants" title="matscipy.calculators.manybody.calculator.Manybody.get_stress_contribution_to_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stress_contribution_to_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the correction to the elastic constants due to non-zero stress in the configuration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.get_stresses" title="matscipy.calculators.manybody.calculator.Manybody.get_stresses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stresses</span></code></a>([atoms])</p></td>
+<td><p>the calculator should return intensive stresses, i.e., such that stresses.sum(axis=0) == stress</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.read" title="matscipy.calculators.manybody.calculator.Manybody.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read</span></code></a>(label)</p></td>
+<td><p>Read atoms, parameters and calculated properties from output file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.reset" title="matscipy.calculators.manybody.calculator.Manybody.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Clear all information from old calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.set" title="matscipy.calculators.manybody.calculator.Manybody.set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>(**kwargs)</p></td>
+<td><p>Set parameters like set(key1=value1, key2=value2, ...).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.set_label" title="matscipy.calculators.manybody.calculator.Manybody.set_label"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_label</span></code></a>(label)</p></td>
+<td><p>Set label and convert label to directory and prefix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody.todict" title="matscipy.calculators.manybody.calculator.Manybody.todict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">todict</span></code></a>([skip_default])</p></td>
+<td><p>Obtain a dictionary of parameter information</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>calculation_required</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>export_properties</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_atoms</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_charges</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_default_parameters</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_dipole_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_forces</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_magnetic_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_potential_energies</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_potential_energy</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_stress</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>read_atoms</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.implemented_properties">
+<span class="sig-name descname"><span class="pre">implemented_properties</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['free_energy',</span> <span class="pre">'energy',</span> <span class="pre">'stress',</span> <span class="pre">'forces',</span> <span class="pre">'hessian',</span> <span class="pre">'born_constants',</span> <span class="pre">'nonaffine_forces',</span> <span class="pre">'birch_coefficients',</span> <span class="pre">'dynamical_matrix',</span> <span class="pre">'elastic_constants']</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.implemented_properties" title="Link to this definition"></a></dt>
+<dd><p>Properties calculator can handle (energy, forces, …)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.default_parameters">
+<span class="sig-name descname"><span class="pre">default_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.default_parameters" title="Link to this definition"></a></dt>
+<dd><p>Default parameters</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Manybody'</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d1F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d2F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d11F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d22F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d12F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d1G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d11G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d2G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d22G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d12G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbourhood</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="matscipy.neighbours.html#matscipy.neighbours.Neighbourhood" title="matscipy.neighbours.Neighbourhood"><span class="pre">Neighbourhood</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.__init__" title="Link to this definition"></a></dt>
+<dd><p>Basic calculator implementation.</p>
+<dl class="simple">
+<dt>restart: str</dt><dd><p>Prefix for restart file.  May contain a directory. Default
+is None: don’t restart.</p>
+</dd>
+<dt>ignore_bad_restart_file: bool</dt><dd><p>Deprecated, please do not use.
+Passing more than one positional argument to Calculator()
+is deprecated and will stop working in the future.
+Ignore broken or missing restart file.  By default, it is an
+error if the restart file is missing or broken.</p>
+</dd>
+<dt>directory: str or PurePath</dt><dd><p>Working directory in which to read and write files and
+perform calculations.</p>
+</dd>
+<dt>label: str</dt><dd><p>Name used for all files.  Not supported by all calculators.
+May contain a directory, but please use the directory parameter
+for that instead.</p>
+</dd>
+<dt>atoms: Atoms object</dt><dd><p>Optional Atoms object to which the calculator will be
+attached.  When restarting, atoms will get its positions and
+unit-cell updated from file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_cutoff">
+<span class="sig-name descname"><span class="pre">get_cutoff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_cutoff" title="Link to this definition"></a></dt>
+<dd><p>Return a valid cutoff.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.calculate">
+<span class="sig-name descname"><span class="pre">calculate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_changes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.calculate" title="Link to this definition"></a></dt>
+<dd><p>Calculate system properties.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_hessian">
+<span class="sig-name descname"><span class="pre">get_hessian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sparse'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">divide_by_masses</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_hessian" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Hessian matrix for a generic many-body potential.</p>
+<p>For an atomic configuration with N atoms in d dimensions the hessian
+matrix is a symmetric, hermitian matrix with a shape of (d*N,d*N). The
+matrix is in general a sparse matrix, which consists of dense blocks of
+shape (d,d), which are the mixed second derivatives.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>format</strong> (<em>&quot;sparse&quot;</em><em> or </em><em>&quot;neighbour-list&quot;</em>) – Output format of the hessian matrix.</p></li>
+<li><p><strong>divide_by_masses</strong> (<em>bool</em>) – if true return the dynamic matrix else hessian matrix</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>bsr_matrix</em> – either hessian or dynamic matrix</p></li>
+<li><p><em>Restrictions</em></p></li>
+<li><p><em>———-</em></p></li>
+<li><p><em>This method is currently only implemented for three dimensional systems</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_second_derivative">
+<span class="sig-name descname"><span class="pre">get_second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drda_pc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drdb_pc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_pc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Calculate the second derivative of the energy with respect to
+arbitrary variables a and b.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>drda_pc/drdb_pc</strong> (<em>array_like</em>) – Derivative of atom positions with respect to variable a/b.</p></li>
+<li><p><strong>i_p</strong> (<em>array</em>) – First atom index</p></li>
+<li><p><strong>j_p</strong> (<em>array</em>) – Second atom index</p></li>
+<li><p><strong>r_p</strong> (<em>array</em>) – Absolute distance</p></li>
+<li><p><strong>r_pc</strong> (<em>array</em>) – Distance vector</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_hessian_from_second_derivative">
+<span class="sig-name descname"><span class="pre">get_hessian_from_second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_hessian_from_second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the Hessian matrix from second derivatives.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_non_affine_forces_from_second_derivative">
+<span class="sig-name descname"><span class="pre">get_non_affine_forces_from_second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_non_affine_forces_from_second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the analytical non-affine forces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_born_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_born_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_born_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the Born elastic constants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_nonaffine_forces">
+<span class="sig-name descname"><span class="pre">get_nonaffine_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_nonaffine_forces" title="Link to this definition"></a></dt>
+<dd><p>Compute the non-affine forces which result from an affine deformation of atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.band_structure">
+<span class="sig-name descname"><span class="pre">band_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.band_structure" title="Link to this definition"></a></dt>
+<dd><p>Create band-structure object for plotting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.calculate_numerical_forces">
+<span class="sig-name descname"><span class="pre">calculate_numerical_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.calculate_numerical_forces" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical forces using finite difference.</p>
+<p>All atoms will be displaced by +d and -d in all directions.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.calculate_numerical_stress">
+<span class="sig-name descname"><span class="pre">calculate_numerical_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voigt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.calculate_numerical_stress" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical stress using finite difference.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.calculate_properties">
+<span class="sig-name descname"><span class="pre">calculate_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.calculate_properties" title="Link to this definition"></a></dt>
+<dd><p>This method is experimental; currently for internal use.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.calculation_required">
+<span class="sig-name descname"><span class="pre">calculation_required</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.calculation_required" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.check_state">
+<span class="sig-name descname"><span class="pre">check_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.check_state" title="Link to this definition"></a></dt>
+<dd><p>Check for any system changes since last calculation.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.directory">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">directory</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.discard_results_on_any_change">
+<span class="sig-name descname"><span class="pre">discard_results_on_any_change</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.discard_results_on_any_change" title="Link to this definition"></a></dt>
+<dd><p>Whether we purge the results following any change in the set() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.export_properties">
+<span class="sig-name descname"><span class="pre">export_properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.export_properties" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_atoms">
+<span class="sig-name descname"><span class="pre">get_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_birch_coefficients">
+<span class="sig-name descname"><span class="pre">get_birch_coefficients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_birch_coefficients" title="Link to this definition"></a></dt>
+<dd><p>Compute the Birch coefficients (Effective elastic constants at non-zero stress).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_charges">
+<span class="sig-name descname"><span class="pre">get_charges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_charges" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_default_parameters">
+<span class="sig-name descname"><span class="pre">get_default_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_default_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_dipole_moment">
+<span class="sig-name descname"><span class="pre">get_dipole_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_dipole_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_dynamical_matrix">
+<span class="sig-name descname"><span class="pre">get_dynamical_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_dynamical_matrix" title="Link to this definition"></a></dt>
+<dd><p>Compute dynamical matrix (=mass weighted Hessian).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cg_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'M':</span> <span class="pre">None,</span> <span class="pre">'atol':</span> <span class="pre">1e-05,</span> <span class="pre">'callback':</span> <span class="pre">None,</span> <span class="pre">'maxiter':</span> <span class="pre">None,</span> <span class="pre">'rtol':</span> <span class="pre">1e-05,</span> <span class="pre">'x0':</span> <span class="pre">None}</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the elastic constants at zero temperature.
+These are sum of the born, the non-affine and the stress contribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>cg_parameters</strong> (<em>dict</em>) – <p>Dictonary for the conjugate-gradient solver.</p>
+<dl class="simple">
+<dt>x0: {array, matrix}</dt><dd><p>Starting guess for the solution.</p>
+</dd>
+<dt>rtol/atol: float, optional</dt><dd><p>Tolerances for convergence, norm(residual) &lt;= max(rtol*norm(b), atol).</p>
+</dd>
+<dt>maxiter: int</dt><dd><p>Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.</p>
+</dd>
+<dt>M: {sparse matrix, dense matrix, LinearOperator}</dt><dd><p>Preconditioner for A.</p>
+</dd>
+<dt>callback: function</dt><dd><p>User-supplied function to call after each iteration.</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_forces">
+<span class="sig-name descname"><span class="pre">get_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_forces" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_magnetic_moment">
+<span class="sig-name descname"><span class="pre">get_magnetic_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_magnetic_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_magnetic_moments">
+<span class="sig-name descname"><span class="pre">get_magnetic_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_magnetic_moments" title="Link to this definition"></a></dt>
+<dd><p>Calculate magnetic moments projected onto atoms.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_non_affine_contribution_to_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_non_affine_contribution_to_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigenvalues</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigenvectors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cg_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'M':</span> <span class="pre">None,</span> <span class="pre">'atol':</span> <span class="pre">1e-05,</span> <span class="pre">'callback':</span> <span class="pre">None,</span> <span class="pre">'maxiter':</span> <span class="pre">None,</span> <span class="pre">'rtol':</span> <span class="pre">1e-05,</span> <span class="pre">'x0':</span> <span class="pre">None}</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_non_affine_contribution_to_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the correction of non-affine displacements to the elasticity tensor.
+The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.</p>
+<p>If eigenvalues and and eigenvectors are given the inverse of the Hessian can be easily computed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>eigenvalues</strong> (<em>array</em>) – Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
+If given, use eigenvalues and eigenvectors to compute non-affine contribution.</p></li>
+<li><p><strong>eigenvectors</strong> (<em>array</em>) – Eigenvectors corresponding to eigenvalues.</p></li>
+<li><p><strong>cg_parameters</strong> (<em>dict</em>) – <p>Dictonary for the conjugate-gradient solver.</p>
+<dl class="simple">
+<dt>x0: {array, matrix}</dt><dd><p>Starting guess for the solution.</p>
+</dd>
+<dt>rtol/atol: float, optional</dt><dd><p>Tolerances for convergence, norm(residual) &lt;= max(
+rtol*norm(b), atol).</p>
+</dd>
+<dt>maxiter: int</dt><dd><p>Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.</p>
+</dd>
+<dt>M: {sparse matrix, dense matrix, LinearOperator}</dt><dd><p>Preconditioner for A.</p>
+</dd>
+<dt>callback: function</dt><dd><p>User-supplied function to call after each iteration.</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>pc_parameters</strong> (<em>dict</em>) – <p>Dictonary for the incomplete LU decomposition of the Hessian.</p>
+<dl class="simple">
+<dt>A: array_like</dt><dd><p>Sparse matrix to factorize.</p>
+</dd>
+<dt>drop_tol: float</dt><dd><p>Drop tolerance for an incomplete LU decomposition.</p>
+</dd>
+<dt>fill_factor: float</dt><dd><p>Specifies the fill ratio upper bound.</p>
+</dd>
+<dt>drop_rule: str</dt><dd><p>Comma-separated string of drop rules to use.</p>
+</dd>
+<dt>permc_spec: str</dt><dd><p>How to permute the columns of the matrix for sparsity.</p>
+</dd>
+<dt>diag_pivot_thresh: float</dt><dd><p>Threshold used for a diagonal entry to be an acceptable pivot.</p>
+</dd>
+<dt>relax: int</dt><dd><p>Expert option for customizing the degree of relaxing supernodes.</p>
+</dd>
+<dt>panel_size: int</dt><dd><p>Expert option for customizing the panel size.</p>
+</dd>
+<dt>options: dict</dt><dd><p>Dictionary containing additional expert options to SuperLU.</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_potential_energies">
+<span class="sig-name descname"><span class="pre">get_potential_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_potential_energies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_potential_energy">
+<span class="sig-name descname"><span class="pre">get_potential_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_consistent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_potential_energy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_property">
+<span class="sig-name descname"><span class="pre">get_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_calculation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_property" title="Link to this definition"></a></dt>
+<dd><p>Get the named property.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_stress">
+<span class="sig-name descname"><span class="pre">get_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_stress" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_stress_contribution_to_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_stress_contribution_to_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_stress_contribution_to_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the correction to the elastic constants due to non-zero stress in the configuration.
+Stress term  results from working with the Cauchy stress.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.get_stresses">
+<span class="sig-name descname"><span class="pre">get_stresses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.get_stresses" title="Link to this definition"></a></dt>
+<dd><p>the calculator should return intensive stresses, i.e., such that
+stresses.sum(axis=0) == stress</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.ignored_changes">
+<span class="sig-name descname"><span class="pre">ignored_changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.ignored_changes" title="Link to this definition"></a></dt>
+<dd><p>Properties of Atoms which we ignore for the purposes of cache</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.label">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">label</span></span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.label" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.read" title="Link to this definition"></a></dt>
+<dd><p>Read atoms, parameters and calculated properties from output file.</p>
+<p>Read result from self.label file.  Raise ReadError if the file
+is not there.  If the file is corrupted or contains an error
+message from the calculation, a ReadError should also be
+raised.  In case of succes, these attributes must set:</p>
+<dl class="simple">
+<dt>atoms: Atoms object</dt><dd><p>The state of the atoms from last calculation.</p>
+</dd>
+<dt>parameters: Parameters object</dt><dd><p>The parameter dictionary.</p>
+</dd>
+<dt>results: dict</dt><dd><p>Calculated properties like energy and forces.</p>
+</dd>
+</dl>
+<p>The FileIOCalculator.read() method will typically read atoms
+and parameters and get the results dict by calling the
+read_results() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.read_atoms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restart</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.read_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.reset" title="Link to this definition"></a></dt>
+<dd><p>Clear all information from old calculation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.set" title="Link to this definition"></a></dt>
+<dd><p>Set parameters like set(key1=value1, key2=value2, …).</p>
+<p>A dictionary containing the parameters that have been changed
+is returned.</p>
+<p>Subclasses must implement a set() method that will look at the
+chaneged parameters and decide if a call to reset() is needed.
+If the changed parameters are harmless, like a change in
+verbosity, then there is no need to call reset().</p>
+<p>The special keyword ‘parameters’ can be used to read
+parameters from a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.set_label">
+<span class="sig-name descname"><span class="pre">set_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.set_label" title="Link to this definition"></a></dt>
+<dd><p>Set label and convert label to directory and prefix.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>label=’abc’: (directory=’.’, prefix=’abc’)</p></li>
+<li><p>label=’dir1/abc’: (directory=’dir1’, prefix=’abc’)</p></li>
+<li><p>label=None: (directory=’.’, prefix=None)</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.Manybody.todict">
+<span class="sig-name descname"><span class="pre">todict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.Manybody.todict" title="Link to this definition"></a></dt>
+<dd><p>Obtain a dictionary of parameter information</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.manybody.calculator.</span></span><span class="sig-name descname"><span class="pre">NiceManybody</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbourhood</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#matscipy.calculators.manybody.calculator.Manybody" title="matscipy.calculators.manybody.calculator.Manybody"><code class="xref py py-class docutils literal notranslate"><span class="pre">Manybody</span></code></a></p>
+<p>Manybody calculator with nicer API.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>directory</strong></dt><dd></dd>
+<dt><strong>label</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.F" title="matscipy.calculators.manybody.calculator.NiceManybody.F"><code class="xref py py-obj docutils literal notranslate"><span class="pre">F</span></code></a>()</p></td>
+<td><p>Pair potential.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.G" title="matscipy.calculators.manybody.calculator.NiceManybody.G"><code class="xref py py-obj docutils literal notranslate"><span class="pre">G</span></code></a>()</p></td>
+<td><p>Triplet potential.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.band_structure" title="matscipy.calculators.manybody.calculator.NiceManybody.band_structure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">band_structure</span></code></a>()</p></td>
+<td><p>Create band-structure object for plotting.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculate" title="matscipy.calculators.manybody.calculator.NiceManybody.calculate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate</span></code></a>(atoms, properties, system_changes)</p></td>
+<td><p>Calculate system properties.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculate_numerical_forces" title="matscipy.calculators.manybody.calculator.NiceManybody.calculate_numerical_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_forces</span></code></a>(atoms[, d])</p></td>
+<td><p>Calculate numerical forces using finite difference.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculate_numerical_stress" title="matscipy.calculators.manybody.calculator.NiceManybody.calculate_numerical_stress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_numerical_stress</span></code></a>(atoms[, d, voigt])</p></td>
+<td><p>Calculate numerical stress using finite difference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculate_properties" title="matscipy.calculators.manybody.calculator.NiceManybody.calculate_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_properties</span></code></a>(atoms, properties)</p></td>
+<td><p>This method is experimental; currently for internal use.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.check_state" title="matscipy.calculators.manybody.calculator.NiceManybody.check_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_state</span></code></a>(atoms[, tol])</p></td>
+<td><p>Check for any system changes since last calculation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_birch_coefficients" title="matscipy.calculators.manybody.calculator.NiceManybody.get_birch_coefficients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_birch_coefficients</span></code></a>(atoms)</p></td>
+<td><p>Compute the Birch coefficients (Effective elastic constants at non-zero stress).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_born_elastic_constants" title="matscipy.calculators.manybody.calculator.NiceManybody.get_born_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_born_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the Born elastic constants.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_cutoff" title="matscipy.calculators.manybody.calculator.NiceManybody.get_cutoff"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cutoff</span></code></a>(atoms)</p></td>
+<td><p>Return a valid cutoff.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_dynamical_matrix" title="matscipy.calculators.manybody.calculator.NiceManybody.get_dynamical_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dynamical_matrix</span></code></a>(atoms)</p></td>
+<td><p>Compute dynamical matrix (=mass weighted Hessian).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_elastic_constants" title="matscipy.calculators.manybody.calculator.NiceManybody.get_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_elastic_constants</span></code></a>(atoms[, cg_parameters])</p></td>
+<td><p>Compute the elastic constants at zero temperature.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_hessian" title="matscipy.calculators.manybody.calculator.NiceManybody.get_hessian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_hessian</span></code></a>(atoms[, format, divide_by_masses])</p></td>
+<td><p>Calculate the Hessian matrix for a generic many-body potential.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_hessian_from_second_derivative" title="matscipy.calculators.manybody.calculator.NiceManybody.get_hessian_from_second_derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_hessian_from_second_derivative</span></code></a>(atoms)</p></td>
+<td><p>Compute the Hessian matrix from second derivatives.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_magnetic_moments" title="matscipy.calculators.manybody.calculator.NiceManybody.get_magnetic_moments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_magnetic_moments</span></code></a>([atoms])</p></td>
+<td><p>Calculate magnetic moments projected onto atoms.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_non_affine_contribution_to_elastic_constants" title="matscipy.calculators.manybody.calculator.NiceManybody.get_non_affine_contribution_to_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_non_affine_contribution_to_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the correction of non-affine displacements to the elasticity tensor.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_non_affine_forces_from_second_derivative" title="matscipy.calculators.manybody.calculator.NiceManybody.get_non_affine_forces_from_second_derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_non_affine_forces_from_second_derivative</span></code></a>(atoms)</p></td>
+<td><p>Compute the analytical non-affine forces.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_nonaffine_forces" title="matscipy.calculators.manybody.calculator.NiceManybody.get_nonaffine_forces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nonaffine_forces</span></code></a>(atoms)</p></td>
+<td><p>Compute the non-affine forces which result from an affine deformation of atoms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_property" title="matscipy.calculators.manybody.calculator.NiceManybody.get_property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_property</span></code></a>(name[, atoms, allow_calculation])</p></td>
+<td><p>Get the named property.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_second_derivative" title="matscipy.calculators.manybody.calculator.NiceManybody.get_second_derivative"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_second_derivative</span></code></a>(atoms, drda_pc, drdb_pc)</p></td>
+<td><p>Calculate the second derivative of the energy with respect to arbitrary variables a and b.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_stress_contribution_to_elastic_constants" title="matscipy.calculators.manybody.calculator.NiceManybody.get_stress_contribution_to_elastic_constants"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stress_contribution_to_elastic_constants</span></code></a>(atoms)</p></td>
+<td><p>Compute the correction to the elastic constants due to non-zero stress in the configuration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_stresses" title="matscipy.calculators.manybody.calculator.NiceManybody.get_stresses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_stresses</span></code></a>([atoms])</p></td>
+<td><p>the calculator should return intensive stresses, i.e., such that stresses.sum(axis=0) == stress</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.read" title="matscipy.calculators.manybody.calculator.NiceManybody.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read</span></code></a>(label)</p></td>
+<td><p>Read atoms, parameters and calculated properties from output file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.reset" title="matscipy.calculators.manybody.calculator.NiceManybody.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Clear all information from old calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.set" title="matscipy.calculators.manybody.calculator.NiceManybody.set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>(**kwargs)</p></td>
+<td><p>Set parameters like set(key1=value1, key2=value2, ...).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.set_label" title="matscipy.calculators.manybody.calculator.NiceManybody.set_label"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_label</span></code></a>(label)</p></td>
+<td><p>Set label and convert label to directory and prefix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.todict" title="matscipy.calculators.manybody.calculator.NiceManybody.todict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">todict</span></code></a>([skip_default])</p></td>
+<td><p>Obtain a dictionary of parameter information</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>calculation_required</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>export_properties</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_atoms</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_charges</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_default_parameters</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_dipole_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_forces</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_magnetic_moment</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_potential_energies</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_potential_energy</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_stress</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>read_atoms</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.F">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">F</span></span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.F" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Pair potential.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(r, xi, atom_type, pair_type)</p></td>
+<td><p>Compute energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.F.gradient" title="matscipy.calculators.manybody.calculator.NiceManybody.F.gradient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gradient</span></code></a>(r, xi, atom_type, pair_type)</p></td>
+<td><p>Compute gradient.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.F.hessian" title="matscipy.calculators.manybody.calculator.NiceManybody.F.hessian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hessian</span></code></a>(r, xi, atom_type, pair_type)</p></td>
+<td><p>Compute hessian.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.F.gradient">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">gradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.F.gradient" title="Link to this definition"></a></dt>
+<dd><p>Compute gradient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.F.hessian">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">hessian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.F.hessian" title="Link to this definition"></a></dt>
+<dd><p>Compute hessian.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.G">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">G</span></span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.G" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Triplet potential.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(r_ij, r_ik, atom_type, ij_type, ik_type)</p></td>
+<td><p>Compute energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.G.gradient" title="matscipy.calculators.manybody.calculator.NiceManybody.G.gradient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gradient</span></code></a>(r_ij, r_ik, atom_type, ij_type, ik_type)</p></td>
+<td><p>Compute gradient.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.manybody.calculator.NiceManybody.G.hessian" title="matscipy.calculators.manybody.calculator.NiceManybody.G.hessian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hessian</span></code></a>(r_ij, r_ik, atom_type, ij_type, ik_type)</p></td>
+<td><p>Compute hessian.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.G.gradient">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">gradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r_ij</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_ik</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ij_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ik_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.G.gradient" title="Link to this definition"></a></dt>
+<dd><p>Compute gradient.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.G.hessian">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">hessian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r_ij</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_ik</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ij_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ik_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.G.hessian" title="Link to this definition"></a></dt>
+<dd><p>Compute hessian.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbourhood</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.__init__" title="Link to this definition"></a></dt>
+<dd><p>Init with pair &amp; triplet potential + neighbourhood.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.band_structure">
+<span class="sig-name descname"><span class="pre">band_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.band_structure" title="Link to this definition"></a></dt>
+<dd><p>Create band-structure object for plotting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.calculate">
+<span class="sig-name descname"><span class="pre">calculate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_changes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculate" title="Link to this definition"></a></dt>
+<dd><p>Calculate system properties.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.calculate_numerical_forces">
+<span class="sig-name descname"><span class="pre">calculate_numerical_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculate_numerical_forces" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical forces using finite difference.</p>
+<p>All atoms will be displaced by +d and -d in all directions.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.calculate_numerical_stress">
+<span class="sig-name descname"><span class="pre">calculate_numerical_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voigt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculate_numerical_stress" title="Link to this definition"></a></dt>
+<dd><p>Calculate numerical stress using finite difference.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.24.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.calculate_properties">
+<span class="sig-name descname"><span class="pre">calculate_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculate_properties" title="Link to this definition"></a></dt>
+<dd><p>This method is experimental; currently for internal use.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.calculation_required">
+<span class="sig-name descname"><span class="pre">calculation_required</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.calculation_required" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.check_state">
+<span class="sig-name descname"><span class="pre">check_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.check_state" title="Link to this definition"></a></dt>
+<dd><p>Check for any system changes since last calculation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.default_parameters">
+<span class="sig-name descname"><span class="pre">default_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.default_parameters" title="Link to this definition"></a></dt>
+<dd><p>Default parameters</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.directory">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">directory</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.directory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.discard_results_on_any_change">
+<span class="sig-name descname"><span class="pre">discard_results_on_any_change</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.discard_results_on_any_change" title="Link to this definition"></a></dt>
+<dd><p>Whether we purge the results following any change in the set() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.export_properties">
+<span class="sig-name descname"><span class="pre">export_properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.export_properties" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_atoms">
+<span class="sig-name descname"><span class="pre">get_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_birch_coefficients">
+<span class="sig-name descname"><span class="pre">get_birch_coefficients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_birch_coefficients" title="Link to this definition"></a></dt>
+<dd><p>Compute the Birch coefficients (Effective elastic constants at non-zero stress).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_born_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_born_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_born_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the Born elastic constants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_charges">
+<span class="sig-name descname"><span class="pre">get_charges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_charges" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_cutoff">
+<span class="sig-name descname"><span class="pre">get_cutoff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_cutoff" title="Link to this definition"></a></dt>
+<dd><p>Return a valid cutoff.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_default_parameters">
+<span class="sig-name descname"><span class="pre">get_default_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_default_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_dipole_moment">
+<span class="sig-name descname"><span class="pre">get_dipole_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_dipole_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_dynamical_matrix">
+<span class="sig-name descname"><span class="pre">get_dynamical_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_dynamical_matrix" title="Link to this definition"></a></dt>
+<dd><p>Compute dynamical matrix (=mass weighted Hessian).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cg_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'M':</span> <span class="pre">None,</span> <span class="pre">'atol':</span> <span class="pre">1e-05,</span> <span class="pre">'callback':</span> <span class="pre">None,</span> <span class="pre">'maxiter':</span> <span class="pre">None,</span> <span class="pre">'rtol':</span> <span class="pre">1e-05,</span> <span class="pre">'x0':</span> <span class="pre">None}</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the elastic constants at zero temperature.
+These are sum of the born, the non-affine and the stress contribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>cg_parameters</strong> (<em>dict</em>) – <p>Dictonary for the conjugate-gradient solver.</p>
+<dl class="simple">
+<dt>x0: {array, matrix}</dt><dd><p>Starting guess for the solution.</p>
+</dd>
+<dt>rtol/atol: float, optional</dt><dd><p>Tolerances for convergence, norm(residual) &lt;= max(rtol*norm(b), atol).</p>
+</dd>
+<dt>maxiter: int</dt><dd><p>Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.</p>
+</dd>
+<dt>M: {sparse matrix, dense matrix, LinearOperator}</dt><dd><p>Preconditioner for A.</p>
+</dd>
+<dt>callback: function</dt><dd><p>User-supplied function to call after each iteration.</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_forces">
+<span class="sig-name descname"><span class="pre">get_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_forces" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_hessian">
+<span class="sig-name descname"><span class="pre">get_hessian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sparse'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">divide_by_masses</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_hessian" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Hessian matrix for a generic many-body potential.</p>
+<p>For an atomic configuration with N atoms in d dimensions the hessian
+matrix is a symmetric, hermitian matrix with a shape of (d*N,d*N). The
+matrix is in general a sparse matrix, which consists of dense blocks of
+shape (d,d), which are the mixed second derivatives.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>format</strong> (<em>&quot;sparse&quot;</em><em> or </em><em>&quot;neighbour-list&quot;</em>) – Output format of the hessian matrix.</p></li>
+<li><p><strong>divide_by_masses</strong> (<em>bool</em>) – if true return the dynamic matrix else hessian matrix</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>bsr_matrix</em> – either hessian or dynamic matrix</p></li>
+<li><p><em>Restrictions</em></p></li>
+<li><p><em>———-</em></p></li>
+<li><p><em>This method is currently only implemented for three dimensional systems</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_hessian_from_second_derivative">
+<span class="sig-name descname"><span class="pre">get_hessian_from_second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_hessian_from_second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the Hessian matrix from second derivatives.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_magnetic_moment">
+<span class="sig-name descname"><span class="pre">get_magnetic_moment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_magnetic_moment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_magnetic_moments">
+<span class="sig-name descname"><span class="pre">get_magnetic_moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_magnetic_moments" title="Link to this definition"></a></dt>
+<dd><p>Calculate magnetic moments projected onto atoms.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_non_affine_contribution_to_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_non_affine_contribution_to_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigenvalues</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigenvectors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cg_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'M':</span> <span class="pre">None,</span> <span class="pre">'atol':</span> <span class="pre">1e-05,</span> <span class="pre">'callback':</span> <span class="pre">None,</span> <span class="pre">'maxiter':</span> <span class="pre">None,</span> <span class="pre">'rtol':</span> <span class="pre">1e-05,</span> <span class="pre">'x0':</span> <span class="pre">None}</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_non_affine_contribution_to_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the correction of non-affine displacements to the elasticity tensor.
+The computation of the occuring inverse of the Hessian matrix is bypassed by using a cg solver.</p>
+<p>If eigenvalues and and eigenvectors are given the inverse of the Hessian can be easily computed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>eigenvalues</strong> (<em>array</em>) – Eigenvalues in ascending order obtained by diagonalization of Hessian matrix.
+If given, use eigenvalues and eigenvectors to compute non-affine contribution.</p></li>
+<li><p><strong>eigenvectors</strong> (<em>array</em>) – Eigenvectors corresponding to eigenvalues.</p></li>
+<li><p><strong>cg_parameters</strong> (<em>dict</em>) – <p>Dictonary for the conjugate-gradient solver.</p>
+<dl class="simple">
+<dt>x0: {array, matrix}</dt><dd><p>Starting guess for the solution.</p>
+</dd>
+<dt>rtol/atol: float, optional</dt><dd><p>Tolerances for convergence, norm(residual) &lt;= max(
+rtol*norm(b), atol).</p>
+</dd>
+<dt>maxiter: int</dt><dd><p>Maximum number of iterations. Iteration will stop after maxiter steps even if the specified tolerance has not been achieved.</p>
+</dd>
+<dt>M: {sparse matrix, dense matrix, LinearOperator}</dt><dd><p>Preconditioner for A.</p>
+</dd>
+<dt>callback: function</dt><dd><p>User-supplied function to call after each iteration.</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>pc_parameters</strong> (<em>dict</em>) – <p>Dictonary for the incomplete LU decomposition of the Hessian.</p>
+<dl class="simple">
+<dt>A: array_like</dt><dd><p>Sparse matrix to factorize.</p>
+</dd>
+<dt>drop_tol: float</dt><dd><p>Drop tolerance for an incomplete LU decomposition.</p>
+</dd>
+<dt>fill_factor: float</dt><dd><p>Specifies the fill ratio upper bound.</p>
+</dd>
+<dt>drop_rule: str</dt><dd><p>Comma-separated string of drop rules to use.</p>
+</dd>
+<dt>permc_spec: str</dt><dd><p>How to permute the columns of the matrix for sparsity.</p>
+</dd>
+<dt>diag_pivot_thresh: float</dt><dd><p>Threshold used for a diagonal entry to be an acceptable pivot.</p>
+</dd>
+<dt>relax: int</dt><dd><p>Expert option for customizing the degree of relaxing supernodes.</p>
+</dd>
+<dt>panel_size: int</dt><dd><p>Expert option for customizing the panel size.</p>
+</dd>
+<dt>options: dict</dt><dd><p>Dictionary containing additional expert options to SuperLU.</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_non_affine_forces_from_second_derivative">
+<span class="sig-name descname"><span class="pre">get_non_affine_forces_from_second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_non_affine_forces_from_second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the analytical non-affine forces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_nonaffine_forces">
+<span class="sig-name descname"><span class="pre">get_nonaffine_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_nonaffine_forces" title="Link to this definition"></a></dt>
+<dd><p>Compute the non-affine forces which result from an affine deformation of atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_potential_energies">
+<span class="sig-name descname"><span class="pre">get_potential_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_potential_energies" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_potential_energy">
+<span class="sig-name descname"><span class="pre">get_potential_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_consistent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_potential_energy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_property">
+<span class="sig-name descname"><span class="pre">get_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_calculation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_property" title="Link to this definition"></a></dt>
+<dd><p>Get the named property.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_second_derivative">
+<span class="sig-name descname"><span class="pre">get_second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drda_pc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drdb_pc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_pc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Calculate the second derivative of the energy with respect to
+arbitrary variables a and b.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p></li>
+<li><p><strong>drda_pc/drdb_pc</strong> (<em>array_like</em>) – Derivative of atom positions with respect to variable a/b.</p></li>
+<li><p><strong>i_p</strong> (<em>array</em>) – First atom index</p></li>
+<li><p><strong>j_p</strong> (<em>array</em>) – Second atom index</p></li>
+<li><p><strong>r_p</strong> (<em>array</em>) – Absolute distance</p></li>
+<li><p><strong>r_pc</strong> (<em>array</em>) – Distance vector</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_stress">
+<span class="sig-name descname"><span class="pre">get_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_stress" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_stress_contribution_to_elastic_constants">
+<span class="sig-name descname"><span class="pre">get_stress_contribution_to_elastic_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_stress_contribution_to_elastic_constants" title="Link to this definition"></a></dt>
+<dd><p>Compute the correction to the elastic constants due to non-zero stress in the configuration.
+Stress term  results from working with the Cauchy stress.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Atomic configuration in a local or global minima.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.get_stresses">
+<span class="sig-name descname"><span class="pre">get_stresses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.get_stresses" title="Link to this definition"></a></dt>
+<dd><p>the calculator should return intensive stresses, i.e., such that
+stresses.sum(axis=0) == stress</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.ignored_changes">
+<span class="sig-name descname"><span class="pre">ignored_changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.ignored_changes" title="Link to this definition"></a></dt>
+<dd><p>Properties of Atoms which we ignore for the purposes of cache</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.implemented_properties">
+<span class="sig-name descname"><span class="pre">implemented_properties</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['free_energy',</span> <span class="pre">'energy',</span> <span class="pre">'stress',</span> <span class="pre">'forces',</span> <span class="pre">'hessian',</span> <span class="pre">'born_constants',</span> <span class="pre">'nonaffine_forces',</span> <span class="pre">'birch_coefficients',</span> <span class="pre">'dynamical_matrix',</span> <span class="pre">'elastic_constants']</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.implemented_properties" title="Link to this definition"></a></dt>
+<dd><p>Properties calculator can handle (energy, forces, …)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.label">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">label</span></span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.label" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Manybody'</span></em><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.read" title="Link to this definition"></a></dt>
+<dd><p>Read atoms, parameters and calculated properties from output file.</p>
+<p>Read result from self.label file.  Raise ReadError if the file
+is not there.  If the file is corrupted or contains an error
+message from the calculation, a ReadError should also be
+raised.  In case of succes, these attributes must set:</p>
+<dl class="simple">
+<dt>atoms: Atoms object</dt><dd><p>The state of the atoms from last calculation.</p>
+</dd>
+<dt>parameters: Parameters object</dt><dd><p>The parameter dictionary.</p>
+</dd>
+<dt>results: dict</dt><dd><p>Calculated properties like energy and forces.</p>
+</dd>
+</dl>
+<p>The FileIOCalculator.read() method will typically read atoms
+and parameters and get the results dict by calling the
+read_results() method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.read_atoms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restart</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.read_atoms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.reset" title="Link to this definition"></a></dt>
+<dd><p>Clear all information from old calculation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.set" title="Link to this definition"></a></dt>
+<dd><p>Set parameters like set(key1=value1, key2=value2, …).</p>
+<p>A dictionary containing the parameters that have been changed
+is returned.</p>
+<p>Subclasses must implement a set() method that will look at the
+chaneged parameters and decide if a call to reset() is needed.
+If the changed parameters are harmless, like a change in
+verbosity, then there is no need to call reset().</p>
+<p>The special keyword ‘parameters’ can be used to read
+parameters from a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.set_label">
+<span class="sig-name descname"><span class="pre">set_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.set_label" title="Link to this definition"></a></dt>
+<dd><p>Set label and convert label to directory and prefix.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>label=’abc’: (directory=’.’, prefix=’abc’)</p></li>
+<li><p>label=’dir1/abc’: (directory=’dir1’, prefix=’abc’)</p></li>
+<li><p>label=None: (directory=’.’, prefix=None)</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.manybody.calculator.NiceManybody.todict">
+<span class="sig-name descname"><span class="pre">todict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.manybody.calculator.NiceManybody.todict" title="Link to this definition"></a></dt>
+<dd><p>Obtain a dictionary of parameter information</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.calculators.manybody.html" class="btn btn-neutral float-left" title="matscipy.calculators.manybody" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.calculators.manybody.explicit_forms.html" class="btn btn-neutral float-right" title="matscipy.calculators.manybody.explicit_forms" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

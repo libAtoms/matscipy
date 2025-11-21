@@ -1,0 +1,14 @@
+matscipy.calculators.mcfm.mcfm\_parallel
+========================================
+
+.. automodule:: matscipy.calculators.mcfm.mcfm_parallel
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   mcfm_parallel_control
+   mcfm_parallel_worker

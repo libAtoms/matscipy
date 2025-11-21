@@ -1,0 +1,582 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.surface_reconstruction &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.utils" href="matscipy.utils.html" />
+    <link rel="prev" title="matscipy.surface" href="matscipy.surface.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.html">matscipy</a></li>
+      <li class="breadcrumb-item active">matscipy.surface_reconstruction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.surface_reconstruction.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.surface_reconstruction">
+<span id="matscipy-surface-reconstruction"></span><h1>matscipy.surface_reconstruction<a class="headerlink" href="#module-matscipy.surface_reconstruction" title="Link to this heading"></a></h1>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction" title="matscipy.surface_reconstruction.SurfaceReconstruction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SurfaceReconstruction</span></code></a>(el, a0, calc, ...[, ...])</p></td>
+<td><p>Object for mapping and applying a surface reconstruction in simple and multi-lattices.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.surface_reconstruction.</span></span><span class="sig-name descname"><span class="pre">SurfaceReconstruction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">directions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multilattice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object for mapping and applying a surface reconstruction in simple and multi-lattices.</p>
+<p>The relaxation of a given free surface of a crystal at a given orientation can be mapped and
+saved. This relaxation can then be applied to atoms in a different ASE atoms object.
+This is extremely useful in the case of fracture mechanics, where surface relaxation
+can be mapped to the internal crack surfaces of an atoms object.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.apply_pandey_111" title="matscipy.surface_reconstruction.SurfaceReconstruction.apply_pandey_111"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_pandey_111</span></code></a>(atoms, surface_coords[, ...])</p></td>
+<td><p>Function which applies the mapped out Pandey deformation to the surface layers in a supplied atoms structure. :param atoms: Atoms object which contains surface to relax :type atoms: ASE atoms object :param surface_coords: Coordinates of a point that lies on the free surface (or within one layer distance above it) :type surface_coords: array_like :param xlim: [x lower, x upper], x range to apply relaxation :type xlim: array_like :param ylim: [y lower, y upper], y range to apply relaxation :type ylim: array_like :param zlim: [z lower, z upper], z range to apply relaxation :type zlim: array_like :param search_dir: -1: surface is below point provided, 1: surface is above point provided :type search_dir: int :param atoms_for_cb: atoms object which allows the easy identification of sub-lattices in a multi-lattice                      crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may                      be periodic boundary conditions, for example. :type atoms_for_cb: ASE atoms object :param read_from_atoms: Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the                         atoms object contains arrays called lattice1mask and lattice2mask :type read_from_atoms: bool :param orientation: Which of the three different orientations of the Pandey reconstructions are being applied to the surface :type orientation: 0,1 or 2.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.apply_si_110" title="matscipy.surface_reconstruction.SurfaceReconstruction.apply_si_110"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_si_110</span></code></a>(atoms, surface_coords[, cb, ...])</p></td>
+<td><p>Function which applies the mapped out Si deformation to the surface layers in a supplied atoms structure. :param atoms: Atoms object which contains surface to relax :type atoms: ASE atoms object :param surface_coords: Coordinates of a point that lies on the free surface (or within one layer distance above it) :type surface_coords: array_like :param xlim: [x lower, x upper], x range to apply relaxation :type xlim: array_like :param ylim: [y lower, y upper], y range to apply relaxation :type ylim: array_like :param zlim: [z lower, z upper], z range to apply relaxation :type zlim: array_like :param search_dir: -1: surface is below point provided, 1: surface is above point provided :type search_dir: int :param atoms_for_cb: atoms object which allows the easy identification of sub-lattices in a multi-lattice                      crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may                      be periodic boundary conditions, for example. :type atoms_for_cb: ASE atoms object :param read_from_atoms: Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the                         atoms object contains arrays called lattice1mask and lattice2mask :type read_from_atoms: bool :param orientation: Which of the three different orientations of the Pandey reconstructions are being applied to the surface :type orientation: 0,1 or 2.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.apply_surface_shift" title="matscipy.surface_reconstruction.SurfaceReconstruction.apply_surface_shift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_surface_shift</span></code></a>(atoms, surface_coords[, ...])</p></td>
+<td><p>Function which applies the mapped out deformation to the surface layers in a supplied atoms structure. :param atoms: Atoms object which contains surface to relax :type atoms: ASE atoms object :param surface_coords: Coordinates of a point that lies on the free surface (or within one layer distance above it) :type surface_coords: array_like :param xlim: [x lower, x upper], x range to apply relaxation :type xlim: array_like :param ylim: [y lower, y upper], y range to apply relaxation :type ylim: array_like :param zlim: [z lower, z upper], z range to apply relaxation :type zlim: array_like :param search_dir: -1: surface is below point provided, 1: surface is above point provided :type search_dir: int :param atoms_for_cb: atoms object which allows the easy identification of sub-lattices in a multi-lattice                      crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may                      be periodic boundary conditions, for example. :type atoms_for_cb: ASE atoms object :param read_from_atoms: Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the                         atoms object contains arrays called lattice1mask and lattice2mask :type read_from_atoms: bool.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.identify_layers" title="matscipy.surface_reconstruction.SurfaceReconstruction.identify_layers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">identify_layers</span></code></a>(atoms, surface_coords[, ...])</p></td>
+<td><p>Function for identifying the layers adjacent to a surface, in a supplied atoms structure. This allows a mapped relaxation to be easily applied to a surface. :param atoms: Atoms object which contains surface to relax :type atoms: ASE atoms object :param surface_coords: Coordinates of a point that lies on the free surface (or within one layer distance above it) :type surface_coords: array_like :param xlim: [x lower, x upper], x range to apply relaxation :type xlim: array_like :param ylim: [y lower, y upper], y range to apply relaxation :type ylim: array_like :param zlim: [z lower, z upper], z range to apply relaxation :type zlim: array_like :param search_dir: -1: surface is below point provided, 1: surface is above point provided :type search_dir: int :param atoms_for_cb: atoms object which allows the easy identification of sub-lattices in a multi-lattice                      crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may                      be periodic boundary conditions, for example. :type atoms_for_cb: ASE atoms object :param read_from_atoms: Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the                         atoms object contains arrays called lattice1mask and lattice2mask :type read_from_atoms: bool.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.identify_pandey_layers" title="matscipy.surface_reconstruction.SurfaceReconstruction.identify_pandey_layers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">identify_pandey_layers</span></code></a>(atoms, surface_coords)</p></td>
+<td><p>Function for identifying the layers adjacent to a surface, in a supplied atoms structure.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.identify_si_110_layers" title="matscipy.surface_reconstruction.SurfaceReconstruction.identify_si_110_layers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">identify_si_110_layers</span></code></a>(atoms, surface_coords)</p></td>
+<td><p>Function for identifying the layers adjacent to a surface, in a supplied atoms structure.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.map_pandey_111" title="matscipy.surface_reconstruction.SurfaceReconstruction.map_pandey_111"><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_pandey_111</span></code></a>([fmax, layers, cutoff, ...])</p></td>
+<td><p>Map the diamond structure 111 pandey relaxation of the crystal surface a certain number of layers deep. As this relaxation breaks surface symmetry, one can map it in 3 different orientations. :param fmax: Force tolerance for relaxation :type fmax: float :param layers: Number of layers deep to map the free surface :type layers: int :param cutoff: Cutoff of the potential being used - used to decide the number of                atoms beneath the mapped layers that need to be modelled :type cutoff: float :param shift: Amount to shift the bulk structure before the surface is mapped               such that the top layer of surface is physically meaningful. One               use case of this would be to adjust the top layer of atoms being mapped               in diamond such that it matches the top layer of atoms seen on the cleavage               plane. :type shift: float :param switch: Whether or not to switch the sublattices around in the mapped structure. (Essentially, the correct surface can always be found from some combination of shift and switch) :type switch: bool :param orientation: Which of the three different orientations of the Pandey reconstruction to map :type orientation: 0,1,2.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.map_si_110_3x1" title="matscipy.surface_reconstruction.SurfaceReconstruction.map_si_110_3x1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_si_110_3x1</span></code></a>([fmax, layers, cutoff, ...])</p></td>
+<td><p>Map the silicon 110 3x1 relaxation of the crystal.
+
+:2: (WARNING/2) Title underline too short.
+
+Map the silicon 110 3x1 relaxation of the crystal.
+------------------------------
+
+fmax
+
+float
+
+Force tolerance for relaxation
+
+layers
+
+int
+
+Number of layers deep to map the free surface
+
+cutoff
+
+float
+
+Cutoff of the potential being used - used to decide the number of
+atoms beneath the mapped layers that need to be modelled
+
+shift
+
+float
+
+Amount to shift the bulk structure before the surface is mapped
+such that the top layer of surface is physically meaningful. One
+use case of this would be to adjust the top layer of atoms being mapped
+in diamond such that it matches the top layer of atoms seen on the cleavage
+plane.
+
+switch
+
+bool
+
+Whether or not to switch the sublattices around in the mapped structure.
+(Essentially, the correct surface can always be found from some combination of shift and switch)
+
+orientation
+
+int, 1 or 0
+
+Whether to flip the reconstruction by 180 degrees. This is necessary for the lower surface.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.surface_reconstruction.SurfaceReconstruction.map_surface" title="matscipy.surface_reconstruction.SurfaceReconstruction.map_surface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_surface</span></code></a>([fmax, layers, cutoff, shift, ...])</p></td>
+<td><p>Map the relaxation of the crystal surface a certain number of layers deep. :param fmax: Force tolerance for relaxation :type fmax: float :param layers: Number of layers deep to map the free surface :type layers: int :param cutoff: Cutoff of the potential being used - used to decide the number of                atoms beneath the mapped layers that need to be modelled :type cutoff: float :param shift: Amount to shift the bulk structure before the surface is mapped               such that the top layer of surface is physically meaningful. One               use case of this would be to adjust the top layer of atoms being mapped               in diamond such that it matches the top layer of atoms seen on the cleavage               plane. :type shift: float :param switch: Whether or not to switch the sublattices around in the mapped structure. (Essentially, the correct surface can always be found from some combination of shift and switch) :type switch: bool :param invert_dirs: Whether to invert the components of the mapped shifts. This is useful in the case where a surface which originally has mirror                     symmetry in a certain plane can break this symmetry during reconstruction. This is the case for the 110 silicon reconstructed surface,                     where the surface breaks mirror symmetry in the {001} type plane during reconstruction. Two possible surfaces can form, related through                     diad symmetry. To map the other surface, one has to switch sublattices and invert the mapped displacements along the &lt;001&gt; type direction. :type invert_dirs: bool array.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">directions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multilattice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.__init__" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>el</strong> (<em>string</em>) – Element crystal is composed of in ASE format</p></li>
+<li><p><strong>a0</strong> (<em>float</em>) – Lattice constant of crystal</p></li>
+<li><p><strong>calc</strong> (<em>ASE calculator object</em>) – Calculator for surface relaxation</p></li>
+<li><p><strong>directions</strong> (<em>list</em>) – The x, y and z lab frame directions expressed in the lattice frame.
+e.g directions=[[1,1,1], [0,-1,1], [-2,1,1]]</p></li>
+<li><p><strong>surf_dir</strong> (<em>int</em>) – Direction which is normal to the free surface. Can be 0, 1 or 2 for
+lab x, lab y or lab z (as defined by directions).</p></li>
+<li><p><strong>lattice</strong> (<em>ASE ase.lattice.cubic function</em>) – Callable function which can be used to generate the crystal.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.map_surface">
+<span class="sig-name descname"><span class="pre">map_surface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">switch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">invert_dirs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[False,</span> <span class="pre">False,</span> <span class="pre">False]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.map_surface" title="Link to this definition"></a></dt>
+<dd><p>Map the relaxation of the crystal surface a certain number of layers deep.
+:param fmax: Force tolerance for relaxation
+:type fmax: float
+:param layers: Number of layers deep to map the free surface
+:type layers: int
+:param cutoff: Cutoff of the potential being used - used to decide the number of</p>
+<blockquote>
+<div><p>atoms beneath the mapped layers that need to be modelled</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shift</strong> (<em>float</em>) – Amount to shift the bulk structure before the surface is mapped
+such that the top layer of surface is physically meaningful. One
+use case of this would be to adjust the top layer of atoms being mapped
+in diamond such that it matches the top layer of atoms seen on the cleavage
+plane.</p></li>
+<li><p><strong>switch</strong> (<em>bool</em>) – Whether or not to switch the sublattices around in the mapped structure.
+(Essentially, the correct surface can always be found from some combination of shift and switch)</p></li>
+<li><p><strong>invert_dirs</strong> (<em>bool array</em>) – Whether to invert the components of the mapped shifts. This is useful in the case where a surface which originally has mirror
+symmetry in a certain plane can break this symmetry during reconstruction. This is the case for the 110 silicon reconstructed surface,
+where the surface breaks mirror symmetry in the {001} type plane during reconstruction. Two possible surfaces can form, related through
+diad symmetry. To map the other surface, one has to switch sublattices and invert the mapped displacements along the &lt;001&gt; type direction.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.identify_layers">
+<span class="sig-name descname"><span class="pre">identify_layers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_for_cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_from_atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.identify_layers" title="Link to this definition"></a></dt>
+<dd><p>Function for identifying the layers adjacent to a surface, in a supplied atoms structure.
+This allows a mapped relaxation to be easily applied to a surface.
+:param atoms: Atoms object which contains surface to relax
+:type atoms: ASE atoms object
+:param surface_coords: Coordinates of a point that lies on the free surface (or within one layer distance above it)
+:type surface_coords: array_like
+:param xlim: [x lower, x upper], x range to apply relaxation
+:type xlim: array_like
+:param ylim: [y lower, y upper], y range to apply relaxation
+:type ylim: array_like
+:param zlim: [z lower, z upper], z range to apply relaxation
+:type zlim: array_like
+:param search_dir: -1: surface is below point provided, 1: surface is above point provided
+:type search_dir: int
+:param atoms_for_cb: atoms object which allows the easy identification of sub-lattices in a multi-lattice</p>
+<blockquote>
+<div><p>crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may
+be periodic boundary conditions, for example.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_from_atoms</strong> (<em>bool</em>) – Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the
+atoms object contains arrays called lattice1mask and lattice2mask</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>layer_mask_set</strong> – A 2D array dimensions [nlayers,natoms] where a row i is a mask for
+‘atoms’ corresponding to a layer i deep from the surface. In the case of
+a multi-lattice, two masks are returned, one for each of the sublattices on each layer.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like, bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.apply_surface_shift">
+<span class="sig-name descname"><span class="pre">apply_surface_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_for_cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_from_atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.apply_surface_shift" title="Link to this definition"></a></dt>
+<dd><p>Function which applies the mapped out deformation to the surface layers
+in a supplied atoms structure.
+:param atoms: Atoms object which contains surface to relax
+:type atoms: ASE atoms object
+:param surface_coords: Coordinates of a point that lies on the free surface (or within one layer distance above it)
+:type surface_coords: array_like
+:param xlim: [x lower, x upper], x range to apply relaxation
+:type xlim: array_like
+:param ylim: [y lower, y upper], y range to apply relaxation
+:type ylim: array_like
+:param zlim: [z lower, z upper], z range to apply relaxation
+:type zlim: array_like
+:param search_dir: -1: surface is below point provided, 1: surface is above point provided
+:type search_dir: int
+:param atoms_for_cb: atoms object which allows the easy identification of sub-lattices in a multi-lattice</p>
+<blockquote>
+<div><p>crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may
+be periodic boundary conditions, for example.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_from_atoms</strong> (<em>bool</em>) – Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the
+atoms object contains arrays called lattice1mask and lattice2mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.map_pandey_111">
+<span class="sig-name descname"><span class="pre">map_pandey_111</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">switch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.map_pandey_111" title="Link to this definition"></a></dt>
+<dd><p>Map the diamond structure 111 pandey relaxation of the crystal surface a certain number of layers deep.
+As this relaxation breaks surface symmetry, one can map it in 3 different orientations.
+:param fmax: Force tolerance for relaxation
+:type fmax: float
+:param layers: Number of layers deep to map the free surface
+:type layers: int
+:param cutoff: Cutoff of the potential being used - used to decide the number of</p>
+<blockquote>
+<div><p>atoms beneath the mapped layers that need to be modelled</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shift</strong> (<em>float</em>) – Amount to shift the bulk structure before the surface is mapped
+such that the top layer of surface is physically meaningful. One
+use case of this would be to adjust the top layer of atoms being mapped
+in diamond such that it matches the top layer of atoms seen on the cleavage
+plane.</p></li>
+<li><p><strong>switch</strong> (<em>bool</em>) – Whether or not to switch the sublattices around in the mapped structure.
+(Essentially, the correct surface can always be found from some combination of shift and switch)</p></li>
+<li><p><strong>orientation</strong> (<em>0</em><em>,</em><em>1</em><em>,</em><em>2</em>) – Which of the three different orientations of the Pandey reconstruction to map</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.identify_pandey_layers">
+<span class="sig-name descname"><span class="pre">identify_pandey_layers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_for_cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_from_atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dirs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.identify_pandey_layers" title="Link to this definition"></a></dt>
+<dd><p>Function for identifying the layers adjacent to a surface, in a supplied atoms structure.
+This allows a mapped relaxation to be easily applied to a surface. This implementation is specific
+to the 111 Pandey reconstruction, as more atoms need to be identified due to the breaking of surface
+symmetry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object which contains surface to relax</p></li>
+<li><p><strong>surface_coords</strong> (<em>array_like</em>) – Coordinates of a point that lies on the free surface (or within one layer distance above it)</p></li>
+<li><p><strong>xlim</strong> (<em>array_like</em>) – [x lower, x upper], x range to apply relaxation</p></li>
+<li><p><strong>ylim</strong> (<em>array_like</em>) – [y lower, y upper], y range to apply relaxation</p></li>
+<li><p><strong>zlim</strong> (<em>array_like</em>) – [z lower, z upper], z range to apply relaxation</p></li>
+<li><p><strong>search_dir</strong> (<em>int</em>) – -1: surface is below point provided, 1: surface is above point provided</p></li>
+<li><p><strong>atoms_for_cb</strong> (<em>ASE atoms object</em>) – atoms object which allows the easy identification of sub-lattices in a multi-lattice
+crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may
+be periodic boundary conditions, for example.</p></li>
+<li><p><strong>read_from_atoms</strong> (<em>bool</em>) – Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the
+atoms object contains arrays called lattice1mask and lattice2mask</p></li>
+<li><p><strong>frame_dirs</strong> – The frame in which the Pandey reconstruction was mapped out - the atoms in the supplied frame will need to
+be rotated to this frame before the reconstruction can be applied</p></li>
+<li><p><strong>orientation</strong> (<em>0</em><em>,</em><em>1</em><em> or </em><em>2</em>) – Which of the three different orientations of the Pandey reconstructions are being applied to the surface</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>layer_mask_set</strong> – A 2D array dimensions [nlayers,natoms] where a row i is a mask for
+‘atoms’ corresponding to a layer i deep from the surface. In the case of
+a multi-lattice, two masks are returned, one for each of the sublattices on each layer.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like, bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.apply_pandey_111">
+<span class="sig-name descname"><span class="pre">apply_pandey_111</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_for_cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_from_atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.apply_pandey_111" title="Link to this definition"></a></dt>
+<dd><p>Function which applies the mapped out Pandey deformation to the surface layers
+in a supplied atoms structure.
+:param atoms: Atoms object which contains surface to relax
+:type atoms: ASE atoms object
+:param surface_coords: Coordinates of a point that lies on the free surface (or within one layer distance above it)
+:type surface_coords: array_like
+:param xlim: [x lower, x upper], x range to apply relaxation
+:type xlim: array_like
+:param ylim: [y lower, y upper], y range to apply relaxation
+:type ylim: array_like
+:param zlim: [z lower, z upper], z range to apply relaxation
+:type zlim: array_like
+:param search_dir: -1: surface is below point provided, 1: surface is above point provided
+:type search_dir: int
+:param atoms_for_cb: atoms object which allows the easy identification of sub-lattices in a multi-lattice</p>
+<blockquote>
+<div><p>crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may
+be periodic boundary conditions, for example.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>read_from_atoms</strong> (<em>bool</em>) – Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the
+atoms object contains arrays called lattice1mask and lattice2mask</p></li>
+<li><p><strong>orientation</strong> (<em>0</em><em>,</em><em>1</em><em> or </em><em>2</em>) – Which of the three different orientations of the Pandey reconstructions are being applied to the surface</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.map_si_110_3x1">
+<span class="sig-name descname"><span class="pre">map_si_110_3x1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">switch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permute</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.map_si_110_3x1" title="Link to this definition"></a></dt>
+<dd><section id="map-the-silicon-110-3x1-relaxation-of-the-crystal">
+<h2>Map the silicon 110 3x1 relaxation of the crystal.<a class="headerlink" href="#map-the-silicon-110-3x1-relaxation-of-the-crystal" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>fmax<span class="classifier">float</span></dt><dd><p>Force tolerance for relaxation</p>
+</dd>
+<dt>layers<span class="classifier">int</span></dt><dd><p>Number of layers deep to map the free surface</p>
+</dd>
+<dt>cutoff<span class="classifier">float</span></dt><dd><p>Cutoff of the potential being used - used to decide the number of
+atoms beneath the mapped layers that need to be modelled</p>
+</dd>
+<dt>shift<span class="classifier">float</span></dt><dd><p>Amount to shift the bulk structure before the surface is mapped
+such that the top layer of surface is physically meaningful. One
+use case of this would be to adjust the top layer of atoms being mapped
+in diamond such that it matches the top layer of atoms seen on the cleavage
+plane.</p>
+</dd>
+<dt>switch<span class="classifier">bool</span></dt><dd><p>Whether or not to switch the sublattices around in the mapped structure.
+(Essentially, the correct surface can always be found from some combination of shift and switch)</p>
+</dd>
+<dt>orientation<span class="classifier">int, 1 or 0</span></dt><dd><p>Whether to flip the reconstruction by 180 degrees. This is necessary for the lower surface.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.identify_si_110_layers">
+<span class="sig-name descname"><span class="pre">identify_si_110_layers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_for_cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_from_atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_dirs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">switch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.identify_si_110_layers" title="Link to this definition"></a></dt>
+<dd><p>Function for identifying the layers adjacent to a surface, in a supplied atoms structure.
+This allows a mapped relaxation to be easily applied to a surface. This implementation is specific
+to the 111 Pandey reconstruction, as more atoms need to be identified due to the breaking of surface
+symmetry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object which contains surface to relax</p></li>
+<li><p><strong>surface_coords</strong> (<em>array_like</em>) – Coordinates of a point that lies on the free surface (or within one layer distance above it)</p></li>
+<li><p><strong>xlim</strong> (<em>array_like</em>) – [x lower, x upper], x range to apply relaxation</p></li>
+<li><p><strong>ylim</strong> (<em>array_like</em>) – [y lower, y upper], y range to apply relaxation</p></li>
+<li><p><strong>zlim</strong> (<em>array_like</em>) – [z lower, z upper], z range to apply relaxation</p></li>
+<li><p><strong>search_dir</strong> (<em>int</em>) – -1: surface is below point provided, 1: surface is above point provided</p></li>
+<li><p><strong>atoms_for_cb</strong> (<em>ASE atoms object</em>) – atoms object which allows the easy identification of sub-lattices in a multi-lattice
+crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may
+be periodic boundary conditions, for example.</p></li>
+<li><p><strong>read_from_atoms</strong> (<em>bool</em>) – Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the
+atoms object contains arrays called lattice1mask and lattice2mask</p></li>
+<li><p><strong>frame_dirs</strong> – The frame in which the Pandey reconstruction was mapped out - the atoms in the supplied frame will need to
+be rotated to this frame before the reconstruction can be applied</p></li>
+<li><p><strong>orientation</strong> (<em>0</em><em>,</em><em>1</em><em> or </em><em>2</em>) – Which of the three different orientations of the Pandey reconstructions are being applied to the surface</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>layer_mask_set</strong> – A 2D array dimensions [nlayers,natoms] where a row i is a mask for
+‘atoms’ corresponding to a layer i deep from the surface. In the case of
+a multi-lattice, two masks are returned, one for each of the sublattices on each layer.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like, bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.surface_reconstruction.SurfaceReconstruction.apply_si_110">
+<span class="sig-name descname"><span class="pre">apply_si_110</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_for_cb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_from_atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">switch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.surface_reconstruction.SurfaceReconstruction.apply_si_110" title="Link to this definition"></a></dt>
+<dd><p>Function which applies the mapped out Si deformation to the surface layers
+in a supplied atoms structure.
+:param atoms: Atoms object which contains surface to relax
+:type atoms: ASE atoms object
+:param surface_coords: Coordinates of a point that lies on the free surface (or within one layer distance above it)
+:type surface_coords: array_like
+:param xlim: [x lower, x upper], x range to apply relaxation
+:type xlim: array_like
+:param ylim: [y lower, y upper], y range to apply relaxation
+:type ylim: array_like
+:param zlim: [z lower, z upper], z range to apply relaxation
+:type zlim: array_like
+:param search_dir: -1: surface is below point provided, 1: surface is above point provided
+:type search_dir: int
+:param atoms_for_cb: atoms object which allows the easy identification of sub-lattices in a multi-lattice</p>
+<blockquote>
+<div><p>crystal using the CubicCauchyBorn set_sublattices function. The difference between this and atoms may
+be periodic boundary conditions, for example.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>read_from_atoms</strong> (<em>bool</em>) – Whether or not to read in the cauchy-born sublattices from the atoms structure. This can be done if the
+atoms object contains arrays called lattice1mask and lattice2mask</p></li>
+<li><p><strong>orientation</strong> (<em>0</em><em>,</em><em>1</em><em> or </em><em>2</em>) – Which of the three different orientations of the Pandey reconstructions are being applied to the surface</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.surface.html" class="btn btn-neutral float-left" title="matscipy.surface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.utils.html" class="btn btn-neutral float-right" title="matscipy.utils" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

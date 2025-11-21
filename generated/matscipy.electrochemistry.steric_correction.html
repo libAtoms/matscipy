@@ -1,0 +1,750 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.electrochemistry.steric_correction &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.fracture_mechanics" href="matscipy.fracture_mechanics.html" />
+    <link rel="prev" title="matscipy.electrochemistry.poisson_nernst_planck_solver" href="matscipy.electrochemistry.poisson_nernst_planck_solver.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#application-domains">Application domains</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.continuous2discrete.html">matscipy.electrochemistry.continuous2discrete</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.poisson_boltzmann_distribution.html">matscipy.electrochemistry.poisson_boltzmann_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.poisson_nernst_planck_solver.html">matscipy.electrochemistry.poisson_nernst_planck_solver</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.electrochemistry.steric_correction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+      <li class="breadcrumb-item active">matscipy.electrochemistry.steric_correction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.electrochemistry.steric_correction.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.electrochemistry.steric_correction">
+<span id="matscipy-electrochemistry-steric-correction"></span><h1>matscipy.electrochemistry.steric_correction<a class="headerlink" href="#module-matscipy.electrochemistry.steric_correction" title="Link to this heading"></a></h1>
+<p>Enforces minimum distances on coordinates within discrete distribtution.</p>
+<p>Copyright 2020 IMTEK Simulation
+University of Freiburg</p>
+<p>Authors:</p>
+<blockquote>
+<div><p>Johannes Hoermann &lt;<a class="reference external" href="mailto:johannes&#46;hoermann&#37;&#52;&#48;imtek-uni-freiburg&#46;de">johannes<span>&#46;</span>hoermann<span>&#64;</span>imtek-uni-freiburg<span>&#46;</span>de</a>&gt;</p>
+</div></blockquote>
+<p class="rubric">Examples</p>
+<p>Benchmark different scipy optimizers for the steric correction problem:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># measures of box</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xsize</span> <span class="o">=</span> <span class="n">ysize</span> <span class="o">=</span> <span class="mf">5e-9</span> <span class="c1"># nm, SI units</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">zsize</span> <span class="o">=</span> <span class="mf">10e-9</span>    <span class="c1"># nm, SI units</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># get continuum distribution, z direction</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">zsize</span><span class="p">,</span> <span class="mi">2000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="mf">0.05</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">phi</span> <span class="o">=</span> <span class="n">potential</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span>   <span class="o">=</span> <span class="n">concentration</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rho</span> <span class="o">=</span> <span class="n">charge_density</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># create distribution functions</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distributions</span> <span class="o">=</span> <span class="p">[</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">C</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># sample discrete coordinate set</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">box</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">xsize</span><span class="p">,</span> <span class="n">ysize</span><span class="p">,</span> <span class="n">zsize</span><span class="p">])</span><span class="n">m</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sample_size</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="p">[</span> <span class="n">continuous2discrete</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">distribution</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">sample_size</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">distributions</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># apply penalty for steric overlap</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">box</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">box</span><span class="p">])</span> <span class="c1"># needs lower corner</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># benchmark methods</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mindsq</span><span class="p">,</span> <span class="p">(</span><span class="n">p1</span><span class="p">,</span><span class="n">p2</span><span class="p">)</span> <span class="o">=</span> <span class="n">scipy_distance_based_closest_pair</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mindsq</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Minimum pair-wise distance in sample: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mind</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;First sample point in pair:    (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">p1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Second sample point in pair    (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">p2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Box lower boundary:            (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Minimum coordinates in sample: (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">pmin</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Maximum coordinates in sample: (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">pmax</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Box upper boundary:            (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">box</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># stats: method, x, res, dt, mind, p1, p2 , pmin, pmax</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stats</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;initial&#39;</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">mind</span><span class="p">,</span><span class="n">p1</span><span class="p">,</span><span class="n">p2</span><span class="p">,</span><span class="n">pmin</span><span class="p">,</span><span class="n">pmax</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="mf">4e-10</span> <span class="c1"># 4 Angstrom steric radius</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Steric radius: </span><span class="si">{:8.4e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">r</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">methods</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;Powell&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;CG&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;BFGS&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;L-BFGS-B&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">try</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;### </span><span class="si">{}</span><span class="s2"> ###&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">x1</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="n">apply_steric_correction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="p">,</span><span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span><span class="n">method</span><span class="o">=</span><span class="n">m</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">dt</span> <span class="o">=</span> <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> s runtime&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dt</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">mindsq</span><span class="p">,</span> <span class="p">(</span><span class="n">p1</span><span class="p">,</span><span class="n">p2</span><span class="p">)</span> <span class="o">=</span> <span class="n">scipy_distance_based_closest_pair</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">mind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mindsq</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">pmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">pmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">stats</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">m</span><span class="p">,</span><span class="n">x1</span><span class="p">,</span><span class="n">res</span><span class="p">,</span><span class="n">dt</span><span class="p">,</span><span class="n">mind</span><span class="p">,</span><span class="n">p1</span><span class="p">,</span><span class="n">p2</span><span class="p">,</span><span class="n">pmin</span><span class="p">,</span><span class="n">pmax</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Minimum pair-wise distance in final configuration: </span><span class="si">{:8.4e}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mind</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;First sample point in pair:    (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">p1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Second sample point in pair    (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">p2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Box lower boundary:            (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Minimum coordinates in sample: (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">pmin</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Maximum coordinates in sample: (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">pmax</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Box upper boundary:            (</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">,</span><span class="si">{:8.4e}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">box</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">except</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> failed.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="k">continue</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stats_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span> <span class="p">[</span> <span class="p">{</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;method&#39;</span><span class="p">:</span>  <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;runtime&#39;</span><span class="p">:</span> <span class="n">s</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;mind&#39;</span><span class="p">:</span>    <span class="n">s</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="o">**</span><span class="p">{</span><span class="s1">&#39;p1</span><span class="si">{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">):</span> <span class="n">c</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="p">},</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="o">**</span><span class="p">{</span><span class="s1">&#39;p2</span><span class="si">{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">):</span> <span class="n">c</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span> <span class="p">},</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="o">**</span><span class="p">{</span><span class="s1">&#39;pmin</span><span class="si">{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">):</span> <span class="n">c</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span> <span class="p">},</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="o">**</span><span class="p">{</span><span class="s1">&#39;pmax</span><span class="si">{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">):</span> <span class="n">c</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span> <span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">}</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">]</span> <span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">stats_df</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">float_format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%8.6g</span><span class="s1">&#39;</span><span class="p">))</span>
+<span class="go">method  runtime        mind         p10         p11         p12         p20         p21         p22       pmin0       pmin1       pmin2       pmax0       pmax1       pmax2</span>
+<span class="go">0   initial        0 1.15674e-10 2.02188e-09 4.87564e-10 5.21835e-09 2.03505e-09 3.72691e-10 5.22171e-09 1.17135e-12 1.49124e-10 6.34126e-12 4.98407e-09 4.99037e-09 9.86069e-09</span>
+<span class="go">1    Powell  75.2704 8.02318e-10 4.23954e-09 3.36242e-09 8.80092e-09 4.31183e-09 2.56345e-09 8.81278e-09 4.01789e-10  4.0081e-10  4.2045e-10 4.59284e-09 4.54413e-09  9.5924e-09</span>
+<span class="go">2        CG  27.0756  7.9992e-10 3.39218e-09 4.00079e-09 8.27255e-09 3.86337e-09 4.27807e-09 7.68863e-09 4.00018e-10 4.00146e-10 4.00565e-10 4.59941e-09 4.59989e-09 9.59931e-09</span>
+<span class="go">3      BFGS  19.0255 7.99527e-10 1.82802e-09 3.54397e-09 9.69736e-10 2.41411e-09   3.936e-09 1.34664e-09 4.00514e-10 4.01874e-10  4.0002e-10 4.59695e-09 4.59998e-09 9.58155e-09</span>
+<span class="go">4  L-BFGS-B  11.7869 7.99675e-10 4.34395e-09 3.94096e-09 1.28996e-09 4.44064e-09 3.15999e-09 1.14778e-09 4.12146e-10 4.01506e-10 4.03583e-10     4.6e-09 4.59898e-09  9.5982e-09</span>
+</pre></div>
+</div>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.apply_steric_correction" title="matscipy.electrochemistry.steric_correction.apply_steric_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_steric_correction</span></code></a>(x[, box, r, method, ...])</p></td>
+<td><p>Enforce steric constraints on coordinate distribution within box.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.box_constraint" title="matscipy.electrochemistry.steric_correction.box_constraint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">box_constraint</span></code></a>(x[, box, r])</p></td>
+<td><p>Constraint function.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.box_constraint_with_gradient" title="matscipy.electrochemistry.steric_correction.box_constraint_with_gradient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">box_constraint_with_gradient</span></code></a>(x[, box, r])</p></td>
+<td><p>Constraint function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.brute_force_closest_pair" title="matscipy.electrochemistry.steric_correction.brute_force_closest_pair"><code class="xref py py-obj docutils literal notranslate"><span class="pre">brute_force_closest_pair</span></code></a>(x)</p></td>
+<td><p>Find coordinate pair with minimum distance squared ||xi-xj||^2.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.brute_force_target_function" title="matscipy.electrochemistry.steric_correction.brute_force_target_function"><code class="xref py py-obj docutils literal notranslate"><span class="pre">brute_force_target_function</span></code></a>(x[, r, constraints])</p></td>
+<td><p>Target function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.neigh_list_based_target_function" title="matscipy.electrochemistry.steric_correction.neigh_list_based_target_function"><code class="xref py py-obj docutils literal notranslate"><span class="pre">neigh_list_based_target_function</span></code></a>(x[, r, ...])</p></td>
+<td><p>Target function.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.numpy_only_target_function" title="matscipy.electrochemistry.steric_correction.numpy_only_target_function"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy_only_target_function</span></code></a>(x[, r, constraints])</p></td>
+<td><p>Target function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.planar_closest_pair" title="matscipy.electrochemistry.steric_correction.planar_closest_pair"><code class="xref py py-obj docutils literal notranslate"><span class="pre">planar_closest_pair</span></code></a>(x)</p></td>
+<td><p>Find coordinate pair with minimum distance ||xi-xj||.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.recursive_closest_pair" title="matscipy.electrochemistry.steric_correction.recursive_closest_pair"><code class="xref py py-obj docutils literal notranslate"><span class="pre">recursive_closest_pair</span></code></a>(x, y)</p></td>
+<td><p>Find coordinate pair with minimum distance squared ||xi-xj||^2.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.scipy_distance_based_closest_pair" title="matscipy.electrochemistry.steric_correction.scipy_distance_based_closest_pair"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy_distance_based_closest_pair</span></code></a>(x)</p></td>
+<td><p>Find coordinate pair with minimum distance ||xi-xj||.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.scipy_distance_based_target_function" title="matscipy.electrochemistry.steric_correction.scipy_distance_based_target_function"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy_distance_based_target_function</span></code></a>(x[, r, ...])</p></td>
+<td><p>Target function.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.steric_correction.DeferredMessage" title="matscipy.electrochemistry.steric_correction.DeferredMessage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DeferredMessage</span></code></a>(msg, func, *args, **kwargs)</p></td>
+<td><p>Lazy evaluation for log messages.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.DeferredMessage">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">DeferredMessage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.DeferredMessage" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Lazy evaluation for log messages.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.DeferredMessage.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.DeferredMessage.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.brute_force_closest_pair">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">brute_force_closest_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.brute_force_closest_pair" title="Link to this definition"></a></dt>
+<dd><p>Find coordinate pair with minimum distance squared ||xi-xj||^2.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>x: (N,dim) ndarray</strong></dt><dd><p>coordinates</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>float, (ndarray, ndarray): minimum distance squared and coodinates pair</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p>import timeit</p>
+<p>import pandas as pd
+import scipy.spatial.distance
+from matscipy.electrochemistry.steric_distribution import brute_force_target_function
+from matscipy.electrochemistry.steric_distribution import numpy_only_target_function
+from matscipy.electrochemistry.steric_distribution import     scipy_distance_based_target_function</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">funcs</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">brute_force_closest_pair</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">scipy_distance_based_closest_pair</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">planar_closest_pair</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">func_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;brute&#39;</span><span class="p">,</span><span class="s1">&#39;scipy&#39;</span><span class="p">,</span><span class="s1">&#39;planar&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stats</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">N</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">dim</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">lambdas</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span><span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">funcs</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">rets</span>    <span class="o">=</span> <span class="p">[</span> <span class="n">f</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lambdas</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">vals</span>    <span class="o">=</span> <span class="p">[</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">rets</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">coords</span>  <span class="o">=</span> <span class="p">[</span> <span class="n">c</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">rets</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">p</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">times</span>   <span class="o">=</span> <span class="p">[</span> <span class="n">timeit</span><span class="o">.</span><span class="n">timeit</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lambdas</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">diffs</span>   <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">spatial</span><span class="o">.</span><span class="n">distance</span><span class="o">.</span><span class="n">pdist</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">metric</span><span class="o">=</span><span class="s1">&#39;euclidean&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">stats</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="o">*</span><span class="n">vals</span><span class="p">,</span><span class="o">*</span><span class="n">diffs</span><span class="p">,</span><span class="o">*</span><span class="n">times</span><span class="p">,</span><span class="o">*</span><span class="n">coords</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">func_name_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">func_names</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">diff_names</span> <span class="o">=</span>  <span class="p">[</span> <span class="s1">&#39;d_</span><span class="si">{:s}</span><span class="s1">_</span><span class="si">{:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span><span class="n">f2</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">f1</span><span class="p">,</span><span class="n">f2</span><span class="p">)</span> <span class="ow">in</span> <span class="n">func_name_tuples</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">perf_names</span> <span class="o">=</span>  <span class="p">[</span> <span class="s1">&#39;t_</span><span class="si">{:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">func_names</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coord_names</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;p</span><span class="si">{:d}{:s}</span><span class="s1">_</span><span class="si">{:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">func_names</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">,</span><span class="s1">&#39;z&#39;</span><span class="p">)</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">float_fields</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">func_names</span><span class="p">,</span><span class="o">*</span><span class="n">diff_names</span><span class="p">,</span><span class="o">*</span><span class="n">perf_names</span><span class="p">,</span><span class="o">*</span><span class="n">coord_names</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;f4&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">float_fields</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labeled_stats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stats_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">labeled_stats</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">stats_df</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">float_format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%8.6g</span><span class="s1">&#39;</span><span class="p">))</span>
+<span class="go">                         0           1           2           3           4</span>
+<span class="go">brute          2.24089e-05 5.61002e-05 8.51047e-05 3.48424e-05 5.37235e-05</span>
+<span class="go">scipy          2.24089e-05 5.61002e-05 8.51047e-05 3.48424e-05 5.37235e-05</span>
+<span class="go">planar         2.24089e-05 5.61002e-05 8.51047e-05 3.48424e-05 5.37235e-05</span>
+<span class="go">d_brute_scipy            0           0           0           0           0</span>
+<span class="go">d_brute_planar           0           0           0           0           0</span>
+<span class="go">d_scipy_planar           0           0           0           0           0</span>
+<span class="go">t_brute            4.02697     3.85543      4.1414     3.90338     3.86993</span>
+<span class="go">t_scipy         0.00708364  0.00698962  0.00762594  0.00703242  0.00703579</span>
+<span class="go">t_planar           0.38302     0.39462    0.434342    0.407233    0.420773</span>
+<span class="go">p1x_brute         0.132014    0.331441    0.553405    0.534633    0.977582</span>
+<span class="go">p1y_brute         0.599688    0.186959     0.90897    0.575864    0.636278</span>
+<span class="go">p1z_brute          0.49631    0.993856    0.246418    0.853567    0.411793</span>
+<span class="go">p2x_brute         0.134631    0.333526     0.55322    0.534493    0.977561</span>
+<span class="go">p2y_brute         0.603598    0.179771    0.915063    0.576894    0.629313</span>
+<span class="go">p2z_brute         0.496833    0.994145    0.239493    0.859377    0.409509</span>
+<span class="go">p1x_scipy         0.132014    0.331441    0.553405    0.534633    0.977582</span>
+<span class="go">p1y_scipy         0.599688    0.186959     0.90897    0.575864    0.636278</span>
+<span class="go">p1z_scipy          0.49631    0.993856    0.246418    0.853567    0.411793</span>
+<span class="go">p2x_scipy         0.134631    0.333526     0.55322    0.534493    0.977561</span>
+<span class="go">p2y_scipy         0.603598    0.179771    0.915063    0.576894    0.629313</span>
+<span class="go">p2z_scipy         0.496833    0.994145    0.239493    0.859377    0.409509</span>
+<span class="go">p1x_planar        0.132014    0.331441     0.55322    0.534633    0.977561</span>
+<span class="go">p1y_planar        0.599688    0.186959    0.915063    0.575864    0.629313</span>
+<span class="go">p1z_planar         0.49631    0.993856    0.239493    0.853567    0.409509</span>
+<span class="go">p2x_planar        0.134631    0.333526    0.553405    0.534493    0.977582</span>
+<span class="go">p2y_planar        0.603598    0.179771     0.90897    0.576894    0.636278</span>
+<span class="go">p2z_planar        0.496833    0.994145    0.246418    0.859377    0.411793</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.recursive_closest_pair">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">recursive_closest_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.recursive_closest_pair" title="Link to this definition"></a></dt>
+<dd><p>Find coordinate pair with minimum distance squared ||xi-xj||^2.</p>
+<p>Find coordinate pair with minimum distance squared ||xi-xj||^2
+with one point from x and the other point from y</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – coordinates</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float, (ndarray, ndarray)</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>minimum distance squared and coordinate pair</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.planar_closest_pair">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">planar_closest_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.planar_closest_pair" title="Link to this definition"></a></dt>
+<dd><p>Find coordinate pair with minimum distance ||xi-xj||.</p>
+<p>ATTENTION: this implementation tackles the planar problem!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – coordinates</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float, (ndarray, ndarray)</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>minimum distance squared and coordinates pair</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.scipy_distance_based_closest_pair">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">scipy_distance_based_closest_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.scipy_distance_based_closest_pair" title="Link to this definition"></a></dt>
+<dd><p>Find coordinate pair with minimum distance ||xi-xj||.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – coordinates</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float, (ndarray, ndarray)</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>minimum distance squared and coodinates pair</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Handling condensed distance matrix indices:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+<span class="go">[1 2 3 4 5 6]</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">spatial</span><span class="o">.</span><span class="n">distance</span><span class="o">.</span><span class="n">squareform</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+<span class="go">[[0 1 2 3]</span>
+<span class="go"> [1 0 4 5]</span>
+<span class="go"> [2 4 0 6]</span>
+<span class="go"> [3 5 6 0]]</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">I</span><span class="p">,</span><span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tril_indices</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">I</span><span class="p">,</span><span class="n">J</span><span class="p">)</span>
+<span class="go">[1 2 2 3 3 3] [0 0 1 0 1 2]</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">I</span><span class="p">,</span><span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">I</span><span class="p">,</span><span class="n">J</span><span class="p">)</span>
+<span class="go">[0 0 0 1 1 2] [1 2 3 2 3 3]</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">I</span><span class="p">])</span>
+<span class="go">[1 2 4 3 5 6]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.brute_force_target_function">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">brute_force_target_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.brute_force_target_function" title="Link to this definition"></a></dt>
+<dd><p>Target function. Penalize dense packing for coordinates ||xi-xj||&lt;ri+rj.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – particle coordinates</p></li>
+<li><p><strong>r</strong> (<em>float</em><em> or </em><em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default=1.0</em><em>)</em>) – steric radii of particles</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>target function value</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Compare performance of target functions:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.electrochemistry.steric_distribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">scipy_distance_based_target_function</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.electrochemistry.steric_distribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">numpy_only_target_function</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.electrochemistry.steric_distribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">brute_force_target_function</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">scipy.spatial.distance</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">timeit</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">funcs</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">brute_force_target_function</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">numpy_only_target_function</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">scipy_distance_based_target_function</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">func_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;brute&#39;</span><span class="p">,</span><span class="s1">&#39;numpy&#39;</span><span class="p">,</span><span class="s1">&#39;scipy&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stats</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">K</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">lambdas</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span><span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="p">(</span><span class="n">x0</span><span class="o">*</span><span class="n">k</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">funcs</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">vals</span>    <span class="o">=</span> <span class="p">[</span> <span class="n">f</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lambdas</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">times</span>   <span class="o">=</span> <span class="p">[</span> <span class="n">timeit</span><span class="o">.</span><span class="n">timeit</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lambdas</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">diffs</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">spatial</span><span class="o">.</span><span class="n">distance</span><span class="o">.</span><span class="n">pdist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">metric</span><span class="o">=</span><span class="s1">&#39;euclidean&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">stats</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span><span class="o">*</span><span class="n">vals</span><span class="p">,</span><span class="o">*</span><span class="n">diffs</span><span class="p">,</span><span class="o">*</span><span class="n">times</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">func_name_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">func_names</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">diff_names</span> <span class="o">=</span> <span class="p">[</span> <span class="s1">&#39;d_</span><span class="si">{:s}</span><span class="s1">_</span><span class="si">{:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span><span class="n">f2</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">f1</span><span class="p">,</span><span class="n">f2</span><span class="p">)</span> <span class="ow">in</span> <span class="n">func_name_tuples</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">perf_names</span> <span class="o">=</span> <span class="p">[</span> <span class="s1">&#39;t_</span><span class="si">{:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">func_names</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fields</span> <span class="o">=</span>  <span class="p">[</span><span class="s1">&#39;k&#39;</span><span class="p">,</span><span class="o">*</span><span class="n">func_names</span><span class="p">,</span><span class="o">*</span><span class="n">diff_names</span><span class="p">,</span><span class="o">*</span><span class="n">perf_names</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="s1">&#39;&gt;f4&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labeled_stats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stats_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">labeled_stats</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">stats_df</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">float_format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%8.6g</span><span class="s1">&#39;</span><span class="p">))</span>
+<span class="go">         k       brute       numpy       scipy  d_brute_numpy  d_brute_scipy  d_numpy_scipy  t_brute  t_numpy   t_scipy</span>
+<span class="go">0    0.001  3.1984e+07  3.1984e+07  3.1984e+07    5.58794e-08    6.70552e-08    1.11759e-08 0.212432 0.168858 0.0734278</span>
+<span class="go">1     0.01 3.19829e+07 3.19829e+07 3.19829e+07    9.31323e-08    7.82311e-08    1.49012e-08 0.212263  0.16846 0.0791856</span>
+<span class="go">2      0.1 3.18763e+07 3.18763e+07 3.18763e+07    7.45058e-09    1.86265e-08    1.11759e-08 0.201706 0.164867 0.0711544</span>
+<span class="go">3        1 2.27418e+07 2.27418e+07 2.27418e+07    3.72529e-08    4.84288e-08    1.11759e-08  0.20762 0.166005 0.0724238</span>
+<span class="go">4       10      199751      199751      199751    1.16415e-10    2.91038e-11    8.73115e-11 0.202635 0.161932 0.0772684</span>
+<span class="go">5      100     252.548     252.548     252.548    3.28555e-11              0    3.28555e-11 0.202512 0.161217 0.0726705</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.scipy_distance_based_target_function">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">scipy_distance_based_target_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.scipy_distance_based_target_function" title="Link to this definition"></a></dt>
+<dd><p>Target function. Penalize dense packing for coordinates ||xi-xj||&lt;ri+rj.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – particle coordinates</p></li>
+<li><p><strong>r</strong> (<em>float</em><em> or </em><em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default=1.0</em><em>)</em>) – steric radii of particles</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>target function value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.numpy_only_target_function">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">numpy_only_target_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.numpy_only_target_function" title="Link to this definition"></a></dt>
+<dd><p>Target function. Penalize dense packing for coordinates ||xi-xj||&lt;ri+rj.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – particle coordinates</p></li>
+<li><p><strong>r</strong> (<em>float</em><em> or </em><em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default=1.0</em><em>)</em>) – steric radii of particles</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>target function value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.neigh_list_based_target_function">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">neigh_list_based_target_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dij</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.neigh_list_based_target_function" title="Link to this definition"></a></dt>
+<dd><p>Target function. Penalize dense packing for coordinates ||xi-xj||&lt;ri+rj.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – particle coordinates</p></li>
+<li><p><strong>r</strong> (<em>float</em><em> or </em><em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default=1.0</em><em>)</em>) – steric radii of particles</p></li>
+<li><p><strong>constraints</strong> (<em>callable</em><em>, </em><em>returns</em><em> (</em><em>float</em><em>, </em><em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em><em>)</em>) – constraint function value and gradient</p></li>
+<li><p><strong>Dij</strong> (<em>(</em><em>N</em><em>, </em><em>N</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – pairwise minimum allowed distance matrix, overrides r</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>(float, (N,dim) ndarray)</strong> –</p>
+<dl>
+<dt>f: float, target (or penalty) function, value evaluates to</dt><dd><blockquote>
+<div><p>sum_i sum_{j!=i} max(0,(r_i+r_j)^2-||xi-xj||^2)^2</p>
+</div></blockquote>
+<p>without double-counting pairs, where r_i and r_j are
+the steric radii of coordinate points i and j</p>
+</dd>
+<dt>df: (N,dim) ndarray of float, the gradient, evaluates to</dt><dd><blockquote>
+<div><p>4*si sj ((r_i’+r_j)^2-||xi-xj||^2)^2)*(xik’-xjk’)*(kdi’j-kdi’i)</p>
+</div></blockquote>
+<p>for entry (i’,k’), where i subscribes the coordinate point and k
+the spatial dimension. kd is Kronecker delta, si is sum over i</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>target function value and gradient</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.box_constraint">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">box_constraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[0.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[1.,</span> <span class="pre">1.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.box_constraint" title="Link to this definition"></a></dt>
+<dd><p>Constraint function. Confine coordinates within box.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – coordinates</p></li>
+<li><p><strong>box</strong> (<em>(</em><em>2</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default:</em><em> [</em><em>[</em><em>0.</em><em>,</em><em>0.</em><em>,</em><em>0.</em><em>]</em><em>,</em><em>[</em><em>1.</em><em>,</em><em>1.</em><em>,</em><em>1.</em><em>]</em><em>]</em><em>)</em>) – box corner coordinates</p></li>
+<li><p><strong>r</strong> (<em>float</em><em> or </em><em>np.</em><em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default=0</em><em>)</em>) – steric radii of particles</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>penalty, positive</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.box_constraint_with_gradient">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">box_constraint_with_gradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[0.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[1.,</span> <span class="pre">1.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.box_constraint_with_gradient" title="Link to this definition"></a></dt>
+<dd><p>Constraint function. Confine coordinates within box.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – coordinates</p></li>
+<li><p><strong>box</strong> (<em>(</em><em>2</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default:</em><em> [</em><em>[</em><em>0.</em><em>,</em><em>0.</em><em>,</em><em>0.</em><em>]</em><em>,</em><em>[</em><em>1.</em><em>,</em><em>1.</em><em>,</em><em>1.</em><em>]</em><em>]</em><em>)</em>) – box corner coordinates</p></li>
+<li><p><strong>r</strong> (<em>float</em><em> or </em><em>np.</em><em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default=0</em><em>)</em>) – steric radii of particles</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>(float, (N,dim) ndarray of float)</strong> –</p>
+<dl>
+<dt>g(x), positive:</dt><dd><blockquote>
+<div><p>lik = box[0,k] - xik + ri  &gt; 0 for xik out of lower boundaries
+rik = xik + ri - box[1,k]  &gt; 0 for xik out of upper boundaries</p>
+</div></blockquote>
+<p>where box[0] and box[1] are lower and upper corner of bounding box
+and k marks spatial dimension.</p>
+<blockquote>
+<div><p>g(x) = sum_i sum_k ( max(0,lik) + max(0,rik) )^2</p>
+</div></blockquote>
+</dd>
+<dt>dg(x): gradient, entries accordingly evaluates to</dt><dd><p>dgdxik(x) = 2*( -max(0,lik) + max(0,rik) )</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>penalty g(x) and its gradient dg(x)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.steric_correction.apply_steric_correction">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.steric_correction.</span></span><span class="sig-name descname"><span class="pre">apply_steric_correction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method='L-BFGS-B'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options={'disp':</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'eps':</span> <span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'gtol':</span> <span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'maxiter':</span> <span class="pre">100}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_function=&lt;function</span> <span class="pre">neigh_list_based_target_function&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returns_gradient=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closest_pair_function=&lt;function</span> <span class="pre">scipy_distance_based_closest_pair&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.steric_correction.apply_steric_correction" title="Link to this definition"></a></dt>
+<dd><p>Enforce steric constraints on coordinate distribution within box.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>N</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em>) – Particle coordinates.</p></li>
+<li><p><strong>box</strong> (<em>(</em><em>2</em><em>,</em><em>dim</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Box corner coordinates.</p></li>
+<li><p><strong>r</strong> (<em>float</em><em> or </em><em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – Steric radius of particles. Can be specified particle-wise.</p></li>
+<li><p><strong>options</strong> (<em>dict</em><em>, </em><em>optional</em>) – Forwarded to scipy minimzer.
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html">https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html</a>
+(default: {‘gtol’:1.e-5,’maxiter’:10,’disp’:True,’eps’:1.e-8})</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – scipy.optimize.minimize method</p></li>
+<li><p><strong>target_function</strong> (<em>func</em><em>, </em><em>optional</em>) – One of the target functions within this submodule, or function
+of same signature. (default: neigh_list_based_target_function)</p></li>
+<li><p><strong>returns_gradient</strong> (<em>bool</em><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – If True, then ‘target_function’ is expected to return a tuple (f, df)
+with f the actual target function value and df its (N,dim) gradient.
+This flag must be set for ‘neigh_list_based_target_function’.</p></li>
+<li><p><strong>closest_pair_function</strong> (<em>func</em><em>, </em><em>optional</em>) – One of the closest pair functions within this submodule, or function
+of same signature. (default: scipy_distance_based_closest_pair)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>float</strong> (<em>(N,dim) ndarray</em>) – Modified particle coordinates, meeting steric constraints.</p></li>
+<li><p><em>scipy.optimize.OptimizeResult</em> – Forwarded raw object as returned by scipy.optimize.minimize</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.electrochemistry.poisson_nernst_planck_solver.html" class="btn btn-neutral float-left" title="matscipy.electrochemistry.poisson_nernst_planck_solver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.fracture_mechanics.html" class="btn btn-neutral float-right" title="matscipy.fracture_mechanics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

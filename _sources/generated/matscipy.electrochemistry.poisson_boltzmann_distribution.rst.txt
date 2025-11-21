@@ -1,0 +1,19 @@
+matscipy.electrochemistry.poisson\_boltzmann\_distribution
+==========================================================
+
+.. automodule:: matscipy.electrochemistry.poisson_boltzmann_distribution
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      charge_density
+      concentration
+      debye
+      gamma
+      ionic_strength
+      main
+      potential
+      test
+   

@@ -1,0 +1,431 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Modelling the Mobility of Dislocations with `matscipy`\n",
+    "The dislocation modelling toolkit provided in `matscipy.dislocation` includes functions to assist in characterising the mobility of dislocations in various systems. Currently, only motion in the glide direction is supported.\n",
+    "\n",
+    "## Dislocation Glide\n",
+    "Dislocation Glide is where the dislocation line migrates in the glide direction. There are two main mechanisms for attempting to describe dislocation glide dynamics.\n",
+    "\n",
+    "The first mechanism is the (double) kink mechanism. Starting from a perfectly straight dislocation line, a small segment  nucleates out in the glide directionforming a pair of dislocation kinks. These kinks can then migrate along the dislocation line.\n",
+    "\n",
+    "A second, simpler mechanism is to consider the entire dislocation line moving at once - this is much less physical than the double kink mechanism, but can be a good first approximation. The 2D nature of this mechanism can also make it much simpler to study, rather than having to deal with the fully 3D kinks.\n",
+    "\n",
+    "\n",
+    "### Glide in Dislocation Cylinders\n",
+    "As an example of modelling dislocation glide in cylindrical cells, let's look at the Diamond Screw dislocation in Si, using the [Holland and Marder](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.746) potential:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import get_elastic_constants, DiamondGlide60Degree\n",
+    "# the calculator to provide forces and energies from the potential\n",
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber,\\\n",
+    "                                                                Holland_Marder_PRL_80_746_Si\n",
+    "from matscipy.calculators.manybody import Manybody\n",
+    "calc = Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si))\n",
+    "import numpy as np\n",
+    "\n",
+    "# the function accepts any ASE type of calculator\n",
+    "alat, C11, C12, C44 = get_elastic_constants(calculator=calc, symbol=\"Si\", verbose=False)\n",
+    "\n",
+    "Si_disloc = DiamondGlide60Degree(alat, C11, C12, C44, symbol=\"Si\")\n",
+    "\n",
+    "Si_disloc_bulk, Si_disloc_dislo = Si_disloc.build_cylinder(radius=20)\n",
+    "Si_disloc.view_cyl(Si_disloc_dislo, mode=\"dxa\")\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "To generate the initial and final structures for a full glide event, we can use the `build_glide_configurations` function. The structures contain straight dislocation lines, separated by the dislocation glide distance. These structures will be similar to those produced by a call to `build_cylinder`, except extra bulk is added (creating a pill shape, not a circle) in order to make the initial and final configurations symmetric.\n",
+    "\n",
+    "We can also then use the `ase.neb` tools to smoothly interpolate an approximate glide path, which allows us to generate structures for the simpler dislocation glide mechanism discussed above."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "bulk, glide_ini, glide_fin = Si_disloc.build_glide_configurations(radius=20)\n",
+    "\n",
+    "from ase.neb import NEB\n",
+    "\n",
+    "nims = 5\n",
+    "\n",
+    "glide_neb = NEB([glide_ini.copy() for i in range(nims-1)] + [glide_fin.copy()])\n",
+    "\n",
+    "glide_neb.interpolate(method=\"idpp\", apply_constraint=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "To visualise the glide structures, we will combine ase's `plot_atoms` to convert a structure to a matplotlib plot, and then use FuncAnimation to animate the glide structures: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def animate_glide(images, diamond=True, radii=None):\n",
+    "    from ase.visualize.plot import plot_atoms\n",
+    "    import matplotlib.pyplot as plt\n",
+    "    from matplotlib.animation import FuncAnimation\n",
+    "    from matscipy.utils import get_structure_types\n",
+    "    from visualisation import show_HTML\n",
+    "\n",
+    "    fig, ax = plt.subplots(figsize=(10, 10))\n",
+    "    ax.axis(\"off\")\n",
+    "\n",
+    "    # Add extra reps of start and end points for clarity\n",
+    "    anim_images = [images[0]] * 3 + images + [images[-1]] * 3\n",
+    "\n",
+    "    def plot_frame(framedata):\n",
+    "        ax.clear()\n",
+    "        # Plot an individual frame of the animation \n",
+    "        framenum, atoms = framedata\n",
+    "\n",
+    "        # get CNA colours to enhance plot\n",
+    "        atom_labels, struct_names, colors = get_structure_types(atoms, \n",
+    "                                                                diamond_structure=diamond)\n",
+    "        atom_colors = [colors[atom_label] for atom_label in atom_labels]\n",
+    "\n",
+    "        plot_atoms(atoms, ax=ax, colors=atom_colors, radii=radii)\n",
+    "\n",
+    "\n",
+    "    animation = FuncAnimation(fig, plot_frame, frames=enumerate(anim_images),\n",
+    "                                save_count=len(anim_images),\n",
+    "                                init_func=lambda: None,\n",
+    "                                interval=200)\n",
+    "    \n",
+    "    # Need to convert animation to HTML in order for it to be visible on the docs\n",
+    "    return show_HTML(animation)\n",
+    "\n",
+    "animate_glide(glide_neb.images, radii=0.3)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "This is also possible in the dissociated case:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "bulk, glide_ini, glide_fin = Si_disloc.build_glide_configurations(radius=20, partial_distance=5)\n",
+    "\n",
+    "nims = 5\n",
+    "\n",
+    "glide_neb = NEB([glide_ini.copy() for i in range(nims-1)] + [glide_fin.copy()])\n",
+    "\n",
+    "glide_neb.interpolate(method=\"idpp\", apply_constraint=True)\n",
+    "\n",
+    "animate_glide(glide_neb.images, radii=0.3)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Glide in Dislocation Quadrupoles\n",
+    "As quadrupoles are extremely useful for modelling dislocations using plane-wave DFT, it can be convenient to be able to set up initial guesses for complex processes such as dislocation glide.\n",
+    "\n",
+    "We can use the function `build_glide_quadrupoles` to construct a set of images for this system, which can optionally model the glide of either the \"left\" ($+\\mathbf{b}$) or \"right\" ($-\\mathbf{b}$) dislocation cores, or both at once."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import Quadrupole\n",
+    "\n",
+    "Si_quad = Quadrupole(DiamondGlide60Degree, alat, C11, C12, C44, symbol=\"Si\")\n",
+    "\n",
+    "num_images = 5\n",
+    "\n",
+    "glide_quads = Si_quad.build_glide_quadrupoles(nims=num_images, \n",
+    "                                            glide_left=True, # Allow left dislocation glide\n",
+    "                                            glide_right=True, # Allow right dislocation glide\n",
+    "                                            glide_separation=6,\n",
+    "                                            verbose=False)\n",
+    "\n",
+    "animate_glide(glide_quads)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "num_images = 5\n",
+    "\n",
+    "glide_quads = Si_quad.build_glide_quadrupoles(nims=num_images, \n",
+    "                                            glide_left=False, # Prevent left dislocation glide\n",
+    "                                            glide_right=True, # Allow right dislocation glide\n",
+    "                                            partial_distance=2, # Dissociated Glide\n",
+    "                                            glide_separation=8,\n",
+    "                                            verbose=False)\n",
+    "\n",
+    "animate_glide(glide_quads)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Dislocation Kink\n",
+    "Dislocation kink is often the preferred mechanism for migration of the dislocation line. It involves a short segment of the dislocation line hopping by one glide vector, which then provides a low barrier for the rest of the dislocation line to migrate.\n",
+    "\n",
+    "Here the space of structures to explore is greater, due to the 3D nature of dislocation kink. Kink nucleation is also possible on segments of an already kinked-out dislocation line, which can lead to a full network of dislocation kinks.  \n",
+    "\n",
+    "### Kink maps\n",
+    "Dislocation kink in `matscipy` is controlled by a kink map, which controls the position of the dislocation line as a function of the vertical coordinate. The kink map is a list of integers, where the values give a line position in units of glide distances, and each element corresponds to an extra cell in z (replication of `disloc.unit_cell`).\n",
+    "\n",
+    "A kink map of `[0, 0, 1, 1]` means that the dislocation line initially starts at position zero for two repetitions, and then moves out by one glide distance for two repetitions.\n",
+    "\n",
+    "Both dislocation cylinders and quadrupoles have support for this kind of kink map, but the periodic boundaries are treated differently. \n",
+    "\n",
+    "In dislocation cylinders (using `build_kink_cyl`), the periodicity in z is enforced by requiring that the dislocation line returns back to the initial position across the periodic boundary. The example kink map of `[0, 0, 1, 1]` will therefore have a single kink out in the center of the cell, and a single kink back at the periodic boundary (the dislocation line will go like `0, 0, 1, 1, 0, 0, 1, 1, ...`).\n",
+    "\n",
+    "In quadrupoles (using `build_kink_quadrupole_network`), the cell is modified such that the dislocation position at the top of the cell becomes the new dislocation line position at the bottom of the cell. This means that for quadrupoles an extra kink will not be created, and that the example map of `[0, 0, 1, 1]` will create only one kink in the center of the cell.\n",
+    "\n",
+    "Since the kink map is just a list of integers, it can be more convenient to exploit list addition, and specify kink maps in a form similar to `[0] * 5 + [1] * 5`, which would be identical to the input of `[0, 0, 0, 0, 0, 1, 1, 1, 1, 1]`.\n",
+    "\n",
+    "### Kink in cylinders"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Si_bulk, Si_kink = Si_disloc.build_kink_cylinder(\n",
+    "                    radius=20,\n",
+    "                    kink_map= [0] * 5 + [1] * 5\n",
+    "                )\n",
+    "\n",
+    "Si_disloc.view_cyl(Si_kink)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Kink in quadrupoles\n",
+    "Like with dislocation cylinders, we can build networks of kinks in dislocation quadrupoles:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Si_quad_bulk, Si_quad_kink = Si_quad.build_kink_quadrupole(\n",
+    "    glide_separation=8,\n",
+    "    kink_map=[0]*5 + [1]*5,\n",
+    "    verbose=False\n",
+    ")\n",
+    "\n",
+    "Si_quad.view_quad(Si_quad_kink, mode=\"dxa\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    ":::{warning}\n",
+    "For the cell shift to always produce the correct crystalstructure, some atoms need to be deleted for some values of `kink_map[-1]`. This means that some kink maps may not conserve stoichiometry for some multispecies systems.\n",
+    ":::\n",
+    "\n",
+    "\n",
+    "There is also another routine `build_minimal_kink_quadrupole` for building only the smallest possible kink structures. This is where the kink happens in a single burgers vector cell. Here, the `n_kink` parameter controls the number of glide distances covered by the kink, and the direction of the kink: `n_kink=2` builds a compressed version of the kink map `[0, 2]`, and `n_kink=-1` constructs a compressed version of `[0, -1]`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Si_quad_bulk, Si_quad_kink = Si_quad.build_minimal_kink_quadrupole(\n",
+    "    glide_separation=8,\n",
+    "    n_kink=1,\n",
+    "    verbose=False\n",
+    ")\n",
+    "\n",
+    "Si_quad.view_quad(Si_quad_kink, mode=\"dxa\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Improving the kink structures\n",
+    "So far, we have only used the Continuum Linear Elastic (CLE) solutions when building kink structures. As the kink structures are built by interpolating between glide structures, we can get a better approximation of the kink if we relax these glide structures before building the kink. \n",
+    "\n",
+    "To do this, we can replace a call to `build_kink_cylinder` with a call to `build_kink_glide_structs` to build the required glide structures, and then `build_kink_from_glide_cyls` to actually construct the kink. For quadrupoles, the equivalent is replacing `build_kink_quadrupole` with `build_kink_quadrupole_glide_structs` and `build_kink_quadrupole_from_glide_structs`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber,\\\n",
+    "                                                                Holland_Marder_PRL_80_746_Si\n",
+    "from matscipy.calculators.manybody import Manybody\n",
+    "from ase.optimize.precon import PreconLBFGS\n",
+    "\n",
+    "\n",
+    "calc = Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si))\n",
+    "\n",
+    "kink_map = [0] * 5 + [1] * 5\n",
+    "\n",
+    "ref_bulk, glide_structs, struct_map = Si_disloc.build_kink_glide_structs(kink_map, radius=40)\n",
+    "\n",
+    "# glide_structs has a length of 2, as only two unique values in the kink map\n",
+    "\n",
+    "for struct in glide_structs:\n",
+    "    struct.calc = calc\n",
+    "    opt = PreconLBFGS(struct, logfile=None)\n",
+    "    opt.run(1e-1)\n",
+    "\n",
+    "Si_bulk, Si_kink = Si_disloc.build_kink_from_glide_cyls(ref_bulk, glide_structs, struct_map)\n",
+    "\n",
+    "Si_disloc.view_cyl(Si_kink)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Kink in Dissociated Dislocations\n",
+    "\n",
+    "For dissociated dislocations, kinks can nucleate at either core independently, with the energetics of the process largely determined by the burgers vectors of both partial dislocations, and by their separation. Kink can be modelled in such systems by using a 2D kink map, where the 2nd axis is the number of dislocation cores.\n",
+    "\n",
+    "As these structures feature complex 3D geometry, we will hide bulk-coordinated atoms so that the dislocation cores are easily visible."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "kink_map = np.array(\n",
+    "    #   L, R ordering (L = self.left_dislocation, R = self.right_dislocation)\n",
+    "      [[0, 5],] * 2 # Start dissociated\n",
+    "    + [[0, 6],] * 5 # Kink out the right partial by one\n",
+    "    + [[1, 6],] * 5 # Kink out the left partial by one\n",
+    "    + [[0, 5],] * 2 # Wrap back to initial position\n",
+    ") \n",
+    "# Kink map gets wrapped at boundary anyway, but manually specifying the wrapping\n",
+    "# in this way results in an easier-to-read visualisation\n",
+    "\n",
+    "print(kink_map.shape)\n",
+    "\n",
+    "Si_bulk, Si_kink = Si_disloc.build_kink_cylinder(\n",
+    "                    radius=20,\n",
+    "                    kink_map=kink_map\n",
+    "                )\n",
+    "\n",
+    "Si_disloc.view_cyl(Si_kink, hide_bulk=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Bulk-terminated Loops of Dissociated Dislocations\n",
+    "\n",
+    "To push these tools to their limit, let's look at a dislocation loop enclosed in bulk, where the dislocation is able to dissociate. We can use the `Quadrupole` class to easily create a dislocation model with four total dislocation cores: the two partial dislocations forming the left side of the dislocation loop, and the two partials forming the right side of the loop.\n",
+    "\n",
+    "To do this, we specify 4 kink positions per vertical segment, and we construct the loop in vertical slices."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Quadrupole & CubicCrystalDissociatedDislocation have self.left_dislocation and \n",
+    "# self.right_dislocation attributes\n",
+    "# Combining them in this way results in an ordering of:\n",
+    "# LL, LR, RL, RR, where LL is self.left_dislocation.left_dislocation, \n",
+    "# RL is self.right_dislocation.left_dislocation, etc \n",
+    "\n",
+    "\n",
+    "kink_map = np.array(\n",
+    "    #   LL, LR, RL, RR ordering\n",
+    "      [[ 0,  0,  0,  0]] * 7 # Start with perfect bulk (as dislocation cores overlapping)\n",
+    "    + [[-1, -1,  1,  1]] * 5 # Kink out both perfect dislocations\n",
+    "    + [[-2, -2,  2,  2]] * 4 \n",
+    "    + [[-3, -3,  3,  3]] * 4\n",
+    "    + [[-4, -3,  3,  4]] * 4 # Start dissociation of both perfect dislocations\n",
+    "    + [[-5, -3,  3,  5]] * 4\n",
+    "    + [[-6, -3,  3,  6]] * 8 # Full extent of the dislocation loop\n",
+    "    + [[-5, -3,  3,  5]] * 4 # Invert the process, moving cores closer together\n",
+    "    + [[-4, -3,  3,  4]] * 4\n",
+    "    + [[-3, -3,  3,  3]] * 4\n",
+    "    + [[-2, -2,  2,  2]] * 4 \n",
+    "    + [[-1, -1,  1,  1]] * 5\n",
+    "    + [[ 0,  0,  0,  0]] * 7 # End with perfect bulk\n",
+    ")\n",
+    "\n",
+    "Si_bulk, Si_kink = Si_quad.build_kink_cylinder(\n",
+    "                    radius=50,\n",
+    "                    kink_map=kink_map\n",
+    "                )\n",
+    "\n",
+    "Si_disloc.view_cyl(Si_kink, hide_bulk=True)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

@@ -1,0 +1,12 @@
+matscipy.molecules
+==================
+
+.. automodule:: matscipy.molecules
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Molecules
+   

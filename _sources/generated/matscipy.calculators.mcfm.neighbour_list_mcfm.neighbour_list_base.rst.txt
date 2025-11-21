@@ -1,0 +1,12 @@
+matscipy.calculators.mcfm.neighbour\_list\_mcfm.neighbour\_list\_base
+=====================================================================
+
+.. automodule:: matscipy.calculators.mcfm.neighbour_list_mcfm.neighbour_list_base
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      NeighbourListBase
+   

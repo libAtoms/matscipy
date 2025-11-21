@@ -1,0 +1,726 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>One-dimensional Poisson-Nernst-Planck systems &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Steric correction" href="electrochemistry_3.html" />
+    <link rel="prev" title="Electrochemistry" href="electrochemistry.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Application domains</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="elastic_constants.html">Elastic Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plasticity.html">Plasticity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fracture_mechanics.html">Fracture Mechanics</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="electrochemistry.html">Electrochemistry</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">One-dimensional Poisson-Nernst-Planck systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-inert-electrode">The inert electrode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-electrochemical-cell">The electrochemical cell</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#from-continuous-double-layer-theory-to-discrete-coordinate-sets">From continuous double layer theory to discrete coordinate sets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#poisson-nernst-planck-system-with-stern-layer-boundary-conditions">Poisson-Nernst-Planck-System with Stern layer boundary conditions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#solving-with-robin-and-zero-flux-boundary-conditions">Solving with Robin and zero flux boundary conditions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Visualization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sampling-from-continuous-distributions">Sampling from continuous distributions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#coordinates-export">Coordinates export</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry_3.html">Steric correction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="electrochemistry.html#acknowledgements">Acknowledgements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tribology.html">Tribology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Application domains</a></li>
+          <li class="breadcrumb-item"><a href="electrochemistry.html">Electrochemistry</a></li>
+      <li class="breadcrumb-item active">One-dimensional Poisson-Nernst-Planck systems</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/electrochemistry_1.py.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="one-dimensional-poisson-nernst-planck-systems">
+<h1>One-dimensional Poisson-Nernst-Planck systems<a class="headerlink" href="#one-dimensional-poisson-nernst-planck-systems" title="Link to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry.PoissonNernstPlanckSystem</span></code> solver provides an interface for solving classical, one-dimensional electrochemical systems with an arbitrary number of <span class="math notranslate nohighlight">\(N\)</span> ionic species by means of a controlled-volumes method.</p>
+<section id="the-inert-electrode">
+<h2>The inert electrode<a class="headerlink" href="#the-inert-electrode" title="Link to this heading"></a></h2>
+<p>An archetypical system is the inert electrode at the open half-space governed by the Poisson equation and <span class="math notranslate nohighlight">\(N\)</span> Nernst-Planck equations with Dirichlet and zero flux’ boundary conditions as shown in <a href="#figure1">Figure 1</a> below.</p>
+<p><a id="figure1"></a><figure>
+<img alt="Figure 1" src="../_images/inertElectrode.svg" /></p>
+<p><em>Figure 1</em>: Inert electrode at the open half-space</p>
+<p>Here, <span class="math notranslate nohighlight">\(D_i\)</span> is the diffusivity of the <em>i</em>th species, <span class="math notranslate nohighlight">\(c_i\)</span> its local concentration, <span class="math notranslate nohighlight">\(c_i^\infty\)</span> its bulk concentration, <span class="math notranslate nohighlight">\(u_i\)</span> its electric mobility, and <span class="math notranslate nohighlight">\(z_i\)</span> its charge number. <span class="math notranslate nohighlight">\(\phi\)</span> is the local electrostatic potential, and <span class="math notranslate nohighlight">\(\phi_0\)</span> the electrode’s potential compared to the bulk solution. <span class="math notranslate nohighlight">\(\epsilon_0\)</span> is the vacuum permittivity, <span class="math notranslate nohighlight">\(\epsilon_r\)</span> is the relative permittivity of the solvent, and <span class="math notranslate nohighlight">\(F\)</span> is the Faraday constant.</p>
+<p>In the following, we use <code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry.PoissonNernstPlanckSystem</span></code> to solve this system for <span class="math notranslate nohighlight">\(0.1\,\mathrm{mM}~\text{NaCl}\)</span> at <span class="math notranslate nohighlight">\(0.05\,\mathrm{V}\)</span> bias. Parameters are provided in SI units. We will compare the results against the analytical solution, which exists for this special case of a binary electrolyte.</p>
+<section id="preparations">
+<h3>Preparations<a class="headerlink" href="#preparations" title="Link to this heading"></a></h3>
+<p>First, we import a few basic tools.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.constants</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Then, we import the Poisson-Nernst-Planck solver.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.electrochemistry</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoissonNernstPlanckSystem</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="solving-with-dirichlet-and-zero-flux-boundary-conditions">
+<h3>Solving with Dirichlet and zero flux boundary conditions<a class="headerlink" href="#solving-with-dirichlet-and-zero-flux-boundary-conditions" title="Link to this heading"></a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span> <span class="c1"># bulk concentrations of ion species Na and Cl in mM</span>
+<span class="n">z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># number charges of ion species</span>
+<span class="n">L</span> <span class="o">=</span> <span class="mf">1e-07</span> <span class="c1"># interval length in m</span>
+<span class="n">delta_u</span> <span class="o">=</span> <span class="mf">0.05</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The log output of the system’s initialization will show all provided and derived parameters such as the discretization grid as well as their dimensionless values.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pnp</span> <span class="o">=</span> <span class="n">PoissonNernstPlanckSystem</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">L</span><span class="o">=</span><span class="n">L</span><span class="p">,</span> <span class="n">delta_u</span><span class="o">=</span><span class="n">delta_u</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The method <code class="docutils literal notranslate"><span class="pre">use_standard_interface_bc</span></code> will apply boundary conditions as shown in <a hef="#figure1">Figure 1</a>, with Dirichlet boundary conditions on the potential and zero total flux boundary conditions on ion diffusion and electromigration.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pnp</span><span class="o">.</span><span class="n">use_standard_interface_bc</span><span class="p">()</span>
+<span class="n">ui</span><span class="p">,</span> <span class="n">nij</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pnp</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">ui</span></code> holds the electrostatic potential at the discretization points and <code class="docutils literal notranslate"><span class="pre">nij</span></code> the species concentrations at the discretization points.</p>
+</section>
+<section id="validation-analytical-half-space-solution-vs-numerical-finite-interval-pnp-system">
+<h3>Validation: Analytical half-space solution vs. numerical finite-interval PNP system<a class="headerlink" href="#validation-analytical-half-space-solution-vs-numerical-finite-interval-pnp-system" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry</span></code> provides a function for quickly retrieving the Debye length <span class="math notranslate nohighlight">\(\lambda_D\)</span> of an electrolyte.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.electrochemistry</span><span class="w"> </span><span class="kn">import</span> <span class="n">debye</span>
+<span class="n">deb</span> <span class="o">=</span> <span class="n">debye</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The analytical solution for the open half-space at an inert electrode is just the Possion-Boltzmann distribution <a class="reference internal" href="#israelachvili1991"><span class="xref myst">[3]</span></a>. <code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry.poisson_boltzmann_distribution</span></code> provides a few short-hand functions for retrieving electrostatic potential, charge density and concentrations that arise from this analytical solution.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.electrochemistry.poisson_boltzmann_distribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">potential</span><span class="p">,</span> <span class="n">concentration</span><span class="p">,</span> <span class="n">charge_density</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="n">phi</span> <span class="o">=</span> <span class="n">potential</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">delta_u</span><span class="p">)</span> 
+<span class="n">C</span> <span class="o">=</span>   <span class="n">concentration</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">delta_u</span><span class="p">)</span>
+<span class="n">rho</span> <span class="o">=</span> <span class="n">charge_density</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">delta_u</span><span class="p">)</span> 
+</pre></div>
+</div>
+</div>
+</div>
+<p>We define a little helper for a prettifying our plot.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">make_patch_spines_invisible</span><span class="p">(</span><span class="n">ax</span><span class="p">):</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_frame_on</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">sp</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Next, we hold analytical Poisson-Boltzmann (PB) results on the infinite half space and numerical Poisson-Nernst-Planck (PNP) results on the limited interval next to each other and are convinced of the solution’s validity.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span><span class="n">ax4</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">deb</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Debye length&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">deb</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="o">*</span><span class="mf">1.02</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">&quot;Debye length&quot;</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tomato&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;potential, PB&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">potential</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:red&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;potential, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">*</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;bulk concentration&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">1.1</span><span class="p">,</span> <span class="s2">&quot;bulk concentration&quot;</span><span class="p">)</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">C</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;bisque&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Na+, PB&#39;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:orange&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Na+, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">C</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;lightskyblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cl-, PB&#39;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cl-, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax3</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+<span class="c1"># Offset the right spine of ax3.  The ticks and label have already been</span>
+<span class="c1"># placed on the right by twinx above.</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_position</span><span class="p">((</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">))</span>
+
+<span class="c1"># Having been created by twinx, ax3 has its frame off, so the line of its</span>
+<span class="c1"># detached spine is invisible. First, activate the frame but make the patch</span>
+<span class="c1"># and spines invisible.</span>
+<span class="n">make_patch_spines_invisible</span><span class="p">(</span><span class="n">ax3</span><span class="p">)</span>
+
+<span class="c1"># Second, show the right spine.</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Charge density, PB&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">charge_density</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;charge density, PNP&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">*</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;bulk concentration&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">1.1</span><span class="p">,</span> <span class="s2">&quot;bulk concentration&quot;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">C</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;bisque&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Na+, PB&#39;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:orange&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Na+, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">C</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;lightskyblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cl-, PB&#39;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cl-, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;potential $\phi$ (V)&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;concentration $c$ (mM)&#39;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;charge density $\rho \&gt; (\mathrm</span><span class="si">{C}</span><span class="s1">\&gt; \mathrm</span><span class="si">{m}</span><span class="s1">^{-3})$&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;concentration $c$ (mM)&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;distance $x$ (nm)&#39;</span><span class="p">)</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span>  <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">1.02</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;center right&#39;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.5</span><span class="p">),</span>  <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower right&#39;</span><span class="p">,</span>  <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="o">-</span><span class="mf">0.02</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;&gt;:42: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+&lt;&gt;:42: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+/tmp/ipykernel_4068/1530268794.py:42: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+  ax1.set_ylabel(&#39;potential $\phi$ (V)&#39;)
+</pre></div>
+</div>
+<img alt="../_images/c257193fceaae90348dc80f4145e6abe1d3d56e85122d4de92cf074e2425c9be.png" src="../_images/c257193fceaae90348dc80f4145e6abe1d3d56e85122d4de92cf074e2425c9be.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="the-electrochemical-cell">
+<h2>The electrochemical cell<a class="headerlink" href="#the-electrochemical-cell" title="Link to this heading"></a></h2>
+<p>Another archetypical system is the one-dimensional electrochemical cell governed by flux and Robin boundary conditions as shown below in <a href="#figure2">Figure 2</a>.</p>
+<p><a id="figure2"></a><figure>
+<img alt="Figure 2" src="../_images/electrochemicalCellBazant1d.svg" /></p>
+<p><em>Figure 2</em>: One-dimensional electrochemical cell after Bazant <a href="#bazant2006">[1]</a></p>
+<p>Here, <span class="math notranslate nohighlight">\(i_\text{cell}\)</span> is the total density of Faradaic current through the cell that arises due to <span class="math notranslate nohighlight">\(M\)</span> half-reactions, with <span class="math notranslate nohighlight">\(i_j\)</span> the partial current due to reaction <span class="math notranslate nohighlight">\(j\)</span>. <span class="math notranslate nohighlight">\(\nu_{ij}\)</span> is the stochiometric coefficient of species <span class="math notranslate nohighlight">\(i\)</span>, and <span class="math notranslate nohighlight">\(n_j\)</span> the number of electrons participating in half-reaction <span class="math notranslate nohighlight">\(j\)</span>. <span class="math notranslate nohighlight">\(\lambda_S\)</span> is the width of a compact Stern layer. The assumption of a compact Stern layer <a class="reference internal" href="#stern1924"><span class="xref myst">[2]</span></a> reduces the system’s strong nonlinearity close to the electrode and may facilitate convergence.</p>
+<section id="id1">
+<h3>Solving with Dirichlet and zero flux boundary conditions<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<p>Again, we solve this system for inert electrodes, i.e. in the absence of any current flux with the same parameters as above.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span> <span class="c1"># bulk concentrations of ion species Na and Cl in mM</span>
+<span class="n">z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># number charges of ion species</span>
+<span class="n">L</span> <span class="o">=</span> <span class="mf">1e-07</span> <span class="c1"># interval length in m</span>
+<span class="n">delta_u</span> <span class="o">=</span> <span class="mf">0.05</span> <span class="c1"># electrostatic potential bias</span>
+
+<span class="n">pnp</span> <span class="o">=</span> <span class="n">PoissonNernstPlanckSystem</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">L</span><span class="o">=</span><span class="n">L</span><span class="p">,</span> <span class="n">delta_u</span><span class="o">=</span><span class="n">delta_u</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The only difference is the application of another set of predefined boundary conditions.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pnp</span><span class="o">.</span><span class="n">use_standard_cell_bc</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>These boundary conditions assume no Stern layer, i.e. <span class="math notranslate nohighlight">\(\lambda_S = 0\)</span></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pnp</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">xij</span> <span class="o">=</span> <span class="n">pnp</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="visualization">
+<h3>Visualization<a class="headerlink" href="#visualization" title="Link to this heading"></a></h3>
+<p>We show the results in the familiar manner.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+<span class="n">deb</span> <span class="o">=</span> <span class="n">debye</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span><span class="n">ax4</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;z [nm]&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">potential</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:red&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;potential, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">*</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;average concentration&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">1.02</span><span class="p">,</span> <span class="s2">&quot;average concentration&quot;</span><span class="p">)</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:orange&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Na+, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cl-, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">deb</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Debye length&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">deb</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="o">*</span><span class="mf">1.02</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">&quot;Debye length&quot;</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+
+<span class="n">ax3</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_position</span><span class="p">((</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">))</span>
+<span class="n">make_patch_spines_invisible</span><span class="p">(</span><span class="n">ax3</span><span class="p">)</span>
+
+<span class="n">ax3</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">charge_density</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;charge density, PNP&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">*</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;average concentration&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">1.02</span><span class="p">,</span> <span class="s2">&quot;average concentration&quot;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:orange&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Na+, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cl-, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;potential $\phi$ (V)&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;concentration $c$ (mM)&#39;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;charge density $\rho \&gt; (\mathrm</span><span class="si">{C}</span><span class="s1">\&gt; \mathrm</span><span class="si">{m}</span><span class="s1">^{-3})$&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;concentration $c$ (mM)&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;distance $x$ (nm)&#39;</span><span class="p">)</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span>  <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">1.02</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;center right&#39;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.5</span><span class="p">),</span>  <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower right&#39;</span><span class="p">,</span>  <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="o">-</span><span class="mf">0.02</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;&gt;:31: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+&lt;&gt;:31: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+/tmp/ipykernel_4068/562622314.py:31: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+  ax1.set_ylabel(&#39;potential $\phi$ (V)&#39;)
+</pre></div>
+</div>
+<img alt="../_images/e5bca0f2d0abd5b46759cabcf79c04c8cb2b6ce913a82d0384548b5230f52547.png" src="../_images/e5bca0f2d0abd5b46759cabcf79c04c8cb2b6ce913a82d0384548b5230f52547.png" />
+</div>
+</div>
+</section>
+</section>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="from-continuous-double-layer-theory-to-discrete-coordinate-sets">
+<h1>From continuous double layer theory to discrete coordinate sets<a class="headerlink" href="#from-continuous-double-layer-theory-to-discrete-coordinate-sets" title="Link to this heading"></a></h1>
+<section id="poisson-nernst-planck-system-with-stern-layer-boundary-conditions">
+<h2>Poisson-Nernst-Planck-System with Stern layer boundary conditions<a class="headerlink" href="#poisson-nernst-planck-system-with-stern-layer-boundary-conditions" title="Link to this heading"></a></h2>
+<p>In this example We want to fill a gap of 5 nm between gold electrodes with 0.2 wt % NaCl aqueous solution, apply a small potential difference and generate an initial configuration for LAMMPS within a cubic box.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">box_Ang</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">50.</span><span class="p">,</span><span class="mf">50.</span><span class="p">,</span><span class="mf">50.</span><span class="p">])</span> <span class="c1"># Angstrom</span>
+<span class="n">box_m</span> <span class="o">=</span> <span class="n">box_Ang</span><span class="o">*</span><span class="n">sc</span><span class="o">.</span><span class="n">angstrom</span> <span class="c1"># meters</span>
+
+<span class="n">vol_AngCube</span> <span class="o">=</span> <span class="n">box_Ang</span><span class="o">.</span><span class="n">prod</span><span class="p">()</span> <span class="c1"># Angstrom^3</span>
+<span class="n">vol_mCube</span> <span class="o">=</span> <span class="n">vol_AngCube</span><span class="o">*</span><span class="n">sc</span><span class="o">.</span><span class="n">angstrom</span><span class="o">**</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>With a concentration of 0.2 wt %, we are close to NaCl’s solubility limit in water. We estimate molar concentrations and atom numbers in our box.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">weight_concentration_NaCl</span> <span class="o">=</span> <span class="mf">0.2</span> <span class="c1"># wt %</span>
+<span class="c1"># calculate saline mass density g/cm³</span>
+<span class="n">saline_mass_density_kg_per_L</span>  <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">weight_concentration_NaCl</span> <span class="o">*</span> <span class="mf">0.15</span> <span class="o">/</span> <span class="mf">0.20</span> <span class="c1"># g / cm^3, kg / L</span>
+<span class="c1"># see e.g. https://www.engineeringtoolbox.com/density-aqueous-solution-inorganic-sodium-salt-concentration-d_1957.html</span>
+
+<span class="n">saline_mass_density_g_per_L</span> <span class="o">=</span> <span class="n">saline_mass_density_kg_per_L</span><span class="o">*</span><span class="n">sc</span><span class="o">.</span><span class="n">kilo</span>
+
+<span class="n">molar_mass_H2O</span> <span class="o">=</span> <span class="mf">18.015</span> <span class="c1"># g / mol</span>
+<span class="n">molar_mass_NaCl</span>  <span class="o">=</span> <span class="mf">58.44</span> <span class="c1"># g / mol</span>
+
+<span class="n">cNaCl_M</span> <span class="o">=</span> <span class="n">weight_concentration_NaCl</span><span class="o">*</span><span class="n">saline_mass_density_g_per_L</span><span class="o">/</span><span class="n">molar_mass_NaCl</span> <span class="c1"># mol L^-1</span>
+
+<span class="n">cNaCl_mM</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">cNaCl_M</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">milli</span><span class="p">)</span> <span class="c1"># mM</span>
+
+<span class="n">n_NaCl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">cNaCl_mM</span><span class="o">*</span><span class="n">vol_mCube</span><span class="o">*</span><span class="n">sc</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="s1">&#39;Avogadro constant&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Nearly <span class="math notranslate nohighlight">\(4\,\mathrm{M}\)</span> of saline solution correspond to about 300 ions of each species in our cubic <span class="math notranslate nohighlight">\(5^3\,\mathrm{nm}^3\)</span> box.</p>
+<p>We initialize the system assuming a Stern layer of 5 Å width, close to the order of magnitude of ion size.</p>
+</section>
+<section id="solving-with-robin-and-zero-flux-boundary-conditions">
+<h2>Solving with Robin and zero flux boundary conditions<a class="headerlink" href="#solving-with-robin-and-zero-flux-boundary-conditions" title="Link to this heading"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="n">cNaCl_mM</span><span class="p">,</span><span class="n">cNaCl_mM</span><span class="p">]</span>
+<span class="n">z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">L</span> <span class="o">=</span> <span class="n">box_m</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">lambda_S</span> <span class="o">=</span> <span class="mf">5.0e-10</span> <span class="c1"># Stern layer width in m</span>
+<span class="n">delta_u</span>  <span class="o">=</span> <span class="mf">0.5</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Other than above, we modify a few solver parameters as well.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pnp</span> <span class="o">=</span> <span class="n">PoissonNernstPlanckSystem</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">z</span><span class="p">,</span><span class="n">L</span><span class="p">,</span> <span class="n">lambda_S</span><span class="o">=</span><span class="n">lambda_S</span><span class="p">,</span> <span class="n">delta_u</span><span class="o">=</span><span class="n">delta_u</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">maxit</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The following applies zero flux and, particularly, Robin boundary conditions as shown in <a href="#figure2">Figure 2</a>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pnp</span><span class="o">.</span><span class="n">use_stern_layer_cell_bc</span><span class="p">()</span>
+
+<span class="n">pnp</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">xij</span> <span class="o">=</span> <span class="n">pnp</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="id2">
+<h2>Visualization<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+<span class="n">deb</span> <span class="o">=</span> <span class="n">debye</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span><span class="n">ax4</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">potential</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:red&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;potential, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">*</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;average concentration&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">1.5</span><span class="p">,</span> <span class="s2">&quot;average concentration&quot;</span><span class="p">)</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:orange&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Na+, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cl-, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">deb</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Debye length&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">deb</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="o">*</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">&quot;Debye length&quot;</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+
+<span class="n">ax3</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_position</span><span class="p">((</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">))</span>
+<span class="n">make_patch_spines_invisible</span><span class="p">(</span><span class="n">ax3</span><span class="p">)</span>
+
+<span class="n">ax3</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">charge_density</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;charge density, PNP&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">*</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;average concentration&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">1.5</span><span class="p">,</span> <span class="s2">&quot;average concentration&quot;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:orange&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Na+, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">nano</span><span class="p">,</span> <span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cl-, PNP&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;potential $\phi$ (V)&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;concentration $c$ (mM)&#39;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;charge density $\rho \&gt; (\mathrm</span><span class="si">{C}</span><span class="s1">\&gt; \mathrm</span><span class="si">{m}</span><span class="s1">^{-3})$&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;concentration $c$ (mM)&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;distance $x$ (nm)&#39;</span><span class="p">)</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span>  <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">1.02</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;center right&#39;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.5</span><span class="p">),</span>  <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower right&#39;</span><span class="p">,</span>  <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="o">-</span><span class="mf">0.02</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;&gt;:30: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+&lt;&gt;:30: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+/tmp/ipykernel_4068/1594926341.py:30: SyntaxWarning: invalid escape sequence &#39;\p&#39;
+  ax1.set_ylabel(&#39;potential $\phi$ (V)&#39;)
+</pre></div>
+</div>
+<img alt="../_images/63136cafb138d2f18c6a8008ed4605d852d9677babd825ee52b253fd61be581a.png" src="../_images/63136cafb138d2f18c6a8008ed4605d852d9677babd825ee52b253fd61be581a.png" />
+</div>
+</div>
+<p>Notice the nearly linear behavior of potential close to the electrodes arising from the Robin boundary conditions.</p>
+</section>
+<section id="sampling-from-continuous-distributions">
+<h2>Sampling from continuous distributions<a class="headerlink" href="#sampling-from-continuous-distributions" title="Link to this heading"></a></h2>
+<p>We want to generate three-dimensional atomistic configurations from the one-dimensional concentration distributions retrieved above. <code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry</span></code> provides the sampling interface <code class="docutils literal notranslate"><span class="pre">continuous2discrete</span></code> for this purpose.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.electrochemistry</span><span class="w"> </span><span class="kn">import</span> <span class="n">continuous2discrete</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">continuous2discrete</span></code> expects a callable distribution function. Hence, we convert the physical concentration distributions into callable density functions.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">interpolate</span>
+<span class="n">distributions</span> <span class="o">=</span> <span class="p">[</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span><span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="p">[</span><span class="n">i</span><span class="p">,:])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pnp</span><span class="o">.</span><span class="n">concentration</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Normalization is not necessary here. Now we can sample the distribution of our <span class="math notranslate nohighlight">\(Na^+\)</span> ions in z-direction.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">na_coordinate_sample</span> <span class="o">=</span> <span class="n">continuous2discrete</span><span class="p">(</span><span class="n">distribution</span><span class="o">=</span><span class="n">distributions</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box</span><span class="o">=</span><span class="n">box_m</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">n_NaCl</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry</span></code> provides the utility function <code class="docutils literal notranslate"><span class="pre">get_histogram</span></code> to count coordinate sets within bins along all three spatial dimensions.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.electrochemistry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_histogram</span>
+<span class="n">histx</span><span class="p">,</span> <span class="n">histy</span><span class="p">,</span> <span class="n">histz</span> <span class="o">=</span> <span class="n">get_histogram</span><span class="p">(</span><span class="n">na_coordinate_sample</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box_m</span><span class="p">,</span> <span class="n">n_bins</span><span class="o">=</span><span class="mi">51</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>For visualization purposes, we define two little helper functions.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># helper functions</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_centers</span><span class="p">(</span><span class="n">bins</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the center of the provided bins.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">    &gt;&gt;&gt; get_centers(bins=np.array([0.0, 1.0, 2.0]))</span>
+<span class="sd">    array([ 0.5,  1.5])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bins</span> <span class="o">=</span> <span class="n">bins</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">bins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_dist</span><span class="p">(</span><span class="n">histogram</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">reference_distribution</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot histogram with an optional reference distribution.&quot;&quot;&quot;</span>
+    <span class="n">hist</span><span class="p">,</span> <span class="n">bins</span> <span class="o">=</span> <span class="n">histogram</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">centers</span> <span class="o">=</span> <span class="n">get_centers</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+
+    <span class="n">fi</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span> <span class="n">centers</span><span class="p">,</span> <span class="n">hist</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Empirical distribution&#39;</span><span class="p">,</span>
+            <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reference_distribution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">reference_distribution</span><span class="p">(</span><span class="n">centers</span><span class="p">)</span>
+        <span class="n">ref</span> <span class="o">/=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Target distribution&#39;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Distance &#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Eventually, we show the distribution of samples sodium ions along the non-uniform z-direction.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_dist</span><span class="p">(</span><span class="n">histz</span><span class="p">,</span> <span class="s1">&#39;Distribution of Na+ ions in z-direction&#39;</span><span class="p">,</span> <span class="n">reference_distribution</span><span class="o">=</span><span class="n">distributions</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/80f316a47770e412b49d0c0e6a239432769755aa58a6b9b4993e1bfdd05d9b19.png" src="../_images/80f316a47770e412b49d0c0e6a239432769755aa58a6b9b4993e1bfdd05d9b19.png" />
+</div>
+</div>
+<p>Similarly, we sample chlorine ions…</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cl_coordinate_sample</span> <span class="o">=</span> <span class="n">continuous2discrete</span><span class="p">(</span><span class="n">distributions</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">box</span><span class="o">=</span><span class="n">box_m</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">n_NaCl</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>… and show their distribution …</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">histx</span><span class="p">,</span> <span class="n">histy</span><span class="p">,</span> <span class="n">histz</span> <span class="o">=</span> <span class="n">get_histogram</span><span class="p">(</span><span class="n">cl_coordinate_sample</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box_m</span><span class="p">,</span> <span class="n">n_bins</span><span class="o">=</span><span class="mi">51</span><span class="p">)</span>
+<span class="n">plot_dist</span><span class="p">(</span><span class="n">histx</span><span class="p">,</span> <span class="s1">&#39;Distribution of Cl- ions in x-direction&#39;</span><span class="p">,</span> <span class="n">reference_distribution</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">*</span><span class="mi">1</span><span class="o">/</span><span class="n">box_m</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">plot_dist</span><span class="p">(</span><span class="n">histy</span><span class="p">,</span> <span class="s1">&#39;Distribution of Cl- ions in y-direction&#39;</span><span class="p">,</span> <span class="n">reference_distribution</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">*</span><span class="mi">1</span><span class="o">/</span><span class="n">box_m</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">plot_dist</span><span class="p">(</span><span class="n">histz</span><span class="p">,</span> <span class="s1">&#39;Distribution of Cl- ions in z-direction&#39;</span><span class="p">,</span> <span class="n">reference_distribution</span><span class="o">=</span><span class="n">distributions</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/c926f66adc6d9edc92326986c5129dc07131d9ce7cc79dc73564557a5f47ef9b.png" src="../_images/c926f66adc6d9edc92326986c5129dc07131d9ce7cc79dc73564557a5f47ef9b.png" />
+<img alt="../_images/86b5115d0702d94178983da4e9dbfd5b7822e17f22f39d05eb7645ca378b88e7.png" src="../_images/86b5115d0702d94178983da4e9dbfd5b7822e17f22f39d05eb7645ca378b88e7.png" />
+<img alt="../_images/084fc78bca06051e358b34dc953e2d86bb60cd58e69c18d78b885a7626f649e2.png" src="../_images/084fc78bca06051e358b34dc953e2d86bb60cd58e69c18d78b885a7626f649e2.png" />
+</div>
+</div>
+<p>Notice the uniform distribution along x- and y-direction.</p>
+</section>
+<section id="coordinates-export">
+<h2>Coordinates export<a class="headerlink" href="#coordinates-export" title="Link to this heading"></a></h2>
+<p>Eventually, we use ASE to export our sample to some standard format, i.e. .xyz or LAMMPS data file.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ase</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ase.io</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>ASE speaks Ångström per default, thus we convert our SI units:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sample_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_NaCl</span><span class="p">)</span>
+
+<span class="n">na_atoms</span> <span class="o">=</span> <span class="n">ase</span><span class="o">.</span><span class="n">Atoms</span><span class="p">(</span>
+    <span class="n">symbols</span><span class="o">=</span><span class="s1">&#39;Na&#39;</span><span class="o">*</span><span class="n">sample_size</span><span class="p">,</span>
+    <span class="n">charges</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">sample_size</span><span class="p">,</span>
+    <span class="n">positions</span><span class="o">=</span><span class="n">na_coordinate_sample</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">angstrom</span><span class="p">,</span>
+    <span class="n">cell</span><span class="o">=</span><span class="n">box_Ang</span><span class="p">,</span>
+    <span class="n">pbc</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="n">cl_atoms</span> <span class="o">=</span> <span class="n">ase</span><span class="o">.</span><span class="n">Atoms</span><span class="p">(</span>
+    <span class="n">symbols</span><span class="o">=</span><span class="s1">&#39;Cl&#39;</span><span class="o">*</span><span class="n">sample_size</span><span class="p">,</span>
+    <span class="n">charges</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">sample_size</span><span class="p">,</span>
+    <span class="n">positions</span><span class="o">=</span><span class="n">cl_coordinate_sample</span><span class="o">/</span><span class="n">sc</span><span class="o">.</span><span class="n">angstrom</span><span class="p">,</span>
+    <span class="n">cell</span><span class="o">=</span><span class="n">box_Ang</span><span class="p">,</span>
+    <span class="n">pbc</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="n">system</span> <span class="o">=</span> <span class="n">na_atoms</span> <span class="o">+</span> <span class="n">cl_atoms</span>
+
+<span class="n">ase</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;NaCl_c_4_M_u_0.5_V_box_5x5x5nm_lambda_S_5_Ang.xyz&#39;</span><span class="p">,</span> <span class="n">system</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+
+<span class="c1"># LAMMPS data format, units &#39;real&#39;, atom style &#39;full&#39;</span>
+<span class="c1"># before ASE 3.19.0b1, ASE had issues with exporting atom style &#39;full&#39; in LAMMPS data file format, so do not expect this line to work for older ASE versions</span>
+<span class="n">ase</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;NaCl_c_4_M_u_0.5_V_box_5x5x5nm_lambda_S_5_Ang.lammps&#39;</span><span class="p">,</span> <span class="n">system</span><span class="p">,</span>
+             <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;lammps-data&#39;</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;real&quot;</span><span class="p">,</span> <span class="n">atom_style</span><span class="o">=</span><span class="s1">&#39;full&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Looking at the configuration, most ions are found within a Debye length next to the electrodes.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.visualize.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_atoms</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">plot_atoms</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">radii</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;80x,10y,10z&#39;</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_axis_off</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/9adc4e5929092765f5a539665b7dcc2e0679d3496a92e031c5d895ca481da951.png" src="../_images/9adc4e5929092765f5a539665b7dcc2e0679d3496a92e031c5d895ca481da951.png" />
+</div>
+</div>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<p><a id='bazant2006'></a>[1] M. Z. Bazant, K. T. Chu, and B. J. Bayly, “Current-Voltage Relations for Electrochemical Thin Films,” SIAM Journal on Applied Mathematics, Jul. 2006, doi: <a class="reference external" href="https://doi.org/10.1137/040609938">10.1137/040609938</a>.</p>
+<p><a id='stern1924'></a>[2] O. Stern, “Zur Theorie Der Elektrolytischen Doppelschicht,” Zeitschrift für Elektrochemie und angewandte physikalische Chemie, vol. 30, no. 21–22, pp. 508–516, 1924, doi: <a class="reference external" href="https://doi.org/10.1002/bbpc.192400182">10.1002/bbpc.192400182</a>.</p>
+<p><a id='israelachvili1991'></a>[3] J. N. Israelachvili, Intermolecular and surface forces. Academic Press, London, 1991.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="electrochemistry.html" class="btn btn-neutral float-left" title="Electrochemistry" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="electrochemistry_3.html" class="btn btn-neutral float-right" title="Steric correction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

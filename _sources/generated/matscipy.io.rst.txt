@@ -1,0 +1,16 @@
+matscipy.io
+===========
+
+.. automodule:: matscipy.io
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   lammpsdata
+   metis
+   opls
+   tbl

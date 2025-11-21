@@ -1,0 +1,221 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plasticity &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Building cylindrical configurations with dislocations" href="cylinder_configurations.html" />
+    <link rel="prev" title="Elastic Constants" href="elastic_constants.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Application domains</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="elastic_constants.html">Elastic Constants</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Plasticity</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installation-and-tests">Installation and tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tutorials">Tutorials:</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cylinder_configurations.html">Building cylindrical configurations with dislocations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole_dislocations.html">Dislocation Quadrupoles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="disloc_mobility.html">Modelling the Mobility of Dislocations with <code class="docutils literal notranslate"><span class="pre">matscipy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="multispecies_dislocations.html">Multi-species Dislocation Systems</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gamma_surfaces.html">Generating Gamma Surfaces &amp; Stacking Faults</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gamma_surface_advanced.html">Advanced Features of <code class="docutils literal notranslate"><span class="pre">gamma_surface.py</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fracture_mechanics.html">Fracture Mechanics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electrochemistry.html">Electrochemistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tribology.html">Tribology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Application domains</a></li>
+      <li class="breadcrumb-item active">Plasticity</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/plasticity.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="plasticity">
+<h1>Plasticity<a class="headerlink" href="#plasticity" title="Link to this heading"></a></h1>
+<p>For large loads, solids can respond with irreversible deformation. One form of irreversibility is plasticity, that is carried by extended defects, the dislocations, in crystals. The module <a class="reference internal" href="../generated/matscipy.dislocation.html#module-matscipy.dislocation" title="matscipy.dislocation"><code class="xref py py-mod docutils literal notranslate"><span class="pre">matscipy.dislocation</span></code></a> implements tools for studying structure and movement of dislocations. Construction and analysis of model atomic systems is implemented for compact and dissociated screw, as well as edge dislocations in cubic crystals. The implementation supports ideal straight as well as kinked dislocations.</p>
+<p>Creating an atomistic system containing a dislocation requires a rather deep knowledge of crystallographic system, elasticity theory as well as hands on experience with atomistic simulations. Thus, it can be challenging for people not familiar to the field. Within this module we attempt to create a flexible, friendly and pythonic tool to enable atomistic simulations of dislocations with ease. The base of the model is <a class="reference internal" href="../generated/matscipy.dislocation.html#matscipy.dislocation.CubicCrystalDislocation" title="matscipy.dislocation.CubicCrystalDislocation"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.dislocation.CubicCrystalDislocation</span></code></a> class that contains all the necessary information to create an atomistic dislocation. To start experimenting, a user only has to choose the dislocation of interest and provide a lattice parameter and elastic constants.</p>
+<p>Some dislocation systems feature additional complexity, as they can dissociate into two partial dislocations connected by a stacking fault. These kinds of dislocations are implemented within the subclass <a class="reference internal" href="../generated/matscipy.dislocation.html#matscipy.dislocation.CubicCrystalDissociatedDislocation" title="matscipy.dislocation.CubicCrystalDissociatedDislocation"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.dislocation.CubicCrystalDissociatedDislocation</span></code></a> and follow a near-identical interface. <a class="reference internal" href="../generated/matscipy.gamma_surface.html#module-matscipy.gamma_surface" title="matscipy.gamma_surface"><code class="xref py py-mod docutils literal notranslate"><span class="pre">matscipy.gamma_surface</span></code></a> implements classes which assist in the modeling of stacking faults, as well as more general gamma surfaces. The classes can be initialised based on a dislocation system, or by known axes.</p>
+<section id="installation-and-tests">
+<h2>Installation and tests<a class="headerlink" href="#installation-and-tests" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../generated/matscipy.dislocation.html#module-matscipy.dislocation" title="matscipy.dislocation"><code class="xref py py-mod docutils literal notranslate"><span class="pre">matscipy.dislocation</span></code></a> module relies on the anisotropic elasticity theory solution within Stroh formalism implemented in <a class="reference external" href="https://www.ctcms.nist.gov/potentials/atomman/">atomman</a> package. <a class="reference external" href="https://www.ctcms.nist.gov/potentials/atomman/">atomman</a> is not a part of default dependency of <a class="reference internal" href="../generated/matscipy.html#module-matscipy" title="matscipy"><code class="xref py py-mod docutils literal notranslate"><span class="pre">matscipy</span></code></a>, however it can be easily installed with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">atomman</span></code>. To test your installation you can run <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">test_dislocation.py</span></code> from <code class="docutils literal notranslate"><span class="pre">tests</span></code> directory of the repository. If atomman is not installed, most of the tests will be skipped resulting in the output similar to the following: <code class="docutils literal notranslate"><span class="pre">ssssssssssssss..ssssssss..s.ssssssss.s</span></code> where <code class="docutils literal notranslate"><span class="pre">s</span></code> stands for skipped test and <code class="docutils literal notranslate"><span class="pre">.</span></code> for passed tests. You can see which test are skipped together with the reasoning behind by running pytest in verbose mode with <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">-v</span> <span class="pre">test_dislocation.py</span></code>. Once you have atomman installed you should have corresponding tests passing and should be able to use the code. If you plan to use <a class="reference external" href="https://lammps.org">LAMMPS</a> and <a class="reference external" href="https://docs.lammps.org/Python_module.html">lammps python module</a> there are couple of test that will test your installation when <a class="reference external" href="https://docs.lammps.org/Python_module.html">lammps python module</a> is detected.</p>
+<p>The majority of the tests (~70 %) are used during the development and adding new dislocations to the module. The idea is to check if <a class="reference external" href="https://www.ovito.org/manual/reference/pipelines/modifiers/dislocation_analysis.html">Dislocation analysis (DXA)</a> algorithm detects the same dislocation as we intend to create. These tests require <a class="reference external" href="https://www.ovito.org/manual/python/index.html">OVITO python interface</a> to be installed and are skipped if it is not detected. If you do not plan to add new structures to the module, you can safely ignore these tests.</p>
+</section>
+<section id="tutorials">
+<h2>Tutorials:<a class="headerlink" href="#tutorials" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cylinder_configurations.html">Building cylindrical configurations with dislocations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cylinder_configurations.html#accessing-key-dislocation-properties">Accessing Key Dislocation Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cylinder_configurations.html#available-dislocation-systems">Available Dislocation Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cylinder_configurations.html#body-centered-cubic">Body Centered Cubic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#screw-dislocation">1/2&lt;111&gt;{110} screw dislocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#edge-dislocation">1/2&lt;111&gt;{110} edge dislocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#mixed-dislocation">1/2&lt;111&gt;{110} mixed dislocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#edge-junction-dislocation">&lt;100&gt;{110} edge ‘junction’ dislocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#id1">&lt;100&gt;{001} edge dislocation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cylinder_configurations.html#face-centered-cubic">Face Centered Cubic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#screw-dislocation-perfect-and-dissociated">1/2&lt;110&gt;{111} screw dislocation (perfect and dissociated)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#edge-dislocation-perfect-and-dissociated">1/2&lt;110&gt;{111} edge dislocation (perfect and dissociated)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cylinder_configurations.html#diamond-cubic">Diamond Cubic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#id2">1/2&lt;110&gt;{111} screw dislocation (perfect and dissociated)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cylinder_configurations.html#degree-screw-dislocation-perfect-and-dissociated">1/2&lt;110&gt;{111} 60 degree screw dislocation (perfect and dissociated)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quadrupole_dislocations.html">Dislocation Quadrupoles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quadrupole_dislocations.html#quadrupoles-in-si-diamond">Quadrupoles in Si Diamond</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quadrupole_dislocations.html#quadrupoles-in-other-systems">Quadrupoles in other systems</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quadrupole_dislocations.html#screw-in-bcc-w">Screw in BCC W</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quadrupole_dislocations.html#dissociated-screw-dislocations-in-fcc-ni">Dissociated Screw dislocations in FCC Ni</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="disloc_mobility.html">Modelling the Mobility of Dislocations with <code class="docutils literal notranslate"><span class="pre">matscipy</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="disloc_mobility.html#dislocation-glide">Dislocation Glide</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="disloc_mobility.html#glide-in-dislocation-cylinders">Glide in Dislocation Cylinders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="disloc_mobility.html#glide-in-dislocation-quadrupoles">Glide in Dislocation Quadrupoles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="disloc_mobility.html#dislocation-kink">Dislocation Kink</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="disloc_mobility.html#kink-maps">Kink maps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="disloc_mobility.html#kink-in-cylinders">Kink in cylinders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="disloc_mobility.html#kink-in-quadrupoles">Kink in quadrupoles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="disloc_mobility.html#improving-the-kink-structures">Improving the kink structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="disloc_mobility.html#kink-in-dissociated-dislocations">Kink in Dissociated Dislocations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="disloc_mobility.html#bulk-terminated-loops-of-dissociated-dislocations">Bulk-terminated Loops of Dissociated Dislocations</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="multispecies_dislocations.html">Multi-species Dislocation Systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="multispecies_dislocations.html#additional-dislocations-in-multispecies-systems">Additional Dislocations in Multispecies Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multispecies_dislocations.html#dislocations-in-disordered-systems">Dislocations in Disordered Systems</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gamma_surfaces.html">Generating Gamma Surfaces &amp; Stacking Faults</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="gamma_surfaces.html#method-1-atom-move-method">Method 1 - “Atom Move” Method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gamma_surfaces.html#method-2-cell-move-method">Method 2 - “Cell Move” Method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gamma_surfaces.html#gamma-surface-example-using-method-1">Gamma Surface Example using Method 1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gamma_surfaces.html#stacking-fault-example-using-method-2">Stacking Fault Example using Method 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gamma_surface_advanced.html">Advanced Features of <code class="docutils literal notranslate"><span class="pre">gamma_surface.py</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="gamma_surface_advanced.html#stacking-faults-of-specific-dislocations">Stacking Faults of Specific Dislocations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gamma_surface_advanced.html#accessing-different-stacking-fault-planes">Accessing Different Stacking Fault Planes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gamma_surface_advanced.html#stacking-faults-in-more-complex-systems">Stacking Faults in more complex systems</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="elastic_constants.html" class="btn btn-neutral float-left" title="Elastic Constants" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cylinder_configurations.html" class="btn btn-neutral float-right" title="Building cylindrical configurations with dislocations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

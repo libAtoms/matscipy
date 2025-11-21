@@ -1,0 +1,447 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.calculators.pair_potential" href="matscipy.calculators.pair_potential.html" />
+    <link rel="prev" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_clustering_tool" href="matscipy.calculators.mcfm.qm_cluster_tools.qm_clustering_tool.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.calculator.html">matscipy.calculators.calculator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.committee.html">matscipy.calculators.committee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.eam.html">matscipy.calculators.eam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.ewald.html">matscipy.calculators.ewald</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.fitting.html">matscipy.calculators.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.manybody.html">matscipy.calculators.manybody</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.html#matscipy.calculators.mcfm.MultiClusterForceMixingPotential"><code class="docutils literal notranslate"><span class="pre">MultiClusterForceMixingPotential</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.calculator.html">matscipy.calculators.mcfm.calculator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.cluster_data.html">matscipy.calculators.mcfm.cluster_data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.mcfm_parallel.html">matscipy.calculators.mcfm.mcfm_parallel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.neighbour_list_mcfm.html">matscipy.calculators.mcfm.neighbour_list_mcfm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.mcfm.qm_cluster.html">matscipy.calculators.mcfm.qm_cluster</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.calculators.mcfm.qm_cluster_tools.html">matscipy.calculators.mcfm.qm_cluster_tools</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.pair_potential.html">matscipy.calculators.pair_potential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.polydisperse.html">matscipy.calculators.polydisperse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.supercell_calculator.html">matscipy.calculators.supercell_calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.calculators.mcfm.qm_cluster_tools.html">matscipy.calculators.mcfm.qm_cluster_tools</a></li>
+      <li class="breadcrumb-item active">matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool">
+<span id="matscipy-calculators-mcfm-qm-cluster-tools-qm-flagging-tool"></span><h1>matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool<a class="headerlink" href="#module-matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool" title="Link to this heading"></a></h1>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.exponential_moving_average" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.exponential_moving_average"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exponential_moving_average</span></code></a>(oldset[, newset, ...])</p></td>
+<td><p>Apply the exponential moving average to the given array</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.update_avg_property_per_atom" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.update_avg_property_per_atom"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_avg_property_per_atom</span></code></a>(atoms, ...)</p></td>
+<td><p>Update the per atom property using running avarages and store it in atoms.properties[property_str]</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QMFlaggingTool</span></code></a>([mediator, ...])</p></td>
+<td><p>This class is responsible for flagging atoms that move out of their equilibrium</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.</span></span><span class="sig-name descname"><span class="pre">QMFlaggingTool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mediator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qm_flag_potential_energies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">small_cluster_hops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_heavy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ema_parameter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_increase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="matscipy.calculators.mcfm.qm_cluster_tools.base_qm_cluster_tool.html#matscipy.calculators.mcfm.qm_cluster_tools.base_qm_cluster_tool.BaseQMClusterTool" title="matscipy.calculators.mcfm.qm_cluster_tools.base_qm_cluster_tool.BaseQMClusterTool"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseQMClusterTool</span></code></a></p>
+<p>This class is responsible for flagging atoms
+that move out of their equilibrium</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.create_cluster_around_atom" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.create_cluster_around_atom"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_cluster_around_atom</span></code></a>(atoms, atom_id[, ...])</p></td>
+<td><p>Carve a cluster around the atom with atom_id This function operates on sets and returns a set</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.expand_cluster" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.expand_cluster"><code class="xref py py-obj docutils literal notranslate"><span class="pre">expand_cluster</span></code></a>(special_atoms_list)</p></td>
+<td><p>Include extra atoms in the cluster.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.find_neighbours" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.find_neighbours"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_neighbours</span></code></a>(atoms, index)</p></td>
+<td><p>Find the neighbours of atom i using self.neighbour_list returns a list of [heavy_neighbours, hydrogen_neighbours]</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.get_energized_list" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.get_energized_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_energized_list</span></code></a>(atoms, data_array, ...)</p></td>
+<td><p>Produce a list of atoms that are ot be flagged as a QM region based on the properties given in the array according to the tolerance given.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.hydrogenate_cluster" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.hydrogenate_cluster"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hydrogenate_cluster</span></code></a>(atoms, cluster)</p></td>
+<td><p>Add neigoburing hydrogens to a cluster composed of heavy ions The input should be a set representing heavy ions in a cluster This functions operates on sets</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.join_clusters" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.join_clusters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">join_clusters</span></code></a>([verbose])</p></td>
+<td><p>This function will join the clusters if they overlap Input is an array of sets each representing individual small cluster</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.update_qm_region" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.update_qm_region"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_qm_region</span></code></a>(atoms[, potential_energies])</p></td>
+<td><p>Update the QM region while the simulation is running</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mediator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qm_flag_potential_energies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">small_cluster_hops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_heavy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ema_parameter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_increase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.__init__" title="Link to this definition"></a></dt>
+<dd><p>This class is responsible for flagging atoms
+that move out of their equilibrium</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mediator</strong> (<em>matscipy.calculators.mcfm.QMCluster</em>) – class responsible for managing the QM clusters in the simulation</p></li>
+<li><p><strong>qm_flag_potential_energies</strong> (<em>np.array</em>) – <p>threshholds for flagging indivual atoms.
+The diensions are (nAtoms, 2) where:</p>
+<blockquote>
+<div><p>column 1: threshold to enter the QM regios
+column 2: threshold to stay the QM region</p>
+</div></blockquote>
+</p></li>
+<li><p><strong>small_cluster_hops</strong> (<em>int</em>) – Each flagged atom and atoms around it within small_cluster_hops neighbour hops
+will generate a single cluster, clusters are later joined.</p></li>
+<li><p><strong>only_heavy</strong> (<em>bool</em>) – If True, only consider non-hydrogen atoms in cluster expansion.
+Hydrogens are added later</p></li>
+<li><p><strong>ema_parameter</strong> (<em>float</em>) – parameter lambda in the exponential mean average calculation</p></li>
+<li><p><strong>energy_cap</strong> (<em>float</em>) – if not None, cap potential energy per atom at this value</p></li>
+<li><p><strong>energy_increase</strong> (<em>int</em>) – Multiplier for potential energy per atom, used to scale it for convininece</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.get_energized_list">
+<span class="sig-name descname"><span class="pre">get_energized_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">property_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hysteretic_tolerance</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.get_energized_list" title="Link to this definition"></a></dt>
+<dd><p>Produce a list of atoms that are ot be flagged as a QM region
+based on the properties given in the array according to the
+tolerance given.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Whole structure</p></li>
+<li><p><strong>data_array</strong> (<em>array</em>) – an array of per atom data providing information</p></li>
+<li><p><strong>property_str</strong> (<em>str</em>) – name of th property so that it can be stored in atoms.properties.</p></li>
+<li><p><strong>hysteretic_tolerance</strong> (<em>array</em>) – <p>Threshholds for flagging indivual atoms.
+The diensions are (nAtoms, 2) where:</p>
+<blockquote>
+<div><p>column 1: threshold to enter the QM regios
+column 2: threshold to stay the QM region</p>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of flagged atoms</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.create_cluster_around_atom">
+<span class="sig-name descname"><span class="pre">create_cluster_around_atom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hydrogenate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.create_cluster_around_atom" title="Link to this definition"></a></dt>
+<dd><p>Carve a cluster around the atom with atom_id
+This function operates on sets and returns a set</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – Whole structure</p></li>
+<li><p><strong>atom_id</strong> (<em>int</em>) – Atomic index</p></li>
+<li><p><strong>hydrogenate</strong> (<em>bool</em>) – If true, hydrogenate the resulting structure</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>atoms in the new cluster</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.join_clusters">
+<span class="sig-name descname"><span class="pre">join_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.join_clusters" title="Link to this definition"></a></dt>
+<dd><p>This function will join the clusters if they overlap
+Input is an array of sets each representing individual
+small cluster</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<em>bool</em>) – Print messages during calculation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.expand_cluster">
+<span class="sig-name descname"><span class="pre">expand_cluster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">special_atoms_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.expand_cluster" title="Link to this definition"></a></dt>
+<dd><p>Include extra atoms in the cluster.</p>
+<p>If one of the special atoms is included in one of the clusters,
+add all other special atoms to this cluster</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>special_atoms_list</strong> (<em>list</em>) – list of the special atoms</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.update_qm_region">
+<span class="sig-name descname"><span class="pre">update_qm_region</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">potential_energies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.update_qm_region" title="Link to this definition"></a></dt>
+<dd><p>Update the QM region while the simulation is running</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – whole structure</p></li>
+<li><p><strong>potential_energies</strong> (<em>array</em>) – Potential energy per atom</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of individual clusters as lists of atoms</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of lists of ints</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.find_neighbours">
+<span class="sig-name descname"><span class="pre">find_neighbours</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.find_neighbours" title="Link to this definition"></a></dt>
+<dd><p>Find the neighbours of atom i using self.neighbour_list
+returns a list of [heavy_neighbours, hydrogen_neighbours]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms object</em>) – structure in which it is necessary to find the neighbours</p></li>
+<li><p><strong>index</strong> (<em>int</em>) – atomic index</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list</em> – non-hydrogen neighbours</p></li>
+<li><p><em>list</em> – hydrogen neighbours</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.hydrogenate_cluster">
+<span class="sig-name descname"><span class="pre">hydrogenate_cluster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.QMFlaggingTool.hydrogenate_cluster" title="Link to this definition"></a></dt>
+<dd><p>Add neigoburing hydrogens to a cluster composed of heavy ions
+The input should be a set representing heavy ions in a cluster
+This functions operates on sets</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms object</em>) – structure in which it is necessary to find the neighbours</p></li>
+<li><p><strong>cluster</strong> (<em>ase.Atoms object</em>) – sub-structure of the larger struct that needs its dangling
+bonds hydrogenated</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The original cluster but now hydrogenated</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ase.Atoms</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.exponential_moving_average">
+<span class="sig-prename descclassname"><span class="pre">matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.</span></span><span class="sig-name descname"><span class="pre">exponential_moving_average</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">oldset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ema_parameter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.exponential_moving_average" title="Link to this definition"></a></dt>
+<dd><p>Apply the exponential moving average to the given array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>oldset</strong> (<em>array</em>) – old values</p></li>
+<li><p><strong>newset</strong> (<em>array</em>) – new data set</p></li>
+<li><p><strong>ema_parameter</strong> (<em>float</em>) – parameter lambda</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.update_avg_property_per_atom">
+<span class="sig-prename descclassname"><span class="pre">matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.</span></span><span class="sig-name descname"><span class="pre">update_avg_property_per_atom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">property_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ema_parameter</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool.update_avg_property_per_atom" title="Link to this definition"></a></dt>
+<dd><p>Update the per atom property using running avarages
+and store it in atoms.properties[property_str]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ase.Atoms</em>) – structure that need updated values</p></li>
+<li><p><strong>data_array</strong> (<em>array</em>) – data that need to be attached to atoms</p></li>
+<li><p><strong>property_str</strong> (<em>str</em>) – key for structure properties dictionary</p></li>
+<li><p><strong>ema_parameter</strong> (<em>float</em>) – Coefficient for the Exponential Moving Average</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.calculators.mcfm.qm_cluster_tools.qm_clustering_tool.html" class="btn btn-neutral float-left" title="matscipy.calculators.mcfm.qm_cluster_tools.qm_clustering_tool" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.calculators.pair_potential.html" class="btn btn-neutral float-right" title="matscipy.calculators.pair_potential" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

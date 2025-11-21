@@ -1,0 +1,51 @@
+﻿matscipy
+========
+
+.. automodule:: matscipy
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      has_parameter
+      parameter
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   angle_distribution
+   atomic_strain
+   calculators
+   cauchy_born
+   cli
+   compat
+   deformation
+   dislocation
+   drift
+   elasticity
+   electrochemistry
+   ffi
+   fracture_mechanics
+   gamma_surface
+   hydrogenate
+   io
+   logger
+   molecules
+   neighbours
+   numerical
+   numpy_tricks
+   opls
+   optimize
+   precon
+   pressurecoupling
+   rings
+   socketcalc
+   spatial_correlation_function
+   surface
+   surface_reconstruction
+   utils
+   visualise

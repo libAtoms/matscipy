@@ -1,0 +1,296 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.calculators.eam.average_atom &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.calculators.eam.calculator" href="matscipy.calculators.eam.calculator.html" />
+    <link rel="prev" title="matscipy.calculators.eam" href="matscipy.calculators.eam.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.calculator.html">matscipy.calculators.calculator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.committee.html">matscipy.calculators.committee</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.calculators.eam.html">matscipy.calculators.eam</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.calculators.eam.average_atom</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.eam.calculator.html">matscipy.calculators.eam.calculator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.eam.io.html">matscipy.calculators.eam.io</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.ewald.html">matscipy.calculators.ewald</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.fitting.html">matscipy.calculators.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.manybody.html">matscipy.calculators.manybody</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.pair_potential.html">matscipy.calculators.pair_potential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.polydisperse.html">matscipy.calculators.polydisperse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.supercell_calculator.html">matscipy.calculators.supercell_calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.calculators.eam.html">matscipy.calculators.eam</a></li>
+      <li class="breadcrumb-item active">matscipy.calculators.eam.average_atom</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.calculators.eam.average_atom.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.calculators.eam.average_atom">
+<span id="matscipy-calculators-eam-average-atom"></span><h1>matscipy.calculators.eam.average_atom<a class="headerlink" href="#module-matscipy.calculators.eam.average_atom" title="Link to this heading"></a></h1>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.eam.average_atom.average_potential" title="matscipy.calculators.eam.average_atom.average_potential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">average_potential</span></code></a>(concentrations, ...[, ...])</p></td>
+<td><p>Generate Average-atom potential</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.average_atom.average_potential">
+<span class="sig-prename descclassname"><span class="pre">matscipy.calculators.eam.average_atom.</span></span><span class="sig-name descname"><span class="pre">average_potential</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">concentrations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eam/alloy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">avg_atom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'A'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_number</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crystal_structure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'unknown'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.eam.average_atom.average_potential" title="Link to this definition"></a></dt>
+<dd><p>Generate Average-atom potential</p>
+<p>The Average-atom (A-atom) potential is a mean-field approximation
+for random alloys, see Ref. <a href="#id1"><span class="problematic" id="id2">`1`_</span></a>. The purpose is to replace the true
+elements by a single fictious element, the A-atom. A configuration
+of A-atoms yields approximately the same potential energy as the
+corresponding random alloy configuration. Other average material
+properties, e.g. the elastic constants, are reproduced as well.
+For a full derivation, see Ref. <cite>1</cite>.</p>
+<p>The A-atom potential has standard EAM form, i.e. it can be tabulated
+just like any other EAM potential. The potential functions are simply
+the concentration-weighted averages of the pure element functions:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\phi_{AA}\left(r_{\gamma\delta}\right)
+    &amp;= \sum_{X}^{N_T}\sum_{Y}^{N_T} c_{X}c_{Y}
+    \phi_{XY}\left(r_{\gamma\delta}\right) \quad\text{(pair potential)}, \\
+U_{A}\left(\rho_\gamma\right)
+    &amp;= \sum_{X}^{N_T}c_{X}U_{X}\left(\rho_\gamma\right) \quad\text{(embedding energy)}, \\
+g_A\left(r_{\gamma\delta}\right)
+    &amp;= \sum_{X}^{N_T}c_X g_X\left(r_{\gamma\delta}\right)\quad\text{(electron density)},\;\text{and}\\
+m_A &amp;= \sum_{X}^{N_T}c_X m_X\quad\text{(mass)}.\end{split}\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, only eam/alloy-style potentials can be averaged.
+The extension to eam/fs should be straightforward, however.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>concentrations</strong> (<em>array_like</em>) – concentrations of the elements in the A-atom</p></li>
+<li><p><strong>parameters</strong> (<a class="reference internal" href="matscipy.calculators.eam.io.html#matscipy.calculators.eam.io.EAMParameters" title="matscipy.calculators.eam.io.EAMParameters"><em>EAMParameters</em></a>) – EAM potential parameters</p></li>
+<li><p><strong>F</strong> (<em>array_like</em>) – tabulated embedding energy functionals</p></li>
+<li><p><strong>f</strong> (<em>array_like</em>) – tabulated electron density functions</p></li>
+<li><p><strong>rep</strong> (<em>array_like</em>) – tabulated pair potential energy functions</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>parameters</strong> (<em>EAMParameters</em>) – EAM potential parameters</p></li>
+<li><p><strong>new_F</strong> (<em>array_like</em>) – tabulated embedding energy functionals, including A-atom functional</p></li>
+<li><p><strong>new_f</strong> (<em>array_like</em>) – tabulated electron density functions, including A-atom function(s)</p></li>
+<li><p><strong>new_rep</strong> (<em>array_like</em>) – tabulated pair potential energy functions, including pairs with A-atom</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">matscipy.calculators.eam</span><span class="w"> </span><span class="kn">import</span> <span class="n">io</span><span class="p">,</span> <span class="n">average_atom</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">source</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">rep</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">read_eam</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s2">&quot;ZrCu.onecolumn.eam.alloy&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">concentrations</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">new_parameters</span><span class="p">,</span> <span class="n">new_F</span><span class="p">,</span> <span class="n">new_f</span><span class="p">,</span> <span class="n">new_rep</span><span class="p">)</span> <span class="o">=</span> <span class="n">average_atom</span><span class="o">.</span><span class="n">average_potential</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">concentrations</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">rep</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">composition</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;% </span><span class="si">{0}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">concentrations</span><span class="p">,</span> <span class="n">parameters</span><span class="o">.</span><span class="n">symbols</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">composition</span> <span class="o">=</span> <span class="n">composition</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">source</span> <span class="o">+=</span> <span class="s2">&quot;, averaged for composition </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">composition</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">io</span><span class="o">.</span><span class="n">write_eam</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">source</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">new_parameters</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">new_F</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">new_f</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">new_rep</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s2">&quot;ZrCu.onecolumn.averaged.eam.alloy&quot;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;eam/alloy&quot;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Read an EAM potential table for two elements in eam/alloy format, and create
+a new table with additional A-atom functions for the equicomposition alloy.</p>
+<p class="rubric">References</p>
+<div role="list" class="citation-list">
+<div class="citation" id="r808641198814-1" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<p>Varvenne, C., Luque, A., Nöhring, W. G. &amp; Curtin, W. A.
+Average-atom interatomic potential for random alloys.
+Physical Review B 93, 104201 (2016).</p>
+</div>
+</div>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Notation:</dt><dd><ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(N\)</span> Number of atoms</p></li>
+<li><p><span class="math notranslate nohighlight">\(N_T\)</span> Number of elements</p></li>
+<li><p><span class="math notranslate nohighlight">\(r_{\nu\mu{}}\)</span> Pair distance of atoms <span class="math notranslate nohighlight">\(\nu\)</span> and <span class="math notranslate nohighlight">\(\mu\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\phi_{\nu\mu}(r_{\nu\mu{}})\)</span> Pair potential energy of atoms <span class="math notranslate nohighlight">\(\nu\)</span> and <span class="math notranslate nohighlight">\(\mu\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\rho_{\nu}\)</span> Total electron density of atom <span class="math notranslate nohighlight">\(\nu\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(U_\nu(\rho_nu)\)</span> Embedding energy of atom <span class="math notranslate nohighlight">\(\nu\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(g_{\delta}\left(r_{\gamma\delta}\right) \equiv g_{\gamma\delta}\)</span> Contribution from atom <span class="math notranslate nohighlight">\(\delta\)</span> to <span class="math notranslate nohighlight">\(\rho_\gamma\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(m_\nu\)</span> mass of atom <span class="math notranslate nohighlight">\(\nu\)</span></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.calculators.eam.html" class="btn btn-neutral float-left" title="matscipy.calculators.eam" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.calculators.eam.calculator.html" class="btn btn-neutral float-right" title="matscipy.calculators.eam.calculator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,694 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.electrochemistry.poisson_nernst_planck_solver &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.electrochemistry.steric_correction" href="matscipy.electrochemistry.steric_correction.html" />
+    <link rel="prev" title="matscipy.electrochemistry.poisson_boltzmann_distribution" href="matscipy.electrochemistry.poisson_boltzmann_distribution.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#application-domains">Application domains</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.continuous2discrete.html">matscipy.electrochemistry.continuous2discrete</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.poisson_boltzmann_distribution.html">matscipy.electrochemistry.poisson_boltzmann_distribution</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.electrochemistry.poisson_nernst_planck_solver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.steric_correction.html">matscipy.electrochemistry.steric_correction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+      <li class="breadcrumb-item active">matscipy.electrochemistry.poisson_nernst_planck_solver</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.electrochemistry.poisson_nernst_planck_solver.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.electrochemistry.poisson_nernst_planck_solver">
+<span id="matscipy-electrochemistry-poisson-nernst-planck-solver"></span><h1>matscipy.electrochemistry.poisson_nernst_planck_solver<a class="headerlink" href="#module-matscipy.electrochemistry.poisson_nernst_planck_solver" title="Link to this heading"></a></h1>
+<p>Compute ion concentrations with general Poisson-Nernst-Planck (PNP) equations.</p>
+<p>Copyright 2019 IMTEK Simulation
+University of Freiburg</p>
+<dl class="simple">
+<dt>Authors:</dt><dd><p>Johannes Hoermann &lt;<a class="reference external" href="mailto:johannes&#46;hoermann&#37;&#52;&#48;imtek-uni-freiburg&#46;de">johannes<span>&#46;</span>hoermann<span>&#64;</span>imtek-uni-freiburg<span>&#46;</span>de</a>&gt;</p>
+</dd>
+</dl>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.B" title="matscipy.electrochemistry.poisson_nernst_planck_solver.B"><code class="xref py py-obj docutils literal notranslate"><span class="pre">B</span></code></a>(x)</p></td>
+<td><p>Bernoulli function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.jacobian" title="matscipy.electrochemistry.poisson_nernst_planck_solver.jacobian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">jacobian</span></code></a>(f, x0[, dx])</p></td>
+<td><p>Naive way to construct N x N Jacobin Fij from N-valued function f of N-valued vector x0.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PoissonNernstPlanckSystem</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Describes and solves a 1D Poisson-Nernst-Planck system</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.B">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.poisson_nernst_planck_solver.</span></span><span class="sig-name descname"><span class="pre">B</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.B" title="Link to this definition"></a></dt>
+<dd><p>Bernoulli function.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.jacobian">
+<span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.poisson_nernst_planck_solver.</span></span><span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.jacobian" title="Link to this definition"></a></dt>
+<dd><p>Naive way to construct N x N Jacobin Fij from N-valued function
+f of N-valued vector x0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f</strong> (<em>callable</em>) – N-valued function of N-valued variable vector</p></li>
+<li><p><strong>x0</strong> (<em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em>) – N-valued variable vector</p></li>
+<li><p><strong>dx</strong> (<em>float</em><em> (</em><em>default: np.nan</em><em>)</em>) – Jacobian built with finite difference scheme of spacing <code class="docutils literal notranslate"><span class="pre">dx</span></code>.
+If <code class="docutils literal notranslate"><span class="pre">np.nan</span></code>, then use machine precision.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>F</strong> – NxN-valued 2nd order finite difference scheme approximate of Jacobian
+convention: F_ij = dfidxj, where i are array rows, j are array columns</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(N,N) ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.electrochemistry.poisson_nernst_planck_solver.</span></span><span class="sig-name descname"><span class="pre">PoissonNernstPlanckSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Describes and solves a 1D Poisson-Nernst-Planck system</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>charge_density</strong></dt><dd></dd>
+<dt><strong>concentration</strong></dt><dd></dd>
+<dt><strong>grid</strong></dt><dd></dd>
+<dt><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.ionic_strength" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.ionic_strength"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ionic_strength</span></code></a></dt><dd><p>Compute the system’s ionic strength from charges and concentrations.</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.lambda_D" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.lambda_D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lambda_D</span></code></a></dt><dd><p>Compute the system’s Debye length.</p>
+</dd>
+<dt><strong>potential</strong></dt><dd></dd>
+<dt><strong>x1_scaled</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.G" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.G"><code class="xref py py-obj docutils literal notranslate"><span class="pre">G</span></code></a>(x)</p></td>
+<td><p>Non-linear system</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.discretize" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.discretize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">discretize</span></code></a>()</p></td>
+<td><p>Sets up discretization scheme and initial value</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.init" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.init"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init</span></code></a>([c, z, L, lambda_S, x0, T, delta_u, ...])</p></td>
+<td><p>Initializes a 1D Poisson-Nernst-Planck system description.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.initial_values" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.initial_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_values</span></code></a>()</p></td>
+<td><p>Solves decoupled linear system to get initial potential distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_controlled_volume_scheme_flux_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_controlled_volume_scheme_flux_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">left_controlled_volume_scheme_flux_bc</span></code></a>(x, k)</p></td>
+<td><p>Compute left hand side flux boundary condition residual in accord with controlled volume scheme.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_dirichlet_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_dirichlet_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">left_dirichlet_bc</span></code></a>(x, k[, x0])</p></td>
+<td><p>Construct Dirichlet BC at left boundary</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_finite_difference_scheme_flux_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_finite_difference_scheme_flux_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">left_finite_difference_scheme_flux_bc</span></code></a>(x, k)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_robin_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_robin_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">left_robin_bc</span></code></a>(x, k, lam[, x0])</p></td>
+<td><p>Compute left hand side Robin (u + lam*dudx = u0 ) BC at in accord with 2nd order finite difference scheme.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.nernst_planck_pde" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.nernst_planck_pde"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nernst_planck_pde</span></code></a>(x)</p></td>
+<td><p>Returns Nernst-Planck equation residual by applying controlled volume scheme</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.newton" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.newton"><code class="xref py py-obj docutils literal notranslate"><span class="pre">newton</span></code></a>(f, xij, **kwargs)</p></td>
+<td><p>Newton solver expects system f and initial value xij</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.number_conservation_constraint" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.number_conservation_constraint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">number_conservation_constraint</span></code></a>(x, k, N0)</p></td>
+<td><p>N0: total amount of species, k: ion species</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.poisson_pde" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.poisson_pde"><code class="xref py py-obj docutils literal notranslate"><span class="pre">poisson_pde</span></code></a>(x)</p></td>
+<td><p>Returns Poisson equation residual by applying 2nd order FD scheme</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_controlled_volume_scheme_flux_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_controlled_volume_scheme_flux_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">right_controlled_volume_scheme_flux_bc</span></code></a>(x, k)</p></td>
+<td><p>Compute right hand side flux boundary condition residual in accord with controlled volume scheme.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_finite_difference_scheme_flux_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_finite_difference_scheme_flux_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">right_finite_difference_scheme_flux_bc</span></code></a>(x, k)</p></td>
+<td><p>See <code class="docutils literal notranslate"><span class="pre">`left_finite_difference_scheme_flux_bc`</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_robin_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_robin_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">right_robin_bc</span></code></a>(x, k, lam[, x0])</p></td>
+<td><p>Construct Robin (u + lam*dudx = u0 ) BC at right boundary.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.solve" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.solve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve</span></code></a>()</p></td>
+<td><p>Evokes solver</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.solver_callback" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.solver_callback"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solver_callback</span></code></a>(xij, *_)</p></td>
+<td><p>Callback function that can be used by optimizers of scipy.optimize. The second argument &quot;<a href="#id1"><span class="problematic" id="id2">*</span></a>_&quot; makes sure that it still works when the optimizer calls the callback function with more than one argument. See <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_cell_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_cell_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">use_standard_cell_bc</span></code></a>()</p></td>
+<td><p>Interfaces at left hand side and right hand side</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_dirichlet_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_dirichlet_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">use_standard_dirichlet_bc</span></code></a>()</p></td>
+<td><p>Dirichlet BC for all variables at all boundaries</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_interface_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_interface_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">use_standard_interface_bc</span></code></a>()</p></td>
+<td><p>Interface at left hand side and open bulk at right hand side</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_stern_layer_cell_bc" title="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_stern_layer_cell_bc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">use_stern_layer_cell_bc</span></code></a>([implicit])</p></td>
+<td><p>Interfaces at left hand side and right hand side, Stern layer either by prescribing linear potential regime between cell boundary and outer Helmholtz plane (OHP), or by applying Robin BC; zero flux BC on all ion species.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>left_potential_dirichlet_bc</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>left_potential_robin_bc</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>right_dirichlet_bc</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>right_potential_dirichlet_bc</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>right_potential_robin_bc</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.grid">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">grid</span></span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.grid" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.potential">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">potential</span></span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.potential" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.concentration">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">concentration</span></span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.concentration" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.charge_density">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">charge_density</span></span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.charge_density" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.x1_scaled">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">x1_scaled</span></span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.x1_scaled" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.newton">
+<span class="sig-name descname"><span class="pre">newton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xij</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.newton" title="Link to this definition"></a></dt>
+<dd><p>Newton solver expects system f and initial value xij</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f</strong> (<em>callable</em>) – N-valued function of N-valued vector</p></li>
+<li><p><strong>xij</strong> (<em>(</em><em>N</em><em>,</em><em>) </em><em>ndarray</em>) – N-valued initial value vector</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>xij</strong> – N-valued solution vector</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(N,) ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.solver_callback">
+<span class="sig-name descname"><span class="pre">solver_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xij</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.solver_callback" title="Link to this definition"></a></dt>
+<dd><p>Callback function that can be used by optimizers of scipy.optimize.
+The second argument “<a href="#id3"><span class="problematic" id="id4">*</span></a>_” makes sure that it still works when the
+optimizer calls the callback function with more than one argument. See
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.discretize">
+<span class="sig-name descname"><span class="pre">discretize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.discretize" title="Link to this definition"></a></dt>
+<dd><p>Sets up discretization scheme and initial value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.initial_values">
+<span class="sig-name descname"><span class="pre">initial_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.initial_values" title="Link to this definition"></a></dt>
+<dd><p>Solves decoupled linear system to get initial potential distribution.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.solve" title="Link to this definition"></a></dt>
+<dd><p>Evokes solver</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>uij</strong> (<em>(Ni,) ndarray</em>) – potential at Ni grid points</p></li>
+<li><p><strong>nij</strong> (<em>(M,Nij) ndarray</em>) – concentrations of M species at Ni grid points</p></li>
+<li><p><strong>lamj</strong> (<em>(L,) ndarray</em>) – value of L Lagrange multipliers (not implemented, empty)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_interface_bc">
+<span class="sig-name descname"><span class="pre">use_standard_interface_bc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_interface_bc" title="Link to this definition"></a></dt>
+<dd><p>Interface at left hand side and open bulk at right hand side</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_cell_bc">
+<span class="sig-name descname"><span class="pre">use_standard_cell_bc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_cell_bc" title="Link to this definition"></a></dt>
+<dd><p>Interfaces at left hand side and right hand side</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_stern_layer_cell_bc">
+<span class="sig-name descname"><span class="pre">use_stern_layer_cell_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">implicit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_stern_layer_cell_bc" title="Link to this definition"></a></dt>
+<dd><p>Interfaces at left hand side and right hand side,
+Stern layer either by prescribing linear potential regime between cell
+boundary and outer Helmholtz plane (OHP), or by applying Robin BC;
+zero flux BC on all ion species.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>implicit</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, then true Robin BC are applied. Attention:
+if desired, domain must be cropped by manually by twice the Stern
+layer thickness lambda_S. Otherwise, enforces
+constant potential gradient across Stern layer region of thickness
+lambda_S. (default:False)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_dirichlet_bc">
+<span class="sig-name descname"><span class="pre">use_standard_dirichlet_bc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.use_standard_dirichlet_bc" title="Link to this definition"></a></dt>
+<dd><p>Dirichlet BC for all variables at all boundaries</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_finite_difference_scheme_flux_bc">
+<span class="sig-name descname"><span class="pre">left_finite_difference_scheme_flux_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_finite_difference_scheme_flux_bc" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>Ni</em><em>,</em><em>) </em><em>ndarray</em>) – N-valued variable vector</p></li>
+<li><p><strong>k</strong> (<em>int</em>) – ion species (-1 for potential)</p></li>
+<li><p><strong>j0</strong> (<em>float</em>) – flux of ion species <cite>k</cite> at left hand boundary</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>boundary condition residual</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_finite_difference_scheme_flux_bc">
+<span class="sig-name descname"><span class="pre">right_finite_difference_scheme_flux_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_finite_difference_scheme_flux_bc" title="Link to this definition"></a></dt>
+<dd><p>See <code class="docutils literal notranslate"><span class="pre">`left_finite_difference_scheme_flux_bc`</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_controlled_volume_scheme_flux_bc">
+<span class="sig-name descname"><span class="pre">left_controlled_volume_scheme_flux_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_controlled_volume_scheme_flux_bc" title="Link to this definition"></a></dt>
+<dd><p>Compute left hand side flux boundary condition residual in accord with
+controlled volume scheme.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>Ni</em><em>,</em><em>) </em><em>ndarray</em>) – N-valued variable vector</p></li>
+<li><p><strong>k</strong> (<em>int</em>) – ion species (-1 for potential)</p></li>
+<li><p><strong>j0</strong> (<em>float</em>) – flux of ion species <cite>k</cite> at left hand boundary</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>boundary condition residual</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_controlled_volume_scheme_flux_bc">
+<span class="sig-name descname"><span class="pre">right_controlled_volume_scheme_flux_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_controlled_volume_scheme_flux_bc" title="Link to this definition"></a></dt>
+<dd><p>Compute right hand side flux boundary condition residual in accord with
+controlled volume scheme. See <code class="docutils literal notranslate"><span class="pre">left_controlled_volume_scheme_flux_bc</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_potential_dirichlet_bc">
+<span class="sig-name descname"><span class="pre">left_potential_dirichlet_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_potential_dirichlet_bc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_dirichlet_bc">
+<span class="sig-name descname"><span class="pre">left_dirichlet_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_dirichlet_bc" title="Link to this definition"></a></dt>
+<dd><p>Construct Dirichlet BC at left boundary</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_potential_dirichlet_bc">
+<span class="sig-name descname"><span class="pre">right_potential_dirichlet_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_potential_dirichlet_bc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_dirichlet_bc">
+<span class="sig-name descname"><span class="pre">right_dirichlet_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_dirichlet_bc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_potential_robin_bc">
+<span class="sig-name descname"><span class="pre">left_potential_robin_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_potential_robin_bc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_robin_bc">
+<span class="sig-name descname"><span class="pre">left_robin_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.left_robin_bc" title="Link to this definition"></a></dt>
+<dd><p>Compute left hand side Robin (u + lam*dudx = u0 ) BC at in accord with
+2nd order finite difference scheme.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>(</em><em>Ni</em><em>,</em><em>) </em><em>ndarray</em>) – N-valued variable vector</p></li>
+<li><p><strong>k</strong> (<em>int</em>) – ion species (-1 for potential)</p></li>
+<li><p><strong>lam</strong> (<em>float</em>) – BC coefficient, corresponds to Stern layer thickness
+if applied to potential variable in PNP problem. Here, this steric
+layer is assumed to constitute a region of uniform charge density
+and thus linear potential drop across the interface.</p></li>
+<li><p><strong>x0</strong> (<em>float</em>) – right hand side value of BC, corresponds to potential beyond Stern
+layer if applied to potential variable in PNP system.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>float</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>boundary condition residual</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_potential_robin_bc">
+<span class="sig-name descname"><span class="pre">right_potential_robin_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_potential_robin_bc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_robin_bc">
+<span class="sig-name descname"><span class="pre">right_robin_bc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.right_robin_bc" title="Link to this definition"></a></dt>
+<dd><p>Construct Robin (u + lam*dudx = u0 ) BC at right boundary.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.number_conservation_constraint">
+<span class="sig-name descname"><span class="pre">number_conservation_constraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.number_conservation_constraint" title="Link to this definition"></a></dt>
+<dd><p>N0: total amount of species, k: ion species</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.poisson_pde">
+<span class="sig-name descname"><span class="pre">poisson_pde</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.poisson_pde" title="Link to this definition"></a></dt>
+<dd><p>Returns Poisson equation residual by applying 2nd order FD scheme</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.nernst_planck_pde">
+<span class="sig-name descname"><span class="pre">nernst_planck_pde</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.nernst_planck_pde" title="Link to this definition"></a></dt>
+<dd><p>Returns Nernst-Planck equation residual by applying controlled
+volume scheme</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.G">
+<span class="sig-name descname"><span class="pre">G</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.G" title="Link to this definition"></a></dt>
+<dd><p>Non-linear system</p>
+<p>Discretization of Poisson-Nernst-Planck system with M ion species.
+Implements “controlled volume” method as found in</p>
+<blockquote>
+<div><p>Selbherr, Analysis and Simulation of Semiconductor Devices, Springer 1984</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>(</em><em>(</em><em>M+1</em><em>)</em><em>*Ni</em><em>,</em><em>) </em><em>ndarray</em>) – system variables. 1D array of (M+1)*Ni values, where M is number of
+ion species, Ni number of spatial discretization points. First Ni
+entries are expected to contain potential, following M*Ni points
+contain ion concentrations.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>residual</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>((M+1)*Ni,) ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.ionic_strength">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ionic_strength</span></span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.ionic_strength" title="Link to this definition"></a></dt>
+<dd><p>Compute the system’s ionic strength from charges and concentrations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ionic_strength</strong> – ionic strength ( 1/2 * sum(z_i^2*c_i) )
+[concentration unit, i.e. mol m^-3]</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.lambda_D">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lambda_D</span></span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.lambda_D" title="Link to this definition"></a></dt>
+<dd><p>Compute the system’s Debye length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>lambda_D</strong> – Debye length, sqrt( epsR*eps*R*T/(2*F^2*I) ) [length unit, i.e. m]</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.init">
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0.1,</span> <span class="pre">0.1])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1,</span> <span class="pre">-1])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-07</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_S</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_u</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_permittivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vacuum_permittivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8.8541878188e-12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8.31446261815324</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">96485.33212331001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">potential0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concentration0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwarsg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.init" title="Link to this definition"></a></dt>
+<dd><p>Initializes a 1D Poisson-Nernst-Planck system description.</p>
+<p>Expects quantities in SI units per default.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>(</em><em>M</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em>) – bulk concentrations of each ionic species [mol/m^3]
+(default: [ 0.1, 0.1 ])</p></li>
+<li><p><strong>z</strong> (<em>(</em><em>M</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em>) – charge of each ionic species [1] (default: [ +1, -1 ])</p></li>
+<li><p><strong>x0</strong> (<em>float</em><em>, </em><em>optional</em>) – left hand side reference position (default: 0)</p></li>
+<li><p><strong>L</strong> (<em>float</em><em>, </em><em>optional</em>) – 1D domain size [m] (default: 100e-9)</p></li>
+<li><p><strong>lambda_S</strong> (<em>float</em><em>, </em><em>optional</em>) – Stern layer thickness in case of Robin BC [m] (default: 0)</p></li>
+<li><p><strong>T</strong> (<em>float</em><em>, </em><em>optional</em>) – temperature of the solution [K] (default: 298.15)</p></li>
+<li><p><strong>delta_u</strong> (<em>float</em><em>, </em><em>optional</em>) – potential drop across 1D cell [V] (default: 0.05)</p></li>
+<li><p><strong>relative_permittivity</strong> (<em>float</em><em>, </em><em>optional</em>) – relative permittivity of the ionic solution [1] (default: 79)</p></li>
+<li><p><strong>vacuum_permittivity</strong> (<em>float</em><em>, </em><em>optional</em>) – vacuum permittivity [F m^-1] (default: 8.854187817620389e-12 )</p></li>
+<li><p><strong>R</strong> (<em>float</em><em>, </em><em>optional</em>) – molar gas constant [J mol^-1 K^-1] (default: 8.3144598)</p></li>
+<li><p><strong>F</strong> (<em>float</em><em>, </em><em>optional</em>) – Faraday constant [C mol^-1] (default: 96485.33289)</p></li>
+<li><p><strong>N</strong> (<em>int</em><em>, </em><em>optional</em>) – number of discretization grid segments (default: 200)</p></li>
+<li><p><strong>e</strong> (<em>float</em><em>, </em><em>optional</em>) – absolute tolerance for Newton solver convergence (default: 1e-10)</p></li>
+<li><p><strong>maxit</strong> (<em>int</em><em>, </em><em>optional</em>) – maximum number of Newton iterations (default: 20)</p></li>
+<li><p><strong>solver</strong> (<em>func</em><em>( </em><em>func</em><em>(</em><em>x</em><em>)</em><em>, </em><em>x0</em><em>)</em><em>, </em><em>optional</em>) – solver to use (default: None, will use own simple Newton solver)</p></li>
+<li><p><strong>potential0</strong> (<em>(</em><em>N+1</em><em>,</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – potential initial values</p></li>
+<li><p><strong>concentration0</strong> (<em>(</em><em>M</em><em>,</em><em>N+1</em><em>) </em><em>ndarray</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – concentration initial values</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.electrochemistry.poisson_nernst_planck_solver.PoissonNernstPlanckSystem.__init__" title="Link to this definition"></a></dt>
+<dd><p>Constructor, see init doc string for arguments.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.electrochemistry.poisson_boltzmann_distribution.html" class="btn btn-neutral float-left" title="matscipy.electrochemistry.poisson_boltzmann_distribution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.electrochemistry.steric_correction.html" class="btn btn-neutral float-right" title="matscipy.electrochemistry.steric_correction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

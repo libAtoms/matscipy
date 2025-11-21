@@ -1,0 +1,6 @@
+matscipy.electrochemistry.continuous2discrete
+=============================================
+
+.. currentmodule:: matscipy.electrochemistry
+
+.. autofunction:: continuous2discrete

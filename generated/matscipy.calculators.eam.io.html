@@ -1,0 +1,441 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.calculators.eam.io &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.calculators.ewald" href="matscipy.calculators.ewald.html" />
+    <link rel="prev" title="matscipy.calculators.eam.calculator" href="matscipy.calculators.eam.calculator.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.calculator.html">matscipy.calculators.calculator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.committee.html">matscipy.calculators.committee</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.calculators.eam.html">matscipy.calculators.eam</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.eam.average_atom.html">matscipy.calculators.eam.average_atom</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.eam.calculator.html">matscipy.calculators.eam.calculator</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.calculators.eam.io</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.ewald.html">matscipy.calculators.ewald</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.fitting.html">matscipy.calculators.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.manybody.html">matscipy.calculators.manybody</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.mcfm.html">matscipy.calculators.mcfm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.pair_potential.html">matscipy.calculators.pair_potential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.polydisperse.html">matscipy.calculators.polydisperse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.calculators.supercell_calculator.html">matscipy.calculators.supercell_calculator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.calculators.eam.html">matscipy.calculators.eam</a></li>
+      <li class="breadcrumb-item active">matscipy.calculators.eam.io</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.calculators.eam.io.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.calculators.eam.io">
+<span id="matscipy-calculators-eam-io"></span><h1>matscipy.calculators.eam.io<a class="headerlink" href="#module-matscipy.calculators.eam.io" title="Link to this heading"></a></h1>
+<p>Read and write tabulated EAM potentials</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.eam.io.mix_eam" title="matscipy.calculators.eam.io.mix_eam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix_eam</span></code></a>(files, kind, method[, f, rep_ab, ...])</p></td>
+<td><p>mix eam alloy files data set and compute the interspecies pair potential part using the mean geometric value from each pure species</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.eam.io.read_eam" title="matscipy.calculators.eam.io.read_eam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_eam</span></code></a>(eam_file[, kind])</p></td>
+<td><p>Read a tabulated EAM potential</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.eam.io.write_eam" title="matscipy.calculators.eam.io.write_eam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_eam</span></code></a>(source, parameters, F, f, rep, ...)</p></td>
+<td><p>Write an eam lammps format file</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.eam.io.EAMParameters" title="matscipy.calculators.eam.io.EAMParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EAMParameters</span></code></a>(symbols, atomic_numbers, ...)</p></td>
+<td><p>Embedded Atom Method potential parameters</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.calculators.eam.io.</span></span><span class="sig-name descname"><span class="pre">EAMParameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_numbers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_masses</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice_constants</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crystal_structures</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_density_grid_points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_distance_grid_points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">density_grid_spacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_grid_spacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#matscipy.calculators.eam.io.EAMParameters" title="matscipy.calculators.eam.io.EAMParameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">EAMParameters</span></code></a></p>
+<p>Embedded Atom Method potential parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>symbols</strong> (<em>array_like</em>) – Symbols of the elements coverered by
+this potential (only for eam/alloy and
+eam/fs, EMPTY for eam</p></li>
+<li><p><strong>atomic_numbers</strong> (<em>array_like</em>) – Atomic numbers of the elements
+covered by this potential</p></li>
+<li><p><strong>atomic_masses</strong> (<em>array_like</em>) – Atomic masses of the elements
+covered by this potential</p></li>
+<li><p><strong>lattice_constants</strong> (<em>array_like</em>) – Lattice constant of a pure crystal
+with crystal structure as specified in crystal_structures</p></li>
+<li><p><strong>crystal_structures</strong> (<em>array_like</em>) – Crystal structure of the pure metal.</p></li>
+<li><p><strong>number_of_density_grid_points</strong> (<em>int</em>) – Number of grid points
+of the embedding energy functional</p></li>
+<li><p><strong>number_of_distance_grid_points</strong> (<em>int</em>) – Number of grid points of
+the electron density function and the pair potential</p></li>
+<li><p><strong>density_grid_spacing</strong> (<em>float</em>) – Grid spacing in electron density space</p></li>
+<li><p><strong>distance_grid_spacing</strong> (<em>float</em>) – Grid spacing in pair distance space</p></li>
+<li><p><strong>cutoff</strong> (<em>float</em>) – Cutoff distance of the potential</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.calculators.eam.io.EAMParameters.count" title="matscipy.calculators.eam.io.EAMParameters.count"><code class="xref py py-obj docutils literal notranslate"><span class="pre">count</span></code></a>(value, /)</p></td>
+<td><p>Return number of occurrences of value.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.calculators.eam.io.EAMParameters.index" title="matscipy.calculators.eam.io.EAMParameters.index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">index</span></code></a>(value[, start, stop])</p></td>
+<td><p>Return first index of value.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.atomic_masses">
+<span class="sig-name descname"><span class="pre">atomic_masses</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.atomic_masses" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.atomic_numbers">
+<span class="sig-name descname"><span class="pre">atomic_numbers</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.atomic_numbers" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.count">
+<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.count" title="Link to this definition"></a></dt>
+<dd><p>Return number of occurrences of value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.crystal_structures">
+<span class="sig-name descname"><span class="pre">crystal_structures</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.crystal_structures" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.cutoff">
+<span class="sig-name descname"><span class="pre">cutoff</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.cutoff" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 9</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.density_grid_spacing">
+<span class="sig-name descname"><span class="pre">density_grid_spacing</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.density_grid_spacing" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 7</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.distance_grid_spacing">
+<span class="sig-name descname"><span class="pre">distance_grid_spacing</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.distance_grid_spacing" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 8</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.index">
+<span class="sig-name descname"><span class="pre">index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">sys.maxsize</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.index" title="Link to this definition"></a></dt>
+<dd><p>Return first index of value.</p>
+<p>Raises ValueError if the value is not present.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.lattice_constants">
+<span class="sig-name descname"><span class="pre">lattice_constants</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.lattice_constants" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.number_of_density_grid_points">
+<span class="sig-name descname"><span class="pre">number_of_density_grid_points</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.number_of_density_grid_points" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.number_of_distance_grid_points">
+<span class="sig-name descname"><span class="pre">number_of_distance_grid_points</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.number_of_distance_grid_points" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 6</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.EAMParameters.symbols">
+<span class="sig-name descname"><span class="pre">symbols</span></span><a class="headerlink" href="#matscipy.calculators.eam.io.EAMParameters.symbols" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.read_eam">
+<span class="sig-prename descclassname"><span class="pre">matscipy.calculators.eam.io.</span></span><span class="sig-name descname"><span class="pre">read_eam</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eam_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eam/alloy'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.eam.io.read_eam" title="Link to this definition"></a></dt>
+<dd><p>Read a tabulated EAM potential</p>
+<p>There are differnt flavors of EAM, with different storage
+formats. This function supports a subset of the formats supported
+by Lammps (<a class="reference external" href="http://lammps.sandia.gov/doc/pair_eam.html">http://lammps.sandia.gov/doc/pair_eam.html</a>),
+* eam (DYNAMO funcfl format)
+* eam/alloy (DYNAMO setfl format)
+* eam/fs (DYNAMO setfl format)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eam_file</strong> (<em>string</em>) – eam alloy file name</p></li>
+<li><p><strong>kind</strong> (<em>{'eam'</em><em>, </em><em>'eam/alloy'</em><em>, </em><em>'eam/fs'}</em>) – kind of EAM file to read</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>source</strong> (<em>string</em>) – Source informations or comment line for the file header</p></li>
+<li><p><strong>parameters</strong> (<em>EAMParameters</em>) – EAM potential parameters</p></li>
+<li><p><strong>F</strong> (<em>array_like</em>) – contain the tabulated values of the embedded functions
+shape = (nb elements, nb of data points)</p></li>
+<li><p><strong>f</strong> (<em>array_like</em>) – contain the tabulated values of the density functions
+shape = (nb elements, nb of data points)</p></li>
+<li><p><strong>rep</strong> (<em>array_like</em>) – contain the tabulated values of pair potential
+shape = (nb elements,nb elements, nb of data points)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.mix_eam">
+<span class="sig-prename descclassname"><span class="pre">matscipy.calculators.eam.io.</span></span><span class="sig-name descname"><span class="pre">mix_eam</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rep_ab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.eam.io.mix_eam" title="Link to this definition"></a></dt>
+<dd><p>mix eam alloy files data set and compute the interspecies pair potential part using the
+mean geometric value from each pure species</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files</strong> (<em>array</em><em> of </em><em>strings</em>) – Contain all the files to merge and mix</p></li>
+<li><p><strong>kind</strong> (<em>string</em>) – kinf of eam. Supported eam/alloy, eam/fs</p></li>
+<li><p><strong>method</strong> (<em>string</em><em>, </em><em>{geometric</em><em>, </em><em>arithmetic</em><em>, </em><em>weighted</em><em>, </em><em>fitted}</em>) – Method used to mix the pair interaction terms. The geometric,
+arithmetic, and weighted arithmetic average are available. The weighted
+arithmetic method is using the electron density function values of atom
+<code class="code docutils literal notranslate"><span class="pre">a</span></code> and <code class="code docutils literal notranslate"><span class="pre">b</span></code> to ponderate the pair potential between species
+<code class="code docutils literal notranslate"><span class="pre">a</span></code> and <span class="math notranslate nohighlight">\(b\)</span>, <code class="code docutils literal notranslate"><span class="pre">rep_ab</span> <span class="pre">=</span> <span class="pre">0.5(fb/fa</span> <span class="pre">*</span> <span class="pre">rep_a</span> <span class="pre">+</span> <span class="pre">fa/fb</span> <span class="pre">*</span>
+<span class="pre">rep_b)</span></code>, see [1]. The fitted method is to be used if <code class="code docutils literal notranslate"><span class="pre">rep_ab</span></code>
+has been previously fitted and is parse as <span class="math notranslate nohighlight">\(rep_ab\)</span> karg.</p></li>
+<li><p><strong>f</strong> (<em>np.array</em>) – fitted density term (for FS eam style)</p></li>
+<li><p><strong>rep_ab</strong> (<em>np.array</em>) – fitted rep_ab term</p></li>
+<li><p><strong>alphas</strong> (<em>array</em>) – fitted alpha values for the fine tuned mixing.
+<code class="code docutils literal notranslate"><span class="pre">rep_ab</span> <span class="pre">=</span> <span class="pre">alpha_a*rep_a+alpha_b*rep_b</span></code></p></li>
+<li><p><strong>betas</strong> (<em>array</em>) – fitted values for the fine tuned mixing.
+<code class="code docutils literal notranslate"><span class="pre">f_ab</span> <span class="pre">=</span> <span class="pre">beta_00*rep_a+beta_01*rep_b</span></code>
+<code class="code docutils literal notranslate"><span class="pre">f_ba</span> <span class="pre">=</span> <span class="pre">beta_10*rep_a+beta_11*rep_b</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>sources</strong> (<em>string</em>) – Source informations or comment line for the file header</p></li>
+<li><p><strong>parameters_mix</strong> (<em>EAMParameters</em>) – EAM potential parameters</p></li>
+<li><p><strong>F_</strong> (<em>array_like</em>) – contain the tabulated values of the embedded functions
+shape = (nb elements, nb elements, nb of data points)</p></li>
+<li><p><strong>f_</strong> (<em>array_like</em>) – contain the tabulated values of the density functions
+shape = (nb elements, nb elements, nb of data points)</p></li>
+<li><p><strong>rep_</strong> (<em>array_like</em>) – contain the tabulated values of pair potential
+shape = (nb elements, nb elements, nb of data points)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<ol class="arabic simple">
+<li><ol class="upperalpha simple" start="24">
+<li><ol class="upperalpha simple" start="23">
+<li><p>Zhou, R. A. Johnson, and H. N. G. Wadley, Phys. Rev. B, 69, 144113 (2004)</p></li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.calculators.eam.io.write_eam">
+<span class="sig-prename descclassname"><span class="pre">matscipy.calculators.eam.io.</span></span><span class="sig-name descname"><span class="pre">write_eam</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eam'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.calculators.eam.io.write_eam" title="Link to this definition"></a></dt>
+<dd><p>Write an eam lammps format file</p>
+<p>There are differnt flavors of EAM, with different storage
+formats. This function supports a subset of the formats supported
+by Lammps (<a class="reference external" href="http://lammps.sandia.gov/doc/pair_eam.html">http://lammps.sandia.gov/doc/pair_eam.html</a>),
+* eam (DYNAMO funcfl format)
+* eam/alloy (DYNAMO setfl format)
+* eam/fs (DYNAMO setfl format)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<em>string</em>) – Source information or comment line for the file header</p></li>
+<li><p><strong>parameters_mix</strong> (<a class="reference internal" href="#matscipy.calculators.eam.io.EAMParameters" title="matscipy.calculators.eam.io.EAMParameters"><em>EAMParameters</em></a>) – EAM potential parameters</p></li>
+<li><p><strong>F</strong> (<em>array_like</em>) – contain the tabulated values of the embedded functions
+shape = (nb of data points)</p></li>
+<li><p><strong>f</strong> (<em>array_like</em>) – contain the tabulated values of the density functions
+shape = (nb of data points)</p></li>
+<li><p><strong>rep</strong> (<em>array_like</em>) – contain the tabulated values of pair potential
+shape = (nb of data points)</p></li>
+<li><p><strong>out_file</strong> (<em>string</em>) – output file name for the eam alloy potential file</p></li>
+<li><p><strong>kind</strong> (<em>{'eam'</em><em>, </em><em>'eam/alloy'</em><em>, </em><em>'eam/fs'}</em>) – kind of EAM file to read</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.calculators.eam.calculator.html" class="btn btn-neutral float-left" title="matscipy.calculators.eam.calculator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.calculators.ewald.html" class="btn btn-neutral float-right" title="matscipy.calculators.ewald" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

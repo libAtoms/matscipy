@@ -1,0 +1,608 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.gamma_surface &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.io" href="matscipy.io.html" />
+    <link rel="prev" title="matscipy.ffi" href="matscipy.ffi.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.html">matscipy</a></li>
+      <li class="breadcrumb-item active">matscipy.gamma_surface</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.gamma_surface.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.gamma_surface">
+<span id="matscipy-gamma-surface"></span><h1>matscipy.gamma_surface<a class="headerlink" href="#module-matscipy.gamma_surface" title="Link to this heading"></a></h1>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.gamma_surface.GammaSurface" title="matscipy.gamma_surface.GammaSurface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GammaSurface</span></code></a>(a, surface_direction[, ...])</p></td>
+<td><p>A class for generating gamma surface/generalised stacking fault images &amp; plots</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.gamma_surface.StackingFault" title="matscipy.gamma_surface.StackingFault"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StackingFault</span></code></a>(a, surface_direction[, ...])</p></td>
+<td><p>Class for stacking fault-specific generation &amp; plotting</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.gamma_surface.</span></span><span class="sig-name descname"><span class="pre">GammaSurface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_direction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">glide_direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crystalstructure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'C'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A class for generating gamma surface/generalised stacking fault images &amp; plots</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.gamma_surface.GammaSurface.generate_images" title="matscipy.gamma_surface.GammaSurface.generate_images"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_images</span></code></a>(nx, ny[, z_reps, z_offset, ...])</p></td>
+<td><p>Generate gamma surface images on an (nx, ny) grid</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.gamma_surface.GammaSurface.get_energy_densities" title="matscipy.gamma_surface.GammaSurface.get_energy_densities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_energy_densities</span></code></a>([calculator, relax])</p></td>
+<td><p>Get (self.nx, self.ny) grid of gamma surface energies from self.images</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.gamma_surface.GammaSurface.plot_energy_densities" title="matscipy.gamma_surface.GammaSurface.plot_energy_densities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_energy_densities</span></code></a>([Es, ax, si, ...])</p></td>
+<td><p>Produce a matplotlib plot of the gamma surface energy, from the data gathered in self.generate_images and self.get_surface_energies</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.gamma_surface.GammaSurface.relax_images" title="matscipy.gamma_surface.GammaSurface.relax_images"><code class="xref py py-obj docutils literal notranslate"><span class="pre">relax_images</span></code></a>([calculator, ftol, optimiser, ...])</p></td>
+<td><p>Utility function to relax gamma surface images using calculator</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.gamma_surface.GammaSurface.show" title="matscipy.gamma_surface.GammaSurface.show"><code class="xref py py-obj docutils literal notranslate"><span class="pre">show</span></code></a>([CNA_color, plot_energies, si])</p></td>
+<td><p>Overload of GammaSurface.show() Plots an animation of the stacking fault structure, and optionally the associated energy densities (requires self.get_energy_densitities() to have been called)</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_direction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">glide_direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crystalstructure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'C'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialise by cutting and rotating the input structure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<em>float</em><em> or </em><em>ase.Atoms</em>) – Lattice Constant or Starting structure to generate gamma surface
+from (Operates similarly to CubicCrystalDislocation)
+If lattice constant is provided, crystalstructure must also be set</p></li>
+<li><p><strong>surface_direction</strong> (<em>np.array</em><em> of </em><em>int</em><em> or </em><em>subclass of</em>) – matscipy.dislocation.CubicCrystalDissociatedDislocation
+Vector direction of gamma surface, in miller index notation
+EG: np.array([0, 0, 1]), np.array([-1, 1, 0]), np.array([1, 1, 1])
+A subclass of matscipy.dislocation.CubicCrystalDissociatedDislocation
+(EG: DiamondGlideScrew or FCCEdge110Dislocation)</p></li>
+<li><p><strong>glide_direction</strong> (<em>np.array</em><em> of </em><em>int</em><em> or </em><em>None</em>) – Basis vector (in miller indices) to form the glide direction of
+the stacking fault, which is oriented along the y axis of generated images
+Should be orthogonal to surface_direction
+If None, a suitable glide_direction will be found automatically</p></li>
+<li><p><strong>crystalstructure</strong> (<em>str</em>) – Crystal Structure to use in building a base cubic cell
+Required when a is a lattice constant
+Current accepted values: “fcc”, “bcc”, “diamond”</p></li>
+<li><p><strong>symbol</strong> (<em>str</em>) – Chemical symbol to feed to ase.lattice.cubic cell builders
+Required when a is a lattice constant</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.self.cut_at">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">cut_at</span></span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.self.cut_at" title="Link to this definition"></a></dt>
+<dd><p>Cut Atoms object used as base for gamma surface image generation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ase.atoms.Atoms object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.self.surf_directions">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">surf_directions</span></span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.self.surf_directions" title="Link to this definition"></a></dt>
+<dd><p>Dict giving miller indices for “x”, “y” and “z” directions of gamma surface plot
+-   self.surf_directions[“z”] = surface_direction
+-   self.surf_directions[“y”] = glide_direction, if glide_direction was specified</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">self.nx,</span> <span class="pre">self.ny</span></span></dt>
+<dd><p>Dimensions of the (nx, ny) gamma surface grid</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.self.images">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">images</span></span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.self.images" title="Link to this definition"></a></dt>
+<dd><p>Generated gamma surface images (populated after self.generate_images is called)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of ase.atoms.Atoms objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.generate_images">
+<span class="sig-name descname"><span class="pre">generate_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_reps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_strain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vacuum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_xlims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_ylims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_move</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.generate_images" title="Link to this definition"></a></dt>
+<dd><p>Generate gamma surface images on an (nx, ny) grid</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nx</strong> (<em>int</em>) – Number of points in the x direction</p></li>
+<li><p><strong>ny</strong> (<em>int</em>) – Number of points in the y direction</p></li>
+<li><p><strong>z_reps</strong> (<em>int</em>) – Number of supercell copies in z
+(increases separation between periodic surfaces)</p></li>
+<li><p><strong>z_offset</strong> (<em>float</em>) – Offset in the z direction (in A) to apply to all atoms
+Used to select different stacking fault planes
+sharing the same normal direction
+(e.g. glide and shuffle planes in Diamond)</p></li>
+<li><p><strong>cell_strain</strong> (<em>float</em>) – Fractional strain to apply in z direction to cell
+only (0.1 = +10% strain; atoms aren’t moved)
+Helpful for issues when atoms are extremely close in unrelaxed images.</p></li>
+<li><p><strong>vacuum</strong> (<em>float</em>) – Additional vacuum layer (in A) to add between periodic
+images of the gamma surface</p></li>
+<li><p><strong>vacuum_offset</strong> (<em>float</em>) – Offset (in A) applied to the position of
+the vacuum layer in the cell
+The position of the vacuum layer is given by:
+vac_pos = self.cut_at.cell[2, 2] * (1 + cell_strain) / 2 + vacuum_offset</p></li>
+<li><p><strong>path_xlims</strong> (<em>list</em><em> or </em><em>array</em><em> of </em><em>floats</em>) – Limits (in fractional coordinates) of the stacking fault path in the x direction</p></li>
+<li><p><strong>path_ylims</strong> (<em>list</em><em> or </em><em>array</em><em> of </em><em>floats</em>) – Limits (in fractional coordinates) of the stacking fault path in the x direction
+If not supplied, will be set to either [0, 1],
+or will be set based on the glide distance of the supplied dislocation</p></li>
+<li><p><strong>cell_move</strong> (<em>bool</em>) – Toggles using the cell move method (True) or atom move method (False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>images</strong> – nx*ny length list of gamma surface images</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of ase.atoms.Atoms</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.relax_images">
+<span class="sig-name descname"><span class="pre">relax_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ftol=0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimiser=&lt;class</span> <span class="pre">'ase.optimize.bfgslinesearch.BFGSLineSearch'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constrain_atoms=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_relax=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps=200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.relax_images" title="Link to this definition"></a></dt>
+<dd><p>Utility function to relax gamma surface images using calculator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>calculator</strong> (<em>ase calculator instance</em>) – Calculator to give forces for relaxation</p></li>
+<li><p><strong>ftol</strong> (<em>float</em>) – force tolerance for optimisation</p></li>
+<li><p><strong>optimiser</strong> (<em>ase optimiser</em>) – optimiser method to use</p></li>
+<li><p><strong>constrain_atoms</strong> (<em>bool</em>) – Toggle constraint that all atoms only relax in z direction
+(normal to the gamma surface)</p></li>
+<li><p><strong>cell_relax</strong> (<em>bool</em>) – Allow z component of cell (cell[2, 2]) to relax
+(normal to the gamma surface)</p></li>
+<li><p><strong>steps</strong> (<em>int</em>) – Maximum number of iterations allowed for each image relaxation
+Fed directly to optimiser.run()</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.get_energy_densities">
+<span class="sig-name descname"><span class="pre">get_energy_densities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">relax_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.get_energy_densities" title="Link to this definition"></a></dt>
+<dd><p>Get (self.nx, self.ny) grid of gamma surface energies from self.images</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>calculator</strong> (<em>ase calculator</em>) – Calculator to use for finding surface energies
+(and optionally in the relaxation)</p></li>
+<li><p><strong>relax</strong> (<em>bool</em>) – Whether to additionally relax the images
+(through a call to self.relax_images) before finding energies</p></li>
+<li><p><strong>**relax_kwargs</strong> (<em>keyword args</em>) – Extra kwargs to be passed to self.relax_images if relax=True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Es</strong> (<em>np.array</em>)</p></li>
+<li><p><em>(nx, ny) array of energy densities (energy per unit surface area)</em></p></li>
+<li><p><em>for the gamma surface, in eV/A**2</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.plot_energy_densities">
+<span class="sig-name descname"><span class="pre">plot_energy_densities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Es</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">si</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'bicubic'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.plot_energy_densities" title="Link to this definition"></a></dt>
+<dd><p>Produce a matplotlib plot of the gamma surface energy,
+from the data gathered in self.generate_images
+and self.get_surface_energies</p>
+<p>Returns a matplotlib fig and ax object
+Es: np.array</p>
+<blockquote>
+<div><p>(nx, ny) array of energy densities. If None, uses self.Es
+(if populated from self.get_energy_densities())</p>
+</div></blockquote>
+<dl class="simple">
+<dt>ax: matplotlib axis object</dt><dd><p>Axis to draw plot</p>
+</dd>
+<dt>si: bool</dt><dd><p>Use SI units (J/m^2) if True, else ASE units (eV/A^2)</p>
+</dd>
+<dt>interpolation: str</dt><dd><p>arg to pass to matplotlib imshow interpolation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.GammaSurface.show">
+<span class="sig-name descname"><span class="pre">show</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CNA_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_energies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">si</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.GammaSurface.show" title="Link to this definition"></a></dt>
+<dd><p>Overload of GammaSurface.show()
+Plots an animation of the stacking fault structure,
+and optionally the associated energy densities
+(requires self.get_energy_densitities() to have been called)</p>
+<dl class="simple">
+<dt>CNA_color: bool</dt><dd><p>Toggle atom colours based on Common Neighbour Analysis (Structure identification)</p>
+</dd>
+<dt>plot_energies:</dt><dd><p>Add additional plot showing energy density profile, alongside the structure</p>
+</dd>
+<dt>si: bool</dt><dd><p>Plot energy densities in SI units (J/m^2), or “ASE” units eV/A^2</p>
+</dd>
+<dt><a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs</dt><dd><p>extra kwargs passed to ase.visualize.plot.plot_atoms</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.gamma_surface.</span></span><span class="sig-name descname"><span class="pre">StackingFault</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_direction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">glide_direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crystalstructure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'C'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#matscipy.gamma_surface.GammaSurface" title="matscipy.gamma_surface.GammaSurface"><code class="xref py py-class docutils literal notranslate"><span class="pre">GammaSurface</span></code></a></p>
+<p>Class for stacking fault-specific generation &amp; plotting</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.gamma_surface.StackingFault.generate_images" title="matscipy.gamma_surface.StackingFault.generate_images"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_images</span></code></a>(n, *args, **kwargs)</p></td>
+<td><p>Generate gamma surface images on an (n) line n: int     Number of images</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.gamma_surface.StackingFault.get_energy_densities" title="matscipy.gamma_surface.StackingFault.get_energy_densities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_energy_densities</span></code></a>([calculator, relax])</p></td>
+<td><p>Get (self.nx, self.ny) grid of gamma surface energies from self.images</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.gamma_surface.StackingFault.plot_energy_densities" title="matscipy.gamma_surface.StackingFault.plot_energy_densities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_energy_densities</span></code></a>([Es, ax, si])</p></td>
+<td><p>Produce a matplotlib plot of the stacking fault energy, from the data gathered in self.generate_images and self.get_surface_energy</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.gamma_surface.StackingFault.relax_images" title="matscipy.gamma_surface.StackingFault.relax_images"><code class="xref py py-obj docutils literal notranslate"><span class="pre">relax_images</span></code></a>([calculator, ftol, optimiser, ...])</p></td>
+<td><p>Utility function to relax gamma surface images using calculator</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.gamma_surface.StackingFault.show" title="matscipy.gamma_surface.StackingFault.show"><code class="xref py py-obj docutils literal notranslate"><span class="pre">show</span></code></a>([CNA_color, plot_energies, si])</p></td>
+<td><p>Overload of GammaSurface.show() Plots an animation of the stacking fault structure, and optionally the associated energy densities (requires self.get_energy_densitities() to have been called)</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_direction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">glide_direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crystalstructure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'C'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialise by cutting and rotating the input structure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<em>float</em><em> or </em><em>ase.Atoms</em>) – Lattice Constant or Starting structure to generate gamma surface
+from (Operates similarly to CubicCrystalDislocation)
+If lattice constant is provided, crystalstructure must also be set</p></li>
+<li><p><strong>surface_direction</strong> (<em>np.array</em><em> of </em><em>int</em><em> or </em><em>subclass of</em>) – matscipy.dislocation.CubicCrystalDissociatedDislocation
+Vector direction of gamma surface, in miller index notation
+EG: np.array([0, 0, 1]), np.array([-1, 1, 0]), np.array([1, 1, 1])
+A subclass of matscipy.dislocation.CubicCrystalDissociatedDislocation
+(EG: DiamondGlideScrew or FCCEdge110Dislocation)</p></li>
+<li><p><strong>glide_direction</strong> (<em>np.array</em><em> of </em><em>int</em><em> or </em><em>None</em>) – Basis vector (in miller indices) to form the glide direction of
+the stacking fault, which is oriented along the y axis of generated images
+Should be orthogonal to surface_direction
+If None, a suitable glide_direction will be found automatically</p></li>
+<li><p><strong>crystalstructure</strong> (<em>str</em>) – Crystal Structure to use in building a base cubic cell
+Required when a is a lattice constant
+Current accepted values: “fcc”, “bcc”, “diamond”</p></li>
+<li><p><strong>symbol</strong> (<em>str</em>) – Chemical symbol to feed to ase.lattice.cubic cell builders
+Required when a is a lattice constant</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.self.cut_at">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">cut_at</span></span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.self.cut_at" title="Link to this definition"></a></dt>
+<dd><p>Cut Atoms object used as base for gamma surface image generation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ase.atoms.Atoms object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.self.surf_directions">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">surf_directions</span></span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.self.surf_directions" title="Link to this definition"></a></dt>
+<dd><p>Dict giving miller indices for “x”, “y” and “z” directions of gamma surface plot
+-   self.surf_directions[“z”] = surface_direction
+-   self.surf_directions[“y”] = glide_direction, if glide_direction was specified</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">self.nx,</span> <span class="pre">self.ny</span></span></dt>
+<dd><p>Dimensions of the (nx, ny) gamma surface grid</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.self.images">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">images</span></span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.self.images" title="Link to this definition"></a></dt>
+<dd><p>Generated gamma surface images (populated after self.generate_images is called)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of ase.atoms.Atoms objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.generate_images">
+<span class="sig-name descname"><span class="pre">generate_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.generate_images" title="Link to this definition"></a></dt>
+<dd><p>Generate gamma surface images on an (n) line
+n: int</p>
+<blockquote>
+<div><p>Number of images</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.get_energy_densities">
+<span class="sig-name descname"><span class="pre">get_energy_densities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">relax_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.get_energy_densities" title="Link to this definition"></a></dt>
+<dd><p>Get (self.nx, self.ny) grid of gamma surface energies from self.images</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>calculator</strong> (<em>ase calculator</em>) – Calculator to use for finding surface energies
+(and optionally in the relaxation)</p></li>
+<li><p><strong>relax</strong> (<em>bool</em>) – Whether to additionally relax the images
+(through a call to self.relax_images) before finding energies</p></li>
+<li><p><strong>**relax_kwargs</strong> (<em>keyword args</em>) – Extra kwargs to be passed to self.relax_images if relax=True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Es</strong> (<em>np.array</em>)</p></li>
+<li><p><em>(nx, ny) array of energy densities (energy per unit surface area)</em></p></li>
+<li><p><em>for the gamma surface, in eV/A**2</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.relax_images">
+<span class="sig-name descname"><span class="pre">relax_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ftol=0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimiser=&lt;class</span> <span class="pre">'ase.optimize.bfgslinesearch.BFGSLineSearch'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constrain_atoms=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_relax=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps=200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.relax_images" title="Link to this definition"></a></dt>
+<dd><p>Utility function to relax gamma surface images using calculator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>calculator</strong> (<em>ase calculator instance</em>) – Calculator to give forces for relaxation</p></li>
+<li><p><strong>ftol</strong> (<em>float</em>) – force tolerance for optimisation</p></li>
+<li><p><strong>optimiser</strong> (<em>ase optimiser</em>) – optimiser method to use</p></li>
+<li><p><strong>constrain_atoms</strong> (<em>bool</em>) – Toggle constraint that all atoms only relax in z direction
+(normal to the gamma surface)</p></li>
+<li><p><strong>cell_relax</strong> (<em>bool</em>) – Allow z component of cell (cell[2, 2]) to relax
+(normal to the gamma surface)</p></li>
+<li><p><strong>steps</strong> (<em>int</em>) – Maximum number of iterations allowed for each image relaxation
+Fed directly to optimiser.run()</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.plot_energy_densities">
+<span class="sig-name descname"><span class="pre">plot_energy_densities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Es</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">si</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.plot_energy_densities" title="Link to this definition"></a></dt>
+<dd><p>Produce a matplotlib plot of the stacking fault energy,
+from the data gathered in self.generate_images and self.get_surface_energy</p>
+<p>Returns a matplotlib fig and ax object
+Es: np.array</p>
+<blockquote>
+<div><p>(nx, ny) array of energy densities. If None, uses self.Es
+(if populated from self.get_energy_densities())</p>
+</div></blockquote>
+<dl class="simple">
+<dt>ax: matplotlib axis object</dt><dd><p>Axis to draw plot</p>
+</dd>
+<dt>si: bool</dt><dd><p>Use SI units (J/m^2) if True, else ASE units (eV/A^2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.gamma_surface.StackingFault.show">
+<span class="sig-name descname"><span class="pre">show</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CNA_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_energies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">si</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.gamma_surface.StackingFault.show" title="Link to this definition"></a></dt>
+<dd><p>Overload of GammaSurface.show()
+Plots an animation of the stacking fault structure,
+and optionally the associated
+energy densities (requires self.get_energy_densitities() to have been called)</p>
+<dl class="simple">
+<dt>CNA_color: bool</dt><dd><p>Toggle atom colours based on Common Neighbour Analysis (Structure identification)</p>
+</dd>
+<dt>plot_energies:</dt><dd><p>Add additional plot showing energy density profile, alongside the structure</p>
+</dd>
+<dt>si: bool</dt><dd><p>Plot energy densities in SI units (J/m^2), or “ASE” units eV/A^2</p>
+</dd>
+<dt>rotation: str</dt><dd><p>rotation to apply to the structures,
+passed directly to ase.visualize.plot.plot_atoms</p>
+</dd>
+<dt><a href="#id3"><span class="problematic" id="id4">**</span></a>kwargs</dt><dd><p>extra kwargs passed to ase.visualize.plot.plot_atoms</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.ffi.html" class="btn btn-neutral float-left" title="matscipy.ffi" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.io.html" class="btn btn-neutral float-right" title="matscipy.io" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

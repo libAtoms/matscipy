@@ -1,0 +1,12 @@
+matscipy.calculators.mcfm.mcfm\_parallel.mcfm\_parallel\_worker
+===============================================================
+
+.. automodule:: matscipy.calculators.mcfm.mcfm_parallel.mcfm_parallel_worker
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      worker_populate_cluster_data
+   

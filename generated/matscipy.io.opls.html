@@ -1,0 +1,521 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.io.opls &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.io.tbl" href="matscipy.io.tbl.html" />
+    <link rel="prev" title="matscipy.io.metis" href="matscipy.io.metis.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.io.html">matscipy.io</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.lammpsdata.html">matscipy.io.lammpsdata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.metis.html">matscipy.io.metis</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.io.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.tbl.html">matscipy.io.tbl</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.html">matscipy</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.io.html">matscipy.io</a></li>
+      <li class="breadcrumb-item active">matscipy.io.opls</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.io.opls.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.io.opls">
+<span id="matscipy-io-opls"></span><h1>matscipy.io.opls<a class="headerlink" href="#module-matscipy.io.opls" title="Link to this heading"></a></h1>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.io.opls.read_block" title="matscipy.io.opls.read_block"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_block</span></code></a>(filename, name)</p></td>
+<td><p>Read a named data block from a parameter file for a non-reactive potential. Blocks begin with <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">name</span></code> and are terminated by empty lines. Using the function on a file named <code class="docutils literal notranslate"><span class="pre">parameterfile</span></code> which contains a block named <code class="docutils literal notranslate"><span class="pre">Bonds</span></code> and the following entries ::   # Bonds   C1-C1 10.0 1.0   H1-H1 20.0 2.0.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.io.opls.read_cutoffs" title="matscipy.io.opls.read_cutoffs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_cutoffs</span></code></a>(filename)</p></td>
+<td><p>Read the cutoffs for construction of a non-reactive system from a file. Comments in the file begin with <code class="docutils literal notranslate"><span class="pre">#</span></code>, the file should be structured like this: ::   # Cutoffs   C1-C1 1.23  # name, cutoff (A)   H1-H1 4.56  # name, cutoff (A)   C1-H1 7.89  # name, cutoff (A).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.io.opls.read_extended_xyz" title="matscipy.io.opls.read_extended_xyz"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_extended_xyz</span></code></a>(fileobj)</p></td>
+<td><p>Read an extended xyz file with labeled atoms. The number of atoms should be given in the first line, the second line contains the cell dimensions and the definition of the columns. The file should contain the following columns: element (1 or 2 characters), x(float), y(float), z (float), molecule id (int), name (1 or 2 characters). A full description of the extended xyz format can be found for example in the ASE documentation. An example for a file defining an H2 molecule is given below. ::   2   Lattice=&quot;10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 10.0&quot; Properties=species:S:1:pos:R:3:molid:I:1:type:S:1   H 4.5 5.0 5.0 1 H1   H 5.5 5.0 5.0 1 H1.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.io.opls.read_lammps_data" title="matscipy.io.opls.read_lammps_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_lammps_data</span></code></a>(filename[, ...])</p></td>
+<td><p>Read positions, bonds, angles and dihedrals from a LAMMPS file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.io.opls.read_lammps_definitions" title="matscipy.io.opls.read_lammps_definitions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_lammps_definitions</span></code></a>(filename)</p></td>
+<td><p>Reads force field definitions from a LAMMPS parameter file and stores the parameters in <a class="reference internal" href="matscipy.opls.html#matscipy.opls.LJQData" title="matscipy.opls.LJQData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.LJQData</span></code></a>, <a class="reference internal" href="matscipy.opls.html#matscipy.opls.BondData" title="matscipy.opls.BondData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.BondData</span></code></a>, <a class="reference internal" href="matscipy.opls.html#matscipy.opls.AnglesData" title="matscipy.opls.AnglesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.AnglesData</span></code></a> and <a class="reference internal" href="matscipy.opls.html#matscipy.opls.DihedralsData" title="matscipy.opls.DihedralsData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.DihedralsData</span></code></a> objects.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.io.opls.read_parameter_file" title="matscipy.io.opls.read_parameter_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_parameter_file</span></code></a>(filename)</p></td>
+<td><p>Read the parameters of a non-reactive potential from a file. An example for the file structure is given below. The blocks are separated by empty lines, comments begin with <code class="docutils literal notranslate"><span class="pre">#</span></code>. For more information about the potentials, refer to the documentation of the LAMMPS commands <code class="docutils literal notranslate"><span class="pre">bond_style</span> <span class="pre">harmonic</span></code>, <code class="docutils literal notranslate"><span class="pre">angle_style</span> <span class="pre">harmonic</span></code>, <code class="docutils literal notranslate"><span class="pre">dihedral_style</span> <span class="pre">harmonic</span></code>. The default global cutoffs for Lennard-Jones and Coulomb interactions are 10.0 and 7.4 A. They can be overridden with the optional <code class="docutils literal notranslate"><span class="pre">Cutoffs-LJ-Coulomb</span></code> block. By default, geometric mixing is applied between Lennard-Jones parameters of different particle types and the global cutoff is used for all pairs. This behavior can be overridden using the optional <code class="docutils literal notranslate"><span class="pre">LJ-pairs</span></code> block. ::   # Element   C1 0.001 3.5 -0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e)   H1 0.001 2.5  0.01  # name, LJ-epsilon (eV), LJ-sigma (A), charge (e).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.io.opls.update_from_lammps_dump" title="matscipy.io.opls.update_from_lammps_dump"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_from_lammps_dump</span></code></a>(atoms, filename[, check])</p></td>
+<td><p>Read simulation cell, positions and velocities from a LAMMPS dump file and use them to update an existing configuration.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.io.opls.write_lammps" title="matscipy.io.opls.write_lammps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_lammps</span></code></a>(prefix, atoms)</p></td>
+<td><p>Convenience function.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.io.opls.write_lammps_atoms" title="matscipy.io.opls.write_lammps_atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_lammps_atoms</span></code></a>(prefix, atoms[, units])</p></td>
+<td><p>Write atoms input for LAMMPS.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.io.opls.write_lammps_definitions" title="matscipy.io.opls.write_lammps_definitions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_lammps_definitions</span></code></a>(prefix, atoms)</p></td>
+<td><p>Write force field definitions for LAMMPS.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.io.opls.write_lammps_in" title="matscipy.io.opls.write_lammps_in"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_lammps_in</span></code></a>(prefix)</p></td>
+<td><p>Writes a simple LAMMPS input script for a structure optimization using a non-reactive potential.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.read_extended_xyz">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">read_extended_xyz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileobj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.read_extended_xyz" title="Link to this definition"></a></dt>
+<dd><p>Read an extended xyz file with labeled atoms. The number of atoms
+should be given in the first line, the second line contains the cell
+dimensions and the definition of the columns. The file should contain
+the following columns: element (1 or 2 characters), x(float), y(float),
+z (float), molecule id (int), name (1 or 2 characters). A full
+description of the extended xyz format can be found for example in the
+ASE documentation. An example for a file defining an H2 molecule is
+given below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">2</span>
+<span class="n">Lattice</span><span class="o">=</span><span class="s2">&quot;10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 10.0&quot;</span> <span class="n">Properties</span><span class="o">=</span><span class="n">species</span><span class="p">:</span><span class="n">S</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="n">pos</span><span class="p">:</span><span class="n">R</span><span class="p">:</span><span class="mi">3</span><span class="p">:</span><span class="n">molid</span><span class="p">:</span><span class="n">I</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="nb">type</span><span class="p">:</span><span class="n">S</span><span class="p">:</span><span class="mi">1</span>
+<span class="n">H</span> <span class="mf">4.5</span> <span class="mf">5.0</span> <span class="mf">5.0</span> <span class="mi">1</span> <span class="n">H1</span>
+<span class="n">H</span> <span class="mf">5.5</span> <span class="mf">5.0</span> <span class="mf">5.0</span> <span class="mi">1</span> <span class="n">H1</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Name of the file to read from.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Atomic structure as defined in the input file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="matscipy.opls.html#matscipy.opls.OPLSStructure" title="matscipy.opls.OPLSStructure">matscipy.opls.OPLSStructure</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.read_block">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">read_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.read_block" title="Link to this definition"></a></dt>
+<dd><p>Read a named data block from a parameter file for a non-reactive
+potential. Blocks begin with <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">name</span></code> and are terminated by empty
+lines. Using the function on a file named <code class="docutils literal notranslate"><span class="pre">parameterfile</span></code> which
+contains a block named <code class="docutils literal notranslate"><span class="pre">Bonds</span></code> and the following entries</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Bonds</span>
+<span class="n">C1</span><span class="o">-</span><span class="n">C1</span> <span class="mf">10.0</span> <span class="mf">1.0</span>
+<span class="n">H1</span><span class="o">-</span><span class="n">H1</span> <span class="mf">20.0</span> <span class="mf">2.0</span>
+</pre></div>
+</div>
+<p>will return the following dictionary:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;C1-C1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="s1">&#39;H1-H1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">20.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">]}</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – Name of the file to read from.</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – Name of the data block to search for.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Name-Value pairs. Each value is a list of arbitrary length.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – If data block <code class="docutils literal notranslate"><span class="pre">name</span></code> is not found in the file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.read_cutoffs">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">read_cutoffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.read_cutoffs" title="Link to this definition"></a></dt>
+<dd><p>Read the cutoffs for construction of a non-reactive system from a
+file. Comments in the file begin with <code class="docutils literal notranslate"><span class="pre">#</span></code>, the file should be
+structured like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Cutoffs</span>
+<span class="n">C1</span><span class="o">-</span><span class="n">C1</span> <span class="mf">1.23</span>  <span class="c1"># name, cutoff (A)</span>
+<span class="n">H1</span><span class="o">-</span><span class="n">H1</span> <span class="mf">4.56</span>  <span class="c1"># name, cutoff (A)</span>
+<span class="n">C1</span><span class="o">-</span><span class="n">H1</span> <span class="mf">7.89</span>  <span class="c1"># name, cutoff (A)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Name of the file to read from.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Cutoffs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="matscipy.opls.html#matscipy.opls.CutoffList" title="matscipy.opls.CutoffList">matscipy.opls.CutoffList</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.read_parameter_file">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">read_parameter_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.read_parameter_file" title="Link to this definition"></a></dt>
+<dd><p>Read the parameters of a non-reactive potential from a file. An
+example for the file structure is given below. The blocks are
+separated by empty lines, comments begin with <code class="docutils literal notranslate"><span class="pre">#</span></code>. For more
+information about the potentials, refer to the documentation of
+the LAMMPS commands <code class="docutils literal notranslate"><span class="pre">bond_style</span> <span class="pre">harmonic</span></code>,
+<code class="docutils literal notranslate"><span class="pre">angle_style</span> <span class="pre">harmonic</span></code>, <code class="docutils literal notranslate"><span class="pre">dihedral_style</span> <span class="pre">harmonic</span></code>. The default
+global cutoffs for Lennard-Jones and Coulomb interactions are 10.0
+and 7.4 A. They can be overridden with the optional
+<code class="docutils literal notranslate"><span class="pre">Cutoffs-LJ-Coulomb</span></code> block. By default, geometric mixing is
+applied between Lennard-Jones parameters of different particle types
+and the global cutoff is used for all pairs. This behavior can be
+overridden using the optional <code class="docutils literal notranslate"><span class="pre">LJ-pairs</span></code> block.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Element</span>
+<span class="n">C1</span> <span class="mf">0.001</span> <span class="mf">3.5</span> <span class="o">-</span><span class="mf">0.01</span>  <span class="c1"># name, LJ-epsilon (eV), LJ-sigma (A), charge (e)</span>
+<span class="n">H1</span> <span class="mf">0.001</span> <span class="mf">2.5</span>  <span class="mf">0.01</span>  <span class="c1"># name, LJ-epsilon (eV), LJ-sigma (A), charge (e)</span>
+
+<span class="c1"># Cutoffs-LJ-Coulomb (this block is optional)</span>
+<span class="n">LJ</span> <span class="mf">10.0</span>  <span class="c1"># distance (A)</span>
+<span class="n">C</span>  <span class="mf">10.0</span>  <span class="c1"># distance (A)</span>
+
+<span class="c1"># LJ-pairs (this block is optional)</span>
+<span class="n">C1</span><span class="o">-</span><span class="n">H1</span> <span class="mf">0.002</span> <span class="mf">2.1</span> <span class="mf">12.0</span>  <span class="c1"># name, epsilon (eV), sigma (A), cutoff (A)</span>
+
+<span class="c1"># Bonds</span>
+<span class="n">C1</span><span class="o">-</span><span class="n">C1</span> <span class="mf">10.0</span> <span class="mf">1.0</span>  <span class="c1"># name, spring constant*2 (eV/A**2), distance (A)</span>
+
+<span class="c1"># Angles</span>
+<span class="n">H1</span><span class="o">-</span><span class="n">C1</span><span class="o">-</span><span class="n">C1</span> <span class="mf">1.0</span> <span class="mf">100.0</span>  <span class="c1"># name, spring constant*2 (eV), equilibrium angle</span>
+
+<span class="c1"># Dihedrals</span>
+<span class="n">H1</span><span class="o">-</span><span class="n">C1</span><span class="o">-</span><span class="n">C1</span><span class="o">-</span><span class="n">H1</span> <span class="mf">0.0</span> <span class="mf">0.0</span> <span class="mf">0.01</span> <span class="mf">0.0</span>  <span class="c1"># name, energy (eV), energy (eV), ...</span>
+
+<span class="c1"># Cutoffs</span>
+<span class="n">C1</span><span class="o">-</span><span class="n">C1</span> <span class="mf">1.85</span>  <span class="c1"># name, cutoff (A)</span>
+<span class="n">C1</span><span class="o">-</span><span class="n">H1</span> <span class="mf">1.15</span>  <span class="c1"># name, cutoff (A)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Name of the file to read from.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>cutoffs</strong> (<em>matscipy.opls.CutoffList</em>) – Cutoffs.</p></li>
+<li><p><strong>ljq</strong> (<em>matscipy.opls.LJQData</em>) – Lennard-Jones data and atomic charges.</p></li>
+<li><p><strong>bonds</strong> (<em>matscipy.opls.BondData</em>) – Bond coefficients, i.e. spring constants and
+equilibrium distances.</p></li>
+<li><p><strong>angles</strong> (<em>matscipy.opls.AnglesData</em>) – Angle coefficients.</p></li>
+<li><p><strong>dihedrals</strong> (<em>matscipy.opls.DihedralsData</em>) – Dihedral coefficients.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.write_lammps">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">write_lammps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.write_lammps" title="Link to this definition"></a></dt>
+<dd><p>Convenience function. The functions
+<a class="reference internal" href="#matscipy.io.opls.write_lammps_in" title="matscipy.io.opls.write_lammps_in"><code class="xref py py-func docutils literal notranslate"><span class="pre">matscipy.io.opls.write_lammps_in()</span></code></a>,
+<a class="reference internal" href="#matscipy.io.opls.write_lammps_atoms" title="matscipy.io.opls.write_lammps_atoms"><code class="xref py py-func docutils literal notranslate"><span class="pre">matscipy.io.opls.write_lammps_atoms()</span></code></a> and
+<a class="reference internal" href="#matscipy.io.opls.write_lammps_definitions" title="matscipy.io.opls.write_lammps_definitions"><code class="xref py py-func docutils literal notranslate"><span class="pre">matscipy.io.opls.write_lammps_definitions()</span></code></a>
+are usually called at the same time. This function
+combines them, filenames will be <code class="docutils literal notranslate"><span class="pre">prefix.in</span></code>,
+<code class="docutils literal notranslate"><span class="pre">prefix.atoms</span></code> and <code class="docutils literal notranslate"><span class="pre">prefix.opls</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>str</em>) – Prefix for filenames.</p></li>
+<li><p><strong>atoms</strong> (<a class="reference internal" href="matscipy.opls.html#matscipy.opls.OPLSStructure" title="matscipy.opls.OPLSStructure"><em>matscipy.opls.OPLSStructure</em></a>) – The atomic structure to be written.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.write_lammps_in">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">write_lammps_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.write_lammps_in" title="Link to this definition"></a></dt>
+<dd><p>Writes a simple LAMMPS input script for a structure optimization
+using a non-reactive potential. The name of the resulting script
+is <code class="docutils literal notranslate"><span class="pre">prefix.in</span></code>, while the atomic structure is defined in
+<code class="docutils literal notranslate"><span class="pre">prefix.atoms</span></code> and the definition of the atomic interaction in
+<code class="docutils literal notranslate"><span class="pre">prefix.opls</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>prefix</strong> (<em>str</em>) – Prefix for filename.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.write_lammps_atoms">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">write_lammps_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'metal'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.write_lammps_atoms" title="Link to this definition"></a></dt>
+<dd><p>Write atoms input for LAMMPS. Filename will be <code class="docutils literal notranslate"><span class="pre">prefix.atoms</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>str</em>) – Prefix for filename.</p></li>
+<li><p><strong>atoms</strong> (<a class="reference internal" href="matscipy.opls.html#matscipy.opls.OPLSStructure" title="matscipy.opls.OPLSStructure"><em>matscipy.opls.OPLSStructure</em></a>) – The atomic structure to be written.</p></li>
+<li><p><strong>units</strong> (<em>str</em><em>, </em><em>optional</em>) – The units to be used.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.write_lammps_definitions">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">write_lammps_definitions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.write_lammps_definitions" title="Link to this definition"></a></dt>
+<dd><p>Write force field definitions for LAMMPS.
+Filename will be <code class="docutils literal notranslate"><span class="pre">prefix.opls</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>str</em>) – Prefix for filename.</p></li>
+<li><p><strong>atoms</strong> (<a class="reference internal" href="matscipy.opls.html#matscipy.opls.OPLSStructure" title="matscipy.opls.OPLSStructure"><em>matscipy.opls.OPLSStructure</em></a>) – The atomic structure for which the force field definitions
+should be written. Must contain at least Lennard-Jones and
+charge data <a class="reference internal" href="matscipy.opls.html#matscipy.opls.LJQData" title="matscipy.opls.LJQData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.LJQData</span></code></a>. Bond-, angle-
+and dihedral-potentials are optional and are written if they
+are present:
+<a class="reference internal" href="matscipy.opls.html#matscipy.opls.BondData" title="matscipy.opls.BondData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.BondData</span></code></a>,
+<a class="reference internal" href="matscipy.opls.html#matscipy.opls.AnglesData" title="matscipy.opls.AnglesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.AnglesData</span></code></a>,
+<a class="reference internal" href="matscipy.opls.html#matscipy.opls.DihedralsData" title="matscipy.opls.DihedralsData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.DihedralsData</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.read_lammps_definitions">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">read_lammps_definitions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.read_lammps_definitions" title="Link to this definition"></a></dt>
+<dd><p>Reads force field definitions from a LAMMPS parameter file and
+stores the parameters in <a class="reference internal" href="matscipy.opls.html#matscipy.opls.LJQData" title="matscipy.opls.LJQData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.LJQData</span></code></a>,
+<a class="reference internal" href="matscipy.opls.html#matscipy.opls.BondData" title="matscipy.opls.BondData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.BondData</span></code></a>, <a class="reference internal" href="matscipy.opls.html#matscipy.opls.AnglesData" title="matscipy.opls.AnglesData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.AnglesData</span></code></a>
+and <a class="reference internal" href="matscipy.opls.html#matscipy.opls.DihedralsData" title="matscipy.opls.DihedralsData"><code class="xref py py-class docutils literal notranslate"><span class="pre">matscipy.opls.DihedralsData</span></code></a> objects. The ‘number’
+of the particles, pairs, … for the corresponding interaction
+parameters is not included in these objects and is output in
+dicts. Note that there is an offset of one between LAMMPS and
+python numbering.</p>
+<p>Parameter file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bond_style</span>      <span class="n">harmonic</span>
+<span class="n">bond_coeff</span>      <span class="mi">1</span> <span class="mf">1.2</span> <span class="mf">3.4</span> <span class="c1"># AA-AA</span>
+<span class="n">bond_coeff</span>      <span class="mi">2</span> <span class="mf">5.6</span> <span class="mf">7.8</span> <span class="c1"># AA-BB</span>
+</pre></div>
+</div>
+<p>Returned dictionary:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bond_type_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;AA-AA&#39;</span>
+<span class="n">bond_type_index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;AA-BB&#39;</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Name of the file to read from.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>ljq_data</strong> (<em>matscipy.opls.LJQData</em>) – Lennard-Jones and charge data.</p></li>
+<li><p><strong>bond_data</strong> (<em>matscipy.opls.BondData</em>) – Parameters of the harmonic bond potentials.</p></li>
+<li><p><strong>ang_data</strong> (<em>matscipy.opls.AnglesData</em>) – Parameters of the harmonic angle potentials.</p></li>
+<li><p><strong>dih_data</strong> (<em>matscipy.opls.DihedralsData</em>) – Parameters of the OPLS dihedral potentials.</p></li>
+<li><p><strong>particle_type_index</strong> (<em>dict</em>) – Indicees of particle types as used by LAMMPS.</p></li>
+<li><p><strong>bond_type_index</strong> (<em>dict</em>) – Indicees of bond types as used by LAMMPS.</p></li>
+<li><p><strong>ang_type_index</strong> (<em>dict</em>) – Indicees of angle types as used by LAMMPS.</p></li>
+<li><p><strong>dih_type_index</strong> (<em>dict</em>) – Indicees of dihedral types as used by LAMMPS.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.read_lammps_data">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">read_lammps_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename_lammps_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.read_lammps_data" title="Link to this definition"></a></dt>
+<dd><p>Read positions, bonds, angles and dihedrals from a LAMMPS file.
+Optionally, a LAMMPS parameter file can be specified to restore
+all interactions from a preceding simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – Name of the file to read the atomic configuration from.</p></li>
+<li><p><strong>filename_lammps_params</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the file to read the interactions from.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Atomic structure as defined in the input file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="matscipy.opls.html#matscipy.opls.OPLSStructure" title="matscipy.opls.OPLSStructure">matscipy.opls.OPLSStructure</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.io.opls.update_from_lammps_dump">
+<span class="sig-prename descclassname"><span class="pre">matscipy.io.opls.</span></span><span class="sig-name descname"><span class="pre">update_from_lammps_dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.io.opls.update_from_lammps_dump" title="Link to this definition"></a></dt>
+<dd><p>Read simulation cell, positions and velocities from a LAMMPS
+dump file and use them to update an existing configuration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<a class="reference internal" href="matscipy.opls.html#matscipy.opls.OPLSStructure" title="matscipy.opls.OPLSStructure"><em>matscipy.opls.OPLSStructure</em></a>) – Atomic structure to be updated.</p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – Name of the file to read the atomic configuration from.</p></li>
+<li><p><strong>check</strong> (<em>bool</em><em>, </em><em>optional</em>) – Make sure that the particle types in the input structure
+and the read-in file are the same.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Atomic structure as defined in the input file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="matscipy.opls.html#matscipy.opls.OPLSStructure" title="matscipy.opls.OPLSStructure">matscipy.opls.OPLSStructure</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.io.metis.html" class="btn btn-neutral float-left" title="matscipy.io.metis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.io.tbl.html" class="btn btn-neutral float-right" title="matscipy.io.tbl" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

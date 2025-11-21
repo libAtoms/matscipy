@@ -1,0 +1,13 @@
+matscipy.calculators.polydisperse.calculator
+============================================
+
+.. automodule:: matscipy.calculators.polydisperse.calculator
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      InversePowerLawPotential
+      Polydisperse
+   

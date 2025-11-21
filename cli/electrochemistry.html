@@ -1,0 +1,188 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electrochemistry &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Fracture mechanics" href="fracture_mechanics.html" />
+    <link rel="prev" title="Diffusion" href="diffusion.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Command line interface</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="diffusion.html">Diffusion</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Electrochemistry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview-of-commands">Overview of commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fracture_mechanics.html">Fracture mechanics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calculators.html">Interatomic potentials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="structure.html">Structure generation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Command line interface</a></li>
+      <li class="breadcrumb-item active">Electrochemistry</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/cli/electrochemistry.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="electrochemistry">
+<h1>Electrochemistry<a class="headerlink" href="#electrochemistry" title="Link to this heading"></a></h1>
+<section id="overview-of-commands">
+<h2>Overview of commands<a class="headerlink" href="#overview-of-commands" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">matscipy-poisson-nernst-planck</span></code>: Command line interface to the functionality of
+<code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry.posson_nernst_planck_solver</span></code> and
+<code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry.posson_nernst_planck_solver_fenics</span></code>.
+If available <code class="docutils literal notranslate"><span class="pre">poisson-nernst-planck</span></code> will make use of the third-party
+<code class="docutils literal notranslate"><span class="pre">FEniCS</span></code> finite elements solver, but fall back to our own controlled-volumes
+solver otherwise.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">matscipy-continuous2discrete</span></code>: Command line interface to the functionality of
+<code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry.continuous2discrete</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">matscipy-stericify</span></code>: Command line interface to the functionality of
+<code class="docutils literal notranslate"><span class="pre">matscipy.electrochemistry.steric_correction</span></code>.</p></li>
+</ul>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">matscipy-poisson-nernst-planck</span></code>, <code class="docutils literal notranslate"><span class="pre">matscipy-continuous2discrete</span></code> and
+<code class="docutils literal notranslate"><span class="pre">matscipy-stericify</span></code> executable scripts offer simple command line interfaces
+to solve arbitrary (1D) Poisson-Nernst-Planck systems, to sample
+discrete coordinate sets from continuous distributions, and to
+assure steric radii for all coordinate points in a sample.
+Type <code class="docutils literal notranslate"><span class="pre">matscipy-poisson-nernst-planck</span> <span class="pre">--help</span></code>, <code class="docutils literal notranslate"><span class="pre">matscipy-continuous2discrete</span> <span class="pre">--help</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">matscipy-stericify</span> <span class="pre">--help</span></code> for usage information.</p>
+<p>A simple sample usage to generate a discrete coordinate set from
+the continuous solution of Poisson-Nernst-Planck equations for
+0.1 mM NaCl aqueous solution across a 100 nm gap and a 0.05 V potential drop
+would look like this</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>matscipy-poisson-nernst-planck -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell --verbose NaCl.txt
+matscipy-continuous2discrete --verbose NaCl.txt NaCl.lammps
+</pre></div>
+</div>
+<p>for PNP solution in plain text file and according coordinate samples LAMMPS
+data file, or like this</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>matscipy-poisson-nernst-planck -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell --verbose NaCl.npz
+matscipy-continuous2discrete --verbose NaCl.npz NaCl.xyz
+</pre></div>
+</div>
+<p>for PNP solution in binary numpy .npz file and coordinate samples in generic
+xyz file, or as a pipeline</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>matscipy-poisson-nernst-planck -c 0.1 0.1 -u 0.05 -l 1.0e-7 -bc cell --verbose | continuous2discrete --verbose &gt; NaCl.xyz
+</pre></div>
+</div>
+<p>for text and xyz format streams.</p>
+<p>Steric effects at the interface leading to a compact Stern layer can be either
+modeled explicitly via enforcing a linear potential regime within the compact
+layer region, or implicitly by excluding the compact layer region from the
+computation domain and applying Robin boundary conditions. Latter is the default
+via command line interface.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>matscipy-poisson-nernst-planck -c 0.1 0.1 -u 0.05 -l 1.0e-7 --lambda-s 5.0e-10 -bc cell-robin --verbose NaCl.npz
+</pre></div>
+</div>
+<p>In order to impose a steric radius to the coordinates in some data file, use</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>matscipy-stericify --verbose -r 2.0 -- NaCl.lammps stericNaCl.lammps
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="diffusion.html" class="btn btn-neutral float-left" title="Diffusion" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fracture_mechanics.html" class="btn btn-neutral float-right" title="Fracture mechanics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

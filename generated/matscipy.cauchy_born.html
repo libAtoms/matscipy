@@ -1,0 +1,1114 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.cauchy_born &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.cli" href="matscipy.cli.html" />
+    <link rel="prev" title="matscipy.calculators" href="matscipy.calculators.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#application-domains">Application domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.html">matscipy</a></li>
+      <li class="breadcrumb-item active">matscipy.cauchy_born</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.cauchy_born.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.cauchy_born">
+<span id="matscipy-cauchy-born"></span><h1>matscipy.cauchy_born<a class="headerlink" href="#module-matscipy.cauchy_born" title="Link to this heading"></a></h1>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn" title="matscipy.cauchy_born.CubicCauchyBorn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CubicCauchyBorn</span></code></a>(el, a0, calc[, lattice])</p></td>
+<td><p>Corrector for the cauchy-born prediction of atomistic positions in multi-lattices subject to continuum strain This model exploits the symmetry triad down the 111 axis that all cubic crystals possess by making models that only fit a single component of the shift-correction vector.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.RegressionModel" title="matscipy.cauchy_born.RegressionModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RegressionModel</span></code></a>()</p></td>
+<td><p>Simple regression model object wrapper for np.linalg.lstsq for predicting shifts.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.RegressionModel">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.cauchy_born.</span></span><span class="sig-name descname"><span class="pre">RegressionModel</span></span><a class="headerlink" href="#matscipy.cauchy_born.RegressionModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Simple regression model object wrapper for np.linalg.lstsq for
+predicting shifts.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.RegressionModel.fit" title="matscipy.cauchy_born.RegressionModel.fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit</span></code></a>(phi, values)</p></td>
+<td><p>Fit a simple least-squares regression model to data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.RegressionModel.load" title="matscipy.cauchy_born.RegressionModel.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>()</p></td>
+<td><p>Loads the regression model from file: CB_model.txt</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.RegressionModel.predict" title="matscipy.cauchy_born.RegressionModel.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(phi)</p></td>
+<td><p>Evaluate the simple least-squares regression model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.RegressionModel.predict_gradient" title="matscipy.cauchy_born.RegressionModel.predict_gradient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_gradient</span></code></a>(grad_phi)</p></td>
+<td><p>Evaluate the simple least-squares regression model using the derivative of the basis functions to get the gradient.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.RegressionModel.save" title="matscipy.cauchy_born.RegressionModel.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>()</p></td>
+<td><p>Saves the regression model to file: CB_model.txt</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.RegressionModel.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.RegressionModel.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit a simple least-squares regression model to data. Saves output
+vector to self.model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>phi</strong> (<em>array_like</em><em>, </em><em>2D</em>) – Design matrix of shape [number of data points, number of basis
+functions]. Contains each basis function evaluated at
+each data point.</p></li>
+<li><p><strong>values</strong> (<em>array_like</em>) – value of function to be fitted evaluated at each data point</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.RegressionModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.RegressionModel.predict" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the simple least-squares regression model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>phi</strong> (<em>array_like</em><em>, </em><em>2D</em>) – Design matrix of shape [number of data points,
+number of basis functions].
+Contains each basis function evaluated at each data point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>predictions</strong> – 1D vector of least squares model predictions for simple model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.RegressionModel.predict_gradient">
+<span class="sig-name descname"><span class="pre">predict_gradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grad_phi</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.RegressionModel.predict_gradient" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the simple least-squares regression model using
+the derivative of the basis functions to get the gradient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>grad_phi</strong> (<em>array_like</em><em>, </em><em>2D</em>) – Design matrix of shape [number of data points,
+number of basis functions].
+Contains each gradient basis function evaluated at each data point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>predictions</strong> – 1D vector of least squares model gradient predictions for simple model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.RegressionModel.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.RegressionModel.save" title="Link to this definition"></a></dt>
+<dd><p>Saves the regression model to file: CB_model.txt</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.RegressionModel.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.RegressionModel.load" title="Link to this definition"></a></dt>
+<dd><p>Loads the regression model from file: CB_model.txt</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">matscipy.cauchy_born.</span></span><span class="sig-name descname"><span class="pre">CubicCauchyBorn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice=&lt;ase.lattice.cubic.DiamondFactory</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Corrector for the cauchy-born prediction of atomistic positions in
+multi-lattices subject to continuum strain This model exploits the symmetry
+triad down the 111 axis that all cubic crystals possess by making models
+that only fit a single component of the shift-correction vector.</p>
+<p>The other 2 components can be obtained by calling the same model
+with strain states that are rotated about the 111 axis.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.apply_shifts" title="matscipy.cauchy_born.CubicCauchyBorn.apply_shifts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_shifts</span></code></a>(atoms, shifts[, mask])</p></td>
+<td><p>Apply predicted Cauchy-Born corrector shifts to atoms object with an optional mask.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.basis_function_evaluation" title="matscipy.cauchy_born.CubicCauchyBorn.basis_function_evaluation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">basis_function_evaluation</span></code></a>(E_vecs)</p></td>
+<td><p>Function that evaluates the polynomial basis functions used in the regression model on a set of strain vectors to build the design matrix phi.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.check_for_refit" title="matscipy.cauchy_born.CubicCauchyBorn.check_for_refit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_for_refit</span></code></a>(A, atoms, forces[, tol, ...])</p></td>
+<td><p>Check and perform a refit of the Cauchy-Born shift regression model based on the error metric defined above, adding additional strain-states to the dataset from the highest force atoms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.eval_shift" title="matscipy.cauchy_born.CubicCauchyBorn.eval_shift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eval_shift</span></code></a>(E_vec, unitcell)</p></td>
+<td><p>Function that calculates the cauchy-born shift corrector for a given Green-Lagrange strain tensor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_E" title="matscipy.cauchy_born.CubicCauchyBorn.evaluate_E"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_E</span></code></a>(A, atoms, E_func[, cell, coordinates])</p></td>
+<td><p>Get the Green-Lagrange strain tensor field for a system of atoms in the lab frame directly from a provided function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_F" title="matscipy.cauchy_born.CubicCauchyBorn.evaluate_F"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_F</span></code></a>(A, atoms, F_func[, cell, coordinates])</p></td>
+<td><p>Get the deformation gradient tensor field for a system of atoms in the lab frame.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_F_or_E" title="matscipy.cauchy_born.CubicCauchyBorn.evaluate_F_or_E"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_F_or_E</span></code></a>(A, atoms[, F_func, E_func, ...])</p></td>
+<td><p>Get the deformation gradient tensor field or Green-Lagrange strain tensor field for a system of atoms in the lab frame, depending on which function is provided.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_shift_gradient_regression" title="matscipy.cauchy_born.CubicCauchyBorn.evaluate_shift_gradient_regression"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_shift_gradient_regression</span></code></a>(E, dE)</p></td>
+<td><p>Evaluate the gradient of the regression model a given set of Green-Lagrange strain tensors and their gradients.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_shift_model" title="matscipy.cauchy_born.CubicCauchyBorn.evaluate_shift_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_shift_model</span></code></a>(E[, method])</p></td>
+<td><p>Evaluate a fitted shift model and return the shift predictions for each atom.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.fit_taylor" title="matscipy.cauchy_born.CubicCauchyBorn.fit_taylor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fit_taylor</span></code></a>([de])</p></td>
+<td><p>Fit a simple taylor-expansion type model to predict the cauchy-born shift corrector at a given applied strain using finite differences.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.get_cb_error" title="matscipy.cauchy_born.CubicCauchyBorn.get_cb_error"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cb_error</span></code></a>(atoms[, mask, forces])</p></td>
+<td><p>Get an approximate quantifier of the error in an atoms object due to poor or not implemented Cauchy-Born corrector shifts.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.get_data_points" title="matscipy.cauchy_born.CubicCauchyBorn.get_data_points"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_data_points</span></code></a>(E_vec)</p></td>
+<td><p>Get the 'true' shifts (by building and relaxing a unit cell under that strain state) using a series of supplied strain vectors.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.get_shift_gradients" title="matscipy.cauchy_born.CubicCauchyBorn.get_shift_gradients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_shift_gradients</span></code></a>(A, atoms[, de, F_func, ...])</p></td>
+<td><p>Get the deformation gradient tensor field or Green-Lagrange strain tensor field for a system of atoms in the lab frame, depending on which function is provided.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.grad_basis_function_evaluation" title="matscipy.cauchy_born.CubicCauchyBorn.grad_basis_function_evaluation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grad_basis_function_evaluation</span></code></a>(E_vecs, dE_vecs)</p></td>
+<td><p>Function that evaluates the derivative of the polynomial basis functions used in the regression model on a set of strain vectors to build the gradient design matrix grad_phi.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.initial_regression_fit" title="matscipy.cauchy_born.CubicCauchyBorn.initial_regression_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_regression_fit</span></code></a>([initial_samples])</p></td>
+<td><p>Perform an initial fit of the regression model with some number of initial samples.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.load_regression_model" title="matscipy.cauchy_born.CubicCauchyBorn.load_regression_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_regression_model</span></code></a>()</p></td>
+<td><p>Loads the regression model from file: CB_model.txt</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.load_taylor" title="matscipy.cauchy_born.CubicCauchyBorn.load_taylor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_taylor</span></code></a>()</p></td>
+<td><p>Read the results of the taylor expansion rather than re-calculating each time.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.permutation" title="matscipy.cauchy_born.CubicCauchyBorn.permutation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">permutation</span></code></a>(strain_vec, perm_shift)</p></td>
+<td><p>Rotate a Green-Lagrange strain tensor in Voigt notation about the 111 axis a number of times given by perm_shift.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.predict_shifts" title="matscipy.cauchy_born.CubicCauchyBorn.predict_shifts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_shifts</span></code></a>(A, atoms[, F_func, E_func, ...])</p></td>
+<td><p>Get the deformation gradient tensor field or Green-Lagrange strain tensor field for a system of atoms in the lab frame, depending on which function is provided.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.refit_regression" title="matscipy.cauchy_born.CubicCauchyBorn.refit_regression"><code class="xref py py-obj docutils literal notranslate"><span class="pre">refit_regression</span></code></a>(atoms, E_voigt)</p></td>
+<td><p>Refit the regression model to a new set of data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.save_regression_model" title="matscipy.cauchy_born.CubicCauchyBorn.save_regression_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_regression_model</span></code></a>()</p></td>
+<td><p>Saves the regression model to file: CB_model.txt</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.save_taylor" title="matscipy.cauchy_born.CubicCauchyBorn.save_taylor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_taylor</span></code></a>()</p></td>
+<td><p>Save the results of the taylor expansion in to numpy readable files rather than re-calculating each time.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.set_sublattices" title="matscipy.cauchy_born.CubicCauchyBorn.set_sublattices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_sublattices</span></code></a>(atoms, A[, read_from_atoms])</p></td>
+<td><p>Apply a small strain to all atoms in the supplied atoms structure and determine which atoms belong to which sublattice using forces.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.switch_sublattices" title="matscipy.cauchy_born.CubicCauchyBorn.switch_sublattices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">switch_sublattices</span></code></a>(atoms)</p></td>
+<td><p>Switch the sublattice masks on a set of atoms around such that lattice1mask = lattice2mask and vice versa</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.cauchy_born.CubicCauchyBorn.tensor_field_3D_from_atoms" title="matscipy.cauchy_born.CubicCauchyBorn.tensor_field_3D_from_atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tensor_field_3D_from_atoms</span></code></a>(atoms, func[, ...])</p></td>
+<td><p>Generate a 3D tensor field (F or E) for an atoms object in a given coordinate system, using a provided function</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>get_model</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>set_model</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice=&lt;ase.lattice.cubic.DiamondFactory</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.__init__" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>el</strong> (<em>string</em>) – ASE chemical element that constitutes lattice</p></li>
+<li><p><strong>a0</strong> (<em>float</em>) – Lattice constant for cubic lattice</p></li>
+<li><p><strong>calc</strong> (<em>ASE calculator object</em>) – ASE calculator.</p></li>
+<li><p><strong>lattice</strong> (<em>ASE lattice builder function</em>) – ASE function from ase.lattice.cubic</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.set_sublattices">
+<span class="sig-name descname"><span class="pre">set_sublattices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_from_atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.set_sublattices" title="Link to this definition"></a></dt>
+<dd><p>Apply a small strain to all atoms in the supplied atoms structure
+and determine which atoms belong to which sublattice using forces. NOTE
+as this method is based on forces, it does not work in cases where atom
+forces are high already, This means it should be applied to an
+unstrained version of the atoms structure and any sublattices assigned
+adjacent to free surfaces cannot be trusted. This function updates
+self.lattice1mask and self.lattice2mask with the measured sublattices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – atoms structure with atoms on seperate
+sublattices that need assigning</p></li>
+<li><p><strong>A</strong> (<em>3x3 numpy array</em><em>, </em><em>floats</em>) – rotation matrix of the form [x^T,y^T,z^T],
+where x^T,y^T,z^T are normalised column vectors
+of the lab frame directions expressed
+in terms of the crystal lattice directions.</p></li>
+<li><p><strong>read_from_atoms</strong> (<em>bool</em>) – whether or not to read the sublattices directly
+from the atoms object provided, rather than working them
+out by applying a small strain and measuring forces.
+The user will have to set the sublattices themselves
+when building the atoms structure</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.switch_sublattices">
+<span class="sig-name descname"><span class="pre">switch_sublattices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.switch_sublattices" title="Link to this definition"></a></dt>
+<dd><p>Switch the sublattice masks on a set of atoms around
+such that lattice1mask = lattice2mask and vice versa</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<em>ASE atoms object with defined sublattices</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.fit_taylor">
+<span class="sig-name descname"><span class="pre">fit_taylor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">de</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.fit_taylor" title="Link to this definition"></a></dt>
+<dd><p>Fit a simple taylor-expansion type model to predict the cauchy-born
+shift corrector at a given applied strain using finite differences.
+Sets self.grad_f to the vector of first derivatives of the first shift
+component with each of the 6 strain components and self.hess_f to the
+hessian of the first shift component with the strain components. NOTE
+this model is generally worse than the model provided later in
+initial_regression_fit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>de</strong> (<em>float</em>) – tolerance for finite difference gradient calculations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.save_taylor">
+<span class="sig-name descname"><span class="pre">save_taylor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.save_taylor" title="Link to this definition"></a></dt>
+<dd><p>Save the results of the taylor expansion in to numpy readable files
+rather than re-calculating each time.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.load_taylor">
+<span class="sig-name descname"><span class="pre">load_taylor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.load_taylor" title="Link to this definition"></a></dt>
+<dd><p>Read the results of the taylor expansion rather than re-calculating
+each time.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.tensor_field_3D_from_atoms">
+<span class="sig-name descname"><span class="pre">tensor_field_3D_from_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cart3D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.tensor_field_3D_from_atoms" title="Link to this definition"></a></dt>
+<dd><p>Generate a 3D tensor field (F or E) for an atoms
+object in a given coordinate system, using a provided
+function</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object where atoms sit at the coordinates needed
+to generate the tensor field from func.</p></li>
+<li><p><strong>func</strong> (<em>Function</em>) – Function to calculate the tensor field
+from a set of coordinates. The system of coordinates that
+the function accepts is given by ‘coordinates’ and the
+function also accepts anything extra specified in <a href="#id1"><span class="problematic" id="id2">*</span></a>args
+and <a href="#id3"><span class="problematic" id="id4">**</span></a>kwargs. Function must return the field for the atoms
+in form of a numpy array shape [natoms,ndims,ndims],
+where output is specified in cartesian coordinates.</p></li>
+<li><p><strong>coordinates</strong> (<em>string</em>) – The coordinates system that func accepts. Must
+be ‘cylind2D’, ‘cylind3D’, ‘spherical’, ‘cart2D’, ‘cart3D’</p></li>
+<li><p><strong>cell</strong> (<em>array_like</em><em>, </em><em>optional</em>) – An optional argument allowing the user to specify
+the cell parameters used to define the coordinate system.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>field3D</strong> – The 3D tensor field for all
+the atoms in the system, expressed in the lab frame.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.evaluate_F_or_E">
+<span class="sig-name descname"><span class="pre">evaluate_F_or_E</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cart3D'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_F_or_E" title="Link to this definition"></a></dt>
+<dd><p>Get the deformation gradient tensor field or Green-Lagrange strain
+tensor field for a system of atoms in the lab frame, depending on which
+function is provided. From these, find the Green-Lagrange strain tensor
+field in the lattice frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> (<em>3x3 numpy array</em><em>, </em><em>floats</em>) – rotation matrix of the form [x^T,y^T,z^T],
+where x^T,y^T,z^T are normalised column vectors
+of the lab frame directions expressed
+in terms of the crystal lattice directions.</p></li>
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object where atoms sit at the coordinates needed to
+generate the deformation gradient tensor field from F_func.</p></li>
+<li><p><strong>F_func</strong> (<em>Function</em>) – Function to calculate the deformation gradient tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’ and the
+function also accepts anything extra specified in <a href="#id5"><span class="problematic" id="id6">*</span></a>args and
+<a href="#id7"><span class="problematic" id="id8">**</span></a>kwargs. Function must return the deformation gradient field
+for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+where F is specified in cartesian coordinates. The returned
+tensor field must be in the lab frame Optional, but one of
+F_func or E_func must be provided.</p></li>
+<li><p><strong>E_func</strong> (<em>Function</em>) – Function to calculate the Green-Lagrange tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’
+and the function also accepts anything extra specified
+in <a href="#id9"><span class="problematic" id="id10">*</span></a>args and <a href="#id11"><span class="problematic" id="id12">**</span></a>kwargs. Function must return the
+Green-Lagrange tensor field for the atoms in form of a
+numpy array shape [natoms,ndims,ndims], where E is
+specified in cartesian coordinates, and the returned
+tensor field is in the lab frame. Optional, but one of
+F_func or E_func must be provided.</p></li>
+<li><p><strong>cell</strong> (<em>array_like</em><em>, </em><em>optional</em>) – An optional argument allowing the user to specify
+the cell dimensions which will be used to find the
+centre of the cell. If not provided, the centre
+of the cell will be found from the atoms object provided.</p></li>
+<li><p><strong>coordinates</strong> (<em>string</em>) – Specifies the coordinate system that the function
+(F_func or E_func) provided accepts. The coordinates
+of the atoms in atoms will be converted to this
+coordinate system before being passed to the function
+as a vector. Default is 3D cartesian coordinates.
+Other options are cart2D, cart3D, cylind2D, cylind3D,
+spherical</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>E</strong> (<em>array_like</em>) – The 3D Green-Lagrange tensor field for all the
+atoms in the system, expressed in the lattice frame.</p></li>
+<li><p><strong>R</strong> (<em>array_like</em>) – The rotation tensor component of the deformation
+gradient tensor field applied to the system,
+according to the polar decomposition F = RU.
+See
+<a class="reference external" href="https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor">https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor</a>.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.evaluate_F">
+<span class="sig-name descname"><span class="pre">evaluate_F</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cart3D'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_F" title="Link to this definition"></a></dt>
+<dd><p>Get the deformation gradient tensor field for a system of atoms in the lab frame.
+From this, find the Green-Lagrange strain tensor field in the lattice frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> (<em>3x3 numpy array</em><em>, </em><em>floats</em>) – rotation matrix of the form [x^T,y^T,z^T],
+where x^T,y^T,z^T are normalised column vectors
+of the lab frame directions expressed
+in terms of the crystal lattice directions.</p></li>
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object where atoms sit at the coordinates needed to
+generate the deformation gradient tensor field from F_func.</p></li>
+<li><p><strong>F_func</strong> (<em>Function</em>) – Function to calculate the deformation gradient tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’ and the
+function also accepts anything extra specified in <a href="#id13"><span class="problematic" id="id14">*</span></a>args and
+<a href="#id15"><span class="problematic" id="id16">**</span></a>kwargs. Function must return the deformation gradient field
+for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+where F is specified in cartesian coordinates. The returned
+tensor field must be in the lab frame.</p></li>
+<li><p><strong>cell</strong> (<em>array_like</em><em>, </em><em>optional</em>) – An optional argument allowing the user to specify
+the cell dimensions which will be used to find the
+centre of the cell. If not provided, the centre
+of the cell will be found from the atoms object provided.</p></li>
+<li><p><strong>coordinates</strong> (<em>string</em>) – Specifies the coordinate system that the function
+(F_func or E_func) provided accepts. The coordinates
+of the atoms in atoms will be converted to this
+coordinate system before being passed to the function
+as a vector. Default is 3D cartesian coordinates.
+Other options are cart2D, cart3D, cylind2D, cylind3D,
+spherical</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>E</strong> (<em>array_like</em>) – The 3D Green-Lagrange tensor field for all the
+atoms in the system, expressed in the lattice frame.</p></li>
+<li><p><strong>R</strong> (<em>array_like</em>) – The rotation tensor component of the deformation
+gradient tensor field applied to the system,
+according to the polar decomposition F = RU.
+See
+<a class="reference external" href="https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor">https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor</a>.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.evaluate_E">
+<span class="sig-name descname"><span class="pre">evaluate_E</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cart3D'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_E" title="Link to this definition"></a></dt>
+<dd><p>Get the Green-Lagrange strain tensor field for a system of atoms in the lab frame
+directly from a provided function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> (<em>3x3 numpy array</em><em>, </em><em>floats</em>) – rotation matrix of the form [x^T,y^T,z^T],
+where x^T,y^T,z^T are normalised column vectors
+of the lab frame directions expressed
+in terms of the crystal lattice directions.</p></li>
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object where atoms sit at the coordinates needed to
+generate the deformation gradient tensor field from F_func.</p></li>
+<li><p><strong>E_func</strong> (<em>Function</em>) – Function to calculate the Green-Lagrange tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’
+and the function also accepts anything extra specified
+in <a href="#id17"><span class="problematic" id="id18">*</span></a>args and <a href="#id19"><span class="problematic" id="id20">**</span></a>kwargs. Function must return the
+Green-Lagrange tensor field for the atoms in form of a
+numpy array shape [natoms,ndims,ndims], where E is
+specified in cartesian coordinates, and the returned
+tensor field is in the lab frame.</p></li>
+<li><p><strong>cell</strong> (<em>array_like</em><em>, </em><em>optional</em>) – An optional argument allowing the user to specify
+the cell dimensions which will be used to find the
+centre of the cell. If not provided, the centre
+of the cell will be found from the atoms object provided.</p></li>
+<li><p><strong>coordinates</strong> (<em>string</em>) – Specifies the coordinate system that the function
+(F_func or E_func) provided accepts. The coordinates
+of the atoms in atoms will be converted to this
+coordinate system before being passed to the function
+as a vector. Default is 3D cartesian coordinates.
+Other options are cart2D, cart3D, cylind2D, cylind3D,
+spherical</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>E</strong> (<em>array_like</em>) – The 3D Green-Lagrange tensor field for all the
+atoms in the system, expressed in the lattice frame.</p></li>
+<li><p><strong>R</strong> (<em>array_like</em>) – The rotation tensor component of the deformation
+gradient tensor field applied to the system,
+according to the polar decomposition F = RU.
+See
+<a class="reference external" href="https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor">https://en.wikipedia.org/wiki/Finite_strain_theory#Polar_decomposition_of_the_deformation_gradient_tensor</a>.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.predict_shifts">
+<span class="sig-name descname"><span class="pre">predict_shifts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cart3D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'regression'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.predict_shifts" title="Link to this definition"></a></dt>
+<dd><p>Get the deformation gradient tensor field or Green-Lagrange strain
+tensor field for a system of atoms in the lab frame, depending on which
+function is provided. From these, find the Green-Lagrange strain tensor
+field in the lattice frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> (<em>3x3 numpy array</em><em>, </em><em>floats</em>) – rotation matrix of the form [x^T,y^T,z^T], where x^T,y^T,z^T
+are normalised column vectors of the lab frame directions
+expressed in terms of the crystal lattice directions.</p></li>
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object where atoms sit at the coordinates needed to
+generate the deformation gradient tensor field from F_func.</p></li>
+<li><p><strong>F_func</strong> (<em>Function</em>) – Function to calculate the deformation gradient tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’ and the
+function also accepts anything extra specified in <a href="#id21"><span class="problematic" id="id22">*</span></a>args and
+<a href="#id23"><span class="problematic" id="id24">**</span></a>kwargs. Function must return the deformation gradient field
+for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+where F is specified in cartesian coordinates. The returned
+tensor field must be in the lab frame Optional, but one of
+F_func or E_func must be provided.</p></li>
+<li><p><strong>E_func</strong> (<em>Function</em>) – <p>Function to calculate the Green-Lagrange tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’ and
+the function also accepts anything extra specified in <a href="#id25"><span class="problematic" id="id26">*</span></a>args
+and <a href="#id27"><span class="problematic" id="id28">**</span></a>kwargs. Function must return the Green-Lagrange tensor
+field for the atoms in form of a numpy array shape
+[natoms,ndims,ndims], where E is specified in cartesian
+coordinates, and the returned tensor field is in the lab frame.</p>
+<blockquote>
+<div><p>Optional, but one of F_func or E_func must be provided.</p>
+</div></blockquote>
+</p></li>
+<li><p><strong>coordinates</strong> (<em>string</em>) – Specifies the coordinate system that the function
+(F_func or E_func) provided accepts. The coordinates
+of the atoms in atoms will be converted to this coordinate
+system before being passed to the function as a vector.
+Default is 3D cartesian coordinates. Other options are
+cart2D, cart3D, cylind2D, cylind3D, spherical</p></li>
+<li><p><strong>method</strong> (<em>string</em>) – Specifies which method to use when evaluating shifts.
+Options are ‘taylor’ (for the taylor expansion model)
+and ‘regression’ for the regression model.
+‘regression’ by default.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>shifts</strong> – The cauchy-born corrector shift predictions made by the model</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array-like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.permutation">
+<span class="sig-name descname"><span class="pre">permutation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strain_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perm_shift</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.permutation" title="Link to this definition"></a></dt>
+<dd><p>Rotate a Green-Lagrange strain tensor in Voigt notation about
+the 111 axis a number of times given by perm_shift. This
+corresponds to permuting the top three components and bottom three
+components seperately. For example, the vector [1,2,3,4,5,6]
+becomes [2,3,1,5,6,4] under this operation. Due to the triad 111
+symmetry in diamond, feeding these rotated strain states to the
+shift prediction model allows the prediction of the full shift
+vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strain_vec</strong> (<em>array_like</em>) – 2D array of size [natoms,6], where each row is a Green-Lagrange
+strain tensor written in Voigt notation.</p></li>
+<li><p><strong>perm_shift</strong> (<em>integer</em>) – The permeutation number wanted, with 1 corresponding
+to a 120 degree rotation about 111 (these strain
+vectors give the y component of shift prediction when
+fed to the model) and 2 corresponding to a 240 degree
+rotation about 111 (these strain vectors give the z
+component of shift prediction when fed to the model)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>strain_vec_perm</strong> – Rotated version of strain_vec</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.evaluate_shift_model">
+<span class="sig-name descname"><span class="pre">evaluate_shift_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'regression'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_shift_model" title="Link to this definition"></a></dt>
+<dd><p>Evaluate a fitted shift model and return the shift predictions for
+each atom.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>E</strong> (<em>array_like</em>) – list of Green-Lagrange strain tensors defining the strain state
+on each atom, of the form [natoms,3,3]</p></li>
+<li><p><strong>method</strong> (<em>string</em>) – Specifies which method to use when evaluating shifts.
+Options are ‘taylor’ (for the taylor expansion model)
+and ‘regression’ for the regression model. ‘regression’ by default.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>shifts</strong> – The cauchy-born corrector shift predictions made by the model
+specified in ‘method’</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array-like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.apply_shifts">
+<span class="sig-name descname"><span class="pre">apply_shifts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shifts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.apply_shifts" title="Link to this definition"></a></dt>
+<dd><p>Apply predicted Cauchy-Born corrector shifts to atoms object with an
+optional mask.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object to apply Cauchy-Born corrector shifts too.</p></li>
+<li><p><strong>shifts</strong> (<em>array_like</em>) – Cauchy-Born corrector shifts to apply</p></li>
+<li><p><strong>mask</strong> (<em>array_like</em><em>, </em><em>bool</em><em>, </em><em>optional</em>) – Optional mask which specifies which atoms to apply shifts to.
+All atoms are shifted by default.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.get_cb_error">
+<span class="sig-name descname"><span class="pre">get_cb_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.get_cb_error" title="Link to this definition"></a></dt>
+<dd><p>Get an approximate quantifier of the error in an atoms object due to
+poor or not implemented Cauchy-Born corrector shifts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – ASE atoms for which to quantify the Cauchy-Born
+corrector related error.</p></li>
+<li><p><strong>mask</strong> (<em>array_like</em><em>, </em><em>bool</em>) – Mask for which atoms to include in the error
+quantification process.</p></li>
+<li><p><strong>forces</strong> (<em>array_like</em>) – Forces on atoms. Can be provided in order
+to stop this function from carrying out a
+potentially expensive atoms.get_forces() operation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>predictions</strong> – A quantification of the Cauchy-Born shift
+related error in an atoms object, which
+can be used as an objective to minimise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>cb_err</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.initial_regression_fit">
+<span class="sig-name descname"><span class="pre">initial_regression_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.initial_regression_fit" title="Link to this definition"></a></dt>
+<dd><p>Perform an initial fit of the regression model with some number of
+initial samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>initial_samples</strong> (<em>int</em>) – The number of Latin Hypercube samples to fit the initial
+Cauchy-Born regression model to.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.check_for_refit">
+<span class="sig-name descname"><span class="pre">check_for_refit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cart3D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.check_for_refit" title="Link to this definition"></a></dt>
+<dd><p>Check and perform a refit of the Cauchy-Born shift
+regression model based on the error metric defined above,
+adding additional strain-states to the dataset from the
+highest force atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> (<em>3x3 numpy array</em><em>, </em><em>floats</em>) – Rotation matrix of the form [x^T,y^T,z^T], where x^T,
+y^T, z^T are normalised column vectors of the lab frame
+directions expressed in terms of the crystal lattice
+directions.</p></li>
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object where atoms sit at the coordinates needed
+to generate the deformation gradient tensor field from
+F_func.</p></li>
+<li><p><strong>forces</strong> (<em>array_like</em>) – The forces on the atoms.</p></li>
+<li><p><strong>tol</strong> (<em>float</em>) – The acceptable level of Cauchy-Born error per atom.</p></li>
+<li><p><strong>mask</strong> (<em>array_like</em><em>, </em><em>bool</em>) – Mask for which atoms to include in the error quantification
+process.</p></li>
+<li><p><strong>F_func</strong> (<em>Function</em>) – Function to calculate the deformation gradient tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’ and the
+function also accepts anything extra specified in <a href="#id29"><span class="problematic" id="id30">*</span></a>args and
+<a href="#id31"><span class="problematic" id="id32">**</span></a>kwargs. Function must return the deformation gradient field
+for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+where F is specified in cartesian coordinates. The returned tensor
+field must be in the lab frame. Optional, but one of F_func or
+E_func must be provided.</p></li>
+<li><p><strong>E_func</strong> (<em>Function</em>) – Function to calculate the Green-Lagrange tensor field
+from a set of atomic coordinates. The system of
+coordinates that the function accepts is given by
+‘coordinates’ and the function also accepts anything
+extra specified in <a href="#id33"><span class="problematic" id="id34">*</span></a>args and <a href="#id35"><span class="problematic" id="id36">**</span></a>kwargs. Function
+must return the Green-Lagrange tensor field for
+the atoms in form of a numpy array shape [natoms,ndims,ndims],
+where E is specified in cartesian coordinates,
+and the returned tensor field is in the lab frame.
+Optional, but one of F_func or E_func must be provided.</p></li>
+<li><p><strong>coordinates</strong> (<em>string</em>) – Specifies the coordinate system that the function
+(F_func or E_func) provided accepts. The coordinates
+of the atoms in atoms will be converted to this
+coordinate system before being passed to the function
+as a vector. Default is 3D cartesian coordinates.
+Other options are cart2D, cart3D, cylind2D,
+cylind3D, spherical</p></li>
+<li><p><strong>refit_points</strong> (<em>int</em>) – The number of strain states from high force atoms to add to the
+dataset for refitting.</p></li>
+<li><p><strong>err_vec</strong> (<em>array_like</em>) – A vector of the errors on each atom which can be used in
+place of the absolute force on each atom as a criteria for
+selecting the 10 highest error strain states to re-fit
+the Cauchy-Born model to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>refit</strong> (<em>integer, 1 or 0</em>) – 0 if no refit took place, 1 if it did.</p></li>
+<li><p><strong>cb_err_per_atom</strong> (<em>float</em>) – The computed Cauchy-Born shift error metric per atom</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.refit_regression">
+<span class="sig-name descname"><span class="pre">refit_regression</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_voigt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.refit_regression" title="Link to this definition"></a></dt>
+<dd><p>Refit the regression model to a new set of data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object where atoms sit at the coordinates
+needed to generate the deformation gradient tensor field
+from F_func.</p></li>
+<li><p><strong>E_voigt</strong> (<em>array_like</em>) – Numpy array of the Green-Lagrange strain tensors
+(in Voigt notation) to refit to.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.get_data_points">
+<span class="sig-name descname"><span class="pre">get_data_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_vec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.get_data_points" title="Link to this definition"></a></dt>
+<dd><p>Get the ‘true’ shifts (by building and relaxing a unit cell under
+that strain state) using a series of supplied strain vectors. The
+cauchy-born shift correction along all 3 axes can be measured from one
+applied strain state and relaxation. The regression model only predicts
+the component of the shift vector parallel to axis 1, but we can still
+use all 3 predicted values for fitting if we find the rotated strain
+tensors about 111 which would predict the shifts along axis 2 and 3.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>E_vec</strong> (<em>array_like</em>) – Numpy array of the Green-Lagrange strain
+tensors (in Voigt notation) to apply</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>strains</strong> (<em>array_like</em>) – A larger array including the supplied E_vec array,
+as well as the versions of E_vec which have been
+rotated about 120 degrees about the [111] axis.</p></li>
+<li><p><strong>shift_vals</strong> (<em>array_like</em>) – An array of shift components along the 1 axis
+corresponding to the matching strain state in ‘strains’.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.eval_shift">
+<span class="sig-name descname"><span class="pre">eval_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unitcell</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.eval_shift" title="Link to this definition"></a></dt>
+<dd><p>Function that calculates the cauchy-born shift corrector for a given
+Green-Lagrange strain tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>E_vec</strong> (<em>array_like</em>) – Green-Lagrange strain state to apply in voigt notation</p></li>
+<li><p><strong>unitcell</strong> (<em>ASE atoms object</em>) – Single unit cell of crystal to apply strain vector to and to find
+shift</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>shift_diff</strong> – Vector of cauchy-born shift correction for applied strain state</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.basis_function_evaluation">
+<span class="sig-name descname"><span class="pre">basis_function_evaluation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_vecs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.basis_function_evaluation" title="Link to this definition"></a></dt>
+<dd><p>Function that evaluates the polynomial basis functions used in the
+regression model on a set of strain vectors to build the design matrix
+phi.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>E_vecs</strong> (<em>array_like</em>) – Set of Green-Lagrange strain states in voigt notation to fit to</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>phi</strong> – Design matrix composed of all of the basis functions evaluated at
+every data point given in E_vecs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.grad_basis_function_evaluation">
+<span class="sig-name descname"><span class="pre">grad_basis_function_evaluation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_vecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dE_vecs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.grad_basis_function_evaluation" title="Link to this definition"></a></dt>
+<dd><p>Function that evaluates the derivative of the polynomial
+basis functions used in the regression model on a set of
+strain vectors to build the gradient design matrix grad_phi.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>E_vecs</strong> (<em>array_like</em>) – Set of Green-Lagrange strain states in voigt notation to fit to</p></li>
+<li><p><strong>dE_vecs</strong> (<em>array_like</em>) – Set of vectors holding the derivatives of E_vecs with respect to some
+other parameter</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>grad_phi</strong> – Design matrix composed of all of the gradient basis functions evaluated at
+every data point given in E_vecs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.evaluate_shift_gradient_regression">
+<span class="sig-name descname"><span class="pre">evaluate_shift_gradient_regression</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dE</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.evaluate_shift_gradient_regression" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the gradient of the regression model a given set of Green-Lagrange
+strain tensors and their gradients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>E</strong> (<em>array_like</em>) – 2D array of size [natoms,6], where each row is a Green-Lagrange
+strain tensor written in Voigt notation.</p></li>
+<li><p><strong>dE</strong> (<em>array_like</em>) – 2D array of size [natoms, 6], where each row is the derivative of the
+corresponding row in E with respect to some parameter</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>predictions</strong> – prediction of gradient of the Cauchy-Born shift corrector model
+at each of the given E points.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.get_shift_gradients">
+<span class="sig-name descname"><span class="pre">get_shift_gradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">de</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cart3D'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.get_shift_gradients" title="Link to this definition"></a></dt>
+<dd><p>Get the deformation gradient tensor field or Green-Lagrange strain
+tensor field for a system of atoms in the lab frame, depending on which
+function is provided. From these, get the gradients of the Cauchy-Born shift corrector field
+field in the lattice frame. The supplied F_func or E_func needs to take
+parameter de, used for finite differences to evaluate the derivative of the
+given field</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>A</strong> (<em>3x3 numpy array</em><em>, </em><em>floats</em>) – rotation matrix of the form [x^T,y^T,z^T], where x^T,y^T,z^T
+are normalised column vectors of the lab frame directions
+expressed in terms of the crystal lattice directions.</p></li>
+<li><p><strong>atoms</strong> (<em>ASE atoms object</em>) – Atoms object where atoms sit at the coordinates needed to
+generate the deformation gradient tensor field from F_func.</p></li>
+<li><p><strong>F_func</strong> (<em>Function</em>) – Function to calculate the deformation gradient tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’ and the
+function also accepts anything extra specified in <a href="#id37"><span class="problematic" id="id38">*</span></a>args and
+<a href="#id39"><span class="problematic" id="id40">**</span></a>kwargs. Function must return the deformation gradient field
+for the atoms in form of a numpy array shape [natoms,ndims,ndims],
+where F is specified in cartesian coordinates. The returned
+tensor field must be in the lab frame. Optional, but one of
+F_func or E_func must be provided. The function must accept de as a
+keyword argument for calculating the gradient of the field by finite
+differences.</p></li>
+<li><p><strong>E_func</strong> (<em>Function</em>) – Function to calculate the Green-Lagrange tensor field
+from a set of atomic coordinates. The system of coordinates
+that the function accepts is given by ‘coordinates’ and
+the function also accepts anything extra specified in <a href="#id41"><span class="problematic" id="id42">*</span></a>args
+and <a href="#id43"><span class="problematic" id="id44">**</span></a>kwargs. Function must return the Green-Lagrange tensor
+field for the atoms in form of a numpy array shape
+[natoms,ndims,ndims], where E is specified in cartesian
+coordinates, and the returned tensor field is in the lab frame.
+Optional, but one of F_func or E_func must be provided. The
+function must accept de as a keyword argument for calculating
+the gradient of the field by finite differences.</p></li>
+<li><p><strong>coordinates</strong> (<em>string</em>) – Specifies the coordinate system that the function
+(F_func or E_func) provided accepts. The coordinates
+of the atoms in atoms will be converted to this coordinate
+system before being passed to the function as a vector.
+Default is 3D cartesian coordinates. Other options are
+cart2D, cart3D, cylind2D, cylind3D, spherical</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>shifts</strong> – The cauchy-born corrector shift predictions made by the model</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array-like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.save_regression_model">
+<span class="sig-name descname"><span class="pre">save_regression_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.save_regression_model" title="Link to this definition"></a></dt>
+<dd><p>Saves the regression model to file: CB_model.txt</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.load_regression_model">
+<span class="sig-name descname"><span class="pre">load_regression_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.load_regression_model" title="Link to this definition"></a></dt>
+<dd><p>Loads the regression model from file: CB_model.txt</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.get_model">
+<span class="sig-name descname"><span class="pre">get_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.get_model" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.cauchy_born.CubicCauchyBorn.set_model">
+<span class="sig-name descname"><span class="pre">set_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.cauchy_born.CubicCauchyBorn.set_model" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.calculators.html" class="btn btn-neutral float-left" title="matscipy.calculators" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.cli.html" class="btn btn-neutral float-right" title="matscipy.cli" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
