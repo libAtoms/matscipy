@@ -70,7 +70,7 @@ class BondData:
 
     def get_particle_names(self):
         """
-        Get a set of all particle names for which in any pair
+        Get a set of all particle names for which any pair
         interaction is defined.
 
         Returns

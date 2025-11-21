@@ -228,12 +228,12 @@ def write_lammps(prefix, atoms):
     atoms : matscipy.opls.OPLSStructure
         The atomic structure to be written.
     """
-    write_lammps_in(prefix)
+    write_lammps_in(prefix, atoms)
     write_lammps_atoms(prefix, atoms)
     write_lammps_definitions(prefix, atoms)
 
 
-def write_lammps_in(prefix):
+def write_lammps_in(prefix, atoms=None):
     """
     Writes a simple LAMMPS input script for a structure optimization
     using a non-reactive potential. The name of the resulting script
@@ -256,7 +256,10 @@ def write_lammps_in(prefix):
 
             fileobj.write('read_data       %s.atoms\n' % (prefix))
             fileobj.write('include         %s.opls\n' % (prefix))
-            fileobj.write('kspace_style    pppm 1e-5\n\n')
+            if not atoms is None:
+                if np.sum(atoms.get_charges()) > 1e-10:
+                    fileobj.write('kspace_style    pppm 1e-5\n')
+            fileobj.write('\n')
 
             fileobj.write('neighbor        1.0 bin\n')
             fileobj.write('neigh_modify    delay 0 every 1 check yes\n\n')
@@ -438,14 +441,16 @@ def write_lammps_definitions(prefix, atoms):
             fileobj.write('# Non-reactive potential\n')
             fileobj.write('# write_lammps ' +
                           str(time.asctime(
-                        time.localtime(time.time()))))
+                          time.localtime(time.time()))))
 
             # bonds
             if len(atoms.bond_types):
                 bond_styles = []
                 for bond_type in atoms.bond_types:
-                    if atoms.bonds.nvh[bond_type][0] not in bond_styles:
-                        bond_styles.append(atoms.bonds.nvh[bond_type][0])
+                    itype, jtype = bond_type.split('-')
+                    params = atoms.bonds.get_value(itype, jtype)
+                    if params[0] not in bond_styles:
+                        bond_styles.append(params[0])
 
                 fileobj.write('\n# bonds\n')
                 if len(bond_styles) == 1:
@@ -457,16 +462,22 @@ def write_lammps_definitions(prefix, atoms):
                     fileobj.write('bond_coeff %6d' % (ib + 1))
                     itype, jtype = btype.split('-')
                     name, values = atoms.bonds.name_value(itype, jtype)
-                    for value in values:
-                        fileobj.write(' ' + str(value))
+                    if len(bond_styles) == 1:
+                        for value in values[1:]:
+                            fileobj.write(' ' + str(value))
+                    else:
+                        for value in values:
+                            fileobj.write(' ' + str(value))
                     fileobj.write(' # ' + name + '\n')
 
             # angles
             if len(atoms.ang_types):
                 ang_styles = []
                 for ang_type in atoms.ang_types:
-                    if atoms.angles.nvh[ang_type][0] not in ang_styles:
-                        ang_styles.append(atoms.angles.nvh[ang_type][0])
+                    itype, jtype, ktype = ang_type.split('-')
+                    params = atoms.angles.name_value(itype, jtype, ktype)[1]
+                    if params[0] not in ang_styles:
+                        ang_styles.append(params[0])
 
                 fileobj.write('\n# angles\n')
                 if len(ang_styles) == 1:
@@ -478,16 +489,22 @@ def write_lammps_definitions(prefix, atoms):
                     fileobj.write('angle_coeff %6d' % (ia + 1))
                     itype, jtype, ktype = atype.split('-')
                     name, values = atoms.angles.name_value(itype, jtype, ktype)
-                    for value in values:
-                        fileobj.write(' ' + str(value))
+                    if len(ang_styles) == 1:
+                        for value in values[1:]:
+                            fileobj.write(' ' + str(value))
+                    else:
+                        for value in values:
+                            fileobj.write(' ' + str(value))
                     fileobj.write(' # ' + name + '\n')
 
             # dihedrals
             if len(atoms.dih_types):
                 dih_styles = []
                 for dih_type in atoms.dih_types:
-                    if atoms.dihedrals.nvh[dih_type][0] not in dih_styles:
-                        dih_styles.append(atoms.dihedrals.nvh[dih_type][0])
+                    itype, jtype, ktype, ltype = dih_type.split('-')
+                    params = atoms.dihedrals. name_value(itype, jtype, ktype, ltype)[1]
+                    if params[0] not in dih_styles:
+                        dih_styles.append(params[0])
 
                 fileobj.write('\n# dihedrals\n')
                 if len(dih_styles) == 1:
@@ -499,8 +516,12 @@ def write_lammps_definitions(prefix, atoms):
                     fileobj.write('dihedral_coeff %6d' % (id + 1))
                     itype, jtype, ktype, ltype = dtype.split('-')
                     name, values = atoms.dihedrals.name_value(itype, jtype, ktype, ltype)
-                    for value in values:
-                        fileobj.write(' ' + str(value))
+                    if len(dih_styles) == 1:
+                        for value in values[1:]:
+                            fileobj.write(' ' + str(value))
+                    else:
+                        for value in values:
+                            fileobj.write(' ' + str(value))
                     fileobj.write(' # ' + name + '\n')
 
             # Non-bonded settings
