@@ -46,7 +46,7 @@ from matscipy.neighbours import neighbour_list, mic, coordination
 from matscipy.elasticity import fit_elastic_constants
 from matscipy.elasticity import Voigt_6x6_to_full_3x3x3x3
 from matscipy.elasticity import cubic_to_Voigt_6x6, coalesce_elastic_constants
-from matscipy.utils import validate_cubic_cell, radial_mask_from_polygon2D, classproperty
+from matscipy.utils import validate_cubic_cell, radial_mask_from_polygon2D, classproperty, bravais_to_miller, miller_to_bravais
 
 
 def make_screw_cyl(alat, C11, C12, C44,
@@ -2190,7 +2190,7 @@ class AnisotropicDislocation:
     """
     Displacement and displacement gradient field of straight dislocation 
     in anisotropic elastic media. Ref: pp. 467 in J.P. Hirth and J. Lothe, 
-    Theory of Dislocations, 2nd ed. Similar to class `CubicCrystalDislocation`.
+    Theory of Dislocations, 2nd ed. Similar to class `Dislocation`.
     """
 
     def __init__(self, axes, slip_plane, disloc_line, burgers,
@@ -2359,13 +2359,13 @@ class AnisotropicDislocation:
         return grad3D
 
 
-class CubicCrystalDislocation(metaclass=ABCMeta):
+class Dislocation(metaclass=ABCMeta):
     """
     Abstract base class for modelling a single dislocation
     """
 
-    # Mandatory Attributes of CubicCrystalDislocation with no defaults
-    # These should be set by the child dislocation class, or by CubicCrystalDislocation.__init__
+    # Mandatory Attributes of Dislocation with no defaults
+    # These should be set by the child dislocation class, or by Dislocation.__init__
     # (see https://stackoverflow.com/questions/472000/usage-of-slots for more details on __slots__)
     __slots__ = ("burgers_dimensionless", "unit_cell_core_position_dimensionless",
                  "glide_distance_dimensionless", "crystalstructure", "axes",
@@ -2454,7 +2454,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         self.burgers_dimensionless = self.burgers_dimensionless.copy()
 
         # Skip these for dissociated dislocations, as these operate via classmethod properties
-        if not issubclass(self.__class__, CubicCrystalDissociatedDislocation):
+        if not issubclass(self.__class__, DissociatedDislocation):
             self.axes = self.axes.copy()
             self.unit_cell_core_position_dimensionless = self.unit_cell_core_position_dimensionless.copy()
             self.parity = self.parity.copy()
@@ -2490,7 +2490,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         """
         Get list of dislocation displacement solvers
 
-        As CubicCrystalDislocation models a single core, there is only one solver,
+        As Dislocation models a single core, there is only one solver,
         therefore solvers is a len(1) list
 
         Parameters
@@ -2558,17 +2558,39 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         
         self.solvers["adsl"] = self.ADstroh.displacement
 
+    @property
+    def _alat(self):
+        # effective lattice constants for each self.axes direction
+        A = np.abs(self.axes)
+        return (A @ self.alat) / np.sum(A, axis=-1)
+
+    @property
+    def _cell(self):
+        a, b, c = self.alat
+        if self.crystalstructure == "hcp":
+            return np.array([ # lattice vectors corresponding to the miller-bravais basis
+                [a,                          0,                   0], # [1000] == [100]
+                [b * np.cos(2*np.pi/3),      b * np.sin(np.pi/3), 0], # [0100] == [010]
+                [-a -b * np.cos(2*np.pi/3), -b * np.sin(np.pi/3), 0], # [0010] == [-1-10]
+                [0,                          0,                   c]  # [0001] == [001]
+            ])
+        else: # BCC, FCC, Diamond crystalstructures
+            return np.array([ # lattice vectors corresponding to the miller basis
+                [a, 0, 0], # [100]
+                [0, b, 0], # [010]
+                [0, 0, c]  # [001]
+            ])
     # @property & @var.setter decorators used to ensure var and var_dimensionless don't get out of sync
     @property
     def burgers(self):
-        return self.burgers_dimensionless * self.alat
+        return self._cell.T @ self.burgers_dimensionless
     
-    @burgers.setter
-    def burgers(self, burgers):
-        self.burgers_dimensionless = burgers / self.alat
+    # @burgers.setter
+    # def burgers(self, burgers):
+    #     self.burgers_dimensionless = burgers / self.alat
 
-    def set_burgers(self, burgers):
-        self.burgers = burgers
+    # def set_burgers(self, burgers):
+    #     self.burgers = burgers
 
     def invert_burgers(self):
         """
@@ -2578,19 +2600,19 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
     @property
     def unit_cell_core_position(self):
-        return self.unit_cell_core_position_dimensionless * self.alat
+        return self.unit_cell_core_position_dimensionless * self._alat
     
-    @unit_cell_core_position.setter
-    def unit_cell_core_position(self, position):
-        self.unit_cell_core_position_dimensionless = position / self.alat
+    # @unit_cell_core_position.setter
+    # def unit_cell_core_position(self, position):
+    #     self.unit_cell_core_position_dimensionless = position / self.alat
 
     @property
     def glide_distance(self):
-        return self.glide_distance_dimensionless * self.alat
+        return self.glide_distance_dimensionless * self._alat[0]
     
-    @glide_distance.setter
-    def glide_distance(self, distance):
-        self.glide_distance_dimensionless = distance / self.alat
+    # @glide_distance.setter
+    # def glide_distance(self, distance):
+    #     self.glide_distance_dimensionless = distance / self.alat
 
     def _build_supercell(self, targetx, targety):
         """
@@ -3577,6 +3599,14 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 "1/6 1/6 0" : [255, 0, 255], # Pink; Stair Rod
                 "1/3 0 0" : [255, 255, 0], # Yellow; Hirth
                 "1/3 1/3 1/3" : [0, 255, 255] # Cyan; Frank
+            },
+            "hcp" : {
+                "default" : [230, 51, 51], # Red
+                "2/3 1/3 1/3 0" : [0, 255, 0], # Green; Screw, 60 degree
+                "1 0 0 0" : [51, 51, 255], # Blue
+                "1 1 0 0" : [255, 0, 255], # Pink
+                "1/3 1/3 0 0" : [255, 128, 0], # Orange/Brown; 30 & 90 degree partials
+                "1 2/3 1/3 1/3" : [255, 255, 0] # Yellow
             }
         }
 
@@ -3806,11 +3836,11 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
         return view
 
 
-class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCMeta):
+class DissociatedDislocation(Dislocation, metaclass=ABCMeta):
     """
     Abstract base class for modelling dissociated dislocation systems
     """
-    # Inherits all slots from CubicCrystalDislocation as well
+    # Inherits all slots from Dislocation as well
     __slots__ = ("left_dislocation", "right_dislocation")
 
     # Space for overriding the burgers vectors from cls.left_dislocation.burgers_dimensionless
@@ -3822,7 +3852,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         with burgers vector b = b_left + b_right.
 
         Args:
-            identical to CubicCrystalDislocation
+            identical to Dislocation
 
         Raises:
             ValueError: If resulting burgers vector
@@ -3832,11 +3862,11 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
                         left and righ dislocations are not the same.
         """
 
-        if not (isinstance(self.left_dislocation, CubicCrystalDislocation) or \
-                isinstance(self.left_dislocation, CubicCrystalDissociatedDislocation)):
+        if not (isinstance(self.left_dislocation, Dislocation) or \
+                isinstance(self.left_dislocation, DissociatedDislocation)):
             self.left_dislocation = self.left_dislocation(a, C11, C12, C44, C, symbol)
-        if not (isinstance(self.right_dislocation, CubicCrystalDislocation) or \
-                isinstance(self.right_dislocation, CubicCrystalDissociatedDislocation)):
+        if not (isinstance(self.right_dislocation, Dislocation) or \
+                isinstance(self.right_dislocation, DissociatedDislocation)):
             self.right_dislocation = self.right_dislocation(a, C11, C12, C44, C, symbol)
 
         # Change disloc burgers vectors, if requested
@@ -3865,7 +3895,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
         # checking that parameters of
         # left and right dislocations are the same
         try:
-            assert left_dislocation.alat == right_dislocation.alat
+            assert np.allclose(left_dislocation.alat, right_dislocation.alat)
             assert np.allclose(left_dislocation.C, right_dislocation.C)
 
             np.testing.assert_equal(left_dislocation.unit_cell.get_chemical_symbols(),
@@ -3898,7 +3928,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 
     # classmethod properties that get props from left dislocation
     # Used so e.g. cls.crystalstructure is setup prior to __init__
-    # as is the case with CubicCrystalDislocation
+    # as is the case with Dislocation
 
     # @classmethod
     # @property
@@ -3965,7 +3995,7 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 
     def get_solvers(self, method="atomman"):
         """
-        Overload of CubicCrystalDislocation.get_solvers
+        Overload of Dislocation.get_solvers
         Get list of dislocation displacement solvers
 
         Parameters
@@ -4088,22 +4118,23 @@ class CubicCrystalDissociatedDislocation(CubicCrystalDislocation, metaclass=ABCM
 
         return tuple(out)
 
-class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
+class DislocationQuadrupole(DissociatedDislocation):
     burgers_dimensionless = np.zeros(3)
+    burgers = np.zeros(3)
     def __init__(self, disloc_class, *args, **kwargs):
         """
         Initialise dislocation quadrupole class
 
         Arguments
         ---------
-        disloc_class: Subclass of CubicCrystalDislocation
+        disloc_class: Subclass of Dislocation
             Dislocation class to create (e.g. DiamondGlide90DegreePartial)
 
         *args, **kwargs
-            Parameters fed to CubicCrystalDislocation.__init__()
+            Parameters fed to Dislocation.__init__()
         """
 
-        if isinstance(disloc_class, CubicCrystalDislocation):
+        if isinstance(disloc_class, Dislocation):
             disloc_cls = disloc_class.__class__
         else:
             disloc_cls = disloc_class
@@ -4120,7 +4151,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         
         self.name = self.left_dislocation.name + " Quadrupole"
 
-    # Overload all of the classmethod properties from CubicCrystalDissociatedDislocation, as these cannot be
+    # Overload all of the classmethod properties from DissociatedDislocation, as these cannot be
     # known at class level (don't know which disloc to make a quadrupole of, so can't know what axes should be)
         
     @property
@@ -4174,7 +4205,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             False, None, or "off" : No printing
             "periodic" (default) : Prints status of the periodic displacement convergence
             True : Also prints status of self-consistent solutions for each dislocation
-                    (i.e. verbose=True for CubicCrystalDislocation.displacements())
+                    (i.e. verbose=True for Dislocation.displacements())
         **kwargs
             Other keyword arguments fed to self.displacements() (e.g. method="adsl")
         returns
@@ -4213,7 +4244,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
 
         if "self_consistent" in kwargs:
             # Disable disloc verbosity if no self-consistent solve of disloc displacements
-            # CubicCrystalDislocation.displacements doesn't print unless SCF is turned on 
+            # Dislocation.displacements doesn't print unless SCF is turned on 
             disloc_verbose = disloc_verbose * bool(kwargs["self_consistent"])
 
         displacements = np.zeros_like(positions)
@@ -4274,7 +4305,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             Useful for setting up images for glide barrier calculations, as 
             start and end structures must be the same size for the NEB method
         verbose: bool, str, or None
-            Verbosity value to be fed to CubicCrystalDislocationQuadrupole.periodic_displacements
+            Verbosity value to be fed to DislocationQuadrupole.periodic_displacements
         left_offset, right_offset: np.array
             Translational offset (in Angstrom) for the left and right dislocation cores 
             (i.e. for the +b and -b cores)
@@ -4352,7 +4383,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
             core_pos_2
         ])
 
-        if isinstance(self.right_dislocation, CubicCrystalDissociatedDislocation):
+        if isinstance(self.right_dislocation, DissociatedDislocation):
             partial_core_pos = core_positions.copy()
             partial_core_pos[:, 0] += partial_vec[0]
             old_core_positions = core_positions
@@ -4376,7 +4407,7 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         quad_disloc.set_positions(pos)
         quad_disloc.wrap()
 
-        if partial_distance > 0 and isinstance(self.right_dislocation, CubicCrystalDissociatedDislocation):
+        if partial_distance > 0 and isinstance(self.right_dislocation, DissociatedDislocation):
             # Dissociated dislocation quadrupole
             # 4 dislocations in total
             # "Left" dissociated dislocation
@@ -4493,61 +4524,96 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         if self.left_dislocation.__class__ == BCCEdge111barDislocation:
             raise RuntimeError("Kink Quadrupoles do not currently work for BCCEdge111barDislocation")
 
-        bulk = ref_bulk.copy()
-        tilt_bulk = ref_bulk.copy()
-        cell = tilt_bulk.cell[:, :]
-        cell[2, 0] += direction * self.glide_distance
+        
+        c = np.sum(self.unit_cell.cell[:, :], axis=0)[2]
 
-        tilt_bulk.set_cell(cell, scale_atoms=False)
-        tilt_bulk.wrap()
+        assert c > 0 # Method doesn't work if z lattice vector points down, should point up
 
-        p = ref_bulk.get_positions()
 
-        step_size = self.alat * 10**(-precision)
+        ref_bulk.wrap()
 
-        # Shift bulk if atoms too close to the border
-        if any(p[:, 2] < step_size):
-            p[:, 2] += step_size
-            tilt_bulk.set_positions(p)
-            tilt_bulk.wrap()
-            p = tilt_bulk.get_positions()
+        if np.min(ref_bulk.positions[:, 2]) < 0.01:
+            # Atoms too close to boundary, push up
+            ref_bulk.positions[:, 2] += 0.05
+            ref_bulk.wrap()
 
-    
-        # 1st, 2nd, & 3rd nearest neighbour distances
-        # for each crystal structure
-        neigh_dists = {
-        "bcc" : [0.88, 1.01, 1.42],
-        "fcc" : [0.72, 1.01, 1.23],
-        "diamond" : [0.44, 0.72, 0.84]
-        }
-        cutoffs = neigh_dists[self.crystalstructure]
+        spec_list = np.array(ref_bulk.get_chemical_symbols())
+        unique_specs = np.unique(spec_list)
 
-        bulk_coord = [np.min(coordination(bulk, cutoff * self.alat)) for cutoff in cutoffs]
+        spec_counts = np.array([np.sum(spec_list == spec) for spec in unique_specs])
 
-        full_mask = np.ones((len(tilt_bulk)), dtype=bool)
-        atom_heights = np.round(p, precision)[:, 2]
+        # Find most common species (to ensure we have maximum chance of finding same-species neighbours)
+        target_spec = unique_specs[np.argmax(spec_counts)]
 
-        for i in range(int(cell[2, 2] / step_size)):
-            # Check if tilt_bulk has same 1st, 2nd, & 3rd neighbour coordination
-            # as normal bulk
-            # TODO: This currently does not work for BCCEdge111barDislocation
-            if np.prod([
-                all(coordination(tilt_bulk[full_mask], cutoff * self.alat) == bulk_coord[j])
-                for j, cutoff in enumerate(cutoffs)
-                ]):
-                return full_mask, cell
-                
-            # Else, trim the top part of the cell and retry
-            # (atoms outside the cell are also trimmed)
-            cell[2, 2] -= step_size
-            atom_mask = atom_heights > cell[2,2]
+        z = ref_bulk.positions[:, 2]
 
-            full_mask[atom_mask] = False
+        # Mask only atoms at the top and/or bottom of the cell, saves on neighbourlist computations
+        # Also restrict to only the most common atom species (as we want same-species neighbours)
+        # Need to ensure we can still find 2nd neighbours across the cell, so need to keep
+        # 2*c border on top and  1*c on bottom to guarantee that 2nd neighbours exist upwards of top layer.
+        mask = np.array((z <= c) + (z >= (np.sum(ref_bulk.cell[:, :], axis=0)[2] - 2*c))) * (spec_list == target_spec)
+        mask = mask > 0
 
-            tilt_bulk.set_cell(cell, scale_atoms=False)
+        mask_ats = ref_bulk[mask]
 
-        # If we end up here, all layers removed before we found a match. Raise error
-        raise RuntimeError("Could not find a valid periodic kink cell.")
+        # Pick an atom index to start at, close to the bottom of the cell
+        start_idx = np.argmin(z[mask])
+        start_species = mask_ats.get_chemical_symbols()[start_idx]
+
+        # Look for all same-species nearest-neighbour bonds, which must be within a distance of c
+        i, j, D = neighbour_list("ijD", mask_ats, cutoff={(start_species, start_species) : 2*c})
+
+
+        # Identify neighbours of start_idx, with displacements which cross the cell
+        # (start_idx was chosen to be the lowest atom, so anything with D[:, 2] < 0 must cross the cell boundary)
+        mask = (i==start_idx) * (D[:, 2] < 0) * (np.abs(D[:, 0]) > 0.1)
+        jstart = j[mask]
+        Dstart = D[mask, :]
+
+        # If multiple neighbours found, pick the closest
+        k = np.argmin(np.linalg.norm(Dstart, axis=-1))
+        neigh_idx = jstart[k]
+        Dtarget = Dstart[k, :].copy()
+
+        nplanes = int(np.round(c / -Dtarget[2])) # Number of planes in cell
+
+        new_cell = ref_bulk.cell[:, :].copy()
+        new_cell[2, 0] += direction * self.glide_distance
+
+        new_bulk = mask_ats.copy()
+        new_bulk.set_cell(new_cell, scale_atoms=False)
+
+        for iplane in range(nplanes):
+            # Repeat neighbourlist & indentification of neighbour in shifted cell
+            i, j, D = neighbour_list("ijD", new_bulk, cutoff={(start_species, start_species) : 2*c})
+
+            mask = (i==start_idx) * (D[:, 2] < 0)
+
+            Dstart = D[mask, :]
+
+            # Find neighbour which matches target displacement best
+            k = np.argmin(np.linalg.norm(Dstart - Dtarget, axis=-1))
+            Dfnd = Dstart[k, :].copy()
+
+            diff = np.linalg.norm(Dfnd - Dtarget)
+            
+            eps = 0.1
+
+            if diff < eps:
+                # New neighbour after shift closely matches target vector, 
+                # therefore shifted bulk should still be the right crystalstructure
+                break # Leave nplanes loop
+
+            # diff test not met, cut out a layer of atoms and repeat
+            new_cell[2, 2] -= np.abs(Dtarget[2])
+            mask = new_bulk.positions[:, 2] <= new_cell[2, 2]
+            new_bulk = new_bulk[mask]
+            new_bulk.set_cell(new_cell, scale_atoms=False)
+
+        # Left nplanes loop, therefore bulk structure found
+        # Generate overall cell and mask from initial bulk structure
+        mask = ref_bulk.positions[:, 2] <= new_cell[2, 2]
+        return mask, new_cell
 
     def build_kink_quadrupole_glide_structs(self, kink_map=None, *args, **kwargs):
         """
@@ -4698,6 +4764,11 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         kink_struct1.wrap()
         kink_struct2.wrap()
 
+        # Replicate in z, as planes will be cut from the top - need to guarantee we have enough bulk remaining
+        bulk = bulk * (1, 1, 2)
+        kink_struct1 = kink_struct1 * (1, 1, 2)
+        kink_struct2 = kink_struct2 * (1, 1, 2)
+
         # Cell won't always be periodic, make sure we end up with something that is
         mask, cell = self._get_kink_quad_mask(bulk, n_kink, layer_decimal_precision)
         bulk = bulk[mask]
@@ -4769,13 +4840,90 @@ class CubicCrystalDislocationQuadrupole(CubicCrystalDissociatedDislocation):
         # Rotate system by rot_angle about [0, 0, 1]
         view.control.spin([0, 0, 1], rot_angle)
         return view
-   
-# TODO: If non-cubic dislocation classes are implemented, need to build an
-# interface to make "Quadrupole" work for both
-Quadrupole = CubicCrystalDislocationQuadrupole
+
+# Compatibility with old names for base classes
+CubicCrystalDislocation = Dislocation
+CubicCrystalDissociatedDislocation = DissociatedDislocation
+CubicCrystalDislocationQuadrupole = DislocationQuadrupole
+Quadrupole = DislocationQuadrupole
 
 
-class BCCScrew111Dislocation(CubicCrystalDislocation):
+class HCP90degreePartial(Dislocation):
+    # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
+    # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+    
+    # Kou, Zongde et.al. (2023). Stress-induced phase transformation and phase 
+    # boundary sliding in Ti: An atomically resolved in-situ analysis. 
+    # Journal of Materials Science & Technology. 152. 10.1016/j.jmst.2022.12.029. 
+
+    axes = np.array([
+        [-1, 0, 0],
+        [0, 0, 1],
+        [0, 1, 0]
+    ])
+
+    burgers_dimensionless = np.array([1, -1, 0, 0]) / 3
+
+    unit_cell_core_position_dimensionless = np.array([1/2, 1/4, 0])
+
+    glide_distance_dimensionless = 1/2
+
+    crystalstructure = "hcp"
+
+    name = "1/3<1100> 90 degree partial"
+
+    
+class HCP30degreePartial(Dislocation):
+    # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
+    # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+    
+    # Kou, Zongde et.al. (2023). Stress-induced phase transformation and phase 
+    # boundary sliding in Ti: An atomically resolved in-situ analysis. 
+    # Journal of Materials Science & Technology. 152. 10.1016/j.jmst.2022.12.029. 
+
+    axes = np.array([
+        [-1, 0, 0],
+        [0, 0, 1],
+        [0, 1, 0]
+    ])
+
+    burgers_dimensionless = np.array([0, 1, -1, 0]) / 3
+
+    unit_cell_core_position_dimensionless = np.array([1/2, 1/4, 0])
+
+    glide_distance_dimensionless = 1/2
+
+    crystalstructure = "hcp"
+
+    name = "1/3<0110> 30 degree partial"
+
+class HCPScrewDislocation(DissociatedDislocation):
+    # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
+    # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+
+    burgers_dimensionless = np.array([1, 1, -2, 0]) / 3
+
+    new_left_burgers = np.array([1, 0, -1, 0]) / 3
+    new_right_burgers = np.array([0, 1, -1, 0]) / 3
+    
+    left_dislocation = HCP30degreePartial
+    right_dislocation = HCP30degreePartial
+    name = "1/3<1120> Screw"
+
+class HCP60DegreeDislocation(DissociatedDislocation):
+    # https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.117.045301
+    # Max Poschmann et al 2018 Modelling Simul. Mater. Sci. Eng. 26 014003
+
+    burgers_dimensionless = np.array([2, -1, -1, 0]) / 3
+
+    new_left_burgers = np.array([1, 0, -1, 0]) / 3
+    new_right_burgers = np.array([1, -1, 0, 0]) / 3
+    
+    left_dislocation = HCP30degreePartial
+    right_dislocation = HCP90degreePartial
+    name = "1/3<2110> 60 degree"
+
+class BCCScrew111Dislocation(Dislocation):
     crystalstructure = "bcc"
     axes = np.array([[1, 1, -2],
                      [-1, 1, 0],
@@ -4786,7 +4934,7 @@ class BCCScrew111Dislocation(CubicCrystalDislocation):
     name = "1/2<111> screw"
 
 
-class BCCEdge111Dislocation(CubicCrystalDislocation):
+class BCCEdge111Dislocation(Dislocation):
     crystalstructure = "bcc"
     axes = np.array([[1, 1, 1],
                      [1, -1, 0],
@@ -4797,7 +4945,7 @@ class BCCEdge111Dislocation(CubicCrystalDislocation):
     n_planes = 6
     name = "1/2<111> edge"
 
-class BCCEdge111barDislocation(CubicCrystalDislocation):
+class BCCEdge111barDislocation(Dislocation):
     crystalstructure = "bcc"
     axes = np.array([[1, 1, -1],
                      [1, 1, 2],
@@ -4808,7 +4956,7 @@ class BCCEdge111barDislocation(CubicCrystalDislocation):
     n_planes = 1
     name = "1/2<11-1> edge"
 
-class BCCMixed111Dislocation(CubicCrystalDislocation):
+class BCCMixed111Dislocation(Dislocation):
     crystalstructure = "bcc"
     axes = np.array([[1, -1, -2],
                      [1, 1, 0],
@@ -4821,7 +4969,7 @@ class BCCMixed111Dislocation(CubicCrystalDislocation):
     name = "1/2<111> mixed"
 
 
-class BCCEdge100Dislocation(CubicCrystalDislocation):
+class BCCEdge100Dislocation(Dislocation):
     crystalstructure = "bcc"
     axes = np.array([[1, 0, 0],
                      [0, 0, -1],
@@ -4833,7 +4981,7 @@ class BCCEdge100Dislocation(CubicCrystalDislocation):
     name = "<100>{110} edge"
 
 
-class BCCEdge100110Dislocation(CubicCrystalDislocation):
+class BCCEdge100110Dislocation(Dislocation):
     crystalstructure = "bcc"
     axes = np.array([[1, 0, 0],
                      [0, 1, 1],
@@ -4845,7 +4993,7 @@ class BCCEdge100110Dislocation(CubicCrystalDislocation):
     name = "<100>{001} edge"
 
 
-class DiamondGlide30degreePartial(CubicCrystalDislocation):
+class DiamondGlide30degreePartial(Dislocation):
     crystalstructure="diamond"
     axes = np.array([[1, 1, -2],
                      [1, 1, 1],
@@ -4865,7 +5013,7 @@ class DiamondGlide30degreePartial(CubicCrystalDislocation):
     name = "1/6<112> 30 degree partial"
 
 
-class DiamondGlide90degreePartial(CubicCrystalDislocation):
+class DiamondGlide90degreePartial(Dislocation):
     crystalstructure = "diamond"
     axes = np.array([[1, 1, -2],
                      [1, 1, 1],
@@ -4885,7 +5033,7 @@ class DiamondGlide90degreePartial(CubicCrystalDislocation):
     name = "1/6<112> 90 degree partial"
 
 
-class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
+class DiamondGlideScrew(DissociatedDislocation):
     burgers_dimensionless = np.array([1, -1, 0]) / 2
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = DiamondGlide30degreePartial
@@ -4893,7 +5041,7 @@ class DiamondGlideScrew(CubicCrystalDissociatedDislocation):
     name = "1/2<110> screw"
 
 
-class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
+class DiamondGlide60Degree(DissociatedDislocation):
     burgers_dimensionless = np.array([1, 0, -1]) / 2
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = DiamondGlide30degreePartial
@@ -4901,7 +5049,7 @@ class DiamondGlide60Degree(CubicCrystalDissociatedDislocation):
     name = "1/2<110> 60 degree screw"
 
 
-class FCCScrewShockleyPartial(CubicCrystalDislocation):
+class FCCScrewShockleyPartial(Dislocation):
     crystalstructure="fcc"
     axes = np.array([[1, 1, -2],
                      [1, 1, 1],
@@ -4913,7 +5061,7 @@ class FCCScrewShockleyPartial(CubicCrystalDislocation):
     name = "1/6<112> screw Shockley partial"
 
 
-class FCCEdgeShockleyPartial(CubicCrystalDislocation):
+class FCCEdgeShockleyPartial(Dislocation):
     crystalstructure = "fcc"
     axes = np.array([[1, -1, 0],
                      [1, 1, 1],
@@ -4925,7 +5073,7 @@ class FCCEdgeShockleyPartial(CubicCrystalDislocation):
     name = "1/2<110> edge Shockley partial"
 
 
-class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
+class FCCScrew110Dislocation(DissociatedDislocation):
     burgers_dimensionless = np.array([1, -1, 0]) / 2
     new_left_burgers = np.array([2., -1., -1.]) / 6
     left_dislocation = FCCScrewShockleyPartial
@@ -4933,7 +5081,7 @@ class FCCScrew110Dislocation(CubicCrystalDissociatedDislocation):
     name = "1/2<110>{111} screw"
 
 
-class FCCEdge110Dislocation(CubicCrystalDissociatedDislocation):
+class FCCEdge110Dislocation(DissociatedDislocation):
     crystalstructure = "fcc"
     burgers_dimensionless = np.array([1, -1, 0]) / 2
     new_left_burgers = np.array([2., -1., -1.]) / 6
