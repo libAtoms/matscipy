@@ -1,5 +1,6 @@
 #
-# Copyright 2024 Lars Pastewka (University of Freiburg)
+# Copyright 2025 Antoine Sanner (ETH Zürich)
+#           2025 Lars Pastewka (University of Freiburg)
 #
 # matscipy - Materials science with Python at the atomic-scale
 # https://github.com/libAtoms/matscipy
