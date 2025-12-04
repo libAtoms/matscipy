@@ -1,0 +1,23 @@
+# LAMMPS relaxation
+
+units           metal
+atom_style      full
+boundary        p p p
+
+read_data       example.atoms
+include         example.opls
+kspace_style    pppm 1e-5
+
+neighbor        1.0 bin
+neigh_modify    delay 0 every 1 check yes
+
+thermo          1000
+thermo_style    custom step temp press cpu pxx pyy pzz pxy pxz pyz ke pe etotal vol lx ly lz atoms
+
+dump            1 all xyz 1000 dump_relax.xyz
+dump_modify     1 sort id
+
+restart         100000 test_relax
+
+min_style       fire
+minimize        1.0e-14 1.0e-5 100000 100000

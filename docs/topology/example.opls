@@ -1,0 +1,31 @@
+# OPLS potential
+# write_lammps Mon Jan 15 13:36:32 2024
+# bonds
+bond_style      harmonic
+bond_coeff      1 13.4 1.5 # C1-C1
+bond_coeff      2 14.3 1.1 # C1-H1
+bond_coeff      3 9.0 1.2 # C1-H2
+
+# angles
+angle_style      harmonic
+angle_coeff      1 1.5 110.0 # C1-C1-H1
+angle_coeff      2 0.7 110.0 # H1-C1-H1
+angle_coeff      3 1.1 115.0 # C1-C1-H2
+angle_coeff      4 0.7 110.0 # H2-C1-H2
+
+# dihedrals
+dihedral_style      opls
+dihedral_coeff      1 0.0 0.0 0.016 0.0 # H1-C1-C1-H2
+
+# L-J parameters
+pair_style lj/cut/coul/long 10.00000000 7.40000000
+special_bonds lj/coul 0.0 0.0 0.5
+pair_coeff   1   1 0.0028 3.5 # C1
+pair_coeff   2   2 0.0013 2.5 # H1
+pair_coeff   3   3 0.0013 2.42 # H2
+pair_modify shift yes mix geometric
+
+# charges
+set type 1 charge -0.06 # C1
+set type 2 charge 0.06 # H1
+set type 3 charge 0.12 # H2
