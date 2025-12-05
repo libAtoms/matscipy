@@ -732,6 +732,8 @@ def read_lammps_definitions(filename):
                 dih_nvh[dih_type] = [dih_p1, dih_p2, dih_p3, dih_p4]
                 dih_type_index[dih_index] = dih_type
 
+    nonbond_data.set_names(list(nonbond_data.nvh.keys()))
+
     bond_data = matscipy.opls.BondData(bond_nvh)
     ang_data  = matscipy.opls.AnglesData(ang_nvh)
     dih_data  = matscipy.opls.DihedralsData(dih_nvh)
