@@ -64,7 +64,7 @@ class BondData:
             ::
               {'AA-BB': [10., 1.], 'AA-CC': [20., 2.], ...}.
         """
-        if name_value_hash:
+        if name_value_hash is not None:
             self.nvh = name_value_hash
             self.set_names(name_value_hash.keys())
 
@@ -188,10 +188,11 @@ class BondData:
 
 class CutoffList(BondData):
     """
-    Store cutoffs for pair interactions and ensure correct handling of
+    Store cutoffs for --pair-- interactions and ensure correct handling of
     permutations. Cutoffs can be used to automatically find all interacting
     atoms of a :class:`matscipy.opls.OPLSStructure` object based on a simple
-    distance criterion.
+    distance criterion. Notice that different cutoffs can be define in the
+    definitions of the non-bonded interactions, e.g. for Coulomb interactions.
     """
 
     def max(self):

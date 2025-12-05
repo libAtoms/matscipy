@@ -30,6 +30,23 @@ import matscipy.io.opls
 import ase.calculators.lammpsrun
 
 
+def assertListEqualMixedTypes(l1, l2, tol=1e-7):
+    for v1, v2 in zip(l1, l2):
+        if type(v1) == float and type(v2) == float:
+            try:
+                absdiff = abs(v1-v2)
+                assert absdiff < tol
+            except AssertionError:
+                print(v1, v2)
+                raise
+        elif type(v1) == str and type(v2) == str:
+            try:
+                assert v1 == v2
+            except AssertionError:
+                print(v1, v2)
+                raise
+
+
 class TestOPLSIO(matscipytest.MatSciPyTestCase):
     def test_read_extended_xyz(self):
         struct = matscipy.io.opls.read_extended_xyz('opls_extxyz.xyz')
@@ -50,14 +67,9 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
 
     def test_read_block(self):
         data = matscipy.io.opls.read_block('opls_parameters.in', 'Dihedrals')
-        self.assertDictionariesEqual(
-            data,
-            {'H1-C1-C1-H1': [0.00, 0.00, 0.01, 0.00]},
-            ignore_case=False
-            )
 
-        with self.assertRaises(RuntimeError):
-            matscipy.io.opls.read_block('opls_parameters.in', 'Charges')
+        self.assertListEqual(list(data.keys()), ['H1-C1-C1-H1'])
+        assertListEqualMixedTypes(data['H1-C1-C1-H1'], ['opls', 0.0, 0.0, 0.01, 0.0])
 
 
     def test_read_cutoffs(self):
@@ -72,7 +84,7 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
 
 
     def test_read_parameter_file(self):
-        cutoffs, ljq, bonds, angles, dihedrals = matscipy.io.opls.read_parameter_file('opls_parameters.in')
+        cutoffs, nonbonded, bonds, angles, dihedrals = matscipy.io.opls.read_parameter_file('opls_parameters.in')
 
         self.assertIsInstance(cutoffs, matscipy.opls.CutoffList)
         self.assertDictionariesEqual(
@@ -81,50 +93,32 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
             ignore_case=False
             )
 
-        self.assertIsInstance(ljq, dict)
-        self.assertDictionariesEqual(
-            ljq,
-            {'C1': [0.001, 3.500, -0.010], 'H1': [0.001, 2.500, 0.010]},
-            ignore_case=False
-            )
-        self.assertIsInstance(ljq.lj_cutoff, float)
-        self.assertIsInstance(ljq.c_cutoff, float)
-        self.assertAlmostEqual(ljq.lj_cutoff, 12.0, places=2)
-        self.assertAlmostEqual(ljq.c_cutoff,  15.0, places=2)
-        self.assertIsInstance(ljq.lj_pairs, dict)
-        self.assertDictionariesEqual(
-            ljq.lj_pairs,
-            {'C1-H1': [0.001, 3.4, 11.0]},
-            ignore_case=False
-            )
+        self.assertIsInstance(nonbonded, matscipy.opls.NonBondData)
+        self.assertListEqual(list(nonbonded.nvh.keys()), ['C1-C1', 'C1-H1', 'H1-H1'])
+        assertListEqualMixedTypes(nonbonded.nvh['C1-C1'], ['lj/cut', 0.001, 3.5, 'cutoff', 3.])
+        assertListEqualMixedTypes(nonbonded.nvh['C1-H1'], ['lj/cut', 0.001, 3.0, 'cutoff', 3.])
+        assertListEqualMixedTypes(nonbonded.nvh['H1-H1'], ['lj/cut', 0.001, 2.5, 'cutoff', 3.])
 
         self.assertIsInstance(bonds, matscipy.opls.BondData)
-        self.assertDictionariesEqual(
-            bonds.nvh,
-            {'C1-C1': [10.0, 1.0], 'C1-H1': [10.0, 1.0]},
-            ignore_case=False
-            )
+        self.assertListEqual(list(bonds.nvh.keys()), ['C1-C1', 'C1-H1'])
+        assertListEqualMixedTypes(bonds.nvh['C1-C1'], ['harmonic', 10.0, 1.0])
+        assertListEqualMixedTypes(bonds.nvh['C1-H1'], ['harmonic', 10.0, 1.0])
 
         self.assertIsInstance(angles, matscipy.opls.AnglesData)
-        self.assertDictionariesEqual(
-            angles.nvh,
-            {'H1-C1-C1': [1.0, 100.0], 'H1-C1-H1': [1.0, 100.0]},
-            ignore_case=False
-            )
+        self.assertListEqual(list(angles.nvh.keys()), ['H1-C1-C1', 'H1-C1-H1'])
+        assertListEqualMixedTypes(angles.nvh['H1-C1-C1'], ['harmonic', 1.0, 100.0])
+        assertListEqualMixedTypes(angles.nvh['H1-C1-H1'], ['harmonic', 1.0, 100.0])
 
         self.assertIsInstance(dihedrals, matscipy.opls.DihedralsData)
-        self.assertDictionariesEqual(
-            dihedrals.nvh,
-            {'H1-C1-C1-H1': [0.00, 0.00, 0.01, 0.00]},
-            ignore_case=False
-            )
+        self.assertListEqual(list(dihedrals.nvh.keys()), ['H1-C1-C1-H1'])
+        assertListEqualMixedTypes(dihedrals.nvh['H1-C1-C1-H1'], ['opls', 0.0, 0.0, 0.01, 0.0])
 
 
     def test_read_lammps_data(self):
         test_structure = matscipy.io.opls.read_lammps_data('opls_test.atoms', 'opls_test.parameters')
 
         self.assertArrayAlmostEqual(test_structure.cell,
-                                    [[10.0, 0.0, 0.0],
+                                   [[10.0, 0.0, 0.0],
                                      [0.0, 10.0, 0.0],
                                      [0.0, 0.0, 10.0]],
                                     tol=0.01)
@@ -214,10 +208,10 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
         opls_c2h2 = matscipy.opls.OPLSStructure(c2h2)
         opls_c2h2.set_types(['H1', 'C1', 'C1', 'H1'])
 
-        cutoffs, ljq, bonds, angles, dihedrals = matscipy.io.opls.read_parameter_file('opls_parameters.in')
+        cutoffs, non_bond, bonds, angles, dihedrals = matscipy.io.opls.read_parameter_file('opls_parameters.in')
 
         opls_c2h2.set_cutoffs(cutoffs)
-        opls_c2h2.set_atom_data(ljq)
+        opls_c2h2.set_nonbonded(non_bond)
         opls_c2h2.get_bonds(bonds)
         opls_c2h2.get_angles(angles)
         opls_c2h2.get_dihedrals(dihedrals)
@@ -301,10 +295,10 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
         opls_c2h2 = matscipy.opls.OPLSStructure(c2h2)
         opls_c2h2.set_types(['H1', 'C1', 'C1', 'H1'])
 
-        cutoffs, ljq, bonds, angles, dihedrals = matscipy.io.opls.read_parameter_file('opls_parameters.in')
+        cutoffs, non_bond, bonds, angles, dihedrals = matscipy.io.opls.read_parameter_file('opls_parameters.in')
 
         opls_c2h2.set_cutoffs(cutoffs)
-        opls_c2h2.set_atom_data(ljq)
+        opls_c2h2.set_nonbonded(non_bond)
         opls_c2h2.get_bonds(bonds)
         opls_c2h2.get_angles(angles)
         opls_c2h2.get_dihedrals(dihedrals)
@@ -323,7 +317,6 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
             for line in fileobj.readlines():
                 if line.startswith('pair_style'):
                     lj_cutoff = line.split()[2]
-                    q_cutoff = line.split()[3]
                 elif line.startswith('pair_coeff'):
                     pair_coeff.append(line.split())
                 elif line.startswith('bond_coeff'):
@@ -343,20 +336,21 @@ class TestOPLSIO(matscipytest.MatSciPyTestCase):
             elif charge[6] == 'H1':
                 self.assertAlmostEqual(float(charge[4]), 0.01, places=2)
 
-        self.assertAlmostEqual(float(lj_cutoff), 12.0, places=1)
-        self.assertAlmostEqual(float(q_cutoff), 15.0, places=1)
+        self.assertAlmostEqual(float(lj_cutoff), 3.0, places=1)
         self.assertEqual(len(pair_coeff), 3)
         for pair in pair_coeff:
-            if pair[6] == 'C1':
+            if pair[7] == 'C1-C1':
                 self.assertAlmostEqual(float(pair[3]), 0.001, places=3)
                 self.assertAlmostEqual(float(pair[4]), 3.5, places=1)
-            elif pair[6] == 'H1':
+                self.assertAlmostEqual(float(pair[5]), 3.0, places=1)
+            elif pair[7] == 'H1-H1':
                 self.assertAlmostEqual(float(pair[3]), 0.001, places=3)
                 self.assertAlmostEqual(float(pair[4]), 2.5, places=1)
+                self.assertAlmostEqual(float(pair[5]), 3.0, places=1)
             elif pair[7] == 'H1-C1' or pair[7] == 'C1-H1':
                 self.assertAlmostEqual(float(pair[3]), 0.001, places=3)
-                self.assertAlmostEqual(float(pair[4]), 3.4, places=1)
-                self.assertAlmostEqual(float(pair[5]), 11.0, places=1)
+                self.assertAlmostEqual(float(pair[4]), 3.0, places=1)
+                self.assertAlmostEqual(float(pair[5]), 3.0, places=1)
 
         self.assertEqual(len(bond_coeff), 2)
         for bond in bond_coeff:

@@ -525,21 +525,23 @@ def write_lammps_definitions(prefix, atoms):
                     fileobj.write(' # ' + name + '\n')
 
             # Non-bonded settings
-            interactions = {}  # potential to cutoff(s)
-
-            for pairs in atoms.nonbonded.nvh:
-                int_str = atoms.nonbonded.nvh[pairs][0]
-                for i, value in enumerate(atoms.nonbonded.nvh[pairs]):
-                    if value == 'cutoff':
-                        int_cutoff = atoms.nonbonded.nvh[pairs][i+1:]
-                        break
-                if int_str not in interactions.keys():
-                    interactions[int_str] = int_cutoff
-                else:
-                    interactions[int_str] = np.max((int_cutoff, interactions[int_str]), axis=0)
-
             fileobj.write('\n# Non-bonded parameters\n')
             fileobj.write('pair_style ')
+
+            interactions = {}  # potential to cutoff(s)
+            for ia, atype in enumerate(atoms.types):
+                for ib, btype in enumerate(atoms.types):
+                    if ia <= ib:
+                        int_str = atoms.nonbonded.get_value(atype, btype)[0]
+                        for i, value in enumerate(atoms.nonbonded.get_value(atype, btype)):
+                            if value == 'cutoff':
+                                int_cutoff = atoms.nonbonded.get_value(atype, btype)[i+1:]
+                                break
+                        if int_str not in interactions.keys():
+                            interactions[int_str] = int_cutoff
+                        else:
+                            interactions[int_str] = np.max((int_cutoff, interactions[int_str]), axis=0)
+
             if len(interactions.keys()) > 1:
                 fileobj.write('hybrid')
             for int_str, int_cutoff in interactions.items():
@@ -554,20 +556,32 @@ def write_lammps_definitions(prefix, atoms):
             if len(atoms.nonbonded.weighting.keys()) == 0:
                 fileobj.write('special_bonds lj/coul 0.0 0.0 0.0\n')
             else:
-                fileobj.write('special_bonds lj/coul 1.0e-100 1.0e-100 1.0e-100\n')
-                for interaction in atoms.nonbonded.weighting:
-                    fileobj.write('pair_modify pair %s special' % (interaction))
-                    for value in atoms.nonbonded.weighting[interaction]:
+                if len(interactions) == 1:
+                    int_str = list(interactions.keys())[0]
+                    fileobj.write('special_bonds')
+                    for value in atoms.nonbonded.weighting[int_str]:
                         fileobj.write(' %s' % (str(value)))
                     fileobj.write('\n')
+                else:
+                    fileobj.write('special_bonds lj/coul 1.0e-100 1.0e-100 1.0e-100\n')
+                    for int_str in atoms.nonbonded.weighting:
+                        if int_str in interactions.keys():
+                            fileobj.write('pair_modify pair %s special' % (int_str))
+                            for value in atoms.nonbonded.weighting[int_str]:
+                                fileobj.write(' %s' % (str(value)))
+                            fileobj.write('\n')
 
             fileobj.write('pair_modify shift yes\n')
 
             for ia, atype in enumerate(atoms.types):
                 for ib, btype in enumerate(atoms.types):
                     if ia <= ib:
+                        pair_coeff = atoms.nonbonded.get_value(atype, btype)
+                        if len(interactions) == 1:
+                            pair_coeff = pair_coeff[1:]
+
                         fileobj.write('pair_coeff %3d %3d' % (ia + 1, ib + 1))
-                        for value in atoms.nonbonded.get_value(atype, btype):
+                        for value in pair_coeff:
                             if value != 'cutoff':
                                 fileobj.write(' ' + str(value))
                         fileobj.write(' # ' + atoms.nonbonded.get_name(atype, btype) + '\n')
@@ -638,36 +652,44 @@ def read_lammps_definitions(filename):
         ang_type_index      = {}
         dih_type_index      = {}
 
-        ljq_data = matscipy.opls.LJQData({})
+        nonbond_data = matscipy.opls.NonBondData({})
 
+        nonbond_cutoffs = {}
         for line in fileobj.readlines():
-            re_lj_cut = re.match('^pair_style\s+lj/cut/coul/long\s+(\d+\.?\d*)\s+(\d+\.?\d*)$', line)
-            if re_lj_cut:
-                ljq_data.lj_cutoff = float(re_lj_cut.groups()[0])
-                ljq_data.c_cutoff  = float(re_lj_cut.groups()[1])
+            re_nonbond = re.match('^pair_style\s+(.+)$', line)
+            if re_nonbond:
+                pair_styles = re_nonbond.groups()[0].split()
+                if pair_styles[0] == 'hybrid':
+                    pair_styles = pair_styles[1:]
+                pair_style = pair_styles[0]
+                nonbond_cutoffs[pair_style] = []
+                for item in pair_styles[1:]:
+                    try:
+                        nonbond_cutoffs[pair_style].append(float(item))
+                    except:
+                        pair_style = item
+                        nonbond_cutoffs[pair_style] = []
 
-            re_pc     = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
-            re_pc_cut = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(\d+\.?\d*)\s+\#\s+(\S+)$', line)
-            if re_pc_cut:
-                lj_pair_type = re_pc_cut.groups()[5]
-                lj_pair_p1   = float(re_pc_cut.groups()[2])
-                lj_pair_p2   = float(re_pc_cut.groups()[3])
-                lj_pair_p3   = float(re_pc_cut.groups()[4])
-                ljq_data.lj_pairs[lj_pair_type] = [lj_pair_p1, lj_pair_p2, lj_pair_p3]
-
-                t1, t2 = lj_pair_type.split('-')
-                if t1 == t2 and t1 not in ljq_data:
-                    ljq_data[t1] = [lj_pair_p1, lj_pair_p2]
-
+            re_pc = re.match('^pair_coeff\s+(\d+)\s+(\d+)\s+(.+)\s+\#\s+(\S+)$', line)
             if re_pc:
-                lj_type = re_pc.groups()[4]
-                lj_p1   = float(re_pc.groups()[2])
-                lj_p2   = float(re_pc.groups()[3])
+                pair_str   = re_pc.groups()[-1]
+                pair_coeff = re_pc.groups()[2].split()
 
-                if not lj_type in ljq_data:
-                    ljq_data[lj_type] = [lj_p1, lj_p2]
+                nonbond_data.nvh[pair_str] = []
+
+                if len(nonbond_cutoffs) == 1:
+                    pair_style = list(nonbond_cutoffs.keys())[0]
+                    nonbond_data.nvh[pair_str].append(pair_style)
                 else:
-                    ljq_data[lj_type] = [lj_p1, lj_p2, ljq_data[lj_type][-1]]
+                    pair_style = pair_coeff[0]
+                    pair_coeff = pair_coeff[1:]
+                    nonbond_data.nvh[pair_str].append(pair_style)
+
+                for item in pair_coeff[:-len(nonbond_cutoffs[pair_style])]:
+                    nonbond_data.nvh[pair_str].append(float(item))
+                nonbond_data.nvh[pair_str].append('cutoff')
+                for item in pair_coeff[-len(nonbond_cutoffs[pair_style]):]:
+                    nonbond_data.nvh[pair_str].append(float(item))
 
             re_q = re.match('^set\s+type\s+(\d+)\s+charge\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
             if re_q:
@@ -675,12 +697,8 @@ def read_lammps_definitions(filename):
                 q_index = int(re_q.groups()[0]) - 1
                 q_p1    = float(re_q.groups()[1])
 
-                if not q_type in ljq_data:
-                    ljq_data[q_type] = [q_p1]
-                else:
-                    ljq_data[q_type] = [ljq_data[q_type][0], ljq_data[q_type][1], q_p1]
+                nonbond_data.charges[q_type] = q_p1
                 particle_type_index[q_index] = q_type
-
 
             re_bond_coeff = re.match('^bond_coeff\s+(\d+)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+\#\s+(\S+)$', line)
             if re_bond_coeff:
@@ -718,7 +736,7 @@ def read_lammps_definitions(filename):
     ang_data  = matscipy.opls.AnglesData(ang_nvh)
     dih_data  = matscipy.opls.DihedralsData(dih_nvh)
 
-    return (ljq_data, bond_data, ang_data, dih_data,
+    return (nonbond_data, bond_data, ang_data, dih_data,
             particle_type_index, bond_type_index, ang_type_index, dih_type_index)
 
 
@@ -808,7 +826,7 @@ def read_lammps_data(filename, filename_lammps_params=None):
         lammps_params = read_lammps_definitions(filename_lammps_params)
 
 
-        opls_struct.set_atom_data(lammps_params[0])
+        opls_struct.set_nonbonded(lammps_params[0])
 
         part_type_index = lammps_params[4]
 

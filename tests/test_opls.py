@@ -31,10 +31,10 @@ class TestOPLS(unittest.TestCase):
     def test_bond_data(self):
         """Test the matscipy.opls.BondData class."""
 
-        bond_data = matscipy.opls.BondData({'AB-CD': [1, 2],
-                                            'EF-GH': [3, 4]})
-        self.assertDictEqual(bond_data.nvh, {'AB-CD': [1, 2],
-                                             'EF-GH': [3, 4]})
+        bond_data = matscipy.opls.BondData({'AB-CD': ['harmonic', 1, 2],
+                                            'EF-GH': ['fene', 3, 4, 5, 6]})
+        self.assertDictEqual(bond_data.nvh, {'AB-CD': ['harmonic', 1, 2],
+                                             'EF-GH': ['fene', 3, 4, 5, 6]})
 
         # check correct handling of permutations and missing values
         bond_data.set_names(['A1-A2', 'A2-A1'])
@@ -48,11 +48,11 @@ class TestOPLS(unittest.TestCase):
         self.assertTupleEqual(bond_data.name_value('A0', 'A0'),
                               (None, None))
         self.assertTupleEqual(bond_data.name_value('AB', 'CD'),
-                              ('AB-CD', [1, 2]))
+                              ('AB-CD', ['harmonic', 1, 2]))
         self.assertTupleEqual(bond_data.name_value('CD', 'AB'),
-                              ('AB-CD', [1, 2]))
+                              ('AB-CD', ['harmonic', 1, 2]))
 
-        self.assertListEqual(bond_data.get_value('AB', 'CD'), [1, 2])
+        self.assertListEqual(bond_data.get_value('AB', 'CD'), ['harmonic', 1, 2])
 
     def test_cutoff_data(self):
         """Test the matscipy.opls.CutoffList class."""
@@ -63,10 +63,10 @@ class TestOPLS(unittest.TestCase):
     def test_angles_data(self):
         """Test the matscipy.opls.AnglesData class."""
 
-        angles_data = matscipy.opls.AnglesData({'A1-A2-A3': [1, 2],
-                                                'A4-A5-A6': [3, 4]})
-        self.assertDictEqual(angles_data.nvh, {'A1-A2-A3': [1, 2],
-                                               'A4-A5-A6': [3, 4]})
+        angles_data = matscipy.opls.AnglesData({'A1-A2-A3': ['cosine', 1],
+                                                'A4-A5-A6': ['harmonic', 2, 3]})
+        self.assertDictEqual(angles_data.nvh, {'A1-A2-A3': ['cosine', 1],
+                                               'A4-A5-A6': ['harmonic', 2, 3]})
 
         # check correct handling of permutations and missing values
         angles_data.set_names(['A7-A8-A9', 'A9-A8-A7'])
@@ -89,19 +89,19 @@ class TestOPLS(unittest.TestCase):
         self.assertTupleEqual(angles_data.name_value('A0', 'A0', 'A0'),
                               (None, None))
         self.assertTupleEqual(
-            angles_data.name_value('A1', 'A2', 'A3'), ('A1-A2-A3', [1, 2])
+            angles_data.name_value('A1', 'A2', 'A3'), ('A1-A2-A3', ['cosine', 1])
             )
         self.assertTupleEqual(
-            angles_data.name_value('A3', 'A2', 'A1'), ('A1-A2-A3', [1, 2])
+            angles_data.name_value('A3', 'A2', 'A1'), ('A1-A2-A3', ['cosine', 1])
             )
 
     def test_dihedrals_data(self):
         """Test the matscipy.opls.DihedralsData class."""
 
-        dih_data = matscipy.opls.DihedralsData({'A1-A2-A3-A4': [1, 2, 3, 4],
-                                                'B1-B2-B3-B4': [5, 6, 7, 8]})
-        self.assertDictEqual(dih_data.nvh, {'A1-A2-A3-A4': [1, 2, 3, 4],
-                                            'B1-B2-B3-B4': [5, 6, 7, 8]})
+        dih_data = matscipy.opls.DihedralsData({'A1-A2-A3-A4': ['opls', 1, 2, 3, 4],
+                                                'B1-B2-B3-B4': ['harmonic', 5, 6, 7]})
+        self.assertDictEqual(dih_data.nvh, {'A1-A2-A3-A4': ['opls', 1, 2, 3, 4],
+                                            'B1-B2-B3-B4': ['harmonic', 5, 6, 7]})
 
         # check correct handling of permutations and missing values
         dih_data.set_names(['C1-C2-C3-C4', 'C4-C3-C2-C1'])
@@ -128,11 +128,11 @@ class TestOPLS(unittest.TestCase):
             )
         self.assertTupleEqual(
             dih_data.name_value('A1', 'A2', 'A3', 'A4'),
-            ('A1-A2-A3-A4', [1, 2, 3, 4])
+            ('A1-A2-A3-A4', ['opls', 1, 2, 3, 4])
             )
         self.assertTupleEqual(
             dih_data.name_value('A4', 'A3', 'A2', 'A1'),
-            ('A1-A2-A3-A4', [1, 2, 3, 4])
+            ('A1-A2-A3-A4', ['opls', 1, 2, 3, 4])
             )
 
     def test_opls_structure(self):
@@ -168,8 +168,25 @@ class TestOPLS(unittest.TestCase):
             ])
         opls_c2h6.center()
 
-        # check that a runtime error is raised
-        # in case some cutoffs are not defined
+        # check atomic charges
+        non_bonded_data = matscipy.opls.NonBondData({'C1-C1': ['lj/cut', 11, 12, 'cutoff', 13],
+                                                     'C1-H1': ['lj/cut', 21, 22, 'cutoff', 23],
+                                                     'C1-H2': ['lj/cut', 31, 32, 'cutoff', 33],
+                                                     'H1-H1': ['mie/cut', 41, 42, 43, 44, 'cutoff', 45],
+                                                     'H1-H2': ['mie/cut', 51, 52, 53, 54, 'cutoff', 55],
+                                                     'H2-H2': ['mie/cut', 61, 62, 63, 64, 'cutoff', 65]
+                                                     })
+        non_bonded_data.charges = {'C1': 1., 'H1': 2., 'H2': 3.}
+        opls_c2h6.set_nonbonded(non_bonded_data)
+
+        for charge, charge_target in zip(opls_c2h6.get_charges(),
+                                         [1., 1., 2., 2., 2., 3., 3., 3.]):
+            self.assertAlmostEqual(charge, charge_target, places=5)
+
+        # Check that a runtime error is raised in case some cutoffs are not
+        # defined. Notice that these cutoffs are only used to search for
+        # bonds and might differ from those defined for the non-bonded
+        # interactions, e.g. for Coulomb interactions.
         cutoffs = matscipy.opls.CutoffList(
             {'C1-H1': 1.1, 'C1-H2': 1.1,
              'H1-H2': 0.1, 'H1-H1': 0.1, 'H2-H2': 0.1}
@@ -197,15 +214,6 @@ class TestOPLS(unittest.TestCase):
         for i, j in zip(opls_c2h6.ibond, opls_c2h6.jbond):
             self.assertTrue((i, j) in pairs)
 
-        # check atomic charges
-        opls_c2h6.set_atom_data({'C1': [1, 2, 3],
-                                 'H1': [4, 5, 6],
-                                 'H2': [7, 8, 9]})
-
-        for charge, charge_target in zip(opls_c2h6.get_charges(),
-                                         [3., 3., 6., 6., 6., 9., 9., 9.]):
-            self.assertAlmostEqual(charge, charge_target, places=5)
-
         # Check correct construction of bond type list and bond list
         # Case 1: Some cutoffs are not defined - check for runtime error
         cutoffs = matscipy.opls.CutoffList(
@@ -227,9 +235,9 @@ class TestOPLS(unittest.TestCase):
         # Case 2.1: no bond data provided
         # Case 2.2: bond data is provided and complete
         # Valid lists should be created in both cases
-        bond_data = matscipy.opls.BondData({'C1-C1': [1, 2],
-                                            'C1-H1': [3, 4],
-                                            'C1-H2': [5, 6]})
+        bond_data = matscipy.opls.BondData({'C1-C1': ['harmonic', 1, 2],
+                                            'C1-H1': ['harmonic', 3, 4],
+                                            'C1-H2': ['harmonic', 5, 6]})
         for bond_types, bond_list in [opls_c2h6.get_bonds(),
                                       opls_c2h6.get_bonds(bond_data)]:
 
@@ -275,8 +283,8 @@ class TestOPLS(unittest.TestCase):
         buf = io.StringIO()
         sys.stdout = buf  # suppress STDOUT while running test
         with self.assertRaises(RuntimeError):
-            opls_c2h6.get_bonds(matscipy.opls.BondData({'C1-C1': [1, 2],
-                                                        'C1-H1': [3, 4]}))
+            opls_c2h6.get_bonds(matscipy.opls.BondData({'C1-C1': ['harmonic', 1, 2],
+                                                        'C1-H1': ['harmonic', 3, 4]}))
         sys.stdout = sys.__stdout__
 
         # Check correct construction of angle type list and angle list
@@ -285,12 +293,11 @@ class TestOPLS(unittest.TestCase):
         # Case 2: angular potentials are provided and complete
         # Valid lists should be created in both cases
         angles_data = matscipy.opls.AnglesData(
-            {'H1-C1-H1': [1, 2], 'H2-C1-H2': [3, 4],
-             'C1-C1-H1': [5, 6], 'C1-C1-H2': [7, 8]}
+            {'H1-C1-H1': ['harmonic', 1, 2], 'H2-C1-H2': ['harmonic', 3, 4],
+             'C1-C1-H1': ['harmonic', 5, 6], 'C1-C1-H2': ['harmonic', 7, 8]}
             )
         for angle_types, angle_list in [opls_c2h6.get_angles(),
                                         opls_c2h6.get_angles(angles_data)]:
-
             # Check for correct list of angle types
             self.assertEqual(len(angle_types), 4)
             self.assertTrue('H1-C1-H1' in angle_types)
@@ -346,8 +353,8 @@ class TestOPLS(unittest.TestCase):
         buf = io.StringIO()
         sys.stdout = buf  # suppress STDOUT while running test
         angles_data = matscipy.opls.AnglesData(
-            {'H1-C1-H1': [1, 2], 'H2-C1-H2': [3, 4],
-             'C1-C1-H1': [5, 6]}
+            {'H1-C1-H1': ['harmonic', 1, 2], 'H2-C1-H2': ['harmonic', 3, 4],
+             'C1-C1-H1': ['harmonic', 5, 6]}
             )
         with self.assertRaises(RuntimeError):
             angle_types, angle_list = opls_c2h6.get_angles(angles_data)
@@ -358,7 +365,7 @@ class TestOPLS(unittest.TestCase):
         # Case 1: no dihedral potentials provided
         # Case 2: dihedral potentials are provided and complete
         # Valid lists should be created in both cases
-        dih_data = matscipy.opls.DihedralsData({'H1-C1-C1-H2': [1, 2, 3, 4]})
+        dih_data = matscipy.opls.DihedralsData({'H1-C1-C1-H2': ['opls', 1, 2, 3, 4]})
 
         for dih_types, dih_list in [opls_c2h6.get_dihedrals(),
                                     opls_c2h6.get_dihedrals(dih_data)]:
