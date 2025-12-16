@@ -82,14 +82,14 @@ def main():
     coord = 4  # Coordination number
 
     # Derived parameters
-    R0 = np.sqrt(N) * b  # Equilibrium end-to-end distance
+    R0 = np.sqrt(N) * b  # RMS end-to-end distance of a free chain
     L0 = (N - 1) * b  # Contour length
     rc = 3 * R0  # Cutoff radius
 
     print("Hydrogel parameters:")
     print(f"  N = {N} monomers")
     print(f"  b = {b} (Kuhn length)")
-    print(f"  R0 = {R0:.4f} (equilibrium distance)")
+    print(f"  R0 = {R0:.4f} (RMS end-to-end distance)")
     print(f"  L0 = {L0:.4f} (contour length)")
     print(f"  rc = {rc:.4f} (cutoff)")
 

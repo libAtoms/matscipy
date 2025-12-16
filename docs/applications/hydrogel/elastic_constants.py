@@ -81,7 +81,7 @@ def main():
     coord = 4  # Coordination number
 
     # Derived parameters
-    R0 = np.sqrt(N) * b  # Equilibrium end-to-end distance
+    R0 = np.sqrt(N) * b  # RMS end-to-end distance of a free chain
     L0 = (N - 1) * b  # Contour length
     rc = 3 * R0  # Cutoff radius
 
@@ -94,7 +94,7 @@ def main():
     print(f"  Chain length N = {N}")
     print(f"  Flory parameter chi = {chi}")
     print(f"  Coordination = {coord}")
-    print(f"  Equilibrium spacing R0 = {R0:.4f}")
+    print(f"  RMS end-to-end distance R0 = {R0:.4f}")
     print(f"  Contour length L0 = {L0:.4f}")
     print(f"  Cutoff radius rc = {rc:.4f}")
 
