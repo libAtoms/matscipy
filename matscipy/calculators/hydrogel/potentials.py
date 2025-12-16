@@ -119,7 +119,7 @@ class LucyWeightFunction(WeightFunction):
 class FloryHuggins:
     """Flory-Huggins mixing free energy for polymer-solvent systems.
 
-    The mixing free energy per volume is (Eq. 237 in Sanner et al. 2025):
+    The mixing free energy per volume is:
 
         a_mix/kT = (1/v) φ ln(φ) + (1/v₀)(1-φ)ln(1-φ) + (χ/v₀)φ(1-φ)
 
@@ -188,7 +188,7 @@ class FloryHuggins:
         # Volume per crosslinker
         vi = 1.0 / n
 
-        # Flory-Huggins free energy per volume (Eq. 237):
+        # Flory-Huggins free energy per volume:
         # a_mix = (1/vchain) φ ln(φ) + (1/v0)(1-φ)ln(1-φ) + (χ/v0)φ(1-φ)
         a_mix = ((1.0 / self.vchain) * phi * np.log(phi)
                  + (1.0 / self.v0) * (1.0 - phi) * np.log(1.0 - phi)
