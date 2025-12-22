@@ -109,7 +109,7 @@ class Hydrogel(MatscipyCalculator):
 
     def __init__(self, cutoff, chain_monomers, kuhn_length,
                  monomer_volume=None, flory_chi=0.5, coordination=4,
-                 bonds=None, molecules=None):
+                 bonds=None, molecules=None, chain=None):
         super().__init__()
 
         self.cutoff = cutoff
@@ -127,7 +127,11 @@ class Hydrogel(MatscipyCalculator):
         # Create potential objects
         self.weight_func = LucyWeightFunction()
         self.embedding = FloryHuggins(chain_monomers, self.v0, flory_chi, coordination)
-        self.chain = LangevinChain(kuhn_length, chain_monomers)
+        
+        if chain is not None:
+            self.chain = chain
+        else:
+            self.chain = LangevinChain(kuhn_length, chain_monomers)
 
         # Store bond topology
         self._bonds = None
@@ -332,4 +336,7 @@ class Hydrogel(MatscipyCalculator):
             'free_energy': epot,
             'forces': forces,
             'stress': full_3x3_to_Voigt_6_stress(stress),
+            # Additional quantities for information 
+            'embedding_energy': E_embed,
+            'bond_energy': E_bond,
         })

@@ -32,6 +32,7 @@ The model represents crosslinkers as particles connected by polymer chains.
 from .calculator import Hydrogel
 from .potentials import FloryHuggins, LangevinChain, LucyWeightFunction
 
+
 __all__ = [
     'Hydrogel',
     'FloryHuggins',

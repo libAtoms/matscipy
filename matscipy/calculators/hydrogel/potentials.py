@@ -149,6 +149,43 @@ class FloryHuggins:
         self.coord = coordination
         self.vchain = monomer_volume * chain_monomers  # Chain volume
 
+    def per_volume(self, crosslink_density, der="0"):
+        """
+        Mixing free energy per unit volume. This is the standard flory huggins theory (except that it takes the crosslink density as input), 
+        we define it here for purpose of analytical computations 
+
+        Here crosslink_density is the real crosslink density, including the self contribution as opposed 
+        to the implementation in __call__ for the numerical calculations that follows
+
+        Derivatives with respect to the crosslink_density or the polymer volume fraction can be computed
+        """
+        χ = self.chi
+        ρ = crosslink_density   
+        v0 = self.v0
+        # Density of chains per unit volume
+        ν = ρ * self.coord / 2
+
+        # Volume of a chain 
+        vchain = self.v0 * self.N
+        
+        # Chain volume fraction
+        ϕ = ν * vchain 
+
+        if der == "0":
+            return  (1/ (vchain) * ϕ * np.log(ϕ) + 1/v0 * (1 - ϕ) * np.log(1 - ϕ) + 1/v0 * χ * ϕ * (1 - ϕ))
+        elif der == "phi":
+            return (1/ vchain * (np.log(ϕ) + 1) - 1/v0 * (np.log(1 - ϕ) + 1) + 1/v0 * χ * (1 - 2 * ϕ)) 
+        elif der == "phi2":
+            return (1/ vchain * (1 / ϕ) + 1/v0 * (1 / (1 - ϕ)) - 2 / v0 * χ) 
+        elif der == "rho":
+            return (1/ vchain * (np.log(ϕ) + 1) - 1/v0 * (np.log(1 - ϕ) + 1) + 1/v0 * χ * (1 - 2 * ϕ)) * (self.coord / 2) * vchain
+        elif der == "rho2":
+            d2f_dphi2 = (1/ vchain * (1 / ϕ) + 1/v0 * (1 / (1 - ϕ)) - 2 / v0 * χ) 
+            return d2f_dphi2 * ((self.coord / 2) * vchain) **2
+        else:
+            raise ValueError(f"Unknown derivative option der={der}")
+
+
     def __call__(self, rho, w0):
         """Compute embedding energy F(ρ).
 
@@ -157,6 +194,8 @@ class FloryHuggins:
         rho : array_like
             Local crosslinker density at each crosslinker (excluding self),
             i.e., rho = sum_j W(r_ij) where the sum excludes i=j.
+            We exclude self to follow the classic EAM implementation. 
+            The self-contribution is added back manually using w0. 
         w0 : float
             Weight function at r=0 (self-contribution)
 
@@ -168,7 +207,7 @@ class FloryHuggins:
         rho = np.asarray(rho)
 
         # Total crosslinker density including self-contribution
-        # (See Eq. 258 in Sanner et al.: n_i = sum_j W(r_ij - rc))
+        # (n_i = sum_j W(r_ij - rc))
         n = w0 + rho
 
         # Ensure density is positive
@@ -239,6 +278,79 @@ class FloryHuggins:
         fm = self.derivative(rho - eps, w0)
         return (fp - fm) / (2.0 * eps)
 
+
+class GaussianChain:
+    """Ideal Gaussian chain conformational free energy.
+
+    The chain conformational free energy for an ideal chain is:
+
+        A(r) = (3/2) * (kT / (N * b²)) * r²
+    """
+    def __init__(self, kuhn_length, chain_monomers, dim = 3):
+        self.b = kuhn_length
+        self.N = chain_monomers
+        self.Nm1 = chain_monomers - 1  # N - 1
+        self.L0 = self.Nm1 * kuhn_length  # Contour length
+        self.dim = dim
+
+    @property
+    def rms_end_to_end(self):
+        """RMS end-to-end distance of the chain."""
+        return np.sqrt(self.Nm1 * self.b**2)
+
+    @property
+    def stiffness(self):
+        """Effective spring constant of the chain."""
+        Re2 = self.rms_end_to_end**2
+        return self.dim / Re2
+
+    def __call__(self, r):
+        """Compute chain conformational energy A(r).
+
+        Parameters
+        ----------
+        r : array_like
+            End-to-end distance of the chain
+
+        Returns
+        -------
+        energy : array_like
+            Conformational free energy
+        """
+        r = np.asarray(r)
+        return self.stiffness * 0.5 * r**2
+
+    def derivative(self, r):
+        """Compute dA/dr.
+
+        Parameters
+        ----------
+        r : array_like
+            End-to-end distance of the chain
+
+        Returns
+        -------
+        force : array_like
+            Derivative of conformational free energy
+        """
+        r = np.asarray(r)
+        return self.stiffness * r
+
+    def second_derivative(self, r):
+        """Compute d²A/dr².
+
+        Parameters
+        ----------
+        r : array_like
+            End-to-end distance of the chain
+
+        Returns
+        -------
+        stiffness : array_like
+            Second derivative of conformational free energy
+        """
+        r = np.asarray(r)
+        return np.full_like(r, self.stiffness, dtype=float)
 
 class LangevinChain:
     """Langevin chain conformational free energy.
