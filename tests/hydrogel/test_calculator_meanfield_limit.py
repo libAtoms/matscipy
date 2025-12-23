@@ -120,6 +120,23 @@ def test_equilibrium_radius(diamond_meanfield, diamond_calc_largecutoff):
     mean_bond_length = np.mean(bond_lengths)
     assert np.isclose(mean_bond_length, req, rtol=1e-2), f"Expected bond length {req}, got {mean_bond_length}"
 
+def test_total_energy(diamond_meanfield, diamond_calc_largecutoff):
+    ana = diamond_meanfield
+    req = ana.compute_equilibrium_radius()
+
+    atoms, molecules, rc_factor = diamond_calc_largecutoff
+
+    cell = atoms.get_cell()
+    for scale in [0.98, 1., 1.02]:
+        e0 = ana.total_energy(req * scale)
+        new_cell = cell * scale        
+
+        atoms.set_cell(new_cell, scale_atoms=True)
+        e_lammps = atoms.get_potential_energy() / len(atoms)
+
+        assert np.isclose(e_lammps, e0, rtol=1e-2), f"Expected energy per crosslink {e0}, got {e_lammps}"
+
+
 def test_shear_modulus(diamond_meanfield, diamond_calc_largecutoff):
     ana = diamond_meanfield
     req = ana.compute_equilibrium_radius()
@@ -174,6 +191,9 @@ def test_bulk_modulus(diamond_meanfield, diamond_calc_largecutoff):
 
     # Test against mean-field prediction
     assert np.isclose(bulk_modulus, K0, rtol=5e-2), f"Expected bulk modulus {K0}, got {bulk_modulus}"
+
+
+
 
 # def test_diamond_meanfield_energy_consistency(diamond_meanfield, diamond_calc_factory):
 
