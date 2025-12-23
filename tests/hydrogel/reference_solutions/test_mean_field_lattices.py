@@ -43,3 +43,21 @@ def test_elastic_constants_consistency():
     C44 = polymer.C44(r=r)
     bulk_modulus = polymer.bulk_modulus(r=r)
     assert np.isclose(bulk_modulus, (C11 + 2 * C12) / 3), f"Bulk modulus inconsistency: {bulk_modulus} vs {(C11 + 2 * C12) / 3}"
+
+
+def test_shear_modulus_vs_network():
+    # Compute the shear modulus directly from the network pressure, and use this as a reference for the meanfield model. 
+    # (where it is indirectly equal to the network pressure through the equilibrium condition)
+    polymer = MeanFieldHydrogelLattice(
+        chain_nb_monomers=100, 
+        coordination=4,
+        vpcl_factor=CROSSLINK_VOLUMES['diamond'], 
+        flory_chi=0. ,
+    )
+    req = polymer.compute_equilibrium_radius()
+    kT = 1 
+    kchain = 3 * kT / ((polymer.chain_nb_monomers - 1) * polymer.kuhn**2)
+    pressure = 3**(3/2) / 12 * kchain /req  
+
+    np.testing.assert_allclose(polymer.shear_modulus(r=req), pressure, rtol=1e-5)
+

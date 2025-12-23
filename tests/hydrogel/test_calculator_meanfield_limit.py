@@ -16,6 +16,7 @@ from matscipy.calculators.hydrogel.potentials import GaussianChain
 from matscipy.molecules import Molecules
 from matscipy.neighbours import neighbour_list
 
+from matscipy.elasticity import Voigt_6x6_to_cubic, fit_elastic_constants
 
 @pytest.fixture(params=[{
         'chain_monomers': 100,
@@ -38,7 +39,7 @@ def parameters(request):
     return request.param
 
 @pytest.fixture()
-def diamond_meanfield(parameters):
+def diamond_meanfield(parameters, ):
     return MeanFieldHydrogelLattice(parameters['chain_monomers'], 4, CROSSLINK_VOLUMES['diamond'], flory_chi = parameters['flory_chi'], )
 
 def _create_diamond_lattice(crosslink_spacing, n_cells=2):
@@ -103,17 +104,76 @@ def diamond_calc_factory(diamond_meanfield):
         return atoms, molecules
     return factory
 
-def test_equilibrium_radius(diamond_meanfield, diamond_calc_factory):
+@pytest.fixture()
+def diamond_calc_largecutoff(diamond_calc_factory):
+    rc_factor = 4.0
+    atoms, molecules = diamond_calc_factory(rc_factor)
+    return atoms, molecules, rc_factor
+
+def test_equilibrium_radius(diamond_meanfield, diamond_calc_largecutoff):
     ana = diamond_meanfield
     req = ana.compute_equilibrium_radius()
 
-    rc_factor = 3.0
-    atoms, molecules = diamond_calc_factory(rc_factor)
+    atoms, molecules, rc_factor = diamond_calc_largecutoff
     
     bond_lengths = molecules.get_distances(atoms) 
     mean_bond_length = np.mean(bond_lengths)
     assert np.isclose(mean_bond_length, req, rtol=1e-2), f"Expected bond length {req}, got {mean_bond_length}"
 
+def test_shear_modulus(diamond_meanfield, diamond_calc_largecutoff):
+    ana = diamond_meanfield
+    req = ana.compute_equilibrium_radius()
+    G0 = ana.shear_modulus(r=req)
+
+    atoms, molecules, rc_factor = diamond_calc_largecutoff
+    
+    # Use cubic symmetry since diamond has cubic symmetry
+    # Small strain amplitude and more steps for accuracy
+    C, C_err = fit_elastic_constants(
+        atoms,
+        symmetry="cubic",
+        N_steps=5,
+        delta=1e-4,
+        optimizer=FIRE,
+        fmax=1e-6,
+        verbose=True,
+    )
+
+    C11, C12, C44 = Voigt_6x6_to_cubic(C)
+
+    shear_modulus_voigt = C44
+    shear_modulus_reuss = (C11 - C12) / 2
+
+    # Test against mean-field prediction
+    assert np.isclose(shear_modulus_voigt, G0, rtol=5e-2), f"Expected shear modulus {G0}, got {shear_modulus_voigt}"
+    assert np.isclose(shear_modulus_reuss, G0, rtol=5e-2), f"Expected shear modulus {G0}, got {shear_modulus_reuss}"
+
+
+def test_bulk_modulus(diamond_meanfield, diamond_calc_largecutoff):
+    ana = diamond_meanfield
+    req = ana.compute_equilibrium_radius()
+    K0 = ana.bulk_modulus(r=req)
+
+    atoms, molecules, rc_factor = diamond_calc_largecutoff
+    
+    # Use cubic symmetry since diamond has cubic symmetry
+    # Small strain amplitude and more steps for accuracy
+    C, C_err = fit_elastic_constants(
+        atoms,
+        symmetry="cubic",
+        N_steps=5,
+        delta=1e-4,
+        optimizer=FIRE,
+        fmax=1e-6,
+        verbose=True,
+    )
+
+    C11, C12, C44 = Voigt_6x6_to_cubic(C)
+
+    bulk_modulus = (C11 + 2 * C12) / 3
+
+    # Test against mean-field prediction
+    assert np.isclose(bulk_modulus, K0, rtol=5e-2), f"Expected bulk modulus {K0}, got {bulk_modulus}"
 
 # def test_diamond_meanfield_energy_consistency(diamond_meanfield, diamond_calc_factory):
 
