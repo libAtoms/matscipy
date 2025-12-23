@@ -112,7 +112,6 @@ class Hydrogel(MatscipyCalculator):
                  bonds=None, molecules=None, chain=None):
         super().__init__()
 
-        self.cutoff = cutoff
         self.N = chain_monomers
         self.b = kuhn_length
         self.chi = flory_chi
@@ -125,7 +124,7 @@ class Hydrogel(MatscipyCalculator):
             self.v0 = monomer_volume
 
         # Create potential objects
-        self.weight_func = LucyWeightFunction()
+        self.weight_func = LucyWeightFunction(cutoff)
         self.embedding = FloryHuggins(chain_monomers, self.v0, flory_chi, coordination)
         
         if chain is not None:
@@ -192,17 +191,17 @@ class Hydrogel(MatscipyCalculator):
         nat = len(atoms)
 
         # Get neighbor list
-        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms, self.cutoff)
+        i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms, self.weight_func.cutoff)
 
         # Compute weight function for each pair
-        w_p = self.weight_func(r_p, self.cutoff)
+        w_p = self.weight_func(r_p,)
 
         # Sum up crosslinker density contributions (excluding self)
         # rho_i = sum_{j != i} W(r_ij)
         rho = np.bincount(i_p, weights=w_p, minlength=nat)
 
         # Self-contribution returned separately
-        w0 = self.weight_func.at_zero(self.cutoff)
+        w0 = self.weight_func.at_zero()
 
         return rho, i_p, j_p, r_p, r_pc, w_p, w0
 
@@ -246,7 +245,7 @@ class Hydrogel(MatscipyCalculator):
         dF_drho = self.embedding.derivative(rho, w0)
 
         # Weight function derivative
-        dw_p = self.weight_func.derivative(r_p, self.cutoff)
+        dw_p = self.weight_func.derivative(r_p)
 
         # Force from embedding term (EAM-like)
         # f_i = -dE/dr_i = -sum_j (dF/dρ_i + dF/dρ_j) * dW/dr * r_ij/|r_ij|

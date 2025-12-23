@@ -36,22 +36,22 @@ class WeightFunction(ABC):
     """Abstract base class for weight functions used in density estimation."""
 
     @abstractmethod
-    def __call__(self, r, rc):
+    def __call__(self, r):
         """Evaluate weight function W(r) for cutoff rc."""
         pass
 
     @abstractmethod
-    def derivative(self, r, rc):
+    def derivative(self, r):
         """Evaluate dW/dr for cutoff rc."""
         pass
 
     @abstractmethod
-    def second_derivative(self, r, rc):
+    def second_derivative(self, r):
         """Evaluate d²W/dr² for cutoff rc."""
         pass
 
     @abstractmethod
-    def at_zero(self, rc):
+    def at_zero(self):
         """Evaluate W(0) for cutoff rc (self-contribution)."""
         pass
 
@@ -67,39 +67,41 @@ class LucyWeightFunction(WeightFunction):
     This weight function is smooth (C¹ continuous at r=rc) and commonly
     used in smoothed particle hydrodynamics.
     """
+    def __init__(self, cutoff):
+        self.cutoff = cutoff
 
-    def __call__(self, r, rc):
+    def __call__(self, r):
         """Evaluate Lucy weight function."""
         r = np.asarray(r)
         result = np.zeros_like(r, dtype=float)
-        mask = r < rc
-        x = r[mask] / rc
+        mask = r < self.cutoff
+        x = r[mask] / self.cutoff       
         # Normalization: 105 / (16 * pi * rc^3)
-        norm = 105.0 / (16.0 * np.pi * rc**3)
+        norm = 105.0 / (16.0 * np.pi * self.cutoff**3)
         result[mask] = norm * (1.0 + 3.0 * x) * (1.0 - x)**3
         return result
 
-    def derivative(self, r, rc):
+    def derivative(self, r):
         """Evaluate dW/dr."""
         r = np.asarray(r)
         result = np.zeros_like(r, dtype=float)
-        mask = r < rc
-        x = r[mask] / rc
-        norm = 105.0 / (16.0 * np.pi * rc**3)
+        mask = r < self.cutoff
+        x = r[mask] / self.cutoff
+        norm = 105.0 / (16.0 * np.pi * self.cutoff**3)
         # d/dr[(1 + 3x)(1 - x)^3] = (1/rc) * [3(1-x)^3 - 3(1+3x)(1-x)^2]
         #                        = (1/rc) * 3(1-x)^2 * [(1-x) - (1+3x)]
         #                        = (1/rc) * 3(1-x)^2 * (-4x)
         #                        = -12x(1-x)^2 / rc
-        result[mask] = norm * (-12.0 * x * (1.0 - x)**2) / rc
+        result[mask] = norm * (-12.0 * x * (1.0 - x)**2) / self.cutoff
         return result
 
-    def second_derivative(self, r, rc):
+    def second_derivative(self, r):
         """Evaluate d²W/dr²."""
         r = np.asarray(r)
         result = np.zeros_like(r, dtype=float)
-        mask = r < rc
-        x = r[mask] / rc
-        norm = 105.0 / (16.0 * np.pi * rc**3)
+        mask = r < self.cutoff
+        x = r[mask] / self.cutoff
+        norm = 105.0 / (16.0 * np.pi * self.cutoff**3)
         # d²/dr²[(1 + 3x)(1 - x)^3]
         # First derivative: dW/dr = -12*norm*x*(1-x)^2 / rc
         # Second derivative: d/dr[-12*norm*x*(1-x)^2 / rc] / rc
@@ -108,15 +110,40 @@ class LucyWeightFunction(WeightFunction):
         # = -12*norm/rc² * [(1-x)^2 - 2x*(1-x)]
         # = -12*norm/rc² * (1-x)*[(1-x) - 2x]
         # = -12*norm/rc² * (1-x)*(1-3x)
-        result[mask] = norm * (-12.0 * (1.0 - x) * (1.0 - 3.0 * x)) / rc**2
+        result[mask] = norm * (-12.0 * (1.0 - x) * (1.0 - 3.0 * x)) / self.cutoff**2
         return result
 
-    def at_zero(self, rc):
+    def at_zero(self):
         """Evaluate W(0)."""
-        return 105.0 / (16.0 * np.pi * rc**3)
+        return 105.0 / (16.0 * np.pi * self.cutoff**3)
 
 
-class FloryHuggins:
+class EmbeddingPotential(ABC):
+
+
+    def __call__(self, rho, w0):
+        """
+        rho: Denity of crosslinks (atoms) following excluding the self-contribution.
+        w0: Weight function at r=0 (to compute the self-contribution). 
+        """
+        pass 
+
+    def derivative(self, rho, w0):
+        """
+        rho: Denity of crosslinks (atoms) following excluding the self-contribution.
+        w0: Weight function at r=0 (to compute the self-contribution). 
+        """
+        pass 
+
+
+    def second_derivative(self, rho, w0):
+        """
+        rho: Denity of crosslinks (atoms) following excluding the self-contribution.
+        w0: Weight function at r=0 (to compute the self-contribution). 
+        """
+        pass
+
+class FloryHuggins(EmbeddingPotential):
     """Flory-Huggins mixing free energy for polymer-solvent systems.
 
     The mixing free energy per volume is:
