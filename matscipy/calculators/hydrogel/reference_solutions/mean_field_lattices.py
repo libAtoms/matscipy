@@ -26,7 +26,7 @@ class MeanFieldHydrogelLattice():
 
     def __init__(self, chain_nb_monomers: int, coordination: int, 
                        vpcl_factor: float, 
-                       flory_chi: float, kuhn: float = 1, v0: float = None, dim: int = 3):
+                       flory_chi: float, kuhn: float = 1, v0: float | None = None, dim: int = 3):
         """
         Initialize a mean-field hydrogel model.
 
@@ -156,12 +156,14 @@ class MeanFieldHydrogelLattice():
         rho = self._parse_rho(rho, r)
         return  self.ddemixv_ddJ(rho, 1.) + self.demixv_dJ(rho, 1.)
 
-    def bulk_modulus(self, rho=None, r=None):
+    def bulk_modulus(self, rho=None, r=None) -> float:
         rho = self._parse_rho(rho, r)
         if self.dim == 2:
             return self.ddemixv_ddJ(rho, 1.)
         elif self.dim == 3:
-            return (self.ddemixv_ddJ(rho, 1.) + self.demixv_dJ(rho, 1.) / 3  ) 
+            return (self.ddemixv_ddJ(rho, 1.) + self.demixv_dJ(rho, 1.) / 3  )
+        else: 
+            raise ValueError("Dimension must be 2 or 3") 
 
     def shear_modulus(self, rho=None, r=None):
         rho = self._parse_rho(rho, r)
@@ -178,12 +180,6 @@ class MeanFieldHydrogelLattice():
         K = self.bulk_modulus(rho=rho)
         G = self.shear_modulus(rho=rho)
         return (3 * K - 2 * G )/ (2 * (3* K + G))
-
-    def radius_from_density(self, density):
-        """
-        Compute the radius corresponding to a given crosslink density in the honeycomb lattice
-        """
-        return (self.vpcl(1) * density)**(-1/ self.dim)
 
     @property
     def rms_end_to_end_distance(self):

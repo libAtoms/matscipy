@@ -1,7 +1,14 @@
 
+from matscipy.calculators.hydrogel.reference_solutions.lattice_shell_structures import ShellStructure, GraphiteShellStructure
+from matscipy.calculators.hydrogel.potentials import (ChainPotential, EmbeddingPotential, 
+    WeightFunction)
+from typing import Literal
+import scipy
+import numpy as np
+
 class ShellHydrogelCalculator():
     """Hydrogel calculator using shell reference solutions."""
-
+    dim: Literal[2, 3]
 
     def __init__(self, shell_structure: ShellStructure, 
                        chain_potential: ChainPotential, 
@@ -26,28 +33,30 @@ class ShellHydrogelCalculator():
         self.weight_function = weight_function
 
     # some convenience functions to call weight function methods
-    def f(self, r):
-        self.weight_function(r)
-    def fp(self, r):
-        self.weight_function.derivative(r)
-    def fpp(self, r):
-        self.weight_function.second_derivative(r)
-
-    def ft(self, r2):
-        self.f(np.sqrt(r2))
-    def ftp(self, r2):
-        self.fp(np.sqrt(r2)) / ( 2 * np.sqrt(r2))
-    def ftpp(self, r2):
+    def f(self, r) -> float:
+        return self.weight_function(r)
+    
+    def fp(self, r) -> float:
+        return self.weight_function.derivative(r)
+    def fpp(self, r) -> float:
+        return self.weight_function.second_derivative(r)
+    def ft(self, r2) -> float:
+        return self.f(np.sqrt(r2))
+    def ftp(self, r2) -> float:
+        return self.fp(np.sqrt(r2)) / ( 2 * np.sqrt(r2))
+    def ftpp(self, r2) -> float:
         r = np.sqrt(r2)
         return self.fpp(r) / (4 * r2) - self.fp(r) / (4 * r2 * r)
 
-    def F(self, rho):
-        self.embedding_potential(rho)
-    def Fp(self, rho):
-        self.embedding_potential.derivative(rho)
-    def Fpp(self, rho):
-        self.embedding_potential.second_derivative(rho)
-
+    def F(self, rho) -> float:
+        return self.embedding_potential(rho)
+    
+    def Fp(self, rho) -> float:
+        return self.embedding_potential.derivative(rho)
+    
+    def Fpp(self, rho) -> float:
+        return self.embedding_potential.second_derivative(rho)
+    
     def density_noself(self, r):
         """
         Electron density at distance r, excluding self-contribution
@@ -56,16 +65,114 @@ class ShellHydrogelCalculator():
         rho = 0
         rn = self.shell_structure.a * r
         Zn = self.shell_structure.Z
-        rho = jnp.sum( Zn * self.f(rn))
+        rho = np.sum( Zn * self.f(rn))
         return rho 
     
     def density(self, r):
         """
         Electron density at distance r, including self-contribution
         """
-        return self.density_noself(r) + self.f(0)
+        # First neighbors:
+        rho = 0
+        rn = self.shell_structure.a * r
+        Zn = self.shell_structure.Z
+        rho = np.sum( Zn * self.f(rn))
+        return rho  + self.f(0)
     
+    def density_derivative(self, r) -> float:
+        """
+        Electron density at distance r, including self-contribution
+        """
+        # First neighbors:
+        rho = 0
+        rn = self.shell_structure.a * r
+        Zn = self.shell_structure.Z
+        rho = np.sum( Zn * self.fp(rn))
+        return rho
 
+    def density_second_derivative(self, r) -> float:
+        """
+        Electron density at distance r, including self-contribution
+        """
+        # First neighbors:
+        rho = 0
+        rn = self.shell_structure.a * r
+        Zn = self.shell_structure.Z
+        rho = np.sum( Zn * self.fpp(rn))
+        return rho
+
+    def embedding_energy(self, r) -> float:
+        """ 
+        EAM energy per atom at distance r
+        
+        Including contributions up to shell s
+
+        """
+        return self.F(self.density(r))
+
+    def embedding_energy_derivative(self, r):
+            """ 
+            EAM energy per atom at distance r
+            
+            Including contributions up to shell s
+
+            """
+            return self.Fp(self.density(r)) * self.density_derivative(r)
+
+    def embedding_energy_second_derivative(self, r):
+            """ 
+            EAM energy per atom at distance r
+            
+            Including contributions up to shell s
+
+            """
+            return self.Fpp(self.density(r)) * self.density_derivative(r)**2 + self.Fp(self.density(r)) * self.density_second_derivative(r)
+
+    def bond_energy(self, r):
+        """
+        We assume that bonds exist only towards the first shell.
+        """
+        return self.chain_potential(r) * self.shell_structure.Z[0]
+
+    def bond_energy_derivative(self, r):
+        """
+        We assume that bonds exist only towards the first shell.
+        """
+        return self.chain_potential.derivative(r) * self.shell_structure.Z[0]
+
+    def bond_energy_second_derivative(self, r):
+        """
+        We assume that bonds exist only towards the first shell.
+        """
+        return self.chain_potential.second_derivative(r) * self.shell_structure.Z[0]
+
+    def energy(self, r):
+        """
+        Total energy per atom at distance r
+        """
+        return self.embedding_energy(r) + self.bond_energy(r)
+
+    def energy_derivative(self, r):
+        """
+        Total energy derivative per atom at distance r
+        """
+        return self.embedding_energy_derivative(r) + self.bond_energy_derivative(r)
+    
+    def energy_second_derivative(self, r):
+        """
+        Total energy second derivative per atom at distance r
+        """
+        return self.embedding_energy_second_derivative(r) + self.bond_energy_second_derivative(r)
+
+    def compute_equilibrium_distance(self, r0, tol=1e-6, maxiter=100):
+        """
+        Compute the equilibrium distance by finding the root of the energy derivative.
+        """
+        res, success = scipy.optimize.newton(self.energy_derivative, fprime=self.energy_second_derivative, 
+                                        x0=r0, tol=tol, maxiter=maxiter, full_output=True)
+        assert success, f'Newton root finding failed: {res.message}'
+        return res
+        
     def stiffness_matrix(self, r):
         """
         Stiffness matrix from EAM potential

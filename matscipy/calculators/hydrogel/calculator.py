@@ -168,15 +168,14 @@ class Hydrogel(MatscipyCalculator):
     def _compute_density(self, atoms):
         """Compute local crosslinker density at each crosslinker.
 
-        The density is computed as rho_i = sum_{j != i} W(r_ij), i.e., the
-        sum of weight function contributions from all neighbors excluding
-        self. The self-contribution w0 = W(0) is returned separately and
-        added by the FloryHuggins embedding function.
+        The density is computed as rho_i = sum_{j} W(r_ij), i.e., the
+        sum of weight function contributions from all neighbors including
+        self.
 
         Returns
         -------
         rho : ndarray
-            Local crosslinker density at each atom (excluding self)
+            Local crosslinker density at each atom (including self)
         i_p, j_p : ndarray
             Neighbor pair indices
         r_p : ndarray
@@ -185,8 +184,7 @@ class Hydrogel(MatscipyCalculator):
             Pair distance vectors
         w_p : ndarray
             Weight function values for each pair
-        w0 : float
-            Weight function at r=0 (self-contribution)
+
         """
         nat = len(atoms)
 
@@ -203,7 +201,7 @@ class Hydrogel(MatscipyCalculator):
         # Self-contribution returned separately
         w0 = self.weight_func.at_zero()
 
-        return rho, i_p, j_p, r_p, r_pc, w_p, w0
+        return rho + w0, i_p, j_p, r_p, r_pc, w_p
 
     def _compute_bond_vectors(self, atoms):
         """Compute bond vectors with periodic boundary conditions.
@@ -236,13 +234,13 @@ class Hydrogel(MatscipyCalculator):
         # ========== Flory-Huggins (embedding) contribution ==========
 
         # Compute density
-        rho, i_p, j_p, r_p, r_pc, w_p, w0 = self._compute_density(atoms)
+        rho, i_p, j_p, r_p, r_pc, w_p = self._compute_density(atoms)
 
         # Embedding energy
-        E_embed = np.sum(self.embedding(rho, w0))
+        E_embed = np.sum(self.embedding(rho))
 
         # Embedding derivative dF/dρ for forces
-        dF_drho = self.embedding.derivative(rho, w0)
+        dF_drho = self.embedding.derivative(rho)
 
         # Weight function derivative
         dw_p = self.weight_func.derivative(r_p)

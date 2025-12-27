@@ -198,7 +198,7 @@ class TestFloryHuggins:
 
         # Low density (mostly solvent)
         rho = np.array([0.01])
-        E = fh(rho, w0)
+        E = fh(rho)
 
         assert np.isfinite(E).all()
 
@@ -215,10 +215,10 @@ class TestFloryHuggins:
         h = 1e-8
 
         # Numerical derivative
-        dF_num = (fh(rho + h, w0) - fh(rho - h, w0)) / (2 * h)
+        dF_num = (fh(rho + h) - fh(rho - h)) / (2 * h)
 
         # Analytical derivative
-        dF_ana = fh.derivative(rho, w0)
+        dF_ana = fh.derivative(rho)
 
         np.testing.assert_allclose(dF_ana, dF_num, rtol=1e-4)
 
@@ -230,15 +230,14 @@ class TestFloryHuggins:
             flory_chi=0.5,
             coordination=4,
         )
-        w0 = 105.0 / (16.0 * np.pi * 20**3)
         rho = np.linspace(0.01, 0.1, 10)
         h = 1e-7
 
         # Numerical second derivative
-        d2F_num = (fh.derivative(rho + h, w0) - fh.derivative(rho - h, w0)) / (2 * h)
+        d2F_num = (fh.derivative(rho + h) - fh.derivative(rho - h)) / (2 * h)
 
         # Analytical second derivative
-        d2F_ana = fh.second_derivative(rho, w0)
+        d2F_ana = fh.second_derivative(rho)
 
         np.testing.assert_allclose(d2F_ana, d2F_num, rtol=1e-4)
 

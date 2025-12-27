@@ -36,22 +36,22 @@ class WeightFunction(ABC):
     """Abstract base class for weight functions used in density estimation."""
 
     @abstractmethod
-    def __call__(self, r):
+    def __call__(self, r) -> float:
         """Evaluate weight function W(r) for cutoff rc."""
         pass
 
     @abstractmethod
-    def derivative(self, r):
+    def derivative(self, r) -> float:
         """Evaluate dW/dr for cutoff rc."""
         pass
 
     @abstractmethod
-    def second_derivative(self, r):
+    def second_derivative(self, r) -> float:
         """Evaluate d²W/dr² for cutoff rc."""
         pass
 
     @abstractmethod
-    def at_zero(self):
+    def at_zero(self) -> float:
         """Evaluate W(0) for cutoff rc (self-contribution)."""
         pass
 
@@ -185,26 +185,24 @@ class LucyWeightFunction2D(WeightFunction):
 
 class EmbeddingPotential(ABC):
 
-
-    def __call__(self, rho, w0):
+    @abstractmethod
+    def __call__(self, rho:float) -> float :
         """
-        rho: Denity of crosslinks (atoms) following excluding the self-contribution.
-        w0: Weight function at r=0 (to compute the self-contribution). 
-        """
-        pass 
-
-    def derivative(self, rho, w0):
-        """
-        rho: Denity of crosslinks (atoms) following excluding the self-contribution.
-        w0: Weight function at r=0 (to compute the self-contribution). 
+        rho: Denity of crosslinks (atoms) following including the self-contribution.
         """
         pass 
 
-
-    def second_derivative(self, rho, w0):
+    @abstractmethod
+    def derivative(self, rho:float) -> float:
         """
-        rho: Denity of crosslinks (atoms) following excluding the self-contribution.
-        w0: Weight function at r=0 (to compute the self-contribution). 
+        rho: Denity of crosslinks (atoms) following including the self-contribution.
+        """
+        pass 
+
+    @abstractmethod
+    def second_derivative(self, rho:float) -> float:
+        """
+        rho: Denity of crosslinks (atoms) following including the self-contribution.
         """
         pass
 
@@ -278,18 +276,16 @@ class FloryHuggins(EmbeddingPotential):
             raise ValueError(f"Unknown derivative option der={der}")
 
 
-    def __call__(self, rho, w0):
+    def __call__(self, rho):
         """Compute embedding energy F(ρ).
 
         Parameters
         ----------
         rho : array_like
-            Local crosslinker density at each crosslinker (excluding self),
-            i.e., rho = sum_j W(r_ij) where the sum excludes i=j.
-            We exclude self to follow the classic EAM implementation. 
-            The self-contribution is added back manually using w0. 
-        w0 : float
-            Weight function at r=0 (self-contribution)
+            Local crosslinker density at each crosslinker (including self),
+            i.e., rho = sum_j W(r_ij) where the sum includes i=j.
+            Note that the rho as defined in EAM implementations usually excludes
+            the self-contribution W(0).
 
         Returns
         -------
@@ -299,8 +295,7 @@ class FloryHuggins(EmbeddingPotential):
         rho = np.asarray(rho)
 
         # Total crosslinker density including self-contribution
-        # (n_i = sum_j W(r_ij - rc))
-        n = w0 + rho
+        n = rho
 
         # Ensure density is positive
         n = np.maximum(n, 1e-10)
@@ -328,15 +323,14 @@ class FloryHuggins(EmbeddingPotential):
         # Free energy per crosslinker
         return a_mix * vi
 
-    def derivative(self, rho, w0):
+    def derivative(self, rho):
         """Compute dF/dρ using numerical differentiation.
 
         Parameters
         ----------
         rho : array_like
-            Local crosslinker density at each crosslinker (excluding self)
-        w0 : float
-            Weight function at r=0
+            Local crosslinker density at each crosslinker (including self)
+
 
         Returns
         -------
@@ -345,19 +339,17 @@ class FloryHuggins(EmbeddingPotential):
         """
         rho = np.asarray(rho)
         eps = 1e-6
-        fp = self(rho + eps, w0)
-        fm = self(rho - eps, w0)
+        fp = self(rho + eps )
+        fm = self(rho - eps)
         return (fp - fm) / (2.0 * eps)
 
-    def second_derivative(self, rho, w0):
+    def second_derivative(self, rho):
         """Compute d²F/dρ² using numerical differentiation.
 
         Parameters
         ----------
         rho : array_like
-            Local crosslinker density at each crosslinker (excluding self)
-        w0 : float
-            Weight function at r=0
+            Local crosslinker density at each crosslinker (including self)
 
         Returns
         -------
@@ -366,12 +358,74 @@ class FloryHuggins(EmbeddingPotential):
         """
         rho = np.asarray(rho)
         eps = 1e-6
-        fp = self.derivative(rho + eps, w0)
-        fm = self.derivative(rho - eps, w0)
+        fp = self.derivative(rho + eps)
+        fm = self.derivative(rho - eps)
         return (fp - fm) / (2.0 * eps)
 
 
-class GaussianChain:
+
+
+
+class ChainPotential(ABC):
+    """Abstract base class for chain conformational free energy potentials.
+    
+    Provides the interface for computing chain conformational free energies
+    and their derivatives as a function of end-to-end distance.
+    
+    Chain potentials are used in hydrogel simulations to describe the 
+    conformational free energy of polymer chains connecting crosslinkers.
+    """
+    
+    @abstractmethod
+    def __call__(self, r):
+        """Compute chain conformational free energy A(r).
+        
+        Parameters
+        ----------
+        r : array_like
+            End-to-end distance of the chain
+            
+        Returns
+        -------
+        energy : array_like
+            Conformational free energy
+        """
+        pass
+    
+    @abstractmethod
+    def derivative(self, r):
+        """Compute dA/dr.
+        
+        Parameters
+        ----------
+        r : array_like
+            End-to-end distance of the chain
+            
+        Returns
+        -------
+        force : array_like
+            Derivative of conformational free energy (force magnitude)
+        """
+        pass
+    
+    @abstractmethod
+    def second_derivative(self, r):
+        """Compute d²A/dr².
+        
+        Parameters
+        ----------
+        r : array_like
+            End-to-end distance of the chain
+            
+        Returns
+        -------
+        stiffness : array_like
+            Second derivative of conformational free energy
+        """
+        pass
+
+
+class GaussianChain(ChainPotential):
     """Ideal Gaussian chain conformational free energy.
 
     The chain conformational free energy for an ideal chain is:
@@ -444,7 +498,7 @@ class GaussianChain:
         r = np.asarray(r)
         return np.full_like(r, self.stiffness, dtype=float)
 
-class LangevinChain:
+class LangevinChain(ChainPotential):
     """Langevin chain conformational free energy.
 
     The chain conformational free energy for a freely-jointed chain is:
