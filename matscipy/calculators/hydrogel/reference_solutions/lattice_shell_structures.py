@@ -1,18 +1,22 @@
 
 
+from abc import ABC, abstractmethod
+import numpy as np
 
 class ShellStructure(ABC):
     dim: int = 3  # dimension of the lattice
     coordination: int  # coordination number of the lattice
     vpa_factor: float  # volume per atom for an interatomic distance of 1
+    a: np.ndarray  # array of shell distances in units of the bond length
+    Z: np.ndarray  # array of shell coordination numbers
 
     @abstractmethod
-    def shellTensor(self, s):
+    def shellTensor2(self, s) -> np.ndarray:
         """Return the 2nd order shell tensor of the shell structure at distance s"""
         pass
     
     @abstractmethod
-    def shellTensor4(self, s):
+    def shellTensor4(self, s) -> np.ndarray:
         """Return the 4th order shell tensor of the shell structure at distance s"""
         pass
     
@@ -70,6 +74,7 @@ class GraphiteShellStructure(Isotropic2DShellStructure):
         self.a = np.array(a_vals) # array containing the shell distances in units of the bond length
         self.Z = np.array(Z_vals) # array containing the coordination numbers of each shell
 
+    @staticmethod
     def _divisors(n: int):
         """Return sorted list of positive divisors of n."""
         if n <= 0:
@@ -83,13 +88,15 @@ class GraphiteShellStructure(Isotropic2DShellStructure):
             i += 1
         return sorted(divs)
 
+    @staticmethod
     def _D1_minus_D2(n: int) -> int:
         """D1(n) - D2(n): divisors ≡ 1 mod 3 minus divisors ≡ 2 mod 3."""
-        d = _divisors(n)
+        d = __class__._divisors(n)
         d1 = sum(1 for x in d if x % 3 == 1)
         d2 = sum(1 for x in d if x % 3 == 2)
         return d1 - d2
 
+    @staticmethod
     def _enumerate_shells(nb_shells=None, cutoff=None):
         """Return first K shells (by increasing distance) for the 2D honeycomb lattice.
 
@@ -130,10 +137,10 @@ class GraphiteShellStructure(Isotropic2DShellStructure):
         for idx, M in enumerate(Ms_sorted, start=1):
             if M % 3 == 1:
                 sub = "A→B"
-                Z = 3 * _D1_minus_D2(M)
+                Z = 3 * __class__._D1_minus_D2(M)
             elif M % 3 == 0:
                 sub = "A→A"
-                Z = 6 * _D1_minus_D2(M // 3)
+                Z = 6 * __class__._D1_minus_D2(M // 3)
             else:
                 sub = "—"
                 Z = 0

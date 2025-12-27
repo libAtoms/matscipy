@@ -3,7 +3,9 @@
 # Pure Python sources
 python_sources = [
     '__init__.py',
-    'mean_field_lattices.py'
+    'mean_field_lattices.py',
+    'lattice_shell_structures.py', 
+    'shell_calculator.py'
 ]
 
 # Install pure Python
