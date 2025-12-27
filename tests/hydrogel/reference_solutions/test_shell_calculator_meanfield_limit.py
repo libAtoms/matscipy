@@ -75,8 +75,19 @@ def graphite_shellcalc_largecutoff(parameters, graphite_meanfield, graphite_shel
             flory_chi=graphite_meanfield.flory_chi,
             coordination = graphite_meanfield.coordination,
         ),
-        weight_function=LucyWeightFunction2D(cutoff=5.),)
+        weight_function=LucyWeightFunction2D(cutoff=5. * req_mf),)
 
+
+def test_density(graphite_meanfield, graphite_shellcalc_largecutoff):
+    ana = graphite_meanfield
+    calc = graphite_shellcalc_largecutoff
+
+    r = ana.compute_equilibrium_radius() * 1.1
+
+    rho_ana = 1 / ana.vpcl_factor * r ** (-2)
+    rho_calc = calc.density(r)
+
+    assert np.isclose(rho_calc, rho_ana, rtol=1e-2), f"Expected density {rho_ana}, got {rho_calc}"
 
 def test_equilibrium_radius(graphite_meanfield, graphite_shellcalc_largecutoff):
     ana = graphite_meanfield

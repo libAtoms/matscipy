@@ -81,25 +81,27 @@ class ShellHydrogelCalculator():
     
     def density_derivative(self, r) -> float:
         """
-        Electron density at distance r, including self-contribution
+        Derivative of electron density at distance r, including self-contribution
         """
-        # First neighbors:
+        # First neighbors: d/dr f(a*r) = f'(a*r) * a
         rho = 0
         rn = self.shell_structure.a * r
         Zn = self.shell_structure.Z
-        rho = np.sum( Zn * self.fp(rn))
-        return rho
+        an = self.shell_structure.a
+        rho = np.sum( Zn * self.fp(rn) * an)
+        return rho  # No self-contribution derivative since f'(0) * 0 = 0
 
     def density_second_derivative(self, r) -> float:
         """
-        Electron density at distance r, including self-contribution
+        Second derivative of electron density at distance r, including self-contribution
         """
-        # First neighbors:
+        # First neighbors: d²/dr² f(a*r) = f''(a*r) * a²
         rho = 0
         rn = self.shell_structure.a * r
         Zn = self.shell_structure.Z
-        rho = np.sum( Zn * self.fpp(rn))
-        return rho
+        an = self.shell_structure.a
+        rho = np.sum( Zn * self.fpp(rn) * an**2)
+        return rho  # No self-contribution second derivative
 
     def embedding_energy(self, r) -> float:
         """ 
@@ -108,43 +110,44 @@ class ShellHydrogelCalculator():
         Including contributions up to shell s
 
         """
-        return self.F(self.density(r))
+        return self.F(self.density(r)) 
 
     def embedding_energy_derivative(self, r):
-            """ 
-            EAM energy per atom at distance r
-            
-            Including contributions up to shell s
+        """ 
+        EAM energy per atom at distance r
+        
+        Including contributions up to shell s
 
-            """
-            return self.Fp(self.density(r)) * self.density_derivative(r)
+        """
+        return self.Fp(self.density(r)) * self.density_derivative(r)
 
     def embedding_energy_second_derivative(self, r):
-            """ 
-            EAM energy per atom at distance r
-            
-            Including contributions up to shell s
+        """ 
+        EAM energy per atom at distance r
+        
+        Including contributions up to shell s
 
-            """
-            return self.Fpp(self.density(r)) * self.density_derivative(r)**2 + self.Fp(self.density(r)) * self.density_second_derivative(r)
+        """
+        return self.Fpp(self.density(r)) * self.density_derivative(r)**2 + self.Fp(self.density(r)) * self.density_second_derivative(r)
 
     def bond_energy(self, r):
         """
         We assume that bonds exist only towards the first shell.
         """
-        return self.chain_potential(r) * self.shell_structure.Z[0]
+        # Factor of 0.5 to account for double counting of bonds
+        return self.chain_potential(r) * self.shell_structure.Z[0] * 0.5
 
     def bond_energy_derivative(self, r):
         """
         We assume that bonds exist only towards the first shell.
         """
-        return self.chain_potential.derivative(r) * self.shell_structure.Z[0]
+        return self.chain_potential.derivative(r) * self.shell_structure.Z[0] * 0.5
 
     def bond_energy_second_derivative(self, r):
         """
         We assume that bonds exist only towards the first shell.
         """
-        return self.chain_potential.second_derivative(r) * self.shell_structure.Z[0]
+        return self.chain_potential.second_derivative(r) * self.shell_structure.Z[0] * 0.5
 
     def energy(self, r):
         """
@@ -164,7 +167,7 @@ class ShellHydrogelCalculator():
         """
         return self.embedding_energy_second_derivative(r) + self.bond_energy_second_derivative(r)
 
-    def compute_equilibrium_distance(self, r0, tol=1e-6, maxiter=100):
+    def compute_equilibrium_distance(self, r0, tol=1e-6, maxiter=2000):
         """
         Compute the equilibrium distance by finding the root of the energy derivative.
         """
