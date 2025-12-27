@@ -67,6 +67,7 @@ class LucyWeightFunction(WeightFunction):
     This weight function is smooth (C¹ continuous at r=rc) and commonly
     used in smoothed particle hydrodynamics.
     """
+
     def __init__(self, cutoff):
         self.cutoff = cutoff
 
@@ -75,10 +76,10 @@ class LucyWeightFunction(WeightFunction):
         r = np.asarray(r)
         result = np.zeros_like(r, dtype=float)
         mask = r < self.cutoff
-        x = r[mask] / self.cutoff       
+        x = r[mask] / self.cutoff
         # Normalization: 105 / (16 * pi * rc^3)
         norm = 105.0 / (16.0 * np.pi * self.cutoff**3)
-        result[mask] = norm * (1.0 + 3.0 * x) * (1.0 - x)**3
+        result[mask] = norm * (1.0 + 3.0 * x) * (1.0 - x) ** 3
         return result
 
     def derivative(self, r):
@@ -92,7 +93,7 @@ class LucyWeightFunction(WeightFunction):
         #                        = (1/rc) * 3(1-x)^2 * [(1-x) - (1+3x)]
         #                        = (1/rc) * 3(1-x)^2 * (-4x)
         #                        = -12x(1-x)^2 / rc
-        result[mask] = norm * (-12.0 * x * (1.0 - x)**2) / self.cutoff
+        result[mask] = norm * (-12.0 * x * (1.0 - x) ** 2) / self.cutoff
         return result
 
     def second_derivative(self, r):
@@ -129,6 +130,7 @@ class LucyWeightFunction2D(WeightFunction):
     This weight function is smooth (C¹ continuous at r=rc) and commonly
     used in smoothed particle hydrodynamics.
     """
+
     dim = 2
 
     def __init__(self, cutoff):
@@ -139,10 +141,10 @@ class LucyWeightFunction2D(WeightFunction):
         r = np.asarray(r)
         result = np.zeros_like(r, dtype=float)
         mask = r < self.cutoff
-        x = r[mask] / self.cutoff       
+        x = r[mask] / self.cutoff
         # Normalization: 5 / (pi * rc^2)
         norm = 5.0 / (np.pi * self.cutoff**2)
-        result[mask] = norm * (1.0 + 3.0 * x) * (1.0 - x)**3
+        result[mask] = norm * (1.0 + 3.0 * x) * (1.0 - x) ** 3
         return result
 
     def derivative(self, r):
@@ -156,7 +158,7 @@ class LucyWeightFunction2D(WeightFunction):
         #                        = (1/rc) * 3(1-x)^2 * [(1-x) - (1+3x)]
         #                        = (1/rc) * 3(1-x)^2 * (-4x)
         #                        = -12x(1-x)^2 / rc
-        result[mask] = norm * (-12.0 * x * (1.0 - x)**2) / self.cutoff
+        result[mask] = norm * (-12.0 * x * (1.0 - x) ** 2) / self.cutoff
         return result
 
     def second_derivative(self, r):
@@ -182,29 +184,29 @@ class LucyWeightFunction2D(WeightFunction):
         return 5.0 / (np.pi * self.cutoff**2)
 
 
-
 class EmbeddingPotential(ABC):
 
     @abstractmethod
-    def __call__(self, rho:float) -> float :
-        """
-        rho: Denity of crosslinks (atoms) following including the self-contribution.
-        """
-        pass 
-
-    @abstractmethod
-    def derivative(self, rho:float) -> float:
-        """
-        rho: Denity of crosslinks (atoms) following including the self-contribution.
-        """
-        pass 
-
-    @abstractmethod
-    def second_derivative(self, rho:float) -> float:
+    def __call__(self, rho: float) -> float:
         """
         rho: Denity of crosslinks (atoms) following including the self-contribution.
         """
         pass
+
+    @abstractmethod
+    def derivative(self, rho: float) -> float:
+        """
+        rho: Denity of crosslinks (atoms) following including the self-contribution.
+        """
+        pass
+
+    @abstractmethod
+    def second_derivative(self, rho: float) -> float:
+        """
+        rho: Denity of crosslinks (atoms) following including the self-contribution.
+        """
+        pass
+
 
 class FloryHuggins(EmbeddingPotential):
     """Flory-Huggins mixing free energy for polymer-solvent systems.
@@ -239,42 +241,60 @@ class FloryHuggins(EmbeddingPotential):
         self.coord = coordination
         self.vchain = monomer_volume * chain_monomers  # Chain volume
 
+    @property
+    def max_crosslink_density(self):
+        """Maximum crosslink density where the monomoer volume fraction is 1"""
+        return 2 / (self.coord * self.vchain)
+
     def per_volume(self, crosslink_density, der="0"):
         """
-        Mixing free energy per unit volume. This is the standard flory huggins theory (except that it takes the crosslink density as input), 
-        we define it here for purpose of analytical computations 
+        Mixing free energy per unit volume. This is the standard flory huggins theory (except that it takes the crosslink density as input),
+        we define it here for purpose of analytical computations
 
-        Here crosslink_density is the real crosslink density, including the self contribution as opposed 
-        to the implementation in __call__ for the numerical calculations that follows
-
+        Here crosslink_density is the real crosslink density, including the self contribution
         Derivatives with respect to the crosslink_density or the polymer volume fraction can be computed
         """
         χ = self.chi
-        ρ = crosslink_density   
+        ρ = crosslink_density
         v0 = self.v0
         # Density of chains per unit volume
         ν = ρ * self.coord / 2
 
-        # Volume of a chain 
-        vchain = self.v0 * self.N
-        
+        # Volume of a chain
+        vchain = self.vchain
+
         # Chain volume fraction
-        ϕ = ν * vchain 
+        ϕ = ν * vchain
 
         if der == "0":
-            return  (1/ (vchain) * ϕ * np.log(ϕ) + 1/v0 * (1 - ϕ) * np.log(1 - ϕ) + 1/v0 * χ * ϕ * (1 - ϕ))
+            return (
+                1 / (vchain) * ϕ * np.log(ϕ)
+                + 1 / v0 * (1 - ϕ) * np.log(1 - ϕ)
+                + 1 / v0 * χ * ϕ * (1 - ϕ)
+            )
         elif der == "phi":
-            return (1/ vchain * (np.log(ϕ) + 1) - 1/v0 * (np.log(1 - ϕ) + 1) + 1/v0 * χ * (1 - 2 * ϕ)) 
+            return (
+                1 / vchain * (np.log(ϕ) + 1)
+                - 1 / v0 * (np.log(1 - ϕ) + 1)
+                + 1 / v0 * χ * (1 - 2 * ϕ)
+            )
         elif der == "phi2":
-            return (1/ vchain * (1 / ϕ) + 1/v0 * (1 / (1 - ϕ)) - 2 / v0 * χ) 
+            return 1 / vchain * (1 / ϕ) + 1 / v0 * (1 / (1 - ϕ)) - 2 / v0 * χ
         elif der == "rho":
-            return (1/ vchain * (np.log(ϕ) + 1) - 1/v0 * (np.log(1 - ϕ) + 1) + 1/v0 * χ * (1 - 2 * ϕ)) * (self.coord / 2) * vchain
+            return (
+                (
+                    1 / vchain * (np.log(ϕ) + 1)
+                    - 1 / v0 * (np.log(1 - ϕ) + 1)
+                    + 1 / v0 * χ * (1 - 2 * ϕ)
+                )
+                * (self.coord / 2)
+                * vchain
+            )
         elif der == "rho2":
-            d2f_dphi2 = (1/ vchain * (1 / ϕ) + 1/v0 * (1 / (1 - ϕ)) - 2 / v0 * χ) 
-            return d2f_dphi2 * ((self.coord / 2) * vchain) **2
+            d2f_dphi2 = 1 / vchain * (1 / ϕ) + 1 / v0 * (1 / (1 - ϕ)) - 2 / v0 * χ
+            return d2f_dphi2 * ((self.coord / 2) * vchain) ** 2
         else:
             raise ValueError(f"Unknown derivative option der={der}")
-
 
     def __call__(self, rho):
         """Compute embedding energy F(ρ).
@@ -316,9 +336,11 @@ class FloryHuggins(EmbeddingPotential):
 
         # Flory-Huggins free energy per volume:
         # a_mix = (1/vchain) φ ln(φ) + (1/v0)(1-φ)ln(1-φ) + (χ/v0)φ(1-φ)
-        a_mix = ((1.0 / self.vchain) * phi * np.log(phi)
-                 + (1.0 / self.v0) * (1.0 - phi) * np.log(1.0 - phi)
-                 + (self.chi / self.v0) * phi * (1.0 - phi))
+        a_mix = (
+            (1.0 / self.vchain) * phi * np.log(phi)
+            + (1.0 / self.v0) * (1.0 - phi) * np.log(1.0 - phi)
+            + (self.chi / self.v0) * phi * (1.0 - phi)
+        )
 
         # Free energy per crosslinker
         return a_mix * vi
@@ -339,7 +361,7 @@ class FloryHuggins(EmbeddingPotential):
         """
         rho = np.asarray(rho)
         eps = 1e-6
-        fp = self(rho + eps )
+        fp = self(rho + eps)
         fm = self(rho - eps)
         return (fp - fm) / (2.0 * eps)
 
@@ -363,60 +385,57 @@ class FloryHuggins(EmbeddingPotential):
         return (fp - fm) / (2.0 * eps)
 
 
-
-
-
 class ChainPotential(ABC):
     """Abstract base class for chain conformational free energy potentials.
-    
+
     Provides the interface for computing chain conformational free energies
     and their derivatives as a function of end-to-end distance.
-    
-    Chain potentials are used in hydrogel simulations to describe the 
+
+    Chain potentials are used in hydrogel simulations to describe the
     conformational free energy of polymer chains connecting crosslinkers.
     """
-    
+
     @abstractmethod
     def __call__(self, r):
         """Compute chain conformational free energy A(r).
-        
+
         Parameters
         ----------
         r : array_like
             End-to-end distance of the chain
-            
+
         Returns
         -------
         energy : array_like
             Conformational free energy
         """
         pass
-    
+
     @abstractmethod
     def derivative(self, r):
         """Compute dA/dr.
-        
+
         Parameters
         ----------
         r : array_like
             End-to-end distance of the chain
-            
+
         Returns
         -------
         force : array_like
             Derivative of conformational free energy (force magnitude)
         """
         pass
-    
+
     @abstractmethod
     def second_derivative(self, r):
         """Compute d²A/dr².
-        
+
         Parameters
         ----------
         r : array_like
             End-to-end distance of the chain
-            
+
         Returns
         -------
         stiffness : array_like
@@ -432,7 +451,8 @@ class GaussianChain(ChainPotential):
 
         A(r) = (3/2) * (kT / (N * b²)) * r²
     """
-    def __init__(self, kuhn_length, chain_monomers, dim = 3):
+
+    def __init__(self, kuhn_length, chain_monomers, dim=3):
         self.b = kuhn_length
         self.N = chain_monomers
         self.Nm1 = chain_monomers - 1  # N - 1
@@ -497,6 +517,7 @@ class GaussianChain(ChainPotential):
         """
         r = np.asarray(r)
         return np.full_like(r, self.stiffness, dtype=float)
+
 
 class LangevinChain(ChainPotential):
     """Langevin chain conformational free energy.
@@ -571,8 +592,8 @@ class LangevinChain(ChainPotential):
             # Let u = x(3-x²), v = 1-x²
             # u' = 3 - 3x², v' = -2x
             # (u/v)' = (u'v - uv')/v² = [(3-3x²)(1-x²) + 2x²(3-x²)] / (1-x²)²
-            num = (3.0 - 3.0*xn**2) * (1.0 - xn**2) + 2.0*xn**2 * (3.0 - xn**2)
-            denom = (1.0 - xn**2)**2
+            num = (3.0 - 3.0 * xn**2) * (1.0 - xn**2) + 2.0 * xn**2 * (3.0 - xn**2)
+            denom = (1.0 - xn**2) ** 2
             result[mask_normal] = num / denom
         return result
 
@@ -581,8 +602,10 @@ class LangevinChain(ChainPotential):
         x = np.asarray(x)
         # Numerical second derivative for simplicity
         h = 1e-6
-        return (self._inverse_langevin_derivative(x + h)
-                - self._inverse_langevin_derivative(x - h)) / (2.0 * h)
+        return (
+            self._inverse_langevin_derivative(x + h)
+            - self._inverse_langevin_derivative(x - h)
+        ) / (2.0 * h)
 
     def __call__(self, r):
         """Compute chain conformational energy A(r).
@@ -616,7 +639,7 @@ class LangevinChain(ChainPotential):
         term1 = np.where(
             Linv < 20.0,
             -np.log(4.0 * np.pi / Linv * np.sinh(Linv)),
-            -np.log(4.0 * np.pi) + np.log(Linv) - Linv + np.log(2.0)
+            -np.log(4.0 * np.pi) + np.log(Linv) - Linv + np.log(2.0),
         )
         term2 = lam * Linv
 
@@ -659,9 +682,7 @@ class LangevinChain(ChainPotential):
 
         # Handle large Linv to avoid overflow in coth
         coth_Linv = np.where(
-            Linv < 20.0,
-            1.0 / np.tanh(Linv + 1e-10),
-            1.0  # coth(x) → 1 for large x
+            Linv < 20.0, 1.0 / np.tanh(Linv + 1e-10), 1.0  # coth(x) → 1 for large x
         )
 
         d_term1 = (1.0 / Linv - coth_Linv) * dLinv_dlam

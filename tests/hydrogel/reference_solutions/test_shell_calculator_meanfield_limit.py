@@ -68,7 +68,7 @@ def graphite_shellcalc_largecutoff(parameters, graphite_meanfield, graphite_shel
     Re = np.sqrt(N) * kuhn  # RMS end-to-end distance of a free chain
 
     return ShellHydrogelCalculator(graphite_shellstructure, 
-        chain_potential=GaussianChain(1, graphite_meanfield.chain_nb_monomers),
+        chain_potential=GaussianChain(1, graphite_meanfield.chain_nb_monomers, dim=2),
         embedding_potential=FloryHuggins(
             graphite_meanfield.chain_nb_monomers,
             monomer_volume=graphite_meanfield.v0,
@@ -78,8 +78,8 @@ def graphite_shellcalc_largecutoff(parameters, graphite_meanfield, graphite_shel
         weight_function=LucyWeightFunction2D(cutoff=5.),)
 
 
-def test_equilibrium_radius(diamond_meanfield, graphite_shellcalc_largecutoff):
-    ana = diamond_meanfield
+def test_equilibrium_radius(graphite_meanfield, graphite_shellcalc_largecutoff):
+    ana = graphite_meanfield
     calc = graphite_shellcalc_largecutoff
     req = ana.compute_equilibrium_radius()
 
@@ -87,21 +87,43 @@ def test_equilibrium_radius(diamond_meanfield, graphite_shellcalc_largecutoff):
 
     assert np.isclose(req_shells, req, rtol=1e-2), f"Expected bond length {req}, got {req_shells}"
 
-# def test_total_energy(diamond_meanfield, diamond_calc_largecutoff):
-#     ana = diamond_meanfield
-#     req = ana.compute_equilibrium_radius()
+def test_total_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
+    ana = graphite_meanfield
+    req = ana.compute_equilibrium_radius()
 
-#     atoms, molecules, rc_factor = diamond_calc_largecutoff
+    calc = graphite_shellcalc_largecutoff
+    for scale in [0.98, 1., 1.02]:
+        e0 = ana.total_energy(req * scale)
+        r = req * scale 
+        e_shells = calc.energy(r)
 
-#     cell = atoms.get_cell()
-#     for scale in [0.98, 1., 1.02]:
-#         e0 = ana.total_energy(req * scale)
-#         new_cell = cell * scale        
+        assert np.isclose(e_shells, e0, rtol=1e-2), f"Expected energy per crosslink {e0}, got {e_shells}"
 
-#         atoms.set_cell(new_cell, scale_atoms=True)
-#         e_lammps = atoms.get_potential_energy() / len(atoms)
+def test_elastic_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
+    ana = graphite_meanfield
+    req = ana.compute_equilibrium_radius()
 
-#         assert np.isclose(e_lammps, e0, rtol=1e-2), f"Expected energy per crosslink {e0}, got {e_lammps}"
+    calc = graphite_shellcalc_largecutoff
+    for scale in [0.98, 1., 1.02]:
+        e0 = ana.elastic_energy(req * scale)
+        r = req * scale 
+        e_shells = calc.bond_energy(r)
+
+        assert np.isclose(e_shells, e0, rtol=1e-2), f"Expected energy per crosslink {e0}, got {e_shells}"
+
+def test_mixing_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
+    ana = graphite_meanfield
+    req = ana.compute_equilibrium_radius()
+
+    calc = graphite_shellcalc_largecutoff
+    for scale in [0.98, 1., 1.02]:
+        e0 = ana.mixing_energy(req * scale)
+        r = req * scale 
+        e_shells = calc.embedding_energy(r)
+
+        assert np.isclose(e_shells, e0, rtol=1e-2), f"Expected energy per crosslink {e0}, got {e_shells}"
+
+
 
 
 # def test_shear_modulus(diamond_meanfield, diamond_calc_largecutoff):
