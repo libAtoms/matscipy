@@ -225,7 +225,7 @@ class MeanFieldHydrogelLattice():
         '''
         return self.emixv(self.crosslink_density(r)) * self.vpcl(r)
 
-    def compute_equilibrium_radius(self, tol=0.0001):
+    def compute_equilibrium_distance(self, tol=0.0001):
         from scipy.optimize import minimize_scalar
 
         res = minimize_scalar(self.total_energy, bounds=(0.1 * self.min_radius, 0.9 * self.kuhn * self.chain_nb_monomers), method='bounded', tol=tol)

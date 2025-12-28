@@ -1,10 +1,11 @@
 
 
 from abc import ABC, abstractmethod
+from typing import Literal
 import numpy as np
 
 class ShellStructure(ABC):
-    dim: int = 3  # dimension of the lattice
+    dim: Literal[2, 3] = 3  # dimension of the lattice
     coordination: int  # coordination number of the lattice
     vpa_factor: float  # volume per atom for an interatomic distance of 1
     a: np.ndarray  # array of shell distances in units of the bond length
@@ -59,7 +60,7 @@ shellTensor2_cubic = shellTensor2_iso3 = np.eye(3) / 3.0
 class Isotropic2DShellStructure(ShellStructure):
     dim: int = 2
     def shellTensor2(self, s):
-        return shellTensor4_iso2
+        return shellTensor2_iso2
 
     def shellTensor4(self, s):
         return shellTensor4_iso2

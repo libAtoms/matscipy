@@ -37,7 +37,7 @@ def test_elastic_constants_consistency():
         vpcl_factor=CROSSLINK_VOLUMES['diamond'], 
         flory_chi=0. ,
     )
-    r = polymer.compute_equilibrium_radius()
+    r = polymer.compute_equilibrium_distance()
     C11 = polymer.C11(r=r)
     C12 = polymer.C12(r=r)
     C44 = polymer.C44(r=r)
@@ -54,7 +54,7 @@ def test_shear_modulus_vs_network():
         vpcl_factor=CROSSLINK_VOLUMES['diamond'], 
         flory_chi=0. ,
     )
-    req = polymer.compute_equilibrium_radius()
+    req = polymer.compute_equilibrium_distance()
     kT = 1 
     kchain = 3 * kT / ((polymer.chain_nb_monomers - 1) * polymer.kuhn**2)
     pressure = 3**(3/2) / 12 * kchain /req  

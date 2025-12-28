@@ -31,6 +31,7 @@ class ShellHydrogelCalculator():
         self.chain_potential = chain_potential
         self.embedding_potential = embedding_potential
         self.weight_function = weight_function
+        self.dim = shell_structure.dim
 
     # some convenience functions to call weight function methods
     def f(self, r) -> float:
