@@ -58,10 +58,10 @@ shellTensor2_cubic = shellTensor2_iso3 = np.eye(3) / 3.0
 
 class Isotropic2DShellStructure(ShellStructure):
     dim: int = 2
-    def shellTensor2(s):
+    def shellTensor2(self, s):
         return shellTensor4_iso2
 
-    def shellTensor4(s):
+    def shellTensor4(self, s):
         return shellTensor4_iso2
         
 class GraphiteShellStructure(Isotropic2DShellStructure):

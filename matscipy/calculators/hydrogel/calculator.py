@@ -31,7 +31,7 @@ from ase.geometry import find_mic
 from ...elasticity import full_3x3_to_Voigt_6_stress
 from ...neighbours import neighbour_list
 from ..calculator import MatscipyCalculator
-from .potentials import FloryHuggins, LangevinChain, LucyWeightFunction
+from .potentials import FloryHuggins, LangevinChain, LucyWeightFunction, LucyWeightFunction2D
 
 
 class Hydrogel(MatscipyCalculator):
@@ -109,7 +109,7 @@ class Hydrogel(MatscipyCalculator):
 
     def __init__(self, cutoff, chain_monomers, kuhn_length,
                  monomer_volume=None, flory_chi=0.5, coordination=4,
-                 bonds=None, molecules=None, chain=None):
+                 bonds=None, molecules=None, chain=None, dim=3):
         super().__init__()
 
         self.N = chain_monomers
@@ -117,14 +117,17 @@ class Hydrogel(MatscipyCalculator):
         self.chi = flory_chi
         self.coord = coordination
 
+        self.dim = dim
+
         # Default monomer volume: sphere of diameter b
         if monomer_volume is None:
-            self.v0 = 4.0 * np.pi / 3.0 * (kuhn_length / 2.0)**3
+            self.v0 = 4.0 * np.pi / 3.0 * (kuhn_length / 2.0)**3 if dim == 3 else (kuhn_length / 2.)**2 * np.pi
+
         else:
             self.v0 = monomer_volume
 
         # Create potential objects
-        self.weight_func = LucyWeightFunction(cutoff)
+        self.weight_func = LucyWeightFunction(cutoff) if dim==3 else LucyWeightFunction2D(cutoff)
         self.embedding = FloryHuggins(chain_monomers, self.v0, flory_chi, coordination)
         
         if chain is not None:

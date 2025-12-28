@@ -3,15 +3,11 @@
 # Pure Python sources
 python_sources = [
     '__init__.py',
-    'calculator.py',
-    'potentials.py'
+    'factory.py'
 ]
 
 # Install pure Python
 python.install_sources(
     python_sources,
-    subdir: 'matscipy/calculators/hydrogel'
+    subdir: 'matscipy/calculators/hydrogel/snippets'
 )
-
-subdir('reference_solutions')
-subdir('snippets')
