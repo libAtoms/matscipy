@@ -64,7 +64,7 @@ def graphite_shellcalc_largecutoff(parameters, graphite_meanfield, graphite_shel
     χ = graphite_meanfield.flory_chi
     kuhn = graphite_meanfield.kuhn
 
-    req_mf = graphite_meanfield.compute_equilibrium_radius()
+    req_mf = graphite_meanfield.compute_equilibrium_distance()
     Re = np.sqrt(N) * kuhn  # RMS end-to-end distance of a free chain
 
     return ShellHydrogelCalculator(graphite_shellstructure, 
@@ -82,7 +82,7 @@ def test_density(graphite_meanfield, graphite_shellcalc_largecutoff):
     ana = graphite_meanfield
     calc = graphite_shellcalc_largecutoff
 
-    r = ana.compute_equilibrium_radius() * 1.1
+    r = ana.compute_equilibrium_distance() * 1.1
 
     rho_ana = 1 / ana.vpcl_factor * r ** (-2)
     rho_calc = calc.density(r)
@@ -92,7 +92,7 @@ def test_density(graphite_meanfield, graphite_shellcalc_largecutoff):
 def test_equilibrium_radius(graphite_meanfield, graphite_shellcalc_largecutoff):
     ana = graphite_meanfield
     calc = graphite_shellcalc_largecutoff
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
 
     req_shells = calc.compute_equilibrium_distance(req)
 
@@ -100,7 +100,7 @@ def test_equilibrium_radius(graphite_meanfield, graphite_shellcalc_largecutoff):
 
 def test_total_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
     ana = graphite_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
 
     calc = graphite_shellcalc_largecutoff
     for scale in [0.98, 1., 1.02]:
@@ -112,7 +112,7 @@ def test_total_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
 
 def test_elastic_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
     ana = graphite_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
 
     calc = graphite_shellcalc_largecutoff
     for scale in [0.98, 1., 1.02]:
@@ -124,7 +124,7 @@ def test_elastic_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
 
 def test_mixing_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
     ana = graphite_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
 
     calc = graphite_shellcalc_largecutoff
     for scale in [0.98, 1., 1.02]:
@@ -139,7 +139,7 @@ def test_mixing_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
 
 # def test_shear_modulus(diamond_meanfield, diamond_calc_largecutoff):
 #     ana = diamond_meanfield
-#     req = ana.compute_equilibrium_radius()
+#     req = ana.compute_equilibrium_distance()
 #     G0 = ana.shear_modulus(r=req)
 
 #     atoms, molecules, rc_factor = diamond_calc_largecutoff
@@ -168,7 +168,7 @@ def test_mixing_energy(graphite_meanfield, graphite_shellcalc_largecutoff):
 
 # def test_bulk_modulus(diamond_meanfield, diamond_calc_largecutoff):
 #     ana = diamond_meanfield
-#     req = ana.compute_equilibrium_radius()
+#     req = ana.compute_equilibrium_distance()
 #     K0 = ana.bulk_modulus(r=req)
 
 #     atoms, molecules, rc_factor = diamond_calc_largecutoff

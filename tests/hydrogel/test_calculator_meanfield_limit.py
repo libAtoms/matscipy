@@ -74,7 +74,7 @@ def diamond_calc_factory(diamond_meanfield):
     χ = ana.flory_chi
     kuhn = ana.kuhn
 
-    req_mf = ana.compute_equilibrium_radius()
+    req_mf = ana.compute_equilibrium_distance()
     Re = np.sqrt(N) * kuhn  # RMS end-to-end distance of a free chain
 
     def factory(rc_factor):
@@ -112,7 +112,7 @@ def diamond_calc_largecutoff(diamond_calc_factory):
 
 def test_equilibrium_radius(diamond_meanfield, diamond_calc_largecutoff):
     ana = diamond_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
 
     atoms, molecules, rc_factor = diamond_calc_largecutoff
     
@@ -122,7 +122,7 @@ def test_equilibrium_radius(diamond_meanfield, diamond_calc_largecutoff):
 
 def test_total_energy(diamond_meanfield, diamond_calc_largecutoff):
     ana = diamond_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
 
     atoms, molecules, rc_factor = diamond_calc_largecutoff
 
@@ -139,7 +139,7 @@ def test_total_energy(diamond_meanfield, diamond_calc_largecutoff):
 
 def test_shear_modulus(diamond_meanfield, diamond_calc_largecutoff):
     ana = diamond_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
     G0 = ana.shear_modulus(r=req)
 
     atoms, molecules, rc_factor = diamond_calc_largecutoff
@@ -168,7 +168,7 @@ def test_shear_modulus(diamond_meanfield, diamond_calc_largecutoff):
 
 def test_bulk_modulus(diamond_meanfield, diamond_calc_largecutoff):
     ana = diamond_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
     K0 = ana.bulk_modulus(r=req)
 
     atoms, molecules, rc_factor = diamond_calc_largecutoff

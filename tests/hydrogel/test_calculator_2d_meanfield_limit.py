@@ -72,7 +72,7 @@ def graphite_calc_factory(graphite_meanfield):
     χ = ana.flory_chi
     kuhn = ana.kuhn
 
-    req_mf = ana.compute_equilibrium_radius()
+    req_mf = ana.compute_equilibrium_distance()
     Re = np.sqrt(N) * kuhn  # RMS end-to-end distance of a free chain
 
     def factory(rc_factor):
@@ -106,7 +106,7 @@ def graphite_calc_factory(graphite_meanfield):
     return factory
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def graphite_calc_largecutoff(graphite_calc_factory):
     rc_factor = 8.0
     atoms, molecules = graphite_calc_factory(rc_factor)
@@ -114,7 +114,7 @@ def graphite_calc_largecutoff(graphite_calc_factory):
 
 def test_equilibrium_radius(graphite_meanfield, graphite_calc_largecutoff):
     ana = graphite_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
 
     atoms, molecules, rc_factor = graphite_calc_largecutoff
     
@@ -124,7 +124,7 @@ def test_equilibrium_radius(graphite_meanfield, graphite_calc_largecutoff):
 
 def test_total_energy(graphite_meanfield, graphite_calc_largecutoff):
     ana = graphite_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
 
     atoms, molecules, rc_factor = graphite_calc_largecutoff
 
@@ -141,7 +141,7 @@ def test_total_energy(graphite_meanfield, graphite_calc_largecutoff):
 
 def test_shear_modulus(graphite_meanfield, graphite_calc_largecutoff):
     ana = graphite_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
     G0 = ana.shear_modulus(r=req)
 
     atoms, molecules, rc_factor = graphite_calc_largecutoff
@@ -153,7 +153,7 @@ def test_shear_modulus(graphite_meanfield, graphite_calc_largecutoff):
         symmetry="triclinic",
         N_steps=5,
         delta=1e-4,
-        optimizer=FIRE,
+        # optimizer=FIRE,
         fmax=1e-6,
         verbose=True,
     )
@@ -172,7 +172,7 @@ def test_shear_modulus(graphite_meanfield, graphite_calc_largecutoff):
 
 def test_bulk_modulus(graphite_meanfield, graphite_calc_largecutoff):
     ana = graphite_meanfield
-    req = ana.compute_equilibrium_radius()
+    req = ana.compute_equilibrium_distance()
     K0 = ana.bulk_modulus(r=req)
 
     atoms, molecules, rc_factor = graphite_calc_largecutoff
@@ -184,7 +184,7 @@ def test_bulk_modulus(graphite_meanfield, graphite_calc_largecutoff):
         symmetry="triclinic", #"hexagonal",
         N_steps=5,
         delta=1e-4,
-        optimizer=FIRE,
+        optimizer=FIRE,  # We wat
         fmax=1e-6,
         verbose=True,
     )

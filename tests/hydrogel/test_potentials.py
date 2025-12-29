@@ -8,6 +8,7 @@ from matscipy.calculators.hydrogel.potentials import (
 )
 
 
+
 class TestLucyWeightFunction:
     """Tests for the Lucy weight function."""
 
@@ -170,8 +171,9 @@ class TestFloryHuggins:
         )
         w0 = 105.0 / (16.0 * np.pi * 20**3)
 
-        # Low density (mostly solvent)
-        rho = np.array([0.01])
+
+        phi = 0.01 
+        rho = phi / (fh.vchain * fh.coord / 2)
         E = fh(rho)
 
         assert np.isfinite(E).all()

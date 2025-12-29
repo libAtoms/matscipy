@@ -140,7 +140,7 @@ class TestShellCalculatorDerivatives:
         # Test at several distances, but avoid getting too close to contour length
         L0 = shell_calculator.chain_potential.L0
         r_values = np.linspace(0.5, 0.7 * L0, 10)  # Stay well below contour length
-        h = 1e-6
+        h = 1e-7
         
         for r in r_values:
             # Numerical derivative
