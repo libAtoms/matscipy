@@ -182,7 +182,7 @@ class ShellHydrogelCalculator():
         Stiffness matrix from EAM potential
         """
         dim = self.dim
-        ρ0 = self.density_noself(r)
+        ρ0 = self.density(r)
 
         a = self.shell_structure.a
         Z = self.shell_structure.Z
@@ -206,3 +206,74 @@ class ShellHydrogelCalculator():
             + term2
             ) * self.density(r)
     
+
+class Isotropic2DShellHydrogelCalculator(ShellHydrogelCalculator):
+    """2D isotropic shell hydrogel calculator.
+    
+    This just implements some shortcuts for computing elastic constants in 2D isotropic case.
+    """
+    def __init__(self, shell_structure: ShellStructure, 
+                       chain_potential: ChainPotential, 
+                       embedding_potential: EmbeddingPotential,
+                       weight_function: WeightFunction
+                       , ):
+        super().__init__(shell_structure, chain_potential, embedding_potential, weight_function)
+        assert self.dim == 2, "Isotropic2DShellHydrogelCalculator only works for 2D shell structures."
+    
+
+    def C44(self, r):
+        """
+        Shear modulus C44 from EAM potential
+
+        """
+        ρ0 = self.density(r)
+
+        a = self.shell_structure.a
+        Z = self.shell_structure.Z
+        
+        # Sum runs over shells
+        # My derivation yields an additional factor of 4. But here is the implementation of Muser Pastewka
+        # TODO check this factor  4
+        return 4 * self.Fp(ρ0) * np.sum(self.ftpp(r ** 2  * a**2) * r**4 * a**4  * Z / 8) * self.density(r)   
+    
+    def C11(self, r):
+        """
+        modulus C11 from EAM potential 
+        
+
+        """
+        ρ0 = self.density(r)
+
+        a = self.shell_structure.a
+        Z = self.shell_structure.Z
+        
+        A = self.ftp(r**2 * a**2) * r**2 * a**2 * Z / 2
+        return 4 * ( self.Fp(ρ0) * np.sum(self.ftpp(r ** 2  * a**2) * r**4 * a**4  * Z * 3 / 8 ) 
+                    + self.Fpp(ρ0) * (np.sum(A.reshape(-1, 1) * A.reshape(1, -1)) )
+                    ) * self.density(r)
+
+    def C12(self, r):
+        """
+        modulus C12 from EAM potential 
+
+        """
+        ρ0 = self.density(r)
+
+        a = self.shell_structure.a
+        Z = self.shell_structure.Z
+        A = self.ftp(r**2 * a**2) * r**2 * a**2 * Z / 2
+        return 4 * ( self.Fp(ρ0) * np.sum(self.ftpp(r ** 2  * a**2) * r**4 * a**4  * Z * 1 / 8 ) 
+                    + self.Fpp(ρ0) * (np.sum(A.reshape(-1, 1) * A.reshape(1, -1)) )
+                    ) * self.density(r)
+    
+    def bulk_modulus(self, r):
+        """
+        Bulk modulus from EAM potential 
+
+        """
+        C11 = self.C11(r)
+        C12 = self.C12(r)
+        return (C11 + C12) / 2
+    
+    def shear_modulus(self, r):
+        return self.C44(r)
