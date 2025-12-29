@@ -28,6 +28,7 @@ This module provides:
 """
 
 from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
 
@@ -254,11 +255,32 @@ class FloryHuggins(EmbeddingPotential):
         Here crosslink_density is the real crosslink density, including the self contribution
         Derivatives with respect to the crosslink_density or the polymer volume fraction can be computed
         """
+
+        ρ = np.asarray(crosslink_density)
+
+        # Ensure density is positive
+        assert np.min(ρ) > 0, "Negative crosslink density encountered." 
+
+        # Chain density (chains per unit volume)
+        # Each crosslinker has coord chains, but each chain connects two
+        # crosslinkers, so we divide by 2
+        ν = ρ * self.coord / 2.0
+
+        # Polymer volume fraction φ = ν * v_chain
+        ϕ = ν * self.vchain
+
+        # Clamp phi to avoid log(0) and ensure physical range
+        ϕ_original = ϕ.copy() if hasattr(ϕ, 'copy') else ϕ
+        ϕ = np.clip(ϕ, 1e-10, 1.0 - 1e-10)
+        
+        # Warn if clipping occurred
+        if np.any(ϕ_original < 1e-10) or np.any(ϕ_original > 1.0 - 1e-10):
+            warnings.warn(f"Volume fraction φ was clipped: original range [{np.min(ϕ_original):.2e}, {np.max(ϕ_original):.2e}] "
+                         f"to valid range [1e-10, {1.0 - 1e-10}]. This may indicate unphysical crosslink densities.",
+                         UserWarning)
+
         χ = self.chi
-        ρ = crosslink_density
         v0 = self.v0
-        # Density of chains per unit volume
-        ν = ρ * self.coord / 2
 
         # Volume of a chain
         vchain = self.vchain
@@ -314,36 +336,11 @@ class FloryHuggins(EmbeddingPotential):
         """
         rho = np.asarray(rho)
 
-        # Total crosslinker density including self-contribution
-        n = rho
-
-        # Ensure density is positive
-        n = np.maximum(n, 1e-10)
-
-        # Chain density (chains per unit volume)
-        # Each crosslinker has coord chains, but each chain connects two
-        # crosslinkers, so we divide by 2
-        nu = n * self.coord / 2.0
-
-        # Polymer volume fraction φ = ν * v_chain
-        phi = nu * self.vchain
-
-        # Clamp phi to avoid log(0) and ensure physical range
-        phi = np.clip(phi, 1e-10, 1.0 - 1e-10)
-
         # Volume per crosslinker
-        vi = 1.0 / n
-
-        # Flory-Huggins free energy per volume:
-        # a_mix = (1/vchain) φ ln(φ) + (1/v0)(1-φ)ln(1-φ) + (χ/v0)φ(1-φ)
-        a_mix = (
-            (1.0 / self.vchain) * phi * np.log(phi)
-            + (1.0 / self.v0) * (1.0 - phi) * np.log(1.0 - phi)
-            + (self.chi / self.v0) * phi * (1.0 - phi)
-        )
+        vi = 1.0 / rho
 
         # Free energy per crosslinker
-        return a_mix * vi
+        return self.per_volume(rho) * vi
 
     def derivative(self, rho):
         """Compute dF/dρ using numerical differentiation.
@@ -360,10 +357,10 @@ class FloryHuggins(EmbeddingPotential):
             Derivative of embedding energy with respect to rho
         """
         rho = np.asarray(rho)
-        eps = 1e-6
-        fp = self(rho + eps)
-        fm = self(rho - eps)
-        return (fp - fm) / (2.0 * eps)
+        vi = 1.0 / rho
+        vip = - 1.0 / (rho ** 2)
+        return self.per_volume(rho, der='rho') * vi + self.per_volume(rho) * vip
+
 
     def second_derivative(self, rho):
         """Compute d²F/dρ² using numerical differentiation.
@@ -379,10 +376,10 @@ class FloryHuggins(EmbeddingPotential):
             Second derivative of embedding energy
         """
         rho = np.asarray(rho)
-        eps = 1e-6
-        fp = self.derivative(rho + eps)
-        fm = self.derivative(rho - eps)
-        return (fp - fm) / (2.0 * eps)
+        vi = 1.0 / rho
+        vip = - 1.0 / (rho ** 2)
+        vipp = 2.0 / (rho ** 3)
+        return self.per_volume(rho, der='rho2') * vi + 2 * self.per_volume(rho, der='rho') * vip + self.per_volume(rho) * vipp
 
 
 class ChainPotential(ABC):
