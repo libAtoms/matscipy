@@ -10,35 +10,53 @@ import numpy as np
 
 from matscipy.calculators.hydrogel.reference_solutions.shell_calculator import ShellHydrogelCalculator
 from matscipy.calculators.hydrogel.reference_solutions.lattice_shell_structures import GraphiteShellStructure
+from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import MeanFieldHydrogelLattice, CROSSLINK_VOLUMES
 from matscipy.calculators.hydrogel.potentials import (
-    FloryHuggins, 
+    FloryHuggins,
+    GaussianChain, 
     LangevinChain, 
-    LucyWeightFunction
+    LucyWeightFunction,
+    LucyWeightFunction2D
 )
+
+from hydrogel.reference_solutions.test_shell_calculator_stiffness_consistency import meanfield
 
 
 class TestShellCalculatorDerivatives:
     """Test analytical derivatives against numerical derivatives."""
 
     @pytest.fixture(scope="class")
-    def shell_calculator(self):
+    def meanfield(self):
+        """Create a mean field lattice for comparison."""
+        return MeanFieldHydrogelLattice(
+            chain_nb_monomers=50, 
+            coordination=3,
+            vpcl_factor=CROSSLINK_VOLUMES['graphite'], 
+            flory_chi=0.5,
+            dim=2
+        )
+
+    @pytest.fixture(scope="class")
+    def shell_calculator(self, meanfield):
         """Create a shell calculator instance for testing."""
         # Set up shell structure
         shell_structure = GraphiteShellStructure(cutoff=4.0)
         
         # Set up chain potential
-        chain_potential = LangevinChain(kuhn_length=1.0, chain_monomers=50)
+        chain_potential = GaussianChain(kuhn_length=1.0, chain_monomers=50, dim=2)
         
+        req_mf = meanfield.compute_equilibrium_distance()
+
         # Set up embedding potential (Flory-Huggins)
         embedding_potential = FloryHuggins(
             chain_monomers=50,
-            monomer_volume=4 * np.pi / 3,
+            monomer_volume=np.pi *(1/2)**2,  # Assuming kuhn length = 1
             flory_chi=0.5,
-            coordination=4,
+            coordination=3,
         )
         
         # Set up weight function
-        weight_function = LucyWeightFunction(cutoff=2.0)
+        weight_function = LucyWeightFunction2D(cutoff=4.0 * req_mf)
         
         return ShellHydrogelCalculator(
             shell_structure=shell_structure,
@@ -261,10 +279,13 @@ class TestShellCalculatorDerivatives:
                 err_msg=f"Second derivative consistency check failed at r={r}"
             )
 
-    def test_equilibrium_condition(self, shell_calculator):
+    def test_equilibrium_condition(self, shell_calculator, meanfield):
         """Test that the equilibrium distance actually has zero derivative."""
-        # Find equilibrium distance
-        r_eq = shell_calculator.compute_equilibrium_distance(r0=1.0)
+        # Get meanfield equilibrium distance as initial guess
+        r0_meanfield = meanfield.compute_equilibrium_distance()
+        
+        # Find equilibrium distance using meanfield guess
+        r_eq = shell_calculator.compute_equilibrium_distance(r0=r0_meanfield)
         
         # Check that derivative is very close to zero
         deriv_at_equilibrium = shell_calculator.energy_derivative(r_eq)
