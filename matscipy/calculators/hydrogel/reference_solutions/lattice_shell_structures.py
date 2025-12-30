@@ -58,7 +58,7 @@ for i in range(3):
 shellTensor2_cubic = shellTensor2_iso3 = np.eye(3) / 3.0
 
 class Isotropic2DShellStructure(ShellStructure):
-    dim: int = 2
+    dim = 2
     def shellTensor2(self, s):
         return shellTensor2_iso2
 
@@ -66,8 +66,8 @@ class Isotropic2DShellStructure(ShellStructure):
         return shellTensor4_iso2
         
 class GraphiteShellStructure(Isotropic2DShellStructure):
-    dim: int = 2
-    coordination: int = 3
+    dim = 2
+    coordination = 3
     vpa_factor: float = 3 * np.sqrt(3) / 2 /2
 
     def __init__(self, nb_shells=None, cutoff=None):
@@ -92,7 +92,7 @@ class GraphiteShellStructure(Isotropic2DShellStructure):
     @staticmethod
     def _D1_minus_D2(n: int) -> int:
         """D1(n) - D2(n): divisors ≡ 1 mod 3 minus divisors ≡ 2 mod 3."""
-        d = __class__._divisors(n)
+        d = GraphiteShellStructure._divisors(n)
         d1 = sum(1 for x in d if x % 3 == 1)
         d2 = sum(1 for x in d if x % 3 == 2)
         return d1 - d2

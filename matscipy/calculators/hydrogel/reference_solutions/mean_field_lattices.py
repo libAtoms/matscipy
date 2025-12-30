@@ -3,6 +3,7 @@ Analytical solutions for simple lattices using the mean-field Flory-Huggins theo
 and assuming affine elastic deformation of ideal Gaussian chains.
 """
 
+from typing import Optional
 from matscipy.calculators.hydrogel.potentials import GaussianChain, FloryHuggins
 import numpy as np
 
@@ -26,7 +27,7 @@ class MeanFieldHydrogelLattice():
 
     def __init__(self, chain_nb_monomers: int, coordination: int, 
                        vpcl_factor: float, 
-                       flory_chi: float, kuhn: float = 1, v0: float | None = None, dim: int = 3):
+                       flory_chi: float, kuhn: float = 1, v0: Optional[float] = None, dim: int = 3):
         """
         Initialize a mean-field hydrogel model.
 
@@ -165,11 +166,11 @@ class MeanFieldHydrogelLattice():
         else: 
             raise ValueError("Dimension must be 2 or 3") 
 
-    def shear_modulus(self, rho=None, r=None):
+    def shear_modulus(self, rho=None, r=None) -> float:
         rho = self._parse_rho(rho, r)
         return self.C44(rho=rho)
 
-    def youngs_modulus(self, rho=None, r=None):
+    def youngs_modulus(self, rho=None, r=None) -> float:
         rho = self._parse_rho(rho, r)
         K = self.bulk_modulus(rho=rho)
         G = self.shear_modulus(rho=rho)

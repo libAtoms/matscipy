@@ -131,8 +131,7 @@ class TestGraphite():
     def test_shear_modulus(self, calcs, meanfield):
         atoms, molecules, shellcalc, rc_factor = calcs
 
-        # Use cubic symmetry since graphite has cubic symmetry
-        # Small strain amplitude and more steps for accuracy
+
         C, C_err = fit_elastic_constants(
             atoms,
             symmetry="triclinic",
@@ -161,8 +160,7 @@ class TestGraphite():
     def test_bulk_modulus(self, calcs, meanfield):
             atoms, molecules, shellcalc, rc_factor = calcs
 
-            # Use cubic symmetry since graphite has cubic symmetry
-            # Small strain amplitude and more steps for accuracy
+
             C, C_err = fit_elastic_constants(
                 atoms,
                 symmetry="triclinic",

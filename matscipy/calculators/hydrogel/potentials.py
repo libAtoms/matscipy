@@ -28,6 +28,7 @@ This module provides:
 """
 
 from abc import ABC, abstractmethod
+from typing import Union
 import warnings
 
 import numpy as np
@@ -188,21 +189,21 @@ class LucyWeightFunction2D(WeightFunction):
 class EmbeddingPotential(ABC):
 
     @abstractmethod
-    def __call__(self, rho: float) -> float:
+    def __call__(self, rho: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         """
         rho: Denity of crosslinks (atoms) following including the self-contribution.
         """
         pass
 
     @abstractmethod
-    def derivative(self, rho: float) -> float:
+    def derivative(self, rho: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         """
         rho: Denity of crosslinks (atoms) following including the self-contribution.
         """
         pass
 
     @abstractmethod
-    def second_derivative(self, rho: float) -> float:
+    def second_derivative(self, rho: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         """
         rho: Denity of crosslinks (atoms) following including the self-contribution.
         """

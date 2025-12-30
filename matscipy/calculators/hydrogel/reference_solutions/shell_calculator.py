@@ -2,7 +2,7 @@
 from matscipy.calculators.hydrogel.reference_solutions.lattice_shell_structures import ShellStructure, GraphiteShellStructure
 from matscipy.calculators.hydrogel.potentials import (ChainPotential, EmbeddingPotential, 
     WeightFunction)
-from typing import Literal
+from typing import Literal, Union
 import scipy
 import numpy as np
 
@@ -49,13 +49,13 @@ class ShellHydrogelCalculator():
         r = np.sqrt(r2)
         return self.fpp(r) / (4 * r2) - self.fp(r) / (4 * r2 * r)
 
-    def F(self, rho) -> float:
+    def F(self, rho: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         return self.embedding_potential(rho)
     
-    def Fp(self, rho) -> float:
+    def Fp(self, rho: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         return self.embedding_potential.derivative(rho)
     
-    def Fpp(self, rho) -> float:
+    def Fpp(self, rho: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         return self.embedding_potential.second_derivative(rho)
     
     def density_noself(self, r):
@@ -104,7 +104,7 @@ class ShellHydrogelCalculator():
         rho = np.sum( Zn * self.fpp(rn) * an**2)
         return rho  # No self-contribution second derivative
 
-    def embedding_energy(self, r) -> float:
+    def embedding_energy(self, r) -> Union[float, np.ndarray]:
         """ 
         EAM energy per atom at distance r
         
