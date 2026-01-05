@@ -246,7 +246,29 @@ class FloryHuggins(EmbeddingPotential):
     @property
     def max_crosslink_density(self):
         """Maximum crosslink density where the monomoer volume fraction is 1"""
-        return 2 / (self.coord * self.vchain)
+        return self.crosslink_density_from_polymer_volume_fraction(1)
+
+    def polymer_volume_fraction_from_crosslink_density(self, crosslink_density):
+        """Compute polymer volume fraction φ from crosslink density ρ."""
+        ρ = np.asarray(crosslink_density)
+        assert np.min(ρ) > 0, "Negative crosslink density encountered." 
+
+        # Chain density (chains per unit volume)
+        # Each crosslinker has coord chains, but each chain connects two
+        # crosslinkers, so we divide by 2
+        ν = ρ * self.coord / 2.0
+        # Polymer volume fraction φ = ν * v_chain
+        ϕ = ν * self.vchain
+        return ϕ
+    
+    def crosslink_density_from_polymer_volume_fraction(self, polymer_volume_fraction):
+        """Compute crosslink density ρ from polymer volume fraction φ."""
+        ϕ = np.asarray(polymer_volume_fraction)
+        # Chain density ν = φ / v_chain
+        ν = ϕ / self.vchain
+        # Crosslink density ρ = 2 * ν / coord
+        ρ = 2 * ν / self.coord
+        return ρ
 
     def per_volume(self, crosslink_density, der="0"):
         """
@@ -257,18 +279,7 @@ class FloryHuggins(EmbeddingPotential):
         Derivatives with respect to the crosslink_density or the polymer volume fraction can be computed
         """
 
-        ρ = np.asarray(crosslink_density)
-
-        # Ensure density is positive
-        assert np.min(ρ) > 0, "Negative crosslink density encountered." 
-
-        # Chain density (chains per unit volume)
-        # Each crosslinker has coord chains, but each chain connects two
-        # crosslinkers, so we divide by 2
-        ν = ρ * self.coord / 2.0
-
-        # Polymer volume fraction φ = ν * v_chain
-        ϕ = ν * self.vchain
+        ϕ = self.polymer_volume_fraction_from_crosslink_density(crosslink_density)
 
         # Clamp phi to avoid log(0) and ensure physical range
         ϕ_original = ϕ.copy() if hasattr(ϕ, 'copy') else ϕ
@@ -285,9 +296,6 @@ class FloryHuggins(EmbeddingPotential):
 
         # Volume of a chain
         vchain = self.vchain
-
-        # Chain volume fraction
-        ϕ = ν * vchain
 
         if der == "0":
             return (
@@ -318,6 +326,34 @@ class FloryHuggins(EmbeddingPotential):
             return d2f_dphi2 * ((self.coord / 2) * vchain) ** 2
         else:
             raise ValueError(f"Unknown derivative option der={der}")
+
+    def pressure(self, crosslink_density=None, polymer_volume_fraction=None):
+        """Compute osmotic pressure"""
+        if crosslink_density is None and polymer_volume_fraction is None:
+            raise ValueError("Either crosslink_density or polymer_volume_fraction must be provided.")
+
+        if polymer_volume_fraction is None:
+            polymer_volume_fraction = self.polymer_volume_fraction_from_crosslink_density(crosslink_density)
+        ϕ = np.asarray(polymer_volume_fraction)
+        # Clamp phi to avoid log(0) and ensure physical range
+        ϕ_original =ϕ.copy()
+        ϕ = np.clip(ϕ, 1e-10, 1.0 - 1e-10)
+
+        # Warn if clipping occurred
+        if np.any(ϕ_original < 1e-10) or np.any(ϕ_original > 1.0 - 1e-10):
+            warnings.warn(f"Volume fraction φ was clipped: original range [{np.min(ϕ_original):.2e}, {np.max(ϕ_original):.2e}] "
+                         f"to valid range [1e-10, {1.0 - 1e-10}]. This may indicate unphysical crosslink densities.",
+                         UserWarning)
+            
+        χ = self.chi
+        v0 = self.v0
+        vchain = self.vchain
+
+        return (
+                - ϕ * ( 1/ v0 - 1 / (vchain))  
+                - 1 / v0 * np.log(1 - ϕ)
+                - 1 / v0 * χ * ϕ**2
+            )
 
     def __call__(self, rho):
         """Compute embedding energy F(ρ).
