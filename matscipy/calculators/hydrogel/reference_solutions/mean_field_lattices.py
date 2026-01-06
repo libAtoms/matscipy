@@ -220,6 +220,9 @@ class MeanFieldHydrogelLattice():
         """
         return 0.5 * self.coordination * self.chain(r)
 
+    def elastic_pressure(self, r):
+        return - 0.5 *  1/3 * self.coordination * self.chain.derivative(r) * r / self.vpcl(r)
+
     def mixing_energy(self, r):
         '''
         Mixing free energy per crosslink using mean field flory huggins theory in units of kT
