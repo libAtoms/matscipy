@@ -283,13 +283,13 @@ class FloryHuggins(EmbeddingPotential):
 
         # Clamp phi to avoid log(0) and ensure physical range
         ϕ_original = ϕ.copy() if hasattr(ϕ, 'copy') else ϕ
-        ϕ = np.clip(ϕ, 1e-10, 1.0 - 1e-10)
+        # ϕ = np.clip(ϕ, 1e-13        , 1.0 - 1e-13)
         
-        # Warn if clipping occurred
-        if np.any(ϕ_original < 1e-10) or np.any(ϕ_original > 1.0 - 1e-10):
-            warnings.warn(f"Volume fraction φ was clipped: original range [{np.min(ϕ_original):.2e}, {np.max(ϕ_original):.2e}] "
-                         f"to valid range [1e-10, {1.0 - 1e-10}]. This may indicate unphysical crosslink densities.",
-                         UserWarning)
+        # # Warn if clipping occurred
+        # if np.any(ϕ_original < 1e-13) or np.any(ϕ_original > 1.0 - 1e-13):
+        #     warnings.warn(f"Volume fraction φ was clipped: original range [{np.min(ϕ_original):.2e}, {np.max(ϕ_original):.2e}] "
+        #                  f"to valid range [1e-13, {1.0 - 1e-13}]. This may indicate unphysical crosslink densities.",
+        #                  UserWarning)
 
         χ = self.chi
         v0 = self.v0
