@@ -10,11 +10,27 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    name: tests (${{ matrix.python }}, ${{ matrix.split-group }}${{ matrix.ase-version == 'dev' && ', ASE-dev' || '' }})
     strategy:
       fail-fast: false
       matrix:
         split-group: [1, 2, 3, 4]
-        python: [ '3.9', '3.10', '3.11', '3.12', '3.13' ]
+        python: [ '3.10', '3.11', '3.12', '3.13' ]
+        ase-version: ['stable']
+        include:
+          # Test against ASE development version (allowed to fail)
+          - python: '3.12'
+            split-group: 1
+            ase-version: 'dev'
+          - python: '3.12'
+            split-group: 2
+            ase-version: 'dev'
+          - python: '3.12'
+            split-group: 3
+            ase-version: 'dev'
+          - python: '3.12'
+            split-group: 4
+            ase-version: 'dev'
 
     steps:
       - uses: actions/checkout@v6
@@ -37,6 +53,12 @@ jobs:
         run: |
           source ../venv/bin/activate
           pip install --no-build-isolation .[test]
+
+      - name: Install ASE development version
+        if: matrix.ase-version == 'dev'
+        run: |
+          source ../venv/bin/activate
+          pip install git+https://gitlab.com/ase/ase.git@master
 
       - name: Cache test durations
         uses: actions/cache@v4
@@ -63,6 +85,7 @@ jobs:
           sudo apt-get install -y fenics python3-dolfin python3-mshr
 
       - name: pytest
+        continue-on-error: ${{ matrix.ase-version == 'dev' }}
         run: |
           source ../venv/bin/activate
           cd tests

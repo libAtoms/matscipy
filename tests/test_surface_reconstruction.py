@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from ase.constraints import ExpCellFilter
+from ase.filters import FrechetCellFilter
 from ase.lattice.cubic import Diamond, FaceCenteredCubic
 from ase.optimize.precon import PreconLBFGS
 
@@ -25,7 +25,7 @@ def multilattice_system():
 
     calc = Manybody(**TersoffBrenner(Erhart_PRB_71_035211_Si))
     unitcell.calc = calc
-    ecf = ExpCellFilter(unitcell)
+    ecf = FrechetCellFilter(unitcell)
     opt = PreconLBFGS(ecf)
     opt.run(fmax=0.0001, smax=0.0001)
     a0 = unitcell.cell[0, 0]
@@ -46,7 +46,7 @@ def single_lattice_system(datafile_directory):
     )
     calc = EAM(f"{datafile_directory}/Au-Grochola-JCP05.eam.alloy")
     unitcell.calc = calc
-    ecf = ExpCellFilter(unitcell)
+    ecf = FrechetCellFilter(unitcell)
     opt = PreconLBFGS(ecf)
     opt.run(fmax=0.0001, smax=0.0001)
     a0 = unitcell.cell[0, 0]

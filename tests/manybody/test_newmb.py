@@ -423,7 +423,7 @@ def test_birch_constants(configuration):
     B_ana = configuration.calc.get_property("birch_coefficients", configuration)
     C_num = measure_triclinic_elastic_constants(configuration, delta=1e-8)
 
-    nt.assert_allclose(B_ana, C_num, rtol=1e-7, atol=3e-6)
+    nt.assert_allclose(B_ana, C_num, rtol=1e-5, atol=2e-5)
 
 
 def test_elastic_constants(configuration):

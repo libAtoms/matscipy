@@ -59,7 +59,7 @@ except ModuleNotFoundError:
     interpolate = False
 
 
-from ase.constraints import StrainFilter, UnitCellFilter
+from ase.filters import StrainFilter, UnitCellFilter
 from ase.lattice.compounds import B1, L1_2
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.optimize import FIRE

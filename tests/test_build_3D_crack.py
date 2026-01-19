@@ -3,7 +3,7 @@ import numpy as np
 from ase.build import bulk
 from ase.lattice.cubic import Diamond
 from ase.optimize.precon import PreconLBFGS
-from ase.constraints import ExpCellFilter
+from ase.filters import FrechetCellFilter
 from matscipy.cauchy_born import CubicCauchyBorn
 from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber, Holland_Marder_PRL_80_746_Si
 from matscipy.calculators.manybody import Manybody
@@ -24,7 +24,7 @@ class TestBuild3DPeriodicFractureCell(matscipytest.MatSciPyTestCase):
         calc = Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si))
         si.calc = calc
         self.calc = calc
-        ecf = ExpCellFilter(si)
+        ecf = FrechetCellFilter(si)
         opt = PreconLBFGS(ecf)
         opt.run(fmax=1e-6, smax=1e-6)
         # print(si.get_positions())

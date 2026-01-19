@@ -46,7 +46,7 @@ import numpy as np
 
 import ase.io
 import ase.units as units
-from ase.constraints import StrainFilter
+from ase.filters import StrainFilter
 from ase.lattice.cubic import Diamond
 from ase.optimize import FIRE
 

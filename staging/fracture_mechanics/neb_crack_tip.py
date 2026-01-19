@@ -53,7 +53,7 @@ import ase.constraints
 import ase.io
 #import ase.optimize.precon
 
-from ase.neb import NEB
+from ase.mep import NEB
 
 from ase.data import atomic_numbers
 

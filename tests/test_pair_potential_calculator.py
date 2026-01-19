@@ -43,6 +43,7 @@
 
 import ase
 import ase.constraints
+import ase.filters
 import ase.io as io
 import numpy as np
 import pytest
@@ -240,7 +241,7 @@ def test_crystal_birch_elastic_constants(a0):
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(
-        ase.constraints.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None
+        ase.filters.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None
     ).run(fmax=1e-5)
     C_num = measure_triclinic_elastic_constants(atoms, delta=1e-4)
     C_ana = b.get_property("birch_coefficients", atoms)
@@ -260,7 +261,7 @@ def test_amorphous_birch_elastic_constants(datafile_directory):
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(
-        ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None
+        ase.filters.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None
     ).run(fmax=1e-5)
     C_num = measure_triclinic_elastic_constants(atoms, delta=1e-4)
     C_ana = b.get_property("birch_coefficients", atoms)
@@ -278,7 +279,7 @@ def test_non_affine_elastic_constants_crystal(a0):
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(
-        ase.constraints.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None
+        ase.filters.UnitCellFilter(atoms, mask=[0, 0, 0, 1, 1, 1]), logfile=None
     ).run(fmax=1e-5)
     C_num = measure_triclinic_elastic_constants(
         atoms, delta=5e-4, optimizer=FIRE, fmax=1e-6, steps=500
@@ -306,7 +307,7 @@ def test_non_affine_elastic_constants_glass(datafile_directory):
     b = PairPotential(calc)
     atoms.calc = b
     FIRE(
-        ase.constraints.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None
+        ase.filters.UnitCellFilter(atoms, mask=[1, 1, 1, 1, 1, 1]), logfile=None
     ).run(fmax=1e-5)
     C_num = measure_triclinic_elastic_constants(
         atoms, delta=5e-4, optimizer=FIRE, fmax=1e-6, steps=500
@@ -371,7 +372,7 @@ def test_elastic_born_crystal_stress():
         atoms.set_cell(np.matmul(np.identity(3) + strain, atoms.cell), scale_atoms=True)
         atoms.calc = b
         FIRE(
-            ase.constraints.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None
+            ase.filters.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None
         ).run(fmax=1e-5)
         Cnum, Cerr_num = fit_elastic_constants(
             atoms,

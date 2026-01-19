@@ -25,7 +25,8 @@ import numpy as np
 import ase.io
 import ase.units as units
 from ase.build import bulk
-from ase.constraints import FixAtoms, UnitCellFilter
+from ase.constraints import FixAtoms
+from ase.filters import UnitCellFilter
 from ase.md.verlet import VelocityVerlet
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from ase.optimize import FIRE

@@ -50,7 +50,8 @@ August 2014
 import numpy as np
 
 from ase.lattice.cubic import Diamond
-from ase.constraints import FixAtoms, StrainFilter
+from ase.constraints import FixAtoms
+from ase.filters import StrainFilter
 from ase.optimize import FIRE
 import ase.io
 import ase.units as units

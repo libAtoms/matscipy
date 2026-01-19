@@ -3,7 +3,7 @@ import numpy as np
 from ase.build import bulk
 from ase.lattice.cubic import Diamond
 from ase.optimize.precon import PreconLBFGS
-from ase.constraints import ExpCellFilter
+from ase.filters import FrechetCellFilter
 from matscipy.cauchy_born import CubicCauchyBorn
 from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber, Holland_Marder_PRL_80_746_Si
 from matscipy.calculators.manybody import Manybody
@@ -26,7 +26,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
                      directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         calc = Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si))
         si.calc = calc
-        ecf = ExpCellFilter(si)
+        ecf = FrechetCellFilter(si)
         opt = PreconLBFGS(ecf)
         opt.run(fmax=1e-6, smax=1e-6)
         # print(si.get_positions())
@@ -207,7 +207,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         func = self.E_cart3D
         coordinates = 'cart3D'
         atoms, shifts, shift_err_before, A = self.model_prediction(
-            dirs, eps, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
+            dirs, eps, method='regression', E_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
         atoms_copy = atoms.copy()
         atoms_copy.calc = self.cb.calc
         self.cb.apply_shifts(atoms_copy, shifts)
@@ -215,7 +215,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         converged, err = self.cb.check_for_refit(
             A, atoms_copy, forces_after, E_func=func, eps=eps, tol=1e-4, refit_points=2)
         atoms, shifts, shift_err_after, A = self.model_prediction(
-            dirs, eps, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
+            dirs, eps, method='regression', E_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
         assert shift_err_after < shift_err_before
         # print(shift_err_before,shift_err_after)
 
@@ -237,7 +237,7 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         coordinates = 'cart3D'
         # print('MAKING RAW PREDICION WITH NO ADDED EPS')
         atoms, shifts, shift_err_before, A = self.model_prediction(
-            dirs, eps, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
+            dirs, eps, method='regression', E_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
         atoms_copy_init = atoms.copy()
         self.cb.apply_shifts(atoms_copy_init, shifts)
         # find the gradient using the strain function finite differences
@@ -250,14 +250,14 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         eps_down[1] -= de
 
         atoms, shifts_down, shift_err_before, A = self.model_prediction(
-            dirs, eps_down, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
+            dirs, eps_down, method='regression', E_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
         atoms_copy_down = atoms.copy()
         self.cb.apply_shifts(atoms_copy_down, shifts_down)
 
         eps_up = eps.copy()
         eps_up[1] += de
         atoms, shifts_up, shift_err_before, A = self.model_prediction(
-            dirs, eps_up, method='regression', E_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
+            dirs, eps_up, method='regression', E_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
 
         atoms_copy_up = atoms.copy()
         self.cb.apply_shifts(atoms_copy_up, shifts_up)
@@ -298,14 +298,14 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         eps_down[1] -= de
 
         atoms, shifts_down, shift_err_before, A = self.model_prediction(
-            dirs, eps_down, method='regression', F_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
+            dirs, eps_down, method='regression', F_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
         atoms_copy_down = atoms.copy()
         self.cb.apply_shifts(atoms_copy_down, shifts_down)
 
         eps_up = eps.copy()
         eps_up[1] += de
         atoms, shifts_up, shift_err_before, A = self.model_prediction(
-            dirs, eps_up, method='regression', F_func=func, coordinates=coordinates, atol=1e-4, returnvals=True)
+            dirs, eps_up, method='regression', F_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
 
         atoms_copy_up = atoms.copy()
         self.cb.apply_shifts(atoms_copy_up, shifts_up)

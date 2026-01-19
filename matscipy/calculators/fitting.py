@@ -662,7 +662,7 @@ class FitCubicCrystal(Fit):
         self.new_bulk()
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
-            ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
+            ase.filters.StrainFilter(self.atoms, mask=[1,1,1,0,0,0]),
             logfile=_logfile).run(fmax=self.fmax,steps=10000)
         a0 = self.get_lattice_constant()
         self.supercell = self.crystal(
@@ -884,7 +884,7 @@ class FitTetragonalCrystal(Fit):
         self.new_bulk()
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
-            ase.constraints.StrainFilter(self.atoms, mask=[1,1,1,1,1,1]),
+            ase.filters.StrainFilter(self.atoms, mask=[1,1,1,1,1,1]),
             logfile=_logfile).run(fmax=self.fmax,steps=10000)
         a0,c0 = self.get_lattice_constant()
         self.supercell = self.crystal(
@@ -1153,7 +1153,7 @@ class FitHexagonalCrystal(Fit):
         self.new_bulk()
         self.atoms.set_calculator(calc)
         ase.optimize.FIRE(
-            ase.constraints.StrainFilter(self.atoms, mask=[1,1,0,0,0,0]),
+            ase.filters.StrainFilter(self.atoms, mask=[1,1,0,0,0,0]),
             logfile=_logfile).run(fmax=self.fmax,steps=10000)
 
     def get_lattice_constant(self):

@@ -24,6 +24,7 @@ import pytest
 import numpy as np
 
 import ase.constraints
+import ase.filters
 from ase.lattice.compounds import B1, B2, B3
 from ase.lattice.cubic import BodyCenteredCubic, Diamond, FaceCenteredCubic
 from ase.optimize import FIRE
@@ -125,7 +126,7 @@ def test_cubic_elastic_constants(test):
     c1, c2, c3 = atoms.get_cell()
     a0 = np.sqrt(np.dot(c1, c1)) / sx
 
-    FIRE(ase.constraints.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.0001)
+    FIRE(ase.filters.StrainFilter(atoms, mask=[1, 1, 1, 0, 0, 0]), logfile=None).run(fmax=0.0001)
 
     # Ec
     Ec = -atoms.get_potential_energy() / len(atoms)

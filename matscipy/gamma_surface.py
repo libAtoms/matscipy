@@ -2,7 +2,7 @@ import numpy as np
 from ase.build import stack
 from matscipy.dislocation import FixedLineAtoms
 from ase.optimize import BFGSLineSearch
-from ase.constraints import UnitCellFilter
+from ase.filters import UnitCellFilter
 from matscipy.utils import validate_cubic_cell, complete_basis
 import inspect
 from matscipy.dislocation import CubicCrystalDislocation, \
