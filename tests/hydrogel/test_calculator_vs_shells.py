@@ -9,7 +9,7 @@ from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices impor
 
 import numpy as np
 import matplotlib.pyplot as plt
-from ase.constraints import UnitCellFilter
+from ase.filters import UnitCellFilter
 from ase.optimize import FIRE
 
 # Import the factory function directly

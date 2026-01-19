@@ -6,7 +6,7 @@ Tests that the meanfield results are recovered for large cutoff radii.
 import pytest
 import numpy as np
 
-from ase.constraints import UnitCellFilter
+from ase.filters import UnitCellFilter
 from ase.optimize import FIRE
 from ase.build import bulk
 

@@ -5,7 +5,7 @@ Test script for 2D graphite (graphene) hydrogel structure creation
 
 import numpy as np
 import matplotlib.pyplot as plt
-from ase.constraints import UnitCellFilter
+from ase.filters import UnitCellFilter
 from ase.optimize import FIRE
 
 # Import the factory function directly
