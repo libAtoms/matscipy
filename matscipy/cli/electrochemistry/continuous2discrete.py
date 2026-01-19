@@ -98,7 +98,7 @@ def main():
                         help=('When storing as LAMMPS data, this tool uses'
                               ' atom sytle "full", assigning a molecule id to'
                               ' each atom. Per default, a unique 1-indexed'
-                              ' molecule id corrsponding to its atom id is'
+                              ' molecule id corresponding to its atom id is'
                               ' assigned to each atom. Specify a species-wise'
                               ' offset here. Specifying 0 (zero) for each'
                               ' species will result in moleucules containing '
