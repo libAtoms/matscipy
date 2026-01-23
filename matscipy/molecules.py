@@ -163,24 +163,19 @@ class Molecules:
 
         return Molecules(**kwargs)
 
-    def to_arrays(self, natoms):
+    def to_atoms_arrays(self, atoms):
         """
-        Convert Molecules object back to ASE atoms.arrays format.
-        
-        This is the inverse of from_atoms() method.
+        Adds the Molecule's connectivity information to the ASE atoms object.
+        This is the inverse of from_atoms() method. 
+
+        The connectivity is stored in the atoms.arrays dictionary, with the keys 'bonds', 'angles', and 'dihedrals'.
         
         Parameters
         ----------
-        natoms : int
-            Total number of atoms in the system
-            
-        Returns
-        -------
-        dict
-            Dictionary containing arrays that can be added to atoms.arrays
-            Keys are 'bonds', 'angles', 'dihedrals' as applicable
+        atoms : ase.Atoms
+            The atoms object to which connectivity arrays will be added
         """
-        result = {}
+        natoms = len(atoms)
         
         # Handle bonds
         if len(self.bonds) > 0:
@@ -204,7 +199,7 @@ class Molecules:
                 else:
                     bonds_array.append('_')
             
-            result['bonds'] = np.array(bonds_array)
+            atoms.arrays['bonds'] = np.array(bonds_array)
         
         # Handle angles
         if len(self.angles) > 0:
@@ -231,7 +226,7 @@ class Molecules:
                 else:
                     angles_array.append('_')
             
-            result['angles'] = np.array(angles_array)
+            atoms.arrays['angles'] = np.array(angles_array)
         
         # Handle dihedrals
         if len(self.dihedrals) > 0:
@@ -258,9 +253,7 @@ class Molecules:
                 else:
                     dihedrals_array.append('_')
             
-            result['dihedrals'] = np.array(dihedrals_array)
-        
-        return result
+            atoms.arrays['dihedrals'] = np.array(dihedrals_array)
 
 
 

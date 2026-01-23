@@ -204,28 +204,36 @@ def test_molecules_roundtrip():
         '_'           # atom 3 has no dihedrals
     ])
     
+    # Store original arrays for comparison
+    original_bonds = atoms.arrays['bonds'].copy()
+    original_angles = atoms.arrays['angles'].copy()
+    original_dihedrals = atoms.arrays['dihedrals'].copy()
+    
     # Convert to Molecules object
     molecules = Molecules.from_atoms(atoms)
     
-    # Convert back to arrays format
-    arrays = molecules.to_arrays(natoms)
+    # Create a new atoms object for roundtrip test
+    roundtrip_atoms = Atoms('CHCH', positions=[[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]])
+    
+    # Convert back to arrays format (modifies roundtrip_atoms directly)
+    molecules.to_atoms_arrays(roundtrip_atoms)
     
     # Verify the roundtrip preserves the original data
-    assert 'bonds' in arrays
-    assert 'angles' in arrays
-    assert 'dihedrals' in arrays
+    assert 'bonds' in roundtrip_atoms.arrays
+    assert 'angles' in roundtrip_atoms.arrays
+    assert 'dihedrals' in roundtrip_atoms.arrays
     
     # For bonds, the order might be different due to the way connectivity is stored
     # So we need to compare sets of bond strings for each atom
     for i in range(natoms):
-        original_bonds = set(atoms.arrays['bonds'][i].split(',')) if atoms.arrays['bonds'][i] != '_' else {'_'}
-        roundtrip_bonds = set(arrays['bonds'][i].split(',')) if arrays['bonds'][i] != '_' else {'_'}
-        assert original_bonds == roundtrip_bonds, f"Bond mismatch for atom {i}: {original_bonds} != {roundtrip_bonds}"
+        original_bonds_set = set(original_bonds[i].split(',')) if original_bonds[i] != '_' else {'_'}
+        roundtrip_bonds_set = set(roundtrip_atoms.arrays['bonds'][i].split(',')) if roundtrip_atoms.arrays['bonds'][i] != '_' else {'_'}
+        assert original_bonds_set == roundtrip_bonds_set, f"Bond mismatch for atom {i}: {original_bonds_set} != {roundtrip_bonds_set}"
     
     # Angles and dihedrals should match exactly since they're stored on specific atoms
     for i in range(natoms):
-        assert atoms.arrays['angles'][i] == arrays['angles'][i], f"Angle mismatch for atom {i}"
-        assert atoms.arrays['dihedrals'][i] == arrays['dihedrals'][i], f"Dihedral mismatch for atom {i}"
+        assert original_angles[i] == roundtrip_atoms.arrays['angles'][i], f"Angle mismatch for atom {i}"
+        assert original_dihedrals[i] == roundtrip_atoms.arrays['dihedrals'][i], f"Dihedral mismatch for atom {i}"
 
 
 def test_molecules_roundtrip_empty():
@@ -238,19 +246,26 @@ def test_molecules_roundtrip_empty():
     atoms.arrays['angles'] = np.array(['_', '_'])
     atoms.arrays['dihedrals'] = np.array(['_', '_'])
     
-    # Convert to Molecules object and back
+    # Convert to Molecules object
     molecules = Molecules.from_atoms(atoms)
-    arrays = molecules.to_arrays(natoms)
     
-    # When all connectivity is empty ('_'), the to_arrays method returns empty dict
+    # Create a new atoms object for roundtrip test
+    roundtrip_atoms = Atoms('HH', positions=[[0, 0, 0], [1, 0, 0]])
+    
+    # Convert back to arrays format (modifies roundtrip_atoms directly)
+    molecules.to_atoms_arrays(roundtrip_atoms)
+    
+    # When all connectivity is empty ('_'), the to_atoms_arrays method doesn't add arrays
     # because there are no actual bonds/angles/dihedrals to store
     # This is expected behavior - the Molecules object will have empty arrays
     assert len(molecules.bonds) == 0
     assert len(molecules.angles) == 0  
     assert len(molecules.dihedrals) == 0
     
-    # The returned arrays dict should be empty since there's no connectivity
-    assert len(arrays) == 0
+    # No arrays should be added to roundtrip_atoms since there's no connectivity
+    assert 'bonds' not in roundtrip_atoms.arrays
+    assert 'angles' not in roundtrip_atoms.arrays
+    assert 'dihedrals' not in roundtrip_atoms.arrays
 
 
 def test_molecules_roundtrip_bonds_only():
@@ -265,20 +280,28 @@ def test_molecules_roundtrip_bonds_only():
         '0(2)'        # atom 2 bonded to atom 0
     ])
     
-    # Convert to Molecules object and back
+    # Store original bonds for comparison
+    original_bonds = atoms.arrays['bonds'].copy()
+    
+    # Convert to Molecules object
     molecules = Molecules.from_atoms(atoms)
-    arrays = molecules.to_arrays(natoms)
+    
+    # Create a new atoms object for roundtrip test
+    roundtrip_atoms = Atoms('CHH', positions=[[0, 0, 0], [1, 0, 0], [2, 0, 0]])
+    
+    # Convert back to arrays format (modifies roundtrip_atoms directly)
+    molecules.to_atoms_arrays(roundtrip_atoms)
     
     # Should only get bonds back
-    assert 'bonds' in arrays
-    assert 'angles' not in arrays
-    assert 'dihedrals' not in arrays
+    assert 'bonds' in roundtrip_atoms.arrays
+    assert 'angles' not in roundtrip_atoms.arrays
+    assert 'dihedrals' not in roundtrip_atoms.arrays
     
     # Verify bonds
     for i in range(natoms):
-        original_bonds = set(atoms.arrays['bonds'][i].split(',')) if atoms.arrays['bonds'][i] != '_' else {'_'}
-        roundtrip_bonds = set(arrays['bonds'][i].split(',')) if arrays['bonds'][i] != '_' else {'_'}
-        assert original_bonds == roundtrip_bonds, f"Bond mismatch for atom {i}: {original_bonds} != {roundtrip_bonds}"
+        original_bonds_set = set(original_bonds[i].split(',')) if original_bonds[i] != '_' else {'_'}
+        roundtrip_bonds_set = set(roundtrip_atoms.arrays['bonds'][i].split(',')) if roundtrip_atoms.arrays['bonds'][i] != '_' else {'_'}
+        assert original_bonds_set == roundtrip_bonds_set, f"Bond mismatch for atom {i}: {original_bonds_set} != {roundtrip_bonds_set}"
 
 
 if __name__ == '__main__':
