@@ -109,7 +109,7 @@ class Hydrogel(MatscipyCalculator):
 
     def __init__(self, cutoff, chain_monomers, kuhn_length,
                  monomer_volume=None, flory_chi=0.5, coordination=4,
-                 bonds=None, molecules=None, chain=None, dim=3):
+                 molecules=None, chain=None, dim=3):
         super().__init__()
 
         self.N = chain_monomers
@@ -136,37 +136,13 @@ class Hydrogel(MatscipyCalculator):
             self.chain = LangevinChain(kuhn_length, chain_monomers)
 
         # Store bond topology
-        self._bonds = None
-        self._molecules = None
 
-        if molecules is not None:
-            self._molecules = molecules
-            if len(molecules.bonds) > 0:
-                self._bonds = molecules.bonds['atoms']
-        elif bonds is not None:
-            self._bonds = np.asarray(bonds)
+        self._molecules = molecules
 
     @property
     def bonds(self):
         """Return bond connectivity array."""
-        return self._bonds
-
-    @bonds.setter
-    def bonds(self, value):
-        """Set bond connectivity array."""
-        self._bonds = np.asarray(value) if value is not None else None
-
-    def set_molecules(self, molecules):
-        """Set molecular topology from Molecules object.
-
-        Parameters
-        ----------
-        molecules : Molecules
-            Molecules object containing bond topology
-        """
-        self._molecules = molecules
-        if len(molecules.bonds) > 0:
-            self._bonds = molecules.bonds['atoms']
+        return self._molecules.bonds['atoms']
 
     def _compute_density(self, atoms):
         """Compute local crosslinker density at each crosslinker.
@@ -216,12 +192,12 @@ class Hydrogel(MatscipyCalculator):
         r_bc : ndarray
             Bond distance vectors
         """
-        if self._bonds is None or len(self._bonds) == 0:
+        if self.bonds is None or len(self.bonds) == 0:
             return np.array([]), np.zeros((0, 3))
 
         # Get positions of bonded atoms
-        pos_i = atoms.positions[self._bonds[:, 0]]
-        pos_j = atoms.positions[self._bonds[:, 1]]
+        pos_i = atoms.positions[self.bonds[:, 0]]
+        pos_j = atoms.positions[self.bonds[:, 1]]
 
         # Compute distance vectors with minimum image convention
         r_bc, r_b = find_mic(pos_j - pos_i, atoms.cell, atoms.pbc)
@@ -286,7 +262,7 @@ class Hydrogel(MatscipyCalculator):
         f_bond_nc = np.zeros((nat, 3))
         virial_bond = np.zeros((3, 3))
 
-        if self._bonds is not None and len(self._bonds) > 0:
+        if self.bonds is not None and len(self.bonds) > 0:
             r_b, r_bc = self._compute_bond_vectors(atoms)
 
             # Bond energy
@@ -308,10 +284,10 @@ class Hydrogel(MatscipyCalculator):
             # Force on atom j (bonds[:, 1]): -df_bond
             for c in range(3):
                 f_bond_nc[:, c] += np.bincount(
-                    self._bonds[:, 0], weights=df_bond_bc[:, c], minlength=nat
+                    self.bonds[:, 0], weights=df_bond_bc[:, c], minlength=nat
                 )
                 f_bond_nc[:, c] -= np.bincount(
-                    self._bonds[:, 1], weights=df_bond_bc[:, c], minlength=nat
+                    self.bonds[:, 1], weights=df_bond_bc[:, c], minlength=nat
                 )
 
             # Virial from bond term (following EAM convention)
