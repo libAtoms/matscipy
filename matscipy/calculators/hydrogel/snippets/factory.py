@@ -58,7 +58,7 @@ def create_graphite_lattice(crosslink_spacing, n_cells=2, truly_2d=True, vacuum=
     ----------
     crosslink_spacing : float
         Distance between crosslinkers (nearest neighbor distance in graphene)
-    n_cells : int
+    n_cells : int or tuple of int
         Number of unit cells in each direction (x, y)
     truly_2d : bool
         If True, set periodic boundary conditions only in x,y (not z)
@@ -73,6 +73,10 @@ def create_graphite_lattice(crosslink_spacing, n_cells=2, truly_2d=True, vacuum=
     molecules : matscipy.molecules.Molecules
         Bond topology
     """
+    if hasattr(n_cells, "__len__"):
+        n_cells_x, n_cells_y = n_cells
+    else:
+        n_cells_x = n_cells_y = n_cells
 
     # Create graphene sheet with the desired nearest neighbor distance
     # In graphene, the lattice parameter 'a' relates to nearest neighbor distance as: nn_dist = a / sqrt(3)
@@ -81,7 +85,7 @@ def create_graphite_lattice(crosslink_spacing, n_cells=2, truly_2d=True, vacuum=
     
     if truly_2d:
         # Create truly 2D system with no vacuum and 2D periodic boundary conditions
-        atoms = graphene(a=a, size=(n_cells, n_cells, 1), vacuum=0.0)
+        atoms = graphene(a=a, size=(n_cells_x, n_cells_y, 1), vacuum=0.0)
         
         # Set periodic boundary conditions: True for x,y and False for z
         atoms.pbc = [True, True, False]
@@ -93,7 +97,7 @@ def create_graphite_lattice(crosslink_spacing, n_cells=2, truly_2d=True, vacuum=
         
     else:
         # Create 3D periodic system with vacuum in z-direction
-        atoms = graphene(a=a, size=(n_cells, n_cells, 1), vacuum=vacuum)
+        atoms = graphene(a=a, size=(n_cells_x, n_cells_y, 1), vacuum=vacuum)
 
     # Set masses (LJ units)
     atoms.set_masses(np.ones(len(atoms)))
