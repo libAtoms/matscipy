@@ -18,7 +18,7 @@ from matscipy.elasticity import Voigt_6x6_to_cubic, fit_elastic_constants
 
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import MeanFieldHydrogelLattice, CROSSLINK_VOLUMES
 from matscipy.calculators.hydrogel.calculator import Hydrogel
-from matscipy.calculators.hydrogel.potentials import FloryHuggins, GaussianChain, LucyWeightFunction2D
+from matscipy.calculators.hydrogel.potentials import FloryHugginsPotential  , GaussianChain, LucyWeightFunction2D
 from matscipy.calculators.hydrogel.reference_solutions.lattice_shell_structures import GraphiteShellStructure
 from matscipy.calculators.hydrogel.reference_solutions.shell_calculator import ShellHydrogelCalculator
 
@@ -69,7 +69,7 @@ def graphite_shellcalc_largecutoff(parameters, graphite_meanfield, graphite_shel
 
     return ShellHydrogelCalculator(graphite_shellstructure, 
         chain_potential=GaussianChain(1, graphite_meanfield.chain_nb_monomers, dim=2),
-        embedding_potential=FloryHuggins(
+        embedding_potential=FloryHugginsPotential (
             graphite_meanfield.chain_nb_monomers,
             monomer_volume=graphite_meanfield.v0,
             flory_chi=graphite_meanfield.flory_chi,

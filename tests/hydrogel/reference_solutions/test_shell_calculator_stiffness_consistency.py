@@ -8,7 +8,7 @@ from matscipy.calculators.hydrogel.reference_solutions.shell_calculator import (
     ShellHydrogelCalculator, 
     Isotropic2DShellHydrogelCalculator
 )
-from matscipy.calculators.hydrogel.potentials import FloryHuggins, GaussianChain, LucyWeightFunction2D
+from matscipy.calculators.hydrogel.potentials import FloryHugginsPotential  , GaussianChain, LucyWeightFunction2D
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import CROSSLINK_VOLUMES, MeanFieldHydrogelLattice
 
 
@@ -60,7 +60,7 @@ def shell_calculator(request, parameters, meanfield, shellstructure):
     calc = ShellHydrogelCalculator(
         shellstructure, 
         chain_potential=GaussianChain(1, N, dim=2),
-        embedding_potential=FloryHuggins(
+        embedding_potential=FloryHugginsPotential (
             N,
             monomer_volume=meanfield.v0,
             flory_chi=χ,
@@ -87,7 +87,7 @@ def isotropic_2d_calculator(request, parameters, meanfield, shellstructure):
     calc = Isotropic2DShellHydrogelCalculator(
         shellstructure, 
         chain_potential=GaussianChain(1, N, dim=2),
-        embedding_potential=FloryHuggins(
+        embedding_potential=FloryHugginsPotential (
             N,
             monomer_volume=meanfield.v0,
             flory_chi=χ,

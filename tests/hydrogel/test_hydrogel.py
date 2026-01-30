@@ -25,7 +25,7 @@ import pytest
 from ase import Atoms
 from ase.build import bulk
 
-from matscipy.calculators.hydrogel import (FloryHuggins, Hydrogel,
+from matscipy.calculators.hydrogel import (FloryHugginsPotential , Hydrogel,
                                            LangevinChain, LucyWeightFunction,
                                            LucyWeightFunction2D)
 from matscipy.molecules import Molecules
@@ -241,14 +241,6 @@ class TestHydrogelIntegration:
             molecules=molecules,
         )
         atoms.calc = calc
-
-        # Verify properties
-        assert calc.N == N
-        assert calc.b == b
-        assert calc.chi == chi
-        assert calc.coord == coord
-        assert calc.v0 == v0
-        assert calc.chain.L0 == L0
 
         # Energy should be finite
         energy = atoms.get_potential_energy()

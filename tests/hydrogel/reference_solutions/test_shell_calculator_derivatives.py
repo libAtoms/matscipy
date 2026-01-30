@@ -12,7 +12,7 @@ from matscipy.calculators.hydrogel.reference_solutions.shell_calculator import S
 from matscipy.calculators.hydrogel.reference_solutions.lattice_shell_structures import GraphiteShellStructure
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import MeanFieldHydrogelLattice, CROSSLINK_VOLUMES
 from matscipy.calculators.hydrogel.potentials import (
-    FloryHuggins,
+    FloryHugginsPotential  ,
     GaussianChain, 
     LangevinChain, 
     LucyWeightFunction,
@@ -48,7 +48,7 @@ class TestShellCalculatorDerivatives:
         req_mf = meanfield.compute_equilibrium_distance()
 
         # Set up embedding potential (Flory-Huggins)
-        embedding_potential = FloryHuggins(
+        embedding_potential = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=np.pi *(1/2)**2,  # Assuming kuhn length = 1
             flory_chi=0.5,

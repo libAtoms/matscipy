@@ -3,7 +3,7 @@
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import MeanFieldHydrogelLattice, CROSSLINK_VOLUMES
 import numpy as np
 
-from matscipy.calculators.hydrogel.potentials import FloryHuggins
+from matscipy.calculators.hydrogel.potentials import FloryHugginsPotential 
 
 def test_radius_from_density_roundtrip_3D():
     density = 0.1
@@ -98,7 +98,7 @@ def test_mixing_pressure_flory_huggins():
     )
     r = polymer.compute_equilibrium_distance()
 
-    fh = FloryHuggins(chain_monomers=100, monomer_volume=polymer.v0, 
+    fh = FloryHugginsPotential (chain_monomers=100, monomer_volume=polymer.v0, 
                       flory_chi=0.5, coordination=4)
     
     pfh = fh.pressure(crosslink_density=1 / polymer.vpcl(r))

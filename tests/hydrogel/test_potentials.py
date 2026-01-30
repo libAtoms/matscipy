@@ -1,7 +1,7 @@
 import numpy as np
 from matscipy.calculators.hydrogel.potentials import (
     ChainPotential,
-    FloryHuggins,
+    FloryHugginsPotential  ,
     LangevinChain,
     LucyWeightFunction,
     LucyWeightFunction2D,
@@ -158,12 +158,12 @@ class TestLucyWeightFunction2D:
 # ============== Flory-Huggins Tests ==============
 
 
-class TestFloryHuggins:
+class TestFloryHugginsPotential :
     """Tests for Flory-Huggins embedding energy."""
 
     def test_energy_at_low_density(self):
         """Test that energy is finite at low density."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -180,7 +180,7 @@ class TestFloryHuggins:
 
     def test_derivative_numerical(self):
         """Test derivative against numerical differentiation."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -199,7 +199,7 @@ class TestFloryHuggins:
 
     def test_second_derivative_numerical(self):
         """Test second derivative against numerical differentiation."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -218,7 +218,7 @@ class TestFloryHuggins:
 
     def test_energy_consistency(self):
         """Test that energy, derivative, and second derivative are consistent."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -241,7 +241,7 @@ class TestFloryHuggins:
 
     def test_pressure_comp_with_fd(self):
         """Test that pressure calculation using composition rule is consistent with finite differences of the energy"""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -267,7 +267,7 @@ class TestFloryHuggins:
 
     def test_pressure_ana_with_fd(self):
         """Test that direct analytical expression for pressure calculation is consistent with finite differences of the energy """
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -294,7 +294,7 @@ class TestFloryHuggins:
 
     def test_per_volume_phi_derivative_numerical(self):
         """Test per_volume phi derivatives against numerical differentiation."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -326,7 +326,7 @@ class TestFloryHuggins:
 
     def test_per_volume_phi2_derivative_numerical(self):
         """Test per_volume phi second derivatives against numerical differentiation."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -358,7 +358,7 @@ class TestFloryHuggins:
 
     def test_per_volume_rho_derivative_numerical(self):
         """Test per_volume rho derivatives against numerical differentiation."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -388,7 +388,7 @@ class TestFloryHuggins:
 
     def test_per_volume_rho2_derivative_numerical(self):
         """Test per_volume rho second derivatives against numerical differentiation."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -418,7 +418,7 @@ class TestFloryHuggins:
 
     def test_per_volume_derivative_chain_rule(self):
         """Test that chain rule is correctly applied for rho derivatives."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,
@@ -441,7 +441,7 @@ class TestFloryHuggins:
 
     def test_per_volume_array_vs_scalar_consistency(self):
         """Test that per_volume gives consistent results for arrays vs scalars."""
-        fh = FloryHuggins(
+        fh = FloryHugginsPotential (
             chain_monomers=50,
             monomer_volume=4 * np.pi / 3,
             flory_chi=0.5,

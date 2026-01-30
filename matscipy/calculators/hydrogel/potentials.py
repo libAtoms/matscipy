@@ -33,6 +33,9 @@ import warnings
 
 import numpy as np
 
+from matscipy.calculators.manybody.newmb import Manybody
+from matscipy.calculators.manybody.potentials import distance_defined
+
 
 class WeightFunction(ABC):
     """Abstract base class for weight functions used in density estimation."""
@@ -210,7 +213,7 @@ class EmbeddingPotential(ABC):
         pass
 
 
-class FloryHuggins(EmbeddingPotential):
+class FloryHugginsPotential(EmbeddingPotential):
     """Flory-Huggins mixing free energy for polymer-solvent systems.
 
     The mixing free energy per volume is:
@@ -419,6 +422,9 @@ class FloryHuggins(EmbeddingPotential):
         return self.per_volume(rho, der='rho2') * vi + 2 * self.per_volume(rho, der='rho') * vip + self.per_volume(rho) * vipp
 
 
+        
+
+
 class ChainPotential(ABC):
     """Abstract base class for chain conformational free energy potentials.
 
@@ -428,7 +434,31 @@ class ChainPotential(ABC):
     Chain potentials are used in hydrogel simulations to describe the
     conformational free energy of polymer chains connecting crosslinkers.
     """
+    @distance_defined
+    class ManyBodyPhi(Manybody.Phi):
+        """
+        Implementation of a harmonic pair interaction.
+        """
 
+        def __init__(self, chainpotential):
+            self.chainpotential = chainpotential
+
+        def __call__(self, r_p, xi_p):
+            return self.chainpotential(r_p) + xi_p
+
+        def gradient(self, r_p, xi_p):
+            return np.stack([
+                self.chainpotential.derivative(r_p),
+                np.ones_like(xi_p),
+            ])
+
+        def hessian(self, r_p, xi_p):
+            return np.stack([
+                self.chainpotential.second_derivative(r_p),
+                np.zeros_like(xi_p),
+                np.zeros_like(xi_p),
+            ])
+        
     @abstractmethod
     def __call__(self, r):
         """Compute chain conformational free energy A(r).
@@ -476,6 +506,9 @@ class ChainPotential(ABC):
             Second derivative of conformational free energy
         """
         pass
+
+    def to_manybody_phi(self):
+        return ChainPotential.ManyBodyPhi(self)
 
 
 class GaussianChain(ChainPotential):

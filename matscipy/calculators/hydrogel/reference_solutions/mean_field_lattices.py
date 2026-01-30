@@ -4,7 +4,7 @@ and assuming affine elastic deformation of ideal Gaussian chains.
 """
 
 from typing import Optional
-from matscipy.calculators.hydrogel.potentials import GaussianChain, FloryHuggins
+from matscipy.calculators.hydrogel.potentials import GaussianChain, FloryHugginsPotential
 import numpy as np
 
 CROSSLINK_VOLUMES={
@@ -64,7 +64,7 @@ class MeanFieldHydrogelLattice():
         self.vpcl_factor = vpcl_factor
         self.chain = GaussianChain(kuhn_length=1, chain_monomers=chain_nb_monomers, dim=dim)
 
-        self._flory_huggins = FloryHuggins(chain_nb_monomers, self.v0, flory_chi, coordination) 
+        self._flory_huggins = FloryHugginsPotential(chain_nb_monomers, self.v0, flory_chi, coordination) 
 
     def vpcl(self, r,):
         """Volume per atom (crosslink) at crosslink distance r"""
