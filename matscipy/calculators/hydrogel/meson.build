@@ -4,7 +4,10 @@
 python_sources = [
     '__init__.py',
     'calculator.py',
-    'potentials.py'
+    'embedding.py',
+    'embedding_constant_coordination.py',
+    'network.py', 
+    'weight_functions.py',
 ]
 
 # Install pure Python

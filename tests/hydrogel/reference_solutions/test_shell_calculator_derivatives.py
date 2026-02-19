@@ -11,13 +11,11 @@ import numpy as np
 from matscipy.calculators.hydrogel.reference_solutions.shell_calculator import ShellHydrogelCalculator
 from matscipy.calculators.hydrogel.reference_solutions.lattice_shell_structures import GraphiteShellStructure
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import MeanFieldHydrogelLattice, CROSSLINK_VOLUMES
-from matscipy.calculators.hydrogel.potentials import (
-    FloryHugginsPotential  ,
+from matscipy.calculators.hydrogel import (
     GaussianChain, 
-    LangevinChain, 
-    LucyWeightFunction,
     LucyWeightFunction2D
 )
+from matscipy.calculators.hydrogel.embedding_constant_coordination import FloryHugginsPotential 
 
 from hydrogel.reference_solutions.test_shell_calculator_stiffness_consistency import meanfield
 

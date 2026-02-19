@@ -8,7 +8,8 @@ from matscipy.calculators.hydrogel.reference_solutions.shell_calculator import (
     ShellHydrogelCalculator, 
     Isotropic2DShellHydrogelCalculator
 )
-from matscipy.calculators.hydrogel.potentials import FloryHugginsPotential  , GaussianChain, LucyWeightFunction2D
+from matscipy.calculators.hydrogel.embedding_constant_coordination import FloryHugginsPotential
+from matscipy.calculators.hydrogel import GaussianChain, LucyWeightFunction2D
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import CROSSLINK_VOLUMES, MeanFieldHydrogelLattice
 
 

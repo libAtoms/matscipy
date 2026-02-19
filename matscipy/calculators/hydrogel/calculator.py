@@ -32,9 +32,11 @@ from matscipy.calculators.manybody.newmb import Manybody
 from matscipy.calculators.manybody.potentials import HarmonicPair, ZeroAngle
 
 from ...elasticity import full_3x3_to_Voigt_6_stress
-from ...neighbours import MolecularNeighbourhood, neighbour_list
+from ...neighbours import MolecularNeighbourhood, coordination, neighbour_list
 from ..calculator import MatscipyCalculator
-from .potentials import EmbeddingPotential, FloryHugginsPotential, LangevinChain, LucyWeightFunction, LucyWeightFunction2D, WeightFunction, WeightFunction
+from .embedding import EmbeddingPotential, FloryHugginsPotential
+from .network import LangevinChain
+from .weight_functions import LucyWeightFunction, LucyWeightFunction2D, WeightFunction, WeightFunction
 
 from ase.calculators.calculator import Calculator
 from ase.calculators.mixing import SumCalculator
@@ -49,13 +51,16 @@ class Embedding(Calculator):
     ]
 
     default_parameters = {}
-    name = 'ManybodyEmbedding'
+    name = 'Embedding'
 
-    def __init__(self, weight_func: WeightFunction, embedding_potential: EmbeddingPotential):
+    def __init__(self, weight_func: WeightFunction, 
+                 embedding_potential: FloryHugginsPotential,
+                 chain_neighbourhood: MolecularNeighbourhood):
         super().__init__()
 
         self.weight_func = weight_func
         self.embedding = embedding_potential
+        self.chain_neighbourhood = chain_neighbourhood
         
     def _compute_density(self, atoms):
         """Compute local crosslinker density at each crosslinker.
@@ -68,6 +73,8 @@ class Embedding(Calculator):
         -------
         rho : ndarray
             Local crosslinker density at each atom (including self)
+        nu : ndarray
+            Local chain density at each atom (including self)
         i_p, j_p : ndarray
             Neighbor pair indices
         r_p : ndarray
@@ -80,6 +87,9 @@ class Embedding(Calculator):
         """
         nat = len(atoms)
 
+        # compute the numver of chains connected to each crosslinker (coordination)
+        coordination = np.bincount(self.chain_neighbourhood.get_pairs(atoms, 'i'))
+
         # Get neighbor list
         i_p, j_p, r_p, r_pc = neighbour_list('ijdD', atoms, self.weight_func.cutoff)
 
@@ -89,11 +99,14 @@ class Embedding(Calculator):
         # Sum up crosslinker density contributions (excluding self)
         # rho_i = sum_{j != i} W(r_ij)
         rho = np.bincount(i_p, weights=w_p, minlength=nat)
+        
+        # chain density nu = rho * coord / 2 (including self contribution)
+        nu = np.bincount(i_p, weights=w_p * coordination[i_p] / 2, minlength=nat)
 
         # Self-contribution returned separately
         w0 = self.weight_func.at_zero()
 
-        return rho + w0, i_p, j_p, r_p, r_pc, w_p
+        return rho + w0, nu + coordination / 2 * w0, coordination, i_p, j_p, r_p, r_pc, w_p
     
     def calculate(self, atoms, properties, system_changes):
         """Calculate energy, forces, and stress."""
@@ -104,13 +117,18 @@ class Embedding(Calculator):
         # ========== Flory-Huggins (embedding) contribution ==========
 
         # Compute density
-        rho, i_p, j_p, r_p, r_pc, w_p = self._compute_density(atoms)
+        rho, nu, coordination, i_p, j_p, r_p, r_pc, w_p = self._compute_density(atoms)
 
+        vchain = self.embedding.vchain
+        phi = nu * vchain
+        
         # Embedding energy
-        E_embed = np.sum(self.embedding(rho))
+        E_embed = np.sum(self.embedding(rho, phi))
+
 
         # Embedding derivative dF/dρ for forces
-        dF_drho = self.embedding.derivative(rho)
+        dF_drho = self.embedding.derivative_rho(rho, phi)
+        dF_dphi = self.embedding.derivative_phi(rho, phi)
 
         # Weight function derivative
         dw_p = self.weight_func.derivative(r_p)
@@ -125,7 +143,8 @@ class Embedding(Calculator):
         mask = r_p > 1e-10
         # Compute force factor for each pair
         force_factor = (
-            -0.5 * (dF_drho[i_p[mask]] + dF_drho[j_p[mask]])
+            -0.5 * (dF_drho[i_p[mask]] + dF_dphi[i_p[mask]] * coordination[i_p[mask]] / 2 * vchain 
+                    + dF_drho[j_p[mask]] + dF_dphi[j_p[mask]] * coordination[j_p[mask]] / 2 * vchain)
             * dw_p[mask] / r_p[mask]
         )
         df_embed_pc[mask] = force_factor[:, np.newaxis] * r_pc[mask]
@@ -240,8 +259,8 @@ class Hydrogel(SumCalculator):
     default_parameters = {}
     name = 'Hydrogel'
 
-    def __init__(self, cutoff, chain_monomers, kuhn_length, molecules=None,
-                 monomer_volume=None, flory_chi=0.5, coordination=4,
+    def __init__(self, cutoff, chain_monomers, kuhn_length, molecules,
+                 monomer_volume=None, flory_chi=0.5,
                  chain=None, dim=3):
 
 
@@ -257,12 +276,14 @@ class Hydrogel(SumCalculator):
             chain = LangevinChain(kuhn_length, chain_monomers)
 
 
+        neigh = MolecularNeighbourhood(molecules)
 
         self.embedding_calculator = Embedding(
             weight_func=LucyWeightFunction(cutoff) if dim==3 else LucyWeightFunction2D(cutoff), 
-            embedding_potential=FloryHugginsPotential(chain_monomers, v0, flory_chi, coordination))
+            embedding_potential=FloryHugginsPotential(chain_monomers, v0, flory_chi), 
+            chain_neighbourhood=neigh, 
+            )
 
-        neigh = MolecularNeighbourhood(molecules)
         self.network_calculator = Manybody({1: chain.to_manybody_phi()}, 
                                            {1: ZeroAngle()}, neighbourhood=neigh)
 

@@ -15,7 +15,7 @@ import pytest
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import CROSSLINK_VOLUMES, MeanFieldHydrogelLattice
 
 from matscipy.calculators.hydrogel.calculator import Hydrogel
-from matscipy.calculators.hydrogel.potentials import GaussianChain
+from matscipy.calculators.hydrogel.network import GaussianChain
 
 from matscipy.elasticity import Voigt_6x6_to_cubic, fit_elastic_constants
 
@@ -86,7 +86,6 @@ def graphite_calc_factory(graphite_meanfield):
             kuhn_length=kuhn,
             monomer_volume=ana.v0,
             flory_chi=χ ,
-            coordination=ana.coordination,
             molecules=molecules,
             chain=GaussianChain(
                 kuhn_length=kuhn,

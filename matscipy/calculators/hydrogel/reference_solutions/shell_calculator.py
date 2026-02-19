@@ -1,7 +1,9 @@
 
 from matscipy.calculators.hydrogel.reference_solutions.lattice_shell_structures import ShellStructure, GraphiteShellStructure
-from matscipy.calculators.hydrogel.potentials import (ChainPotential, EmbeddingPotential, 
-    WeightFunction)
+from matscipy.calculators.hydrogel.embedding_constant_coordination import EmbeddingPotential
+from ..network import ChainPotential
+from ..weight_functions import WeightFunction
+
 from typing import Literal, Union
 import scipy
 import numpy as np

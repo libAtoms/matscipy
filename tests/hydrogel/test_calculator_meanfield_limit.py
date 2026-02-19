@@ -12,7 +12,7 @@ from ase.build import bulk
 
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import MeanFieldHydrogelLattice, CROSSLINK_VOLUMES
 from matscipy.calculators.hydrogel.calculator import Hydrogel
-from matscipy.calculators.hydrogel.potentials import GaussianChain
+from matscipy.calculators.hydrogel.network import GaussianChain
 from matscipy.molecules import Molecules
 from matscipy.neighbours import neighbour_list
 
@@ -87,7 +87,6 @@ def diamond_calc_factory(diamond_meanfield):
             kuhn_length=kuhn,
             monomer_volume=ana.v0,
             flory_chi=χ ,
-            coordination=ana.coordination,
             molecules=molecules,
             chain=GaussianChain(
                 kuhn_length=kuhn,

@@ -28,6 +28,8 @@ from ase.build import bulk
 from matscipy.calculators.hydrogel import (FloryHugginsPotential , Hydrogel,
                                            LangevinChain, LucyWeightFunction,
                                            LucyWeightFunction2D)
+import matscipy.calculators.hydrogel.embedding_constant_coordination as ecc
+
 from matscipy.molecules import Molecules
 from matscipy.numerical import numerical_forces, numerical_stress
 
@@ -237,7 +239,6 @@ class TestHydrogelIntegration:
             kuhn_length=b,
             monomer_volume=v0,
             flory_chi=chi,
-            coordination=coord,
             molecules=molecules,
         )
         atoms.calc = calc

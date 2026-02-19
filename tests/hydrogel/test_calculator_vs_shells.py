@@ -19,7 +19,10 @@ import pytest
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import CROSSLINK_VOLUMES, MeanFieldHydrogelLattice
 
 from matscipy.calculators.hydrogel.calculator import Hydrogel
-from matscipy.calculators.hydrogel.potentials import FloryHugginsPotential  , FloryHugginsPotential , GaussianChain, LucyWeightFunction2D
+from matscipy.calculators.hydrogel.embedding import FloryHugginsPotential, FloryHugginsPotential 
+from matscipy.calculators.hydrogel.network import GaussianChain 
+from matscipy.calculators.hydrogel.weight_functions import LucyWeightFunction2D
+import  matscipy.calculators.hydrogel.embedding_constant_coordination as ecc
 
 from matscipy.elasticity import Voigt_6x6_to_cubic, fit_elastic_constants
 
@@ -79,7 +82,6 @@ class TestGraphite():
                 kuhn_length=kuhn,
                 monomer_volume=ana.v0,
                 flory_chi=χ ,
-                coordination=ana.coordination,
                 molecules=molecules,
                 chain=GaussianChain(
                     kuhn_length=kuhn,
@@ -110,7 +112,7 @@ class TestGraphite():
         def factory(rc_factor):
             return ShellHydrogelCalculator(shellstructure, 
                 chain_potential=GaussianChain(1, meanfield.chain_nb_monomers, dim=2),
-                embedding_potential=FloryHugginsPotential (
+                embedding_potential=ecc.FloryHugginsPotential(
                     meanfield.chain_nb_monomers,
                     monomer_volume=meanfield.v0,
                     flory_chi=meanfield.flory_chi,

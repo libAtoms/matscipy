@@ -18,7 +18,8 @@ from matscipy.elasticity import Voigt_6x6_to_cubic, fit_elastic_constants
 
 from matscipy.calculators.hydrogel.reference_solutions.mean_field_lattices import MeanFieldHydrogelLattice, CROSSLINK_VOLUMES
 from matscipy.calculators.hydrogel.calculator import Hydrogel
-from matscipy.calculators.hydrogel.potentials import FloryHugginsPotential  , GaussianChain, LucyWeightFunction2D
+from matscipy.calculators.hydrogel.embedding_constant_coordination import FloryHugginsPotential
+from matscipy.calculators.hydrogel import GaussianChain, LucyWeightFunction2D
 from matscipy.calculators.hydrogel.reference_solutions.lattice_shell_structures import GraphiteShellStructure
 from matscipy.calculators.hydrogel.reference_solutions.shell_calculator import ShellHydrogelCalculator
 

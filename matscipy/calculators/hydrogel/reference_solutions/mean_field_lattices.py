@@ -4,7 +4,8 @@ and assuming affine elastic deformation of ideal Gaussian chains.
 """
 
 from typing import Optional
-from matscipy.calculators.hydrogel.potentials import GaussianChain, FloryHugginsPotential
+from matscipy.calculators.hydrogel.network import GaussianChain
+from ..embedding_constant_coordination import FloryHugginsPotential
 import numpy as np
 
 CROSSLINK_VOLUMES={
