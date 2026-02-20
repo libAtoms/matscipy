@@ -400,15 +400,16 @@ class RectilinearAnisotropicCrack:
         K_ie_iso : Critical K_I for dislocation emission under mode-I loading calculated
         using isotropic elasticity.
         """
-        # calculate the isotropic elastic constant if not provided.
-        # mu: Shear modulus (GPa); B: bulk modulus (GPa); nu:Possion ratio
+        # calculate the isotropic elastic constants
         E, nu, Gm, B, K = elastic_moduli(self.C, l=np.array([1, 0, 0]), R=self.RotationMatrix, tol=1e-6)
         E0 = E[0]
         nu0 = nu[0,1]
         G1e = 8 * max_gamma * ((1 + (1-nu0) * np.tan(phi)**2)/
             ((1 + np.cos(theta)) * np.sin(theta)**2))
 
-        K_ie_iso = np.sqrt(1.0e-3 * G1e / self.B)
+        # Plane strain Irwin factor: B = (1-nu^2)/E
+        B_irwin = (1 - nu0**2) / E0
+        K_ie_iso = np.sqrt(1.0e-3 * G1e / B_irwin)
 
         return K_ie_iso
 
@@ -616,6 +617,10 @@ class CubicCrystalCrack:
         self.crack_front = crack_front
         self.RotationMatrix = A
         self.cauchy_born = cauchy_born
+
+        # Forward attributes needed by Rice emission methods
+        self.crack.C = C6
+        self.crack.RotationMatrix = A
 
     def k1g(self, surface_energy):
         """
