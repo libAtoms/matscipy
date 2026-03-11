@@ -11,13 +11,15 @@ import numpy as np
 CROSSLINK_VOLUMES={
 "diamond":  (4 / np.sqrt(3)) ** 3 / 8,
 "graphite":  3 * np.sqrt(3) / 2 /2,
+"triangular":  np.sqrt(3) / 2,
 "square": 1,
 "cubic": 1 ,
 }
 
 COORDINATIONS= {
 "diamond":4,
-"graphie": 3, 
+"graphite": 3, 
+"triangular": 6,
 "square": 4, 
 "cubic": 6, 
 }
