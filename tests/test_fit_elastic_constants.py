@@ -209,6 +209,45 @@ if quippy is not None:
                                              verbose=False, graphics=False, stress_err=0.05/self.at0.get_volume())
             self.assertArrayAlmostEqual(C/units.GPa, self.C_ref_relaxed, tol=0.2)
 
+class TestHexagonalElasticConstants(unittest.TestCase):
+    """Test that fit_elastic_constants works with symmetry='hexagonal' (#306)."""
+
+    def test_hexagonal_does_not_raise(self):
+        """fit_elastic_constants with symmetry='hexagonal' should not KeyError."""
+        from ase.build import bulk
+        from ase.calculators.lj import LennardJones
+
+        atoms = bulk('Ti', 'hcp', a=2.95, c=4.68)
+        atoms.calc = LennardJones()
+        C, C_err = fit_elastic_constants(atoms, symmetry='hexagonal',
+                                         verbose=False)
+
+    def test_hexagonal_c66_relation(self):
+        """C66 should equal (C11 - C12) / 2 for hexagonal symmetry."""
+        from ase.build import bulk
+        from ase.calculators.lj import LennardJones
+
+        atoms = bulk('Ti', 'hcp', a=2.95, c=4.68)
+        atoms.calc = LennardJones()
+        C, C_err = fit_elastic_constants(atoms, symmetry='hexagonal',
+                                         verbose=False)
+        np.testing.assert_allclose(C[5, 5], 0.5 * (C[0, 0] - C[0, 1]),
+                                   rtol=1e-10)
+
+    def test_hexagonal_matches_trigonal_high(self):
+        """hexagonal and trigonal_high should give identical results."""
+        from ase.build import bulk
+        from ase.calculators.lj import LennardJones
+
+        atoms = bulk('Ti', 'hcp', a=2.95, c=4.68)
+        atoms.calc = LennardJones()
+        C_hex, _ = fit_elastic_constants(atoms, symmetry='hexagonal',
+                                         verbose=False)
+        C_trig, _ = fit_elastic_constants(atoms, symmetry='trigonal_high',
+                                          verbose=False)
+        np.testing.assert_allclose(C_hex, C_trig, rtol=1e-10)
+
+
 if __name__ == '__main__':
     unittest.main()
 
