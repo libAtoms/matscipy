@@ -417,39 +417,45 @@ class MolecularNeighbourhood(Neighbourhood):
                      cutoff=None):
         """Return triplets and quantities from connectivities."""
         D, d = None, None
+    
+        if self._molecules.angles.size > 0:
 
-        # Need to reorder connectivity for distances
-        bonds = self.connectivity["bonds"]["atoms"]
-        double_triplets = np.vstack([self.triplet_list,
-                                     self.triplet_list[:, (1, 0, 2)]])
+            # Need to reorder connectivity for distances
+            bonds = self.connectivity["bonds"]["atoms"]
+            double_triplets = np.vstack([self.triplet_list,
+                                        self.triplet_list[:, (1, 0, 2)]])
 
-        # Returning triplet references in bonds list
-        connectivity = double_triplets.copy()
-        i_p, j_p = bonds.T
+            # Returning triplet references in bonds list
+            connectivity = double_triplets.copy()
+            i_p, j_p = bonds.T
 
-        first_neigh = first_neighbours(len(atoms), i_p)
-        ij_t, ik_t, jk_t = connectivity.T
-        jk_t[:] = -np.ones(len(ij_t), dtype='int32')
-        # This is slow as
-        for t, (ij, ik) in enumerate(zip(ij_t, ik_t)):
-            for i in np.arange(first_neigh[j_p[ij]],
-                               first_neigh[j_p[ij] + 1]):
-                if i_p[i] == j_p[ij] and j_p[i] == j_p[ik]:
-                    jk_t[t] = i
-                    break
+            first_neigh = first_neighbours(len(atoms), i_p)
+            ij_t, ik_t, jk_t = connectivity.T
+            jk_t[:] = -np.ones(len(ij_t), dtype='int32')
+            # This is slow as
+            for t, (ij, ik) in enumerate(zip(ij_t, ik_t)):
+                for i in np.arange(first_neigh[j_p[ij]],
+                                first_neigh[j_p[ij] + 1]):
+                    if i_p[i] == j_p[ij] and j_p[i] == j_p[ik]:
+                        jk_t[t] = i
+                        break
 
-        connectivity_in_bounds = np.array([
-            bonds[connectivity[:, i], j]
-            for i, j in [(0, 0), (0, 1), (1, 1)]
-        ]).T
+            connectivity_in_bounds = np.array([
+                bonds[connectivity[:, i], j]
+                for i, j in [(0, 0), (0, 1), (1, 1)]
+            ]).T
 
-        # If any distance is requested, compute distances vectors and norms
-        if "d" in quantities or "D" in quantities:
-            #           i  j    i  k    j  k
-            indices = [(0, 1), (0, 2), (1, 2)]  # defined in Jan's paper
-            D, d = self.compute_distances(atoms,
-                                          connectivity_in_bounds, indices)
-
+            # If any distance is requested, compute distances vectors and norms
+            if "d" in quantities or "D" in quantities:
+                #           i  j    i  k    j  k
+                indices = [(0, 1), (0, 2), (1, 2)]  # defined in Jan's paper
+                D, d = self.compute_distances(atoms,
+                                            connectivity_in_bounds, indices)
+        else: 
+            dim = atoms.positions.shape[1]
+            D = np.zeros((0, 3, dim), dtype=np.float64).squeeze()
+            d = np.zeros((0, 3), dtype=np.float64).squeeze()
+            connectivity = np.vstack([np.zeros([0, 3], dtype=np.int32), np.zeros([0, 3], dtype=np.int32)])
         return self.make_result(
             quantities, connectivity, D, d, None, accepted_quantities="ijkdD")
 
