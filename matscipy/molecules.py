@@ -72,19 +72,19 @@ class Molecules:
             self.__dict__[data] = np.array([], dtype=dtype)
 
         if bonds_connectivity is not None:
-            self.bonds.resize(len(bonds_connectivity))
+            self.bonds = np.resize(self.bonds, len(bonds_connectivity))
             self.bonds["atoms"][:] = bonds_connectivity
             self.bonds["type"][:] = bonds_types \
                 if bonds_types is not None else default_type
 
         if angles_connectivity is not None:
-            self.angles.resize(len(angles_connectivity))
+            self.angles = np.resize(self.angles, len(angles_connectivity))
             self.angles["atoms"][:] = angles_connectivity
             self.angles["type"][:] = angles_types \
                 if angles_types is not None else default_type
 
         if dihedrals_connectivity is not None:
-            self.dihedrals.resize(len(dihedrals_connectivity))
+            self.dihedrals = np.resize(self.dihedrals, len(dihedrals_connectivity))
             self.dihedrals["atoms"][:] = dihedrals_connectivity
             self.dihedrals["type"][:] = dihedrals_types \
                 if dihedrals_types is not None else default_type
