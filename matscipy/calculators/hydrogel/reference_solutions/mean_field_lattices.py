@@ -30,7 +30,9 @@ class MeanFieldHydrogelLattice():
 
     def __init__(self, chain_nb_monomers: int, coordination: int, 
                        vpcl_factor: float, 
-                       flory_chi: float, kuhn: float = 1, v0: Optional[float] = None, dim: int = 3):
+                       flory_chi: float, kuhn: float = 1, v0: Optional[float] = None, dim: int = 3, 
+                       elastic_factor=1,
+                       ):
         """
         Initialize a mean-field hydrogel model.
 
@@ -50,6 +52,9 @@ class MeanFieldHydrogelLattice():
             Volume per monomer. If None, calculated from dimension and Kuhn length, assume a monomer is a sphere with diameter the kuhn length (default is None).
         dim : int, optional
             Spatial dimension, 2 or 3 (default is 3).
+        elastic_factor: float, default = 1 
+            prefactor in the computation of the elastic energy, allowing for example to simulate the existence of elastically inactive chains 
+
         """
         self.chain_nb_monomers = chain_nb_monomers
         self.kuhn = kuhn
@@ -66,7 +71,7 @@ class MeanFieldHydrogelLattice():
         self.coordination = coordination
         self.vpcl_factor = vpcl_factor
         self.chain = GaussianChain(kuhn_length=1, chain_monomers=chain_nb_monomers, dim=dim)
-
+        self.elastic_factor=elastic_factor
         self._flory_huggins = FloryHugginsPotential(chain_nb_monomers, self.v0, flory_chi, coordination) 
 
     def vpcl(self, r,):
@@ -83,7 +88,7 @@ class MeanFieldHydrogelLattice():
         """
         return (self.vpcl(1) * density)**(-1/self.dim)
 
-    def emixv(self, ρ,J: float=1.):
+    def emixv(self, ρ, J: float=1.):
         """
         Mixing free energy per unit reference volume as function of the crosslink density ρ
 
@@ -221,10 +226,10 @@ class MeanFieldHydrogelLattice():
     def elastic_energy(self, r):
         """ Elastic free energy density at distance r, per crosslink, in units of kT, assuming affine deformation
         """
-        return 0.5 * self.coordination * self.chain(r)
+        return 0.5 * self.coordination * self.chain(r) * self.elastic_factor
 
     def elastic_pressure(self, r):
-        return - 0.5 *  1/3 * self.coordination * self.chain.derivative(r) * r / self.vpcl(r)
+        return - 0.5 *  1/3 * self.coordination * self.chain.derivative(r) * r / self.vpcl(r) * self.elastic_factor
 
     def mixing_energy(self, r):
         '''
