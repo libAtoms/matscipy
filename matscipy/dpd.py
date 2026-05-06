@@ -43,14 +43,18 @@ class DPDThermostat(VelocityVerlet):
         ``omega(r)`` — weight function of pair distance *r* (array in).
         Defaults to ``max(1 - r / cutoff, 0) ** 2`` as in the original DPD
         formulation (eq. 2 of Peters 2004).
+    rng : numpy.random.Generator, optional
+        Random number generator.  Pass ``numpy.random.default_rng(seed)``
+        for reproducible runs.  Defaults to a fresh (non-seeded) generator.
     **kwargs
         Extra arguments forwarded to :class:`ase.md.md.MolecularDynamics`
         (e.g. ``trajectory``, ``logfile``, ``loginterval``).
     """
 
     def __init__(self, atoms, timestep, T, gamma, cutoff,
-                 weight_function=None, **kwargs):
+                 weight_function=None, rng=None, **kwargs):
         super().__init__(atoms, timestep, **kwargs)
+        self.rng = np.random.default_rng() if rng is None else rng
         self.T = T
         self.gamma = gamma
         self.cutoff = cutoff
@@ -115,7 +119,7 @@ class DPDThermostat(VelocityVerlet):
         vj = momenta[j_arr] / mj[:, None]
         v_proj = np.einsum('ij,ij->i', vi - vj, r_hat)  # (v_i - v_j) . r_hat
 
-        xi = np.random.normal(size=len(i_arr))
+        xi = self.rng.standard_normal(size=len(i_arr))
         dp_mag = -a_dt * v_proj + b_sqdt * xi
         dp = dp_mag[:, None] * r_hat    # (N_pairs, 3)
 
