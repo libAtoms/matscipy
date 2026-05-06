@@ -51,7 +51,7 @@ class TestDPDThermostat:
     def test_temperature_convergence(self):
         """Kinetic temperature must converge to T_target within 5%."""
         atoms = _make_gas(n=200)
-        dyn = DPDThermostat(atoms, **_COMMON)
+        dyn = DPDThermostat(atoms, **_COMMON, rng=np.random.default_rng(0))
 
         for _ in range(200):   # equilibration
             dyn.step()
@@ -74,7 +74,7 @@ class TestDPDThermostat:
         atoms.set_momenta(rng.normal(size=(50, 3)))
         p0 = atoms.get_momenta().sum(axis=0).copy()
 
-        dyn = DPDThermostat(atoms, **_COMMON)
+        dyn = DPDThermostat(atoms, **_COMMON, rng=np.random.default_rng(1))
         for _ in range(100):
             dyn.step()
             p = atoms.get_momenta().sum(axis=0)
@@ -87,7 +87,7 @@ class TestDPDThermostat:
         symbols = ['Ar'] * (n // 2) + ['Ne'] * (n // 2)
         atoms = _make_gas(n=n, symbols=symbols, seed=7)
 
-        dyn = DPDThermostat(atoms, **_COMMON)
+        dyn = DPDThermostat(atoms, **_COMMON, rng=np.random.default_rng(3))
         for _ in range(500):   # longer equilibration: unequal masses need more steps
             dyn.step()
 
