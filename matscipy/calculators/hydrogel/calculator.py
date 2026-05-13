@@ -263,6 +263,7 @@ class Hydrogel(SumCalculator):
                  monomer_volume=None, flory_chi=0.5,
                  chain=None, dim=3):
 
+        self.cutoff = cutoff
 
         # Default monomer volume: sphere of diameter b
         if monomer_volume is None:
