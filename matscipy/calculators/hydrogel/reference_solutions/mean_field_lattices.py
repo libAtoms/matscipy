@@ -74,6 +74,9 @@ class MeanFieldHydrogelLattice():
         self.elastic_factor=elastic_factor
         self._flory_huggins = FloryHugginsPotential(chain_nb_monomers, self.v0, flory_chi, coordination) 
 
+        # precompute equilibrium distance 
+        self.req = self.compute_equilibrium_distance()
+
     def vpcl(self, r,):
         """Volume per atom (crosslink) at crosslink distance r"""
         return self.vpcl_factor * r ** (self.dim)
@@ -139,6 +142,8 @@ class MeanFieldHydrogelLattice():
         """
         allows to provide either rho or r as input
         """
+        if rho is None and r is None:
+            return self.crosslink_density(self.req)
         if rho is None and r is not None:
             rho = self.crosslink_density(r)
         else:
