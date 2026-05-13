@@ -11,6 +11,7 @@ import os
 
 from matscipy.dpd import DPDThermostat
 from matscipy.neighbours import neighbour_list as matscipy_neighbor_list
+from ase.neighborlist import neighbor_list as ase_neighbor_list
 
 
 class ZeroForceCalculator(Calculator):
@@ -57,7 +58,6 @@ def _make_noninteracting_gas(n=200, density=4,  seed=42, initialize_velocities=T
     else:
         atoms.set_momenta(np.zeros((n, 3)))
 
-
     return atoms
 
 
@@ -67,6 +67,28 @@ def _kinetic_kBT(atoms):
     m = atoms.get_masses()
     ekin = 0.5 * np.sum(p ** 2 / m[:, None])
     return 2 * ekin / (3 * len(atoms))
+
+
+@pytest.mark.parametrize("neighbor_list", [matscipy_neighbor_list, ase_neighbor_list])
+def test_neighbors_cutoff(neighbor_list):
+    """
+
+    Asserts the cutoff passed to neighbor list functions represents the distance between the atoms.
+
+    """
+
+    atoms = Atoms(['H', 'H'], positions=[[0,0,0], [0,0,1]], pbc=False, cell=[2,2,2])
+
+    i,j,d = neighbor_list('ijd', atoms, cutoff=1.01)
+    assert len(i) == 2
+    assert len(j) == 2
+    assert len(d) == 2
+
+
+    i,j,d = neighbor_list('ijd', atoms, cutoff=0.6)
+    assert len(i) == 0
+    assert len(j) == 0
+    assert len(d) == 0
 
 
 class TestDPDThermostat:
@@ -82,8 +104,8 @@ class TestDPDThermostat:
         """Kinetic temperature must converge to T_target within 5%."""
 
         dt = 0.05
-        t_equil = 3.
-        t_sample = 7.
+        t_equil = 5.
+        t_sample = 20.
 
         n_equil = max(1, round(t_equil / dt))
         n_sample = max(1, round(t_sample / dt))
@@ -146,7 +168,6 @@ class TestDPDThermostat:
                                          masses =[1.] * (n // 2) + [4.] * (n // 2),
                                          seed=seed)
 
-
         dt = 0.05
 
         t_equil = 3.
@@ -172,3 +193,110 @@ class TestDPDThermostat:
             f"Temperature {kBT_mean:.4f} 1 deviates more than 5% from "
             f"target 1 "
         )
+
+
+
+
+# --- Conservative force calculator -------------------------------------------
+
+class DPDRepulsiveCalculator(Calculator):
+    """Pairwise repulsive force F_ij = a*(1-r/rc)*r_hat_ij.
+
+    matscipy.neighbour_list returns both (i,j) and (j,i), so forces are
+    accumulated only on i.
+    """
+    implemented_properties = ['energy', 'forces']
+
+    def __init__(self, a=25., rc=RC):
+        super().__init__()
+        self.a = a
+        self.rc = rc
+
+    def calculate(self, atoms=None, properties=None, system_changes=all_changes):
+        Calculator.calculate(self, atoms, properties, system_changes)
+        n = len(atoms)
+        forces = np.zeros((n, 3))
+        energy = 0.0
+
+        i, j, D, d = matscipy_neighbor_list('ijDd', atoms, cutoff=self.rc)
+
+        if len(i) > 0:
+            w = 1.0 - d / self.rc                        # (1-r/rc), shape (P,)
+            # D = r_j - r_i; repulsive force on i points from j towards i = -D/d
+            f_vec = -(self.a * w / d)[:, None] * D       # (P, 3)
+            np.add.at(forces, i, f_vec)
+            # pair potential U(r) = (a*rc/2)*(1-r/rc)^2; each pair counted twice
+            energy = np.sum(0.5 * self.a * self.rc * w ** 2) / 2
+
+        self.results = {'energy': energy, 'forces': forces}
+
+
+@pytest.mark.parametrize("seed", [0, 1])
+def test_repulsive_gas(seed):
+    """
+
+    Fluid with smooth repulsive forces between the particles
+
+    This is the same system as model B in Peters Europhys. Lett. (2004)
+
+    """
+
+    REP_AMPLITUDE = 25.0  # repulsive force amplitude
+    N_ATOMS = 500
+    BOX = (N_ATOMS / 4) ** (1 / 3)  # keeps density = 4
+
+
+
+    # --- System setup -------------------------------------------------------------
+    def make_atoms(seed=42):
+        """N_ATOMS unit-mass particles in a cubic box at density 4 with Maxwell-Boltzmann momenta."""
+        rng = np.random.default_rng(seed)
+        positions = rng.uniform(0, BOX, size=(N_ATOMS, 3))
+        atoms = Atoms(
+            ['H'] * N_ATOMS,
+            masses=[MASS] * N_ATOMS,
+            positions=positions,
+            cell=[BOX, BOX, BOX],
+            pbc=True,
+        )
+        atoms.calc = DPDRepulsiveCalculator(a=REP_AMPLITUDE, rc=RC)
+        MaxwellBoltzmannDistribution(atoms, temperature_K=kBT / ase.units.kB,
+                                      rng=np.random.default_rng(seed + 1))
+        Stationary(atoms)
+        return atoms
+
+    def run(atoms, dt, n_eq, n_prod, rng_seed):
+        """Standard Peters thermostat: 1 VV step + 1 thermostat per dt."""
+        dyn = DPDThermostat(
+            atoms, dt,
+            gamma=4.5,
+            cutoff=RC,
+            neighbor_list=matscipy_neighbor_list,
+            T=kBT / ase.units.kB,
+            rng=np.random.default_rng(rng_seed),
+        )
+        for _ in range(n_eq):
+            dyn.step()
+        T_acc = 0.0
+        for _ in range(n_prod):
+            dyn.step()
+            T_acc += kinetic_temperature(atoms)
+        return T_acc / n_prod
+
+    # equally well equilibrated and sampled.
+    T_EQ = 5.0  # DPD time units of equilibration
+    T_PROD = 20.0  # DPD time units of production
+
+    dt = 0.05
+
+    n_eq = max(1, round(T_EQ / dt))
+    n_prod = max(1, round(T_PROD / dt))
+
+    atoms = make_atoms(seed=seed)
+    kT_meas = run(atoms, dt, n_eq, n_prod, rng_seed=seed)
+    print(f"  measured:    kBT = {kT_meas:.4f}", flush=True)
+
+
+    assert abs(kT_meas - kBT) / kBT < 0.05, (
+        f"Temperature kBT = {kT_meas:.1f} K deviates more than 5% from "
+        f"target 1.0 ")
