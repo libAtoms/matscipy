@@ -10,6 +10,7 @@ Reference:
 import numpy as np
 from ase.md.verlet import VelocityVerlet
 from ase.neighborlist import NeighborList
+from ase.neighborlist import neighbor_list as ase_neighbor_list
 from ase.units import kB
 
 
@@ -52,7 +53,7 @@ class DPDThermostat(VelocityVerlet):
     """
 
     def __init__(self, atoms, timestep, T, gamma, cutoff,
-                 weight_function=None, rng=None, **kwargs):
+                 weight_function=None, rng=None, neighbor_list=ase_neighbor_list , **kwargs):
         super().__init__(atoms, timestep, **kwargs)
         self.rng = np.random.default_rng() if rng is None else rng
         self.T = T
@@ -65,12 +66,7 @@ class DPDThermostat(VelocityVerlet):
         else:
             self._weight = weight_function
 
-        self._nl = NeighborList(
-            [cutoff / 2] * len(atoms),
-            skin=0.0,
-            self_interaction=False,
-            bothways=False,
-        )
+        self._nl = neighbor_list
 
     def step(self, forces=None):
         forces = super().step(forces)
@@ -85,46 +81,53 @@ class DPDThermostat(VelocityVerlet):
         masses = atoms.get_masses()
         cell = atoms.get_cell()
 
-        self._nl.update(atoms)
+        i, j, dist, dr = self._nl('ijdD', atoms, cutoff=self.cutoff / 2)
 
-        i_list, j_list, dr_list = [], [], []
-        for i in range(len(atoms)):
-            indices, offsets = self._nl.get_neighbors(i)
-            for j, offset in zip(indices, offsets):
-                i_list.append(i)
-                j_list.append(j)
-                dr_list.append(positions[j] + offset @ cell - positions[i])
+        # Avoid double counting of pairs
+        mask = j < i
+        i = i[mask]
+        j = j[mask]
+        dist = dist[mask]
+        dr = dr[mask]
 
-        if not i_list:
-            return
+        # i_list, j_list, dr_list = [], [], []
+        # for i in range(len(atoms)):
+        #     indices, offsets = self._nl.get_neighbors(i)
+        #     for j, offset in zip(indices, offsets):
+        #         i_list.append(i)
+        #         j_list.append(j)
+        #         dr_list.append(positions[j] + offset @ cell - positions[i])
+        #
+        # if not i_list:
+        #     return
+        #
+        # i_arr = np.array(i_list)
+        # j_arr = np.array(j_list)
+        # dr = np.array(dr_list)           # (N_pairs, 3)
+        #
+        # r = np.linalg.norm(dr, axis=1)  # (N_pairs,)
+        r_hat = dr / dist[:, None]
 
-        i_arr = np.array(i_list)
-        j_arr = np.array(j_list)
-        dr = np.array(dr_list)           # (N_pairs, 3)
-
-        r = np.linalg.norm(dr, axis=1)  # (N_pairs,)
-        r_hat = dr / r[:, None]
-
-        mi = masses[i_arr]
-        mj = masses[j_arr]
+        mi = masses[i]
+        mj = masses[j]
         mu = mi * mj / (mi + mj)        # reduced mass
 
         # Scheme II (Table I of Peters 2004): exact integration of the
         # irreversible pair dynamics over one time step dt.
-        W = self.gamma * self._weight(r) * self.dt / mu  # dimensionless
+        W = self.gamma * self._weight(dist) * self.dt / mu  # dimensionless
         a_dt = mu * (1.0 - np.exp(-W))
         b_sqdt = np.sqrt(self.kT * mu * (1.0 - np.exp(-2.0 * W)))
 
-        vi = momenta[i_arr] / mi[:, None]
-        vj = momenta[j_arr] / mj[:, None]
+        vi = momenta[i] / mi[:, None]
+        vj = momenta[j] / mj[:, None]
         v_proj = np.einsum('ij,ij->i', vi - vj, r_hat)  # (v_i - v_j) . r_hat
 
-        xi = self.rng.standard_normal(size=len(i_arr))
+        xi = self.rng.standard_normal(size=len(i))
         dp_mag = -a_dt * v_proj + b_sqdt * xi
         dp = dp_mag[:, None] * r_hat    # (N_pairs, 3)
 
         # Simultaneous update: accumulate all momentum changes, then apply.
-        np.add.at(momenta, i_arr, dp)
-        np.add.at(momenta, j_arr, -dp)
+        np.add.at(momenta, i, dp)
+        np.add.at(momenta, j, -dp)
 
         atoms.set_momenta(momenta, apply_constraint=False)
