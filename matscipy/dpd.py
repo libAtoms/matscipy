@@ -81,7 +81,7 @@ class DPDThermostat(VelocityVerlet):
         masses = atoms.get_masses()
         cell = atoms.get_cell()
 
-        i, j, dist, dr = self._nl('ijdD', atoms, cutoff=self.cutoff / 2)
+        i, j, dist, dr = self._nl('ijdD', atoms, cutoff=self.cutoff)
 
         # Avoid double counting of pairs
         mask = j < i
