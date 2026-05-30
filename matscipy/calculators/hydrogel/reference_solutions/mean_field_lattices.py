@@ -147,7 +147,7 @@ class MeanFieldHydrogelLattice():
         if rho is None and r is not None:
             rho = self.crosslink_density(r)
         else:
-            assert rho is not None, "Either rho or r must be provided"
+            rho = self.crosslink_density(self.req)
         return rho
 
     def C44(self, rho=None, r=None):
@@ -189,6 +189,13 @@ class MeanFieldHydrogelLattice():
         G = self.shear_modulus(rho=rho)
         return 9 * K * G / (3 * K + G)
     
+    def contact_modulus(self, rho=None, r=None) -> float:
+        """
+        Contact modulus E* as defined in Johnson, contact mechanics
+        """
+        rho = self._parse_rho(rho, r)
+        return  self.youngs_modulus(rho=rho) / (1 - self.poisson_ratio(rho=rho) ** 2) 
+ 
     def poisson_ratio(self, rho=None, r=None):
         rho = self._parse_rho(rho, r)
         K = self.bulk_modulus(rho=rho)
