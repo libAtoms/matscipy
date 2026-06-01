@@ -89,7 +89,7 @@ class MeanFieldHydrogelLattice():
         """
         Compute the radius corresponding to a given crosslink density in the network lattice
         """
-        return (self.vpcl(self.kuhn) * density)**(-1/self.dim)
+        return (self.vpcl(1.) * density)**(-1/self.dim)
 
     def emixv(self, ρ, J: float=1.):
         """
