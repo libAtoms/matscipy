@@ -70,7 +70,7 @@ class MeanFieldHydrogelLattice():
         self.flory_chi = flory_chi
         self.coordination = coordination
         self.vpcl_factor = vpcl_factor
-        self.chain = GaussianChain(kuhn_length=1, chain_monomers=chain_nb_monomers, dim=dim)
+        self.chain = GaussianChain(kuhn_length=self.kuhn, chain_monomers=chain_nb_monomers, dim=dim)
         self.elastic_factor=elastic_factor
         self._flory_huggins = FloryHugginsPotential(chain_nb_monomers, self.v0, flory_chi, coordination) 
 
