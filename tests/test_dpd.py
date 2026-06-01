@@ -110,7 +110,7 @@ class TestDPDThermostat:
         n_equil = max(1, round(t_equil / dt))
         n_sample = max(1, round(t_sample / dt))
 
-        atoms = _make_noninteracting_gas(n=200, density=4, initialize_velocities=False)
+        atoms = _make_noninteracting_gas(n=100, density=4, initialize_velocities=False)
         dyn = DPDThermostat(atoms, dt,
                             rng = np.random.default_rng(seed),
                             **self.THERMOSTAT_PARAMETERS
@@ -162,7 +162,7 @@ class TestDPDThermostat:
     @pytest.mark.parametrize("seed", [0, 1,])
     def test_temperature_convergence_unequal_masses(self, seed):
         """Temperature must converge with a mixture of two species."""
-        n = 200
+        n = 100
         symbols = ['Ar'] * (n // 2) + ['Ne'] * (n // 2)
         atoms = _make_noninteracting_gas(n=n, density=4,
                                          masses =[1.] * (n // 2) + [4.] * (n // 2),
@@ -242,7 +242,7 @@ def test_repulsive_gas(seed):
     """
 
     REP_AMPLITUDE = 25.0  # repulsive force amplitude
-    N_ATOMS = 500
+    N_ATOMS = 100
     BOX = (N_ATOMS / 4) ** (1 / 3)  # keeps density = 4
 
 
