@@ -89,7 +89,7 @@ class MeanFieldHydrogelLattice():
         """
         Compute the radius corresponding to a given crosslink density in the network lattice
         """
-        return (self.vpcl(1) * density)**(-1/self.dim)
+        return (self.vpcl(self.kuhn) * density)**(-1/self.dim)
 
     def emixv(self, ρ, J: float=1.):
         """
@@ -255,7 +255,7 @@ class MeanFieldHydrogelLattice():
         if tol is None:
             tol = 1e-4 * self.kuhn
 
-        res = minimize_scalar(self.total_energy, bounds=(0.1 * self.min_radius, 0.9 * self.kuhn * self.chain_nb_monomers), method='bounded', tol=tol)
+        res = minimize_scalar(self.total_energy, bounds=(0.1 * self.min_radius, 0.9 * self.kuhn * self.chain_nb_monomers), method='bounded', options={'xatol': tol})
         assert res.success, f'minimize_scalar failed, {res.message}'
         return res.x
 
