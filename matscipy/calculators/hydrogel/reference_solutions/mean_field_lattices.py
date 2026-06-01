@@ -249,8 +249,11 @@ class MeanFieldHydrogelLattice():
         '''
         return self.emixv(self.crosslink_density(r)) * self.vpcl(r)
 
-    def compute_equilibrium_distance(self, tol=0.0001):
+    def compute_equilibrium_distance(self, tol=None):
         from scipy.optimize import minimize_scalar
+
+        if tol is None:
+            tol = 1e-4 * self.kuhn
 
         res = minimize_scalar(self.total_energy, bounds=(0.1 * self.min_radius, 0.9 * self.kuhn * self.chain_nb_monomers), method='bounded', tol=tol)
         assert res.success, f'minimize_scalar failed, {res.message}'
