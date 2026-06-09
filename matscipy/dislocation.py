@@ -3621,7 +3621,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
 
             # Use burgers vector to get a key for the dislocation line colour
             # Sorting and abs remove the rotational dependance, reducing the number of possible keys
-            colour_key = " ".join([str(Fraction(elem).limit_denominator(10)) for elem in b_sorted])
+            colour_key = " ".join([str(Fraction(float(elem)).limit_denominator(10)) for elem in b_sorted])
 
             if color is None:
                 if colour_key in disloc_colours[self.crystalstructure.lower()]:
@@ -3633,7 +3633,7 @@ class CubicCrystalDislocation(metaclass=ABCMeta):
                 colour = color[idx]
 
             if disloc_names is None:
-                seg_name = f"b=[" + " ".join([str(Fraction(elem).limit_denominator(10)) for elem in b]) + "]"
+                seg_name = f"b=[" + " ".join([str(Fraction(float(elem)).limit_denominator(10)) for elem in b]) + "]"
             else:
                 seg_name = disloc_names[idx]
 
