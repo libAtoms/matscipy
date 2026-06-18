@@ -12,6 +12,7 @@ version_file = configure_file(
 python_sources = [
     '__init__.py',
     version_file,
+    '_ase_plugin.py',
     'angle_distribution.py',
     'atomic_strain.py',
     'compat.py',

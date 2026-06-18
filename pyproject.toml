@@ -100,6 +100,10 @@ matscipy-sinclair-crack = "matscipy.cli.fracture_mechanics.sinclair_crack:main"
 # Interatomic potentials
 matscipy-average-eam-potential = "matscipy.cli.calculators.average_eam_potential:main"
 
+# Expose matscipy's compiled neighbour list as an ASE v4 neighbour-list backend
+[project.entry-points."ase.plugins"]
+matscipy_neighbours = "matscipy._ase_plugin"
+
 [project.urls]
 documentation = "http://libatoms.github.io/matscipy/"
 repository = "https://github.com/libAtoms/matscipy"
