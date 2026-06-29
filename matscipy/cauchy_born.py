@@ -1532,26 +1532,31 @@ class CubicCauchyBorn:
         E, R = self.evaluate_F_or_E(
             A, atoms, F_func=F_func, E_func=E_func,
             coordinates=coordinates, *args, **kwargs)
-        E_lower, R = self.evaluate_F_or_E(
+        E_lower, R_lower = self.evaluate_F_or_E(
             A, atoms, F_func=F_func, E_func=E_func,
             coordinates=coordinates, de=-de, *args, **kwargs)
-        E_higher, R = self.evaluate_F_or_E(
+        E_higher, R_higher = self.evaluate_F_or_E(
             A, atoms, F_func=F_func, E_func=E_func,
             coordinates=coordinates, de=de, *args, **kwargs)
 
-        # print(E_higher,E_lower)
         dE = (E_higher - E_lower) / (2 * de)
-        # print(dE)
         natoms = len(atoms)
-        # get the cauchy born shifts unrotated
-        dshifts_no_rr = self.evaluate_shift_gradient_regression(E, dE)
-        dshifts = np.zeros_like(dshifts_no_rr)
+        # The applied shift (see predict_shifts) is  s_i = A^T R_i chi_i, where R_i is the rotation
+        # from the polar decomposition of the deformation gradient F_i. Its derivative must therefore
+        # include both the rotation of the (analytic) shift gradient AND the rotation gradient dR/dde:
+        #   d s_i / dde = A^T ( (dR_i/dde) chi_i + R_i (dchi_i/dde) )
+        # The previous implementation applied only A^T (dchi_i/dde), dropping R_i and dR_i/dde. That is
+        # exact only at zero strain (R_i = I); near a crack tip (large F) it drifts from the true
+        # derivative, growing with load, and breaks the configurational-force identity f_alpha = -dE/dalpha.
+        chi_no_rr = self.evaluate_shift_model(E)                       # chi_i (lattice frame, no rotation)
+        dchi_no_rr = self.evaluate_shift_gradient_regression(E, dE)    # dchi_i/dde (analytic)
+        dR = (R_higher - R_lower) / (2 * de)                           # dR_i/dde (same FD as the strain field)
+        dshifts = np.zeros_like(dchi_no_rr)
 
-        # rotate the cauchy shifts both by the rotation induced by F
-        # and to get them back into the lab frame
+        # rotate by the F-induced rotation R and back into the lab frame (A^T), product-rule in R and chi
         for i in range(natoms):
-            dshifts[i, :] = np.transpose(A) @ dshifts_no_rr[i, :]
-            # dshift_2[i, :] = np.transpose(A) @ dshift_2_no_rr[i, :]
+            dshifts[i, :] = np.transpose(A) @ (
+                dR[i, :, :] @ chi_no_rr[i, :] + R[i, :, :] @ dchi_no_rr[i, :])
 
         # need to adjust gradients for different lattices
         dshifts[self.lattice1mask] = -0.5 * (dshifts[self.lattice1mask])
