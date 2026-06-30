@@ -230,6 +230,13 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
         """Test differential_displacement() function from atomman
 
         """
+        import matplotlib.cm
+        if not hasattr(matplotlib.cm, "get_cmap"):
+            # atomman.defect.differential_displacement still calls the
+            # matplotlib.cm.get_cmap helper that was removed in matplotlib>=3.9;
+            # nothing to fix on the matscipy side until atomman is updated.
+            self.skipTest("atomman uses matplotlib.cm.get_cmap, removed in "
+                          "matplotlib>=3.9")
         alat = 3.14339177996466
         C11 = 523.0266819809012
         C12 = 202.1786296941397
