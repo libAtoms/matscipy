@@ -268,7 +268,7 @@ class CubicCauchyBorn:
             # get U^2
             Usqr = 2 * E + np.eye(3)
             # square root matrix to get U
-            U = sqrtm(Usqr, disp=True)
+            U = sqrtm(Usqr)
 
             # this is just the symmetric stretch tensor, exactly what we need.
             x = U
@@ -1330,7 +1330,7 @@ class CubicCauchyBorn:
         # get U^2
         Usqr = 2 * E + np.eye(3)
         # square root matrix
-        U = sqrtm(Usqr, disp=True)
+        U = sqrtm(Usqr)
 
         # this is just the symmetric stretch tensor, exactly what we need.
         x = U
