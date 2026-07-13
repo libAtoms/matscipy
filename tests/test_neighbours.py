@@ -113,6 +113,19 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
         D2 = a.positions[j] - a.positions[i] + S.dot(a.cell)
         self.assertArrayAlmostEqual(D, D2)
 
+    def test_shift_non_periodic(self):
+        # Issue #313: shifts must be zero for non-periodic systems, even when
+        # an atom lies outside the (shrink-wrapped or supplied) cell.
+        positions = np.array([[0.0, 0.0, 0.0], [1.1, 1.2, 1.3]])
+        for cell in (None, np.eye(3), np.diag([1.1, 1.2, 1.3])):
+            i, j, S, D = neighbour_list(
+                "ijSD", cutoff=5.0, positions=positions,
+                cell=cell, pbc=[False, False, False])
+            self.assertTrue(len(i) > 0)            # the pair is within cutoff
+            self.assertArrayAlmostEqual(S, np.zeros_like(S))
+            # D must equal the direct difference for a non-periodic system
+            self.assertArrayAlmostEqual(D, positions[j] - positions[i])
+
     def test_small_cell(self):
         a = ase.Atoms("C", positions=[[0.5, 0.5, 0.5]], cell=[1, 1, 1], pbc=True)
         i, j, dr, shift = neighbour_list("ijDS", a, 1.1)
