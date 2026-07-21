@@ -1,0 +1,522 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "f0ececa8",
+   "metadata": {},
+   "source": [
+    "# Setups for non-reactive simulations with LAMMPS\n",
+    "\n",
+    "This notebook shows how to create an atomic configuration in a python script and how to generate input files for LAMMPS from it. As a simple example, we will set up ethane molecules and demonstrate the basic functionality of the `matscipy.opls` module.\n",
+    "\n",
+    "`matscipy.opls.OPLSStructure` is a subclass of `ase.Atoms`. `OPLSStructure` objects can therefore be constructed and manipulated in the same way as `ase.Atoms` objects. The full documentation can be found in the __[ASE documentation](https://wiki.fysik.dtu.dk/ase/ase/atoms.html)__."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "1ae2da30",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/vnd.jupyter.widget-view+json": {
+       "model_id": "d72b1f7e99914260bd4d9b199886205b",
+       "version_major": 2,
+       "version_minor": 0
+      },
+      "text/plain": []
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "application/vnd.jupyter.widget-view+json": {
+       "model_id": "c18319a3d8184a7b88d22fc69573bc13",
+       "version_major": 2,
+       "version_minor": 0
+      },
+      "text/plain": [
+       "HBox(children=(NGLWidget(), VBox(children=(Dropdown(description='Show', options=('All', 'H', 'C'), value='All'…"
+      ]
+     },
+     "execution_count": 1,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "import numpy as np\n",
+    "import ase\n",
+    "import ase.visualize\n",
+    "import matscipy.opls\n",
+    "\n",
+    "a1 = matscipy.opls.OPLSStructure(\n",
+    "    'C2H6',\n",
+    "    positions = [[1.,  0.,  0.],\n",
+    "                 [2.,  0.,  0.],\n",
+    "                 [0.,  0.,  0.],\n",
+    "                 [1.,  1.,  0.],\n",
+    "                 [1., -1.,  0.],\n",
+    "                 [2.,  0.,  1.],\n",
+    "                 [2.,  0., -1.],\n",
+    "                 [3.,  0.,  0.]],\n",
+    "    cell = [5., 5., 5.]\n",
+    ")\n",
+    "\n",
+    "ase.visualize.view(a1, viewer='ngl')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "185051e2",
+   "metadata": {},
+   "source": [
+    "Alternatively, we can construct an `ase.Atoms` object and convert it to a `matscipy.opls.OPLSStructure` object:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "ced4582e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "a2 = ase.Atoms(\n",
+    "    'C2H6',\n",
+    "    positions = [[1.,  0.,  0.],\n",
+    "                 [2.,  0.,  0.],\n",
+    "                 [0.,  0.,  0.],\n",
+    "                 [1.,  1.,  0.],\n",
+    "                 [1., -1.,  0.],\n",
+    "                 [2.,  0.,  1.],\n",
+    "                 [2.,  0., -1.],\n",
+    "                 [3.,  0.,  0.]],\n",
+    "    cell = [5., 5., 5.]\n",
+    ")\n",
+    "a2 = matscipy.opls.OPLSStructure(a2)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "66cae3aa",
+   "metadata": {},
+   "source": [
+    "We can combine the two structures as we can for `ase.Atoms` objects."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "30689c81",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/vnd.jupyter.widget-view+json": {
+       "model_id": "f128524d40a5431082da0017ea218de5",
+       "version_major": 2,
+       "version_minor": 0
+      },
+      "text/plain": [
+       "HBox(children=(NGLWidget(), VBox(children=(Dropdown(description='Show', options=('All', 'H', 'C'), value='All'…"
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "a = matscipy.opls.OPLSStructure(cell=[10., 10., 10.])\n",
+    "a1.translate([0., 4., 0.])\n",
+    "a.extend(a1)\n",
+    "a.extend(a2)\n",
+    "a.center()\n",
+    "\n",
+    "ase.visualize.view(a, viewer='ngl')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c6363591",
+   "metadata": {},
+   "source": [
+    "Next, we specify atomic types. Note the difference between type and element. In this example we use two different types of hydrogen atoms."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "c30fc816",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "a.set_types(['C1', 'C1', 'H1', 'H1', 'H1', 'H2', 'H2', 'H2',\n",
+    "             'C1', 'C1', 'H1', 'H1', 'H1', 'H2', 'H2', 'H2'])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "060cab10",
+   "metadata": {},
+   "source": [
+    "To perform a non-reactive simulation, manual specification of all pairs, angles, and dihedrals is required. Typically this involves searching the literature for appropriate parameters. This can be a tedious task. However, if the interactions present in the system are already known, this process can be greatly simplified. Lists of all existing interactions can be generated based on the distance of the atoms from each other. The maximum distances up to which two atoms are considered to interact can be read from a file which will typically look like this:\n",
+    "\n",
+    "```\n",
+    "# Cutoffs\n",
+    "C1-C1 1.85\n",
+    "C1-H1 1.15\n",
+    "...\n",
+    "```\n",
+    "Here, we read these cutoffs from the file `cutoffs.in`:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "38511a32",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "['C1-C1' 'C1-H1' 'C1-H2']\n"
+     ]
+    }
+   ],
+   "source": [
+    "import matscipy.io.opls\n",
+    "\n",
+    "cutoffs = matscipy.io.opls.read_cutoffs('cutoffs.in')\n",
+    "a.set_cutoffs(cutoffs)\n",
+    "\n",
+    "bond_types, _ = a.get_bonds()\n",
+    "print(bond_types)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "185cf955",
+   "metadata": {},
+   "source": [
+    "The same procedure applies to angles and dihedrals:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "afc3c386",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "['C1-C1-H1', 'H1-C1-H1', 'C1-C1-H2', 'H2-C1-H2']\n"
+     ]
+    }
+   ],
+   "source": [
+    "angle_types, _ = a.get_angles()\n",
+    "print(angle_types)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "9f826747",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "['H1-C1-C1-H2']\n"
+     ]
+    }
+   ],
+   "source": [
+    "dih_types, _ = a.get_dihedrals()\n",
+    "print(dih_types)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0dd3bc25",
+   "metadata": {},
+   "source": [
+    "Once all interaction parameters are known, they can be written to a file that looks like this:\n",
+    "```\n",
+    "# Element\n",
+    "C1 0.0028 3.50 -0.06\n",
+    "H1 0.0013 2.50  0.06\n",
+    "...\n",
+    "\n",
+    "# Bonds\n",
+    "C1-C1 13.4 1.5\n",
+    "C1-H1 14.3 1.1\n",
+    "...\n",
+    "\n",
+    "# Angles\n",
+    "C1-C1-H1 1.5 110.0\n",
+    "C1-C1-H2 1.1 115.0\n",
+    "...\n",
+    "\n",
+    "# Dihedrals\n",
+    "H1-C1-C1-H2 0.0 0.0 0.016 0.0\n",
+    "...\n",
+    "\n",
+    "# Cutoffs\n",
+    "C1-C1 1.85\n",
+    "...\n",
+    "```\n",
+    "Such a file can be used to generate the lists of all interactions and to create input files for LAMMPS:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "7e584fae",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cutoffs, atom_data, bond_data, angle_data, dih_data = matscipy.io.opls.read_parameter_file('parameters.in')\n",
+    "\n",
+    "a.set_cutoffs(cutoffs)\n",
+    "a.set_atom_data(atom_data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "67630805",
+   "metadata": {},
+   "source": [
+    "After reading in all parameters, we can construct the lists of bonds, angles and dihedrals:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "e7328814",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(array(['C1-C1', 'C1-H1', 'C1-H2'], dtype=object),\n",
+       " array([[ 0,  1,  0],\n",
+       "        [ 0,  9,  8],\n",
+       "        [ 1,  2,  0],\n",
+       "        [ 1,  3,  0],\n",
+       "        [ 1,  4,  0],\n",
+       "        [ 1, 10,  8],\n",
+       "        [ 1, 11,  8],\n",
+       "        [ 1, 12,  8],\n",
+       "        [ 2,  5,  1],\n",
+       "        [ 2,  6,  1],\n",
+       "        [ 2,  7,  1],\n",
+       "        [ 2, 13,  9],\n",
+       "        [ 2, 14,  9],\n",
+       "        [ 2, 15,  9]]))"
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "a.get_bonds(bond_data)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "0ec27c46",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(['C1-C1-H1', 'H1-C1-H1', 'C1-C1-H2', 'H2-C1-H2'],\n",
+       " [[0, 2, 0, 1],\n",
+       "  [1, 2, 0, 4],\n",
+       "  [0, 1, 0, 4],\n",
+       "  [1, 2, 0, 3],\n",
+       "  [0, 1, 0, 3],\n",
+       "  [1, 4, 0, 3],\n",
+       "  [2, 0, 1, 6],\n",
+       "  [2, 0, 1, 7],\n",
+       "  [3, 6, 1, 7],\n",
+       "  [2, 0, 1, 5],\n",
+       "  [3, 6, 1, 5],\n",
+       "  [3, 7, 1, 5],\n",
+       "  [0, 10, 8, 9],\n",
+       "  [1, 10, 8, 12],\n",
+       "  [0, 9, 8, 12],\n",
+       "  [1, 10, 8, 11],\n",
+       "  [0, 9, 8, 11],\n",
+       "  [1, 12, 8, 11],\n",
+       "  [2, 8, 9, 14],\n",
+       "  [2, 8, 9, 15],\n",
+       "  [3, 14, 9, 15],\n",
+       "  [2, 8, 9, 13],\n",
+       "  [3, 14, 9, 13],\n",
+       "  [3, 15, 9, 13]])"
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "a.get_angles(angle_data)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "c8b3d9b4",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(['H1-C1-C1-H2'],\n",
+       " [[0, 2, 0, 1, 6],\n",
+       "  [0, 2, 0, 1, 7],\n",
+       "  [0, 2, 0, 1, 5],\n",
+       "  [0, 4, 0, 1, 6],\n",
+       "  [0, 4, 0, 1, 7],\n",
+       "  [0, 4, 0, 1, 5],\n",
+       "  [0, 3, 0, 1, 6],\n",
+       "  [0, 3, 0, 1, 7],\n",
+       "  [0, 3, 0, 1, 5],\n",
+       "  [0, 10, 8, 9, 14],\n",
+       "  [0, 10, 8, 9, 15],\n",
+       "  [0, 10, 8, 9, 13],\n",
+       "  [0, 12, 8, 9, 14],\n",
+       "  [0, 12, 8, 9, 15],\n",
+       "  [0, 12, 8, 9, 13],\n",
+       "  [0, 11, 8, 9, 14],\n",
+       "  [0, 11, 8, 9, 15],\n",
+       "  [0, 11, 8, 9, 13]])"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "a.get_dihedrals(dih_data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d8548376",
+   "metadata": {},
+   "source": [
+    "We have to call all these methods manually. The constructed lists are automatically stored in the `matscipy.OPLSStructure`-object, so there is no need to capture the return values at this point. Note that the construction of these lists can be *very* time-consuming for complex systems, especially the construction of the dihedrals list.\n",
+    "\n",
+    "Now we can write the atomic structure, the potential definitions and a sample input script for LAMMPS (3 files in total). The input script contains a simple relaxation of the atomic position. You can use this file as a starting point to write scripts for more complex simulations."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "79365148",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "matscipy.io.opls.write_lammps('example', a)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9311dfec",
+   "metadata": {},
+   "source": [
+    "Alternatively, atomic configurations can be read from any type of file ASE can __[read](https://wiki.fysik.dtu.dk/ase/ase/io/io.html#module-ase.io)__. Extended xyz-files are particularly useful for this purpose since they are human-readable and can contain information about the atom type. A typical extended XYZ file for non-reactive simulations will look like this\n",
+    "```\n",
+    "42\n",
+    "Lattice=\"10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 10.0\" Properties=species:S:1:pos:R:3:molid:I:1:type:S:1 pbc=\"F F F\"\n",
+    "C        4.5       6.5       5.0       1        C1\n",
+    "H        4.5       5.5       5.0       1        H1\n",
+    "H        5.5       3.5       4.0       2        H2\n",
+    "...\n",
+    "```\n",
+    "The file should include the following columns: element (1 or 2 characters), x(float), y(float), z (float), molecule id (int), type (1 or 2 characters). A full description of the extended XYZ format can be found in the __[ASE documentation](https://wiki.fysik.dtu.dk/ase/ase/io/formatoptions.html#extxyz)__."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "ed878a34",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/vnd.jupyter.widget-view+json": {
+       "model_id": "fbc065769c054e72a57625a28f442f1b",
+       "version_major": 2,
+       "version_minor": 0
+      },
+      "text/plain": [
+       "HBox(children=(NGLWidget(), VBox(children=(Dropdown(description='Show', options=('All', 'H', 'C'), value='All'…"
+      ]
+     },
+     "execution_count": 13,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "b = matscipy.io.opls.read_extended_xyz('ethane.extxyz')\n",
+    "\n",
+    "ase.visualize.view(b, viewer='ngl')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6fda6a52",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "690673f2",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

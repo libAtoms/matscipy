@@ -1,0 +1,13 @@
+matscipy.gamma\_surface
+=======================
+
+.. automodule:: matscipy.gamma_surface
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      GammaSurface
+      StackingFault
+   

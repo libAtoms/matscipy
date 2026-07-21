@@ -1,0 +1,18 @@
+matscipy.atomic\_strain
+=======================
+
+.. automodule:: matscipy.atomic_strain
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      array_inverse
+      atomic_strain
+      get_D_square_min
+      get_XIJ
+      get_YIJ
+      get_delta_plus_epsilon
+      get_delta_plus_epsilon_dgesv
+   

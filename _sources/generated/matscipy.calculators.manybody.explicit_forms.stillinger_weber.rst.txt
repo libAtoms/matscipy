@@ -1,0 +1,13 @@
+matscipy.calculators.manybody.explicit\_forms.stillinger\_weber
+===============================================================
+
+.. automodule:: matscipy.calculators.manybody.explicit_forms.stillinger_weber
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      StillingerWeber
+      ab
+   

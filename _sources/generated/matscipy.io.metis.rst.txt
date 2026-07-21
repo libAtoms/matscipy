@@ -1,0 +1,12 @@
+matscipy.io.metis
+=================
+
+.. automodule:: matscipy.io.metis
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      save_metis
+   

@@ -1,0 +1,18 @@
+matscipy.calculators.manybody.newmb
+===================================
+
+.. automodule:: matscipy.calculators.manybody.newmb
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      ein
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Manybody
+   

@@ -1,0 +1,17 @@
+matscipy.cli
+============
+
+.. automodule:: matscipy.cli
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   calculators
+   diffusion
+   electrochemistry
+   fracture_mechanics
+   glasses

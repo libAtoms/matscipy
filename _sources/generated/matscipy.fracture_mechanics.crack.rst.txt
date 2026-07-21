@@ -1,0 +1,41 @@
+matscipy.fracture\_mechanics.crack
+==================================
+
+.. automodule:: matscipy.fracture_mechanics.crack
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      G_to_strain
+      counted
+      deformation_gradient_residual
+      deformation_gradient_residuals
+      displacement_residual
+      displacement_residuals
+      find_tip_broken_bonds
+      find_tip_coordination
+      find_tip_stress_field
+      fit_crack_stress_field
+      get_energy_release_rate
+      get_strain
+      get_stress_intensity_factor
+      isotropic_modeII_crack_tip_displacement_field
+      isotropic_modeI_crack_tip_displacement_field
+      isotropic_modeI_crack_tip_stress_field
+      plot_stress_fields
+      print_crack_system
+      strain_to_G
+      thin_strip_displacement_y
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ConstantStrainRate
+      CubicCrystalCrack
+      IsotropicStressField
+      RectilinearAnisotropicCrack
+      SinclairCrack
+   

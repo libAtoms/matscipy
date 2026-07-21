@@ -1,0 +1,26 @@
+matscipy.utils
+==============
+
+.. automodule:: matscipy.utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      complete_basis
+      find_condensed_repr
+      find_condensed_repr_along_axis
+      get_distance_from_polygon2D
+      get_structure_types
+      line_intersect_2D
+      points_in_polygon2D
+      radial_mask_from_polygon2D
+      validate_cubic_cell
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      classproperty
+   
