@@ -304,7 +304,8 @@ def find_surface_energy(symbol,calc,a0,surface,size=(8,1,1),vacuum=10,fmax=0.000
         directions=[[1,1,0], [-1,1,0], [0,0,1]] #tested for bcc
     elif surface.endswith('111'):
         directions=[[1,1,1], [-2,1,1],[0,-1,1]] #tested for bcc
-    ## Append other cell axis options here
+    elif surface.endswith('112'):
+        directions=[[1,1,2], [1,1,-1], [-1,1,0]]
     else:
         print('Error: Unsupported surface orientation.')
     
@@ -319,7 +320,6 @@ def find_surface_energy(symbol,calc,a0,surface,size=(8,1,1),vacuum=10,fmax=0.000
     slab.calc = calc ; opt_slab = LBFGSLineSearch(slab) ; opt_slab.run(fmax=fmax)
 
     # Find surface energy
-    import numpy as np
     Ebulk = bulk.get_potential_energy() ; Eslab = slab.get_potential_energy()
     area = np.linalg.norm(np.cross(slab.get_cell()[1,:],slab.get_cell()[2,:]))
     gamma_ase = (Eslab - Ebulk)/(2*area)

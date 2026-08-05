@@ -222,28 +222,23 @@ def set_groups(a, n, skin_x, skin_y, central_x=-1. / 2, central_y=-1. / 2,
     a.set_array('groups', g)
 
 
-def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,
+def set_regions(cryst, r_I, cutoff, r_III, r_IV=None, extended_far_field=False,
                 extended_region_I=False, exclude_surface=False, sort_type='r_theta_z'):
     sx, sy, sz = cryst.cell.diagonal()
     x, y = cryst.positions[:, 0], cryst.positions[:, 1]
     cx, cy = sx / 2, sy / 2
     r = np.sqrt((x - cx)**2 + (y - cy)**2)
 
-    # Check region radii values do not lie on atoms
-    #r_II = r_I +cutoff ; r_IV = r_III+cutoff
-    #for num, rad in enumerate([r_I, r_II, r_III, r_IV]):
-    #    if rad in r:
-    #        reg_num = num + 1
-    #        print(f'Radius r_{reg_num:} from cracktip overlaps with atleast one atom.')
-
     # Regions I and III defined by radial distance from center
     regionI = r < r_I
     regionII = (r >= r_I) & (r < (r_I + cutoff))
     regionIII = (r >= r_I + cutoff) & (r < r_III)
-    # regionIII = (r >= r_I) & (r < r_III)
-    regionIV = (r >= r_III) & (r < (r_III + cutoff))
+    if r_IV is None:
+        r_IV = r_III + 3*cutoff # single cutoff width isn't sufficient for convergence
+    regionIV = (r >= r_III) & (r < r_IV)
 
-    """    regionII = np.zeros(len(cryst), bool)
+    """    
+    regionII = np.zeros(len(cryst), bool)
     i, j = neighbour_list('ij', cryst, cutoff)
     for idx in regionI.nonzero()[0]:
         neighbs = j[i == idx]
@@ -252,7 +247,8 @@ def set_regions(cryst, r_I, cutoff, r_III, extended_far_field=False,
         # print(f'adding {mask.sum()} neigbours of atom {idx} to regionII')
         mask[regionI] = False # exclude those in region I already
         regionII[mask] = True # add to region I
-        regionIII[mask] = False # remove from region III"""
+        regionIII[mask] = False # remove from region III
+    """
 
     if exclude_surface or extended_region_I:
         # build a mask of the material surface based on the following criteria:

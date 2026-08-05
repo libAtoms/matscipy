@@ -37,7 +37,7 @@ from matscipy.neighbours import neighbour_list
 def setup_crack(logger=screen):
     calc = parameter('calc')
 
-    cryst = parameter('cryst').copy()
+    cryst = parameter('cluster').copy()
     cryst.set_pbc(True)
 
     # Double check elastic constants. We're just assuming this is really a periodic
@@ -49,9 +49,11 @@ def setup_crack(logger=screen):
     elastic_optimizer = parameter('elastic_optimizer', ase.optimize.FIRE)
 
     if compute_elastic_constants:
-        cryst.set_calculator(calc)
+        cryst_rec = parameter('cryst').copy()
+        cryst_rec.set_pbc(True)
+        cryst_rec.set_calculator(calc)
         log_file = open('elastic_constants.log', 'w')
-        C, C_err = fit_elastic_constants(cryst, verbose=False,
+        C, C_err = fit_elastic_constants(cryst_rec, verbose=False,
                                          symmetry=elastic_symmetry,
                                          optimizer=elastic_optimizer,
                                          logfile=log_file,
