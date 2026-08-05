@@ -193,10 +193,18 @@ class LAMMPSData:
         """Set data component."""
         if name in self._type_names:
             name = self._type_names[name]
-            self.__data[name].resize(len(value))
+            try:
+                self.__data[name].resize(len(value))
+            except ValueError:
+                # If resize fails due to array references, create a new array
+                self.__data[name] = np.zeros(len(value), dtype=self.__data[name].dtype)
             self.__data[name]['type'] = value
         elif name in self._data_names:
-            self.__data[name].resize(len(value))
+            try:
+                self.__data[name].resize(len(value))
+            except ValueError:
+                # If resize fails due to array references, create a new array
+                self.__data[name] = np.zeros(len(value), dtype=self.__data[name].dtype)
             data = self.__data[name]
             try:
                 data[data.dtype.names[-1]] = np.array(value)
