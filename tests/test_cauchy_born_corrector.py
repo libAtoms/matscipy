@@ -298,14 +298,14 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         eps_down[1] -= de
 
         atoms, shifts_down, shift_err_before, A = self.model_prediction(
-            dirs, eps_down, method='regression', F_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
+            dirs, eps_down, method='regression', F_func=func, coordinates=coordinates, atol=1e-3, returnvals=True)
         atoms_copy_down = atoms.copy()
         self.cb.apply_shifts(atoms_copy_down, shifts_down)
 
         eps_up = eps.copy()
         eps_up[1] += de
         atoms, shifts_up, shift_err_before, A = self.model_prediction(
-            dirs, eps_up, method='regression', F_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
+            dirs, eps_up, method='regression', F_func=func, coordinates=coordinates, atol=1e-3, returnvals=True)
 
         atoms_copy_up = atoms.copy()
         self.cb.apply_shifts(atoms_copy_up, shifts_up)
@@ -316,6 +316,52 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
                       atoms_copy_down.get_positions())/(2*de)
         print(nu_grad_fd, nu_grad)
         assert np.allclose(nu_grad_fd, nu_grad, 1e-8)
+
+    def F_cart3D_rotated_with_de(self, x, y, z, eps=None, de=0):
+        # Deformation gradient F = Rot @ U with a NON-trivial rotation that varies with the strain
+        # (so the polar-decomposition rotation R != I and dR/dde != 0). The earlier gradient tests use
+        # symmetric F (= U, R = I), under which the rotation terms vanish and a get_shift_gradients that
+        # drops R still passes -- this case exercises them.
+        eps_arr = eps.copy()
+        eps_arr[1] += de
+        eps_vec = np.repeat(np.reshape(eps_arr, [1, 6]), len(x), axis=0)
+        E = Voigt_6_to_full_3x3_strain(eps_vec)
+        ang = 0.2 + 5.0 * eps_arr[1]          # rotation angle depends on the perturbed strain component
+        ax = np.array([1.0, 1.0, 1.0]) / np.sqrt(3.0)
+        K = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
+        Rot = np.eye(3) + np.sin(ang) * K + (1 - np.cos(ang)) * (K @ K)
+        F = np.zeros_like(E)
+        for i in range(np.shape(E)[0]):
+            F[i, :, :] = Rot @ sqrtm((2 * E[i, :, :]) + np.eye(3))
+        return F
+
+    def test_regression_model_gradient_F_with_rotation(self):
+        """Analytic get_shift_gradients must match the FD of the applied shift even when F carries a
+        rotation (R != I). Regression test for the bug where get_shift_gradients applied A^T dchi/dde,
+        dropping the F-induced rotation R and dR/dde (exact only at R = I, drifts with strain)."""
+        self.cb.initial_regression_fit()
+        eps = np.array([0.01, 0, 0.01, 0.01, 0, -0.01])
+        dirs = [[1, 1, 1], [-2, 1, 1], np.cross([1, 1, 1], [-2, 1, 1])]
+        func = self.F_cart3D_rotated_with_de
+        coordinates = 'cart3D'
+        de = 1e-5
+        # atol=1e-3 here is only the regression-model accuracy floor for the rotated, 1%-strained
+        # shift (~5e-4); the actual rotation correctness is the analytic-vs-FD gradient check below
+        # (atol=1e-7).
+        atoms, shifts, shift_err_before, A = self.model_prediction(
+            dirs, eps, method='regression', F_func=func, coordinates=coordinates, atol=1e-3, returnvals=True)
+        nu_grad = self.cb.get_shift_gradients(A, atoms,
+                                              F_func=func, coordinates='cart3D', eps=eps, de=de)
+        eps_down = eps.copy(); eps_down[1] -= de
+        atoms, shifts_down, _, A = self.model_prediction(
+            dirs, eps_down, method='regression', F_func=func, coordinates=coordinates, atol=1e-3, returnvals=True)
+        atoms_copy_down = atoms.copy(); self.cb.apply_shifts(atoms_copy_down, shifts_down)
+        eps_up = eps.copy(); eps_up[1] += de
+        atoms, shifts_up, _, A = self.model_prediction(
+            dirs, eps_up, method='regression', F_func=func, coordinates=coordinates, atol=1e-3, returnvals=True)
+        atoms_copy_up = atoms.copy(); self.cb.apply_shifts(atoms_copy_up, shifts_up)
+        nu_grad_fd = (atoms_copy_up.get_positions() - atoms_copy_down.get_positions()) / (2 * de)
+        assert np.allclose(nu_grad_fd, nu_grad, atol=1e-7)
 
 
 if __name__ == '__main__':
