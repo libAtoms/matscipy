@@ -162,3 +162,99 @@ class Molecules:
             parse_tuples(dre, (0, 1, 2, 3), 'dihedrals')
 
         return Molecules(**kwargs)
+
+    def to_atoms_arrays(self, atoms):
+        """
+        Adds the Molecule's connectivity information to the ASE atoms object.
+        This is the inverse of from_atoms() method. 
+
+        The connectivity is stored in the atoms.arrays dictionary, with the keys 'bonds', 'angles', and 'dihedrals'.
+        
+        Parameters
+        ----------
+        atoms : ase.Atoms
+            The atoms object to which connectivity arrays will be added
+        """
+        natoms = len(atoms)
+        
+        # Handle bonds
+        if len(self.bonds) > 0:
+            # Initialize bond lists for each atom
+            atom_bonds = [[] for _ in range(natoms)]
+            
+            # Process each bond
+            for bond in self.bonds:
+                atom1, atom2 = bond['atoms']
+                bond_type = bond['type']
+                
+                # Add bond to both atoms with type notation
+                atom_bonds[atom1].append(f"{atom2}({bond_type})")
+                atom_bonds[atom2].append(f"{atom1}({bond_type})")
+            
+            # Convert to ASE string format
+            bonds_array = []
+            for bonds_list in atom_bonds:
+                if bonds_list:
+                    bonds_array.append(','.join(bonds_list))
+                else:
+                    bonds_array.append('_')
+            
+            atoms.arrays['bonds'] = np.array(bonds_array)
+        
+        # Handle angles
+        if len(self.angles) > 0:
+            # Initialize angle lists for each atom
+            atom_angles = [[] for _ in range(natoms)]
+            
+            # Process each angle
+            for angle in self.angles:
+                atoms_in_angle = angle['atoms']
+                angle_type = angle['type']
+                
+                # The angle is stored on the first atom, referencing the other two
+                central_atom = atoms_in_angle[0]
+                other_atoms = atoms_in_angle[1:]
+                
+                angle_str = '-'.join(map(str, other_atoms)) + f"({angle_type})"
+                atom_angles[central_atom].append(angle_str)
+            
+            # Convert to ASE string format
+            angles_array = []
+            for angles_list in atom_angles:
+                if angles_list:
+                    angles_array.append(','.join(angles_list))
+                else:
+                    angles_array.append('_')
+            
+            atoms.arrays['angles'] = np.array(angles_array)
+        
+        # Handle dihedrals
+        if len(self.dihedrals) > 0:
+            # Initialize dihedral lists for each atom
+            atom_dihedrals = [[] for _ in range(natoms)]
+            
+            # Process each dihedral
+            for dihedral in self.dihedrals:
+                atoms_in_dihedral = dihedral['atoms']
+                dihedral_type = dihedral['type']
+                
+                # The dihedral is stored on the first atom, referencing the other three
+                central_atom = atoms_in_dihedral[0]
+                other_atoms = atoms_in_dihedral[1:]
+                
+                dihedral_str = '-'.join(map(str, other_atoms)) + f"({dihedral_type})"
+                atom_dihedrals[central_atom].append(dihedral_str)
+            
+            # Convert to ASE string format
+            dihedrals_array = []
+            for dihedrals_list in atom_dihedrals:
+                if dihedrals_list:
+                    dihedrals_array.append(','.join(dihedrals_list))
+                else:
+                    dihedrals_array.append('_')
+            
+            atoms.arrays['dihedrals'] = np.array(dihedrals_array)
+
+
+
+
