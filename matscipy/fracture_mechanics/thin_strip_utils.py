@@ -782,7 +782,7 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
                              sim_tstep=0.001,damping_strength_right=0.1,damping_strength_left=0.1,dump_freq=100, dump_files=True,
                              dump_name='dump.lammpstrj',thermo_freq=100,left_damp_thickness=60,
                              right_damp_thickness=60,multi_potential=False, y_fixed_length=1,
-                             bond_topology=False, weak_damp_thickness_ratio=0, weak_damp_factor=1):
+                             bond_topology=False, weak_damp_thickness_ratio=0, weak_damp_factor=1,temp=0.0):
     """Set up the simulation by passing an active LAMMPS object a number of commands"""
     
     # ---------- Initialize Simulation --------------------- 
@@ -814,7 +814,10 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     #define a variable for average y position of crack atoms using ymax and ymin
     lmps.command('variable ymid equal (v_ymax+v_ymin)/2')
     #----------Define potential-------
-    lmps.command(f'mass 1 {atomic_mass}')
+    if type(atomic_mass) is not list:
+        lmps.command(f'mass 1 {atomic_mass}')
+    else:
+        lmps.commands_list(atomic_mass)
 
     
     ############ set up potential ################
@@ -829,11 +832,11 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     lmps.command(f'region top_layer block INF INF $((v_ymax)-{y_fixed_length}) $(v_ymax+2) INF INF')
     lmps.command('region left_layer_fixed block $((v_xmin-2)) $((v_xmin+5)) INF INF INF INF')
     lmps.command('region right_layer_fixed block $((v_xmax-5)) $((v_xmax+2)) INF INF INF INF')
-    lmps.command(f'region left_layer_thermostat_strong block $((v_xmin-2)) $((v_xmin+{left_damp_thickness/(weak_damp_thickness_ratio+1)})) INF INF INF INF')
-    lmps.command(f'region right_layer_thermostat_strong block $((v_xmax-{right_damp_thickness/(weak_damp_thickness_ratio+1)})) $((v_xmax+2)) INF INF INF INF')
+    lmps.command(f'region left_layer_thermostat_strong block $((v_xmin+5)) $((v_xmin+{left_damp_thickness/(weak_damp_thickness_ratio+1)})) $((v_ymin+{y_fixed_length})) $((v_ymax)-{y_fixed_length}) INF INF')
+    lmps.command(f'region right_layer_thermostat_strong block $((v_xmax-{right_damp_thickness/(weak_damp_thickness_ratio+1)})) $((v_xmax-5)) $((v_ymin+{y_fixed_length})) $((v_ymax)-{y_fixed_length}) INF INF')
 
-    lmps.command(f'region left_layer_thermostat_weak block $((v_xmin+{left_damp_thickness/(weak_damp_thickness_ratio+1)})) $((v_xmin+{left_damp_thickness})) INF INF INF INF')
-    lmps.command(f'region right_layer_thermostat_weak block $((v_xmax-{right_damp_thickness})) $((v_xmax-{right_damp_thickness/(weak_damp_thickness_ratio+1)})) INF INF INF INF')
+    lmps.command(f'region left_layer_thermostat_weak block $((v_xmin+{left_damp_thickness/(weak_damp_thickness_ratio+1)})) $((v_xmin+{left_damp_thickness})) $((v_ymin+{y_fixed_length})) $((v_ymax)-{y_fixed_length}) INF INF')
+    lmps.command(f'region right_layer_thermostat_weak block $((v_xmax-{right_damp_thickness})) $((v_xmax-{right_damp_thickness/(weak_damp_thickness_ratio+1)})) $((v_ymin+{y_fixed_length})) $((v_ymax)-{y_fixed_length}) INF INF')
 
     #---------- Set groups for boundary layers ----------
     # Identify atoms within 1 unit of the top and bottom boundaries
@@ -860,17 +863,17 @@ def set_up_simulation_lammps(lmps,tmp_file_path,atomic_mass,calc_commands,
     # --------- Create groups for atoms treated with different ensembles --------------------
     # lmps.command('group nvt_atoms union left_thermo right_thermo')
     lmps.command('group nve_atoms subtract all right_atoms')
-    lmps.command('group non_fixed_atoms subtract all top_atoms bottom_atoms right_atoms')
+    lmps.command('group non_fixed_atoms subtract all top_atoms bottom_atoms right_atoms left_atoms')
 
     # ---------- set timestep length -------------
     lmps.command(f'timestep {sim_tstep}')
 
     # ---------- Apply a thermostat to control the temperature ------------
     lmps.command('fix 5 nve_atoms nve')
-    lmps.command(f'fix therm_weak_left left_thermo_weak langevin 0.0 0.0 {damping_strength_left*weak_damp_factor} 1029')
-    lmps.command(f'fix therm_weak_right right_thermo_weak langevin 0.0 0.0 {damping_strength_right*weak_damp_factor} 1029')
-    lmps.command(f'fix therm_strong_left left_thermo_strong langevin 0.0 0.0 {damping_strength_left} 1029')
-    lmps.command(f'fix therm_strong_right right_thermo_strong langevin 0.0 0.0 {damping_strength_right} 1029')
+    lmps.command(f'fix therm_weak_left left_thermo_weak langevin {temp} {temp} {damping_strength_left*weak_damp_factor} 1029')
+    lmps.command(f'fix therm_weak_right right_thermo_weak langevin {temp} {temp} {damping_strength_right*weak_damp_factor} 1029')
+    lmps.command(f'fix therm_strong_left left_thermo_strong langevin {temp} {temp} {damping_strength_left} 1029')
+    lmps.command(f'fix therm_strong_right right_thermo_strong langevin {temp} {temp} {damping_strength_right} 1029')
 
 
 
