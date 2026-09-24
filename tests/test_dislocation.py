@@ -42,6 +42,7 @@ test_dir = os.path.dirname(os.path.realpath(__file__))
 
 try:
     import matplotlib
+    import matplotlib.cm
     matplotlib.use("Agg")  # Activate 'agg' backend for off-screen plotting for testing.
 except ImportError:
     print("matplotlib not found: skipping some tests")
@@ -226,6 +227,9 @@ class TestDislocation(matscipytest.MatSciPyTestCase):
     # Also requires version of atomman higher than 1.3.1.1
     @unittest.skipIf("matplotlib" not in sys.modules or "atomman" not in sys.modules,
                      "Requires matplotlib and atomman which is not a part of automated testing environment")
+    # atomman's differential_displacement() calls matplotlib.cm.get_cmap, which newer matplotlib removed
+    @unittest.skipIf("matplotlib" in sys.modules and not hasattr(sys.modules["matplotlib"].cm, "get_cmap"),
+                     "atomman.defect.differential_displacement is incompatible with this matplotlib (no cm.get_cmap)")
     def test_differential_displacement(self):
         """Test differential_displacement() function from atomman
 
