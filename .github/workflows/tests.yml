@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         split-group: [1, 2, 3, 4]
-        python: [ '3.10', '3.11', '3.12', '3.13' ]
+        python: [ '3.10', '3.11', '3.12', '3.13', '3.14' ]
         ase-version: ['stable']
         include:
           # Test against ASE development version (allowed to fail)

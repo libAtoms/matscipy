@@ -193,10 +193,15 @@ class LAMMPSData:
         """Set data component."""
         if name in self._type_names:
             name = self._type_names[name]
-            self.__data[name].resize(len(value))
+            old = self.__data[name]
+            new_arr = np.empty(len(value), dtype=self._dtypes[name])
+            n = min(len(old), len(value))
+            if n > 0:
+                new_arr[:n] = old[:n]
+            self.__data[name] = new_arr
             self.__data[name]['type'] = value
         elif name in self._data_names:
-            self.__data[name].resize(len(value))
+            self.__data[name] = np.empty(len(value), dtype=self._dtypes[name])
             data = self.__data[name]
             try:
                 data[data.dtype.names[-1]] = np.array(value)
@@ -309,16 +314,15 @@ class LAMMPSData:
         for linum, line in enumerate(fd):
             if 'Masses' in line:
                 ntypes = type_counts['atom types']
-                self['masses'].resize(ntypes)
-                self['masses'][:] = \
+                self.__data['masses'] = \
                     np.genfromtxt(fd, skip_header=1,
-                                  max_rows=ntypes, usecols=(1,))
+                                  max_rows=ntypes, usecols=(1,), dtype=self._dtypes['masses'])
 
             else:
                 for label in self._data_names:
                     if self.__headers[label] in line:
                         nlines = data_counts[label]
-                        self[label].resize(nlines)
+                        self.__data[label] = np.empty(nlines, dtype=self._dtypes[label])
                         dtype = self[label].dtype
 
                         raw_dtype = np.dtype([('num', np.int32)] + [
