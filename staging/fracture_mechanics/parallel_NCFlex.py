@@ -16,7 +16,10 @@ from matscipy.elasticity import  fit_elastic_constants
 from matscipy.fracture_mechanics.crack import CubicCrystalCrack, SinclairCrack
 
 from scipy.optimize import fsolve, fminbound, minimize
-from scipy.optimize.nonlin import NoConvergence
+try:
+    from scipy.optimize import NoConvergence # newer SciPy
+except ImportError:
+    from scipy.optimize.nonlin import NoConvergence # older SciPy
 
 import sys
 sys.path.insert(0, '.')
