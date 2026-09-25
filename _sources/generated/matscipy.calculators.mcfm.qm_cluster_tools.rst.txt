@@ -1,0 +1,15 @@
+matscipy.calculators.mcfm.qm\_cluster\_tools
+============================================
+
+.. automodule:: matscipy.calculators.mcfm.qm_cluster_tools
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   base_qm_cluster_tool
+   qm_clustering_tool
+   qm_flagging_tool

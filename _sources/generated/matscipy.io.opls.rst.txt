@@ -1,0 +1,22 @@
+matscipy.io.opls
+================
+
+.. automodule:: matscipy.io.opls
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      read_block
+      read_cutoffs
+      read_extended_xyz
+      read_lammps_data
+      read_lammps_definitions
+      read_parameter_file
+      update_from_lammps_dump
+      write_lammps
+      write_lammps_atoms
+      write_lammps_definitions
+      write_lammps_in
+   

@@ -1,0 +1,12 @@
+matscipy.calculators.supercell\_calculator
+==========================================
+
+.. automodule:: matscipy.calculators.supercell_calculator
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      SupercellCalculator
+   

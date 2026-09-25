@@ -1,0 +1,12 @@
+matscipy.cli.fracture\_mechanics.sinclair\_crack
+================================================
+
+.. automodule:: matscipy.cli.fracture_mechanics.sinclair_crack
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      main
+   

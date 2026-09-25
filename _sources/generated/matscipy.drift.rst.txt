@@ -1,0 +1,12 @@
+matscipy.drift
+==============
+
+.. automodule:: matscipy.drift
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      RemoveDrift
+   

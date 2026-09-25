@@ -1,0 +1,34 @@
+matscipy.calculators.fitting
+============================
+
+.. automodule:: matscipy.calculators.fitting
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      CombinedFit
+      Fit
+      FitB2
+      FitBCC
+      FitCubicCrystal
+      FitDiamond
+      FitDiamond100
+      FitDiamond110
+      FitDiamond111
+      FitDimer
+      FitFCC
+      FitGraphene
+      FitGraphite
+      FitHexagonalCrystal
+      FitL1_0
+      FitL1_2
+      FitSC
+      FitSinglePoint
+      FitSurface
+      FitTetragonalCrystal
+      Parameters
+      Penalty
+      RotatingFit
+   

@@ -1,0 +1,13 @@
+matscipy.cli.glasses
+====================
+
+.. automodule:: matscipy.cli.glasses
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   quench

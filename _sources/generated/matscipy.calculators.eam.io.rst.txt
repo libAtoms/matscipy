@@ -1,0 +1,20 @@
+matscipy.calculators.eam.io
+===========================
+
+.. automodule:: matscipy.calculators.eam.io
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      mix_eam
+      read_eam
+      write_eam
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      EAMParameters
+   

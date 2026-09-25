@@ -1,0 +1,12 @@
+matscipy.cli.fracture\_mechanics.quasistatic\_crack
+===================================================
+
+.. automodule:: matscipy.cli.fracture_mechanics.quasistatic_crack
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      main
+   

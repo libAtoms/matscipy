@@ -1,0 +1,19 @@
+matscipy.electrochemistry.poisson\_nernst\_planck\_solver
+=========================================================
+
+.. automodule:: matscipy.electrochemistry.poisson_nernst_planck_solver
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      B
+      jacobian
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PoissonNernstPlanckSystem
+   

@@ -1,0 +1,13 @@
+matscipy.calculators.manybody.calculator
+========================================
+
+.. automodule:: matscipy.calculators.manybody.calculator
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Manybody
+      NiceManybody
+   

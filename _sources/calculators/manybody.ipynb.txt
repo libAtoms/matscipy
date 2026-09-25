@@ -1,0 +1,170 @@
+{
+ "cells": [
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Many-body potentials\n",
+    "\n",
+    "``matscipy`` implements support for generic manybody potentials. The class {py:class}`matscipy.calculators.manybody.Manybody` implements the functional form\n",
+    "\n",
+    "```{math}\n",
+    "  U\n",
+    "  =\n",
+    "  \\frac{1}{2}\n",
+    "  \\sum_{\\substack{ij\\\\ i\\neq j}}\n",
+    "  U_2(r^2_{ij}) + U_\\text{m}(r^2_{ij}, \\xi_{ij})\n",
+    "```\n",
+    "\n",
+    "with\n",
+    "\n",
+    "```{math}\n",
+    "  \\xi_{ij} \n",
+    "  = \n",
+    "  \\sum_{\\substack{k\\\\ k\\neq i,j}} \n",
+    "  \\Xi(r^2_{ij}, r^2_{ik}, r^2_{jk})\n",
+    "```\n",
+    "\n",
+    "as described, e.g. by [Müser et al.](https://doi.org/10.1080/23746149.2022.2093129) and [Grießer et al.](https://doi.org/10.48550/arXiv.2302.08754). On top of energies and forces, the calculator can compute second derivatives (with respect to positions and strain degrees of freedom). Explicit functional forms of {math}`U_2`, {math}`U_\\text{m}` and {math}`\\Xi` are implemented for a number of potential."
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Kumagai potential\n",
+    "\n",
+    "The following example computes the elastic constants of a small representation of amorphous silicon using the potential by [Kumagai et al.](https://doi.org/10.1016/j.commatsci.2006.07.013). We first load the amorphous structure."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.io import read\n",
+    "\n",
+    "def interactive_view(system):\n",
+    "    from ase.visualize import view\n",
+    "    # Interactive view of the lattice\n",
+    "    v = view(system, viewer='ngl')\n",
+    "\n",
+    "    # Resize widget\n",
+    "    v.view._remote_call(\"setSize\", target=\"Widget\", args=[\"300px\", \"300px\"])\n",
+    "    v.view.center()\n",
+    "    return v\n",
+    "\n",
+    "a = read('../../tests/aSi.cfg')\n",
+    "a.symbols[:] = 'Si'\n",
+    "\n",
+    "interactive_view(a)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now we setup the calculator with the Kumagai potential and its parametrization."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.calculators.manybody import Manybody\n",
+    "from matscipy.calculators.manybody.explicit_forms import Kumagai\n",
+    "from matscipy.calculators.manybody.explicit_forms.kumagai import Kumagai_Comp_Mat_Sci_39_Si\n",
+    "from IPython.display import display, Markdown\n",
+    "\n",
+    "a.calc = Manybody(**Kumagai(Kumagai_Comp_Mat_Sci_39_Si))\n",
+    "\n",
+    "display(Markdown(f'Cohesive energy = {a.get_potential_energy() / len(a):.2f} eV/atom'))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We can also compute the Born elastic constants, i.e. the affine elastic constants:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "from ase.units import GPa\n",
+    "from matscipy.elasticity import elastic_moduli, full_3x3x3x3_to_Voigt_6x6\n",
+    "\n",
+    "# Born elastic constants (without nonaffine displacements)\n",
+    "C = a.calc.get_property('born_constants', a)\n",
+    "\n",
+    "# Get isotropic elastic moduli\n",
+    "E, nu, G, B, K = elastic_moduli(full_3x3x3x3_to_Voigt_6x6(C))\n",
+    "\n",
+    "display(Markdown(f\"Young's modulus = {E.mean() / GPa:.1f} GPa\"))\n",
+    "display(Markdown(f\"Poisson number = {(nu + np.eye(3)).sum()/6:.3f}\"))"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Other many-body potentials\n",
+    "\n",
+    "To runs the same code with [Stillinger-Weber](https://doi.org/10.1103/PhysRevB.31.5262), replace the calculator by"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.calculators.manybody.explicit_forms import StillingerWeber\n",
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import Stillinger_Weber_PRB_31_5262_Si\n",
+    "\n",
+    "a.calc = Manybody(**StillingerWeber(Stillinger_Weber_PRB_31_5262_Si))\n",
+    "\n",
+    "display(Markdown(f'Cohesive energy = {a.get_potential_energy() / len(a):.2f} eV/atom'))"
+   ]
+  },
+  {
+   "attachments": {},
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Other examples of potentials that are implemented are [Tersoff](https://doi.org/10.1103/PhysRevB.39.5566), [Brenner](https://doi.org/10.1103/PhysRevB.42.9458) (without the lookup tables), [Erhart-Albe](https://doi.org/10.1103/PhysRevB.71.035211) and others. Second derivatives are supported for all of these."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
