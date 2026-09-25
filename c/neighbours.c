@@ -102,6 +102,10 @@ py_neighbour_list(PyObject *self, PyObject *args)
     /* Optional quantities to be computed */
     PyObject *py_first = NULL, *py_secnd = NULL, *py_distvec = NULL;
     PyObject *py_absdist = NULL, *py_shift = NULL;
+#if PY_MAJOR_VERSION >= 3
+    /* declared here so the fail path never sees it uninitialized */
+    PyObject *py_bquantities = NULL;
+#endif
 
 #if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTuple(args, "O!OOOOOO|O", &PyUnicode_Type, &py_quantities,
@@ -315,7 +319,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     npy_double *distvec = NULL, *absdist = NULL;
 
 #if PY_MAJOR_VERSION >= 3
-    PyObject *py_bquantities = PyUnicode_AsASCIIString(py_quantities);
+    py_bquantities = PyUnicode_AsASCIIString(py_quantities);
     if (!py_bquantities) {
         PyErr_SetString(PyExc_TypeError, "Conversion to ASCII string failed.");
         goto fail;
@@ -637,7 +641,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     Py_XDECREF(py_inv_cell);
     Py_XDECREF(py_pbc);
     Py_XDECREF(py_r);
-    Py_DECREF(py_types);
+    Py_XDECREF(py_types);
 
     if (seed)  free(seed);
     if (next)  free(next);
