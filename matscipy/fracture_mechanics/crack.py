@@ -1251,9 +1251,10 @@ class SinclairCrack:
         self.set_dofs(x)
         # build a preconditioner using regions I+II of the atomic system.
         # Select via the boolean mask (preserves array order) rather than self.atoms[:self.N2], which
-        # assumes the cluster is sorted region I, II, III. set_regions' default sort ('r_theta_z') is NOT
-        # region-grouped, so [:self.N2] would not be regions I+II and the region-I sub-block below would be
-        # empty/misaligned (spilu size-mismatch). The mask matches how update_atoms/get_forces index the DOFs.
+        # assumes the cluster is sorted region I, II, III. set_regions sorts radially, which only groups
+        # regions when they are radial shells; with extended_region_I or exclude_surface they are not, so
+        # [:self.N2] would not be regions I+II and the region-I sub-block below would be misaligned.
+        # The mask matches how update_atoms/get_forces index the DOFs.
         a = self.atoms[self.regionI_II]
         a.calc = self.calc
         # a.write('atoms.xyz')
