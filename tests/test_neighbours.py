@@ -198,7 +198,6 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
     def test_multiple_elements(self):
         a = molecule("HCOOH")
         a.center(vacuum=5.0)
-        io.write("HCOOH.cfg", a)
         i = neighbour_list("i", a, 1.85)
         self.assertArrayAlmostEqual(np.bincount(i), [2, 3, 1, 1, 1])
 

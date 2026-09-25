@@ -1,2 +1,13 @@
 generated/*
 *.cfg
+
+# files written when the example notebooks/scripts are executed (#226)
+applications/*.traj
+applications/log_*.txt
+applications/*_mask.txt
+applications/NaCl_*.xyz
+applications/NaCl_*.lammps
+topology/example.atoms
+topology/example.in
+topology/example.opls
+topology/struct.lammps.*
