@@ -1,6 +1,17 @@
 Change log
 ==========
 
+Unreleased
+----------
+
+- BUG: `SinclairCrack` now passes the deformation gradient to the multilattice
+  Cauchy-Born corrector as F_ab = dx_a/dX_b; it previously passed the
+  transpose. **Results change** for flexible-boundary Sinclair crack runs that
+  use a Cauchy-Born corrector (e.g. Si with Stillinger-Weber): the predicted
+  shifts were evaluated at a rotated strain and rotated the wrong way, an error
+  first order in the local lattice rotation (up to ~1e-2 Å at K = K_G in mixed
+  mode). `CubicCrystalCrack.deformation_gradient` itself is unchanged. (#329)
+
 v1.2.0 (18Nov2025)
 ------------------
 
