@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         split-group: [1, 2, 3, 4]
-        python: [ '3.10', '3.11', '3.12', '3.13' ]
+        python: [ '3.10', '3.11', '3.12', '3.13', '3.14' ]
         ase-version: ['stable']
         include:
           # Test against ASE development version (allowed to fail)
@@ -33,11 +33,11 @@ jobs:
             ase-version: 'dev'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
 
@@ -61,7 +61,7 @@ jobs:
           pip install git+https://gitlab.com/ase/ase.git@master
 
       - name: Cache test durations
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: tests/.test_durations
           key: test-durations-${{ github.run_id }}

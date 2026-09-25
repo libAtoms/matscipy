@@ -32,11 +32,11 @@ jobs:
         - [macos-14, macosx, arm64]
         - [windows-2022, win, AMD64]
 
-        python: ["cp310", "cp311", "cp312", "cp313"]
+        python: ["cp310", "cp311", "cp312", "cp313", "cp314"]
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -52,28 +52,28 @@ jobs:
           CIBW_BUILD_FRONTEND: build
           CIBW_BEFORE_BUILD: pip install meson meson-python ninja
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           path: wheelhouse/*.whl
           name: wheels-${{ matrix.buildplat[0] }}-${{ matrix.python }}-${{ matrix.buildplat[2] }}
 
   publish:
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           pattern: wheels-*
