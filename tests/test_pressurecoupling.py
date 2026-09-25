@@ -173,7 +173,6 @@ class TestPressureCoupling(matscipytest.MatSciPyTestCase):
         logger.write_header()
         integrator.attach(logger)
         integrator.run(1)
-        integrator.logfile.close()
 
         handle.seek(beginning)
         log = pc.SlideLog(handle)
@@ -281,7 +280,6 @@ class TestPressureCoupling(matscipytest.MatSciPyTestCase):
         logger.write_header()
         integrator.attach(logger)
         integrator.run(10)
-        integrator.logfile.close()
         handle.seek(beginning)
         pc.SlideLog(handle)
         handle.close()

@@ -208,7 +208,7 @@ def test_read_lammps_data(datafile_directory):
     ).all()
 
 
-def test_write_lammps_atoms(datafile_directory):
+def test_write_lammps_atoms(datafile_directory, tmp_path):
     c2h2 = ase.Atoms("HC2H", cell=[10.0, 10.0, 10.0])
     c2h2.set_positions(
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [3.0, 0.0, 0.0]]
@@ -228,11 +228,12 @@ def test_write_lammps_atoms(datafile_directory):
     opls_c2h2.get_angles(angles)
     opls_c2h2.get_dihedrals(dihedrals)
 
-    matscipy.io.opls.write_lammps_atoms("temp", opls_c2h2)
-    matscipy.io.opls.write_lammps_definitions("temp", opls_c2h2)
+    prefix = str(tmp_path / "temp")
+    matscipy.io.opls.write_lammps_atoms(prefix, opls_c2h2)
+    matscipy.io.opls.write_lammps_definitions(prefix, opls_c2h2)
 
     # Read written structure
-    c2h2_written = matscipy.io.opls.read_lammps_data("temp.atoms", "temp.opls")
+    c2h2_written = matscipy.io.opls.read_lammps_data(prefix + ".atoms", prefix + ".opls")
 
     np.testing.assert_allclose(
         c2h2_written.cell,
@@ -286,7 +287,7 @@ def test_write_lammps_atoms(datafile_directory):
     ).all()
 
 
-def test_write_lammps_definitions(datafile_directory):
+def test_write_lammps_definitions(datafile_directory, tmp_path):
     c2h2 = ase.Atoms("HC2H", cell=[10.0, 10.0, 10.0])
     c2h2.set_positions(
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [3.0, 0.0, 0.0]]
@@ -306,7 +307,8 @@ def test_write_lammps_definitions(datafile_directory):
     opls_c2h2.get_angles(angles)
     opls_c2h2.get_dihedrals(dihedrals)
 
-    matscipy.io.opls.write_lammps_definitions("temp", opls_c2h2)
+    prefix = str(tmp_path / "temp")
+    matscipy.io.opls.write_lammps_definitions(prefix, opls_c2h2)
 
     # Read written parameters
     pair_coeff = []
@@ -315,7 +317,7 @@ def test_write_lammps_definitions(datafile_directory):
     dihedral_coeff = []
     charges = []
 
-    with open("temp.opls", "r") as fileobj:
+    with open(prefix + ".opls", "r") as fileobj:
         for line in fileobj.readlines():
             if line.startswith("pair_style"):
                 lj_cutoff = line.split()[2]

@@ -43,8 +43,9 @@
 import unittest
 
 import numpy as np
+import pytest
 
-from matscipy.elasticity import elastic_moduli
+from matscipy.elasticity import elastic_moduli, poisson_ratio
 
 
 ###
@@ -105,3 +106,33 @@ def test_monoclinic():
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def _poisson_ratio_from_compliance(C, l, m):
+    """Exact -eps_mm/eps_ll for uniaxial stress along l, from the full compliance tensor"""
+    S = np.linalg.inv(C)
+    voigt = [[0, 5, 4], [5, 1, 3], [4, 3, 2]]
+    S_ijkl = np.zeros((3, 3, 3, 3))
+    for i, j, k, n in np.ndindex(3, 3, 3, 3):
+        a, b = voigt[i][j], voigt[k][n]
+        S_ijkl[i, j, k, n] = S[a, b] * (1 if a < 3 else 0.5) * (1 if b < 3 else 0.5)
+    l = np.asarray(l, float) / np.linalg.norm(l)
+    m = np.asarray(m, float) / np.linalg.norm(m)
+    eps = np.einsum('ijkl,kl->ij', S_ijkl, np.outer(l, l))
+    return -(m @ eps @ m) / (l @ eps @ l)
+
+
+def test_poisson_ratio():
+    # strongly anisotropic cubic crystal (bcc Fe-like, GPa): nu depends on m (issue #13)
+    C11, C12, C44 = 243., 145., 116.
+    C = np.zeros((6, 6))
+    C[:3, :3] = C12
+    np.fill_diagonal(C[:3, :3], C11)
+    C[3, 3] = C[4, 4] = C[5, 5] = C44
+    for l, m in [([1, 0, 0], [0, 1, 0]), ([0, 1, 1], [1, 0, 0]),
+                 ([0, 1, 1], [0, 1, -1]), ([1, 1, 1], [1, -1, 0]),
+                 ([1, 1, 2], [1, -1, 0])]:
+        np.testing.assert_allclose(poisson_ratio(C, np.array(l), np.array(m)),
+                                   _poisson_ratio_from_compliance(C, l, m), rtol=1e-10)
+    with pytest.raises(ValueError):
+        poisson_ratio(C, np.array([0, 1, 1]), np.array([0, 1, 0]))

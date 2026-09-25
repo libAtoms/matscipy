@@ -716,15 +716,17 @@ class CubicCrystalCrack:
             x-coordinate of the crack tip.
         y0 : float
             y-coordinate of the crack tip.
-        k : float
-            Stress intensity factor.
+        kI : float
+            Mode I stress intensity factor.
+        kII : float
+            Mode II stress intensity factor.
 
         Returns
         -------
-        ux : array_like
-            x-displacements.
-        uy : array_like
-            y-displacements.
+        F : array_like
+            (N, 2, 2) in-plane deformation gradient (identity included) in
+            derivative-first order, [[du/dx, dv/dx], [du/dy, dv/dy]]; i.e.
+            the transpose of the component-first F_ab = dx_a/dX_b.
         """
         dx = ref_x - x0
         dy = ref_y - y0
@@ -1012,14 +1014,8 @@ class SinclairCrack:
             warnings.warn('Radial distances do not increase monotonically!')
 
         self.atoms = self.cryst.copy()
-        self.update_atoms()  # apply CLE displacements for initial (alpha, k)
-
-        a0 = self.atoms.copy()
-        self.x0 = a0.get_positions()
-        self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
-        a0_II_III = a0[self.regionII | self.regionIII]
-        f0bar = self.calc.get_forces(a0_II_III)
-        self.f0bar = f0bar[a0_II_III.arrays['region'] == 2]
+        # apply CLE displacements for initial (alpha, k) and take energy reference
+        self._set_energy_reference()
 
         self.precon = None
         self.precon_count = 0
@@ -1213,7 +1209,11 @@ class SinclairCrack:
         tip_x = self.cryst.cell.diagonal()[0] / 2.0 + alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
         dg = self.crk.deformation_gradient(x, y, tip_x, tip_y, kI, kII)
-        return dg
+        # crk.deformation_gradient is derivative-first, [[du/dx, dv/dx], [du/dy, dv/dy]] (+ I). This is the
+        # F_func of the multilattice Cauchy-Born corrector, which takes F_ab = dx_a/dX_b: it forms the right polar
+        # decomposition F' = R U of A F A^T and rotates the shifts by R. Passing the derivative-first array
+        # would hand it R^T and the spatial stretch R U R^T instead, so return the transpose.
+        return np.swapaxes(dg, -1, -2)
 
     def set_shiftmask(self, radial_dist):
         self.shiftmask = self.r > radial_dist
@@ -1401,8 +1401,13 @@ class SinclairCrack:
             self.precon_args = []
 
         self.set_dofs(x)
-        # build a preconditioner using regions I+II of the atomic system
-        a = self.atoms[:self.N2]
+        # build a preconditioner using regions I+II of the atomic system.
+        # Select via the boolean mask (preserves array order) rather than self.atoms[:self.N2], which
+        # assumes the cluster is sorted region I, II, III. set_regions sorts radially, which only groups
+        # regions when they are radial shells; with extended_region_I or exclude_surface they are not, so
+        # [:self.N2] would not be regions I+II and the region-I sub-block below would be misaligned.
+        # The mask matches how update_atoms/get_forces index the DOFs.
+        a = self.atoms[self.regionI_II]
         a.calc = self.calc
         # a.write('atoms.xyz')
         if self.precon is None:
@@ -1714,6 +1719,28 @@ class SinclairCrack:
         # print(f'E1={E1} E2={E2} total E={E1 + E2}')
         return E1 + E2
 
+    def _set_energy_reference(self):
+        """
+        Take the reference state for get_potential_energy(): the CLE (and
+        Cauchy-Born) field at the current (alpha, kI, kII) with u = 0.
+
+        The far-field term E2 integrates region II forces from this state, so
+        it must be refreshed whenever K changes (see rescale_k). Leaves
+        self.atoms updated for the current DOFs.
+        """
+        u = self.u.copy()
+        self.u[:] = 0.0
+        self.update_atoms()
+        a0 = self.atoms.copy()
+        self.x0 = a0.get_positions()
+        self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
+        a0_II_III = a0[self.regionII | self.regionIII]
+        f0bar = self.calc.get_forces(a0_II_III)
+        self.f0bar = f0bar[a0_II_III.arrays['region'] == 2]
+        if np.any(u):
+            self.u[:] = u
+            self.update_atoms()
+
     def rescale_k(self, new_kI):
         # rescale_k, in the case of mode I fracture
         ref_x = self.cryst.positions[:, 0]
@@ -1732,6 +1759,8 @@ class SinclairCrack:
         self.u[:] = np.c_[x - u_cle[:, 0] - ref_x,
                           y - u_cle[:, 1] - ref_y,
                           z - ref_z][self.regionI, :]
+        # the far-field energy reference depends on K
+        self._set_energy_reference()
 
     def arc_length_continuation(self, x0, x1, N=10, ds=0.01, ftol=1e-2,
                                 direction=1, max_steps=10,

@@ -84,6 +84,15 @@ class CubicCauchyBorn:
 
     The other 2 components can be obtained by calling the same model
     with strain states that are rotated about the 111 axis.
+
+    Notes
+    -----
+    The shift is split equally and oppositely between the two sublattices
+    (+/-0.5 in :meth:`apply_shifts`). This is only correct for
+    centrosymmetric crystals such as diamond Si, Ge or C. For
+    non-centrosymmetric (zincblende) crystals such as 3C-SiC or GaAs the
+    split is not equal, so the corrector is not currently valid for them
+    (see issue #322).
     """
 
     def __init__(self, el, a0, calc, lattice=Diamond):
@@ -106,7 +115,7 @@ class CubicCauchyBorn:
         self.lattice1mask = None  # mask for the lattice 1 atoms
         self.lattice2mask = None  # mask for the lattice 2 atoms
 
-    def set_sublattices(self, atoms, A, read_from_atoms=False):
+    def set_sublattices(self, atoms, A, read_from_atoms=False, method="force"):
         """Apply a small strain to all atoms in the supplied atoms structure
         and determine which atoms belong to which sublattice using forces. NOTE
         as this method is based on forces, it does not work in cases where atom
@@ -145,6 +154,42 @@ class CubicCauchyBorn:
                 raise KeyError('Lattice masks not found in atoms object')
             lattice1mask = atoms.arrays['lattice1mask']
             lattice2mask = atoms.arrays['lattice2mask']
+        elif method == "graph":
+            from matscipy.neighbours import neighbour_list
+            cutoff = 0.5 * self.a0
+            ia, ja = neighbour_list("ij", atoms, cutoff)
+            n = len(atoms)
+            adj = [[] for _ in range(n)]
+            for a, b in zip(ia, ja):
+                adj[int(a)].append(int(b))
+            color = np.full(n, -1, dtype=int)
+            for start in range(n):
+                if color[start] != -1:
+                    continue
+                color[start] = 0
+                stack = [start]
+                while stack:
+                    u = stack.pop()
+                    for v in adj[u]:
+                        if color[v] == -1:
+                            color[v] = 1 - color[u]
+                            stack.append(v)
+                        elif color[v] == color[u]:
+                            raise RuntimeError(
+                                "neighbour graph is not bipartite")
+            lattice1mask = color == 0
+            lattice2mask = color == 1
+            try:
+                atoms.new_array('lattice1mask', np.zeros(
+                    len(atoms), dtype=bool))
+                atoms.new_array('lattice2mask', np.zeros(
+                    len(atoms), dtype=bool))
+            except RuntimeError:
+                pass
+            lattice1maskatoms = atoms.arrays['lattice1mask']
+            lattice2maskatoms = atoms.arrays['lattice2mask']
+            lattice1maskatoms[:] = lattice1mask
+            lattice2maskatoms[:] = lattice2mask
         else:
             U_voigt = np.array([1.001, 1.003, 1.002, 0.006, 0.002, 0.004])
             U = np.zeros([3, 3])
@@ -268,7 +313,7 @@ class CubicCauchyBorn:
             # get U^2
             Usqr = 2 * E + np.eye(3)
             # square root matrix to get U
-            U = sqrtm(Usqr, disp=True)
+            U = sqrtm(Usqr)
 
             # this is just the symmetric stretch tensor, exactly what we need.
             x = U
@@ -1330,7 +1375,7 @@ class CubicCauchyBorn:
         # get U^2
         Usqr = 2 * E + np.eye(3)
         # square root matrix
-        U = sqrtm(Usqr, disp=True)
+        U = sqrtm(Usqr)
 
         # this is just the symmetric stretch tensor, exactly what we need.
         x = U
@@ -1532,26 +1577,31 @@ class CubicCauchyBorn:
         E, R = self.evaluate_F_or_E(
             A, atoms, F_func=F_func, E_func=E_func,
             coordinates=coordinates, *args, **kwargs)
-        E_lower, R = self.evaluate_F_or_E(
+        E_lower, R_lower = self.evaluate_F_or_E(
             A, atoms, F_func=F_func, E_func=E_func,
             coordinates=coordinates, de=-de, *args, **kwargs)
-        E_higher, R = self.evaluate_F_or_E(
+        E_higher, R_higher = self.evaluate_F_or_E(
             A, atoms, F_func=F_func, E_func=E_func,
             coordinates=coordinates, de=de, *args, **kwargs)
 
-        # print(E_higher,E_lower)
         dE = (E_higher - E_lower) / (2 * de)
-        # print(dE)
         natoms = len(atoms)
-        # get the cauchy born shifts unrotated
-        dshifts_no_rr = self.evaluate_shift_gradient_regression(E, dE)
-        dshifts = np.zeros_like(dshifts_no_rr)
+        # The applied shift (see predict_shifts) is  s_i = A^T R_i chi_i, where R_i is the rotation
+        # from the polar decomposition of the deformation gradient F_i. Its derivative must therefore
+        # include both the rotation of the (analytic) shift gradient AND the rotation gradient dR/dde:
+        #   d s_i / dde = A^T ( (dR_i/dde) chi_i + R_i (dchi_i/dde) )
+        # The previous implementation applied only A^T (dchi_i/dde), dropping R_i and dR_i/dde. That is
+        # exact only at zero strain (R_i = I); near a crack tip (large F) it drifts from the true
+        # derivative, growing with load, and breaks the configurational-force identity f_alpha = -dE/dalpha.
+        chi_no_rr = self.evaluate_shift_model(E)                       # chi_i (lattice frame, no rotation)
+        dchi_no_rr = self.evaluate_shift_gradient_regression(E, dE)    # dchi_i/dde (analytic)
+        dR = (R_higher - R_lower) / (2 * de)                           # dR_i/dde (same FD as the strain field)
+        dshifts = np.zeros_like(dchi_no_rr)
 
-        # rotate the cauchy shifts both by the rotation induced by F
-        # and to get them back into the lab frame
+        # rotate by the F-induced rotation R and back into the lab frame (A^T), product-rule in R and chi
         for i in range(natoms):
-            dshifts[i, :] = np.transpose(A) @ dshifts_no_rr[i, :]
-            # dshift_2[i, :] = np.transpose(A) @ dshift_2_no_rr[i, :]
+            dshifts[i, :] = np.transpose(A) @ (
+                dR[i, :, :] @ chi_no_rr[i, :] + R[i, :, :] @ dchi_no_rr[i, :])
 
         # need to adjust gradients for different lattices
         dshifts[self.lattice1mask] = -0.5 * (dshifts[self.lattice1mask])

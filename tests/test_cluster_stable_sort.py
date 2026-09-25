@@ -5,7 +5,7 @@ import numpy as np
 from ase.build import bulk
 from ase.lattice.cubic import Diamond
 from ase.optimize.precon import PreconLBFGS
-from ase.constraints import ExpCellFilter
+from ase.filters import FrechetCellFilter
 from scipy.linalg import sqrtm
 import ase.io
 import matscipytest

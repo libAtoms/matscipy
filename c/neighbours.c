@@ -102,6 +102,10 @@ py_neighbour_list(PyObject *self, PyObject *args)
     /* Optional quantities to be computed */
     PyObject *py_first = NULL, *py_secnd = NULL, *py_distvec = NULL;
     PyObject *py_absdist = NULL, *py_shift = NULL;
+#if PY_MAJOR_VERSION >= 3
+    /* declared here so the fail path never sees it uninitialized */
+    PyObject *py_bquantities = NULL;
+#endif
 
 #if PY_MAJOR_VERSION >= 3
     if (!PyArg_ParseTuple(args, "O!OOOOOO|O", &PyUnicode_Type, &py_quantities,
@@ -315,7 +319,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     npy_double *distvec = NULL, *absdist = NULL;
 
 #if PY_MAJOR_VERSION >= 3
-    PyObject *py_bquantities = PyUnicode_AsASCIIString(py_quantities);
+    py_bquantities = PyUnicode_AsASCIIString(py_quantities);
     if (!py_bquantities) {
         PyErr_SetString(PyExc_TypeError, "Conversion to ASCII string failed.");
         goto fail;
@@ -384,6 +388,11 @@ py_neighbour_list(PyObject *self, PyObject *args)
         if (!pbc[0])  ci1 = bin_trunc(ci01, n1);  else  ci1 = ci01;
         if (!pbc[1])  ci2 = bin_trunc(ci02, n2);  else  ci2 = ci02;
         if (!pbc[2])  ci3 = bin_trunc(ci03, n3);  else  ci3 = ci03;
+
+        /* Bin index used to build dri; this is the reference for the shift
+           vector. For non-periodic directions it is truncated, so that the
+           shift cancels to zero (no cell boundary can be crossed). */
+        int cis1 = ci1, cis2 = ci2, cis3 = ci3;
 
         /* dri is the position relative to the lower left corner of the bin */
         double dri[3];
@@ -539,9 +548,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                     if (py_absdist)
                                         absdist[nneigh] = sqrt(abs_dr_sq);
                                     if (py_shift) {
-                                        shift[3*nneigh+0] = (ci01 - cj1 + x)/n1;
-                                        shift[3*nneigh+1] = (ci02 - cj2 + y)/n2;
-                                        shift[3*nneigh+2] = (ci03 - cj3 + z)/n3;
+                                        shift[3*nneigh+0] = (cis1 - cj1 + x)/n1;
+                                        shift[3*nneigh+1] = (cis2 - cj2 + y)/n2;
+                                        shift[3*nneigh+2] = (cis3 - cj3 + z)/n3;
                                     }
 
                                     nneigh++;
@@ -632,7 +641,7 @@ py_neighbour_list(PyObject *self, PyObject *args)
     Py_XDECREF(py_inv_cell);
     Py_XDECREF(py_pbc);
     Py_XDECREF(py_r);
-    Py_DECREF(py_types);
+    Py_XDECREF(py_types);
 
     if (seed)  free(seed);
     if (next)  free(next);

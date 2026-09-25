@@ -28,6 +28,7 @@ import pytest
 
 import ase
 import ase.constraints
+import ase.filters
 from ase import Atoms
 from ase.optimize import FIRE
 from ase.lattice.compounds import B3
@@ -152,7 +153,7 @@ def test_amorphous(par, datafile_directory):
     compute_forces_and_hessian(aSi, par)
     # Test forces, hessian, non-affine forces and elastic constants for a stress-free amorphous Si configuration
     FIRE(
-        ase.constraints.UnitCellFilter(
+        ase.filters.UnitCellFilter(
             aSi, mask=[1, 1, 1, 1, 1, 1], hydrostatic_strain=False),
         logfile=None).run(fmax=1e-5)
     compute_forces_and_hessian(aSi, par)

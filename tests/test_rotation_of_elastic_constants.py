@@ -20,7 +20,7 @@
 
 
 import numpy as np
-from ase.constraints import StrainFilter
+from ase.filters import StrainFilter
 from ase.lattice.cubic import FaceCenteredCubic
 from ase.optimize import FIRE
 from ase.units import GPa
