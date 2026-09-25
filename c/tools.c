@@ -82,6 +82,7 @@ resize_array(PyObject *py_arr, npy_intp newsize)
         
     PyObject *retval;
     retval = PyArray_Resize((PyArrayObject *) py_arr, &newshape, 1, NPY_CORDER);
+    free(dims);
     if (!retval)  return NULL;
     Py_DECREF(retval);
 
