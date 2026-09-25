@@ -1211,7 +1211,7 @@ def fit_elastic_constants(
     for k, v in Cij_err.items():
         Cij_err[k] = np.sqrt(np.sum(np.array(v) ** 2)) / np.sqrt(len(v))
 
-    if symmetry.startswith("trigonal"):
+    if symmetry.startswith("trigonal") or symmetry == "hexagonal":
         # Special case for trigonal lattice: C66 = (C11 - C12)/2
         Cijs[Cij_map[(5, 5)]] = 0.5 * (Cijs[Cij_map[(0, 0)]] - Cijs[Cij_map[(0, 1)]])
         Cij_err[Cij_map[(5, 5)]] = np.sqrt(
