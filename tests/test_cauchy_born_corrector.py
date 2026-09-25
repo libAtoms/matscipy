@@ -298,14 +298,14 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         eps_down[1] -= de
 
         atoms, shifts_down, shift_err_before, A = self.model_prediction(
-            dirs, eps_down, method='regression', F_func=func, coordinates=coordinates, atol=1e-3, returnvals=True)
+            dirs, eps_down, method='regression', F_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
         atoms_copy_down = atoms.copy()
         self.cb.apply_shifts(atoms_copy_down, shifts_down)
 
         eps_up = eps.copy()
         eps_up[1] += de
         atoms, shifts_up, shift_err_before, A = self.model_prediction(
-            dirs, eps_up, method='regression', F_func=func, coordinates=coordinates, atol=1e-3, returnvals=True)
+            dirs, eps_up, method='regression', F_func=func, coordinates=coordinates, atol=5e-4, returnvals=True)
 
         atoms_copy_up = atoms.copy()
         self.cb.apply_shifts(atoms_copy_up, shifts_up)
@@ -345,9 +345,10 @@ class TestPredictCauchyBornShifts(matscipytest.MatSciPyTestCase):
         func = self.F_cart3D_rotated_with_de
         coordinates = 'cart3D'
         de = 1e-5
-        # atol=1e-3 here is only the regression-model accuracy floor for the rotated, 1%-strained
-        # shift (~5e-4); the actual rotation correctness is the analytic-vs-FD gradient check below
-        # (atol=1e-7).
+        # model_prediction compares against eval_shift(eps), which ignores the rotation Rot, so this
+        # precondition carries a fixed ~6.6e-4 offset from the rotation itself (the same for every
+        # regression fit); atol=1e-3 only guards against gross errors. The rotation correctness is
+        # the analytic-vs-FD gradient check below (atol=1e-7).
         atoms, shifts, shift_err_before, A = self.model_prediction(
             dirs, eps, method='regression', F_func=func, coordinates=coordinates, atol=1e-3, returnvals=True)
         nu_grad = self.cb.get_shift_gradients(A, atoms,
