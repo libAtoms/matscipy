@@ -385,6 +385,11 @@ py_neighbour_list(PyObject *self, PyObject *args)
         if (!pbc[1])  ci2 = bin_trunc(ci02, n2);  else  ci2 = ci02;
         if (!pbc[2])  ci3 = bin_trunc(ci03, n3);  else  ci3 = ci03;
 
+        /* Bin index used to build dri; this is the reference for the shift
+           vector. For non-periodic directions it is truncated, so that the
+           shift cancels to zero (no cell boundary can be crossed). */
+        int cis1 = ci1, cis2 = ci2, cis3 = ci3;
+
         /* dri is the position relative to the lower left corner of the bin */
         double dri[3];
         dri[0] = ri[0] - ci1*bin1[0] - ci2*bin2[0] - ci3*bin3[0];
@@ -539,9 +544,9 @@ py_neighbour_list(PyObject *self, PyObject *args)
                                     if (py_absdist)
                                         absdist[nneigh] = sqrt(abs_dr_sq);
                                     if (py_shift) {
-                                        shift[3*nneigh+0] = (ci01 - cj1 + x)/n1;
-                                        shift[3*nneigh+1] = (ci02 - cj2 + y)/n2;
-                                        shift[3*nneigh+2] = (ci03 - cj3 + z)/n3;
+                                        shift[3*nneigh+0] = (cis1 - cj1 + x)/n1;
+                                        shift[3*nneigh+1] = (cis2 - cj2 + y)/n2;
+                                        shift[3*nneigh+2] = (cis3 - cj3 + z)/n3;
                                     }
 
                                     nneigh++;
