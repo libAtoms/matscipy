@@ -1303,18 +1303,25 @@ def poisson_ratio(C, l, m):
     Calculate approximate Poisson ratio \nu_{lm} from 6x6 elastic constant matrix C_{ij}
 
     This is the response in `m` direction to pulling in `l` direction. Result is
-    dimensionless.
+    dimensionless. `l` and `m` must be perpendicular.
 
     Notes
     -----
 
     Formula is from W. Brantley, Calculated elastic constants for stress problems
     associated with semiconductor devices. J. Appl. Phys., 44, 534 (1973).
+    It assumes cubic symmetry, with `C` given in the cubic crystal axes.
+
+    In an anisotropic crystal the Poisson ratio depends on the transverse
+    direction `m` as well as on `l`: e.g. pulling along [011] in bcc Fe gives
+    very different values for m = [100] and m = [01-1].
     """
 
     S = inv(C)  # Compliance matrix
     lhat = l / norm(l)  # Normalise directions
     mhat = m / norm(m)
+    if abs(np.dot(lhat, mhat)) > 1e-6:
+        raise ValueError("Poisson ratio requires perpendicular directions l and m")
 
     # Poisson ratio v_lm: response in m direction to strain in
     # l direction, v_lm = - epsilon_m/epsilon_l
