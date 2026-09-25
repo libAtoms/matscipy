@@ -564,15 +564,17 @@ class CubicCrystalCrack:
             x-coordinate of the crack tip.
         y0 : float
             y-coordinate of the crack tip.
-        k : float
-            Stress intensity factor.
+        kI : float
+            Mode I stress intensity factor.
+        kII : float
+            Mode II stress intensity factor.
 
         Returns
         -------
-        ux : array_like
-            x-displacements.
-        uy : array_like
-            y-displacements.
+        F : array_like
+            (N, 2, 2) in-plane deformation gradient (identity included) in
+            derivative-first order, [[du/dx, dv/dx], [du/dy, dv/dy]]; i.e.
+            the transpose of the component-first F_ab = dx_a/dX_b.
         """
         dx = ref_x - x0
         dy = ref_y - y0
@@ -1061,7 +1063,11 @@ class SinclairCrack:
         tip_x = self.cryst.cell.diagonal()[0] / 2.0 + alpha
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
         dg = self.crk.deformation_gradient(x, y, tip_x, tip_y, kI, kII)
-        return dg
+        # crk.deformation_gradient is derivative-first, [[du/dx, dv/dx], [du/dy, dv/dy]] (+ I). This is the
+        # F_func of the multilattice Cauchy-Born corrector, which takes F_ab = dx_a/dX_b: it forms the right polar
+        # decomposition F' = R U of A F A^T and rotates the shifts by R. Passing the derivative-first array
+        # would hand it R^T and the spatial stretch R U R^T instead, so return the transpose.
+        return np.swapaxes(dg, -1, -2)
 
     def set_shiftmask(self, radial_dist):
         self.shiftmask = self.r > radial_dist
