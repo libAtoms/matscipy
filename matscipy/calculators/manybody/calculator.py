@@ -75,7 +75,9 @@ class Manybody(MatscipyCalculator):
     implemented_properties = [
         'free_energy',
         'energy',
+        'energies',
         'stress',
+        'stresses',
         'forces',
         'hessian',
         'born_constants',
@@ -197,9 +199,28 @@ class Manybody(MatscipyCalculator):
 
         virial_v *= 0.5
 
+        # Per-atom decomposition (additive; needed for e.g. the J-integral,
+        # per-site energy checks and atomic-strain work). The pair energy F_p
+        # is split equally between its two atoms -> site energy
+        # e_n = 0.5 * sum_{p: i_p=n} F_p; likewise the per-pair virial r (x) f is
+        # accumulated on the home atom with the same 0.5 factor. By construction
+        # sum_n e_n = epot and sum_n W_n = global virial.
+        energies_n = 0.5 * np.bincount(i_p, weights=F_p, minlength=nb_atoms)
+        w_pab = np.einsum('pa,pb->pab', r_pc, f_pc)
+        virial_nab = np.zeros((nb_atoms, 3, 3))
+        np.add.at(virial_nab, i_p, w_pab)
+        virial_nab *= 0.5
+        # ASE per-atom stresses (Voigt, n x 6): xx, yy, zz, yz, xz, xy
+        stresses_nv = np.stack([
+            virial_nab[:, 0, 0], virial_nab[:, 1, 1], virial_nab[:, 2, 2],
+            virial_nab[:, 1, 2], virial_nab[:, 0, 2], virial_nab[:, 0, 1],
+        ], axis=1) / atoms.get_volume()
+
         self.results.update({'free_energy': epot,
                              'energy': epot,
+                             'energies': energies_n,
                              'stress': virial_v / atoms.get_volume(),
+                             'stresses': stresses_nv,
                              'forces': f_nc})
 
     def get_hessian(self, atoms, format='sparse', divide_by_masses=False):
