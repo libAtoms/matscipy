@@ -42,7 +42,8 @@ from ase.optimize.sciopt import OptimizerConvergenceError
 from matscipy.atomic_strain import atomic_strain
 from matscipy.elasticity import (rotate_elastic_constants,
                                  rotate_cubic_elastic_constants,
-                                 Voigt_6_to_full_3x3_stress)
+                                 Voigt_6_to_full_3x3_stress,
+                                 Voigt_6x6_to_full_3x3x3x3)
 from matscipy.surface import MillerDirection, MillerPlane
 from matscipy.neighbours import neighbour_list
 from matscipy.optimize import ode12r
@@ -89,6 +90,32 @@ def hill_poisson_ratio(C):
                 + 3 * (S[3, 3] + S[4, 4] + S[5, 5]))
     K, G = (K_V + K_R) / 2, (G_V + G_R) / 2
     return (3 * K - 2 * G) / (2 * (3 * K + G))
+
+
+def barnett_lothe_L(C, n_omega=64):
+    """
+    Barnett-Lothe tensor L for a straight dislocation along z, from the 6x6
+    elastic constants C, via the integral formalism
+
+        L = -(1/pi) int_0^pi [(mn)(nn)^-1(nm) - (mm)] domega,
+
+    with m = (cos w, sin w, 0), n = (-sin w, cos w, 0) and
+    (ab)_ik = C_ijkl a_j b_l. Unlike the Stroh eigenvector route this is well
+    conditioned for (nearly) isotropic materials, where the Stroh eigenvalues
+    are degenerate. The integrand is smooth and pi-periodic, so the uniform
+    rule converges exponentially (machine precision by n_omega ~ 64).
+    For an isotropic material L = diag(mu/(1-nu), mu/(1-nu), mu).
+    """
+    C = Voigt_6x6_to_full_3x3x3x3(C)
+    L = np.zeros((3, 3))
+    for omega in np.arange(n_omega) * np.pi / n_omega:
+        m = np.array([np.cos(omega), np.sin(omega), 0.0])
+        n = np.array([-np.sin(omega), np.cos(omega), 0.0])
+        mm = np.einsum('ijkl,j,l->ik', C, m, m)
+        mn = np.einsum('ijkl,j,l->ik', C, m, n)
+        nn = np.einsum('ijkl,j,l->ik', C, n, n)
+        L -= mn @ np.linalg.solve(nn, mn.T) - mm
+    return L / n_omega
 
 
 class RectilinearAnisotropicCrack:
@@ -474,55 +501,36 @@ class RectilinearAnisotropicCrack:
         if self.C is None:
             raise ValueError('k1e_aniso requires the elastic constants C in the crack frame')
 
-        # assemble the elastic matrix (C is in the crack frame)
-        Q = np.array([[self.C[0,0], self.C[0,5], self.C[0,4]], 
-                      [self.C[0,5], self.C[5,5], self.C[4,5]], 
-                      [self.C[0,4], self.C[4,5], self.C[4,4]]])     
-
-        R = np.array([[self.C[0,5], self.C[0,1], self.C[0,3]],
-                      [self.C[5,5], self.C[1,5], self.C[3,5]],
-                      [self.C[4,5], self.C[1,4], self.C[3,4]]])
-        
-        T = np.array([[self.C[5,5], self.C[1,5], self.C[3,5]],
-                      [self.C[1,5], self.C[1,1], self.C[1,3]],
-                      [self.C[3,5], self.C[1,3], self.C[3,3]]])
-
-        N1 = np.einsum('ik,kj', -np.linalg.inv(T), np.transpose(R))
-        N2 = np.linalg.inv(T)
-        N3 = np.einsum('ik,kj,jl', R, np.linalg.inv(T), np.transpose(R)) - Q
-
-        N = np.block([[N1, N2], [N3, np.transpose(N1)]])
-        
-        # Solve the eigenvalue problem; keep the roots with Im(p) > 0
-        Np, Nv = np.linalg.eig(N)
-        upper = Np.imag > 0
-        if upper.sum() != 3:
-            raise RuntimeError('Stroh eigenvalues are not in complex-conjugate pairs')
-
-        A = Nv[0:3, upper]
-        B = Nv[3:6, upper]
-        L = 0.5 * (1.0j * np.einsum('ik,kj', A, np.linalg.inv(B))).real
+        # Barnett-Lothe energy tensor for a dislocation along the crack front,
+        # expressed in the slip-plane frame (rotation by theta about z)
+        L = barnett_lothe_L(self.C)
         S = np.array([[np.cos(theta), np.sin(theta), 0.],
                       [-np.sin(theta), np.cos(theta), 0.],
                       [0., 0., 1.0]])
         s0 = np.array([np.cos(phi), 0, np.sin(phi)])
-        L_t = np.dot(S, np.dot(L, np.transpose(S)))
+        L_t = S @ L @ S.T
 
-        coffe_elas = np.einsum('i,ij,j', s0, np.linalg.inv(L_t), np.transpose(s0))
+        coffe_elas = 2 * s0 @ L_t @ s0
 
-        ftheta_sigma_xx = ((self.mu2 / np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta)) 
-                          - self.mu1 / np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta)))  
-                          * self.mu1 * self.mu2 / (self.mu1 - self.mu2)).real
+        # angular factor of the shear stress on the slip plane (Sih, Paris and
+        # Irwin near-tip field); for an isotropic material mu1 = mu2 = i and the
+        # general expressions are 0/0, so use the isotropic limit directly
+        if abs(self.mu1 - self.mu2) < 1e-6:
+            F12_theta = np.sin(theta / 2) * np.cos(theta / 2)**2
+        else:
+            ftheta_sigma_xx = ((self.mu2 / np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta)) 
+                              - self.mu1 / np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta)))  
+                              * self.mu1 * self.mu2 / (self.mu1 - self.mu2)).real
 
-        ftheta_sigma_xy = ((1/np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta)) 
-                          - 1/np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta))) 
-                          * self.mu1 * self.mu2/(self.mu1 - self.mu2)).real
+            ftheta_sigma_xy = ((1/np.sqrt(np.cos(theta) + self.mu1 * np.sin(theta)) 
+                              - 1/np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta))) 
+                              * self.mu1 * self.mu2/(self.mu1 - self.mu2)).real
 
-        ftheta_sigma_yy = ((self.mu1/np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta)) 
-                        -self.mu2/np.sqrt(np.cos(theta)+self.mu1*np.sin(theta)))/(self.mu1-self.mu2)).real
+            ftheta_sigma_yy = ((self.mu1/np.sqrt(np.cos(theta) + self.mu2 * np.sin(theta)) 
+                            -self.mu2/np.sqrt(np.cos(theta)+self.mu1*np.sin(theta)))/(self.mu1-self.mu2)).real
 
-        F12_theta = ((ftheta_sigma_yy - ftheta_sigma_xx) * np.sin(theta) * np.cos(theta) 
-                  + ftheta_sigma_xy * (np.cos(theta)**2 - np.sin(theta)**2))
+            F12_theta = ((ftheta_sigma_yy - ftheta_sigma_xx) * np.sin(theta) * np.cos(theta) 
+                      + ftheta_sigma_xy * (np.cos(theta)**2 - np.sin(theta)**2))
 
         # mode I loading gives shear on the slip plane only along the edge
         # direction; resolve it onto the slip direction at angle phi

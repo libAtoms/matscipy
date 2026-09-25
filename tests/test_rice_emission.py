@@ -34,6 +34,7 @@ import numpy as np
 from matscipy.fracture_mechanics.crack import (
     RectilinearAnisotropicCrack,
     CubicCrystalCrack,
+    barnett_lothe_L,
     hill_poisson_ratio,
 )
 
@@ -105,6 +106,13 @@ class TestRiceEmissionK1e(unittest.TestCase):
                for s, f in (([1, 1, 0], [0, 0, 1]), ([1, 1, 1], [1, -1, 0]))]
         self.assertAlmostEqual(nus[0], nus[1], places=10)
 
+    def test_barnett_lothe_L_isotropic(self):
+        """Energy tensor of an isotropic material: mu/(1-nu) for edge, mu for screw."""
+        crack = self._make_isotropic_crack(self.E, self.nu)
+        mu = self.E / (2 * (1 + self.nu))
+        np.testing.assert_allclose(barnett_lothe_L(crack.C),
+                                   np.diag([mu / (1 - self.nu)] * 2 + [mu]), rtol=1e-12, atol=1e-10)
+
     def test_k1e_iso_vs_griffith(self):
         """K1e/K1c must equal sqrt(G_Ie / G_c) with Rice's G_Ie and G_c = 2 gamma_s,
         i.e. k1e_iso is in the same units as k1g."""
@@ -149,8 +157,9 @@ class TestRiceEmissionK1e(unittest.TestCase):
             crack = CubicCrystalCrack(surface, front, 243., 145., 116.)
             ratios_aniso.append(crack.k1e_aniso(1.0, 0.0, theta) / crack.k1g(1.0))
             ratios_iso.append(crack.k1e_iso(1.0, 0.0, theta) / crack.k1g(1.0))
-        self.assertTrue(np.all(np.isfinite(ratios_aniso)))
-        self.assertGreater(abs(ratios_aniso[0] - ratios_aniso[1]), 0.1)
+        # reference values from the Stroh eigenvector route (agrees with the
+        # Barnett-Lothe integral to ~1e-15 where the eigenproblem is well conditioned)
+        np.testing.assert_allclose(ratios_aniso, [1.7942, 2.2715], atol=1e-4)
         self.assertAlmostEqual(ratios_iso[0], ratios_iso[1], places=8)
 
     def test_explicit_nu(self):
