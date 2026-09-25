@@ -42,8 +42,7 @@ from ase.optimize.sciopt import OptimizerConvergenceError
 from matscipy.atomic_strain import atomic_strain
 from matscipy.elasticity import (rotate_elastic_constants,
                                  rotate_cubic_elastic_constants,
-                                 Voigt_6_to_full_3x3_stress,
-                                 elastic_moduli)
+                                 Voigt_6_to_full_3x3_stress)
 from matscipy.surface import MillerDirection, MillerPlane
 from matscipy.neighbours import neighbour_list
 from matscipy.optimize import ode12r
@@ -75,6 +74,23 @@ def counted(f):
     return wrapped
 
 
+def hill_poisson_ratio(C):
+    """
+    Isotropic Poisson ratio of the Voigt-Reuss-Hill average of the 6x6
+    elastic constant matrix C (independent of the orientation of C).
+    """
+    C = np.asarray(C)
+    S = np.linalg.inv(C)
+    K_V = (C[0, 0] + C[1, 1] + C[2, 2] + 2 * (C[0, 1] + C[0, 2] + C[1, 2])) / 9
+    G_V = (C[0, 0] + C[1, 1] + C[2, 2] - (C[0, 1] + C[0, 2] + C[1, 2])
+           + 3 * (C[3, 3] + C[4, 4] + C[5, 5])) / 15
+    K_R = 1 / (S[0, 0] + S[1, 1] + S[2, 2] + 2 * (S[0, 1] + S[0, 2] + S[1, 2]))
+    G_R = 15 / (4 * (S[0, 0] + S[1, 1] + S[2, 2]) - 4 * (S[0, 1] + S[0, 2] + S[1, 2])
+                + 3 * (S[3, 3] + S[4, 4] + S[5, 5]))
+    K, G = (K_V + K_R) / 2, (G_V + G_R) / 2
+    return (3 * K - 2 * G) / (2 * (3 * K + G))
+
+
 class RectilinearAnisotropicCrack:
     """
     Near field solution for a crack in a rectilinear anisotropic elastic medium.
@@ -83,6 +99,7 @@ class RectilinearAnisotropicCrack:
     """
 
     def __init__(self):
+        self.C = None  # 6x6 elastic constants in the crack frame (optional)
         self.a11 = None
         self.a22 = None
         self.a12 = None
@@ -343,17 +360,20 @@ class RectilinearAnisotropicCrack:
                      (self.mu1 * self.mu2)).imag)
 
 ### Critical K_I for dislocation emission from (updated) Rice theory.
-    
+
     def g1e(self, max_gamma):
         """
-        Critical energy release rate for dislocation emission.
-        J. R. Rice, JMPS, (1992).
-        The critical energy release rate is the unstable stacking
-        fault energy according to J. R. Rice.
-        
+        Critical energy release rate for dislocation emission on a slip plane
+        that coincides with the crack plane (theta = 0) under mode II loading
+        along the slip direction, G_IIe = gamma_us (J. R. Rice, JMPS, 1992).
+
+        For emission on an inclined slip plane under mode I loading use
+        :meth:`k1e_iso` or :meth:`k1e_aniso`.
+
         Parameters
         ----------
-        max_gamma: the unstable stacking fault energy of the dislocation slip system.
+        max_gamma: float
+            Unstable stacking fault energy of the slip system.
         """
 
         return max_gamma
@@ -362,15 +382,15 @@ class RectilinearAnisotropicCrack:
         """
         Critical energy release rate for dislocation emission in fcc crystals.
         The critical energy release rate depends both on the unstable stacking
-        fault energy and surface energyaccording to Ref. 
-        (P. Andric & W. A. Curtin, JMPS, 2017.)
+        fault energy and surface energy according to
+        P. Andric & W. A. Curtin, JMPS, 2017.
 
         Parameters
         ----------
         surface_energy: surface energy of the crack plane
         max_gamma: the unstable stacking fault energy of the dislocation slip system.
         """
-        
+
         if surface_energy > 3.45*max_gamma:
             g1e_fcc = 0.145*surface_energy + 0.5*max_gamma
         else:
@@ -378,40 +398,52 @@ class RectilinearAnisotropicCrack:
 
         return g1e_fcc
 
-    def k1e_iso(self, max_gamma, phi, theta):
+    def k_from_g(self, G):
+        """
+        Mode I stress intensity factor corresponding to energy release rate G,
+        using the same anisotropic relation as :meth:`k1g`, so that
+        k1g(surface_energy) == k_from_g(2 * surface_energy).
+        """
+        return np.sqrt(G * self.k1gsqG())
+
+    def k1e_iso(self, max_gamma, phi, theta, nu=None):
         """
         K1e, Rice criterion for dislocation emission from crack tip
         in mode I fracture. J. R. Rice, JMPS, (1992).
-        The soluation is presented for isotropic elasticity.
+
+        The critical energy release rate is Rice's isotropic result
+
+            G_Ie = 8 gamma_us (1 + (1 - nu) tan^2 phi) / ((1 + cos theta) sin^2 theta)
+
+        converted to K with :meth:`k_from_g`, so the result is in the same
+        units as :meth:`k1g` and the two can be compared directly.
 
         Parameters
         ----------
         max_gamma: float
-            Maximum energy along the sliding path of the gamma line (maximum
+            Maximum energy along the sliding path of the gamma line (unstable
             stacking fault energy).
+        phi: float (units: rad.)
+            The angle between the slip direction and a vector lying on the slip plane
+            and perpendicular to the crack-front direction.
         theta: float (units: rad.)
             The angle between slip plane and crack plane.
-        phi: float (units: rad.)
-            The angle between the slip direction and a vector lying on the slip plane 
-            and perpendicular to the crack-front direction.
+        nu: float, optional
+            Poisson ratio. Defaults to the Voigt-Reuss-Hill average of the
+            elastic constants C (exact for an isotropic material).
 
         Returns
         -------
         K_ie_iso : Critical K_I for dislocation emission under mode-I loading calculated
         using isotropic elasticity.
         """
-        # calculate the isotropic elastic constants
-        E, nu, Gm, B, K = elastic_moduli(self.C, l=np.array([1, 0, 0]), R=self.RotationMatrix, tol=1e-6)
-        E0 = E[0]
-        nu0 = nu[0,1]
-        G1e = 8 * max_gamma * ((1 + (1-nu0) * np.tan(phi)**2)/
-            ((1 + np.cos(theta)) * np.sin(theta)**2))
-
-        # Plane strain Irwin factor: B = (1-nu^2)/E
-        B_irwin = (1 - nu0**2) / E0
-        K_ie_iso = np.sqrt(1.0e-3 * G1e / B_irwin)
-
-        return K_ie_iso
+        if nu is None:
+            if self.C is None:
+                raise ValueError('nu must be given when the elastic constants C are not set')
+            nu = hill_poisson_ratio(self.C)
+        G1e = 8 * max_gamma * ((1 + (1 - nu) * np.tan(phi)**2) /
+                               ((1 + np.cos(theta)) * np.sin(theta)**2))
+        return self.k_from_g(G1e)
 
     def k1e_aniso(self, max_gamma, phi, theta):
         """
@@ -419,23 +451,30 @@ class RectilinearAnisotropicCrack:
         in mode I fracture according to anisotropic elasticity
         Ref. Beltz and Rice, JMPS, (1994).
 
+        Requires the 6x6 elastic constants in the crack frame, ``self.C``
+        (set by :class:`CubicCrystalCrack`). The result is in the same units
+        as :meth:`k1g`; for an isotropic material it equals :meth:`k1e_iso`.
+
         Parameters
         ----------
         max_gamma: float
-            Maximum energy along the sliding path of the gamma line (maximum
+            Maximum energy along the sliding path of the gamma line (unstable
             stacking fault energy).
+        phi: float (units: rad.)
+            The angle between the slip direction and a vector lying on the slip plane
+            and perpendicular to the crack-front direction.
         theta: float (units: rad.)
             The angle between slip plane and crack plane.
-        phi: float (units: rad.)
-            The angle between the slip direction and a vector lying on the slip plane 
-            and perpendicular to the crack-front direction.
 
         Returns
         -------
         K_ie_aniso : Critical K_I for dislocation emission under mode-I loading calculated
         using anisotropic elasticity.
         """
-        # assmeble the elastic matrix
+        if self.C is None:
+            raise ValueError('k1e_aniso requires the elastic constants C in the crack frame')
+
+        # assemble the elastic matrix (C is in the crack frame)
         Q = np.array([[self.C[0,0], self.C[0,5], self.C[0,4]], 
                       [self.C[0,5], self.C[5,5], self.C[4,5]], 
                       [self.C[0,4], self.C[4,5], self.C[4,4]]])     
@@ -454,16 +493,14 @@ class RectilinearAnisotropicCrack:
 
         N = np.block([[N1, N2], [N3, np.transpose(N1)]])
         
-        # Solve the eigenvalue problem
+        # Solve the eigenvalue problem; keep the roots with Im(p) > 0
         Np, Nv = np.linalg.eig(N)
+        upper = Np.imag > 0
+        if upper.sum() != 3:
+            raise RuntimeError('Stroh eigenvalues are not in complex-conjugate pairs')
 
-        # Check if the roots are conjugated with each other 
-        for i in range(0,6,2):
-            if Np[i] != np.conjugate(Np[i+1]):
-                raise RuntimeError('Roots not in pairs.')
-
-        A = Nv[0:3,0::2]
-        B = Nv[3:6,0::2]
+        A = Nv[0:3, upper]
+        B = Nv[3:6, upper]
         L = 0.5 * (1.0j * np.einsum('ik,kj', A, np.linalg.inv(B))).real
         S = np.array([[np.cos(theta), np.sin(theta), 0.],
                       [-np.sin(theta), np.cos(theta), 0.],
@@ -487,7 +524,9 @@ class RectilinearAnisotropicCrack:
         F12_theta = ((ftheta_sigma_yy - ftheta_sigma_xx) * np.sin(theta) * np.cos(theta) 
                   + ftheta_sigma_xy * (np.cos(theta)**2 - np.sin(theta)**2))
 
-        K_ie_aniso = np.sqrt(1e-3) * np.sqrt(max_gamma * coffe_elas) / F12_theta
+        # mode I loading gives shear on the slip plane only along the edge
+        # direction; resolve it onto the slip direction at angle phi
+        K_ie_aniso = np.sqrt(max_gamma * coffe_elas) / (F12_theta * np.cos(phi))
 
         return K_ie_aniso
 ###
@@ -618,9 +657,8 @@ class CubicCrystalCrack:
         self.RotationMatrix = A
         self.cauchy_born = cauchy_born
 
-        # Forward attributes needed by Rice emission methods
+        # crack-frame elastic constants, needed by the dislocation emission methods
         self.crack.C = C6
-        self.crack.RotationMatrix = A
 
     def k1g(self, surface_energy):
         """
@@ -637,6 +675,22 @@ class CubicCrystalCrack:
             Stress intensity factor.
         """
         return self.crack.k1g(surface_energy)
+
+    def k1e_iso(self, max_gamma, phi, theta, nu=None):
+        """
+        Critical mode I stress intensity for dislocation emission, Rice's
+        isotropic criterion; same units as :meth:`k1g`.
+        See :meth:`RectilinearAnisotropicCrack.k1e_iso`.
+        """
+        return self.crack.k1e_iso(max_gamma, phi, theta, nu=nu)
+
+    def k1e_aniso(self, max_gamma, phi, theta):
+        """
+        Critical mode I stress intensity for dislocation emission, Beltz-Rice
+        anisotropic criterion; same units as :meth:`k1g`.
+        See :meth:`RectilinearAnisotropicCrack.k1e_aniso`.
+        """
+        return self.crack.k1e_aniso(max_gamma, phi, theta)
 
     def k1gsqG(self):
         return self.crack.k1gsqG()
