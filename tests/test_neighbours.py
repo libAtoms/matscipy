@@ -250,6 +250,16 @@ class TestNeighbours(matscipytest.MatSciPyTestCase):
                     self.assertTrue(not (c2 - c).any())
 
     @pytest.mark.skip(reason="Test intentionally raises TypeError which crashes pytest-xdist workers in matrix jobs")
+    def test_integer_cutoff(self):
+        # issue #95: an integer global cutoff used to raise a TypeError
+        a = bulk("Cu", cubic=True) * 2
+        i_float = neighbour_list("i", a, 5.0)
+        for cutoff in (5, np.int64(5), np.float32(5.0)):
+            self.assertArrayAlmostEqual(neighbour_list("i", a, cutoff), i_float)
+        self.assertArrayAlmostEqual(
+            neighbour_list("i", a, np.full(len(a), 2, dtype=int)),
+            neighbour_list("i", a, np.full(len(a), 2.0)))
+
     def test_wrong_number_of_cutoffs(self):
         nat = 10
         atoms = ase.Atoms(

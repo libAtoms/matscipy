@@ -714,6 +714,10 @@ def neighbour_list(quantities,
     else:
         _cutoff = cutoff
 
+    if np.ndim(_cutoff) == 0:
+        # the C extension only recognises a Python float as a global cutoff
+        _cutoff = float(_cutoff)
+
     try:
         return ffi.neighbour_list(quantities, cell_origin, cell,
                                   np.linalg.inv(cell.T), pbc, positions,
