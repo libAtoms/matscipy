@@ -862,14 +862,8 @@ class SinclairCrack:
             warnings.warn('Radial distances do not increase monotonically!')
 
         self.atoms = self.cryst.copy()
-        self.update_atoms()  # apply CLE displacements for initial (alpha, k)
-
-        a0 = self.atoms.copy()
-        self.x0 = a0.get_positions()
-        self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
-        a0_II_III = a0[self.regionII | self.regionIII]
-        f0bar = self.calc.get_forces(a0_II_III)
-        self.f0bar = f0bar[a0_II_III.arrays['region'] == 2]
+        # apply CLE displacements for initial (alpha, k) and take energy reference
+        self._set_energy_reference()
 
         self.precon = None
         self.precon_count = 0
@@ -1573,6 +1567,28 @@ class SinclairCrack:
         # print(f'E1={E1} E2={E2} total E={E1 + E2}')
         return E1 + E2
 
+    def _set_energy_reference(self):
+        """
+        Take the reference state for get_potential_energy(): the CLE (and
+        Cauchy-Born) field at the current (alpha, kI, kII) with u = 0.
+
+        The far-field term E2 integrates region II forces from this state, so
+        it must be refreshed whenever K changes (see rescale_k). Leaves
+        self.atoms updated for the current DOFs.
+        """
+        u = self.u.copy()
+        self.u[:] = 0.0
+        self.update_atoms()
+        a0 = self.atoms.copy()
+        self.x0 = a0.get_positions()
+        self.E0 = self.calc.get_potential_energies(a0)[self.regionI_II].sum()
+        a0_II_III = a0[self.regionII | self.regionIII]
+        f0bar = self.calc.get_forces(a0_II_III)
+        self.f0bar = f0bar[a0_II_III.arrays['region'] == 2]
+        if np.any(u):
+            self.u[:] = u
+            self.update_atoms()
+
     def rescale_k(self, new_kI):
         # rescale_k, in the case of mode I fracture
         ref_x = self.cryst.positions[:, 0]
@@ -1591,6 +1607,8 @@ class SinclairCrack:
         self.u[:] = np.c_[x - u_cle[:, 0] - ref_x,
                           y - u_cle[:, 1] - ref_y,
                           z - ref_z][self.regionI, :]
+        # the far-field energy reference depends on K
+        self._set_energy_reference()
 
     def arc_length_continuation(self, x0, x1, N=10, ds=0.01, ftol=1e-2,
                                 direction=1, max_steps=10,

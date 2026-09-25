@@ -84,6 +84,15 @@ class CubicCauchyBorn:
 
     The other 2 components can be obtained by calling the same model
     with strain states that are rotated about the 111 axis.
+
+    Notes
+    -----
+    The shift is split equally and oppositely between the two sublattices
+    (+/-0.5 in :meth:`apply_shifts`). This is only correct for
+    centrosymmetric crystals such as diamond Si, Ge or C. For
+    non-centrosymmetric (zincblende) crystals such as 3C-SiC or GaAs the
+    split is not equal, so the corrector is not currently valid for them
+    (see issue #322).
     """
 
     def __init__(self, el, a0, calc, lattice=Diamond):

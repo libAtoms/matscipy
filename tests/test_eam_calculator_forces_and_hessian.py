@@ -42,6 +42,7 @@
 # ======================================================================
 
 import os.path
+import tempfile
 import unittest
 
 import gzip
@@ -234,12 +235,14 @@ class TestEAMForcesHessian(matscipytest.MatSciPyTestCase):
 
     def _calculate_finite_difference_hessian(self, atoms, calculator):
         """Calcualte the Hessian matrix using finite differences."""
-        ph = Phonons(atoms, calculator, supercell=(1, 1, 1), delta=1e-6)
-        ph.clean()
-        ph.run()
-        ph.read(acoustic=False)
-        ph.clean()
-        H_numerical = ph.get_force_constant()[0, :, :]
+        # private cache directory: the default "phonon/" in the working
+        # directory is shared between pytest-xdist workers running in parallel
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ph = Phonons(atoms, calculator, supercell=(1, 1, 1), delta=1e-6,
+                         name=os.path.join(tmpdir, "phonon"))
+            ph.run()
+            ph.read(acoustic=False)
+            H_numerical = ph.get_force_constant()[0, :, :]
         return H_numerical
 
 if __name__ == '__main__':
