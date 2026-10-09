@@ -1,0 +1,368 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "1aad7bd0-ad93-4037-90be-39a90e0609fc",
+   "metadata": {},
+   "source": [
+    "# Elastic Constants\n",
+    "\n",
+    "Solids respond to small external loads through a reversible elastic response. The strength of the response is characterized by the elastic moduli. {py:mod}`matscipy.elasticity` implements functions for computing elastic moduli from small deformation of atomistic systems that consider potential symmetries of the underlying atomic system, in particular for crystals. {py:mod}`matscipy.elasticity` also implements analytic calculation of elastic moduli for some interatomic potentials, described in more detail below. The computation of elastic moduli is a basic prerequisite for multi-scale modelling of materials, as they are the most basic parameters of continuum material models.\n",
+    "\n",
+    "In this tutorial, we will go over different ways that `matscipy` can compute elastic constants of an atomic configuration.\n",
+    "\n",
+    "## Problem setup\n",
+    "\n",
+    "Let's first create an FCC system and view it interactively:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f7edef8b-a391-44fb-8591-2e80db68f9fc",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.lattice.cubic import FaceCenteredCubic\n",
+    "\n",
+    "def interactive_view(system):\n",
+    "    from ase.visualize import view\n",
+    "    # Interactive view of the lattice\n",
+    "    v = view(system, viewer='ngl')\n",
+    "\n",
+    "    # Resize widget\n",
+    "    v.view._remote_call(\"setSize\", target=\"Widget\", args=[\"300px\", \"300px\"])\n",
+    "    v.view.center()\n",
+    "    return v\n",
+    "\n",
+    "# Define FCC crystal\n",
+    "system = FaceCenteredCubic(directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], size=(3,3,3), symbol='Cu', pbc=(1,1,1))\n",
+    "interactive_view(system)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5eb45b2e-ec03-4695-bc4b-3ce832c61964",
+   "metadata": {},
+   "source": [
+    "We'll assign a force-field to this system based on the Lennard-Jones potential ({py:class}`LennardJonesCut <matscipy.calculators.pair_potential.calculator.LennardJonesCut>`) implemented in ``matscipy``."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3fb38057-8e69-479b-bb17-d5060d05e05c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.calculators.pair_potential import PairPotential, LennardJonesCut\n",
+    "from ase.data import reference_states, atomic_numbers\n",
+    "\n",
+    "import numpy as np\n",
+    "\n",
+    "Cu_num = atomic_numbers[\"Cu\"]\n",
+    "lattice = reference_states[Cu_num][\"a\"]\n",
+    "sigma = lattice / (2**(2/3))\n",
+    "\n",
+    "system.calc = PairPotential({\n",
+    "    # Type map: define Copper-Copper pair interaction\n",
+    "    (Cu_num, Cu_num): LennardJonesCut(epsilon=1, sigma=lattice * 2**(-1/6) / np.sqrt(2), cutoff=3 * lattice)\n",
+    "})"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d95c366a-9180-426e-944a-1d4745e0f827",
+   "metadata": {},
+   "source": [
+    "We test we have a sensible potential energy and that we have equilibrium."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b9bc1a2c-10a5-49bf-985f-d98d54e77bca",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from numpy.testing import assert_allclose\n",
+    "from IPython.display import display, Latex\n",
+    "\n",
+    "display(Latex(f\"$E_\\\\mathrm{{pot}} = {system.get_potential_energy():.1f}$\"))\n",
+    "\n",
+    "# Testing negative potential energy\n",
+    "assert system.get_potential_energy() < 0\n",
+    "\n",
+    "# Testing equilibrium\n",
+    "assert_allclose(system.get_forces(), 0, atol=3e-14)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3a3405e6-4efc-49a3-a453-d3d01b73f5a9",
+   "metadata": {},
+   "source": [
+    "## Crystalline elastic constants\n",
+    "\n",
+    "Let us first compute elastic constants with the {py:mod}`matscipy.elasticity` module, with two different functions:\n",
+    "\n",
+    "- {py:func}`measure_triclinic_elastic_constants <matscipy.elasticity.measure_triclinic_elastic_constants>` computes the full Hooke's tensor by finite differences\n",
+    "- {py:func}`fit_elastic_constants <matscipy.elasticity.fit_elastic_constants>` computes a range of deformed configurations and fits a Hooke's tensor with least-squares"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5b96c21b-fe28-4e93-8482-58ec73092b28",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.elasticity import measure_triclinic_elastic_constants, fit_elastic_constants\n",
+    "from matscipy.elasticity import full_3x3x3x3_to_Voigt_6x6\n",
+    "\n",
+    "C_finite_differences = full_3x3x3x3_to_Voigt_6x6(measure_triclinic_elastic_constants(system))\n",
+    "C_least_squares, _ = fit_elastic_constants(system, verbose=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "12f6c608-7ca3-4782-b054-a18b399c4a8b",
+   "metadata": {},
+   "source": [
+    "Let's plot the Hooke tensor:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5b2f88bb-e86e-4cb3-a356-985a654b4f6a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "def spy_constants(ax, constants):\n",
+    "    ax.imshow(constants, cmap='RdPu', interpolation='none')\n",
+    "    labels = np.full_like(constants, \"\", dtype=object)\n",
+    "    labels[:3, :3] = \"$\\\\lambda$\\n\"\n",
+    "    labels[(np.arange(3), np.arange(3))] = \"$\\\\lambda + 2\\\\mu$\\n\"\n",
+    "    labels[(np.arange(3, 6), np.arange(3, 6))] = \"$\\\\mu$\\n\"\n",
+    "\n",
+    "    max_C = constants.max()\n",
+    "    \n",
+    "    for i in range(constants.shape[0]):\n",
+    "        for j in range(constants.shape[1]):\n",
+    "            color = \"white\" if constants[i, j] / max_C > 0.7 else \"black\"\n",
+    "            numeric = f\"${constants[i, j]:.2f}$\" if np.abs(constants[i, j]) / max_C > 1e-3 else \"$\\\\sim 0$\"\n",
+    "\n",
+    "            ax.annotate(labels[i, j] + numeric,\n",
+    "                        (i, j),\n",
+    "                        horizontalalignment='center',\n",
+    "                        verticalalignment='center', color=color)\n",
+    "    \n",
+    "    ax.set_xticks(np.arange(constants.shape[1]))\n",
+    "    ax.set_yticks(np.arange(constants.shape[0]))\n",
+    "    ax.set_xticklabels([f\"C$_{{i{j+1}}}$\" for j in range(constants.shape[1])])\n",
+    "    ax.set_yticklabels([f\"C$_{{{i+1}j}}$\" for i in range(constants.shape[0])])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0cfb76fb-ee48-4b23-96df-4ad78bc85df2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, axs = plt.subplots(1, 2, figsize=(9, 5))\n",
+    "\n",
+    "spy_constants(axs[0], C_finite_differences)\n",
+    "spy_constants(axs[1], C_least_squares)\n",
+    "\n",
+    "axs[0].set_title(f\"Finite differences\")\n",
+    "axs[1].set_title(f\"Least squares\")\n",
+    "\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "11599564-f976-4813-8ebd-408792c9c6df",
+   "metadata": {},
+   "source": [
+    "### With second-order derivatives\n",
+    "\n",
+    "Most calculators in ``matscipy`` actually implement second-order derivatives, and can therefore directly compute elastic constants:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "db51ca03-b229-463d-b6b8-43c19548928d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "C = full_3x3x3x3_to_Voigt_6x6(system.calc.get_property(\"elastic_constants\", system))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c664eedf-8890-4960-8a59-12a429223eff",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, axs = plt.subplots(1, 2, figsize=(9, 5))\n",
+    "\n",
+    "spy_constants(axs[0], C_least_squares)\n",
+    "spy_constants(axs[1], C)\n",
+    "\n",
+    "axs[0].set_title(f\"Least squares\")\n",
+    "axs[1].set_title(f\"Direct evaluation\")\n",
+    "\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "81338c89-9e2b-4146-a2f1-36118a2e5af7",
+   "metadata": {},
+   "source": [
+    "## Amorphous elastic constants\n",
+    "\n",
+    "In amorphous solids, non-affine relaxation modes play an important role in elastic deformation.\n",
+    "\n",
+    "### Problem setup\n",
+    "\n",
+    "Let's randomize our atoms to mimic a glassy structure:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5643f2cb-c81d-4d7a-bd48-2555492bd101",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.io import read\n",
+    "from pathlib import Path\n",
+    "\n",
+    "data_path = Path(\"..\") / \"..\" / \"tests\"\n",
+    "\n",
+    "system = read(data_path / \"CuZr_glass_460_atoms.gz\")\n",
+    "interactive_view(system)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "872bbcc8-be7a-4433-8d3d-573b45a37b5d",
+   "metadata": {},
+   "source": [
+    "Setting up the calculator:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b683cc4d-832c-4679-a74d-ae891a873f79",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.calculators.eam import EAM\n",
+    "\n",
+    "system.calc = EAM(data_path / 'ZrCu.onecolumn.eam.alloy')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "213de06c-b987-41e9-af09-11998076bc37",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "display(Latex(f\"$E_\\\\mathrm{{pot}} = {system.get_potential_energy():.1f}$\"))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fab46693-0ab7-4fb6-acff-3ee602236587",
+   "metadata": {},
+   "source": [
+    "### Fitting elastic constants\n",
+    "\n",
+    "The {py:func}`fit_elastic_constants <matscipy.elasticity.fit_elastic_constants>` function accepts a minimizer procedure as argument to account for non-affine relaxation modes."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d5019537-e39d-4ee8-be92-22336b046c11",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.optimize import FIRE\n",
+    "\n",
+    "delta = 1e-4  # Configuration change increment\n",
+    "\n",
+    "C_affine, _ = fit_elastic_constants(system, verbose=False, delta=delta)\n",
+    "C_relaxed, _ = fit_elastic_constants(system, verbose=False, delta=delta,\n",
+    "                                     # adjust fmax to desired precision\n",
+    "                                     optimizer=FIRE, fmax=5 * delta)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "56b55c89-980b-4264-8e55-188e4aa60259",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, axs = plt.subplots(1, 2, figsize=(9, 5))\n",
+    "\n",
+    "spy_constants(axs[0], C_affine)\n",
+    "spy_constants(axs[1], C_relaxed)\n",
+    "\n",
+    "axs[0].set_title(f\"Affine only\")\n",
+    "axs[1].set_title(f\"Affine + Non-affine\")\n",
+    "\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "56b085ef-06ab-464f-8eaf-bceba08fd3ba",
+   "metadata": {},
+   "source": [
+    "One can see that elastic constants are significantly reduced when the internal relaxation is included. However, mind that the reduction is *very* dependent on the optimizer's stopping criterion ``fmax``, which should ideally be lower than the deformation increment (we set it higher in the example above for demonstration purposes only)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "12744ced-a9e2-4adb-aa5f-748ed6cc22b5",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

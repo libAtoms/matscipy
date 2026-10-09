@@ -1,0 +1,12 @@
+matscipy.angle\_distribution
+============================
+
+.. automodule:: matscipy.angle_distribution
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      angle_distribution
+   

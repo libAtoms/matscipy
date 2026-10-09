@@ -1,0 +1,25 @@
+matscipy.neighbours
+===================
+
+.. automodule:: matscipy.neighbours
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      coordination
+      find_common_neighbours
+      find_indices_of_reversed_pairs
+      mic
+      neighbour_list
+      triplet_list
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      CutoffNeighbourhood
+      MolecularNeighbourhood
+      Neighbourhood
+   

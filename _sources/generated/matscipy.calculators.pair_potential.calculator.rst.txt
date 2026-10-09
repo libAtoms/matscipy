@@ -1,0 +1,19 @@
+matscipy.calculators.pair\_potential.calculator
+===============================================
+
+.. automodule:: matscipy.calculators.pair_potential.calculator
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BeestKramerSanten
+      CutoffInteraction
+      FeneLJCut
+      LennardJones84
+      LennardJonesCut
+      LennardJonesLinear
+      LennardJonesQuadratic
+      PairPotential
+   

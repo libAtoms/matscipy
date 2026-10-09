@@ -1,0 +1,13 @@
+matscipy.cauchy\_born
+=====================
+
+.. automodule:: matscipy.cauchy_born
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      CubicCauchyBorn
+      RegressionModel
+   

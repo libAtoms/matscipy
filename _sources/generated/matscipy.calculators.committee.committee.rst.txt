@@ -1,0 +1,14 @@
+matscipy.calculators.committee.committee
+========================================
+
+.. automodule:: matscipy.calculators.committee.committee
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Committee
+      CommitteeMember
+      CommitteeUncertainty
+   

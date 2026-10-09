@@ -1,0 +1,18 @@
+matscipy.numerical
+==================
+
+.. automodule:: matscipy.numerical
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_derivative_volume
+      get_derivative_wave_vector
+      numerical_forces
+      numerical_hessian
+      numerical_nonaffine_forces
+      numerical_nonaffine_forces_reference
+      numerical_stress
+   

@@ -1,0 +1,13 @@
+matscipy.calculators.ewald.calculator
+=====================================
+
+.. automodule:: matscipy.calculators.ewald.calculator
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Ewald
+      EwaldShortRange
+   

@@ -1,0 +1,12 @@
+matscipy.calculators.eam.average\_atom
+======================================
+
+.. automodule:: matscipy.calculators.eam.average_atom
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      average_potential
+   

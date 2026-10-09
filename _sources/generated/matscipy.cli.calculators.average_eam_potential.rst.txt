@@ -1,0 +1,12 @@
+matscipy.cli.calculators.average\_eam\_potential
+================================================
+
+.. automodule:: matscipy.cli.calculators.average_eam_potential
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      main
+   
