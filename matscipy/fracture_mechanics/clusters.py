@@ -533,7 +533,9 @@ def clamped_cluster(crk, K, n, skin, *, a0, crack_surface, crack_front, symbol="
     if passivate:
         coord = np.bincount(neighbour_list("i", a, bond_cutoff), minlength=len(a))
         exclude = (a.arrays["groups"] == 1) & (coord != 4)
-        a = hydrogenate(cryst, bond_cutoff, caps[symbol], b=a, exclude=exclude)
+        # any length here: each cap is set to its host's length just below (symbol may be a tuple
+        # for compounds, e.g. ("Si", "C") with the zincblende lattice)
+        a = hydrogenate(cryst, bond_cutoff, 1.0, b=a, exclude=exclude)
         a.set_pbc([False, False, True])
         g = a.arrays["groups"]
         g[n_host:] = -1

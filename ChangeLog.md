@@ -5,7 +5,9 @@ Unreleased
 ----------
 
 - BUG: `SinclairCrack.u_cle` ignored its `kI` and `kII` arguments and always used the
-  current values; it now uses the arguments when given (default behaviour unchanged).
+  current values; it now uses the arguments when given. **Results change** for
+  `SinclairCrack.fit_cle(variable_k=True)` (the default), which now actually fits k; before,
+  k stayed at its starting value. Calls of `u_cle()` without arguments are unchanged.
 - ENH: `clusters.clamped_cluster`, `clusters.cluster_like` and `clusters.centred_shift`:
   clamped K-field crack clusters (diamond and zincblende lattices) with optional H caps
   on cut bonds, and a reference cluster's topology on another material's lattice.

@@ -294,3 +294,54 @@ def test_carbon_diamond_with_tersoff_traces_a_few_points():
                                    settings=TraceSettings(max_points=5))
     assert status == "complete" and len(frames) == 5
     assert np.diff([f.info["K_over_KG"] for f in frames]).min() > 0
+
+
+def test_clamped_problem_rejects_a_flexible_or_mixed_mode_sinclair_crack():
+    # final review I1: with variable_alpha=True the k dof would be read as alpha, silently
+    from matscipy.fracture_mechanics.continuation import ClampedProblem
+    from matscipy.fracture_mechanics.crack import SinclairCrack, regions_from_groups
+    a, crk, KG = _sw_clamped()
+    cryst = a.copy()
+    cryst.positions = a.arrays["reference"]
+    regions_from_groups(cryst)
+    alpha = a.info["tip_x"] - cryst.cell[0, 0] / 2
+    flexible = SinclairCrack(crk, cryst, _NoPerAtom(_sw()), 0.6 * KG, alpha=alpha, vacuum=0.0,
+                             energy="total")
+    with pytest.raises(ValueError, match="variable_alpha"):
+        ClampedProblem(flexible, KG, atoms=a)
+    mixed = SinclairCrack(crk, cryst, _NoPerAtom(_sw()), 0.6 * KG, kII=0.1 * KG, alpha=alpha,
+                          vacuum=0.0, variable_alpha=False, variable_k=True, energy="total")
+    with pytest.raises(ValueError, match="kII"):
+        ClampedProblem(mixed, KG, atoms=a)
+
+
+def test_clamped_problem_requires_the_built_cluster_when_passivated():
+    # final review I2: without atoms= every H cap starts on its host (NaN surrogate springs)
+    from matscipy.fracture_mechanics.continuation import ClampedProblem
+    a, crk, KG, _ = _build("110_001")
+    sc = _clamped_sinclair(a, crk, _NoPerAtom(_sw()), KG)
+    with pytest.raises(ValueError, match="atoms"):
+        ClampedProblem(sc, KG)
+    with pytest.raises(ValueError, match="atoms"):
+        ClampedProblem(sc, KG, atoms=a[:-1])
+
+
+def test_zincblende_cluster_with_caps_of_each_host_length():
+    # final review I3: passivate=True with a two-element symbol raised KeyError
+    from ase.lattice.compounds import B3
+    from matscipy.fracture_mechanics.clusters import clamped_cluster
+    crk = CubicCrystalCrack([1, -1, 0], [1, 1, 0], C11=390 * GPa, C12=140 * GPa, C44=250 * GPa)
+    KG = crk.k1g(2.0 * J / m**2)
+    a = clamped_cluster(crk, 0.6 * KG, (4, 4, 1), (0.5, 1.0), a0=4.36, crack_surface=[1, -1, 0],
+                        crack_front=[1, 1, 0], symbol=("Si", "C"), lattice=B3, bond_cutoff=2.2)
+    sym = np.array(a.get_chemical_symbols())
+    h = np.flatnonzero(a.arrays["h_host"] >= 0)
+    assert len(h) > 0 and set(sym[a.arrays["h_host"][h]]) == {"Si", "C"}
+    d = np.linalg.norm(a.positions[h] - a.positions[a.arrays["h_host"][h]], axis=1)
+    host = sym[a.arrays["h_host"][h]]
+    assert np.allclose(d[host == "Si"], 1.48) and np.allclose(d[host == "C"], 1.09)
+
+
+def test_continuation_module_has_its_docstring():
+    import matscipy.fracture_mechanics.continuation as c
+    assert c.__doc__ and "pseudo-arclength" in c.__doc__

@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import json
 """Force-only pseudo-arclength tracing of clamped crack clusters (lattice-trapping S-curves).
 
 A clamped cluster (`clusters.clamped_cluster`) in a `SinclairCrack` with `variable_alpha=False,
@@ -46,6 +45,17 @@ class ClampedProblem:
     ADVANCE_BREAK_RATIO = 1.55  # crack-line bond counted broken at 1.55 bulk bonds unless set
 
     def __init__(self, crack, K_G, atoms=None):
+        if crack.variable_alpha or not crack.variable_k:
+            raise ValueError("ClampedProblem needs a clamped SinclairCrack: variable_alpha=False, "
+                             "variable_k=True")
+        if crack.kII != 0:
+            raise ValueError("ClampedProblem traces mode I only: kII must be 0")
+        n_caps = int((crack.cryst.arrays.get("h_host", np.full(len(crack.cryst), -1)) >= 0).sum())
+        if atoms is not None and len(atoms) != len(crack.atoms):
+            raise ValueError(f"atoms has {len(atoms)} atoms, the crack {len(crack.atoms)}")
+        if n_caps and atoms is None:
+            raise ValueError("a passivated cluster needs atoms= (the built cluster): at u = 0 the "
+                             "crack puts every H cap on its host")
         self.crack, self.kg = crack, float(K_G)
         self.k_build = float(crack.kI) / self.kg
         self.atoms = crack.atoms.copy()
