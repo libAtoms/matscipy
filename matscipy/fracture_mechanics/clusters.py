@@ -562,3 +562,28 @@ def clamped_cluster(crk, K, n, skin, *, a0, crack_surface, crack_front, symbol="
     a.info.update(K=float(K), bond1=b1, bond2=b2, tip_x=float(tip[0]), tip_y=float(tip[1]),
                   a0=float(a0))
     return a
+
+
+def cluster_like(reference_atoms, crk, K, a0):
+    """A cluster with the topology of `reference_atoms` (a `clamped_cluster`): the same atoms, order,
+    groups, H caps and tip bond, the lattice scaled by a0 / reference a0, loaded with `crk`'s K-field
+    at K about the scaled tip. Another material's own `clamped_cluster` can pick a different tip bond
+    or cap set when its elastic constants move a borderline bond; this keeps it one to one with the
+    reference."""
+    s = a0 / reference_atoms.info["a0"]
+    a = reference_atoms.copy()
+    a.set_constraint()
+    reference = np.asarray(reference_atoms.arrays["reference"]) * s
+    tip = np.array([reference_atoms.info["tip_x"], reference_atoms.info["tip_y"]]) * s
+    host = a.arrays["h_host"]
+    h = np.flatnonzero(host >= 0)
+    off = reference_atoms.positions[h] - reference_atoms.positions[host[h]]
+    a.set_cell(np.asarray(a.cell) * s)
+    ux, uy = crk.displacements(reference[:, 0], reference[:, 1], tip[0], tip[1], K)
+    pos = reference + np.column_stack([ux, uy, np.zeros_like(ux)])
+    pos[h] = pos[host[h]] + s * off
+    a.positions = pos
+    a.set_array("reference", reference)
+    a.info.update(K=float(K), tip_x=float(tip[0]), tip_y=float(tip[1]), a0=float(a0),
+                  topology_from_a0=float(reference_atoms.info["a0"]))
+    return a

@@ -70,3 +70,26 @@ def test_caps_take_the_host_specific_length():
     h = np.flatnonzero(a.arrays["h_host"] >= 0)
     d = np.linalg.norm(a.positions[h] - a.positions[a.arrays["h_host"][h]], axis=1)
     assert np.allclose(d, 1.50, atol=1e-6)
+
+
+def test_cluster_like_keeps_the_topology_on_another_lattice():
+    from matscipy.fracture_mechanics.clusters import cluster_like
+    a, crk, KG, args = _build("111_110")
+    crk2 = CubicCrystalCrack(args["surface"], args["front"], C11=140 * GPa, C12=60 * GPa,
+                             C44=70 * GPa)
+    KG2 = crk2.k1g(1.3 * J / m**2)
+    b = cluster_like(a, crk2, KG2, 5.5)
+    s = 5.5 / args["a0"]
+    assert b.get_chemical_symbols() == a.get_chemical_symbols()
+    assert (b.arrays["groups"] == a.arrays["groups"]).all()
+    assert (b.arrays["h_host"] == a.arrays["h_host"]).all()
+    assert (b.info["bond1"], b.info["bond2"]) == (a.info["bond1"], a.info["bond2"])
+    assert np.allclose(b.arrays["reference"], s * a.arrays["reference"])
+    assert np.allclose(b.cell, s * np.asarray(a.cell))
+    h = np.flatnonzero(a.arrays["h_host"] >= 0)
+    host = a.arrays["h_host"][h]
+    assert np.allclose(b.positions[h] - b.positions[host], s * (a.positions[h] - a.positions[host]))
+    # unloaded (K = 0) it sits on its own scaled reference (heavy atoms)
+    c = cluster_like(a, crk2, 0.0, 5.5)
+    heavy = a.arrays["h_host"] < 0
+    assert np.allclose(c.positions[heavy], c.arrays["reference"][heavy])
