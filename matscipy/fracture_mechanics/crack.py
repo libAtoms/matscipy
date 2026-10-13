@@ -998,7 +998,7 @@ class SinclairCrack:
                  alpha_scale=None, k_scale=None,
                  extended_far_field=False, rI=0.0, rIII=0.0, cutoff=0.0,
                  incl_rI_f_alpha=False, is_3D=False, theta_3D=0.0, cont_k='k1',
-                 precon_recompute_interval=10):
+                 precon_recompute_interval=10, energy="sinclair"):
         """
 
         Parameters
@@ -1020,7 +1020,14 @@ class SinclairCrack:
         cutoff - Potential cutoff
         incl_rI_f_alpha - Whether to include region I when calculating the f_alpha forces
         precon_recompute_interval - How many preconditioned steps between re-computing the preconditioner
+        energy - "sinclair" (default): energy of regions I and II from per-atom energies plus the
+                 far-field correction; "total": the total energy of the cluster,
+                 atoms.get_potential_energy(), for clamped clusters and calculators without
+                 per-atom energies (no far-field correction, no energy reference)
         """
+        if energy not in ("sinclair", "total"):
+            raise ValueError(f"energy must be 'sinclair' or 'total', not {energy!r}")
+        self.energy_mode = energy
         self.crk = crk  # instance of CubicCrystalCrack
         self.cryst = cryst  # Atoms object representing crystal
 
@@ -1212,7 +1219,7 @@ class SinclairCrack:
         tip_y = self.cryst.cell.diagonal()[1] / 2.0
         ux, uy = self.crk.displacements(self.cryst.positions[:, 0],
                                         self.cryst.positions[:, 1],
-                                        tip_x, tip_y, self.kI, self.kII)
+                                        tip_x, tip_y, kI, kII)
         u = np.c_[ux, uy, np.zeros_like(ux)]  # convert to 3D field
         return u
 
@@ -1765,6 +1772,8 @@ class SinclairCrack:
             raise RuntimeError(f"no convergence of scipy optimizer {method}")
 
     def get_potential_energy(self):
+        if self.energy_mode == "total":
+            return self.atoms.get_potential_energy()
         # E1: energy of region I and II atoms
         E = self.atoms.get_potential_energies()[self.regionI_II].sum()
         E1 = E - self.E0
@@ -1790,6 +1799,9 @@ class SinclairCrack:
         it must be refreshed whenever K changes (see rescale_k). Leaves
         self.atoms updated for the current DOFs.
         """
+        if self.energy_mode == "total":
+            self.update_atoms()
+            return
         u = self.u.copy()
         self.u[:] = 0.0
         self.update_atoms()
@@ -2845,6 +2857,17 @@ def fit_crack_stress_field(atoms, r_range=(0., 50.), initial_params=None, fix_pa
         (params['x0'], params['y0'], atoms.cell[2, 2] / 2.0))
 
     return params, err
+
+
+def regions_from_groups(atoms):
+    """
+    Sinclair regions for a clamped cluster from its `groups` array: free atoms (groups != 0,
+    including free H caps, group -1) are region 1, clamped atoms (group 0) region 3. Sets the
+    `region` array and returns `atoms`.
+    """
+    g = atoms.arrays['groups']
+    atoms.set_array('region', np.where(g != 0, 1, 3).astype(int))
+    return atoms
 
 
 def find_tip_coordination(a, bondlength=2.6, bulk_nn=4):

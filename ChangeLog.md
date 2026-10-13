@@ -4,6 +4,20 @@ Change log
 Unreleased
 ----------
 
+- BUG: `SinclairCrack.u_cle` ignored its `kI` and `kII` arguments and always used the
+  current values; it now uses the arguments when given. **Results change** for
+  `SinclairCrack.fit_cle(variable_k=True)` (the default), which now actually fits k; before,
+  k stayed at its starting value. Calls of `u_cle()` without arguments are unchanged.
+- ENH: `clusters.clamped_cluster`, `clusters.cluster_like` and `clusters.centred_shift`:
+  clamped K-field crack clusters (diamond and zincblende lattices) with optional H caps
+  on cut bonds, and a reference cluster's topology on another material's lattice.
+- ENH: `fracture_mechanics.continuation`: force-only pseudo-arclength tracing of clamped
+  crack clusters (`trace_s_curve`), with a many-body Hessian surrogate and bordered
+  Broyden/Newton-Krylov correctors, for lattice-trapping S-curves with any ASE calculator.
+- ENH: `SinclairCrack(energy="total")` uses the total energy of the cluster, for clamped
+  clusters and calculators without per-atom energies; `regions_from_groups` maps a
+  clamped cluster's groups to Sinclair regions.
+
 - BUG: `SinclairCrack` now passes the deformation gradient to the multilattice
   Cauchy-Born corrector as F_ab = dx_a/dX_b; it previously passed the
   transpose. **Results change** for flexible-boundary Sinclair crack runs that

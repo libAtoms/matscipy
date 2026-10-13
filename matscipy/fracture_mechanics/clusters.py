@@ -390,3 +390,202 @@ def bcc(*args, **kwargs):
 def sc(*args, **kwargs):
     kwargs['lattice'] = SimpleCubic
     return cluster(*args, **kwargs)
+
+
+DEFAULT_CAP_LENGTHS = {"Si": 1.48, "C": 1.09}
+
+
+def centred_shift(symbol, a0, n, crack_surface, crack_front, lattice=None, bond_cutoff=2.7,
+                  grid=96):
+    """Fractional unit-cell shift that centres a cleavage bond in the cluster block.
+
+    The y-shift puts the widest interlayer gap (the cleavage plane; the shuffle plane for (111)) at
+    the block's y-centre with equal numbers of layers above and below. The x-shift then brings the
+    midpoint of a bond crossing that gap as close as possible to the block's x-centre. Searched on a
+    1/grid grid.
+    """
+    lattice = Diamond if lattice is None else lattice
+
+    def block(sx, sy):
+        return cluster(symbol, a0, list(n), list(crack_surface), list(crack_front),
+                       lattice=lattice, shift=[sx, sy, 0.0])
+
+    fracs = np.arange(grid) / grid
+    sy_best = None
+    for sy in fracs:
+        b = block(0.0, sy)
+        cy = b.cell[1, 1] / 2
+        ys = np.unique(np.round(b.positions[:, 1], 4))
+        gaps, mids = np.diff(ys), 0.5 * (ys[1:] + ys[:-1])
+        widest = gaps > gaps.max() - 1e-3
+        k = np.argmin(np.abs(mids - cy))
+        if widest[k] and abs(mids[k] - cy) < 1e-3 and (ys < cy).sum() == (ys > cy).sum():
+            sy_best = sy
+            break
+    if sy_best is None:
+        raise ValueError(f"no y-shift centres a cleavage gap for {crack_surface}/{crack_front}, "
+                         f"n={n}")
+    best = (np.inf, None)
+    for sx in fracs:
+        b = block(sx, sy_best)
+        cx, cy = b.cell[0, 0] / 2, b.cell[1, 1] / 2
+        i, j, D = neighbour_list("ijD", b, bond_cutoff)
+        cross = (b.positions[i, 1] < cy) & (b.positions[j, 1] > cy)
+        mid_x = b.positions[i[cross], 0] + 0.5 * D[cross, 0]
+        if len(mid_x) and np.abs(mid_x - cx).min() < best[0] - 1e-6:
+            best = (np.abs(mid_x - cx).min(), sx)
+    if best[1] is None:
+        raise ValueError(f"no bond crosses the cleavage plane for {crack_surface}/{crack_front}, "
+                         f"n={n}")
+    return [float(best[1]), float(sy_best), 0.0]
+
+
+def _rotate_about(v, axis, theta):
+    """Rotate row vectors v about the unit vector axis by theta (Rodrigues)."""
+    c, s = np.cos(theta), np.sin(theta)
+    return v * c + np.cross(axis, v) * s + np.outer(v @ axis, axis) * (1 - c)
+
+
+def _stagger_caps(a, n_host, bond_cutoff=2.7, step_deg=1.0):
+    """Turn every XH3 cap (host with three H and one heavy neighbour) about its X-X bond to the angle
+    that maximises the distance from its H to all other atoms, periodic images included (with a
+    single front period the bulk-direction caps can sit 1.45 A from another H's image). Lengths and
+    angles are unchanged. Returns the number of groups turned."""
+    from ase.geometry import find_mic
+
+    host = a.arrays["h_host"]
+    nb_i, nb_j = neighbour_list("ij", a[:n_host], bond_cutoff)
+    turned = 0
+    for s in np.unique(host[host >= 0]):
+        hs = np.flatnonzero(host == s)
+        nb = nb_j[nb_i == s]
+        if len(hs) != 3 or len(nb) != 1:
+            continue
+        axis = find_mic(a.positions[nb[0]] - a.positions[s], a.cell, a.pbc)[0]
+        axis /= np.linalg.norm(axis)
+        v0 = a.positions[hs] - a.positions[s]
+        rest = np.setdiff1d(np.arange(len(a)), np.concatenate([hs, [s]]))
+
+        def clearance(theta):
+            h = a.positions[s] + _rotate_about(v0, axis, theta)
+            d_other = find_mic((a.positions[rest][None] - h[:, None]).reshape(-1, 3), a.cell,
+                               a.pbc)[1]
+            own = [np.linalg.norm(h[x] - h[y] + sgn * a.cell[2]) for x in range(3)
+                   for y in range(3) for sgn in (-1, 1)] if a.pbc[2] else []
+            return min(d_other.min(), min(own) if own else np.inf)
+
+        thetas = np.radians(np.arange(0.0, 120.0, step_deg))  # three-fold symmetric
+        c = np.array([clearance(t) for t in thetas])
+        # mirror maxima can tie to ~1e-3 A: take the first angle within 0.01 A of the best
+        best = thetas[int(np.flatnonzero(c >= c.max() - 0.01)[0])]
+        if c.max() > c[0] + 1e-6:
+            a.positions[hs] = a.positions[s] + _rotate_about(v0, axis, best)
+            turned += 1
+    return turned
+
+
+def clamped_cluster(crk, K, n, skin, *, a0, crack_surface, crack_front, symbol="Si", lattice=None,
+                    shift="auto", tip_offset=0.0, passivate=True, cap_lengths=None,
+                    stagger_caps=True, bond_cutoff=2.7, vacuum=6.0, tip_bond=None):
+    """Clamped K-field crack cluster (the crack-tip-clusters protocol) at stress intensity K.
+
+    An oriented block (`cluster` with `lattice`, default ASE Diamond) with a clamped skin of `skin`
+    unit cells (`set_groups`: group 0 clamped, 1 free), loaded with the anisotropic K-field of `crk`
+    about the midpoint of the tip bond (found by coordination with the trial tip `tip_offset` A from
+    the block centre along x, or given as `tip_bond`). With `passivate`, every perfect-crystal bond
+    missing from the loaded cluster is capped with H (`hydrogenate`), except on free
+    under-coordinated atoms (the crack faces and tip stay bare); caps are free (group -1), their host
+    is recorded in `h_host`, their length is `cap_lengths[host element]`, and with `stagger_caps`
+    XH3 groups are turned clear of their periodic images. Vacuum padding `vacuum` in x and y; the
+    cluster is periodic along the front (z).
+
+    Returns Atoms with arrays `groups`, `h_host`, `reference` (unloaded positions, H at their host's)
+    and info `K`, `bond1`, `bond2`, `tip_x`, `tip_y`, `a0`.
+    """
+    from matscipy.fracture_mechanics.crack import find_tip_coordination
+    from matscipy.hydrogenate import hydrogenate
+
+    lattice = Diamond if lattice is None else lattice
+    caps = dict(DEFAULT_CAP_LENGTHS, **(cap_lengths or {}))
+    if isinstance(shift, str) and shift == "auto":
+        shift = centred_shift(symbol, a0, n, crack_surface, crack_front, lattice, bond_cutoff)
+    cryst = cluster(symbol, a0, list(n), list(crack_surface), list(crack_front), lattice=lattice,
+                    shift=shift)
+    set_groups(cryst, n, *skin)
+    cryst.set_pbc(True)
+
+    def field(ref, tip):
+        ux, uy = crk.displacements(ref[:, 0], ref[:, 1], tip[0], tip[1], K)
+        return np.column_stack([ux, uy, np.zeros_like(ux)])
+
+    ref = cryst.positions.copy()
+    centre = cryst.cell.diagonal()[:2] / 2 + np.array([tip_offset, 0.0])
+    a = cryst.copy()
+    a.set_pbc([False, False, True])
+    a.positions = ref + field(ref, centre)
+    b1, b2 = (int(i) for i in (tip_bond if tip_bond is not None
+                               else find_tip_coordination(a, bondlength=bond_cutoff)))
+    tip = 0.5 * (ref[b1, :2] + ref[b2, :2])
+    a.positions = ref + field(ref, tip)
+    reference = ref
+    n_host = len(a)
+    h_host = -np.ones(n_host, int)
+    if passivate:
+        coord = np.bincount(neighbour_list("i", a, bond_cutoff), minlength=len(a))
+        exclude = (a.arrays["groups"] == 1) & (coord != 4)
+        # any length here: each cap is set to its host's length just below (symbol may be a tuple
+        # for compounds, e.g. ("Si", "C") with the zincblende lattice)
+        a = hydrogenate(cryst, bond_cutoff, 1.0, b=a, exclude=exclude)
+        a.set_pbc([False, False, True])
+        g = a.arrays["groups"]
+        g[n_host:] = -1
+        h = np.arange(n_host, len(a))
+        dist = np.linalg.norm(a.positions[h, None, :] - a.positions[None, :n_host, :], axis=2)
+        host = dist.argmin(axis=1)
+        sym = np.array(a.get_chemical_symbols())
+        for hh, s in zip(h, host):  # host-specific cap length along the cap direction
+            v = a.positions[hh] - a.positions[s]
+            a.positions[hh] = a.positions[s] + caps[sym[s]] * v / np.linalg.norm(v)
+        h_host = np.concatenate([h_host, host])
+        a.set_array("h_host", h_host)
+        if stagger_caps:
+            _stagger_caps(a, n_host, bond_cutoff)
+        reference = np.vstack([ref, ref[host]])
+    else:
+        a.set_array("h_host", h_host)
+    shift_xy = np.array([vacuum, vacuum, 0.0])
+    cell = a.cell.copy()
+    cell[0, 0] += 2 * vacuum
+    cell[1, 1] += 2 * vacuum
+    a.set_cell(cell)
+    a.translate(shift_xy)
+    a.set_array("reference", reference + shift_xy)
+    tip = tip + shift_xy[:2]
+    a.info.update(K=float(K), bond1=b1, bond2=b2, tip_x=float(tip[0]), tip_y=float(tip[1]),
+                  a0=float(a0))
+    return a
+
+
+def cluster_like(reference_atoms, crk, K, a0):
+    """A cluster with the topology of `reference_atoms` (a `clamped_cluster`): the same atoms, order,
+    groups, H caps and tip bond, the lattice scaled by a0 / reference a0, loaded with `crk`'s K-field
+    at K about the scaled tip. Another material's own `clamped_cluster` can pick a different tip bond
+    or cap set when its elastic constants move a borderline bond; this keeps it one to one with the
+    reference."""
+    s = a0 / reference_atoms.info["a0"]
+    a = reference_atoms.copy()
+    a.set_constraint()
+    reference = np.asarray(reference_atoms.arrays["reference"]) * s
+    tip = np.array([reference_atoms.info["tip_x"], reference_atoms.info["tip_y"]]) * s
+    host = a.arrays["h_host"]
+    h = np.flatnonzero(host >= 0)
+    off = reference_atoms.positions[h] - reference_atoms.positions[host[h]]
+    a.set_cell(np.asarray(a.cell) * s)
+    ux, uy = crk.displacements(reference[:, 0], reference[:, 1], tip[0], tip[1], K)
+    pos = reference + np.column_stack([ux, uy, np.zeros_like(ux)])
+    pos[h] = pos[host[h]] + s * off
+    a.positions = pos
+    a.set_array("reference", reference)
+    a.info.update(K=float(K), tip_x=float(tip[0]), tip_y=float(tip[1]), a0=float(a0),
+                  topology_from_a0=float(reference_atoms.info["a0"]))
+    return a
