@@ -233,3 +233,64 @@ def test_broyden_corrector_solves_a_bordered_linear_toy():
     c.B = -A + 0.1 * rng.normal(size=(4, 5))
     r = c.correct(F, yp, F(yp), yp, t, lambda y1, y0: float(np.abs(y1 - y0).max()))
     assert r.ok and np.abs(F(r.y)).max() < 1e-10 and abs(t @ (r.y - yp)) < 1e-6
+
+
+def test_trace_s_curve_reproduces_the_crackcell_sw_folds():
+    # crackcell reference (2026-10-13): SW, unpassivated (110)[1-10], n (4, 4, 1), skin (0.5, 1),
+    # start k 0.6, ftol 2e-3: 130 points, folds at K/K_G 1.47264 and 0.75730
+    from matscipy.fracture_mechanics.continuation import (HessianSurrogate, TraceSettings,
+                                                          trace_s_curve)
+    p = _problem()
+    frames, status = trace_s_curve(p, HessianSurrogate(p, _sw()), 0.6, settings=TraceSettings(
+        max_points=300, k_window=(0.3, 3.0), extra_after_last_fold=1.15, max_calls_per_point=60,
+        start_max_iter=300))
+    k = np.array([f.info["K_over_KG"] for f in frames])
+    d = np.diff(k)
+    folds = [k[i] for i in range(1, len(k) - 1) if d[i - 1] * d[i] < 0]
+    assert status == "folds"
+    assert folds[0] == pytest.approx(1.47264, abs=2e-3)
+    assert folds[1] == pytest.approx(0.75730, abs=2e-3)
+    assert frames[0].info["branch"] == "stable"
+    assert {f.info["branch"] for f in frames} == {"stable", "unstable"}
+    assert max(np.abs(f.arrays["forces"][p.free]).max() for f in frames) < 2e-3
+
+
+def test_trace_leaving_the_window_before_any_fold_returns_its_frames():
+    from matscipy.fracture_mechanics.continuation import (HessianSurrogate, TraceSettings,
+                                                          trace_s_curve)
+    p = _problem()
+    frames, status = trace_s_curve(p, HessianSurrogate(p, _sw()), 0.6,
+                                   settings=TraceSettings(k_window=(0.3, 0.8), max_points=200))
+    assert status == "window" and len(frames) > 2
+    assert all(f.info["branch"] == "stable" for f in frames)
+
+
+def test_carbon_diamond_with_tersoff_traces_a_few_points():
+    from ase.build import bulk
+    from ase.filters import UnitCellFilter
+    from ase.optimize import BFGS
+    from matscipy.calculators.manybody import Manybody
+    from matscipy.calculators.manybody.explicit_forms.tersoff_brenner import (
+        TersoffBrenner, Tersoff_PRB_39_5566_Si_C)
+    from matscipy.elasticity import fit_elastic_constants
+    from matscipy.fracture_mechanics.clusters import clamped_cluster
+    from matscipy.fracture_mechanics.continuation import (ClampedProblem, HessianSurrogate,
+                                                          TraceSettings, trace_s_curve)
+    calc = Manybody(**TersoffBrenner(Tersoff_PRB_39_5566_Si_C))
+    b = bulk("C", "diamond", a=3.57, cubic=True)
+    b.calc = calc
+    BFGS(UnitCellFilter(b), logfile=None).run(fmax=1e-4)
+    a0 = b.cell[0, 0]
+    C, _ = fit_elastic_constants(b, symmetry="cubic", verbose=False)
+    crk = CubicCrystalCrack([1, -1, 0], [1, 1, 0], C11=C[0, 0], C12=C[0, 1], C44=C[3, 3])
+    KG = crk.k1g(0.4)  # eV/A^2; any positive surface energy will do for a smoke test
+    a = clamped_cluster(crk, 0.6 * KG, (4, 4, 1), (0.5, 1.0), a0=a0, crack_surface=[1, -1, 0],
+                        crack_front=[1, 1, 0], symbol="C", passivate=False, bond_cutoff=1.9)
+    # unpassivated: the Tersoff Si-C parameters have no H (the H-cap path is covered by the SW
+    # surrogate test and the Si regression builds)
+    sc = _clamped_sinclair(a, crk, _NoPerAtom(calc), 0.6 * KG)
+    p = ClampedProblem(sc, KG, atoms=a)
+    frames, status = trace_s_curve(p, HessianSurrogate(p, calc), 0.6,
+                                   settings=TraceSettings(max_points=5))
+    assert status == "complete" and len(frames) == 5
+    assert np.diff([f.info["K_over_KG"] for f in frames]).min() > 0

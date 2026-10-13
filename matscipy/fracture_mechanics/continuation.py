@@ -319,3 +319,216 @@ class KrylovCorrector:
         except _Out:
             pass
         return CorrectorResult(best[0], best[1], it, calls[0], False)
+
+
+@dataclass
+class TraceSettings:
+    ftol: float = 2e-3            # eV/A, max force component on free atoms
+    alpha: float = 2.0            # A per K_G in the arclength metric
+    ds0: float = 0.05
+    ds_min: float = 1e-3
+    ds_max: float = 0.6
+    dr_cap: float = 0.05          # A, max atomic move of a predictor step
+    n_target: int = 3             # corrector iterations aimed at per step
+    max_iter: int = 8
+    broyden_retries: int = 2
+    surrogate_every: int = 5      # refresh the surrogate Jacobian every this many points
+    max_points: int = 400
+    k_window: tuple = (0.0, 3.0)
+    stop_after_folds: int = 2
+    extra_after_last_fold: float = 0.25  # |dk| past the last fold before stopping
+    reject_factor: float = 3.0    # a step moving an atom > reject_factor * dr_cap is rejected
+    max_calls_per_point: int = 30
+    krylov_max_calls: int = 40
+    corrector_step_limit: float = 0.1
+    start_max_iter: int = 200     # force calls of the fixed-k start relaxation
+    max_advance: float = None     # crack advance (bonds) per step; None = off
+
+
+class _Stall(Exception):
+    pass
+
+
+def _relax_start(p, x, st):
+    """Relax the free atoms at fixed k with ASE LBFGS (clamped atoms fixed)."""
+    from ase.calculators.calculator import Calculator, all_changes
+    from ase.constraints import FixAtoms
+    from ase.optimize import LBFGS
+    k = float(x[-1])
+
+    class _Truth(Calculator):
+        implemented_properties = ["energy", "forces"]
+
+        def calculate(self, atoms=None, properties=("energy",), system_changes=all_changes):
+            super().calculate(atoms, properties, system_changes)
+            E, F = p.evaluate(p.x_from(atoms.positions, k))
+            self.results = {"energy": E, "forces": F}
+
+    a = p.atoms_at(x)
+    a.set_constraint(FixAtoms(indices=p.clamp))
+    a.calc = _Truth()
+    LBFGS(a, maxstep=2 * st.dr_cap, logfile=None).run(fmax=st.ftol, steps=st.start_max_iter)
+    xs = p.x_from(a.positions, k)
+    if np.abs(p.residual(xs)).max() >= st.ftol:
+        raise RuntimeError("start relaxation did not reach ftol at fixed k")
+    return xs
+
+
+def _fold_estimate(ys, ks):
+    s = np.array([0.0, np.linalg.norm(ys[1] - ys[0]),
+                  np.linalg.norm(ys[1] - ys[0]) + np.linalg.norm(ys[2] - ys[1])])
+    c = np.polyfit(s - s[1], ks, 2)
+    if c[0] == 0:
+        return float(ks[1])
+    sv = -c[1] / (2 * c[0])
+    return float(np.polyval(c, sv)) if abs(sv) <= s[2] - s[0] else float(ks[1])
+
+
+def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callback=None):
+    """Trace the S-curve K(u) of a clamped crack cluster from load k0 = K/K_G.
+
+    The start (the problem's geometry, moved rigidly with the field from its build load to k0) is
+    relaxed at fixed k; then secant predictor (capped to dr_cap and, with max_advance, to that crack
+    advance) and bordered Broyden corrector (Newton-Krylov after broyden_retries halvings), with the
+    surrogate Jacobian refreshed every surrogate_every points. Folds are sign changes of dk/ds; the
+    branch label starts "stable" and alternates at each fold. Stops after stop_after_folds folds plus
+    extra_after_last_fold in k, on leaving k_window moving outward, at max_points, or when a step
+    needs more than max_calls_per_point force calls or ds falls below ds_min ("stalled").
+    `callback(frame)` is called for every accepted point.
+
+    Returns (frames, status): extxyz-ready Atoms with arrays `forces` and info `K_over_KG`, `K`,
+    `energy`, `branch`, `point_index`, `method`, `ds`, `calls`; status one of "folds", "window",
+    "complete", "stalled".
+    """
+    st, p = settings or TraceSettings(), problem
+    al = st.alpha
+    capped = st.max_advance is not None
+    c0 = [p.ncalls]
+
+    def to_x(y):
+        x = y.copy()
+        x[-1] = y[-1] / al
+        return x
+
+    def to_y(x):
+        y = np.array(x, float)
+        y[-1] = x[-1] * al
+        return y
+
+    def F(y):
+        if p.ncalls - c0[0] >= st.max_calls_per_point:
+            raise _Stall
+        return p.residual(to_x(y))
+
+    def dr(y1, y0):
+        return p.dr_max(to_x(y1), to_x(y0))
+
+    def adv(y1, y0):
+        return abs(p.advance(to_x(y1)) - p.advance(to_x(y0)))
+
+    def jy(yy):
+        J = surrogate.jac(to_x(yy)).copy()
+        J[:, -1] /= al
+        return J
+
+    broyden = BroydenCorrector(st.ftol, st.max_iter, st.corrector_step_limit)
+    krylov = KrylovCorrector(st.ftol, st.max_iter, step_limit=st.corrector_step_limit,
+                             max_calls=st.krylov_max_calls)
+    frames, folds = [], []
+    branch = ["stable"]
+
+    def emit(y, method, ds):
+        xx = to_x(y)
+        E, Fall = p.evaluate(xx)
+        a = p.atoms_at(xx)
+        a.set_array("forces", Fall)
+        a.info.update(K_over_KG=float(xx[-1]), K=float(xx[-1] * p.kg), energy=E, branch=branch[0],
+                      point_index=len(frames), method=method, ds=float(ds),
+                      calls=int(p.ncalls - c0[0]))
+        frames.append(a)
+        if callback is not None:
+            callback(a)
+
+    x = p.x_from(p.atoms.positions, p.k_build)
+    x[-1] = k0
+    x = _relax_start(p, x, st)
+    surrogate.calibrate(x)
+    y = to_y(x)
+    Js = jy(y)
+    broyden.B = Js.copy()
+    Js_age = 0
+    Fy = p.residual(x)
+    emit(y, "start", 0.0)
+    ys, Fs = [y], [Fy]
+    e_k = np.zeros(len(y))
+    e_k[-1] = direction
+    t = bordered_solve(broyden.B, e_k, np.zeros(len(y) - 1), 1.0)
+    t = t / np.linalg.norm(t) * np.sign(t[-1] * direction or 1.0)
+    ds, status, k_last_fold = st.ds0, "complete", None
+    while len(frames) < st.max_points:
+        yprev, Fprev = ys[-1], Fs[-1]
+        if len(ys) >= 2:
+            t = (yprev - ys[-2]) / np.linalg.norm(yprev - ys[-2])
+        dm = dr(yprev + ds * t, yprev)
+        if dm > st.dr_cap:
+            ds *= st.dr_cap / dm
+        if capped:
+            da = adv(yprev + ds * t, yprev)
+            if da > st.max_advance:
+                ds *= st.max_advance / da
+        c0[0], attempt = p.ncalls, 0
+        try:
+            while True:
+                if ds < st.ds_min:
+                    raise _Stall
+                yp = yprev + ds * t
+                Fp = F(yp)
+                broyden.update(yp - yprev, Fp - Fprev)
+                res, used = broyden.correct(F, yp, Fp, yp, t, dr), "broyden"
+                if not res.ok and attempt > st.broyden_retries:
+                    y0, F0 = (yp, Fp) if np.abs(Fp).max() <= np.abs(res.F).max() else (res.y, res.F)
+                    res, used = krylov.correct(F, y0, F0, yp, t, dr, prec_J=broyden.B), "krylov"
+                ok = res.ok and dr(res.y, yprev) <= st.reject_factor * st.dr_cap and \
+                    t @ (res.y - yprev) > 0 and \
+                    not (capped and adv(res.y, yprev) > 2 * st.max_advance)
+                if ok:
+                    break
+                ds *= 0.5
+                attempt += 1
+                if attempt == st.broyden_retries + 1:  # fresh surrogate before the Krylov attempts
+                    Jn = jy(yprev)
+                    broyden.B += Jn - Js  # keep the learned correction to the surrogate
+                    Js, Js_age = Jn, 0
+        except _Stall:
+            status = "stalled"
+            break
+        ys.append(res.y)
+        Fs.append(res.F)
+        if len(ys) >= 3:
+            k3 = [v[-1] / al for v in ys[-3:]]
+            if (k3[1] - k3[0]) * (k3[2] - k3[1]) < 0:
+                k_last_fold = _fold_estimate(ys[-3:], np.array(k3))
+                folds.append(k_last_fold)
+                branch[0] = "unstable" if branch[0] == "stable" else "stable"
+        emit(res.y, used, ds)
+        ds_next = ds * np.clip(st.n_target / max(res.iters, 1), 0.5, 1.6)
+        if capped:
+            da = adv(res.y, yprev)
+            if da > 0:
+                ds_next = min(ds_next, ds * st.max_advance / da)
+        ds = float(np.clip(ds_next, st.ds_min, st.ds_max))
+        Js_age += 1
+        if Js_age >= st.surrogate_every:
+            Jn = jy(res.y)
+            broyden.B += Jn - Js
+            Js, Js_age = Jn, 0
+        k_now, dk = res.y[-1] / al, (res.y[-1] - yprev[-1]) / al
+        lo, hi = st.k_window
+        if (k_now < lo and dk <= 0) or (k_now > hi and dk >= 0):
+            status = "window"
+            break
+        if k_last_fold is not None and len(folds) >= st.stop_after_folds and \
+                abs(k_now - k_last_fold) > st.extra_after_last_fold:
+            status = "folds"
+            break
+    return frames, status
