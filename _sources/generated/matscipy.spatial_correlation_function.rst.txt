@@ -1,0 +1,15 @@
+matscipy.spatial\_correlation\_function
+=======================================
+
+.. automodule:: matscipy.spatial_correlation_function
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      betrag
+      max_rad
+      spatial_correlation_function
+      spatial_correlation_function_near
+   

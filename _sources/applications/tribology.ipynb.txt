@@ -1,0 +1,574 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "1aad7bd0-ad93-4037-90be-39a90e0609fc",
+   "metadata": {},
+   "source": [
+    "# Tribology\n",
+    "\n",
+    "Tribology is the study of two interfaces sliding relative to one another, as encountered in frictional sliding or adhesion. Molecular dynamics simulations of representative volume elements of tribological interfaces are routinely used to gain\n",
+    "insights into the atomistic mechanisms underlying friction and wear. The module {py:mod}`matscipy.pressurecoupling` provides tools to perform such simulations under a constant normal load and sliding velocity.\n",
+    "\n",
+    "The example below shows how to perform an initial fast pressure equilibration of an interface prior to sliding.\n",
+    "Afterwards, during sliding, we apply the pressure coupling by [Pastewka et al.](https://doi.org/10.1007/s11249-009-9566-8) to dynamically adjust the distance between the two surfaces according to the local pressure. The algorithm ensures\n",
+    "mechanical boundary conditions that account for the inertia of the bulk material which\n",
+    "is not explicitly included in the simulation.\n",
+    "\n",
+    "\n",
+    "## System setup\n",
+    "\n",
+    "Let's first create an exemplary sliding interface consisting of two silicon crystals:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "f7edef8b-a391-44fb-8591-2e80db68f9fc",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.lattice.cubic import Diamond\n",
+    "\n",
+    "# create two slabs\n",
+    "slab1 = Diamond(directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], symbol='Si',\n",
+    "                pbc=(1, 1, 1), latticeconstant=5.431, size=(2, 2, 2))\n",
+    "\n",
+    "slab2 = slab1.copy()\n",
+    "\n",
+    "# merge them\n",
+    "slab2.translate([1, 1, slab1.get_cell()[2][2] + 1.2])\n",
+    "atoms = slab1 + slab2\n",
+    "\n",
+    "# remove pbc along z direction\n",
+    "atoms.center(axis=2, vacuum=0)\n",
+    "atoms.set_pbc([True, True, False])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5eb45b2e-ec03-4695-bc4b-3ce832c61964",
+   "metadata": {},
+   "source": [
+    "## Initial pressure equilibration\n",
+    "To apply a normal load along the *z* direction to this system, we will fix the two lowest atomic layers of the lower crystal. The corresponding atoms are defined with the mask (`bottom_mask`). The two topmost atomic layers of the upper crystal will be treated rigidly (`top_mask`). The *z* position of this rigid region can adapt according to the normal pressure. To reuse the masks in subsequent simulation runs (sliding or restarts), we save them in files.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "3fb38057-8e69-479b-bb17-d5060d05e05c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "\n",
+    "bottom_mask = atoms.get_positions()[:, 2] < 1.4  # mask for lower fixed atoms\n",
+    "top_mask = atoms.get_positions()[:, 2] > atoms.get_cell()[2][2] - 1.4  # mask for upper rigid atoms\n",
+    "\n",
+    "np.savetxt(\"bottom_mask.txt\", bottom_mask)\n",
+    "np.savetxt(\"top_mask.txt\", top_mask)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d8358e72",
+   "metadata": {},
+   "source": [
+    "We now specify the numerical parameters of the MD simulation. A Langevin thermostat will be used in the *y* direction along which neither the normal load nor the sliding motion are applied. For simplicity, we will thermalize all atoms which are not part of the constraint regions. This makes sense for small systems which cannot have a dedicated thermostat region. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "ef4506ec",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.units import GPa, fs\n",
+    "\n",
+    "dt = 5.0 * fs  # MD time step\n",
+    "C11 = 166.0 * GPa  # material constant\n",
+    "M_factor = 1.0  # scaling factor for lid mass during equilibration,\n",
+    "# 1.0 will give fast equilibration for expensive calculators\n",
+    "\n",
+    "Pdir = 2  # index of cell axis along which the normal pressure is applied\n",
+    "P = 1.0 * GPa  # target normal pressure\n",
+    "v = 0.0  # no sliding yet, only apply pressure\n",
+    "vdir = 0  # index of cell axis along which sliding happens\n",
+    "T = 300.0  # target temperature for thermostat in K\n",
+    "\n",
+    "t_langevin = 75.0 * fs  # time constant for Langevin thermostat\n",
+    "gamma_langevin = 1. / t_langevin  # derived Langevin parameter\n",
+    "t_integrate = 100.0 * fs  # simulation time\n",
+    "steps_integrate = int(t_integrate / dt)  # number of simulation steps"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d95c366a-9180-426e-944a-1d4745e0f827",
+   "metadata": {},
+   "source": [
+    "Next, we set up the calculation by attaching the constraint and a calculator to the atoms object. For the initial pressure equilibration, we critically damp the motion of the upper rigid layer while not increasing its mass. This is useful for a fast pressure equilibration.\n",
+    "Interatomic interactions are modelled with the Stillinger-Weber potential for silicon. For a fast temperature convergence, since we typically start from a local minimum, we also set the initial temperature of the system to twice the target temperature."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "b9bc1a2c-10a5-49bf-985f-d98d54e77bca",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber, Stillinger_Weber_PRB_31_5262_Si\n",
+    "from matscipy.calculators.manybody import Manybody\n",
+    "from matscipy import pressurecoupling as pc\n",
+    "from ase.md.velocitydistribution import MaxwellBoltzmannDistribution\n",
+    "\n",
+    "damp = pc.FixedMassCriticalDamping(C11, M_factor)  # specifies the critical damping with a fixed mass \n",
+    "slider = pc.SlideWithNormalPressureCuboidCell(top_mask, bottom_mask, Pdir,\n",
+    "                                              P, vdir, v, damp)  # ASE constraint for pressure coupling\n",
+    "\n",
+    "atoms.set_constraint(slider)  # attach constraint to atoms object\n",
+    "\n",
+    "MaxwellBoltzmannDistribution(atoms, temperature_K=2 * T)  # initialize temperature\n",
+    "\n",
+    "# clear momenta in constraint regions, otherwise upper rigid region might run away\n",
+    "atoms.arrays['momenta'][top_mask, :] = 0\n",
+    "atoms.arrays['momenta'][bottom_mask, :] = 0\n",
+    "\n",
+    "calc = Manybody(**StillingerWeber(Stillinger_Weber_PRB_31_5262_Si))  # specify calculator\n",
+    "atoms.set_calculator(calc)  # attach calculator"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3a3405e6-4efc-49a3-a453-d3d01b73f5a9",
+   "metadata": {},
+   "source": [
+    "Finally, we setup the integrator and run the simulation. This will create an ASE trajectory file of the MD run and a log file that tracks the current status of the simulation in terms of the system temperature, the system height, the shear stress etc.\n",
+    "The log file can be read using the class ({py:class}`SlideLog <matscipy.pressurecoupling.SlideLog>`)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "5b96c21b-fe28-4e93-8482-58ec73092b28",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.io import Trajectory\n",
+    "from ase.md.langevin import Langevin\n",
+    "from io import open\n",
+    "\n",
+    "# only thermalize middle region in one direction\n",
+    "temps = np.zeros((len(atoms), 3))\n",
+    "temps[slider.middle_mask, slider.Tdir] = T\n",
+    "gammas = np.zeros((len(atoms), 3))\n",
+    "gammas[slider.middle_mask, slider.Tdir] = gamma_langevin\n",
+    "\n",
+    "# set up integrator\n",
+    "integrator = Langevin(atoms, dt, temperature_K=temps,\n",
+    "                      friction=gammas, fixcm=False)\n",
+    "\n",
+    "# set up trajectory file\n",
+    "trajectory = Trajectory('equilibrate_pressure_01.traj', 'w', atoms) \n",
+    "\n",
+    "# set up logger\n",
+    "log_handle = open('log_equilibrate_01.txt', 'w', 1, encoding='utf-8')  # 1 means line buffered,\n",
+    "logger = pc.SlideLogger(log_handle, atoms, slider, integrator)\n",
+    "\n",
+    "logger.write_header()  # write header of log file\n",
+    "integrator.attach(logger)  # attach logger to integrator\n",
+    "integrator.attach(trajectory)  # attach trajectory to integrator\n",
+    "integrator.run(steps_integrate)  # run the simulation\n",
+    "log_handle.close()\n",
+    "trajectory.close()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "12f6c608-7ca3-4782-b054-a18b399c4a8b",
+   "metadata": {},
+   "source": [
+    "## Restarting a pressure equilibration\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ae61341b",
+   "metadata": {},
+   "source": [
+    "To restart the pressure equilibration, we start by specifying the parameters of the MD simulation, read the previous trajectory to initialize the current status of the system, and read the masks for the constraint regions."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "0cfb76fb-ee48-4b23-96df-4ad78bc85df2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.units import GPa, fs\n",
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber, Stillinger_Weber_PRB_31_5262_Si\n",
+    "from matscipy.calculators.manybody import Manybody\n",
+    "from matscipy import pressurecoupling as pc\n",
+    "from ase.io import read\n",
+    "import numpy as np\n",
+    "\n",
+    "dt = 5.0 * fs  # MD time step\n",
+    "C11 = 166.0 * GPa  # material constant\n",
+    "M_factor = 1.0  # scaling factor for lid mass during equilibration\n",
+    "\n",
+    "Pdir = 2  # index of cell axis along normal pressure is applied\n",
+    "P = 1.0 * GPa  # target normal pressure\n",
+    "v = 0.0  # no sliding yet, only apply pressure\n",
+    "vdir = 0  # index of cell axis along sliding happens\n",
+    "T = 300.0  # target temperature for the thermostat\n",
+    "\n",
+    "t_langevin = 75.0 * fs  # time constant for Langevin thermostat\n",
+    "gamma_langevin = 1. / t_langevin  # derived Langevin parameter\n",
+    "t_integrate = 100.0 * fs  # simulation time\n",
+    "steps_integrate = int(t_integrate / dt)  # number of simulation steps\n",
+    "\n",
+    "# get atoms from trajectory to also initialize correct velocities\n",
+    "atoms = read('equilibrate_pressure_01.traj')\n",
+    "\n",
+    "bottom_mask = np.loadtxt(\"bottom_mask.txt\").astype(bool)\n",
+    "top_mask = np.loadtxt(\"top_mask.txt\").astype(bool)\n",
+    "\n",
+    "damp = pc.FixedMassCriticalDamping(C11, M_factor)\n",
+    "slider = pc.SlideWithNormalPressureCuboidCell(top_mask, bottom_mask,\n",
+    "                                              Pdir, P, vdir, v, damp)\n",
+    "atoms.set_constraint(slider)\n",
+    "\n",
+    "calc = Manybody(**StillingerWeber(Stillinger_Weber_PRB_31_5262_Si))  # specify calculator\n",
+    "atoms.set_calculator(calc)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "11599564-f976-4813-8ebd-408792c9c6df",
+   "metadata": {},
+   "source": [
+    "Next, we again initialize the integrator."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "db51ca03-b229-463d-b6b8-43c19548928d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.md.langevin import Langevin\n",
+    "\n",
+    "temps = np.zeros((len(atoms), 3))\n",
+    "temps[slider.middle_mask, slider.Tdir] = T\n",
+    "gammas = np.zeros((len(atoms), 3))\n",
+    "gammas[slider.middle_mask, slider.Tdir] = gamma_langevin\n",
+    "integrator = Langevin(atoms, dt, temperature_K=temps,\n",
+    "                      friction=gammas, fixcm=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "eceabc60",
+   "metadata": {},
+   "source": [
+    "We specify the trajectory file and the log file and run the simulation. Note that ASE automatically writes the initial step of a run, i.e., if you choose to append to the previous trajectory and log files, both will contain the information about the initial configuration twice, since this configuration has already been written to the files at the end of the previous run."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "c664eedf-8890-4960-8a59-12a429223eff",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.io import Trajectory\n",
+    "from io import open\n",
+    "\n",
+    "trajectory = Trajectory('equilibrate_pressure_02.traj', 'w', atoms)\n",
+    "\n",
+    "with open('log_equilibrate_01.txt', 'r', encoding='utf-8') as log_handle:\n",
+    "    step_offset = pc.SlideLog(log_handle).step[-1]  # read last step\n",
+    "\n",
+    "log_handle = open('log_equilibrate_02.txt',\n",
+    "                  'w', 1, encoding='utf-8')  # line buffered\n",
+    "logger = pc.SlideLogger(log_handle, atoms, slider, integrator, step_offset)\n",
+    "logger.write_header()  # write header of log file\n",
+    "\n",
+    "integrator.attach(logger)\n",
+    "integrator.attach(trajectory)\n",
+    "integrator.run(steps_integrate)\n",
+    "log_handle.close()\n",
+    "trajectory.close()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "81338c89-9e2b-4146-a2f1-36118a2e5af7",
+   "metadata": {},
+   "source": [
+    "## Sliding simulation\n",
+    "\n",
+    "After the pressure equilibration, we can start to apply a shear deformation to the system by applying a constant sliding velocity to the upper rigid layer. First, we specify the parameters of the MD simulation, read the equilibration trajectory to initialize the current status of the system, and read the masks for the constraint regions.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "5643f2cb-c81d-4d7a-bd48-2555492bd101",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.units import GPa, fs, m, s\n",
+    "from ase.io import read\n",
+    "import numpy as np\n",
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber, Stillinger_Weber_PRB_31_5262_Si\n",
+    "from matscipy.calculators.manybody import Manybody\n",
+    "\n",
+    "dt = 5.0 * fs  # MD time step\n",
+    "C11 = 166.0 * GPa  # material constant\n",
+    "p_c = 0.20  # empirical cutoff parameter value to remove high-frequency oscillations of the system \n",
+    "\n",
+    "Pdir = 2  # index of cell axis along normal pressure is applied\n",
+    "P = 1.0 * GPa  # target normal pressure\n",
+    "v = 100.0 * m / s  # constant sliding speed\n",
+    "vdir = 0  # index of cell axis along sliding happens\n",
+    "T = 300.0  # target temperature for thermostat\n",
+    "\n",
+    "t_langevin = 75.0 * fs  # time constant for Langevin thermostat\n",
+    "gamma_langevin = 1. / t_langevin  # derived Langevin parameter\n",
+    "t_integrate = 100.0 * fs  # simulation time\n",
+    "steps_integrate = int(t_integrate / dt)  # number of simulation steps\n",
+    "\n",
+    "# get atoms from trajectory to also initialize correct velocities\n",
+    "atoms = read('equilibrate_pressure_02.traj')\n",
+    "\n",
+    "bottom_mask = np.loadtxt(\"bottom_mask.txt\").astype(bool)\n",
+    "top_mask = np.loadtxt(\"top_mask.txt\").astype(bool)\n",
+    "\n",
+    "calc = Manybody(**StillingerWeber(Stillinger_Weber_PRB_31_5262_Si))  # specify calculator\n",
+    "atoms.set_calculator(calc)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "872bbcc8-be7a-4433-8d3d-573b45a37b5d",
+   "metadata": {},
+   "source": [
+    "Since we change the pressure coupling algorithm, we need to reset the velocities of the upper rigid layer."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "b683cc4d-832c-4679-a74d-ae891a873f79",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "velocities = atoms.get_velocities()\n",
+    "velocities[top_mask, Pdir] = 0.0\n",
+    "\n",
+    "atoms.set_velocities(velocities)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "68f16247",
+   "metadata": {},
+   "source": [
+    "In analogy to the pressure equilibration, we set up the constraint for the simulation, but this time we use the pressure coupling algorithm of [Pastewka et al.](https://doi.org/10.1007/s11249-009-9566-8) rather than critical damping with a fixed mass."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "213de06c-b987-41e9-af09-11998076bc37",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy import pressurecoupling as pc\n",
+    "\n",
+    "damp = pc.AutoDamping(C11, p_c)  # Damping by Pastewka et al.\n",
+    "slider = pc.SlideWithNormalPressureCuboidCell(top_mask, bottom_mask,\n",
+    "                                              Pdir, P, vdir, v, damp)\n",
+    "atoms.set_constraint(slider)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fab46693-0ab7-4fb6-acff-3ee602236587",
+   "metadata": {},
+   "source": [
+    "Afterwards, in analogy to the pressure equilibration, we initialize the integrator, the trajectory and log files, and run the simulation."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "d5019537-e39d-4ee8-be92-22336b046c11",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.io import Trajectory\n",
+    "from ase.md.langevin import Langevin\n",
+    "from io import open\n",
+    "\n",
+    "temps = np.zeros((len(atoms), 3))\n",
+    "temps[slider.middle_mask, slider.Tdir] = T\n",
+    "gammas = np.zeros((len(atoms), 3))\n",
+    "gammas[slider.middle_mask, slider.Tdir] = gamma_langevin\n",
+    "integrator = Langevin(atoms, dt, temperature_K=temps,\n",
+    "                      friction=gammas, fixcm=False)\n",
+    "\n",
+    "trajectory = Trajectory('slide_01.traj', 'w', atoms)\n",
+    "log_handle = open('log_slide_01.txt', 'w', 1, encoding='utf-8')  # line buffered\n",
+    "logger = pc.SlideLogger(log_handle, atoms, slider, integrator)\n",
+    "# log can be read using pc.SlideLog (see docstring there)\n",
+    "logger.write_header()\n",
+    "\n",
+    "integrator.attach(logger)\n",
+    "integrator.attach(trajectory)\n",
+    "integrator.run(steps_integrate)\n",
+    "log_handle.close()\n",
+    "trajectory.close()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "56b085ef-06ab-464f-8eaf-bceba08fd3ba",
+   "metadata": {},
+   "source": [
+    "## Restarting a sliding simulation\n",
+    "To restart the sliding simulation, the following script could be used.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "12744ced-a9e2-4adb-aa5f-748ed6cc22b5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.io import Trajectory, read\n",
+    "from ase.units import GPa, fs, m, s\n",
+    "import numpy as np\n",
+    "from ase.md.langevin import Langevin\n",
+    "from matscipy import pressurecoupling as pc\n",
+    "from io import open\n",
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber, Stillinger_Weber_PRB_31_5262_Si\n",
+    "from matscipy.calculators.manybody import Manybody\n",
+    "\n",
+    "# Parameters\n",
+    "dt = 5.0 * fs  # MD time step\n",
+    "C11 = 166.0 * GPa  # material constant\n",
+    "p_c = 0.20  # empirical cutoff parameter value to remove high-frequency oscillations of the system\n",
+    "\n",
+    "Pdir = 2  # index of cell axis along which normal pressure is applied\n",
+    "P = 1.0 * GPa  # target normal pressure\n",
+    "v = 100.0 * m / s  # constant sliding speed\n",
+    "vdir = 0  # index of cell axis along which sliding happens\n",
+    "T = 300.0  # target temperature for thermostat\n",
+    "\n",
+    "t_langevin = 75.0 * fs  # time constant for Langevin thermostat\n",
+    "gamma_langevin = 1. / t_langevin  # derived Langevin parameter\n",
+    "t_integrate = 100.0 * fs  # simulation time\n",
+    "steps_integrate = int(t_integrate / dt)  # number of simulation steps\n",
+    "\n",
+    "# get atoms from trajectory to also initialize correct velocities\n",
+    "atoms = read('slide_01.traj')\n",
+    "\n",
+    "bottom_mask = np.loadtxt(\"bottom_mask.txt\").astype(bool)\n",
+    "top_mask = np.loadtxt(\"top_mask.txt\").astype(bool)\n",
+    "\n",
+    "# set up sliding constraints\n",
+    "damp = pc.AutoDamping(C11, p_c)\n",
+    "slider = pc.SlideWithNormalPressureCuboidCell(top_mask, bottom_mask,\n",
+    "                                              Pdir, P, vdir, v, damp)\n",
+    "atoms.set_constraint(slider)\n",
+    "\n",
+    "# set up calculator\n",
+    "calc = Manybody(**StillingerWeber(Stillinger_Weber_PRB_31_5262_Si))\n",
+    "atoms.set_calculator(calc)\n",
+    "\n",
+    "# set up integrator\n",
+    "temps = np.zeros((len(atoms), 3))\n",
+    "temps[slider.middle_mask, slider.Tdir] = T\n",
+    "gammas = np.zeros((len(atoms), 3))\n",
+    "gammas[slider.middle_mask, slider.Tdir] = gamma_langevin\n",
+    "integrator = Langevin(atoms, dt, temperature_K=temps,\n",
+    "                      friction=gammas, fixcm=False)\n",
+    "\n",
+    "# specify log file and trajectory file and run the simulation\n",
+    "trajectory = Trajectory('slide_02.traj', 'w', atoms)\n",
+    "\n",
+    "with open('log_slide_01.txt', 'r', encoding='utf-8') as log_handle:\n",
+    "    step_offset = pc.SlideLog(log_handle).step[-1]  # read last step\n",
+    "\n",
+    "log_handle = open('log_slide_02.txt', 'w',\n",
+    "                  1, encoding='utf-8')  # line buffered\n",
+    "logger = pc.SlideLogger(log_handle, atoms, slider, integrator, step_offset)\n",
+    "logger.write_header()\n",
+    "\n",
+    "integrator.attach(logger)\n",
+    "integrator.attach(trajectory)\n",
+    "integrator.run(steps_integrate)\n",
+    "log_handle.close()\n",
+    "trajectory.close()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b9fe764b",
+   "metadata": {},
+   "source": [
+    "To remove all simulation files created during this tutorial, you can use the following code."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0618c8e8",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import os\n",
+    "\n",
+    "for tmp_file in ['log_equilibrate_01.txt', 'log_equilibrate_02.txt',\n",
+    "                 'log_slide_01.txt', 'log_slide_02.txt',\n",
+    "                 'equilibrate_pressure_01.traj', 'equilibrate_pressure_02.traj',\n",
+    "                 'slide_01.traj', 'slide_02.traj',\n",
+    "                 'top_mask.txt', 'bottom_mask.txt']:\n",
+    "    try:\n",
+    "        os.remove(tmp_file)\n",
+    "    except FileNotFoundError:\n",
+    "        continue"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "venv",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.4"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

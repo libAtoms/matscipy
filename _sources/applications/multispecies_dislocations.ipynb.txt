@@ -1,0 +1,262 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Multi-species Dislocation Systems\n",
+    "The previous section discussed constructing cylindrical dislocation cells, using single-species systems as case studies. The dislocation classes in `matscipy.dislocation` can also be applied to systems which have much more chemical complexity. However, the following restrictions apply:\n",
+    "1. The desired system can be expressed in a cubic lattice\n",
+    "2. The desired system shares on-lattice geometry with an existing \"base\" crystal structure\n",
+    "\n",
+    "As an example, let's take Zincblende GaAs and compare with a diamond lattice:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.build import bulk\n",
+    "from ase.lattice.cubic import Diamond\n",
+    "import numpy as np\n",
+    "import nglview # this import is necessary for rendering of the 3D view\n",
+    "from visualisation import interactive_view\n",
+    "from ase.visualize import view\n",
+    "\n",
+    "# Data from https://doi.org/10.1080/08927022.2011.602975\n",
+    "alat = 11.306/2\n",
+    "C11 = 98.47\n",
+    "C12 = 15.25\n",
+    "C44 = 57.89\n",
+    "\n",
+    "GaAs = bulk(\"GaAs\", crystalstructure=\"zincblende\", cubic=True, a=alat)\n",
+    "\n",
+    "diamond = Diamond(\"C\", latticeconstant=alat)\n",
+    "\n",
+    "gaas_pos = GaAs.get_scaled_positions()\n",
+    "dia_pos = diamond.get_scaled_positions()\n",
+    "\n",
+    "# Sort the coords, as bulk uses a different atom order\n",
+    "gaas_idxs = np.lexsort((gaas_pos[:, 0], gaas_pos[:, 1], gaas_pos[:, 2]))\n",
+    "dia_idxs = np.lexsort((dia_pos[:, 0], dia_pos[:, 1], dia_pos[:, 2]))\n",
+    "print(\"GaAs Fractional Coordinates\")\n",
+    "print(gaas_pos[gaas_idxs, :])\n",
+    "print()\n",
+    "print(\"Diamond Fractional Coordinates\")\n",
+    "print(dia_pos[dia_idxs, :])\n",
+    "\n",
+    "interactive_view(GaAs, name=\"GaAs Bulk\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We can see that the fractional coordinates of the Zincblende GaAs are the same as the Diamond structure we generated. We can therefore say that Zincblende shares geometry with Diamond. The displacement field used to generate dislocation structures is agnostic to atomic chemistry, and so we can model Zincblende dislocations as if they were dislocations in a Diamond crystal with the lattice constant and elastic properties of the Zincblende crystal.\n",
+    "\n",
+    "To build a dislocation with this GaAs bulk, we can simply pass it as an argument in place of the lattice constant:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import DiamondGlide90degreePartial\n",
+    "\n",
+    "disloc = DiamondGlide90degreePartial(GaAs, C11, C12, C44)\n",
+    "\n",
+    "GaAs_bulk, GaAs_dislocation = disloc.build_cylinder(radius=3 * alat)\n",
+    "\n",
+    "disloc.view_cyl(GaAs_dislocation, scale=0.35, CNA_color=False, add_bonds=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Additional Dislocations in Multispecies Systems\n",
+    "Dislocations in multispecies systems have additiional complexity over those in single-species crystals, due to the breaking of some symmetries caused by the added chemical complexity. For our Zincblende GaAs example, this means that we can have two different forms of some of our dislocations: $\\alpha$ (As-terminated), and $\\beta$ (Ga-terminated).\n",
+    "\n",
+    "$\\alpha$-$90^\\circ$ Partial Dislocation in GaAs:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# alpha-90 degree dislocation\n",
+    "GaAs = bulk(\"GaAs\", crystalstructure=\"zincblende\", cubic=True, a=alat)\n",
+    "symbols = np.array(GaAs.get_chemical_symbols())\n",
+    "# Swap Ga <-> As to get other alpha dislocation\n",
+    "new_symbols = symbols.copy()\n",
+    "new_symbols[symbols == \"Ga\"] = \"As\"\n",
+    "new_symbols[symbols == \"As\"] = \"Ga\"\n",
+    "GaAs.set_chemical_symbols(new_symbols)\n",
+    "disloc = DiamondGlide90degreePartial(GaAs, C11, C12, C44)\n",
+    "\n",
+    "GaAs_bulk, GaAs_dislocation = disloc.build_cylinder(radius=3 * alat)\n",
+    "view = disloc.view_cyl(GaAs_dislocation, scale=0.35, CNA_color=False, add_bonds=True,\n",
+    "                        disloc_names=[\"GaAs 1/6<112> Alpha-90 degree partial\"])\n",
+    "\n",
+    "view.control.zoom(0.8)\n",
+    "view"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "$\\beta$-$90^\\circ$ Partial Dislocation in GaAs:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "GaAs = bulk(\"GaAs\", crystalstructure=\"zincblende\", cubic=True, a=alat)\n",
+    "# beta dislocation is the one done by default, for the bulk built by ase.build.bulk\n",
+    "disloc = DiamondGlide90degreePartial(GaAs, C11, C12, C44)\n",
+    "\n",
+    "GaAs_bulk, GaAs_dislocation = disloc.build_cylinder(radius=3 * alat)\n",
+    "view = disloc.view_cyl(GaAs_dislocation, scale=0.35, CNA_color=False, add_bonds=True,\n",
+    "                        disloc_names=[\"GaAs 1/6<112> Beta-90 degree partial\"])\n",
+    "\n",
+    "view.control.zoom(0.8)\n",
+    "view"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Dislocations in Disordered Systems\n",
+    "Generating dislocation structures for systems which have some chemical disorder is also possible, with some caveats:\n",
+    "1. The generation routines will only work reliably when given on-lattice bulk structures with cubic cells\n",
+    "2. The generated structure is based on a periodic replication of the base unit_cell, thus won't have true disorder\n",
+    "3. The displacement field applied to the bulk structure does not depend on atomic species - lattice distortions caused by the disorder will not be captured\n",
+    "\n",
+    "With these in mind, a recommended workflow would be to start by generating the dislocation system for an ordered system, but using the elastic constants of the disordered system. From there, the disorder can be applied by simply changing the chemical symbols of the atoms to match the target composition.\n",
+    "\n",
+    "To show a worked example of this, consider the alloy $\\text{In}_{0.5} \\text{Ga}_{0.5} \\text{As}$. This should form in a Zincblende structure, where the Ga sites from the previous GaAs bulk are now 50% occupied by In.\n",
+    "\n",
+    "In order to model this, we can generate a dislocation for GaAs, using the lattice constant and elastic properties of $\\text{In}_{0.5} \\text{Ga}_{0.5} \\text{As}$. This can be done by passing the 6x6 Voigt elasticity matrix to the `C=` argument, rather than passing just `C11`, `C12`, and `C44` as was done previously.   \n",
+    "\n",
+    ":::{note}\n",
+    "Whilst disordered systems like this $\\text{In}_{0.5} \\text{Ga}_{0.5} \\text{As}$ example should have off-lattice distortions in the bulk state, it is heavily recommended that the dislocation structures are generated using an on-lattice crystal. This is because the off-lattice structure will interact differently with the continuum displacement field, which could lead to overlapping/extremely close atoms, or generally incorrect core structures. The off-lattice distortions should ideally be found by relaxing the dislocation structure built by the dislocation classes.\n",
+    ":::"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ase.build import bulk\n",
+    "from matscipy.dislocation import DiamondGlide90degreePartial\n",
+    "\n",
+    "# Data from https://doi.org/10.1080/08927022.2011.602975\n",
+    "alat = 11.2402/2\n",
+    "\n",
+    "# Reproduce data from Table 2 for In0.5 Ga0.5 As\n",
+    "C11, C22, C33, C12, C13, C23, C44, C55, C66 = \\\n",
+    "    120.31, 120.35, 121.12, 55.87, 57.24, 57.29, 58.26, 58.33, 58.25\n",
+    "\n",
+    "# Construct 6x6 elasticity tensor\n",
+    "C = np.array([\n",
+    "    [C11, C12, C13, 0,   0,   0],\n",
+    "    [C12, C22, C23, 0,   0,   0],\n",
+    "    [C13, C23, C33, 0,   0,   0],\n",
+    "    [0,   0,   0,   C44, 0,   0],\n",
+    "    [0,   0,   0,   0,   C55, 0],\n",
+    "    [0,   0,   0,   0,   0,   C66]\n",
+    "])\n",
+    "\n",
+    "GaAs = bulk(\"GaAs\", crystalstructure=\"zincblende\", cubic=True, a=alat)\n",
+    "\n",
+    "\n",
+    "disloc = DiamondGlide90degreePartial(GaAs, C=C)\n",
+    "\n",
+    "GaAs_bulk, GaAs_dislocation = disloc.build_cylinder(radius=3 * alat)\n",
+    "\n",
+    "disloc.view_cyl(GaAs_dislocation, scale=0.35, CNA_color=False, add_bonds=True,\n",
+    "                        disloc_names=[\"GaAs 1/6<112> Beta-90 degree partial\"])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "From this GaAs structure, we then do Monte Carlo sampling to introduce 50% Indium to the structure:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "\n",
+    "np.random.seed(1)\n",
+    "\n",
+    "species = np.array(GaAs_dislocation.get_chemical_symbols())\n",
+    "\n",
+    "Ga_idxs = np.argwhere(species == \"Ga\")[:, 0]\n",
+    "\n",
+    "# Choose random half of the idxs to be In\n",
+    "In_idxs = sorted(np.random.choice(Ga_idxs, size=int(Ga_idxs.shape[0]/2), replace=False))\n",
+    "\n",
+    "# Introduce the chemical disorder in In-Ga sites\n",
+    "species[In_idxs] = \"In\"\n",
+    "\n",
+    "InGaAs_bulk = GaAs_bulk.copy()\n",
+    "InGaAs_bulk.set_chemical_symbols(species)\n",
+    "\n",
+    "InGaAs_dislocation = GaAs_dislocation.copy()\n",
+    "InGaAs_dislocation.set_chemical_symbols(species)\n",
+    "\n",
+    "view = disloc.view_cyl(GaAs_dislocation, scale=0.35, CNA_color=False, add_bonds=True,\n",
+    "                        disloc_names=[\"InGaAs 1/6<112> Alpha-90 degree partial\"])\n",
+    "\n",
+    "# In and Ga have almost the same default colors in nglview\n",
+    "# so we add another component with the In atoms in red to\n",
+    "# see the chemical disorder better\n",
+    "In_ats = InGaAs_dislocation[In_idxs]\n",
+    "c = view.add_component(nglview.ASEStructure(In_ats),\n",
+    "                       default_representation=False)\n",
+    "c.add_spacefill(radius=1.0, color=\"red\")\n",
+    "view"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
