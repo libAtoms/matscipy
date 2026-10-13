@@ -6,6 +6,12 @@ Unreleased
 
 - BUG: `SinclairCrack.u_cle` ignored its `kI` and `kII` arguments and always used the
   current values; it now uses the arguments when given (default behaviour unchanged).
+- ENH: `clusters.clamped_cluster`, `clusters.cluster_like` and `clusters.centred_shift`:
+  clamped K-field crack clusters (diamond and zincblende lattices) with optional H caps
+  on cut bonds, and a reference cluster's topology on another material's lattice.
+- ENH: `fracture_mechanics.continuation`: force-only pseudo-arclength tracing of clamped
+  crack clusters (`trace_s_curve`), with a many-body Hessian surrogate and bordered
+  Broyden/Newton-Krylov correctors, for lattice-trapping S-curves with any ASE calculator.
 - ENH: `SinclairCrack(energy="total")` uses the total energy of the cluster, for clamped
   clusters and calculators without per-atom energies; `regions_from_groups` maps a
   clamped cluster's groups to Sinclair regions.
