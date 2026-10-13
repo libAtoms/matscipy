@@ -4,6 +4,12 @@ Change log
 Unreleased
 ----------
 
+- BUG: `SinclairCrack.u_cle` ignored its `kI` and `kII` arguments and always used the
+  current values; it now uses the arguments when given (default behaviour unchanged).
+- ENH: `SinclairCrack(energy="total")` uses the total energy of the cluster, for clamped
+  clusters and calculators without per-atom energies; `regions_from_groups` maps a
+  clamped cluster's groups to Sinclair regions.
+
 - BUG: `SinclairCrack` now passes the deformation gradient to the multilattice
   Cauchy-Born corrector as F_ab = dx_a/dX_b; it previously passed the
   transpose. **Results change** for flexible-boundary Sinclair crack runs that

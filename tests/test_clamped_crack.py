@@ -93,3 +93,83 @@ def test_cluster_like_keeps_the_topology_on_another_lattice():
     c = cluster_like(a, crk2, 0.0, 5.5)
     heavy = a.arrays["h_host"] < 0
     assert np.allclose(c.positions[heavy], c.arrays["reference"][heavy])
+
+
+from ase.calculators.calculator import Calculator, all_changes  # noqa: E402
+
+
+class _NoPerAtom(Calculator):
+    """Wraps a calculator and refuses per-atom energies, like most MLIPs."""
+    implemented_properties = ["energy", "free_energy", "forces"]
+
+    def __init__(self, inner):
+        super().__init__()
+        self.inner = inner
+
+    def calculate(self, atoms=None, properties=("energy",), system_changes=all_changes):
+        super().calculate(atoms, properties, system_changes)
+        b = atoms.copy()
+        b.calc = self.inner
+        self.results = {"energy": b.get_potential_energy(), "free_energy": b.get_potential_energy(),
+                        "forces": b.get_forces()}
+
+    def get_potential_energies(self, atoms=None):
+        raise NotImplementedError("no per-atom energies")
+
+
+def _sw():
+    from matscipy.calculators.manybody import Manybody
+    from matscipy.calculators.manybody.explicit_forms.stillinger_weber import (
+        Stillinger_Weber_PRB_31_5262_Si, StillingerWeber)
+    return Manybody(**StillingerWeber(Stillinger_Weber_PRB_31_5262_Si))
+
+
+def _sw_clamped(n=(4, 4, 1)):
+    """Unpassivated SW (110)[1-10] cluster: the crackcell reference trace's settings."""
+    from matscipy.fracture_mechanics.clusters import clamped_cluster
+    crk = CubicCrystalCrack([1, -1, 0], [1, 1, 0], C11=151.42363758176955 * GPa,
+                            C12=76.42352 * GPa, C44=56.44842 * GPa)
+    KG = crk.k1g(1.6656936 * J / m**2)
+    a = clamped_cluster(crk, 0.6 * KG, n, (0.5, 1.0), a0=5.430949878916217,
+                        crack_surface=[1, -1, 0], crack_front=[1, 1, 0], passivate=False)
+    return a, crk, KG
+
+
+def _clamped_sinclair(a, crk, calc, K):
+    from matscipy.fracture_mechanics.crack import SinclairCrack, regions_from_groups
+    cryst = a.copy()
+    cryst.positions = a.arrays["reference"]
+    regions_from_groups(cryst)
+    alpha = a.info["tip_x"] - cryst.cell[0, 0] / 2
+    return SinclairCrack(crk, cryst, calc, K, alpha=alpha, vacuum=0.0, variable_alpha=False,
+                         variable_k=True, energy="total")
+
+
+def test_regions_from_groups_maps_free_and_clamped():
+    from matscipy.fracture_mechanics.crack import regions_from_groups
+    a, _, _ = _sw_clamped()
+    regions_from_groups(a)
+    assert ((a.arrays["region"] == 1) == (a.arrays["groups"] != 0)).all()
+    assert ((a.arrays["region"] == 3) == (a.arrays["groups"] == 0)).all()
+
+
+def test_u_cle_honours_its_k_argument():
+    a, crk, KG = _sw_clamped()
+    sc = _clamped_sinclair(a, crk, _NoPerAtom(_sw()), 0.6 * KG)
+    assert np.allclose(sc.u_cle(kI=2 * KG), 2 * sc.u_cle(kI=KG))
+    assert np.allclose(sc.u_cle(kI=0.6 * KG), sc.u_cle())
+
+
+def test_total_energy_mode_works_without_per_atom_energies():
+    a, crk, KG = _sw_clamped()
+    sc = _clamped_sinclair(a, crk, _NoPerAtom(_sw()), 0.6 * KG)
+    sc.set_dofs(sc.get_dofs())
+    b = sc.atoms.copy()
+    b.calc = _sw()
+    assert sc.get_potential_energy() == pytest.approx(b.get_potential_energy())
+
+
+def test_clamped_mode_reproduces_the_build_at_u_zero():
+    a, crk, KG = _sw_clamped()
+    sc = _clamped_sinclair(a, crk, _NoPerAtom(_sw()), 0.6 * KG)
+    assert np.allclose(sc.atoms.positions, a.positions, atol=1e-10)
