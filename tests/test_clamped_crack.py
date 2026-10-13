@@ -173,3 +173,63 @@ def test_clamped_mode_reproduces_the_build_at_u_zero():
     a, crk, KG = _sw_clamped()
     sc = _clamped_sinclair(a, crk, _NoPerAtom(_sw()), 0.6 * KG)
     assert np.allclose(sc.atoms.positions, a.positions, atol=1e-10)
+
+
+def _problem(n=(4, 4, 1), k=0.6):
+    from matscipy.fracture_mechanics.continuation import ClampedProblem
+    a, crk, KG = _sw_clamped(n)
+    sc = _clamped_sinclair(a, crk, _NoPerAtom(_sw()), k * KG)
+    return ClampedProblem(sc, KG, atoms=a)
+
+
+def test_residual_is_minus_the_energy_gradient():
+    p = _problem()
+    rng = np.random.default_rng(0)
+    x = p.x_from(p.atoms.positions, 0.6)
+    x[:-1] += 0.01 * rng.normal(size=p.nf)
+    F = p.residual(x)
+    v = np.zeros_like(x)
+    v[:-1] = rng.normal(size=p.nf)
+    v /= np.linalg.norm(v)
+    h = 1e-4
+    dE = (p.evaluate(x + h * v)[0] - p.evaluate(x - h * v)[0]) / (2 * h)
+    assert -F @ v[:-1] == pytest.approx(dE, rel=1e-5, abs=1e-6)
+
+
+def test_surrogate_jacobian_matches_finite_differences_for_its_own_potential():
+    from matscipy.fracture_mechanics.continuation import HessianSurrogate
+    p = _problem()
+    x = p.x_from(p.atoms.positions, 0.6)
+    J = HessianSurrogate(p, _sw()).jac(x)
+    rng = np.random.default_rng(1)
+    v = rng.normal(size=len(x))
+    v /= np.linalg.norm(v)
+    h = 1e-5
+    fd = (p.residual(x + h * v) - p.residual(x - h * v)) / (2 * h)
+    assert np.allclose(J @ v, fd, rtol=1e-4, atol=1e-5)
+
+
+def test_surrogate_with_h_caps_has_springs_and_stays_finite():
+    from matscipy.fracture_mechanics.continuation import ClampedProblem, HessianSurrogate
+    a, crk, KG, _ = _build("110_001")
+    sc = _clamped_sinclair(a, crk, _NoPerAtom(_sw()), KG)
+    p = ClampedProblem(sc, KG, atoms=a)
+    J = HessianSurrogate(p, _sw()).jac(p.x_from(p.atoms.positions, 1.0))
+    assert J.shape == (p.nf, p.nf + 1) and np.isfinite(J).all()
+    h = np.flatnonzero(a.arrays["h_host"] >= 0)[0]
+    row = 3 * int(np.flatnonzero(p.free == h)[0])
+    assert np.abs(J[row:row + 3, row:row + 3]).max() > 1.0  # the X-H spring block
+
+
+def test_broyden_corrector_solves_a_bordered_linear_toy():
+    from matscipy.fracture_mechanics.continuation import BroydenCorrector
+    rng = np.random.default_rng(2)
+    A = rng.normal(size=(4, 5))
+    F = lambda y: -A @ y  # noqa: E731
+    t = rng.normal(size=5)
+    t /= np.linalg.norm(t)
+    yp = rng.normal(size=5)
+    c = BroydenCorrector(ftol=1e-10, max_iter=20, step_limit=1e9)
+    c.B = -A + 0.1 * rng.normal(size=(4, 5))
+    r = c.correct(F, yp, F(yp), yp, t, lambda y1, y0: float(np.abs(y1 - y0).max()))
+    assert r.ok and np.abs(F(r.y)).max() < 1e-10 and abs(t @ (r.y - yp)) < 1e-6

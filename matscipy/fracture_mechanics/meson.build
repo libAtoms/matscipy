@@ -4,6 +4,7 @@
 python_sources = [
     '__init__.py',
     'clusters.py',
+    'continuation.py',
     'crack.py',
     'crackpathsel.py',
     'energy_release.py',
