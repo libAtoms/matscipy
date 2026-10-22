@@ -345,3 +345,100 @@ def test_zincblende_cluster_with_caps_of_each_host_length():
 def test_continuation_module_has_its_docstring():
     import matscipy.fracture_mechanics.continuation as c
     assert c.__doc__ and "pseudo-arclength" in c.__doc__
+
+
+# ---- predictor tangent and surrogate refresh -------------------------------------------------
+_FTOL_SOFT = 0.02
+
+
+def _soft_start_trace(monkeypatch, **kw):
+    """A trace whose start is the relaxed one offset along the softest in-plane mode to
+    max|F| = 0.95 ftol (ftol 0.02: about 0.1 A against ds ~ 0.05, the ratio of a > 1300-atom
+    cluster at ftol 2e-3, where the secant predictor stalled). Returns the problem, an exact
+    surrogate and the frames."""
+    from dataclasses import replace
+
+    import scipy.linalg as sla
+
+    import matscipy.fracture_mechanics.continuation as cont
+    p = _problem(n=(6, 6, 1))  # 144 atoms; at (4, 4, 1) the secant happens to stay on the curve
+    exact = cont.HessianSurrogate(p, _sw())
+    relax = cont._relax_start
+
+    def offset_start(problem, x, st):
+        x = relax(problem, x, replace(st, ftol=1e-5, start_max_iter=2000))
+        H = -exact.jac(x)[:, :-1]
+        w, V = sla.eigh(H)
+        i = next(i for i in range(len(w)) if (V[:, i].reshape(-1, 3)[:, 2] ** 2).sum() < 0.1)
+        x = x.copy()
+        x[:-1] += 0.95 * st.ftol / np.abs(H @ V[:, i]).max() * V[:, i]
+        return x
+
+    monkeypatch.setattr(cont, "_relax_start", offset_start)
+    frames, _ = cont.trace_s_curve(p, cont.HessianSurrogate(p, _sw()), 0.8, settings=(
+        cont.TraceSettings(ftol=_FTOL_SOFT, max_points=10, **kw)))
+    return p, exact, frames
+
+
+def _uncorrected_step_overlaps(p, exact, frames, alpha=2.0):
+    """|cos| between the exact tangent at frame i and the step to frame i+1, for every step
+    accepted on its predictor alone (one force call: the step is the predictor direction)."""
+    xs = [p.x_from(f.positions, f.info["K_over_KG"]) for f in frames]
+    out = []
+    for i in range(1, len(xs) - 1):
+        if frames[i + 1].info["calls"] != 1:
+            continue
+        J = exact.jac(xs[i])
+        tau = np.concatenate([np.linalg.solve(-J[:, :-1], J[:, -1]), [alpha]])
+        d = xs[i + 1] - xs[i]
+        d[-1] *= alpha
+        out.append(abs(d @ tau) / (np.linalg.norm(d) * np.linalg.norm(tau)))
+    assert out
+    return np.array(out)
+
+
+def test_predictor_follows_the_tangent_from_an_inexact_start(monkeypatch):
+    p, exact, frames = _soft_start_trace(monkeypatch)
+    assert len(frames) == 10
+    ov = _uncorrected_step_overlaps(p, exact, frames)
+    assert ov.min() > 0.98, ov
+
+
+def test_secant_predictor_stays_off_the_tangent(monkeypatch):
+    p, exact, frames = _soft_start_trace(monkeypatch, tangent="secant")
+    ov = _uncorrected_step_overlaps(p, exact, frames)
+    assert ov.min() < 0.8, ov
+
+
+@pytest.mark.parametrize("mode,exact", [("projected", True), ("carry", False)])
+def test_broyden_refresh_is_exact_on_the_update_span(mode, exact):
+    """True forces = surrogate. After secant updates at the new point B already holds the truth
+    there along the update directions; a refresh must not add the surrogate's change on them
+    again (the "carry" rule does)."""
+    from matscipy.fracture_mechanics.continuation import BroydenCorrector
+    rng = np.random.default_rng(0)
+    n = 12
+    J0, J1 = rng.normal(size=(n, n + 1)), rng.normal(size=(n, n + 1))
+    c = BroydenCorrector()
+    c.B = J0.copy()
+    dys = np.linalg.qr(rng.normal(size=(n + 1, 4)))[0].T  # orthogonal: each secant stays exact
+    for dy in dys:
+        c.update(dy, J1 @ dy)
+    c.refresh(J1, J0, mode)
+    err = max(np.linalg.norm((c.B - J1) @ dy) for dy in dys)
+    if exact:
+        assert err < 1e-10
+        q = rng.normal(size=n + 1)
+        q -= dys.T @ (dys @ q)
+        assert np.allclose(c.B @ q, J1 @ q)  # off the span: the surrogate's change, as before
+        assert c.Q is None
+    else:
+        assert err > 0.1
+
+
+def test_trace_settings_reject_unknown_tangent_and_refresh():
+    from matscipy.fracture_mechanics.continuation import TraceSettings
+    with pytest.raises(ValueError):
+        TraceSettings(tangent="chord")
+    with pytest.raises(ValueError):
+        TraceSettings(refresh="keep")

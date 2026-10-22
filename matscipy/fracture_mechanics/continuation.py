@@ -242,16 +242,57 @@ def _limit(d, y, dr_fn, step_limit):
 
 class BroydenCorrector:
     """Quasi-Newton on the bordered system F(y) = 0, t.(y - yp) = 0; B starts from the surrogate
-    Jacobian and gets a good-Broyden rank-1 update from every force call."""
+    Jacobian and gets a good-Broyden rank-1 update from every force call. `Q` (orthonormal columns)
+    spans the update directions since the last `refresh`: the subspace on which B holds secant
+    information from the true forces rather than the surrogate's."""
 
     def __init__(self, ftol=2e-3, max_iter=8, step_limit=0.1):
         self.ftol, self.max_iter, self.step_limit = ftol, max_iter, step_limit
         self.B = None
+        self.Q = None
 
     def update(self, dy, dF):
         if dy @ dy < 1e-14:
             return
         self.B += np.outer(dF - self.B @ dy, dy) / (dy @ dy)
+        q = dy / np.linalg.norm(dy)
+        if self.Q is None:
+            self.Q = q[:, None].copy()
+            return
+        for _ in range(2):  # Gram-Schmidt, twice for stability
+            q = q - self.Q @ (self.Q.T @ q)
+        nq = np.linalg.norm(q)
+        if nq > 1e-6:
+            self.Q = np.hstack([self.Q, (q / nq)[:, None]])
+
+    def refresh(self, Jn, Js, mode="projected"):
+        """Merge a new surrogate Jacobian Jn (previous one Js) into B and restart the span.
+
+        "projected" adds Jn - Js only off the span Q: on Q, B already holds the true forces' current
+        secants, which contain that change, and adding it there too counts it twice per refresh
+        (near a fold, where the critical curvature changes fast, this made the tangent retrace the
+        stable branch). "carry" adds it everywhere (the behaviour before), "reset" sets B = Jn."""
+        if mode == "reset" or self.B is None:
+            self.B = Jn.copy()
+        else:
+            dJ = Jn - Js
+            if mode == "projected" and self.Q is not None:
+                dJ = dJ - (dJ @ self.Q) @ self.Q.T
+            self.B = self.B + dJ
+        self.Q = None
+
+    def tangent(self, sec):
+        """Unit null vector of B bordered by and oriented along the unit secant `sec` (sec if the
+        bordered solve fails)."""
+        try:
+            tau = bordered_solve(self.B, sec, np.zeros(len(sec) - 1), 1.0)
+        except np.linalg.LinAlgError:
+            return sec
+        nrm = np.linalg.norm(tau)
+        if not np.isfinite(nrm) or nrm == 0:
+            return sec
+        tau = tau / nrm
+        return tau if tau @ sec > 0 else -tau
 
     def correct(self, F_fn, y, Fy, yp, t, dr_fn):
         calls, fprev = 0, np.inf
@@ -353,6 +394,21 @@ class TraceSettings:
     corrector_step_limit: float = 0.1
     start_max_iter: int = 200     # force calls of the fixed-k start relaxation
     max_advance: float = None     # crack advance (bonds) per step; None = off
+    # predictor: "jacobian" = null vector of the corrector's B, oriented along the secant;
+    # "secant" = the chord between the last two points (before). A point accepted at
+    # max|F| < ftol sits |H^-1 F| off the curve along the soft modes, which on clusters of > ~1300
+    # atoms is comparable to ds; the chord then points tens of degrees off the curve, and a
+    # predictor accepted without correction repeats it, so the corrector's hyperplane ends up
+    # nearly along the branch and every step is rejected as a jump.
+    tangent: str = "jacobian"
+    refresh: str = "projected"    # surrogate refresh into B: projected / carry / reset
+
+    def __post_init__(self):
+        if self.tangent not in ("jacobian", "secant"):
+            raise ValueError(f"tangent must be 'jacobian' or 'secant', not {self.tangent!r}")
+        if self.refresh not in ("projected", "carry", "reset"):
+            raise ValueError(f"refresh must be 'projected', 'carry' or 'reset', not "
+                             f"{self.refresh!r}")
 
 
 class _Stall(Exception):
@@ -398,12 +454,13 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
     """Trace the S-curve K(u) of a clamped crack cluster from load k0 = K/K_G.
 
     The start (the problem's geometry, moved rigidly with the field from its build load to k0) is
-    relaxed at fixed k; then secant predictor (capped to dr_cap and, with max_advance, to that crack
-    advance) and bordered Broyden corrector (Newton-Krylov after broyden_retries halvings), with the
-    surrogate Jacobian refreshed every surrogate_every points. Folds are sign changes of dk/ds; the
-    branch label starts "stable" and alternates at each fold. Stops after stop_after_folds folds plus
-    extra_after_last_fold in k, on leaving k_window moving outward, at max_points, or when a step
-    needs more than max_calls_per_point force calls or ds falls below ds_min ("stalled").
+    relaxed at fixed k; then a tangent predictor (`tangent`; capped to dr_cap and, with max_advance,
+    to that crack advance) and bordered Broyden corrector (Newton-Krylov after broyden_retries
+    halvings), with the surrogate Jacobian refreshed (`refresh`) every surrogate_every points.
+    Folds are sign changes of dk/ds; the branch label starts "stable" and alternates at each
+    fold. Stops after stop_after_folds folds plus extra_after_last_fold in k, on leaving k_window
+    moving outward, at max_points, or when a step needs more than max_calls_per_point force calls
+    or ds falls below ds_min ("stalled").
     `callback(frame)` is called for every accepted point.
 
     Returns (frames, status): extxyz-ready Atoms with arrays `forces` and info `K_over_KG`, `K`,
@@ -479,6 +536,8 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
         yprev, Fprev = ys[-1], Fs[-1]
         if len(ys) >= 2:
             t = (yprev - ys[-2]) / np.linalg.norm(yprev - ys[-2])
+            if st.tangent == "jacobian":
+                t = broyden.tangent(t)
         dm = dr(yprev + ds * t, yprev)
         if dm > st.dr_cap:
             ds *= st.dr_cap / dm
@@ -507,7 +566,7 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
                 attempt += 1
                 if attempt == st.broyden_retries + 1:  # fresh surrogate before the Krylov attempts
                     Jn = jy(yprev)
-                    broyden.B += Jn - Js  # keep the learned correction to the surrogate
+                    broyden.refresh(Jn, Js, st.refresh)  # keeps the learned correction
                     Js, Js_age = Jn, 0
         except _Stall:
             status = "stalled"
@@ -530,7 +589,7 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
         Js_age += 1
         if Js_age >= st.surrogate_every:
             Jn = jy(res.y)
-            broyden.B += Jn - Js
+            broyden.refresh(Jn, Js, st.refresh)
             Js, Js_age = Jn, 0
         k_now, dk = res.y[-1] / al, (res.y[-1] - yprev[-1]) / al
         lo, hi = st.k_window
