@@ -4,6 +4,18 @@ Change log
 Unreleased
 ----------
 
+- BUG: `trace_s_curve` stalled on clusters of more than ~1300 atoms (repeated rejected
+  steps, then `ds_min`). A point accepted at max|F| < ftol lies |H^-1 F| off the curve along
+  the soft modes, comparable to ds on large clusters, so the secant predictor pointed far off
+  the curve and was never corrected. The predictor is now the null vector of the corrector's
+  Jacobian, bordered by and oriented along the secant (`TraceSettings.tangent="jacobian"`,
+  the new default; `"secant"` restores the old one), and a surrogate refresh adds its change
+  only off the span of the recent Broyden updates (`TraceSettings.refresh="projected"`, the new
+  default; `"carry"` is the old rule, which counted the change twice there and near a fold made
+  the trace retrace the stable branch). **Results change**: the SW reference trace keeps its
+  folds within 2e-3; a soft-start test (start offset along the softest in-plane mode) now
+  follows the exact tangent. The same fix in the crackcell driver traced SW clusters of up to
+  3456 atoms through both folds.
 - BUG: `SinclairCrack.u_cle` ignored its `kI` and `kII` arguments and always used the
   current values; it now uses the arguments when given. **Results change** for
   `SinclairCrack.fit_cle(variable_k=True)` (the default), which now actually fits k; before,
