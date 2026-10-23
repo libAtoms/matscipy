@@ -24,14 +24,17 @@ energy="total"` is the problem: free atoms move, clamped atoms sit on the K-fiel
 in x = (u, k) with k = K/K_G and u the free-atom displacements relative to the field; the arclength
 metric is ds^2 = |du|^2 + alpha^2 dk^2. Correctors use a surrogate Jacobian (the Hessian of any
 matscipy many-body potential, e.g. Stillinger-Weber for Si, plus X-H springs, scaled by one
-calibrated factor) with good-Broyden updates from every force call, then Newton-Krylov.
+calibrated factor) with good-Broyden updates from every force call, then Newton-Krylov. For large
+clusters the surrogate can stay sparse, with the Broyden updates as a low-rank correction
+(`LowRankJacobian`, `TraceSettings(surrogate="sparse")`).
 """
 from dataclasses import dataclass
 
 import numpy as np
 import scipy.linalg as sla
+import scipy.sparse as sp
 from ase import Atoms
-from scipy.sparse.linalg import LinearOperator, gmres
+from scipy.sparse.linalg import LinearOperator, gmres, splu
 
 
 class ClampedProblem:
@@ -158,7 +161,8 @@ class ClampedProblem:
 class HessianSurrogate:
     """Approximate Jacobian dF/dx: the Hessian of `calc` (a matscipy many-body calculator with a
     `hessian` property) on the heavy atoms, times a calibrated scale, plus anisotropic X-H springs
-    (stretch ks, bend kb, eV/A^2) for H caps (`h_host`)."""
+    (stretch ks, bend kb, eV/A^2) for H caps (`h_host`). `jac` is dense; `jac_sparse` keeps the
+    calculator's sparse Hessian sparse (for `TraceSettings(surrogate="sparse")`)."""
 
     def __init__(self, problem, calc, ks=16.0, kb=1.5, scale=1.0):
         self.p, self.calc = problem, calc
@@ -168,23 +172,29 @@ class HessianSurrogate:
         self.h = np.flatnonzero(a.numbers == 1)
         self.host = a.arrays["h_host"] if "h_host" in a.arrays else -np.ones(len(a), int)
 
-    def hessian(self, x):
-        p = self.p
-        pos = p.positions(x)
-        n_at = len(pos)
-        sub = Atoms(p.atoms.numbers[self.heavy], positions=pos[self.heavy], cell=p.atoms.cell,
-                    pbc=p.atoms.pbc)
+    def _heavy_hessian(self, pos):
+        sub = Atoms(self.p.atoms.numbers[self.heavy], positions=pos[self.heavy],
+                    cell=self.p.atoms.cell, pbc=self.p.atoms.pbc)
         sub.calc = self.calc
-        Hs = self.calc.get_property("hessian", sub)
-        Hs = Hs.toarray() if hasattr(Hs, "toarray") else np.asarray(Hs)
-        H = np.zeros((n_at, 3, n_at, 3))
-        H[np.ix_(self.heavy, range(3), self.heavy, range(3))] = \
-            Hs.reshape(len(self.heavy), 3, len(self.heavy), 3) * self.scale
+        return self.calc.get_property("hessian", sub)
+
+    def _springs(self, pos):
+        """(cap, host, 3x3 X-H spring matrix) for every H cap."""
         for h in self.h:
             s = self.host[h]
             nv = pos[h] - pos[s]
             nv /= np.linalg.norm(nv)
-            K = self.ks * np.outer(nv, nv) + self.kb * (np.eye(3) - np.outer(nv, nv))
+            yield h, s, self.ks * np.outer(nv, nv) + self.kb * (np.eye(3) - np.outer(nv, nv))
+
+    def hessian(self, x):
+        pos = self.p.positions(x)
+        n_at = len(pos)
+        Hs = self._heavy_hessian(pos)
+        Hs = Hs.toarray() if hasattr(Hs, "toarray") else np.asarray(Hs)
+        H = np.zeros((n_at, 3, n_at, 3))
+        H[np.ix_(self.heavy, range(3), self.heavy, range(3))] = \
+            Hs.reshape(len(self.heavy), 3, len(self.heavy), 3) * self.scale
+        for h, s, K in self._springs(pos):
             H[h, :, h, :] += K
             H[s, :, s, :] += K
             H[h, :, s, :] -= K
@@ -200,13 +210,37 @@ class HessianSurrogate:
         dFdk = -np.einsum("iajb,jb->ia", HIa, p.U).ravel()
         return np.hstack([-HII, dFdk[:, None]])
 
+    def hessian_sparse(self, x):
+        """`hessian` as a scipy.sparse CSR matrix (3N x 3N), never densified."""
+        pos = self.p.positions(x)
+        n_at = len(pos)
+        Hs = sp.coo_matrix(self._heavy_hessian(pos))
+        d3 = (3 * self.heavy[:, None] + np.arange(3)).ravel()
+        rows, cols, vals = [d3[Hs.row]], [d3[Hs.col]], [Hs.data * self.scale]
+        b = np.arange(3)
+        for h, s, K in self._springs(pos):
+            for i, j, sign in ((h, h, 1), (s, s, 1), (h, s, -1), (s, h, -1)):
+                rows.append(np.repeat(3 * i + b, 3))
+                cols.append(np.tile(3 * j + b, 3))
+                vals.append(sign * K.ravel())
+        return sp.coo_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))),
+                             shape=(3 * n_at, 3 * n_at)).tocsr()
+
+    def jac_sparse(self, x):
+        """`jac` as a scipy.sparse CSR matrix (nf x nf+1): [-H_II | dF/dk]."""
+        p = self.p
+        rows = self.hessian_sparse(x)[(3 * p.free[:, None] + np.arange(3)).ravel()]
+        dFdk = -(rows @ p.U.ravel())
+        return sp.hstack([-rows[:, (3 * p.free[:, None] + np.arange(3)).ravel()],
+                          sp.csr_matrix(dFdk[:, None])]).tocsr()
+
     def calibrate(self, x, F0=None, n=2, eps=5e-3, seed=0, clip=(0.3, 3.0)):
         """Fit the scale from n finite-difference Hessian-vector products of the true forces along
         random unit vectors over the heavy-atom free dofs; clipped to `clip`."""
         p = self.p
         F0 = p.residual(x) if F0 is None else F0
         self.scale = 1.0
-        Js = self.jac(x)
+        Js = self.jac_sparse(x)
         is_heavy = np.repeat(np.isin(p.free, self.heavy), 3)
         rng = np.random.default_rng(seed)
         num = den = 0.0
@@ -230,8 +264,116 @@ class CorrectorResult:
     ok: bool
 
 
+class LowRankJacobian:
+    """Corrector Jacobian B = S + U V^T for large clusters (`TraceSettings(surrogate="sparse")`).
+
+    S (nf x nf+1, scipy.sparse) is the surrogate Jacobian at the last refresh, U V^T (U: nf x m,
+    V: nf+1 x m) the limited-memory good-Broyden correction learned from the true forces since,
+    one column pair per update, compressed by truncated SVD to at most `max_rank` terms at each
+    refresh. The bordered system [B; t] d = r is solved by block elimination on S's free-free
+    block S_u (one sparse LU per refresh, reused by the tangent, every corrector iteration and the
+    Krylov preconditioner) and Sherman-Morrison-Woodbury for U V^T (S_u^-1 U cached), plus one step
+    of iterative refinement, which guards the block elimination near folds, where S_u (a Hessian)
+    is nearly singular. Exact algebra: the same B as the dense path, without the (3N)^2 storage and
+    O(N^3) solves."""
+
+    def __init__(self, S, U=None, V=None, max_rank=120):
+        self.S = S.tocsr() if sp.issparse(S) else sp.csr_matrix(np.asarray(S))
+        self.n = self.S.shape[0]
+        self.U = np.zeros((self.n, 0)) if U is None else np.asarray(U, float)
+        self.V = np.zeros((self.n + 1, 0)) if V is None else np.asarray(V, float)
+        self.max_rank = int(max_rank)
+        self._lu = None  # splu of S_u, on the first solve
+        self._W = np.zeros((self.n, 0))  # S_u^-1 U, grown column by column
+        self._wb = None  # S_u^-1 b, b = S's k column
+
+    @property
+    def shape(self):
+        return (self.n, self.n + 1)
+
+    def __matmul__(self, y):
+        return self.S @ y + self.U @ (self.V.T @ y)
+
+    def copy(self):
+        c = LowRankJacobian(self.S, self.U.copy(), self.V.copy(), self.max_rank)
+        c._lu, c._wb = self._lu, self._wb  # S is shared and never modified in place
+        c._W = self._W[:, :c.U.shape[1]].copy()
+        return c
+
+    def toarray(self):
+        return self.S.toarray() + self.U @ self.V.T
+
+    def update(self, dy, dF):
+        """Good Broyden: B += (dF - B dy) dy^T / |dy|^2, as one new column pair."""
+        self.U = np.hstack([self.U, ((dF - self @ dy) / (dy @ dy))[:, None]])
+        self.V = np.hstack([self.V, dy[:, None]])
+
+    def refresh(self, Sn, mode="projected", Q=None):
+        """The B for a new surrogate Jacobian Sn (`BroydenCorrector.refresh`): "reset" Sn,
+        "carry" Sn + U V^T, "projected" Sn + U V^T - (Sn - S) Q Q^T; compressed to max_rank."""
+        Sn = Sn.tocsr() if sp.issparse(Sn) else sp.csr_matrix(np.asarray(Sn))
+        if mode == "reset":
+            return LowRankJacobian(Sn, max_rank=self.max_rank)
+        U, V = self.U, self.V
+        if mode == "projected" and Q is not None and Q.shape[1]:
+            U = np.hstack([U, -((Sn - self.S) @ Q)])
+            V = np.hstack([V, Q])
+        out = LowRankJacobian(Sn, U, V, self.max_rank)
+        out.compress()
+        return out
+
+    def compress(self):
+        """Truncated SVD of U V^T to at most max_rank terms (drops the smallest)."""
+        if self.U.shape[1] <= self.max_rank:
+            return
+        qu, ru = np.linalg.qr(self.U)
+        qv, rv = np.linalg.qr(self.V)
+        a, sv, bt = np.linalg.svd(ru @ rv.T)
+        r = self.max_rank
+        self.U = qu @ (a[:, :r] * sv[:r])
+        self.V = qv @ bt[:r].T
+        self._W = np.zeros((self.n, 0))
+
+    def _factor(self):
+        if self._lu is None:
+            self._lu = splu(self.S[:, :self.n].tocsc())
+            self._wb = self._lu.solve(self.S[:, self.n].toarray().ravel())
+
+    def _W_cols(self):
+        m = self.U.shape[1]
+        if self._W.shape[1] < m:
+            new = self._lu.solve(np.ascontiguousarray(self.U[:, self._W.shape[1]:]))
+            self._W = np.hstack([self._W, new.reshape(self.n, -1)])
+        return self._W[:, :m]
+
+    def _solve_once(self, t, rF, rg):
+        tu, tk = t[:self.n], t[self.n]
+        den = tk - tu @ self._wb
+        z = self._lu.solve(rF)
+        dk = (rg - tu @ z) / den
+        x0 = np.concatenate([z - self._wb * dk, [dk]])  # [S; t]^-1 r by block elimination
+        m = self.U.shape[1]
+        if m == 0:
+            return x0
+        W = self._W_cols()
+        dkw = -(tu @ W) / den
+        Z = np.vstack([W - np.outer(self._wb, dkw), dkw[None, :]])  # [S; t]^-1 [U; 0]
+        return x0 - Z @ np.linalg.solve(np.eye(m) + self.V.T @ Z, self.V.T @ x0)
+
+    def bordered_solve(self, t, rhs_F, rhs_g, refine=1):
+        """Solve [B; t] d = [rhs_F; rhs_g], with `refine` steps of iterative refinement."""
+        self._factor()
+        d = self._solve_once(t, rhs_F, rhs_g)
+        for _ in range(refine):
+            d = d + self._solve_once(t, rhs_F - self @ d, rhs_g - t @ d)
+        return d
+
+
 def bordered_solve(J, t, rhs_F, rhs_g):
-    """Solve [J; t] d = [rhs_F; rhs_g] (the pseudo-arclength bordered system)."""
+    """Solve [J; t] d = [rhs_F; rhs_g] (the pseudo-arclength bordered system); J dense or a
+    `LowRankJacobian`."""
+    if isinstance(J, LowRankJacobian):
+        return J.bordered_solve(t, rhs_F, rhs_g)
     return np.linalg.solve(np.vstack([J, t[None, :]]), np.concatenate([rhs_F, [rhs_g]]))
 
 
@@ -244,7 +386,8 @@ class BroydenCorrector:
     """Quasi-Newton on the bordered system F(y) = 0, t.(y - yp) = 0; B starts from the surrogate
     Jacobian and gets a good-Broyden rank-1 update from every force call. `Q` (orthonormal columns)
     spans the update directions since the last `refresh`: the subspace on which B holds secant
-    information from the true forces rather than the surrogate's."""
+    information from the true forces rather than the surrogate's. B is a dense array or a
+    `LowRankJacobian`."""
 
     def __init__(self, ftol=2e-3, max_iter=8, step_limit=0.1):
         self.ftol, self.max_iter, self.step_limit = ftol, max_iter, step_limit
@@ -254,7 +397,10 @@ class BroydenCorrector:
     def update(self, dy, dF):
         if dy @ dy < 1e-14:
             return
-        self.B += np.outer(dF - self.B @ dy, dy) / (dy @ dy)
+        if isinstance(self.B, LowRankJacobian):
+            self.B.update(dy, dF)
+        else:
+            self.B += np.outer(dF - self.B @ dy, dy) / (dy @ dy)
         q = dy / np.linalg.norm(dy)
         if self.Q is None:
             self.Q = q[:, None].copy()
@@ -271,8 +417,11 @@ class BroydenCorrector:
         "projected" adds Jn - Js only off the span Q: on Q, B already holds the true forces' current
         secants, which contain that change, and adding it there too counts it twice per refresh
         (near a fold, where the critical curvature changes fast, this made the tangent retrace the
-        stable branch). "carry" adds it everywhere (the behaviour before), "reset" sets B = Jn."""
-        if mode == "reset" or self.B is None:
+        stable branch). "carry" adds it everywhere (the behaviour before), "reset" sets B = Jn.
+        A `LowRankJacobian` B takes the same rule on its low-rank part (Js is then its S)."""
+        if isinstance(self.B, LowRankJacobian):
+            self.B = self.B.refresh(Jn, mode, self.Q)
+        elif mode == "reset" or self.B is None:
             self.B = Jn.copy()
         else:
             dJ = Jn - Js
@@ -286,7 +435,7 @@ class BroydenCorrector:
         bordered solve fails)."""
         try:
             tau = bordered_solve(self.B, sec, np.zeros(len(sec) - 1), 1.0)
-        except np.linalg.LinAlgError:
+        except (np.linalg.LinAlgError, RuntimeError):  # splu raises RuntimeError when singular
             return sec
         nrm = np.linalg.norm(tau)
         if not np.isfinite(nrm) or nrm == 0:
@@ -314,8 +463,9 @@ class BroydenCorrector:
 
 
 class KrylovCorrector:
-    """Jacobian-free Newton-Krylov on the bordered system (GMRES; finite-difference J v), right
-    preconditioned by an approximate Jacobian; at most max_calls force calls."""
+    """Jacobian-free Newton-Krylov on the bordered system (GMRES; finite-difference J v, or an
+    exact `hvp(y, v)` = J(y) v when given), right preconditioned by an approximate Jacobian (dense
+    or `LowRankJacobian`); at most max_calls force calls (hvp calls are not counted)."""
 
     def __init__(self, ftol=2e-3, max_iter=8, eps_fd=1e-3, eta=0.2, gmres_max=60, step_limit=0.1,
                  max_calls=40):
@@ -323,9 +473,15 @@ class KrylovCorrector:
         self.eta, self.gmres_max = eta, gmres_max
         self.step_limit, self.max_calls = step_limit, max_calls
 
-    def correct(self, F_fn, y, Fy, yp, t, dr_fn, prec_J=None):
+    def correct(self, F_fn, y, Fy, yp, t, dr_fn, prec_J=None, hvp=None):
         n = len(y)
-        lu = sla.lu_factor(np.vstack([prec_J, t[None, :]])) if prec_J is not None else None
+        if prec_J is None:
+            psolve = None
+        elif isinstance(prec_J, LowRankJacobian):  # factored once per surrogate refresh
+            psolve = lambda z: prec_J.bordered_solve(t, z[:-1], z[-1], refine=0)  # noqa: E731
+        else:
+            lu = sla.lu_factor(np.vstack([prec_J, t[None, :]]))
+            psolve = lambda z: sla.lu_solve(lu, z)  # noqa: E731
         calls = [0]
         best = (y.copy(), Fy.copy())
         f0 = np.abs(Fy).max()
@@ -350,6 +506,8 @@ class KrylovCorrector:
                     break
 
                 def mv(v, y=y, Fy=Fy):
+                    if hvp is not None:
+                        return np.concatenate([hvp(y, v), [t @ v]])
                     nv = np.linalg.norm(v)
                     if nv == 0:
                         return np.zeros(n)
@@ -357,12 +515,12 @@ class KrylovCorrector:
                     return np.concatenate([(Fb(y + e * v) - Fy) / e, [t @ v]])
 
                 rhs = -np.concatenate([Fy, [g]])
-                if lu is not None:
-                    op = LinearOperator((n, n), matvec=lambda z: mv(sla.lu_solve(lu, z)))
+                if psolve is not None:
+                    op = LinearOperator((n, n), matvec=lambda z: mv(psolve(z)))
                 else:
                     op = LinearOperator((n, n), matvec=mv)
                 z, _ = gmres(op, rhs, rtol=self.eta, atol=0.0, restart=self.gmres_max, maxiter=1)
-                d = sla.lu_solve(lu, z) if lu is not None else z
+                d = psolve(z) if psolve is not None else z
                 y = y + _limit(d, y, dr_fn, self.step_limit)
                 Fy = Fb(y)
                 if np.abs(Fy).max() < np.abs(best[1]).max():
@@ -402,6 +560,12 @@ class TraceSettings:
     # nearly along the branch and every step is rejected as a jump.
     tangent: str = "jacobian"
     refresh: str = "projected"    # surrogate refresh into B: projected / carry / reset
+    # corrector Jacobian B: "dense" = the surrogate's Jacobian as a dense array (rank-1 updated);
+    # "sparse" = the surrogate's Jacobian kept sparse (its `jac_sparse` if it has one, else `jac`)
+    # plus a limited-memory Broyden correction of at most max_rank terms (`LowRankJacobian`):
+    # the same B to round-off, without the (3N)^2 matrices and dense O(N^3) solves
+    surrogate: str = "dense"
+    max_rank: int = 120
 
     def __post_init__(self):
         if self.tangent not in ("jacobian", "secant"):
@@ -409,6 +573,10 @@ class TraceSettings:
         if self.refresh not in ("projected", "carry", "reset"):
             raise ValueError(f"refresh must be 'projected', 'carry' or 'reset', not "
                              f"{self.refresh!r}")
+        if self.surrogate not in ("dense", "sparse"):
+            raise ValueError(f"surrogate must be 'dense' or 'sparse', not {self.surrogate!r}")
+        if self.max_rank < 1:
+            raise ValueError(f"max_rank must be positive, not {self.max_rank!r}")
 
 
 class _Stall(Exception):
@@ -465,6 +633,10 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
     relaxed at fixed k; then a tangent predictor (`tangent`; capped to dr_cap and, with max_advance,
     to that crack advance) and bordered Broyden corrector (Newton-Krylov after broyden_retries
     halvings), with the surrogate Jacobian refreshed (`refresh`) every surrogate_every points.
+    The corrector Jacobian is dense or sparse plus low rank (`surrogate`; the surrogate's `jac`
+    may return either). If the problem has `hvp(x, v)`, the exact directional derivative of the
+    free-atom forces dF/dx(x) v (x and v in (u, k)), Newton-Krylov uses it instead of finite
+    differences of the forces.
     Folds are sign changes of dk/ds (not at the first point after the start); the branch label
     starts "stable" and alternates at each fold. Stops after stop_after_folds folds plus
     extra_after_last_fold in k, on leaving k_window moving outward, at max_points, or when a step
@@ -502,9 +674,21 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
         return abs(p.advance(to_x(y1)) - p.advance(to_x(y0)))
 
     def jy(yy):
-        J = surrogate.jac(to_x(yy)).copy()
+        xx = to_x(yy)
+        if st.surrogate == "sparse":
+            J = surrogate.jac_sparse(xx) if hasattr(surrogate, "jac_sparse") else surrogate.jac(xx)
+            d = np.ones(J.shape[1])
+            d[-1] = 1.0 / al
+            return (sp.csr_matrix(J) @ sp.diags(d)).tocsr()
+        J = surrogate.jac(xx)
+        J = J.toarray() if sp.issparse(J) else np.array(J, float)
         J[:, -1] /= al
         return J
+
+    hvp = None
+    if callable(getattr(p, "hvp", None)):
+        def hvp(yy, v):
+            return p.hvp(to_x(yy), to_x(v))
 
     broyden = BroydenCorrector(st.ftol, st.max_iter, st.corrector_step_limit)
     krylov = KrylovCorrector(st.ftol, st.max_iter, step_limit=st.corrector_step_limit,
@@ -530,7 +714,8 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
     surrogate.calibrate(x)
     y = to_y(x)
     Js = jy(y)
-    broyden.B = Js.copy()
+    broyden.B = LowRankJacobian(Js, max_rank=st.max_rank) if st.surrogate == "sparse" else \
+        Js.copy()
     Js_age = 0
     Fy = p.residual(x)
     emit(y, "start", 0.0)
@@ -564,7 +749,8 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
                 res, used = broyden.correct(F, yp, Fp, yp, t, dr), "broyden"
                 if not res.ok and attempt > st.broyden_retries:
                     y0, F0 = (yp, Fp) if np.abs(Fp).max() <= np.abs(res.F).max() else (res.y, res.F)
-                    res, used = krylov.correct(F, y0, F0, yp, t, dr, prec_J=broyden.B), "krylov"
+                    res = krylov.correct(F, y0, F0, yp, t, dr, prec_J=broyden.B, hvp=hvp)
+                    used = "krylov"
                 ok = res.ok and dr(res.y, yprev) <= st.reject_factor * st.dr_cap and \
                     t @ (res.y - yprev) > 0 and \
                     not (capped and adv(res.y, yprev) > 2 * st.max_advance)
