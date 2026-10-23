@@ -442,3 +442,14 @@ def test_trace_settings_reject_unknown_tangent_and_refresh():
         TraceSettings(tangent="chord")
     with pytest.raises(ValueError):
         TraceSettings(refresh="keep")
+
+
+def test_a_turn_right_after_the_start_is_not_a_fold():
+    """The start is relaxed only to ftol at fixed k; on 18816 atoms (crackcell) the first
+    corrected point lay below it in k (0.8 -> 0.790 -> 0.794), which was counted as a fold."""
+    from matscipy.fracture_mechanics.continuation import _k_turns
+    assert not _k_turns([0.8, 0.790, 0.794])  # ks[0] is the start
+    assert _k_turns([0.8, 0.81, 0.82, 0.815])
+    assert _k_turns([0.8, 0.79, 0.78, 0.785])  # tracing down (direction=-1)
+    assert not _k_turns([0.8, 0.81, 0.82, 0.83])
+    assert not _k_turns([0.8, 0.81])

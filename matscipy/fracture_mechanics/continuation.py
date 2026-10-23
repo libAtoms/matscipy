@@ -440,6 +440,14 @@ def _relax_start(p, x, st):
     return xs
 
 
+def _k_turns(ks):
+    """dk changes sign at ks[-2] (a fold); ks[0] is the start. Not when ks[-3] is the start: the
+    start is only relaxed to max|F| < ftol at fixed k, so it can sit further off the curve than the
+    first step is long, and the first corrected point can then lie below it in k (crackcell,
+    110_110 at 18816 atoms: 0.8 -> 0.790 -> 0.794, counted as a fold at 0.750)."""
+    return len(ks) >= 4 and (ks[-2] - ks[-3]) * (ks[-1] - ks[-2]) < 0
+
+
 def _fold_estimate(ys, ks):
     s = np.array([0.0, np.linalg.norm(ys[1] - ys[0]),
                   np.linalg.norm(ys[1] - ys[0]) + np.linalg.norm(ys[2] - ys[1])])
@@ -457,10 +465,10 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
     relaxed at fixed k; then a tangent predictor (`tangent`; capped to dr_cap and, with max_advance,
     to that crack advance) and bordered Broyden corrector (Newton-Krylov after broyden_retries
     halvings), with the surrogate Jacobian refreshed (`refresh`) every surrogate_every points.
-    Folds are sign changes of dk/ds; the branch label starts "stable" and alternates at each
-    fold. Stops after stop_after_folds folds plus extra_after_last_fold in k, on leaving k_window
-    moving outward, at max_points, or when a step needs more than max_calls_per_point force calls
-    or ds falls below ds_min ("stalled").
+    Folds are sign changes of dk/ds (not at the first point after the start); the branch label
+    starts "stable" and alternates at each fold. Stops after stop_after_folds folds plus
+    extra_after_last_fold in k, on leaving k_window moving outward, at max_points, or when a step
+    needs more than max_calls_per_point force calls or ds falls below ds_min ("stalled").
     `callback(frame)` is called for every accepted point.
 
     Returns (frames, status): extxyz-ready Atoms with arrays `forces` and info `K_over_KG`, `K`,
@@ -526,7 +534,7 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
     Js_age = 0
     Fy = p.residual(x)
     emit(y, "start", 0.0)
-    ys, Fs = [y], [Fy]
+    ys, Fs, ks = [y], [Fy], [x[-1]]
     e_k = np.zeros(len(y))
     e_k[-1] = direction
     t = bordered_solve(broyden.B, e_k, np.zeros(len(y) - 1), 1.0)
@@ -573,12 +581,11 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
             break
         ys.append(res.y)
         Fs.append(res.F)
-        if len(ys) >= 3:
-            k3 = [v[-1] / al for v in ys[-3:]]
-            if (k3[1] - k3[0]) * (k3[2] - k3[1]) < 0:
-                k_last_fold = _fold_estimate(ys[-3:], np.array(k3))
-                folds.append(k_last_fold)
-                branch[0] = "unstable" if branch[0] == "stable" else "stable"
+        ks.append(res.y[-1] / al)
+        if _k_turns(ks):
+            k_last_fold = _fold_estimate(ys[-3:], np.array(ks[-3:]))
+            folds.append(k_last_fold)
+            branch[0] = "unstable" if branch[0] == "stable" else "stable"
         emit(res.y, used, ds)
         ds_next = ds * np.clip(st.n_target / max(res.iters, 1), 0.5, 1.6)
         if capped:
