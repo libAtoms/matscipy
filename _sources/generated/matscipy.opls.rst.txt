@@ -1,0 +1,23 @@
+matscipy.opls
+=============
+
+.. automodule:: matscipy.opls
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      twochar
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AnglesData
+      BondData
+      CutoffList
+      DihedralsData
+      LJQData
+      OPLSStructure
+   
