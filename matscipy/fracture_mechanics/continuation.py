@@ -387,10 +387,11 @@ class BroydenCorrector:
     Jacobian and gets a good-Broyden rank-1 update from every force call. `Q` (orthonormal columns)
     spans the update directions since the last `refresh`: the subspace on which B holds secant
     information from the true forces rather than the surrogate's. B is a dense array or a
-    `LowRankJacobian`."""
+    `LowRankJacobian` (`max_rank` terms, used when a refresh starts one from a sparse Jn)."""
 
-    def __init__(self, ftol=2e-3, max_iter=8, step_limit=0.1):
+    def __init__(self, ftol=2e-3, max_iter=8, step_limit=0.1, max_rank=120):
         self.ftol, self.max_iter, self.step_limit = ftol, max_iter, step_limit
+        self.max_rank = max_rank
         self.B = None
         self.Q = None
 
@@ -418,12 +419,16 @@ class BroydenCorrector:
         secants, which contain that change, and adding it there too counts it twice per refresh
         (near a fold, where the critical curvature changes fast, this made the tangent retrace the
         stable branch). "carry" adds it everywhere (the behaviour before), "reset" sets B = Jn.
-        A `LowRankJacobian` B takes the same rule on its low-rank part (Js is then its S)."""
+        A `LowRankJacobian` B takes the same rule on its low-rank part (Js is then its S). With no
+        B yet, B = Jn (a `LowRankJacobian` if Jn is sparse); with no previous Js, a dense B has no
+        change to merge and is kept."""
         if isinstance(self.B, LowRankJacobian):
             self.B = self.B.refresh(Jn, mode, self.Q)
+        elif self.B is None and sp.issparse(Jn):
+            self.B = LowRankJacobian(Jn, max_rank=self.max_rank)
         elif mode == "reset" or self.B is None:
             self.B = Jn.copy()
-        else:
+        elif Js is not None:
             dJ = Jn - Js
             if mode == "projected" and self.Q is not None:
                 dJ = dJ - (dJ @ self.Q) @ self.Q.T
@@ -690,7 +695,7 @@ def trace_s_curve(problem, surrogate, k0, *, direction=1, settings=None, callbac
         def hvp(yy, v):
             return p.hvp(to_x(yy), to_x(v))
 
-    broyden = BroydenCorrector(st.ftol, st.max_iter, st.corrector_step_limit)
+    broyden = BroydenCorrector(st.ftol, st.max_iter, st.corrector_step_limit, st.max_rank)
     krylov = KrylovCorrector(st.ftol, st.max_iter, step_limit=st.corrector_step_limit,
                              max_calls=st.krylov_max_calls)
     frames, folds = [], []
