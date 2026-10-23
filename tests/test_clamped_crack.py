@@ -442,3 +442,178 @@ def test_trace_settings_reject_unknown_tangent_and_refresh():
         TraceSettings(tangent="chord")
     with pytest.raises(ValueError):
         TraceSettings(refresh="keep")
+
+
+# ---- sparse corrector Jacobian ---------------------------------------------------------------
+def _passivated_problem():
+    from matscipy.fracture_mechanics.continuation import ClampedProblem
+    a, crk, KG, _ = _build("110_001")
+    sc = _clamped_sinclair(a, crk, _NoPerAtom(_sw()), KG)
+    return ClampedProblem(sc, KG, atoms=a)
+
+
+@pytest.mark.parametrize("passivated", [False, True])
+def test_sparse_surrogate_jacobian_equals_the_dense_one(passivated):
+    import scipy.sparse as sp
+
+    from matscipy.fracture_mechanics.continuation import HessianSurrogate
+    p = _passivated_problem() if passivated else _problem()
+    x = p.x_from(p.atoms.positions, 1.0 if passivated else 0.6)
+    sur = HessianSurrogate(p, _sw(), scale=0.9)
+    Js = sur.jac_sparse(x)
+    assert sp.issparse(Js) and Js.shape == (p.nf, p.nf + 1)
+    assert np.allclose(Js.toarray(), sur.jac(x), rtol=0, atol=1e-12)
+    assert sp.issparse(sur.hessian_sparse(x))
+    assert np.allclose(sur.hessian_sparse(x).toarray(), sur.hessian(x), rtol=0, atol=1e-12)
+
+
+@pytest.fixture(scope="module")
+def sw_jac():
+    from matscipy.fracture_mechanics.continuation import HessianSurrogate
+    p = _problem()
+    return p, HessianSurrogate(p, _sw()).jac_sparse(p.x_from(p.atoms.positions, 0.6))
+
+
+def _low_rank_and_dense(sw_jac, m=7, seed=0):
+    """The same m good-Broyden updates applied to a LowRankJacobian and to its dense copy, each
+    held by a BroydenCorrector (which also builds the update span Q)."""
+    from matscipy.fracture_mechanics.continuation import BroydenCorrector, LowRankJacobian
+    p, J = sw_jac
+    rng = np.random.default_rng(seed)
+    lo, de = BroydenCorrector(), BroydenCorrector()
+    lo.B, de.B = LowRankJacobian(J), J.toarray()
+    for _ in range(m):
+        dy, dF = rng.normal(size=p.nf + 1), rng.normal(size=p.nf)
+        lo.update(dy, dF)
+        de.update(dy, dF)
+    return lo, de, rng
+
+
+def test_low_rank_update_and_bordered_solve_match_dense(sw_jac):
+    from matscipy.fracture_mechanics.continuation import bordered_solve
+    lo, de, rng = _low_rank_and_dense(sw_jac)
+    B, D = lo.B, de.B
+    n = D.shape[0]
+    assert B.shape == D.shape and B.U.shape[1] == 7
+    assert np.allclose(B.toarray(), D, rtol=0, atol=1e-10)
+    assert np.allclose(lo.Q, de.Q)
+    t = rng.normal(size=n + 1)
+    t /= np.linalg.norm(t)
+    r = rng.normal(size=n)
+    assert np.allclose(B @ t, D @ t, rtol=0, atol=1e-10)
+    ref = np.linalg.solve(np.vstack([D, t]), np.concatenate([r, [0.3]]))
+    assert np.allclose(bordered_solve(B, t, r, 0.3), ref, rtol=1e-8, atol=1e-8)
+    C = B.copy()
+    C.update(t, r)
+    assert np.allclose(B @ t, D @ t, rtol=0, atol=1e-10)  # the copy is independent
+    assert np.allclose(lo.tangent(t), de.tangent(t), atol=1e-8)
+
+
+@pytest.mark.parametrize("mode", ["projected", "carry", "reset"])
+def test_low_rank_refresh_matches_the_dense_rule(sw_jac, mode):
+    from matscipy.fracture_mechanics.continuation import HessianSurrogate, LowRankJacobian
+    p, J0 = sw_jac
+    lo, de, rng = _low_rank_and_dense(sw_jac)
+    x1 = p.x_from(p.atoms.positions, 0.6)
+    x1[:-1] += 0.02 * rng.normal(size=p.nf)
+    J1 = HessianSurrogate(p, _sw()).jac_sparse(x1)
+    lo.refresh(J1, J0, mode)
+    de.refresh(J1.toarray(), J0.toarray(), mode)
+    assert isinstance(lo.B, LowRankJacobian) and lo.Q is None and de.Q is None
+    assert (lo.B.S != J1).nnz == 0
+    assert np.allclose(lo.B.toarray(), de.B, rtol=0, atol=1e-10)
+
+
+def test_low_rank_compression_keeps_the_leading_terms(sw_jac):
+    lo, de, _ = _low_rank_and_dense(sw_jac, m=10)
+    B = lo.B
+    B.max_rank = 10
+    B.compress()
+    assert np.allclose(B.toarray(), de.B, rtol=0, atol=1e-9)  # rank 10 fits exactly
+    C = B.toarray() - B.S.toarray()
+    B.max_rank = 4
+    B.compress()
+    assert B.U.shape[1] == B.V.shape[1] == 4
+    u, s, vt = np.linalg.svd(C)
+    assert np.allclose(B.U @ B.V.T, (u[:, :4] * s[:4]) @ vt[:4], rtol=0, atol=1e-9)
+
+
+def test_sparse_trace_reproduces_the_dense_one():
+    from matscipy.fracture_mechanics.continuation import (HessianSurrogate, TraceSettings,
+                                                          trace_s_curve)
+    out = {}
+    for mode in ("dense", "sparse"):
+        p = _problem()
+        out[mode] = trace_s_curve(p, HessianSurrogate(p, _sw()), 0.6, settings=TraceSettings(
+            max_points=12, surrogate=mode))
+    (fd, sd), (fs, ss) = out["dense"], out["sparse"]
+    assert sd == ss == "complete" and len(fd) == len(fs) == 12
+    for a, b in zip(fd, fs):
+        assert a.info["calls"] == b.info["calls"] and a.info["method"] == b.info["method"]
+        assert a.info["K_over_KG"] == pytest.approx(b.info["K_over_KG"], abs=1e-7)
+        assert np.allclose(a.positions, b.positions, rtol=0, atol=1e-6)
+
+
+def test_a_turn_right_after_the_start_is_not_a_fold():
+    """The start is relaxed only to ftol at fixed k; on 18816 atoms (crackcell) the first
+    corrected point lay below it in k (0.8 -> 0.790 -> 0.794), which was counted as a fold."""
+    from matscipy.fracture_mechanics.continuation import _k_turns
+    assert not _k_turns([0.8, 0.790, 0.794])  # ks[0] is the start
+    assert _k_turns([0.8, 0.81, 0.82, 0.815])
+    assert _k_turns([0.8, 0.79, 0.78, 0.785])  # tracing down (direction=-1)
+    assert not _k_turns([0.8, 0.81, 0.82, 0.83])
+    assert not _k_turns([0.8, 0.81])
+
+
+def test_trace_settings_reject_an_unknown_surrogate():
+    from matscipy.fracture_mechanics.continuation import TraceSettings
+    with pytest.raises(ValueError, match="surrogate"):
+        TraceSettings(surrogate="exp")
+    with pytest.raises(ValueError, match="max_rank"):
+        TraceSettings(surrogate="sparse", max_rank=0)
+
+
+def test_krylov_corrector_uses_an_exact_hessian_vector_product():
+    from matscipy.fracture_mechanics.continuation import KrylovCorrector
+    rng = np.random.default_rng(3)
+    A = rng.normal(size=(6, 7))
+    calls = [0]
+
+    def F(y):
+        calls[0] += 1
+        return -A @ y
+
+    t = rng.normal(size=7)
+    t /= np.linalg.norm(t)
+    yp = rng.normal(size=7)
+    dr = lambda y1, y0: float(np.abs(y1 - y0).max())  # noqa: E731
+    kc = KrylovCorrector(ftol=1e-8, eta=1e-10, step_limit=1e9, max_calls=40)
+    r = kc.correct(F, yp, F(yp), yp, t, dr, hvp=lambda y, v: -A @ v)
+    assert r.ok and r.calls == 1  # one force call per Newton step; J v from hvp, not from F
+    assert np.abs(F(r.y)).max() < 1e-8
+
+
+def test_trace_passes_the_problem_hvp_to_krylov_in_y_coordinates(monkeypatch):
+    import matscipy.fracture_mechanics.continuation as cont
+    from matscipy.fracture_mechanics.continuation import CorrectorResult
+    p = _problem()
+    seen, got = [], []
+    p.hvp = lambda x, v: seen.append((x.copy(), v.copy())) or -v[:-1]
+
+    def fake(self, F_fn, y, Fy, yp, t, dr_fn, prec_J=None, hvp=None):
+        got.append(hvp)
+        if hvp is not None:
+            hvp(np.ones(len(y)), np.ones(len(y)))
+        return CorrectorResult(y, Fy * 1e3 + 1.0, 0, 0, False)
+
+    def no_broyden(self, F_fn, y, Fy, yp, t, dr_fn):
+        return CorrectorResult(y, Fy, 0, 0, False)
+
+    monkeypatch.setattr(cont.KrylovCorrector, "correct", fake)
+    monkeypatch.setattr(cont.BroydenCorrector, "correct", no_broyden)
+    st = cont.TraceSettings(max_points=3, broyden_retries=0, ds_min=0.02, alpha=2.0)
+    cont.trace_s_curve(p, cont.HessianSurrogate(p, _sw()), 0.6, settings=st)
+    assert got and all(h is not None for h in got)
+    x, v = seen[0]
+    assert x[-1] == pytest.approx(0.5) and v[-1] == pytest.approx(0.5)  # k = y_k / alpha
+    assert np.allclose(x[:-1], 1.0) and np.allclose(v[:-1], 1.0)

@@ -4,6 +4,20 @@ Change log
 Unreleased
 ----------
 
+- ENH: `trace_s_curve` with a sparse corrector Jacobian for large clusters
+  (`TraceSettings(surrogate="sparse")`, default `"dense"`): the surrogate Hessian stays sparse
+  (`HessianSurrogate.jac_sparse`, H-cap springs included; a surrogate's `jac` may return a
+  dense or a `scipy.sparse` matrix) and the Broyden updates are a low-rank correction
+  (`LowRankJacobian`, truncated to `max_rank` terms at each refresh, with the same refresh
+  rules); bordered solves use one sparse LU per refresh plus Woodbury. The same Jacobian to
+  round-off: SW 110_110 clusters of 864 and 1536 atoms give the dense folds to 5e-8 with the
+  same force calls, 1.3-1.8 times faster with 0.3-0.5 of the memory; 3456 atoms trace both
+  folds (K+ 1.5754, K- 0.5805) in 456 s and 0.9 GB. `HessianSurrogate.calibrate` uses the
+  sparse Jacobian. A problem with `hvp(x, v)` (exact force derivative) gives Newton-Krylov its
+  matrix-vector products instead of finite differences.
+- BUG: `trace_s_curve` counted a turn in k at the first point after the start as a fold; the
+  start is relaxed only to ftol, so on large clusters the first corrected point can lie below
+  it in k.
 - BUG: `trace_s_curve` stalled on clusters of more than ~1300 atoms (repeated rejected
   steps, then `ds_min`). A point accepted at max|F| < ftol lies |H^-1 F| off the curve along
   the soft modes, comparable to ds on large clusters, so the secant predictor pointed far off

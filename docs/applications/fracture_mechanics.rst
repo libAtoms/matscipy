@@ -64,6 +64,30 @@ Each frame carries ``K_over_KG``, ``energy`` and ``branch`` (stable or unstable)
 forces in ``arrays``; ``status`` says why the trace stopped (``"folds"``, ``"window"``,
 ``"complete"`` or ``"stalled"``).
 
+On clusters of more than a few thousand atoms the dense corrector Jacobian ((3N)^2 storage, an
+O(N^3) solve per corrector iteration) is the limit. ``TraceSettings(surrogate="sparse")`` keeps the
+surrogate's Hessian sparse (``HessianSurrogate.jac_sparse``; any surrogate whose ``jac`` returns a
+``scipy.sparse`` matrix works too) and holds the Broyden updates as a low-rank correction
+(:class:`~matscipy.fracture_mechanics.continuation.LowRankJacobian`, at most ``max_rank`` terms):
+one sparse LU per surrogate refresh serves every bordered solve. It is the same Jacobian to
+round-off, so the trace is the same. Stillinger-Weber, unpassivated (110)[1-10] clusters, start
+k = 0.8, ``ftol=2e-3``, ``k_window=(0.3, 3)``, ``max_calls_per_point=60``,
+``start_max_iter=300``, stopped just after the second fold (Apple M3 Pro laptop):
+
+=====  ======  ======  ===================  =============  ========  =====  ========
+atoms  B       points  K+ / K- (K_G)        calls / point  rejected  wall   peak RSS
+=====  ======  ======  ===================  =============  ========  =====  ========
+864    dense   164     1.575250 / 0.601770  1.45           3         80 s   0.57 GB
+864    sparse  164     1.575250 / 0.601770  1.45           3         64 s   0.33 GB
+1536   dense   192     1.574234 / 0.590595  1.35           2         236 s  1.36 GB
+1536   sparse  192     1.574234 / 0.590595  1.35           2         134 s  0.48 GB
+3456   sparse  239     1.575392 / 0.580519  1.29           3         456 s  0.90 GB
+=====  ======  ======  ===================  =============  ========  =====  ========
+
+Dense and sparse folds agree to 5e-8. If the problem object provides ``hvp(x, v)``, the exact
+directional derivative of the free-atom forces, the Newton-Krylov fallback uses it instead of
+finite differences of the forces.
+
 .. toctree::
 
     quasi_static_crack
