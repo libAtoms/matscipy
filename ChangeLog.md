@@ -4,6 +4,11 @@ Change log
 Unreleased
 ----------
 
+- BUG: `BroydenCorrector.refresh` with no B yet and a sparse surrogate Jacobian stored the bare
+  sparse matrix, which the bordered solves cannot use; it now starts a `LowRankJacobian` with
+  the corrector's new `max_rank` (`trace_s_curve` passes `TraceSettings.max_rank`). A refresh
+  with no previous surrogate Jacobian (`Js=None`) keeps a dense B instead of failing on
+  `Jn - Js`.
 - ENH: `trace_s_curve` with a sparse corrector Jacobian for large clusters
   (`TraceSettings(surrogate="sparse")`, default `"dense"`): the surrogate Hessian stays sparse
   (`HessianSurrogate.jac_sparse`, H-cap springs included; a surrogate's `jac` may return a

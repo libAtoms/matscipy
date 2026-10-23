@@ -524,6 +524,39 @@ def test_low_rank_refresh_matches_the_dense_rule(sw_jac, mode):
     assert np.allclose(lo.B.toarray(), de.B, rtol=0, atol=1e-10)
 
 
+def test_first_refresh_with_a_sparse_jacobian_gives_a_low_rank_b(sw_jac):
+    """With no B yet, a sparse surrogate Jacobian starts a LowRankJacobian (with the corrector's
+    max_rank), which the bordered solves and the tangent take, not a bare sparse matrix."""
+    from matscipy.fracture_mechanics.continuation import (BroydenCorrector, LowRankJacobian,
+                                                           bordered_solve)
+    p, J = sw_jac
+    c = BroydenCorrector(max_rank=17)
+    c.refresh(J, None, "projected")
+    assert isinstance(c.B, LowRankJacobian) and c.B.max_rank == 17 and c.Q is None
+    assert (c.B.S != J).nnz == 0
+    t = np.random.default_rng(0).normal(size=J.shape[1])
+    t /= np.linalg.norm(t)
+    d = bordered_solve(c.B, t, np.ones(J.shape[0]), 0.0)
+    assert np.allclose(J @ d, 1.0) and abs(t @ d) < 1e-10
+    assert np.isfinite(c.tangent(t)).all()
+
+
+@pytest.mark.parametrize("mode", ["projected", "carry"])
+def test_refresh_without_a_previous_surrogate_keeps_b(mode):
+    """A dense B with no surrogate Jacobian it came from (Js None) has no change to merge: it is
+    kept as it is, and only the update span restarts."""
+    from matscipy.fracture_mechanics.continuation import BroydenCorrector
+    rng = np.random.default_rng(1)
+    n = 6
+    B0 = rng.normal(size=(n, n + 1))
+    c = BroydenCorrector()
+    c.B = B0.copy()
+    c.update(rng.normal(size=n + 1), rng.normal(size=n))
+    B1 = c.B.copy()
+    c.refresh(rng.normal(size=(n, n + 1)), None, mode)
+    assert np.array_equal(c.B, B1) and c.Q is None
+
+
 def test_low_rank_compression_keeps_the_leading_terms(sw_jac):
     lo, de, _ = _low_rank_and_dense(sw_jac, m=10)
     B = lo.B
