@@ -1,0 +1,22 @@
+matscipy.calculators
+====================
+
+.. automodule:: matscipy.calculators
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   calculator
+   committee
+   eam
+   ewald
+   fitting
+   manybody
+   mcfm
+   pair_potential
+   polydisperse
+   supercell_calculator

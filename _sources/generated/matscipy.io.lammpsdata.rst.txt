@@ -1,0 +1,20 @@
+matscipy.io.lammpsdata
+======================
+
+.. automodule:: matscipy.io.lammpsdata
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      check_legal_name
+      column_size
+      read_molecules_from_lammps_data
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      LAMMPSData
+   

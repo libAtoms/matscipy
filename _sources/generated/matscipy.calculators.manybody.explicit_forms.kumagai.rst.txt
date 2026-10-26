@@ -1,0 +1,13 @@
+matscipy.calculators.manybody.explicit\_forms.kumagai
+=====================================================
+
+.. automodule:: matscipy.calculators.manybody.explicit_forms.kumagai
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      Kumagai
+      ab
+   

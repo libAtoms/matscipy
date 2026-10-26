@@ -1,0 +1,12 @@
+matscipy.hydrogenate
+====================
+
+.. automodule:: matscipy.hydrogenate
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      hydrogenate
+   

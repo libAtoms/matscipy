@@ -1,0 +1,736 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Building cylindrical configurations with dislocations\n",
+    "\n",
+    "![](dislocation_cylinder.png)\n",
+    "\n",
+    "The `matscipy.dislocation` provides a set of tools to create atomistic configurations containing dislocations. In this example we focus on cylindrical configurations. In order to create a dislocation we start with a cylinder of bulk material oriented along the vector of the future dislocation line $\\vec l$. By convention assumed in `matscipy.dislocation` Z direction of the cell always corresponds to the dislocation line $\\vec l$. Then a displacement field is applied to the cylinder and outer radial shell is fixed in order to stabilise the configuration. So we end up with periodic boundary conditions along the dislocation line (Z) and fixed boundaries along X and Y directions. As shown on the figure above, screw dislocations are characterised by a displacement with corresponding burgers vector $\\vec b$ parallel to the dislocation line $\\vec l$, while edge dislocations have the burgers vector $\\vec b$ perpendicular to $\\vec l$. `matscipy` uses an anisotropic solution within [Stroh formalism](https://doi.org/10.1080/14786435808565804) to generate displacement field as implemented in [atomman](https://www.ctcms.nist.gov/potentials/atomman/) package.\n",
+    "\n",
+    "For the interactive visualisation of the structures we will use [nglview](https://nglviewer.org/nglview/latest/) which allows viewing atomistic structures interactively within an IPython/Jupyter notebooks. We will also color atoms according to the crystallographic structure identified by [Common Neighbour Analysis algoritm](https://www.ovito.org/docs/current/reference/pipelines/modifiers/common_neighbor_analysis.html) and its [extention for diamond structure](https://www.ovito.org/docs/current/reference/pipelines/modifiers/identify_diamond.html) implemented in [OVITO](https://www.ovito.org/docs/current/introduction.html) package. [OVITO](https://www.ovito.org/docs/current/introduction.html), [atomman](https://www.ctcms.nist.gov/potentials/atomman/) and [nglview](https://nglviewer.org/nglview/latest/) are not part of the default dependencies of `matscipy` and require separate installation. Keep that in mind while running these examples as well test in [`test_dislocation.py`](https://github.com/libAtoms/matscipy/blob/master/tests/test_dislocation.py) since the majority of the tests there require this modules and thus will be skipped if the modules are not found in your system. Please note that for this example we use very small systems (small radius). For production calculations one should do a convergence tests with the system size in order to ensure that fixed boundaries do not affect the studied properties."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import nglview # this import is necessary for rendering of the 3D view"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Accessing Key Dislocation Properties\n",
+    "As defined in a dimensionless (alat=1) frame, each kind of dislocation has several key properties which describe the geometric layout of the atomic cell, and also the position and orientation of the dislocation. Such properties are stored in matscipy as attributes of each dislocation class, such that they can be accessed without actually needing to construct a dislocation.\n",
+    "\n",
+    "As an example:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import BCCMixed111Dislocation\n",
+    "\n",
+    "print(\"For a BCC 1/2<111>{110} Mixed Dislocation\")\n",
+    "print()\n",
+    "\n",
+    "print(\"The dislocation is oriented in a cell described by the miller indices: \")\n",
+    "print(BCCMixed111Dislocation.axes)\n",
+    "\n",
+    "print(\"Dimensionless burgers vector is: \", BCCMixed111Dislocation.burgers_dimensionless)\n",
+    "\n",
+    "print(\"Dislocation core will be at fractional coords:\\n\", \n",
+    "      BCCMixed111Dislocation.unit_cell_core_position_dimensionless, \" within a unit cell\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Available Dislocation Systems\n",
+    "The available dislocation systems are:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matscipy.dislocation as disloc_mod\n",
+    "import inspect\n",
+    "# Find all classes in matscipy.dislocation which inherit from \n",
+    "# the Abstract Base Class CubicCrystalDislocation\n",
+    "for name, attr in disloc_mod.__dict__.items():\n",
+    "    if inspect.isclass(attr):\n",
+    "        if issubclass(attr, disloc_mod.CubicCrystalDislocation) and \\\n",
+    "            attr not in [disloc_mod.CubicCrystalDislocation,\n",
+    "                         disloc_mod.CubicCrystalDissociatedDislocation]:\n",
+    "            print(name)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Body Centered Cubic \n",
+    "\n",
+    "For the case of BCC structure we take tungsten as an example. In order to create a dislocation configuration one has to provide lattice parameter and elastic constants. It is possible to provide these values from literature. However, if you plan to relax the configuration with an interatomic potential, `matscipy.dislocation` provides a convenient method `get_elastic_constants` to calculate desired properties. We will use and Embedded Atom Potential from [Marinica _et. al._ 2013 paper](http://dx.doi.org/10.1088/0953-8984/25/39/395502) (version EAM4) for the case of tungsten."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "tags": [
+     "hide-output"
+    ]
+   },
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import get_elastic_constants\n",
+    "# the calculator to provide forces and energies from the potential\n",
+    "from matscipy.calculators.eam import EAM\n",
+    "eam_calc = EAM(\"../../tests/w_eam4.fs\")\n",
+    "\n",
+    "# the function accepts any ASE type of calculator\n",
+    "alat, C11, C12, C44 = get_elastic_constants(calculator=eam_calc, symbol=\"W\", verbose=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(f\"{alat:.3f} (Angstrom), {C11:.2f}, {C12:.2f}, {C44:.2f} (GPa)\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The values are in good agreement with corresponding numbers in the paper: 3.143, 523, 202, 161"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 1/2<111>{110} screw dislocation\n",
+    "\n",
+    "The notation 1/2<111>{110} means a dislocation with a burgers vector 1/2<111> and glide plane {110}. For screw dislocation, the dislocation line is parallel to the burgers vector, thus Z direction of the cell will be along <111>. The glide plane {110} fixes the Y direction to be <110> and the X direction is fixed by the geometry to be along <112>. However you do not have to think about it to start since `BCCScrew111Dislocation` object contains all the necessary information. All you need to do is to pass $a_0$ and elastic constants $C_{11}$, $C_{12}$ and $C_{44}$ and the symbol of the desired BCC element to the constructor."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import BCCScrew111Dislocation\n",
+    "\n",
+    "W_screw = BCCScrew111Dislocation(alat, C11, C12, C44, symbol=\"W\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(W_screw.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(W_screw.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We are going to use `BCCScrew111Dislocation.build_cylinder()` method to build the cells. All the necessary parameters are passed automatically and we only need to chose the radius of the cell in (X,Y) plane. The function returns reference bulk cell and a cell containing dislocation. The displacement field is applied iteratively until a converged value is achieved, the printed output shows the difference between the steps. The radius provided is a parameter is a radius of unconstrained region around the core. The outer shell of fixed atoms is added on top of this. The default value is 10 Angstrom which is about two times larger than the cutoff for the used interatomic potential. The information about which atoms are fixed is stored in `fix_mask` array and can be accessed via `W_screw_dislo.get_array('fix_mask')`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "W_screw_bulk, W_screw_dislo = W_screw.build_cylinder(radius=20)\n",
+    "\n",
+    "print(\"\\nCell vectors:\")\n",
+    "print(W_screw_dislo.cell.array)\n",
+    "\n",
+    "print(f\"\\nBurgers vector lenth: {np.linalg.norm(W_screw.burgers):.2f} Angstrom\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    ":::{note}\n",
+    "In BCC we solve for the displacements self-consistently (note the `disloc SCF` in the above output). This approach can cause unexpected behaviour in rare occurences where atoms get close to divergences in the Continuum Linear Elastic (CLE) solution. The self-consistency can be disabled by passing `self_consistent=False` to `build_cylinder`, or the approach can be bounded to a smaller region close to the dislocation core using e.g. `r_sc=30` to only apply SC to the first 30 Angstrom of atoms around the core. \n",
+    ":::\n",
+    "\n",
+    "Now we can use `CubicCrystalDislocation.view_cyl` to look at the created structure with an NGL interactive view. Hovering your mouse over an atom will show chemical symbol of the atom and the structure identified by CNA algorithm. Dislocation is shown with an arrow corresponding to the dislocation line vector $\\vec l$. Hovering over the dislocation will display the dislocation name. Moreover, you can use your mouse to control the view:\n",
+    "\n",
+    "- Translation: right click + drag\n",
+    "- Rotation: left click + drag\n",
+    "- Z-axis rotation: Ctrl + right click + drag\n",
+    "- Zoom: scroll wheel\n",
+    "- Center view: left click on the desired atom"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "W_screw.view_cyl(W_screw_dislo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "It can be seen that most of the cell is identified as BCC structure with some grey atoms identified as _Other_. These atoms represent the defect atoms, where the algorithm could not assign a crystallographic structure. In this case we have defect atoms at the dislocation core and on the artificial free surfaces on the edges of the cell. The atoms at the _surface_ are part of fixed region of the cell. \n",
+    "\n",
+    "Here we have a cell with the length of one Burgers vector $|\\vec b| = \\frac{\\sqrt{3}}{2}a_0$ along the dislocation line. With the periodic boundary conditions along Z, it corresponds to infinitely long straight dislocation line. Note that the periodic boundary conditions along the dislocation line are not applied in the visualisation. It makes it easier to see the displacement, but you might notice the atoms outside the simulation box. \n",
+    "\n",
+    "To increase the size of the cell along the line we can rely on the magic of [ASE](https://wiki.fysik.dtu.dk/ase/) and simply multiply the cell."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "longer_W_screw_dislo = W_screw_dislo * [1, 1, 10]\n",
+    "W_screw.view_cyl(longer_W_screw_dislo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "If you want to save the configuration in a file for further analysis or as an input for a code you can use build in [ASE write method](https://wiki.fysik.dtu.dk/ase/ase/io/io.html#ase.io.write) as `longer_W_screw_dislo.write(filename)`. The method supports a wide range of formats including `xyz` and LAMMPS data files. Do not forget to take into account fixed atoms if you use the saved file as an input for a simulation code like LAMMPS. \n",
+    "\n",
+    "### 1/2<111>{110} edge dislocation\n",
+    "\n",
+    "As we said before, for edge dislocations burgers vectpr $\\vec b$ is perpendicular to the dislocation $\\vec l$. So here, we have the same glide plane of (110) which fixes the cell Y direction to <110>. X direction now will be along burgers vector <111> and Z dislocation line direction <112>."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import BCCEdge111Dislocation\n",
+    "\n",
+    "W_edge = BCCEdge111Dislocation(alat, C11, C12, C44, symbol=\"W\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(W_edge.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(W_edge.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "W_edge_bulk, W_edge_dislo = W_edge.build_cylinder(radius=15)\n",
+    "\n",
+    "print(\"\\nCell vectors:\")\n",
+    "print(W_edge_dislo.cell.array)\n",
+    "\n",
+    "print(f\"\\nBurgers vector lenth: {np.linalg.norm(W_edge.burgers):.2f} Angstrom\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "It can be seen from the print output of ` W_edge.build_cylinder()` that the case of edge dislocation the requires more iterations to achieve converged displacement field."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "W_edge.view_cyl(W_edge_dislo, scale=0.25)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 1/2<111>{110} mixed dislocation\n",
+    "\n",
+    "For mixed dislocation the cell vector are the same as for the screw dislocation. The difference is that the displacement vector is applied along <111> direction that is not parallel to the Z direction: [$1\\bar 11$] and [$1\\bar 1 \\bar1$] with an angle of 70.5 degrees between the vectors. This leads to both edge and screw component in the displacement and thus the name _mixed_ dislocation."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import BCCMixed111Dislocation\n",
+    "\n",
+    "W_mixed = BCCMixed111Dislocation(alat, C11, C12, C44, symbol=\"W\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(W_mixed.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(W_mixed.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "W_mixed_bulk, W_mixed_dislo = W_mixed.build_cylinder(radius=20)\n",
+    "\n",
+    "print(\"\\nCell vectors:\")\n",
+    "print(W_mixed_dislo.cell.array)\n",
+    "\n",
+    "print(f\"\\nBurgers vector length: {np.linalg.norm(W_mixed.burgers):.2f} Angstrom\")\n",
+    "\n",
+    "W_mixed.view_cyl(W_mixed_dislo, scale=0.5)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### <100>{110} edge 'junction' dislocation\n",
+    "\n",
+    "So called junction dislocations with burdgers vector along <100> can be formed in the reactions between more abundant dislocations with burgers vector 1/2<111> such as: \n",
+    "\n",
+    "$$\n",
+    "    \\frac{1}{2}[1\\bar{1}1] + \\frac{1}{2}[11\\bar{1}] = [100]\n",
+    "$$\n",
+    "\n",
+    "They share the same glide plane ad 1/2<111> dislocations and can play important role in impurity segregation. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import BCCEdge100110Dislocation\n",
+    "\n",
+    "W_100110_edge = BCCEdge100110Dislocation(alat, C11, C12, C44, symbol=\"W\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(W_100110_edge.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(W_100110_edge.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "W_100110_edge_bulk, W_100110_edge_dislo = W_100110_edge.build_cylinder(radius=17)\n",
+    "W_100110_edge.view_cyl(W_100110_edge_dislo, scale=0.3, line_color=[1, 0, 1])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### <100>{001} edge dislocation\n",
+    "\n",
+    "This is the same junction dislocation but lying in a different glide plane: (001)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import BCCEdge100Dislocation\n",
+    "\n",
+    "W_100_edge = BCCEdge100Dislocation(alat, C11, C12, C44, symbol=\"W\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(W_100_edge.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(W_100_edge.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "W_100_edge_bulk, W_100_edge_dislo = W_100_edge.build_cylinder(radius=20)\n",
+    "W_100_edge.view_cyl(W_100_edge_dislo, scale=0.4, line_color=[1, 0, 1])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Face Centered Cubic\n",
+    "\n",
+    "As an example of FCC material we will consider Ni and an interatomic potential from [Bonny _et. al._](https://www.tandfonline.com/doi/abs/10.1080/14786430903299824)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "tags": [
+     "hide-output"
+    ]
+   },
+   "outputs": [],
+   "source": [
+    "eam_calc = EAM(\"../../tests/FeCuNi.eam.alloy\")\n",
+    "\n",
+    "# the function accepts any ASE type of calculator\n",
+    "alat, C11, C12, C44 = get_elastic_constants(calculator=eam_calc, symbol=\"Ni\", verbose=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(f\"{alat:.3f} (Angstrom), {C11:.2f}, {C12:.2f}, {C44:.2f} (GPa)\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 1/2<110>{111} screw dislocation (perfect and dissociated)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import FCCScrew110Dislocation\n",
+    "\n",
+    "Ni_screw = FCCScrew110Dislocation(alat, C11, C12, C44, symbol=\"Ni\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(Ni_screw.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(Ni_screw.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Ni_screw_bulk, Ni_screw_dislo = Ni_screw.build_cylinder(radius=20)\n",
+    "\n",
+    "\n",
+    "print(\"\\nCell vectors:\")\n",
+    "print(Ni_screw_dislo.cell.array)\n",
+    "\n",
+    "print(f\"\\nBurgers vector length: {np.linalg.norm(Ni_screw.burgers):.2f} Angstrom\")\n",
+    "\n",
+    "Ni_screw.view_cyl(Ni_screw_dislo, line_color=[0, 0, 1])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Due to stable Intrinsic Stacking Fault (ISF) the 1/2<110> dislocations are not stable and dissociate in two 1/6<112> Shockley partials separated by stacking fault. For example:\n",
+    "\n",
+    "$$\n",
+    "    \\frac{1}{2}[1\\bar10] \\rightarrow \\frac{1}{6}[2\\bar1\\bar1] + \\mathrm{ISF} + \\frac{1}{6}[1\\bar21]\n",
+    "$$\n",
+    "\n",
+    "where ISF is intrinsic stacking fault. It is possible to pass a parameter `partial_distance` to `build_cylinder()` function in order to create dissociated dislocation. `partial distance` defines separation distance (length of the stacking fault) of two partial dislocations. The value corresponds to number of glide distances the distance in Angstrom be obtaines as `patial_distance * dislocation.glide_distance`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Ni_screw_bulk, Ni_screw_dislo = Ni_screw.build_cylinder(radius=20, partial_distance=5)\n",
+    "print(f\"\\nExpected partial distance: {5 * Ni_screw.glide_distance:.1f} Angstrom\")\n",
+    "Ni_screw.view_cyl(Ni_screw_dislo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Together with FCC (green) and defect atoms (grey) the CNA algorithm identified the atoms of the stacking fault as HCP structure (pink), which is a result of the local change of stacking order of the atomic layers within the defect.\n",
+    "\n",
+    "### 1/2<110>{111} edge dislocation (perfect and dissociated)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import FCCEdge110Dislocation\n",
+    "\n",
+    "Ni_edge = FCCEdge110Dislocation(alat, C11, C12, C44, symbol=\"Ni\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(Ni_edge.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(Ni_edge.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Ni_edge_bulk, Ni_edge_dislo = Ni_edge.build_cylinder(radius=20)\n",
+    "\n",
+    "print(\"\\nCell vectors:\")\n",
+    "print(Ni_edge_dislo.cell.array)\n",
+    "\n",
+    "print(f\"\\nBurgers vector length: {np.linalg.norm(Ni_edge.burgers):.2f} Angstrom\")\n",
+    "\n",
+    "Ni_edge.view_cyl(Ni_edge_dislo, line_color=[0, 0, 1])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Ni_edge_bulk, Ni_edge_dislo = Ni_edge.build_cylinder(radius=20, partial_distance=10)\n",
+    "print(f\"\\nExpected partial distance: {10 * Ni_edge.glide_distance:.1f} Angstrom\")\n",
+    "Ni_edge.view_cyl(Ni_edge_dislo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Diamond Cubic\n",
+    "\n",
+    "As an example of diamond structure we will use Si and potential from [work of D. Holland and M. Marder](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.80.746)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "tags": [
+     "hide-output"
+    ]
+   },
+   "outputs": [],
+   "source": [
+    "from matscipy.calculators.manybody.explicit_forms.stillinger_weber import StillingerWeber,\\\n",
+    "                                                                Holland_Marder_PRL_80_746_Si\n",
+    "from matscipy.calculators.manybody import Manybody\n",
+    "calc = Manybody(**StillingerWeber(Holland_Marder_PRL_80_746_Si))\n",
+    "\n",
+    "# the function accepts any ASE type of calculator\n",
+    "alat, C11, C12, C44 = get_elastic_constants(calculator=calc, symbol=\"Si\", verbose=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(f\"{alat:.3f} (Angstrom), {C11:.2f}, {C12:.2f}, {C44:.2f} (GPa)\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import DiamondGlideScrew\n",
+    "\n",
+    "Si_screw = DiamondGlideScrew(alat, C11, C12, C44, symbol=\"Si\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(Si_screw.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(Si_screw.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 1/2<110>{111} screw dislocation (perfect and dissociated)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Si_screw_bulk, Si_screw_dislo = Si_screw.build_cylinder(radius=20)\n",
+    "\n",
+    "print(\"\\nCell vectors:\")\n",
+    "print(Si_screw_dislo.cell.array)\n",
+    "\n",
+    "print(f\"\\nBurgers vector length: {np.linalg.norm(Si_screw.burgers):.2f} Angstrom\")\n",
+    "\n",
+    "Si_screw.view_cyl(Si_screw_dislo, scale=0.3, line_color=[0, 0, 1],\n",
+    "                 add_bonds=True, # bonds make it a bit easier to see the structure\n",
+    "                 )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The modification of the CNA algorithm for the diamond structure identifies the defect atoms gradually depending how _far_ they are from the perfect structure. The important outcome for us is now dislocation core and free surface atoms are identified as 1st and 2nd neighbors of the _Cubic diamond_ structure. \n",
+    "\n",
+    "As in FCC structure similar dissociation mechanism exists in diamond structure."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Si_screw_bulk, Si_screw_dislo = Si_screw.build_cylinder(radius=20, partial_distance=5)\n",
+    "\n",
+    "print(f\"Expected partial distance: {5 * Si_screw.glide_distance:.1f} Angstrom\")\n",
+    "Si_screw.view_cyl(Si_screw_dislo, scale=0.3, add_bonds=True, line_color=[1, 0, 1]) "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The stacking fault atoms are identified as _Hexagonal diamond_ structure.\n",
+    "\n",
+    "### 1/2<110>{111} 60 degree screw dislocation (perfect and dissociated)\n",
+    "\n",
+    "Due to the particular symmetry of cubic diamond structure, there exist dislocations with 60 degree angle between burgers vector and dislocation line. This dislocation can dissociate in two partials: 30 and 90 degree."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from matscipy.dislocation import DiamondGlide60Degree\n",
+    "\n",
+    "Si_60_degree_screw = DiamondGlide60Degree(alat, C11, C12, C44, symbol=\"Si\")\n",
+    "\n",
+    "print(\"Cell orientation:\")\n",
+    "print(Si_screw.axes)\n",
+    "\n",
+    "print(\"Burgers vector:\")\n",
+    "print(Si_screw.burgers)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Si_60_degree_screw_bulk, \\\n",
+    "Si_60_degree_screw_dislo = Si_60_degree_screw.build_cylinder(radius=20)\n",
+    "\n",
+    "print(\"\\nCell vectors:\")\n",
+    "print(Si_60_degree_screw_dislo.cell.array)\n",
+    "\n",
+    "print(f\"\\nBurgers vector length: {np.linalg.norm(Si_60_degree_screw.burgers):.2f} Angstrom\")\n",
+    "\n",
+    "Si_60_degree_screw.view_cyl(Si_60_degree_screw_dislo, scale=0.3, add_bonds=True,\n",
+    "                            line_color=[0, 0, 1])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Si_60_degree_screw_bulk, \\\n",
+    "Si_60_degree_screw_dislo = Si_60_degree_screw.build_cylinder(radius=20, \n",
+    "                                                             partial_distance=5)\n",
+    "\n",
+    "print(f\"Expected partial distance: {5 * Si_60_degree_screw.glide_distance:.1f} Angstrom\")\n",
+    "Si_60_degree_screw.view_cyl(Si_60_degree_screw_dislo, scale=0.3, add_bonds=True, \n",
+    "                                line_color=[[1, 0, 1], [0, 1, 1]])"
+   ]
+  }
+ ],
+ "metadata": {
+  "execution": {
+   "timeout": 180
+  },
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

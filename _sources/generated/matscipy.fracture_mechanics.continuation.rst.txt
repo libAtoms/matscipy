@@ -1,0 +1,25 @@
+matscipy.fracture\_mechanics.continuation
+=========================================
+
+.. automodule:: matscipy.fracture_mechanics.continuation
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      bordered_solve
+      trace_s_curve
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BroydenCorrector
+      ClampedProblem
+      CorrectorResult
+      HessianSurrogate
+      KrylovCorrector
+      LowRankJacobian
+      TraceSettings
+   

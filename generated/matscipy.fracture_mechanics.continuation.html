@@ -1,0 +1,810 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>matscipy.fracture_mechanics.continuation &mdash; matscipy devel documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dba82e2"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="matscipy.fracture_mechanics.crack" href="matscipy.fracture_mechanics.crack.html" />
+    <link rel="prev" title="matscipy.fracture_mechanics.clusters" href="matscipy.fracture_mechanics.clusters.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            matscipy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">matscipy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../applications/index.html">Application domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Analysis tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../calculators/index.html">Interatomic potentials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../topology/index.html">Structure and topology generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">Command line interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#application-domains">Application domains</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.clusters.html">matscipy.fracture_mechanics.clusters</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">matscipy.fracture_mechanics.continuation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.crack.html">matscipy.fracture_mechanics.crack</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.crackpathsel.html">matscipy.fracture_mechanics.crackpathsel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.energy_release.html">matscipy.fracture_mechanics.energy_release</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.fracture_mechanics.idealbrittlesolid.html">matscipy.fracture_mechanics.idealbrittlesolid</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#structure-and-topology-generation">Structure and topology generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#analysis-tools">Analysis tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#interatomic-potentials">Interatomic potentials</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utility-functions">Utility functions</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="matscipy.html">matscipy</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.has_parameter"><code class="docutils literal notranslate"><span class="pre">has_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.html#matscipy.parameter"><code class="docutils literal notranslate"><span class="pre">parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.angle_distribution.html">matscipy.angle_distribution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.atomic_strain.html">matscipy.atomic_strain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.calculators.html">matscipy.calculators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cauchy_born.html">matscipy.cauchy_born</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.cli.html">matscipy.cli</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.compat.html">matscipy.compat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.deformation.html">matscipy.deformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.dislocation.html">matscipy.dislocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.drift.html">matscipy.drift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.elasticity.html">matscipy.elasticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.electrochemistry.html">matscipy.electrochemistry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.ffi.html">matscipy.ffi</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.gamma_surface.html">matscipy.gamma_surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.hydrogenate.html">matscipy.hydrogenate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.molecules.html">matscipy.molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.neighbours.html">matscipy.neighbours</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numerical.html">matscipy.numerical</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.opls.html">matscipy.opls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.optimize.html">matscipy.optimize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.precon.html">matscipy.precon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.pressurecoupling.html">matscipy.pressurecoupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.rings.html">matscipy.rings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.socketcalc.html">matscipy.socketcalc</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.spatial_correlation_function.html">matscipy.spatial_correlation_function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface.html">matscipy.surface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.surface_reconstruction.html">matscipy.surface_reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="matscipy.utils.html">matscipy.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.io.html">matscipy.io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.numpy_tricks.html">matscipy.numpy_tricks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="matscipy.logger.html">matscipy.logger</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">matscipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="matscipy.fracture_mechanics.html">matscipy.fracture_mechanics</a></li>
+      <li class="breadcrumb-item active">matscipy.fracture_mechanics.continuation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/matscipy.fracture_mechanics.continuation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-matscipy.fracture_mechanics.continuation">
+<span id="matscipy-fracture-mechanics-continuation"></span><h1>matscipy.fracture_mechanics.continuation<a class="headerlink" href="#module-matscipy.fracture_mechanics.continuation" title="Link to this heading"></a></h1>
+<p>Force-only pseudo-arclength tracing of clamped crack clusters (lattice-trapping S-curves).</p>
+<p>A clamped cluster (<cite>clusters.clamped_cluster</cite>) in a <cite>SinclairCrack</cite> with <cite>variable_alpha=False,
+energy=”total”</cite> is the problem: free atoms move, clamped atoms sit on the K-field. The tracer works
+in x = (u, k) with k = K/K_G and u the free-atom displacements relative to the field; the arclength
+metric is ds^2 = <a href="#id1"><span class="problematic" id="id2">|</span></a>du|^2 + alpha^2 dk^2. Correctors use a surrogate Jacobian (the Hessian of any
+matscipy many-body potential, e.g. Stillinger-Weber for Si, plus X-H springs, scaled by one
+calibrated factor) with good-Broyden updates from every force call, then Newton-Krylov. For large
+clusters the surrogate can stay sparse, with the Broyden updates as a low-rank correction
+(<cite>LowRankJacobian</cite>, <cite>TraceSettings(surrogate=”sparse”)</cite>).</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.bordered_solve" title="matscipy.fracture_mechanics.continuation.bordered_solve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bordered_solve</span></code></a>(J, t, rhs_F, rhs_g)</p></td>
+<td><p>Solve [J; t] d = [rhs_F; rhs_g] (the pseudo-arclength bordered system); J dense or a <cite>LowRankJacobian</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.trace_s_curve" title="matscipy.fracture_mechanics.continuation.trace_s_curve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trace_s_curve</span></code></a>(problem, surrogate, k0, *[, ...])</p></td>
+<td><p>Trace the S-curve K(u) of a clamped crack cluster from load k0 = K/K_G.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector" title="matscipy.fracture_mechanics.continuation.BroydenCorrector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BroydenCorrector</span></code></a>([ftol, max_iter, ...])</p></td>
+<td><p>Quasi-Newton on the bordered system F(y) = 0, t.(y - yp) = 0; B starts from the surrogate Jacobian and gets a good-Broyden rank-1 update from every force call.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.ClampedProblem" title="matscipy.fracture_mechanics.continuation.ClampedProblem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ClampedProblem</span></code></a>(crack, K_G[, atoms])</p></td>
+<td><p>x = (u flat over free atoms, k = K/K_G) on a clamped SinclairCrack.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.CorrectorResult" title="matscipy.fracture_mechanics.continuation.CorrectorResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CorrectorResult</span></code></a>(y, F, iters, calls, ok)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate" title="matscipy.fracture_mechanics.continuation.HessianSurrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HessianSurrogate</span></code></a>(problem, calc[, ks, kb, scale])</p></td>
+<td><p>Approximate Jacobian dF/dx: the Hessian of <cite>calc</cite> (a matscipy many-body calculator with a <cite>hessian</cite> property) on the heavy atoms, times a calibrated scale, plus anisotropic X-H springs (stretch ks, bend kb, eV/A^2) for H caps (<cite>h_host</cite>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.KrylovCorrector" title="matscipy.fracture_mechanics.continuation.KrylovCorrector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KrylovCorrector</span></code></a>([ftol, max_iter, eps_fd, ...])</p></td>
+<td><p>Jacobian-free Newton-Krylov on the bordered system (GMRES; finite-difference J v, or an exact <cite>hvp(y, v)</cite> = J(y) v when given), right preconditioned by an approximate Jacobian (dense or <cite>LowRankJacobian</cite>); at most max_calls force calls (hvp calls are not counted).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian" title="matscipy.fracture_mechanics.continuation.LowRankJacobian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LowRankJacobian</span></code></a>(S[, U, V, max_rank])</p></td>
+<td><p>Corrector Jacobian B = S + U V^T for large clusters (<cite>TraceSettings(surrogate=&quot;sparse&quot;)</cite>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.TraceSettings" title="matscipy.fracture_mechanics.continuation.TraceSettings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TraceSettings</span></code></a>([ftol, alpha, ds0, ds_min, ...])</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">ClampedProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K_G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>x = (u flat over free atoms, k = K/K_G) on a clamped SinclairCrack. Free atoms: region 1
+(groups != 0); clamped atoms ride the K-field. <cite>U</cite> is the field per unit k (all atoms).</p>
+<p><cite>atoms</cite>: the built cluster (<cite>clamped_cluster</cite>/<cite>cluster_like</cite>), whose geometry is the start; the
+crack’s own atoms at u = 0 put every H cap on its host (a cap’s reference is its host’s), so
+pass it whenever the cluster is passivated. <cite>k_build</cite> is the load the crack was set up at.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.advance_break" title="matscipy.fracture_mechanics.continuation.ClampedProblem.advance_break"><code class="xref py py-obj docutils literal notranslate"><span class="pre">advance_break</span></code></a></dt><dd><p>Bond length (A) at which a crack-line bond counts as broken (settable).</p>
+</dd>
+<dt><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.line_bonds" title="matscipy.fracture_mechanics.continuation.ClampedProblem.line_bonds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">line_bonds</span></code></a></dt><dd><p>Heavy-atom bonds crossing the cleavage plane at or ahead of the tip, sorted along the propagation direction: (i, j, reference length).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.advance" title="matscipy.fracture_mechanics.continuation.ClampedProblem.advance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">advance</span></code></a>(x)</p></td>
+<td><p>Crack advance in bonds: the sum over crack-line bonds of the fraction each is stretched from its reference length towards <cite>advance_break</cite> (clipped to [0, 1]).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.evaluate" title="matscipy.fracture_mechanics.continuation.ClampedProblem.evaluate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate</span></code></a>(x)</p></td>
+<td><p>(energy, forces on all atoms) at x; one force call unless x repeats the last one.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>atoms_at</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>bond_between</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>dr_max</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>positions</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>residual</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>x_from</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.ADVANCE_BREAK_RATIO">
+<span class="sig-name descname"><span class="pre">ADVANCE_BREAK_RATIO</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.55</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.ADVANCE_BREAK_RATIO" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crack</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K_G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.positions" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.x_from">
+<span class="sig-name descname"><span class="pre">x_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.x_from" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.atoms_at">
+<span class="sig-name descname"><span class="pre">atoms_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.atoms_at" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.evaluate">
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.evaluate" title="Link to this definition"></a></dt>
+<dd><p>(energy, forces on all atoms) at x; one force call unless x repeats the last one.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.residual">
+<span class="sig-name descname"><span class="pre">residual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.residual" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.bond_between">
+<span class="sig-name descname"><span class="pre">bond_between</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.bond_between" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.dr_max">
+<span class="sig-name descname"><span class="pre">dr_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.dr_max" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.advance_break">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">advance_break</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.advance_break" title="Link to this definition"></a></dt>
+<dd><p>Bond length (A) at which a crack-line bond counts as broken (settable).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.line_bonds">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">line_bonds</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.line_bonds" title="Link to this definition"></a></dt>
+<dd><p>Heavy-atom bonds crossing the cleavage plane at or ahead of the tip, sorted along the
+propagation direction: (i, j, reference length).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.ClampedProblem.advance">
+<span class="sig-name descname"><span class="pre">advance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.ClampedProblem.advance" title="Link to this definition"></a></dt>
+<dd><p>Crack advance in bonds: the sum over crack-line bonds of the fraction each is stretched
+from its reference length towards <cite>advance_break</cite> (clipped to [0, 1]).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.HessianSurrogate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">HessianSurrogate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Approximate Jacobian dF/dx: the Hessian of <cite>calc</cite> (a matscipy many-body calculator with a
+<cite>hessian</cite> property) on the heavy atoms, times a calibrated scale, plus anisotropic X-H springs
+(stretch ks, bend kb, eV/A^2) for H caps (<cite>h_host</cite>). <cite>jac</cite> is dense; <cite>jac_sparse</cite> keeps the
+calculator’s sparse Hessian sparse (for <cite>TraceSettings(surrogate=”sparse”)</cite>).</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.calibrate" title="matscipy.fracture_mechanics.continuation.HessianSurrogate.calibrate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calibrate</span></code></a>(x[, F0, n, eps, seed, clip])</p></td>
+<td><p>Fit the scale from n finite-difference Hessian-vector products of the true forces along random unit vectors over the heavy-atom free dofs; clipped to <cite>clip</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.hessian_sparse" title="matscipy.fracture_mechanics.continuation.HessianSurrogate.hessian_sparse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hessian_sparse</span></code></a>(x)</p></td>
+<td><p><cite>hessian</cite> as a scipy.sparse CSR matrix (3N x 3N), never densified.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.jac_sparse" title="matscipy.fracture_mechanics.continuation.HessianSurrogate.jac_sparse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">jac_sparse</span></code></a>(x)</p></td>
+<td><p><cite>jac</cite> as a scipy.sparse CSR matrix (nf x nf+1): [-H_II | dF/dk].</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>hessian</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>jac</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.HessianSurrogate.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.HessianSurrogate.hessian">
+<span class="sig-name descname"><span class="pre">hessian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.hessian" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.HessianSurrogate.jac">
+<span class="sig-name descname"><span class="pre">jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.jac" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.HessianSurrogate.hessian_sparse">
+<span class="sig-name descname"><span class="pre">hessian_sparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.hessian_sparse" title="Link to this definition"></a></dt>
+<dd><p><cite>hessian</cite> as a scipy.sparse CSR matrix (3N x 3N), never densified.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.HessianSurrogate.jac_sparse">
+<span class="sig-name descname"><span class="pre">jac_sparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.jac_sparse" title="Link to this definition"></a></dt>
+<dd><p><cite>jac</cite> as a scipy.sparse CSR matrix (nf x nf+1): [-H_II | dF/dk].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.HessianSurrogate.calibrate">
+<span class="sig-name descname"><span class="pre">calibrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.005</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.3,</span> <span class="pre">3.0)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.HessianSurrogate.calibrate" title="Link to this definition"></a></dt>
+<dd><p>Fit the scale from n finite-difference Hessian-vector products of the true forces along
+random unit vectors over the heavy-atom free dofs; clipped to <cite>clip</cite>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.CorrectorResult">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">CorrectorResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ok</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.CorrectorResult" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.CorrectorResult.y">
+<span class="sig-name descname"><span class="pre">y</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.CorrectorResult.y" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.CorrectorResult.F">
+<span class="sig-name descname"><span class="pre">F</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.CorrectorResult.F" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.CorrectorResult.iters">
+<span class="sig-name descname"><span class="pre">iters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.CorrectorResult.iters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.CorrectorResult.calls">
+<span class="sig-name descname"><span class="pre">calls</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.CorrectorResult.calls" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.CorrectorResult.ok">
+<span class="sig-name descname"><span class="pre">ok</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.CorrectorResult.ok" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.CorrectorResult.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">F</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ok</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.CorrectorResult.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">LowRankJacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">120</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Corrector Jacobian B = S + U V^T for large clusters (<cite>TraceSettings(surrogate=”sparse”)</cite>).</p>
+<p>S (nf x nf+1, scipy.sparse) is the surrogate Jacobian at the last refresh, U V^T (U: nf x m,
+V: nf+1 x m) the limited-memory good-Broyden correction learned from the true forces since,
+one column pair per update, compressed by truncated SVD to at most <cite>max_rank</cite> terms at each
+refresh. The bordered system [B; t] d = r is solved by block elimination on S’s free-free
+block S_u (one sparse LU per refresh, reused by the tangent, every corrector iteration and the
+Krylov preconditioner) and Sherman-Morrison-Woodbury for U V^T (S_u^-1 U cached), plus one step
+of iterative refinement, which guards the block elimination near folds, where S_u (a Hessian)
+is nearly singular. Exact algebra: the same B as the dense path, without the (3N)^2 storage and
+O(N^3) solves.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shape</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.bordered_solve" title="matscipy.fracture_mechanics.continuation.LowRankJacobian.bordered_solve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bordered_solve</span></code></a>(t, rhs_F, rhs_g[, refine])</p></td>
+<td><p>Solve [B; t] d = [rhs_F; rhs_g], with <cite>refine</cite> steps of iterative refinement.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.compress" title="matscipy.fracture_mechanics.continuation.LowRankJacobian.compress"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compress</span></code></a>()</p></td>
+<td><p>Truncated SVD of U V^T to at most max_rank terms (drops the smallest).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.refresh" title="matscipy.fracture_mechanics.continuation.LowRankJacobian.refresh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">refresh</span></code></a>(Sn[, mode, Q])</p></td>
+<td><p>The B for a new surrogate Jacobian Sn (<cite>BroydenCorrector.refresh</cite>): &quot;reset&quot; Sn, &quot;carry&quot; Sn + U V^T, &quot;projected&quot; Sn + U V^T - (Sn - S) Q Q^T; compressed to max_rank.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.update" title="matscipy.fracture_mechanics.continuation.LowRankJacobian.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>(dy, dF)</p></td>
+<td><p>Good Broyden: B += (dF - B dy) dy^T / <a href="#id3"><span class="problematic" id="id4">|</span></a>dy|^2, as one new column pair.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>copy</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>toarray</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">120</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian.shape">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.shape" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.copy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian.toarray">
+<span class="sig-name descname"><span class="pre">toarray</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.toarray" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dF</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.update" title="Link to this definition"></a></dt>
+<dd><p>Good Broyden: B += (dF - B dy) dy^T / <a href="#id5"><span class="problematic" id="id6">|</span></a>dy|^2, as one new column pair.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian.refresh">
+<span class="sig-name descname"><span class="pre">refresh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Sn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'projected'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.refresh" title="Link to this definition"></a></dt>
+<dd><p>The B for a new surrogate Jacobian Sn (<cite>BroydenCorrector.refresh</cite>): “reset” Sn,
+“carry” Sn + U V^T, “projected” Sn + U V^T - (Sn - S) Q Q^T; compressed to max_rank.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian.compress">
+<span class="sig-name descname"><span class="pre">compress</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.compress" title="Link to this definition"></a></dt>
+<dd><p>Truncated SVD of U V^T to at most max_rank terms (drops the smallest).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.LowRankJacobian.bordered_solve">
+<span class="sig-name descname"><span class="pre">bordered_solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs_F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.LowRankJacobian.bordered_solve" title="Link to this definition"></a></dt>
+<dd><p>Solve [B; t] d = [rhs_F; rhs_g], with <cite>refine</cite> steps of iterative refinement.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.bordered_solve">
+<span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">bordered_solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">J</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs_F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs_g</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.bordered_solve" title="Link to this definition"></a></dt>
+<dd><p>Solve [J; t] d = [rhs_F; rhs_g] (the pseudo-arclength bordered system); J dense or a
+<cite>LowRankJacobian</cite>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.BroydenCorrector">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">BroydenCorrector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.002</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">120</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Quasi-Newton on the bordered system F(y) = 0, t.(y - yp) = 0; B starts from the surrogate
+Jacobian and gets a good-Broyden rank-1 update from every force call. <cite>Q</cite> (orthonormal columns)
+spans the update directions since the last <cite>refresh</cite>: the subspace on which B holds secant
+information from the true forces rather than the surrogate’s. B is a dense array or a
+<cite>LowRankJacobian</cite> (<cite>max_rank</cite> terms, used when a refresh starts one from a sparse Jn).</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector.refresh" title="matscipy.fracture_mechanics.continuation.BroydenCorrector.refresh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">refresh</span></code></a>(Jn, Js[, mode])</p></td>
+<td><p>Merge a new surrogate Jacobian Jn (previous one Js) into B and restart the span.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector.tangent" title="matscipy.fracture_mechanics.continuation.BroydenCorrector.tangent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tangent</span></code></a>(sec)</p></td>
+<td><p>Unit null vector of B bordered by and oriented along the unit secant <cite>sec</cite> (sec if the bordered solve fails).</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>correct</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>update</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.BroydenCorrector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.002</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">120</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.BroydenCorrector.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dF</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector.update" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.BroydenCorrector.refresh">
+<span class="sig-name descname"><span class="pre">refresh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Jn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Js</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'projected'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector.refresh" title="Link to this definition"></a></dt>
+<dd><p>Merge a new surrogate Jacobian Jn (previous one Js) into B and restart the span.</p>
+<p>“projected” adds Jn - Js only off the span Q: on Q, B already holds the true forces’ current
+secants, which contain that change, and adding it there too counts it twice per refresh
+(near a fold, where the critical curvature changes fast, this made the tangent retrace the
+stable branch). “carry” adds it everywhere (the behaviour before), “reset” sets B = Jn.
+A <cite>LowRankJacobian</cite> B takes the same rule on its low-rank part (Js is then its S). With no
+B yet, B = Jn (a <cite>LowRankJacobian</cite> if Jn is sparse); with no previous Js, a dense B has no
+change to merge and is kept.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.BroydenCorrector.tangent">
+<span class="sig-name descname"><span class="pre">tangent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector.tangent" title="Link to this definition"></a></dt>
+<dd><p>Unit null vector of B bordered by and oriented along the unit secant <cite>sec</cite> (sec if the
+bordered solve fails).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.BroydenCorrector.correct">
+<span class="sig-name descname"><span class="pre">correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">F_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Fy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dr_fn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.BroydenCorrector.correct" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.KrylovCorrector">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">KrylovCorrector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.002</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps_fd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gmres_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_calls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">40</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.KrylovCorrector" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Jacobian-free Newton-Krylov on the bordered system (GMRES; finite-difference J v, or an
+exact <cite>hvp(y, v)</cite> = J(y) v when given), right preconditioned by an approximate Jacobian (dense
+or <cite>LowRankJacobian</cite>); at most max_calls force calls (hvp calls are not counted).</p>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>correct</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.KrylovCorrector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.002</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps_fd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gmres_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_calls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">40</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.KrylovCorrector.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.KrylovCorrector.correct">
+<span class="sig-name descname"><span class="pre">correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">F_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Fy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dr_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prec_J</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hvp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.KrylovCorrector.correct" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">TraceSettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.002</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds_min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dr_cap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broyden_retries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surrogate_every</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_window</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">3.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_after_folds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_after_last_fold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reject_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_calls_per_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">krylov_max_calls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">40</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corrector_step_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_advance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'jacobian'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'projected'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surrogate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'dense'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">120</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>max_advance</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.ftol">
+<span class="sig-name descname"><span class="pre">ftol</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.002</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.ftol" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.alpha">
+<span class="sig-name descname"><span class="pre">alpha</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.alpha" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.ds0">
+<span class="sig-name descname"><span class="pre">ds0</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.05</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.ds0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.ds_min">
+<span class="sig-name descname"><span class="pre">ds_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.ds_min" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.ds_max">
+<span class="sig-name descname"><span class="pre">ds_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.6</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.ds_max" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.dr_cap">
+<span class="sig-name descname"><span class="pre">dr_cap</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.05</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.dr_cap" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.n_target">
+<span class="sig-name descname"><span class="pre">n_target</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.n_target" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.max_iter">
+<span class="sig-name descname"><span class="pre">max_iter</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.max_iter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.broyden_retries">
+<span class="sig-name descname"><span class="pre">broyden_retries</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.broyden_retries" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.surrogate_every">
+<span class="sig-name descname"><span class="pre">surrogate_every</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.surrogate_every" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.max_points">
+<span class="sig-name descname"><span class="pre">max_points</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">400</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.max_points" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.k_window">
+<span class="sig-name descname"><span class="pre">k_window</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0.0,</span> <span class="pre">3.0)</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.k_window" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.stop_after_folds">
+<span class="sig-name descname"><span class="pre">stop_after_folds</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.stop_after_folds" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.extra_after_last_fold">
+<span class="sig-name descname"><span class="pre">extra_after_last_fold</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.25</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.extra_after_last_fold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.reject_factor">
+<span class="sig-name descname"><span class="pre">reject_factor</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3.0</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.reject_factor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.max_calls_per_point">
+<span class="sig-name descname"><span class="pre">max_calls_per_point</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">30</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.max_calls_per_point" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.krylov_max_calls">
+<span class="sig-name descname"><span class="pre">krylov_max_calls</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">40</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.krylov_max_calls" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.corrector_step_limit">
+<span class="sig-name descname"><span class="pre">corrector_step_limit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.corrector_step_limit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.start_max_iter">
+<span class="sig-name descname"><span class="pre">start_max_iter</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">200</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.start_max_iter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.max_advance">
+<span class="sig-name descname"><span class="pre">max_advance</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.max_advance" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.tangent">
+<span class="sig-name descname"><span class="pre">tangent</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'jacobian'</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.tangent" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.refresh">
+<span class="sig-name descname"><span class="pre">refresh</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'projected'</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.refresh" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.surrogate">
+<span class="sig-name descname"><span class="pre">surrogate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'dense'</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.surrogate" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.max_rank">
+<span class="sig-name descname"><span class="pre">max_rank</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">120</span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.max_rank" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.TraceSettings.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.002</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds_min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dr_cap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broyden_retries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surrogate_every</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_window</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">3.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_after_folds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_after_last_fold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reject_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_calls_per_point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">krylov_max_calls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">40</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corrector_step_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_advance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'jacobian'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'projected'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surrogate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'dense'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">120</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.TraceSettings.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="matscipy.fracture_mechanics.continuation.trace_s_curve">
+<span class="sig-prename descclassname"><span class="pre">matscipy.fracture_mechanics.continuation.</span></span><span class="sig-name descname"><span class="pre">trace_s_curve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surrogate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k0</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#matscipy.fracture_mechanics.continuation.trace_s_curve" title="Link to this definition"></a></dt>
+<dd><p>Trace the S-curve K(u) of a clamped crack cluster from load k0 = K/K_G.</p>
+<p>The start (the problem’s geometry, moved rigidly with the field from its build load to k0) is
+relaxed at fixed k; then a tangent predictor (<cite>tangent</cite>; capped to dr_cap and, with max_advance,
+to that crack advance) and bordered Broyden corrector (Newton-Krylov after broyden_retries
+halvings), with the surrogate Jacobian refreshed (<cite>refresh</cite>) every surrogate_every points.
+The corrector Jacobian is dense or sparse plus low rank (<cite>surrogate</cite>; the surrogate’s <cite>jac</cite>
+may return either). If the problem has <cite>hvp(x, v)</cite>, the exact directional derivative of the
+free-atom forces dF/dx(x) v (x and v in (u, k)), Newton-Krylov uses it instead of finite
+differences of the forces.
+Folds are sign changes of dk/ds (not at the first point after the start); the branch label
+starts “stable” and alternates at each fold. Stops after stop_after_folds folds plus
+extra_after_last_fold in k, on leaving k_window moving outward, at max_points, or when a step
+needs more than max_calls_per_point force calls or ds falls below ds_min (“stalled”).
+<cite>callback(frame)</cite> is called for every accepted point.</p>
+<p>Returns (frames, status): extxyz-ready Atoms with arrays <cite>forces</cite> and info <cite>K_over_KG</cite>, <cite>K</cite>,
+<cite>energy</cite>, <cite>branch</cite>, <cite>point_index</cite>, <cite>method</cite>, <cite>ds</cite>, <cite>calls</cite>; status one of “folds”, “window”,
+“complete”, “stalled”.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="matscipy.fracture_mechanics.clusters.html" class="btn btn-neutral float-left" title="matscipy.fracture_mechanics.clusters" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="matscipy.fracture_mechanics.crack.html" class="btn btn-neutral float-right" title="matscipy.fracture_mechanics.crack" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, James Kermode, Lars Pastewka, et al.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

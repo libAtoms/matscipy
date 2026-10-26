@@ -1,0 +1,19 @@
+matscipy.calculators.mcfm.qm\_cluster\_tools.qm\_flagging\_tool
+===============================================================
+
+.. automodule:: matscipy.calculators.mcfm.qm_cluster_tools.qm_flagging_tool
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      exponential_moving_average
+      update_avg_property_per_atom
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      QMFlaggingTool
+   
