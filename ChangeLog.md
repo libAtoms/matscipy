@@ -4,6 +4,15 @@ Change log
 Unreleased
 ----------
 
+- BUG: thin-strip energy release rate. `strain_to_G` / `G_to_strain` use the plane-strain
+  modulus E / (1 - nu^2), which assumes sigma_xx = 0; far ahead of a thin-strip crack the strip
+  is in uniaxial strain (eps_xx = eps_zz = 0), so G = M strain^2 h / 2 with M = C'_yyyy, the
+  stiffness rotated into the crack frame. The old form underestimates G by more than 20% for
+  Si(110)[1-10] with `nu` = `PoissonRatio_yx` (Stillinger-Weber: 131.8 against 170.4 GPa,
+  confirmed by the strain energy of uniaxially strained Si). New `thin_strip_modulus`,
+  `thin_strip_G` and `thin_strip_strain`; `get_energy_release_rate` uses
+  `atoms.info['ThinStripModulus']` and warns when it falls back to the old form;
+  `staging/fracture_mechanics/make_crack_thin_strip.py` stores and uses the new modulus.
 - BUG: `BroydenCorrector.refresh` with no B yet and a sparse surrogate Jacobian stored the bare
   sparse matrix, which the bordered solves cannot use; it now starts a `LowRankJacobian` with
   the corrector's new `max_rank` (`trace_s_curve` passes `TraceSettings.max_rank`). A refresh
