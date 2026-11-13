@@ -2542,9 +2542,72 @@ class IsotropicStressField(object):
         return sigma
 
 
+def thin_strip_modulus(C, crack_direction, cleavage_plane, crack_front):
+    """
+    Return the modulus M of a thin strip pulled normal to its cleavage plane
+
+    Far ahead of the crack, the fixed grips and the strip's length along the
+    crack direction leave only the opening strain eps_yy nonzero (uniaxial
+    strain, with eps_xx = eps_zz = 0), so the stored energy per unit volume is
+    M eps_yy**2 / 2 with M = C'_yyyy, the stiffness rotated into the crack
+    frame. The energy release rate is then ``G = M strain**2 h / 2``
+    (:func:`thin_strip_G`).
+
+    This is larger than the plane-strain modulus E / (1 - nu**2) used by
+    :func:`strain_to_G`, which assumes sigma_xx = 0. For Si(110)[1-10] the
+    difference is about 20%.
+
+    Parameters
+    ----------
+    C : array_like
+       6x6 elastic constants (Voigt notation) in the cubic crystal frame
+    crack_direction : array_like
+       Miller indices of x, the crack propagation direction
+    cleavage_plane : array_like
+       Miller indices of y, the cleavage plane normal
+    crack_front : array_like
+       Miller indices of z, the crack front
+
+    Returns
+    -------
+    M : float
+       Modulus in the units of `C`
+    """
+    from matscipy.elasticity import rotate_elastic_constants
+
+    A = np.array([crack_direction, cleavage_plane, crack_front], dtype=float)
+    A /= np.linalg.norm(A, axis=1)[:, np.newaxis]
+    return float(rotate_elastic_constants(np.asarray(C), A)[1, 1])
+
+
+def thin_strip_G(strain, M, orig_height):
+    """
+    Return the energy release rate of a thin strip at `strain`
+
+    ``G = M strain**2 orig_height / 2``, with `M` from :func:`thin_strip_modulus`.
+    In linear elasticity this is exact for a long strip under fixed grips.
+    """
+    return 0.5 * M * strain * strain * orig_height
+
+
+def thin_strip_strain(G, M, orig_height):
+    """
+    Return the thin-strip strain that gives energy release rate `G`
+
+    Inverse of :func:`thin_strip_G`.
+    """
+    return np.sqrt(2.0 * G / (M * orig_height))
+
+
 def strain_to_G(strain, E, nu, orig_height):
     """
     Convert from strain to energy release rate G for thin strip geometry
+
+    .. note::
+       ``E / (1 - nu**2)`` is the plane-strain modulus with sigma_xx = 0. A
+       thin strip far ahead of its crack is in uniaxial strain, so this
+       underestimates G, by about 20% for Si(110)[1-10]. Use
+       :func:`thin_strip_modulus` with :func:`thin_strip_G` instead.
 
     Parameters
     ----------
@@ -2569,6 +2632,10 @@ def strain_to_G(strain, E, nu, orig_height):
 def G_to_strain(G, E, nu, orig_height):
     """
     Convert from energy release rate G to strain for thin strip geometry
+
+    .. note::
+       See :func:`strain_to_G`: prefer :func:`thin_strip_modulus` with
+       :func:`thin_strip_strain`.
 
     Parameters
     ----------
@@ -2610,18 +2677,26 @@ def get_energy_release_rate(atoms):
     """
     Return the current energy release rate G for `atoms`
 
-    Result is computed assuming thin strip geometry, and using
-    stored Young's modulus and Poission ratio and original slab height
-    from `atoms.info` dictionary.
+    Result is computed assuming thin strip geometry, from the original slab
+    height and the modulus ``ThinStripModulus`` (:func:`thin_strip_modulus`)
+    in the `atoms.info` dictionary. Without ``ThinStripModulus`` the stored
+    Young's modulus and Poisson ratio are used with :func:`strain_to_G`,
+    which underestimates G, and a warning is given.
 
     Also updates `G` value stored in ``atoms.info`` dictionary.
     """
 
     current_strain = get_strain(atoms)
     orig_height = atoms.info['OrigHeight']
-    E = atoms.info['YoungsModulus']
-    nu = atoms.info['PoissonRatio_yx']
-    G = strain_to_G(current_strain, E, nu, orig_height)
+    if 'ThinStripModulus' in atoms.info:
+        G = thin_strip_G(current_strain, atoms.info['ThinStripModulus'], orig_height)
+    else:
+        warnings.warn('atoms.info has no ThinStripModulus: falling back to '
+                      'E / (1 - nu^2), which underestimates the thin-strip G '
+                      '(see thin_strip_modulus)', UserWarning, stacklevel=2)
+        E = atoms.info['YoungsModulus']
+        nu = atoms.info['PoissonRatio_yx']
+        G = strain_to_G(current_strain, E, nu, orig_height)
     atoms.info['G'] = G
     return G
 

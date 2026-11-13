@@ -61,7 +61,8 @@ from matscipy.elasticity import (measure_triclinic_elastic_constants,
                                  youngs_modulus, poisson_ratio)
 
 from matscipy.fracture_mechanics.crack import (print_crack_system,
-                                               G_to_strain,
+                                               thin_strip_modulus,
+                                               thin_strip_strain,
                                                thin_strip_displacement_y,
                                                find_tip_stress_field)
 import sys
@@ -100,6 +101,9 @@ E = youngs_modulus(C, params.cleavage_plane)
 print('Young\'s modulus %.1f GPa' % (E / units.GPa))
 nu = poisson_ratio(C, params.cleavage_plane, params.crack_direction)
 print('Poisson ratio % .3f\n' % nu)
+M = thin_strip_modulus(C, params.crack_direction, params.cleavage_plane,
+                       params.crack_front)
+print('Thin strip modulus %.1f GPa\n' % (M / units.GPa))
 
 # **** Setup crack slab unit cell ******
 
@@ -225,6 +229,7 @@ crack_slab.info['C12'] = C[0, 1]
 crack_slab.info['C44'] = C[3, 3]
 crack_slab.info['YoungsModulus'] = E
 crack_slab.info['PoissonRatio_yx'] = nu
+crack_slab.info['ThinStripModulus'] = M
 crack_slab.info['SurfaceEnergy'] = gamma
 crack_slab.info['OrigWidth'] = orig_width
 crack_slab.info['OrigHeight'] = orig_height
@@ -238,7 +243,7 @@ ase.io.write('slab.xyz', crack_slab, format='extxyz')
 
 # ****** Apply initial strain ramp *****
 
-strain = G_to_strain(params.initial_G, E, nu, orig_height)
+strain = thin_strip_strain(params.initial_G, M, orig_height)
 
 crack_slab.positions[:, 1] += thin_strip_displacement_y(
                                  crack_slab.positions[:, 0],
